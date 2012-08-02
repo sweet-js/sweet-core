@@ -181,6 +181,11 @@ parseStatement: true, parseSourceElement: true */
             throw new Error('ASSERT: ' + message);
         }
     }
+    
+
+    function isIn(el, list) {
+        return list.indexOf(el) !== -1;
+    }
 
     function sliceSource(from, to) {
         return source.slice(from, to);
@@ -3587,6 +3592,75 @@ parseStatement: true, parseSourceElement: true */
         };
     }
     
+    function readDelim(stream) {
+        var startDelim = stream.next(),
+            matchDelim = {
+                '(': ')',
+                '{': '}',
+                '[': ']'
+            },
+            inner = [];
+        
+        var delimiters = ['(', '{', '['];
+        
+        assert(delimiters.indexOf(startDelim) !== -1, "Need to begin at the delimiter");
+        
+        while(stream.curr() !== stream.EOS) {
+            if(isIn(stream.curr(), delimiters)) {
+                inner.push(readDelim(stream));
+            } else if (stream.curr() === "'" || stream.curr() === "\"") {
+                var quote = stream.curr();
+                inner.push(quote + readStringLiteral(stream) + quote);
+            } else if (stream.curr() === "/") {
+                // check for comments first
+                // a regex
+                if(stream.backIgnoringWhitespace() === "=") {
+                    inner.push(readRegex(stream));
+                } else {
+                    inner.push(stream.next());
+                }
+                
+            } else if(stream.curr() === matchDelim[startDelim]) {
+                stream.next(); // move the stream but we don't keep the closing delim
+                break;
+            } else {
+                inner.push(stream.next());
+            }
+        }
+        
+        // at the end of the stream but the very last char wasn't the closing delimiter
+        if(stream.curr() === stream.EOS && matchDelim[startDelim] !== stream.back()) {
+            throwError({}, Messages.UnexpectedEOS);
+        }
+        
+        return {
+            value: startDelim + matchDelim[startDelim], 
+            inner: inner
+        };
+    };
+    
+
+    function readRegex(stream) {
+        var r = stream.next();
+        // assume that comments have already been dealt with
+        
+        assert(r === "/", "Need to begin at the / to read a regex");
+        
+        while(stream.curr() !== stream.EOS) {
+            if(stream.curr() === "/") {
+                r += stream.next();
+                break;
+                // todo: escaping of slashes inside the regex
+            } else {
+                r += stream.next();
+            }
+        }
+        // todo: check for end of stream
+        
+        return r;
+    }
+
+    
     // (Str) -> [Token]
     function read(code) {
         var token, tokenTree = [];
@@ -3598,6 +3672,8 @@ parseStatement: true, parseSourceElement: true */
             _index: 0,
             _length: code.length,
             EOS: {},
+            
+            // -> Str
             curr: function() {
                 if(this._index >= this._length) {
                     return this.EOS;
@@ -3605,6 +3681,7 @@ parseStatement: true, parseSourceElement: true */
                     return this._source[this._index];
                 }
             },
+            // (Pos) -> Str
             peak: function(n) {
                 var lookahead = n || 1;
                 
@@ -3614,6 +3691,7 @@ parseStatement: true, parseSourceElement: true */
                     return this._source[this._index + lookahead];
                 }
             },
+            // (Pos) -> Str
             back: function(n) {
                 var lookback = n || 1;
                 
@@ -3623,6 +3701,23 @@ parseStatement: true, parseSourceElement: true */
                     return this._source[this._index - lookback];
                 }
             },
+            // (Pos) -> Str
+            backIgnoringWhitespace: function(n) {
+                var lookback = n || 1;
+                var i = 0;
+                var idx = this._index - (lookback + i);
+                
+                if(this._index - lookback >= this._length) {
+                    return this.EOS;
+                } else {
+                    while(this._source[idx] === " " && idx > 0) {
+                        i++;
+                        idx = this._index - (lookback + i);
+                    }
+                    return this._source[idx];
+                }
+            },
+            // -> Str
             next: function() {
                 if(this._index >= this._length) {
                     return this.EOS;
@@ -3632,41 +3727,7 @@ parseStatement: true, parseSourceElement: true */
             }
         };
         
-        function readDelim() {
-            var startDelim = stream.next(),
-                matchDelim = {
-                    '(': ')',
-                    '{': '}',
-                    '[': ']'
-                },
-                inner = [];
-            
-            assert(delimiters.indexOf(startDelim) !== -1, "Need to begin at the delimiter");
-            
-            while(stream.curr() !== stream.EOS) {
-                if(delimiters.indexOf(stream.curr()) !== -1) {
-                    inner.push(readDelim());
-                } else if (stream.curr() === "'") {
-                    inner.push(readString());
-                } else if(stream.curr() === matchDelim[startDelim] && stream.back() !== '\\') {
-                    stream.next(); // move the stream but we don't keep the closing delim
-                    break;
-                } else {
-                    inner.push(stream.next());
-                }
-            }
-            
-            // at the end of the stream but the very last char wasn't the closing delimiter
-            if(stream.curr() === stream.EOS && matchDelim[startDelim] !== stream.back()) {
-                throwError({}, Messages.UnexpectedEOS);
-            }
-            
-            return {
-                type: Token.Punctuator,
-                value: startDelim + matchDelim[startDelim], 
-                inner: inner
-            };
-        };
+        
         
         function readString() {
             var s = stream.next();
@@ -3683,17 +3744,128 @@ parseStatement: true, parseSourceElement: true */
                 }
                 s += stream.next();
             } 
-            
             return s;
         };
         
+        function readStringLiteral() {
+            var str = '', quote, start, ch, code, unescaped, restore, octal = false;
+
+            start = quote = stream.next();
+            assert((quote === '\'' || quote === '"'),
+                   'String literal must starts with a quote');
+
+            while (stream.curr() !== stream.EOS) {
+                ch = stream.next();
+
+                if (ch === quote) {
+                    quote = '';
+                    break;
+                } else if (ch === '\\') {
+                    ch = stream.next();
+                    if (!isLineTerminator(ch)) {
+                        switch (ch) {
+                        case 'n':
+                            str += '\n';
+                            break;
+                        case 'r':
+                            str += '\r';
+                            break;
+                        case 't':
+                            str += '\t';
+                            break;
+                        case 'u':
+                        case 'x':
+                            restore = index;
+                            // todo fix
+                            unescaped = scanHexEscape(ch);
+                            if (unescaped) {
+                                str += unescaped;
+                            } else {
+                                index = restore;
+                                str += ch;
+                            }
+                            break;
+                        case 'b':
+                            str += '\b';
+                            break;
+                        case 'f':
+                            str += '\f';
+                            break;
+                        case 'v':
+                            str += '\v';
+                            break;
+
+                        default:
+                            if (isOctalDigit(ch)) {
+                                code = '01234567'.indexOf(ch);
+
+                                // \0 is not octal escape sequence
+                                if (code !== 0) {
+                                    octal = true;
+                                }
+
+                                if (index < length && isOctalDigit(stream.curr())) {
+                                    octal = true;
+                                    code = code * 8 + '01234567'.indexOf(stream.next());
+
+                                    // 3 digits are only allowed when string starts
+                                    // with 0, 1, 2, 3
+                                    if ('0123'.indexOf(ch) >= 0 &&
+                                        index < length &&
+                                        isOctalDigit(source[index])) {
+                                        code = code * 8 + '01234567'.indexOf(stream.next());
+                                    }
+                                }
+                                str += String.fromCharCode(code);
+                            } else {
+                                str += ch;
+                            }
+                            break;
+                        }
+                    } else {
+                        ++lineNumber;
+                        if (ch ===  '\r' && stream.curr() === '\n') {
+                            stream.next();
+                        }
+                    }
+                } else if (isLineTerminator(ch)) {
+                    break;
+                } else {
+                    str += ch;
+                }
+            }
+
+            if (quote !== '') {
+                throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
+            }
+
+            return str;
+            // return {
+            //     type: Token.StringLiteral,
+            //     value: str,
+            //     octal: octal,
+            //     lineNumber: lineNumber,
+            //     lineStart: lineStart,
+            //     range: [start, index]
+            // };
+        }
+
+        
         
         while(stream.curr() !== stream.EOS) {
-            if(stream.curr() === "'") {
-                token = readString();
-            } 
-            else if(delimiters.indexOf(stream.curr()) !== -1) {
-                token = readDelim();
+            if(stream.curr() === "'" || stream.curr() === "\"") {
+                var quote = stream.curr();
+                token = quote + readStringLiteral() + quote;
+            } else if(isIn(stream.curr(), delimiters)) {
+                token = readDelim(stream);
+            } else if(stream.curr() === "/") {
+                // check for comments first
+                // a regex
+                if(stream.backIgnoringWhitespace() === "=") {
+                   token = readRegex();
+                } else {
+                    token = stream.next();
+                }
             } else {
                 token = stream.next();
             }

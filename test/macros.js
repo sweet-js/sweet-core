@@ -1,7 +1,7 @@
 var should = require("should");
 var parser = require("../sweet");
 
-describe("parser", function() {
+describe("reader", function() {
     
     it("should match up a single delimiter", function() {
         parser.read("(a)")[0].value
@@ -71,18 +71,36 @@ describe("parser", function() {
         
         parser.read("(a (b))")[0].inner[2].inner.join("")
             .should.equal("b");
-        
     });
     
     
-    it("should parse strings as a single lexeme", function() {
+    it("should read strings as a single lexeme", function() {
         parser.read("'foo'")[0]
             .should.equal("'foo'");
-        
     });
     
-    it("should parse strings inside a delimiter", function() {
+    it("should read strings with double quotes", function() {
+        parser.read("\"foo\"")[0]
+            .should.equal("\"foo\"");
+    });
+    
+    it("should read strings inside a delimiter", function() {
         parser.read("foo ('bar')")[4].inner[0]
             .should.equal("'bar'");
     });
+    
+    it("should read delimiter in assign regex", function() {
+        parser.read("(x = /a)b/)")[0].inner.join("")
+            .should.equal("x = /a)b/");
+    });
+    
+    it("should not read delimiter inside a regex", function() {
+        parser.read("x = /(a)b/")[4]
+            .should.equal("/(a)b/");
+    });
+    
+    // it("should read delim in regex on right side of divide", function() {
+    //     parser.read("(2 / /a)b/)")[0].inner.join("")
+    //         .should.equal("2 / /a)b/");
+    // });
 });
