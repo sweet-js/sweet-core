@@ -90,13 +90,13 @@ describe("reader", function() {
     });
     
     it("should read delimiter in assign regex", function() {
-        parser.read("(x = /a)b/)")[0].inner.join("")
-            .should.equal("x = /a)b/");
+        parser.read("{x = /a}b/}")[0].inner.join("")
+            .should.equal("x = /a}b/");
     });
     
     it("should not read delimiter inside a regex", function() {
-        parser.read("x = /(a)b/")[4]
-            .should.equal("/(a)b/");
+        parser.read("x = /{a}b/")[4]
+            .should.equal("/{a}b/");
     });
     
     // it("should read delim in regex on right side of divide", function() {

@@ -3609,13 +3609,12 @@ parseStatement: true, parseSourceElement: true */
             if(isIn(stream.curr(), delimiters)) {
                 inner.push(readDelim(stream));
             } else if (stream.curr() === "'" || stream.curr() === "\"") {
-                var quote = stream.curr();
-                inner.push(quote + readStringLiteral(stream) + quote);
+                inner.push(readStringLiteral(stream));
             } else if (stream.curr() === "/") {
                 // check for comments first
                 // a regex
                 if(stream.backIgnoringWhitespace() === "=") {
-                    inner.push(readRegex(stream));
+                    inner.push(readRegExpLiteral(stream));
                 } else {
                     inner.push(stream.next());
                 }
@@ -3658,6 +3657,202 @@ parseStatement: true, parseSourceElement: true */
         // todo: check for end of stream
         
         return r;
+    }
+
+    function readStringLiteral(stream) {
+        var str = '', quote, start, ch, code, unescaped, restore, octal = false;
+
+        start = quote = stream.next();
+        assert((quote === '\'' || quote === '"'),
+               'String literal must starts with a quote');
+
+        while (stream.curr() !== stream.EOS) {
+            ch = stream.next();
+
+            if (ch === quote) {
+                quote = '';
+                break;
+            } else if (ch === '\\') {
+                ch = stream.next();
+                if (!isLineTerminator(ch)) {
+                    switch (ch) {
+                    case 'n':
+                        str += '\n';
+                        break;
+                    case 'r':
+                        str += '\r';
+                        break;
+                    case 't':
+                        str += '\t';
+                        break;
+                    case 'u':
+                    case 'x':
+                        restore = index;
+                        // todo fix
+                        unescaped = scanHexEscape(ch);
+                        if (unescaped) {
+                            str += unescaped;
+                        } else {
+                            index = restore;
+                            str += ch;
+                        }
+                        break;
+                    case 'b':
+                        str += '\b';
+                        break;
+                    case 'f':
+                        str += '\f';
+                        break;
+                    case 'v':
+                        str += '\v';
+                        break;
+
+                    default:
+                        if (isOctalDigit(ch)) {
+                            code = '01234567'.indexOf(ch);
+
+                            // \0 is not octal escape sequence
+                            if (code !== 0) {
+                                octal = true;
+                            }
+
+                            if (index < length && isOctalDigit(stream.curr())) {
+                                octal = true;
+                                code = code * 8 + '01234567'.indexOf(stream.next());
+
+                                // 3 digits are only allowed when string starts
+                                // with 0, 1, 2, 3
+                                if ('0123'.indexOf(ch) >= 0 &&
+                                    index < length &&
+                                    isOctalDigit(source[index])) {
+                                    code = code * 8 + '01234567'.indexOf(stream.next());
+                                }
+                            }
+                            str += String.fromCharCode(code);
+                        } else {
+                            str += ch;
+                        }
+                        break;
+                    }
+                } else {
+                    ++lineNumber;
+                    if (ch ===  '\r' && stream.curr() === '\n') {
+                        stream.next();
+                    }
+                }
+            } else if (isLineTerminator(ch)) {
+                break;
+            } else {
+                str += ch;
+            }
+        }
+
+        if (quote !== '') {
+            throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
+        }
+
+        return start + str + start;
+        // return {
+        //     type: Token.StringLiteral,
+        //     value: str,
+        //     octal: octal,
+        //     lineNumber: lineNumber,
+        //     lineStart: lineStart,
+        //     range: [start, index]
+        // };
+    }
+    
+    function readRegExpLiteral(stream) {
+        var str = '', ch, start, pattern, flags, value, classMarker = false, restore;
+
+        // todo fix
+        // skipComment();
+
+        ch = stream.curr();
+        assert(ch === '/', 'Regular expression literal must start with a slash');
+        str = stream.next();
+
+        while (stream.curr !== stream.EOS) {
+            ch = stream.next();
+            str += ch;
+            if (classMarker) {
+                if (ch === ']') {
+                    classMarker = false;
+                }
+            } else {
+                if (ch === '\\') {
+                    ch = stream.next();
+                    // ECMA-262 7.8.5
+                    if (isLineTerminator(ch)) {
+                        throwError({}, Messages.UnterminatedRegExp);
+                    }
+                    str += ch;
+                } else if (ch === '/') {
+                    break;
+                } else if (ch === '[') {
+                    classMarker = true;
+                } else if (isLineTerminator(ch)) {
+                    throwError({}, Messages.UnterminatedRegExp);
+                }
+            }
+        }
+
+        if (str.length === 1) {
+            throwError({}, Messages.UnterminatedRegExp);
+        }
+
+        // Exclude leading and trailing slash.
+        pattern = str.substr(1, str.length - 2);
+
+        flags = '';
+        while (stream.curr() !== stream.EOS) {
+            ch = stream.curr();
+            if (!isIdentifierPart(ch)) {
+                break;
+            }
+
+            stream.next();
+            if (ch === '\\' && (stream.curr() !== stream.EOS)) {
+                ch = stream.curr();
+                if (ch === 'u') {
+                    stream.next();
+                    
+                    // breaking the abstraction...
+                    restore = stream._index; 
+                    // todo fix
+                    // ch = scanHexEscape('u');
+                    if (ch) {
+                        flags += ch;
+                        str += '\\u';
+                        for (; restore < stream._index; ++restore) {
+                            str += stream._source[restore];
+                        }
+                    } else {
+                        stream._index = restore;
+                        flags += 'u';
+                        str += '\\u';
+                    }
+                } else {
+                    str += '\\';
+                }
+            } else {
+                flags += ch;
+                str += ch;
+            }
+        }
+
+        try {
+            value = new RegExp(pattern, flags);
+        } catch (e) {
+            throwError({}, Messages.InvalidRegExp);
+        }
+
+        return str;
+        // return {
+        //     literal: str,
+        //     value: value,
+        //     range: [start, index]
+        // };
     }
 
     
@@ -3728,141 +3923,16 @@ parseStatement: true, parseSourceElement: true */
         };
         
         
-        
-        function readString() {
-            var s = stream.next();
-            
-            assert(s === "'", "begins on the string");
-            
-            while (stream.curr() !== stream.EOS) {
-                if(stream.curr() === "'" && stream.back() === "\\") {
-                    s += stream.next();
-                    continue;
-                } else if (stream.curr() === "'") {
-                    s += stream.next();
-                    break;
-                }
-                s += stream.next();
-            } 
-            return s;
-        };
-        
-        function readStringLiteral() {
-            var str = '', quote, start, ch, code, unescaped, restore, octal = false;
-
-            start = quote = stream.next();
-            assert((quote === '\'' || quote === '"'),
-                   'String literal must starts with a quote');
-
-            while (stream.curr() !== stream.EOS) {
-                ch = stream.next();
-
-                if (ch === quote) {
-                    quote = '';
-                    break;
-                } else if (ch === '\\') {
-                    ch = stream.next();
-                    if (!isLineTerminator(ch)) {
-                        switch (ch) {
-                        case 'n':
-                            str += '\n';
-                            break;
-                        case 'r':
-                            str += '\r';
-                            break;
-                        case 't':
-                            str += '\t';
-                            break;
-                        case 'u':
-                        case 'x':
-                            restore = index;
-                            // todo fix
-                            unescaped = scanHexEscape(ch);
-                            if (unescaped) {
-                                str += unescaped;
-                            } else {
-                                index = restore;
-                                str += ch;
-                            }
-                            break;
-                        case 'b':
-                            str += '\b';
-                            break;
-                        case 'f':
-                            str += '\f';
-                            break;
-                        case 'v':
-                            str += '\v';
-                            break;
-
-                        default:
-                            if (isOctalDigit(ch)) {
-                                code = '01234567'.indexOf(ch);
-
-                                // \0 is not octal escape sequence
-                                if (code !== 0) {
-                                    octal = true;
-                                }
-
-                                if (index < length && isOctalDigit(stream.curr())) {
-                                    octal = true;
-                                    code = code * 8 + '01234567'.indexOf(stream.next());
-
-                                    // 3 digits are only allowed when string starts
-                                    // with 0, 1, 2, 3
-                                    if ('0123'.indexOf(ch) >= 0 &&
-                                        index < length &&
-                                        isOctalDigit(source[index])) {
-                                        code = code * 8 + '01234567'.indexOf(stream.next());
-                                    }
-                                }
-                                str += String.fromCharCode(code);
-                            } else {
-                                str += ch;
-                            }
-                            break;
-                        }
-                    } else {
-                        ++lineNumber;
-                        if (ch ===  '\r' && stream.curr() === '\n') {
-                            stream.next();
-                        }
-                    }
-                } else if (isLineTerminator(ch)) {
-                    break;
-                } else {
-                    str += ch;
-                }
-            }
-
-            if (quote !== '') {
-                throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
-            }
-
-            return str;
-            // return {
-            //     type: Token.StringLiteral,
-            //     value: str,
-            //     octal: octal,
-            //     lineNumber: lineNumber,
-            //     lineStart: lineStart,
-            //     range: [start, index]
-            // };
-        }
-
-        
-        
         while(stream.curr() !== stream.EOS) {
             if(stream.curr() === "'" || stream.curr() === "\"") {
-                var quote = stream.curr();
-                token = quote + readStringLiteral() + quote;
+                token = readStringLiteral(stream);
             } else if(isIn(stream.curr(), delimiters)) {
                 token = readDelim(stream);
             } else if(stream.curr() === "/") {
                 // check for comments first
                 // a regex
                 if(stream.backIgnoringWhitespace() === "=") {
-                   token = readRegex();
+                   token = readRegExpLiteral(stream);
                 } else {
                     token = stream.next();
                 }
