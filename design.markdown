@@ -1,8 +1,5 @@
 # Preliminary Design
 
-Having trouble keeping all the moving pieces in my head so it's time
-to write it down. And haven't even gotten to the hard parts yet :)
-
 ## Reading
 
 To do macros we need to `read`. To `read` we need to match delimiters
@@ -14,12 +11,46 @@ regex or the division operator depends on parsing context.
 
 So how do we deal with this?
 
-### 0. Solution!
+### 1. Escape the delimiters
 
-So to handle the problem of `/` we can have almost-one lookbehind to
-disambiguate. Really not too hard as a matter of fact. Basic idea is
-to see if the token before `/` is in 
-(`=`, `(`, `)`, `{`, `}`, `,`, `]`, `[`). So
+We could just force all code to escape delimiters in regular
+expression literals so `var r = /as}df/` now must be written as `var r
+= /as\}df/`. This is of course not backwards compatible, though we
+could have an "upgrade your old code" script that you run to add the
+appropriate escaping.
+
+Annoying rule to force programmers to remember though. Problem for
+copy and pasting code snippets too.
+
+Easiest solution. Perhaps just chose this for the first pass and
+revisit later? But does this lock down the design too much if we want
+to actually solve it in the future?
+
+### 2. Give lookbehind to the reader
+
+So to handle the problem of `/` I think we can use "almost one" lookbehind to
+disambiguate. Algorithm:
+
+    skip over comments
+    
+    if tok is /
+        if tok-1 is )
+            look back to matching (
+            if identifier before ( in "if" "while" "with" "catch"
+                tok is start of regex literal
+            else
+                tok is divide
+                
+        if tok-1 in punctuator 
+            tok is start of regex literal
+            
+        if tok-1 in keywords (though some keywords will eventually result in a parse error)
+            tok is start of regex literal
+            
+        else
+            tok is divide
+
+Some examples:
 
     // `=` comes first so regex
     x = /foo/
@@ -43,12 +74,42 @@ to see if the token before `/` is in
     // needs to be divide since call
     bar (true) /foo/
     
-    // but!
-    if (true) /foo/
-    if (true) { /foo/ }
-    // both are regex
     
-    //however!
+But this means that inside of a macro call we have to follow this context 
+sensitivity for regex literals. So the following reasonable macro
+isn't allowed:
+
+    macro rcond {
+        rcond (s:expr) { case e:expr... } => // ...
+    }
+    
+    rcond ("foo") { 
+      case /foo}bar/
+    }
+
+The "case" makes the first / to be interpreted as divide. So we could
+just leave this as is and call it a limitation of macros. They need to
+respect the same structure as JS. This might actually be ok. The above
+could be done as:
+
+    rcond ("foo") {
+        case "foo}bar"
+    }
+
+Not too bad of a change I think. We're already forcing delimiter
+matching anyway. e.g. the following is bad because of the extra
+unmatched paren:
+
+    macro m {
+        case m (e1: expr ( e2:expr) => // ...
+    }
+
+Can't break the lexical structure (are there macro systems that allow this?).
+
+
+If we want to allow macros to shadow statements like if we have
+another complication:
+
     macro if { 
         case if(c:expr) => ...
     }
@@ -58,117 +119,6 @@ to see if the token before `/` is in
     
 **how do we deal with implicit {} in `if`/`for`?**
 
-### 1. Escape the delimiters
-
-We could just force all code to escape delimiters in regular
-expression literals so `var r = /as}df/` now must be written as `var r
-= /as\}df/`. This is of course not backwards compatible, though we
-could have an "upgrade your old code" script that you run to add the
-appropriate escaping.
-
-Annoying rule to force programmers to remember though. Problem for
-copy and pasting code snippets too.
-
-Easiest solution. Perhaps just chose this for the first pass and
-revisit later? But does this lock down the design too much if we want
-to actually solve it in the future?
-
-### 2. Add parsing smarts to the reader
-
-Can we carry enough state in the reader to disambiguate divide from
-regexp? But how would this work inside macros?
-
-    macro cond { ... }
-    
-    for (x in l) {
-        z = /as}df/;
-    }
-    // normal javascript, can figure out it's a regex with 
-    // enough state in the reader
-    
-    cond {
-        x > 3 => z = /as}df/
-        x < 3 => z = /df}as/
-    }
-    // are these regexes?
-    
-    // or a regex cond macro that matches regexes
-    var r = rcond ("foo") {
-        case /as}df/ => "asdf"
-        case /foo/ => "foo"
-    }
-    // js rules for regex vs div would interpret `case /as}df/...`  as divide
-
-In order to correctly `read` inside the macro invocation we need to
-know enough about the structure to decide if a delimiter is inside a
-regex or not. But how can we know that?
-
-What about requiring escaping delimiters in regexes in just macro
-calls? No can't do this since it breaks if we want to transparently define macros for the
-standard forms (e.g. `if`) since we can't expect the programmers to
-know when they're using a macro (and thus when to escape in a regex).
-
-### 3. Quantum reading
-
-Can we just `read` all possible delimiter matches? Keep the token tree
-in a superposition and delay deciding what is correct until macro
-expansion time?
-
-    if (x == 4) { /as}df/ }
-    ---->
-    [if, (x==4), {/as}df/}]
-    // and, starts reading tokens but reaches error state
-    [if, (x==4), {/as}, df/, error unmatched delim]
-
-What does it mean to be "correct"? Could we have multiple correct
-read trees?
-
-    foo {
-        x = /as{df/
-        y = /df}as/
-    }
-
-Perhaps macro definitions always provide enough context to figure out
-which brace to match?
-
-### 4. Mixed
-
-Can we always detect macro invocations before reading is finished? If
-so, then can we use the parser to drive the reading of non-macro forms
-and the macro pattern to drive the reading of the macro? All the
-phases are a little mixed here so does it cause any problems?
-This requires that macros are defined before use.
-
-    macro cond {
-        case cond { case condition:expr => val:expr ... } => // ...
-    }
-    // once we've read to here we know that cond {...} forms are a macro
-    
-    for (x in l) {
-        z = /as}df/
-    }
-    // parsing state will disambiguate the regex and `}`
-    
-    cond {
-        case /as}df/.test("foo") => 42
-    }
-    // using the knowledge that cond is `case expr => expr` use 
-    // parsing state to disambiguate `}`. Can this work?
-    
-    // what about...
-    macro foo { 
-        case foo { p:program } => ...
-    }
-    // should still work since disambiguates via the normal JS parser rules
-    
-Could also push the burden of disambiguation to the macro writers...
-
-    // regex cond
-    macro rcond {
-        case rcond (s:expr) { case r:rexex => v:expr } => // ...
-    }
-
-Not sure if/when this would be necessary...
 
 ## Scope
 
