@@ -3638,27 +3638,6 @@ parseStatement: true, parseSourceElement: true */
         };
     };
     
-
-    function readRegex(stream) {
-        var r = stream.next();
-        // assume that comments have already been dealt with
-        
-        assert(r === "/", "Need to begin at the / to read a regex");
-        
-        while(stream.curr() !== stream.EOS) {
-            if(stream.curr() === "/") {
-                r += stream.next();
-                break;
-                // todo: escaping of slashes inside the regex
-            } else {
-                r += stream.next();
-            }
-        }
-        // todo: check for end of stream
-        
-        return r;
-    }
-
     function readStringLiteral(stream) {
         var str = '', quote, start, ch, code, unescaped, restore, octal = false;
 
