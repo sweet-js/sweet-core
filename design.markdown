@@ -9,26 +9,9 @@ But JS complicates this because delimiters can appear inside
 of a regex literal and deciding if `/` is the start of a 
 regex or the division operator depends on parsing context.
 
-So how do we deal with this?
+### Give lookbehind to the reader
 
-### 1. Escape the delimiters
-
-We could just force all code to escape delimiters in regular
-expression literals so `var r = /as}df/` now must be written as `var r
-= /as\}df/`. This is of course not backwards compatible, though we
-could have an "upgrade your old code" script that you run to add the
-appropriate escaping.
-
-Annoying rule to force programmers to remember though. Problem for
-copy and pasting code snippets too.
-
-Easiest solution. Perhaps just chose this for the first pass and
-revisit later? But does this lock down the design too much if we want
-to actually solve it in the future?
-
-### 2. Give lookbehind to the reader
-
-So to handle the problem of `/` I think we can use "almost one" lookbehind to
+So to handle the problem of `/` we can use "almost one" lookbehind to
 disambiguate. Algorithm:
 
     skip over comments
@@ -40,15 +23,53 @@ disambiguate. Algorithm:
                 tok is start of regex literal
             else
                 tok is divide
-                
-        if tok-1 in punctuator 
+        if tok-1 is }
+            if end of function expression // described below
+                tok is start of divide
+            else
+                tok is start of regex literal
+            
+        if tok-1 in punctuator // e.g. ";", "==", ">", "/", "+", etc.
             tok is start of regex literal
             
-        if tok-1 in keywords (though some keywords will eventually result in a parse error)
+        if tok-1 in keywords // though some keywords will eventually result in a parse error
             tok is start of regex literal
             
         else
             tok is divide
+
+Depending on context, `function name() {}` is either a function declaration or a
+function expression. If it's a function expression then
+a following `/` will be interpreted as a divide but if it's a
+function declaration a following `/` will be interpreted as a regex.
+For example,
+
+    // a declaration so / is regex
+    f(); function foo() {} /42/i
+    vs
+    // an expression so / is divide
+    x = function foo() {} /42/i
+    
+Looking a token behind the `function` keyword (ignoring newlines) the
+following imply it is a function declaration:
+
+    ; } ) ] ident literal (including regex literal so need to be careful about /)
+    debugger break continue else
+    
+And these imply it is an function expression.
+
+    ( { [ , (assignment operators) (binary operators) (unary operators)
+    in typeof instanceof new return case delete
+    throw void
+    
+And these will result in a parse error:
+
+    do break default finally for function if switch this
+    try var while with
+    
+In the last section of this document I have some scratchpad tests of the various cases.
+
+What should do we do with FutureReservedWords? Treat as identifiers?
 
 Some examples:
 
@@ -75,7 +96,7 @@ Some examples:
     bar (true) /foo/
     
     
-But this means that inside of a macro call we have to follow this context 
+This means that inside of a macro call we have to follow this context 
 sensitivity for regex literals. So the following reasonable macro
 isn't allowed:
 
@@ -106,8 +127,7 @@ unmatched paren:
 
 Can't break the lexical structure (are there macro systems that allow this?).
 
-
-If we want to allow macros to shadow statements like if we have
+If we want to allow macros to shadow statements like `if` we have
 another complication:
 
     macro if { 
@@ -115,9 +135,11 @@ another complication:
     }
     if (true) / foo
     // should be divide?!
-    // problem only because of implicit {}?
     
-**how do we deal with implicit {} in `if`/`for`?**
+So I think we are going to treat the reserved keywords (`if`, `while`,
+etc.) as really reserved. Macros can't override their meaning.
+
+Should we disallow FutureReservedWords too (`class`, `enum`, etc.)?
 
 
 ## Scope
@@ -241,12 +263,6 @@ Syntax-case flavored macros:
 ## Misc
 
   * sub-form expansion? MTWT says parse and expand must be separate to do sub-form expansion.
-  
-  * Type like annotations, where did they come from?
-  * Entangling of parser and expander, paper says causes problems for racket style macros but do they really?
-  * Regex inside of macros, do we handle this for free? 
-
-
 
 ## Papers
 
@@ -259,5 +275,194 @@ Papers I've been looking through:
   * Syntactic Abstraction in Scheme
   * SuperC: Parsing All of C by Taming the Preprocessor
   * Composable and Compilable Macros
+  * Refining Syntactic Sugar: Tools for Supporting Macro Development
+  * Fortifying Macros
+  * Composable and Compilable Macros
   
 What others might be helpful?
+
+
+## Scratchpad testing
+
+    // Function Declarations
+    f(); function foo() {} /42/i
+    /*
+    /42/i
+    */
+    {false} function foo() {} /42/i
+    /*
+    /42/i
+    */
+    if (false) false 
+    function foo() {} /42/i
+    /*
+    /42/i
+    */
+    i = 0;function foo() {} /42/i
+    /*
+    /42/i
+    */
+    if (false) {} function foo() {} /42/i
+    /*
+    /42/i
+    */
+    function foo() {} function foo() {} /42/i
+    /*
+    /42/i
+    */
+    if (false) function foo() {} /42/i
+    /*
+    /42/i
+    */
+    {function foo() {} /42/i}
+    /*
+    /42/i
+    */
+    foo
+    function foo() {} /42/i
+    /*
+    /42/i
+    */
+    42
+    function foo() {} /42/i
+    /*
+    /42/i
+    */
+    [2,3]
+    function foo() {} /42/i
+    /*
+    /42/i
+    */
+    {a: 2}
+    function foo() {} /42/i
+    /*
+    /42/i
+    */
+    "foo"
+    function foo() {} /42/i
+    /*
+    /42/i
+    */
+    /42/i
+    function foo() {} /42/i
+    /*
+    /42/i
+    */
+    for (;;) {
+        break
+        function foo() {} /42/i
+    }
+    /*
+    undefined
+    */
+
+    debugger 
+    function foo() {} /42/i
+    /*
+    /42/i
+    */
+
+    switch ("foo") {
+        case "foo": {true;}
+        case function foo() {} /42/i: {true;}
+    }
+    /*
+    undefined
+    */
+    if(false) 
+    false 
+    else 
+    function foo() {} /42/i
+    /*
+    /42/i
+    */
+    [42][0]
+    function foo() {} /42/i
+    /*
+    /42/i
+    */
+
+
+
+    // Function Expressions
+    x = function foo() {} /42/i
+    /*
+    NaN
+    */
+    x = 42 / function foo() {} /42/i
+    /*
+    NaN
+    */
+    42 >> function foo() {} /42/i
+    /*
+    42
+    */
+    i = 0;+function foo() {} /42/i
+    /*
+    NaN
+    */
+    (function foo() {} /42/i)
+    /*
+    NaN
+    */
+    foo /
+    function foo() {} /42/i
+    /*
+    NaN
+    */
+    new function foo() {} /42/i
+    /*
+    NaN
+    */
+    typeof function foo() {} /42/i
+    /*
+    NaN
+    */
+    2 in function foo() {} /42/i
+    /*
+    Exception: invalid 'in' operand NaN
+    @Scratchpad:1
+    */
+    (function foo() {
+       return function foo() {} /42/i
+    })()
+    /*
+    NaN
+    */
+    do function foo() {} /42/ while (false);
+    /*
+    Exception: missing while after do-loop body
+    Scratchpad:1
+    */
+    void function foo() {} /42/i
+    /*
+    NaN
+    */
+    [function foo() {} /42/i]
+    /*
+    NaN
+    */
+    4,
+    function foo() {} /42/i
+    /*
+    NaN
+    */
+    ++function foo() {} /42/i
+    /*
+    Exception: invalid increment operand
+    Scratchpad:1
+    */
+
+    x /= function foo() {} /42/i
+    /*
+    NaN
+    */
+
+
+    // parse errors
+    if (false) false function foo() {} /42/i
+    /*
+    Exception: missing ; before statement
+    Scratchpad:1
+    */
+
