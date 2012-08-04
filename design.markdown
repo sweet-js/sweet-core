@@ -19,7 +19,7 @@ disambiguate. Algorithm:
     if tok is /
         if tok-1 is )
             look back to matching (
-            if identifier before ( in "if" "while" "with" "catch"
+            if identifier before ( in "if" "while" "for" "with"
                 tok is start of regex literal
             else
                 tok is divide
