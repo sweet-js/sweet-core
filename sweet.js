@@ -3570,10 +3570,10 @@ parseStatement: true, parseSourceElement: true */
         assert(delimiters.indexOf(startDelim.value) !== -1, "Need to begin at the delimiter");
         
         while(index < length) {
+            token = readLoop(inner, (startDelim.value === "(" || startDelim.value === "["));
             if(token.value === matchDelim[startDelim.value]) {
                 break;
             } else {
-                token = readLoop(inner, (startDelim.value === "(" || startDelim.value === "["));
                 inner.push(token);
             }
         }
