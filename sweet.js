@@ -65,7 +65,7 @@ parseStatement: true, parseSourceElement: true */
         NumericLiteral: 6,
         Punctuator: 7,
         StringLiteral: 8,
-        Matcher: 9
+        Delimiter: 9
     };
 
     TokenName = {};
@@ -77,7 +77,7 @@ parseStatement: true, parseSourceElement: true */
     TokenName[Token.NumericLiteral] = 'Numeric';
     TokenName[Token.Punctuator] = 'Punctuator';
     TokenName[Token.StringLiteral] = 'String';
-    TokenName[Token.Matcher] = 'Matcher';
+    TokenName[Token.Delimiter] = 'Delimiter';
 
     Syntax = {
         AssignmentExpression: 'AssignmentExpression',
@@ -162,7 +162,7 @@ parseStatement: true, parseSourceElement: true */
         StrictLHSPostfix:  'Postfix increment/decrement may not have eval or arguments operand in strict mode',
         StrictLHSPrefix:  'Prefix increment/decrement may not have eval or arguments operand in strict mode',
         StrictReservedWord:  'Use of future reserved word in strict mode',
-        UnmatchedMatcher: "unmatch matcher"
+        UnmatchedDelimiter: "Unmatched Delimiter"
     };
 
     // See also tools/generate-unicode-regex.py.
@@ -339,6 +339,10 @@ parseStatement: true, parseSourceElement: true */
 
     function nextChar() {
         return source[index++];
+    }
+    
+    function getChar() {
+        return source[index];
     }
 
     // 7.4 Comments
@@ -1053,57 +1057,8 @@ parseStatement: true, parseSourceElement: true */
             token.type === Token.NullLiteral;
     }
     
-    /**
-     * Scans for delimiters.
-     * 
-     * Assumes char stream is pointing at the starting delimiter
-     * and when it returns will have the stream pointing at the next
-     * char after the ending delimiter
-     */
-    function scanDelim() {
-        var ch = source[index], 
-            startDelim = ch,
-            delimiters = ['(', '{', '['],
-            matchDelim = {
-                '(': ')',
-                '{': '}',
-                '[': ']'
-            },
-            inner = [],
-            start = index;
-        
-        
-        assert(delimiters.indexOf(ch) !== -1, "Need to begin at the delimiter");
-        
-        while(index < length) {
-            // todo: handle line number
-            ++index;
-            ch = source[index];
-            if(delimiters.indexOf(ch) !== -1) {
-                inner.push(scanDelim());
-                // ugly, move back because we advance on the next turn of the loop
-                --index;
-            } else if(ch === matchDelim[startDelim] && source[index - 1] !== '\\') {
-                break;
-            } else {
-                inner.push(ch);
-            }
-        }
-        
-        if(ch !== matchDelim[startDelim]) {
-            throwError({}, Messages.UnexpectedEOS);
-        }
-        ++index; // "consume" the ending delimiter
-        
-        return {
-            type: Token.Punctuator,
-            value: startDelim + matchDelim[startDelim], 
-            inner: inner,
-            range: [start, index]
-        };
-    }
 
-    function advance(readMode) {
+    function advance() {
         var ch, token;
 
         skipComment();
@@ -1118,13 +1073,6 @@ parseStatement: true, parseSourceElement: true */
         }
         
         ch = source[index];
-        if(readMode) {
-            // ( for now...{ and [ later
-            if(ch === '(' || ch === '{' || ch === '[') {
-                token = scanDelim();
-                return token;
-            }
-        }
 
         token = scanPunctuator();
         if (typeof token !== 'undefined') {
@@ -1148,7 +1096,7 @@ parseStatement: true, parseSourceElement: true */
         throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
     }
 
-    function lex(readMode) {
+    function lex() {
         var token;
 
         if (buffer) {
@@ -1161,7 +1109,7 @@ parseStatement: true, parseSourceElement: true */
         }
 
         buffer = null;
-        return advance(readMode);
+        return advance();
     }
 
     function lookahead() {
@@ -3548,52 +3496,67 @@ parseStatement: true, parseSourceElement: true */
         return tokTree.tree;
     }
     
-
-    function scanDelim() {
-        var ch = source[index], 
-            startDelim = ch,
-            delimiters = ['(', '{', '['],
-            matchDelim = {
-                '(': ')',
-                '{': '}',
-                '[': ']'
-            },
-            inner = [],
-            start = index;
+    function readLoop(toks, inExprDelim) {
+        var delimiters = ['(', '{', '['];
+        var parenIdents = ["if", "while", "for", "with"];
+        var last = toks.length - 1;
         
         
-        assert(delimiters.indexOf(ch) !== -1, "Need to begin at the delimiter");
+        var fnExprTokens = ["(", "{", "[", "in", "typeof", "instanceof", "new", "return",
+                            "case", "delete", "throw", "void", 
+                            // assignment operators
+                            "=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=", "&=", "|=", "^=",
+                            ",",
+                            // binary/unar operators
+                            "+", "-", "*", "/", "%", "++", "--", "<<", ">>", ">>>", "&", "|", "^", "!", "~",
+                            "&&", "||", "?", ":",
+                            "===", "==", ">=", "<=", "<", ">", "!=", "!=="];
+        // var fnDeclTokens = [";", "}", ")", "]", ident, literal, "debugger", "break", "continue", "else"];
+        // don't need since these are all implicit in the else branch
         
-        while(index < length) {
-            // todo: handle line number
-            ++index;
-            ch = source[index];
-            if(delimiters.indexOf(ch) !== -1) {
-                inner.push(scanDelim());
-                // ugly, move back because we advance on the next turn of the loop
-                --index;
-            } else if(ch === matchDelim[startDelim] && source[index - 1] !== '\\') {
-                break;
+        function back(n) {
+            var idx = (toks.length - n > 0) ? (toks.length - n) : 0;
+            return toks[idx];
+        }
+        
+        skipComment();
+        if(isIn(getChar(), delimiters)) {
+            return readDelim();
+        } else if(getChar() === "/") {
+            var prev = back(1);
+            if (prev) {
+                if (prev.value === "()") {
+                    if(isIn(back(2).value, parenIdents)) {
+                        return scanRegExp();
+                    } else {
+                        return advance();
+                    }
+                } else if(prev.value === "{}") {
+                    if(back(4).value === "function" && isIn(back(5).value, fnExprTokens)) {
+                        return advance();
+                    } else if (back(4).value === "function" && (toks.length - 5 <= 0) && inExprDelim) {
+                        // case where: (function foo() {} /asdf/) or [function foo() {} /asdf]
+                        return advance();
+                    } else {
+                        return scanRegExp();
+                    }
+                } else if(prev.type === Token.Punctuator) {
+                    return scanRegExp();
+                } else if(isKeyword(toks[toks.length - 1].value)) {
+                    return scanRegExp();
+                } else {
+                    return advance();
+                }
             } else {
-                inner.push(ch);
+                return scanRegExp();
             }
+        } else {
+            return advance();
         }
-        
-        if(ch !== matchDelim[startDelim]) {
-            throwError({}, Messages.UnexpectedEOS);
-        }
-        ++index; // "consume" the ending delimiter
-        
-        return {
-            type: Token.Punctuator,
-            value: startDelim + matchDelim[startDelim], 
-            inner: inner,
-            range: [start, index]
-        };
     }
     
-    function readDelim(stream) {
-        var startDelim = stream.next(),
+    function readDelim() {
+        var startDelim = nextChar(),
             matchDelim = {
                 '(': ')',
                 '{': '}',
@@ -3605,235 +3568,28 @@ parseStatement: true, parseSourceElement: true */
         
         assert(delimiters.indexOf(startDelim) !== -1, "Need to begin at the delimiter");
         
-        while(stream.curr() !== stream.EOS) {
-            if(isIn(stream.curr(), delimiters)) {
-                inner.push(readDelim(stream));
-            } else if (stream.curr() === "'" || stream.curr() === "\"") {
-                inner.push(readStringLiteral(stream));
-            } else if (stream.curr() === "/") {
-                // check for comments first
-                // a regex
-                if(stream.backIgnoringWhitespace() === "=") {
-                    inner.push(readRegExpLiteral(stream));
-                } else {
-                    inner.push(stream.next());
-                }
-                
-            } else if(stream.curr() === matchDelim[startDelim]) {
-                stream.next(); // move the stream but we don't keep the closing delim
+        while(index < length) {
+            if(getChar() === matchDelim[startDelim]) {
+                nextChar();
                 break;
             } else {
-                inner.push(stream.next());
+                inner.push(readLoop(inner, (startDelim === "(" || startDelim === "[")));
             }
         }
         
         // at the end of the stream but the very last char wasn't the closing delimiter
-        if(stream.curr() === stream.EOS && matchDelim[startDelim] !== stream.back()) {
+        if(index >= length && matchDelim[startDelim] !== source[length-1]) {
             throwError({}, Messages.UnexpectedEOS);
         }
         
         return {
+            type: Token.Delimiter,
             value: startDelim + matchDelim[startDelim], 
             inner: inner
         };
     };
     
-    function readStringLiteral(stream) {
-        var str = '', quote, start, ch, code, unescaped, restore, octal = false;
-
-        start = quote = stream.next();
-        assert((quote === '\'' || quote === '"'),
-               'String literal must starts with a quote');
-
-        while (stream.curr() !== stream.EOS) {
-            ch = stream.next();
-
-            if (ch === quote) {
-                quote = '';
-                break;
-            } else if (ch === '\\') {
-                ch = stream.next();
-                if (!isLineTerminator(ch)) {
-                    switch (ch) {
-                    case 'n':
-                        str += '\n';
-                        break;
-                    case 'r':
-                        str += '\r';
-                        break;
-                    case 't':
-                        str += '\t';
-                        break;
-                    case 'u':
-                    case 'x':
-                        restore = index;
-                        // todo fix
-                        unescaped = scanHexEscape(ch);
-                        if (unescaped) {
-                            str += unescaped;
-                        } else {
-                            index = restore;
-                            str += ch;
-                        }
-                        break;
-                    case 'b':
-                        str += '\b';
-                        break;
-                    case 'f':
-                        str += '\f';
-                        break;
-                    case 'v':
-                        str += '\v';
-                        break;
-
-                    default:
-                        if (isOctalDigit(ch)) {
-                            code = '01234567'.indexOf(ch);
-
-                            // \0 is not octal escape sequence
-                            if (code !== 0) {
-                                octal = true;
-                            }
-
-                            if (index < length && isOctalDigit(stream.curr())) {
-                                octal = true;
-                                code = code * 8 + '01234567'.indexOf(stream.next());
-
-                                // 3 digits are only allowed when string starts
-                                // with 0, 1, 2, 3
-                                if ('0123'.indexOf(ch) >= 0 &&
-                                    index < length &&
-                                    isOctalDigit(source[index])) {
-                                    code = code * 8 + '01234567'.indexOf(stream.next());
-                                }
-                            }
-                            str += String.fromCharCode(code);
-                        } else {
-                            str += ch;
-                        }
-                        break;
-                    }
-                } else {
-                    ++lineNumber;
-                    if (ch ===  '\r' && stream.curr() === '\n') {
-                        stream.next();
-                    }
-                }
-            } else if (isLineTerminator(ch)) {
-                break;
-            } else {
-                str += ch;
-            }
-        }
-
-        if (quote !== '') {
-            throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
-        }
-
-        return start + str + start;
-        // return {
-        //     type: Token.StringLiteral,
-        //     value: str,
-        //     octal: octal,
-        //     lineNumber: lineNumber,
-        //     lineStart: lineStart,
-        //     range: [start, index]
-        // };
-    }
     
-    function readRegExpLiteral(stream) {
-        var str = '', ch, start, pattern, flags, value, classMarker = false, restore;
-
-        // todo fix
-        // skipComment();
-
-        ch = stream.curr();
-        assert(ch === '/', 'Regular expression literal must start with a slash');
-        str = stream.next();
-
-        while (stream.curr !== stream.EOS) {
-            ch = stream.next();
-            str += ch;
-            if (classMarker) {
-                if (ch === ']') {
-                    classMarker = false;
-                }
-            } else {
-                if (ch === '\\') {
-                    ch = stream.next();
-                    // ECMA-262 7.8.5
-                    if (isLineTerminator(ch)) {
-                        throwError({}, Messages.UnterminatedRegExp);
-                    }
-                    str += ch;
-                } else if (ch === '/') {
-                    break;
-                } else if (ch === '[') {
-                    classMarker = true;
-                } else if (isLineTerminator(ch)) {
-                    throwError({}, Messages.UnterminatedRegExp);
-                }
-            }
-        }
-
-        if (str.length === 1) {
-            throwError({}, Messages.UnterminatedRegExp);
-        }
-
-        // Exclude leading and trailing slash.
-        pattern = str.substr(1, str.length - 2);
-
-        flags = '';
-        while (stream.curr() !== stream.EOS) {
-            ch = stream.curr();
-            if (!isIdentifierPart(ch)) {
-                break;
-            }
-
-            stream.next();
-            if (ch === '\\' && (stream.curr() !== stream.EOS)) {
-                ch = stream.curr();
-                if (ch === 'u') {
-                    stream.next();
-                    
-                    // breaking the abstraction...
-                    restore = stream._index; 
-                    // todo fix
-                    // ch = scanHexEscape('u');
-                    if (ch) {
-                        flags += ch;
-                        str += '\\u';
-                        for (; restore < stream._index; ++restore) {
-                            str += stream._source[restore];
-                        }
-                    } else {
-                        stream._index = restore;
-                        flags += 'u';
-                        str += '\\u';
-                    }
-                } else {
-                    str += '\\';
-                }
-            } else {
-                flags += ch;
-                str += ch;
-            }
-        }
-
-        try {
-            value = new RegExp(pattern, flags);
-        } catch (e) {
-            throwError({}, Messages.InvalidRegExp);
-        }
-
-        return str;
-        // return {
-        //     literal: str,
-        //     value: value,
-        //     range: [start, index]
-        // };
-    }
-
     
     // (Str) -> [Token]
     function read(code) {
@@ -3841,85 +3597,28 @@ parseStatement: true, parseSourceElement: true */
         
         var delimiters = ['(', '{', '['];
         
-        var stream = {
-            _source: code,
-            _index: 0,
-            _length: code.length,
-            EOS: {},
-            
-            // -> Str
-            curr: function() {
-                if(this._index >= this._length) {
-                    return this.EOS;
-                } else {
-                    return this._source[this._index];
-                }
-            },
-            // (Pos) -> Str
-            peak: function(n) {
-                var lookahead = n || 1;
-                
-                if(this._index + lookahead >= this._length) {
-                    return this.EOS;
-                } else {
-                    return this._source[this._index + lookahead];
-                }
-            },
-            // (Pos) -> Str
-            back: function(n) {
-                var lookback = n || 1;
-                
-                if(this._index - lookback >= this._length) {
-                    return this.EOS;
-                } else {
-                    return this._source[this._index - lookback];
-                }
-            },
-            // (Pos) -> Str
-            backIgnoringWhitespace: function(n) {
-                var lookback = n || 1;
-                var i = 0;
-                var idx = this._index - (lookback + i);
-                
-                if(this._index - lookback >= this._length) {
-                    return this.EOS;
-                } else {
-                    while(this._source[idx] === " " && idx > 0) {
-                        i++;
-                        idx = this._index - (lookback + i);
-                    }
-                    return this._source[idx];
-                }
-            },
-            // -> Str
-            next: function() {
-                if(this._index >= this._length) {
-                    return this.EOS;
-                } else {
-                    return this._source[this._index++];
-                }
-            }
+        // var stream = mkStream(code);
+        
+        source = code;
+        index = 0;
+        lineNumber = (source.length > 0) ? 1 : 0;
+        lineStart = 0;
+        length = source.length;
+        buffer = null;
+        state = {
+            allowIn: true,
+            labelSet: {},
+            lastParenthesized: null,
+            inFunctionBody: false,
+            inIteration: false,
+            inSwitch: false
         };
         
         
-        while(stream.curr() !== stream.EOS) {
-            if(stream.curr() === "'" || stream.curr() === "\"") {
-                token = readStringLiteral(stream);
-            } else if(isIn(stream.curr(), delimiters)) {
-                token = readDelim(stream);
-            } else if(stream.curr() === "/") {
-                // check for comments first
-                // a regex
-                if(stream.backIgnoringWhitespace() === "=") {
-                   token = readRegExpLiteral(stream);
-                } else {
-                    token = stream.next();
-                }
-            } else {
-                token = stream.next();
-            }
-            tokenTree.push(token);
-        } 
+        while(index < length) {
+            tokenTree.push(readLoop(tokenTree));
+        }
+        
         return tokenTree;
     }
 
