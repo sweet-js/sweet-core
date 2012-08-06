@@ -3556,7 +3556,7 @@ parseStatement: true, parseSourceElement: true */
     }
     
     function readDelim() {
-        var startDelim = nextChar(),
+        var startDelim = advance(),
             matchDelim = {
                 '(': ')',
                 '{': '}',
@@ -3565,26 +3565,27 @@ parseStatement: true, parseSourceElement: true */
             inner = [];
         
         var delimiters = ['(', '{', '['];
+        var token = startDelim;
         
-        assert(delimiters.indexOf(startDelim) !== -1, "Need to begin at the delimiter");
+        assert(delimiters.indexOf(startDelim.value) !== -1, "Need to begin at the delimiter");
         
         while(index < length) {
-            if(getChar() === matchDelim[startDelim]) {
-                nextChar();
+            if(token.value === matchDelim[startDelim.value]) {
                 break;
             } else {
-                inner.push(readLoop(inner, (startDelim === "(" || startDelim === "[")));
+                token = readLoop(inner, (startDelim.value === "(" || startDelim.value === "["));
+                inner.push(token);
             }
         }
         
         // at the end of the stream but the very last char wasn't the closing delimiter
-        if(index >= length && matchDelim[startDelim] !== source[length-1]) {
+        if(index >= length && matchDelim[startDelim.value] !== source[length-1]) {
             throwError({}, Messages.UnexpectedEOS);
         }
         
         return {
             type: Token.Delimiter,
-            value: startDelim + matchDelim[startDelim], 
+            value: startDelim.value + matchDelim[startDelim.value], 
             inner: inner
         };
     };
@@ -3596,8 +3597,6 @@ parseStatement: true, parseSourceElement: true */
         var token, tokenTree = [];
         
         var delimiters = ['(', '{', '['];
-        
-        // var stream = mkStream(code);
         
         source = code;
         index = 0;
