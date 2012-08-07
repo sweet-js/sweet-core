@@ -99,21 +99,26 @@ sensitivity for regex literals. So the following reasonable macro
 isn't allowed:
 
     macro rcond {
-        rcond (s:expr) { case e:expr... } => // ...
+        rcond (s:expr) { instance e:expr... } => // ...
     }
     
     rcond ("foo") { 
-      case /foo}bar/
+      instance /foo}bar/
     }
 
-The "case" makes the first / to be interpreted as divide. So we could
+The "instance" makes the first `/` be interpreted as divide. So we could
 just leave this as is and call it a limitation of macros. They need to
 respect the same structure as JS. This might actually be ok. The above
 could be done as:
 
     rcond ("foo") {
-        case "foo}bar"
+        instance "foo}bar"
     }
+    
+(note that if we used `case` instead of `instance` then 
+the following `/`
+would be interpreted as the start of a regex since `case` is a keyword,
+but in general this is a non-obvious rule for macro writers to be aware of)
 
 Not too bad of a change I think. We're already forcing delimiter
 matching anyway. e.g. the following is bad because of the extra
@@ -122,8 +127,6 @@ unmatched paren:
     macro m {
         case m (e1: expr ( e2:expr) => // ...
     }
-
-Can't break the lexical structure (are there macro systems that allow this?).
 
 If we want to allow macros to shadow statements like `if` we have
 another complication:
@@ -163,6 +166,14 @@ Because of hoisting, the variable `foo` will shadow the macro definition of
 that hoisting always happens after macro expansion? So the first
 `foo(...)` is a macro invocation and the second `foo(...)` is a
 function call? Does this cause any problems?
+
+So I think we have to have hoisting happen after macro expansion. But what does this mean for hygiene?
+
+    macro foo { ... }
+    
+    foo { bar = 4 }
+    
+    var bar = 5;
 
 ## Hygiene
 
