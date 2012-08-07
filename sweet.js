@@ -3492,8 +3492,58 @@ parseStatement: true, parseSourceElement: true */
         return result;
     }
     
-    function expand(tokTree) {
-        return tokTree.tree;
+    function loadMacroDef(body) {
+        assert(body.inner[0].value === "case");
+        function removeTokenWrapper(p) {
+            return p.map(function(val) {
+                return val.value;
+            }).filter(function(val) {
+                return val !== ",";
+            });
+        }
+        
+        if(body.inner[2].value === "()") {
+            return function (args) {
+                var macparams = removeTokenWrapper(body.inner[2].inner);
+                var macbody = body.inner[5].inner;
+                var cleanargs = removeTokenWrapper(args);
+                return macbody.map(function(val) {
+                    var idx = macparams.indexOf(val.value);
+                    if(idx !== -1) {
+                        return cleanargs[idx];
+                    } else {
+                        return val.value;
+                    }
+                }).join("");
+            };
+        } else {
+            return body.inner[4].inner[0].value;
+        }
+    }
+    
+    function expand(code) {
+        var tokens = read(code);
+        var macroDefs = {};
+        var index = 0;
+        var expanded = [];
+        
+        while(index < tokens.length) {
+            var token = tokens[index++];
+            var macro = macroDefs[token.value];
+            if (token.value === "macro") {
+                var macroName = tokens[index++].value;
+                var macroBody = tokens[index++];
+                macroDefs[macroName] = loadMacroDef(macroBody);
+            } else if (typeof macro === "function") {
+                var params = tokens[index++];
+                expanded.push(macro(params.inner));
+            } else if (macro !== undefined) {
+                expanded.push(macroDefs[token.value]);
+            } else {
+                expanded.push(token);
+            }
+        }
+        return expanded;
     }
     
     function readLoop(toks, inExprDelim) {
@@ -3595,8 +3645,6 @@ parseStatement: true, parseSourceElement: true */
     // (Str) -> [Token]
     function read(code) {
         var token, tokenTree = [];
-        
-        var delimiters = ['(', '{', '['];
         
         source = code;
         index = 0;

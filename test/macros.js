@@ -41,6 +41,9 @@ describe("reader", function() {
         
         parser.read("(a)")[0].inner[0].value
             .should.equal("a");
+        
+        parser.read("(a)")[0].inner.length
+            .should.equal(1);
     });
     
     it("should match up a single delimiter with multiple inner fields", function() {
@@ -308,7 +311,19 @@ describe("reader", function() {
             .inner[9].value
             .should.equal("/");
     });
-    
-    
+});
 
+describe("expander", function() {
+    var macnum = "macro PI { case PI => {3.14} }";
+    var macadd = "macro add { case add (a, b) => {a + b} }";
+    
+    it("should expand a macro definition", function() {
+        parser.expand(macnum + "\n" + "PI")[0]
+            .should.equal(3.14);
+    });
+    
+    it("should expand a macro function", function() {
+        parser.expand(macadd + "\n" + "add(2,2)")[0]
+            .should.equal("2+2");
+    });
 });
