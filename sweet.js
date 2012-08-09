@@ -36,6 +36,7 @@ parseFunctionDeclaration: true, parseFunctionExpression: true,
 parseFunctionSourceElements: true, parseVariableIdentifier: true,
 parseLeftHandSideExpression: true,
 parseStatement: true, parseSourceElement: true */
+var gen = require("escodegen");
 
 (function (exports) {
     'use strict';
@@ -1130,16 +1131,7 @@ parseStatement: true, parseSourceElement: true */
     function peekLineTerminator() {
         var pos, line, start, found;
 
-        assert(false, "not implemented yet");
-        
-        pos = index;
-        line = lineNumber;
-        start = lineStart;
-        skipComment();
-        found = lineNumber !== line;
-        index = pos;
-        lineNumber = line;
-        lineStart = start;
+        found = tokenStream[index].lineNumber !== (tokenStream[index+1] && tokenStream[index+1].lineNumber);
 
         return found;
     }
@@ -1279,24 +1271,31 @@ parseStatement: true, parseSourceElement: true */
     function consumeSemicolon() {
         var token, line;
 
-        // Catch the very common case first.
-        if (source[index] === ';') {
+        if(tokenStream[index].value === ";") {
             lex();
             return;
         }
+        // if (source[index] === ';') {
+        //     lex();
+        //     return;
+        // }
 
-        line = lineNumber;
-        skipComment();
-        if (lineNumber !== line) {
-            return;
-        }
+        
+        // skipComment();
+        // if (lineNumber !== line) {
+        //     return;
+        // }
 
-        if (match(';')) {
-            lex();
-            return;
-        }
+        // if (match(';')) {
+        //     lex();
+        //     return;
+        // }
 
+        line = tokenStream[index].lineNumber;
         token = lookahead();
+        if(line !== token.lineNumber) {
+            return;
+        }
         if (token.type !== Token.EOF && !match('}')) {
             throwUnexpected(token);
         }
@@ -1557,19 +1556,19 @@ parseStatement: true, parseSourceElement: true */
     function parseArguments() {
         var args = [];
 
-        expect('()');
+        expect('(');
 
-        // if (!match(')')) {
-        //     while (index < length) {
-        //         args.push(parseAssignmentExpression());
-        //         if (match(')')) {
-        //             break;
-        //         }
-        //         expect(',');
-        //     }
-        // }
+        if (!match(')')) {
+            while (index < length) {
+                args.push(parseAssignmentExpression());
+                if (match(')')) {
+                    break;
+                }
+                expect(',');
+            }
+        }
 
-        // expect(')');
+        expect(')');
 
         return args;
     }
@@ -1649,7 +1648,7 @@ parseStatement: true, parseSourceElement: true */
                 expr = parseNonComputedMember(expr);
             } else if (match('[')) {
                 expr = parseComputedMember(expr);
-            } else if (match('()')) {
+            } else if (match('(')) {
                 expr = parseCallMember(expr);
             } else {
                 break;
@@ -3491,7 +3490,8 @@ parseStatement: true, parseSourceElement: true */
     
     
     function loadMacroDef(body) {
-        parse_stx(body)
+        var ast = parse_stx(expand(body));
+        return eval("(" + gen.generate(ast) + ")");
     }
     
     /* 
@@ -3522,21 +3522,29 @@ parseStatement: true, parseSourceElement: true */
         
         while(index < tokens.length) {
             var token = tokens[index++];
-            // if (token.value === "macro") {
-            //     var macroName = tokens[index++].value;
-            //     var macroBody = tokens[index++];
+            if (token.value === "macro") {
+                var macroName = tokens[index++].value;
+                var macroBody = tokens[index++];
                 
-            //     assert(macroBody.value === "{}", "expecting a macro body");
+                assert(macroBody.value === "{}", "expecting a macro body");
                 
-            //     transformers[macroName] = loadMacroDef(macroBody.inner);
-            if (token.value === "{}" || token.value === "()" || token.value === "[]") {
+                transformers[macroName] = loadMacroDef(macroBody.inner);
+            } else if (typeof transformers[token.value] === "function") {
+                var transformer = transformers[token.value];
+                var callBody = tokens[index++];
+                
+                assert(callBody.value === "()", "expecting a macro body");
+                var result = transformer(callBody.inner);
+                // console.log(result);
+                expanded = expanded.concat(result);
+            } else if (token.value === "{}" || token.value === "()" || token.value === "[]") {
                 // flatten the tree
                 expanded.push({
                     type: Token.Punctuator,
                     value: token.value[0]
                     // todo: line numbers...
                 });
-                expanded = expanded.concat(token.inner);
+                expanded = expanded.concat(expand(token.inner));
                 expanded.push({
                     type: Token.Punctuator,
                     value: token.value[1]
@@ -3546,6 +3554,7 @@ parseStatement: true, parseSourceElement: true */
                 expanded.push(token);
             }
         }
+        
         return expanded;
     }
     
@@ -3752,7 +3761,6 @@ parseStatement: true, parseSourceElement: true */
     function parse(code, options) {
         var program, toString;
 
-        debugger;
         toString = String;
         if (typeof code !== 'string' && !(code instanceof String)) {
             code = toString(code);
@@ -3785,7 +3793,6 @@ parseStatement: true, parseSourceElement: true */
     exports.version = '1.0.0-dev';
 
     exports.parse = parse;
-    exports.parse_stx = parse_stx;
     exports.read = read;
     exports.expand = expand;
 

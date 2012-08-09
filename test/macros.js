@@ -316,10 +316,9 @@ describe("reader", function() {
 
 describe("parser", function() {
     it("should work", function() {
-        var tokens = parser.expand("42;");
-        var ast = parser.parse_stx(tokens);
+        var ast = parser.parse("{42}");
         
-        gen.generate(ast).should.equal("42;");
+        gen.generate(ast).should.equal("{\n    42;\n}");
     });
 });
 

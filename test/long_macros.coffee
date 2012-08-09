@@ -1,5 +1,6 @@
 should = require("should")
 parser = require("../sweet")
+gen = require "escodegen"
 
 describe "expander", ->
   mac1 = """
@@ -29,14 +30,21 @@ describe "expander", ->
   }
   """
 
-  # it "should do what I want", ->
-  #   mac = """(function(x) {
-  #       macro m {
-  #         function(stx) {
-  #           return \#{x};
-  #         }
-  #       }
-  #       m(2)
-  #     })(1)"""
+  it "should do what I want", ->
+    mac = """(function(x) {
+        macro add {
+          function add(stx) {
+            var res = [stx[0]];
+            res.push({
+              type: 7,
+              value: "+",
+            });
+            res.push(stx[1]);
+            return res;
+          }
+        }
+        add(2 2);
+      })(1)"""
 
-  #   parser.expand(mac).should.equal ""
+    # parser.read("2+2").should.equal "";
+    gen.generate(parser.parse(mac)).should.equal ""
