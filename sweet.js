@@ -54,6 +54,7 @@ parseStatement: true, parseSourceElement: true */
         length,
         buffer,
         state,
+        tokenStream,
         extra;
 
     Token = {
@@ -1058,6 +1059,8 @@ parseStatement: true, parseSourceElement: true */
     }
     
 
+    
+    // only used by the reader
     function advance() {
         var ch, token;
 
@@ -1100,16 +1103,14 @@ parseStatement: true, parseSourceElement: true */
         var token;
 
         if (buffer) {
-            index = buffer.range[1];
-            lineNumber = buffer.lineNumber;
-            lineStart = buffer.lineStart;
             token = buffer;
             buffer = null;
+            index++;
             return token;
         }
 
         buffer = null;
-        return advance();
+        return tokenStream[index++];
     }
 
     function lookahead() {
@@ -1119,13 +1120,7 @@ parseStatement: true, parseSourceElement: true */
             return buffer;
         }
 
-        pos = index;
-        line = lineNumber;
-        start = lineStart;
-        buffer = advance();
-        index = pos;
-        lineNumber = line;
-        lineStart = start;
+        buffer = tokenStream[index];
 
         return buffer;
     }
@@ -1135,6 +1130,8 @@ parseStatement: true, parseSourceElement: true */
     function peekLineTerminator() {
         var pos, line, start, found;
 
+        assert(false, "not implemented yet");
+        
         pos = index;
         line = lineNumber;
         start = lineStart;
@@ -3492,53 +3489,59 @@ parseStatement: true, parseSourceElement: true */
         return result;
     }
     
+    
     function loadMacroDef(body) {
-        assert(body.inner[0].value === "case");
-        function removeTokenWrapper(p) {
-            return p.map(function(val) {
-                return val.value;
-            }).filter(function(val) {
-                return val !== ",";
-            });
-        }
-        
-        if(body.inner[2].value === "()") {
-            return function (args) {
-                var macparams = removeTokenWrapper(body.inner[2].inner);
-                var macbody = body.inner[5].inner;
-                var cleanargs = removeTokenWrapper(args);
-                return macbody.map(function(val) {
-                    var idx = macparams.indexOf(val.value);
-                    if(idx !== -1) {
-                        return cleanargs[idx];
-                    } else {
-                        return val.value;
-                    }
-                }).join("");
-            };
-        } else {
-            return body.inner[4].inner[0].value;
-        }
+        parse_stx(body)
     }
     
+    /* 
+     * Some types and metafunctions that are present in the expander:
+     * 
+     * Token ::
+     *   type: Num
+     *   value: Val  (a JavaScript value: String, Number, Regexp, etc.)
+     *   lineNumber: Num
+     *   lineStart: Num
+     *   range: [Num, Num]
+     * 
+     * SyntaxObject extends Token ::
+     *   context: [...]
+     * 
+     * The context field allows the expander to correctly track lexical information.
+     * 
+     * syntax-e :: (SyntaxObject) -> Val
+     * make-syntax :: (Value, SyntaxObject) -> SyntaxObject
+     */
+    
+    // [SyntaxObject] -> [FlatSyntaxObject]
     function expand(code) {
-        var tokens = read(code);
-        var macroDefs = {};
+        var tokens = code;
+        var transformers = {};
         var index = 0;
         var expanded = [];
         
         while(index < tokens.length) {
             var token = tokens[index++];
-            var macro = macroDefs[token.value];
-            if (token.value === "macro") {
-                var macroName = tokens[index++].value;
-                var macroBody = tokens[index++];
-                macroDefs[macroName] = loadMacroDef(macroBody);
-            } else if (typeof macro === "function") {
-                var params = tokens[index++];
-                expanded.push(macro(params.inner));
-            } else if (macro !== undefined) {
-                expanded.push(macroDefs[token.value]);
+            // if (token.value === "macro") {
+            //     var macroName = tokens[index++].value;
+            //     var macroBody = tokens[index++];
+                
+            //     assert(macroBody.value === "{}", "expecting a macro body");
+                
+            //     transformers[macroName] = loadMacroDef(macroBody.inner);
+            if (token.value === "{}" || token.value === "()" || token.value === "[]") {
+                // flatten the tree
+                expanded.push({
+                    type: Token.Punctuator,
+                    value: token.value[0]
+                    // todo: line numbers...
+                });
+                expanded = expanded.concat(token.inner);
+                expanded.push({
+                    type: Token.Punctuator,
+                    value: token.value[1]
+                    // todo: line numbers...
+                });
             } else {
                 expanded.push(token);
             }
@@ -3557,7 +3560,7 @@ parseStatement: true, parseSourceElement: true */
                             // assignment operators
                             "=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=", "&=", "|=", "^=",
                             ",",
-                            // binary/unar operators
+                            // binary/unary operators
                             "+", "-", "*", "/", "%", "++", "--", "<<", ">>", ">>>", "&", "|", "^", "!", "~",
                             "&&", "||", "?", ":",
                             "===", "==", ">=", "<=", "<", ">", "!=", "!=="];
@@ -3569,9 +3572,18 @@ parseStatement: true, parseSourceElement: true */
             return toks[idx];
         }
         
+        
         skipComment();
+        
         if(isIn(getChar(), delimiters)) {
             return readDelim();
+        } else if(getChar() === "#") {
+            // todo: some hard coded assumptions here, will probably change everything anyway so no biggie
+            nextChar();
+            var syntaxTok = readDelim();
+            syntaxTok.value = "#{}";
+            
+            return syntaxTok;
         } else if(getChar() === "/") {
             var prev = back(1);
             if (prev) {
@@ -3619,7 +3631,7 @@ parseStatement: true, parseSourceElement: true */
         
         assert(delimiters.indexOf(startDelim.value) !== -1, "Need to begin at the delimiter");
         
-        while(index < length) {
+        while(index <= length) {
             token = readLoop(inner, (startDelim.value === "(" || startDelim.value === "["));
             if(token.value === matchDelim[startDelim.value]) {
                 break;
@@ -3665,23 +3677,30 @@ parseStatement: true, parseSourceElement: true */
         while(index < length) {
             tokenTree.push(readLoop(tokenTree));
         }
+        var last = tokenTree[tokenTree.length-1];
+        if(last && last.type !== Token.EOF) {
+            tokenTree.push({
+                type: Token.EOF,
+                lineNumber: last.lineNumber,
+                lineStart: last.lineStart,
+                range: [index, index]
+            });
+        }
+        
         
         return tokenTree;
     }
+    
 
-    function parse(code, options) {
+    // (SyntaxObject, {}) -> SyntaxObject
+    function parse_stx(code, options) {
         var program, toString;
 
-        toString = String;
-        if (typeof code !== 'string' && !(code instanceof String)) {
-            code = toString(code);
-        }
 
-        source = code;
+        tokenStream = code;
+        
         index = 0;
-        lineNumber = (source.length > 0) ? 1 : 0;
-        lineStart = 0;
-        length = source.length;
+        length = tokenStream.length;
         buffer = null;
         state = {
             allowIn: true,
@@ -3707,23 +3726,7 @@ parseStatement: true, parseSourceElement: true */
                 extra.errors = [];
             }
         }
-
-        if (length > 0) {
-            if (typeof source[0] === 'undefined') {
-                // Try first to convert to a string. This is good as fast path
-                // for old IE which understands string indexing for string
-                // literals only and not for string object.
-                if (code instanceof String) {
-                    source = code.valueOf();
-                }
-
-                // Force accessing the characters via an array.
-                if (typeof source[0] === 'undefined') {
-                    source = stringToArray(code);
-                }
-            }
-        }
-
+        
         patch();
         try {
             program = parseProgram();
@@ -3745,11 +3748,44 @@ parseStatement: true, parseSourceElement: true */
 
         return program;
     }
+    
+    function parse(code, options) {
+        var program, toString;
+
+        debugger;
+        toString = String;
+        if (typeof code !== 'string' && !(code instanceof String)) {
+            code = toString(code);
+        }
+        
+        var source = code;
+
+        if (source.length > 0) {
+            if (typeof source[0] === 'undefined') {
+                // Try first to convert to a string. This is good as fast path
+                // for old IE which understands string indexing for string
+                // literals only and not for string object.
+                if (code instanceof String) {
+                    source = code.valueOf();
+                }
+
+                // Force accessing the characters via an array.
+                if (typeof source[0] === 'undefined') {
+                    source = stringToArray(code);
+                }
+            }
+        }
+
+        var tokenStream = expand(read(source));
+        
+        return parse_stx(tokenStream, options);
+    }
 
     // Sync with package.json.
     exports.version = '1.0.0-dev';
 
     exports.parse = parse;
+    exports.parse_stx = parse_stx;
     exports.read = read;
     exports.expand = expand;
 
