@@ -36,7 +36,7 @@ parseFunctionDeclaration: true, parseFunctionExpression: true,
 parseFunctionSourceElements: true, parseVariableIdentifier: true,
 parseLeftHandSideExpression: true,
 parseStatement: true, parseSourceElement: true */
-var gen = require("escodegen");
+// var gen = require("escodegen");
 
 (function (exports) {
     'use strict';
@@ -2360,7 +2360,7 @@ var gen = require("escodegen");
         expectKeyword('continue');
 
         // Optimize the most common form: 'continue;'.
-        if (source[index] === ';') {
+        if (tokenStream[index].value === ";") {
             lex();
 
             if (!state.inIteration) {
@@ -3269,27 +3269,31 @@ var gen = require("escodegen");
             return function () {
                 var node, rangeInfo, locInfo;
 
-                skipComment();
-                rangeInfo = [index, 0];
+                // skipComment();
+                
+                var curr = tokenStream[index];
+                
+                rangeInfo = [curr.range[0], 0];
                 locInfo = {
                     start: {
-                        line: lineNumber,
-                        column: index - lineStart
+                        line: curr.lineNumber,
+                        column: curr.lineStart
                     }
                 };
 
                 node = parseFunction.apply(null, arguments);
                 if (typeof node !== 'undefined') {
+                    var last = tokenStream[index];
 
                     if (range) {
-                        rangeInfo[1] = index;
+                        rangeInfo[1] = last.range[1];
                         node.range = rangeInfo;
                     }
 
                     if (loc) {
                         locInfo.end = {
-                            line: lineNumber,
-                            column: index - lineStart
+                            line: last.lineNumber,
+                            column: last.lineStart
                         };
                         node.loc = locInfo;
                     }
@@ -3339,7 +3343,7 @@ var gen = require("escodegen");
         if (extra.range || extra.loc) {
 
             wrapTracking = wrapTrackingFunction(extra.range, extra.loc);
-
+            
             extra.parseAdditiveExpression = parseAdditiveExpression;
             extra.parseAssignmentExpression = parseAssignmentExpression;
             extra.parseBitwiseANDExpression = parseBitwiseANDExpression;
@@ -3376,7 +3380,7 @@ var gen = require("escodegen");
             extra.parseUnaryExpression = parseUnaryExpression;
             extra.parseVariableDeclaration = parseVariableDeclaration;
             extra.parseVariableIdentifier = parseVariableIdentifier;
-
+            
             parseAdditiveExpression = wrapTracking(extra.parseAdditiveExpression);
             parseAssignmentExpression = wrapTracking(extra.parseAssignmentExpression);
             parseBitwiseANDExpression = wrapTracking(extra.parseBitwiseANDExpression);
@@ -3541,14 +3545,18 @@ var gen = require("escodegen");
                 // flatten the tree
                 expanded.push({
                     type: Token.Punctuator,
-                    value: token.value[0]
-                    // todo: line numbers...
+                    value: token.value[0],
+                    range: token.startRange,
+                    lineNumber: token.startLineNumber,
+                    lineStart: token.startLineStart
                 });
                 expanded = expanded.concat(expand(token.inner));
                 expanded.push({
                     type: Token.Punctuator,
-                    value: token.value[1]
-                    // todo: line numbers...
+                    value: token.value[1],
+                    range: token.endRange,
+                    lineNumber: token.endLineNumber,
+                    lineStart: token.endLineStart
                 });
             } else {
                 expanded.push(token);
@@ -3640,6 +3648,9 @@ var gen = require("escodegen");
         
         assert(delimiters.indexOf(startDelim.value) !== -1, "Need to begin at the delimiter");
         
+        var startLineNumber = token.lineNumber;
+        var startLineStart = token.lineStart;
+        var startRange = token.range;
         while(index <= length) {
             token = readLoop(inner, (startDelim.value === "(" || startDelim.value === "["));
             if(token.value === matchDelim[startDelim.value]) {
@@ -3654,10 +3665,19 @@ var gen = require("escodegen");
             throwError({}, Messages.UnexpectedEOS);
         }
         
+        var endLineNumber = token.lineNumber;
+        var endLineStart = token.lineStart;
+        var endRange = token.range;
         return {
             type: Token.Delimiter,
             value: startDelim.value + matchDelim[startDelim.value], 
-            inner: inner
+            inner: inner,
+            startLineNumber: startLineNumber,
+            startLineStart: startLineStart,
+            startRange: startRange,
+            endLineNumber: endLineNumber,
+            endLineStart: endLineStart,
+            endRange: endRange
         };
     };
     
@@ -3722,6 +3742,9 @@ var gen = require("escodegen");
 
         extra = {};
         if (typeof options !== 'undefined') {
+            if(options.range || options.loc) {
+                assert(false, "Not range and loc is not currently implemented");
+            }
             extra.range = (typeof options.range === 'boolean') && options.range;
             extra.loc = (typeof options.loc === 'boolean') && options.loc;
             extra.raw = (typeof options.raw === 'boolean') && options.raw;
@@ -3743,7 +3766,7 @@ var gen = require("escodegen");
                 program.comments = extra.comments;
             }
             if (typeof extra.tokens !== 'undefined') {
-                program.tokens = extra.tokens;
+                program.tokens = tokenStream;
             }
             if (typeof extra.errors !== 'undefined') {
                 program.errors = extra.errors;

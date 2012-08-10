@@ -320,6 +320,10 @@ describe("parser", function() {
         
         gen.generate(ast).should.equal("{\n    42;\n}");
     });
+
+    it("should still parse a for loop", function() {
+        var ast = parser.parse("for(;;){ continue; }");
+    });
 });
 
 // describe("expander", function() {
