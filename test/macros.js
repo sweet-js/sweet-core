@@ -323,6 +323,7 @@ describe("parser", function() {
 
     it("should still parse a for loop", function() {
         var ast = parser.parse("for(;;){ continue; }");
+        gen.generate(ast).should.equal("");
     });
 });
 

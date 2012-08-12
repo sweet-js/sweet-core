@@ -3518,8 +3518,7 @@ parseStatement: true, parseSourceElement: true */
      */
     
     // [SyntaxObject] -> [FlatSyntaxObject]
-    function expand(code) {
-        var tokens = code;
+    function expand(tokens) {
         var transformers = {};
         var index = 0;
         var expanded = [];
