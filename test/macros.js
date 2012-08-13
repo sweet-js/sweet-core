@@ -321,10 +321,19 @@ describe("parser", function() {
         gen.generate(ast).should.equal("{\n    42;\n}");
     });
 
-    it("should still parse a for loop", function() {
-        var ast = parser.parse("for(;;){ continue; }");
-        gen.generate(ast).should.equal("");
-    });
+    // it("should still parse a for loop", function() {
+    //     var ast = parser.parse("for(;;){ continue; }");
+    //     gen.generate(ast).should.equal("");
+    // });
+
+    it("should work for a prefix", function() {
+        var ast = parser.expand(parser.read("{ x\n++y; }"));
+        // ast.should.equal("");
+        // console.log(typeof ast[3].value);
+        // ast[3].should.equal("")
+        // gen.generate(ast).should.equal("");
+        parser.parse("{ x\n++y; }").should.equal("")
+    })
 });
 
 // describe("expander", function() {

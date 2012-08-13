@@ -1131,7 +1131,7 @@ parseStatement: true, parseSourceElement: true */
     function peekLineTerminator() {
         var pos, line, start, found;
 
-        found = tokenStream[index].lineNumber !== (tokenStream[index+1] && tokenStream[index+1].lineNumber);
+        found = tokenStream[index-1].lineNumber !== tokenStream[index].lineNumber;
 
         return found;
     }
@@ -1291,8 +1291,9 @@ parseStatement: true, parseSourceElement: true */
         //     return;
         // }
 
-        line = tokenStream[index].lineNumber;
-        token = lookahead();
+        // todo: cleanup
+        line = tokenStream[index-1].lineNumber;
+        token = tokenStream[index];
         if(line !== token.lineNumber) {
             return;
         }
@@ -1544,8 +1545,9 @@ parseStatement: true, parseSourceElement: true */
             return expr;
         }
 
-        if (match('/') || match('/=')) {
-            return createLiteral(scanRegExp());
+
+        if(token.value instanceof RegExp) {
+            return createLiteral(lex());
         }
 
         return throwUnexpected(lex());
@@ -1790,6 +1792,10 @@ parseStatement: true, parseSourceElement: true */
 
     // 11.7 Bitwise Shift Operators
 
+
+
+
+
     function parseShiftExpression() {
         var expr = parseAdditiveExpression();
 
@@ -1841,6 +1847,11 @@ parseStatement: true, parseSourceElement: true */
 
         return expr;
     }
+
+
+
+
+
 
     // 11.9 Equality Operators
 
@@ -3810,7 +3821,6 @@ parseStatement: true, parseSourceElement: true */
         
         return parse_stx(tokenStream, options);
     }
-
     // Sync with package.json.
     exports.version = '1.0.0-dev';
 
