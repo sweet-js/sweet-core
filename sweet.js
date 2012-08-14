@@ -1575,6 +1575,7 @@ parseStatement: true, parseSourceElement: true */
         return args;
     }
 
+
     function parseNonComputedProperty() {
         var token = lex();
 
@@ -1643,6 +1644,12 @@ parseStatement: true, parseSourceElement: true */
 
         useNew = matchKeyword('new');
         expr = useNew ? parseNewExpression() : parsePrimaryExpression();
+
+        // handle "syntax" primitive
+        // todo: error handling
+        if(expr.name === "syntax") {
+            return createLiteral(lex().inner);
+        }
 
         while (index < length) {
             if (match('.')) {
@@ -3235,6 +3242,13 @@ parseStatement: true, parseSourceElement: true */
     }
 
     function createLiteral(token) {
+        console.log(token);
+        if(Array.isArray(token)) {
+            return {
+                type: Syntax.Literal,
+                value: token
+            };
+        }
         return {
             type: Syntax.Literal,
             value: token.value
@@ -3543,6 +3557,9 @@ parseStatement: true, parseSourceElement: true */
                 assert(macroBody.value === "{}", "expecting a macro body");
                 
                 transformers[macroName] = loadMacroDef(macroBody.inner);
+            } else if (token.value === "syntax") {
+                expanded.push(token);  // grab "syntax"
+                expanded.push(tokens[index++]); // and unexpanded body
             } else if (typeof transformers[token.value] === "function") {
                 var transformer = transformers[token.value];
                 var callBody = tokens[index++];

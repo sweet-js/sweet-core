@@ -314,39 +314,26 @@ describe("reader", function() {
     });
 });
 
-describe("parser", function() {
-    it("should work", function() {
-        var ast = parser.parse("{42}");
-        
-        gen.generate(ast).should.equal("{\n    42;\n}");
-    });
 
-    // it("should still parse a for loop", function() {
-    //     var ast = parser.parse("for(;;){ continue; }");
-    //     gen.generate(ast).should.equal("");
+
+describe("expander", function() {
+    // var macnum = "macro PI { case PI => {3.14} }";
+    // var macadd = "macro add { case add (a, b) => {a + b} }";
+    
+    // it("should expand a macro definition", function() {
+    //     parser.expand(macnum + "\n" + "PI")[0]
+    //         .should.equal(3.14);
+    // });
+    
+    // it("should expand a macro function", function() {
+    //     parser.expand(macadd + "\n" + "add(2,2)")[0].join("")
+    //         .should.equal("2+2");
     // });
 
-    it("should work for a prefix", function() {
-        var ast = parser.expand(parser.read("{ x\n++y; }"));
-        // ast.should.equal("");
-        // console.log(typeof ast[3].value);
-        // ast[3].should.equal("")
-        // gen.generate(ast).should.equal("");
-        parser.parse("{ x\n++y; }").should.equal("")
+    it("should work with syntax objects somehow", function() {
+        // parser.expand(parser.read("syntax(x)")).should.equal("")
+        // parser.parse("syntax(x)").body[0].expression[0].should.equal("x")
+        // parser.parse("syntax(x)").body[0].expression.should.equal("")
+        gen.generate(parser.parse("syntax(x)")).should.equal("")
     })
 });
-
-// describe("expander", function() {
-//     var macnum = "macro PI { case PI => {3.14} }";
-//     var macadd = "macro add { case add (a, b) => {a + b} }";
-    
-//     it("should expand a macro definition", function() {
-//         parser.expand(macnum + "\n" + "PI")[0]
-//             .should.equal(3.14);
-//     });
-    
-//     it("should expand a macro function", function() {
-//         parser.expand(macadd + "\n" + "add(2,2)")[0].join("")
-//             .should.equal("2+2");
-//     });
-// });
