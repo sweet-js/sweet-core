@@ -2,49 +2,79 @@ should = require("should")
 parser = require("../sweet")
 gen = require "escodegen"
 
-describe "expander", ->
-  mac1 = """
-  var z = (function (x) {
-
-    macro m {
-      function(stx) {
-        return #'x
+describe "parser/expander", ->
+  it "should generate the primitive id macro", ->
+    mac = """
+      macro id "()" {
+        function id(stx) {
+            return stx[0];
+        }
       }
-    }
+      id(2)
+    """
+    gen.generate(parser.parse(mac)).should.equal "2;"
 
-    return function (x) {
-      return m() + x;
-    };
-
-  })(1);
-
-  z(42);
-  """
-  mac2 = """
-  function (x) {
-    macro n {
-      function(stx) {
-        return #'function()
+  it "should generate a primitive macro with primitive version of syntax", ->
+    mac = """
+      macro id "()" {
+        function id(stx) {
+            return syntax { 2 }
+        }
       }
-    }
-  }
-  """
+      id(42)
+    """
+    gen.generate(parser.parse(mac)).should.equal "2;"
 
-  it "should do what I want", ->
-    mac = """(function(x) {
+  it "should generate a primitive macro with multiple bodies", ->
+    mac = """
+      macro id "(){}" {
+        function id(stx) {
+            return [stx[0][0], syntax { + }, stx[1][0]];
+        }
+      }
+      id(2){4}
+    """
+    gen.generate(parser.parse(mac)).should.equal "2 + 4;"
+
+  it "should generate a primitive macro with macro version of syntax", ->
+    mac = """
+      macro id "()" {
+        function id(stx) {
+            return syntax (stx[0]) { 4 };
+        }
+      }
+      id(2)
+    """
+    gen.generate(parser.parse(mac)).should.equal "2;"
+
+  it "should expand a simple add macro", ->
+    mac = """
         macro add {
           function add(stx) {
-            var res = [stx[0]];
-            res.push({
-              type: 7,
-              value: "+",
-            });
-            res.push(stx[1]);
-            return res;
+            return [stx[0], syntax {+}, stx[1]];
           }
         }
         add(2 2);
-      })(1)"""
+      """
 
-    # parser.read("2+2").should.equal "";
-    gen.generate(parser.parse(mac)).should.equal ""
+    # gen.generate(parser.parse(mac)).should.equal "2 + 2;"
+
+  it "should expand with a function in syntax", ->
+    mac = """
+      macro let {
+        function let(stx) {
+          return syntax {
+            (function(x) {
+              return body;
+            })(val);
+          return syntax (
+            (function (##) { return ##; })(##);
+          ) { stx[0], stx[1], stx[2] }
+        }
+      }
+
+      let (y = 5) {
+        y + 2 
+      }
+    """
+    # gen.generate(parser.parse(mac)).should.equal "(function (y) { return y + 2 })(5);"

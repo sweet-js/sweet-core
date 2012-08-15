@@ -334,6 +334,6 @@ describe("expander", function() {
         // parser.expand(parser.read("syntax(x)")).should.equal("")
         // parser.parse("syntax(x)").body[0].expression[0].should.equal("x")
         // parser.parse("syntax(x)").body[0].expression.should.equal("")
-        gen.generate(parser.parse("syntax(x)")).should.equal("")
+        // gen.generate(parser.parse("syntax(x)")).should.equal("")
     })
 });

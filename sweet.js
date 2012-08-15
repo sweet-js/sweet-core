@@ -36,7 +36,8 @@ parseFunctionDeclaration: true, parseFunctionExpression: true,
 parseFunctionSourceElements: true, parseVariableIdentifier: true,
 parseLeftHandSideExpression: true,
 parseStatement: true, parseSourceElement: true */
-// var gen = require("escodegen");
+var gen = require("escodegen");
+var fs = require("fs");
 
 (function (exports) {
     'use strict';
@@ -1639,6 +1640,62 @@ parseStatement: true, parseSourceElement: true */
         return expr;
     }
 
+    // sort of broken, only accepts literals
+    // pretty sure the use of toString will bite me
+    function toArrayNode(arr) {
+        var els = arr.map(function(el) {
+            return {
+                type: 'Literal',
+                value: el,
+                raw: el.toString()
+            };
+        });
+
+        return {
+            type: "ArrayExpression",
+            elements: els
+        };
+    }
+
+    function toObjectNode (obj) {
+        // todo: hacky, fixup
+        var props = Object.keys(obj[0]).map(function(key) {
+            var raw = obj[0][key];
+            var value;
+            if(Array.isArray(raw)) {
+                value = toArrayNode(raw);
+            } else {
+                value = {
+                    type: 'Literal',
+                    value: obj[0][key],
+                    raw: obj[0][key].toString()
+                };
+            }
+
+            return {
+                type: 'Property',
+                key: {
+                    type: 'Identifier',
+                    name: key
+                },
+                value: value,
+                kind: 'init'
+            }
+        });
+
+        return {
+            type: 'ObjectExpression',
+            properties: props
+        };
+    }
+
+    function parseSyntaxObject() {
+        var token = lex();
+        assert(token.value === "{}", "expecting delimiters to follow syntax");
+
+        return toObjectNode(token.inner);
+    }
+
     function parseLeftHandSideExpressionAllowCall() {
         var useNew, expr;
 
@@ -1648,7 +1705,7 @@ parseStatement: true, parseSourceElement: true */
         // handle "syntax" primitive
         // todo: error handling
         if(expr.name === "syntax") {
-            return createLiteral(lex().inner);
+            return parseSyntaxObject();
         }
 
         while (index < length) {
@@ -3242,13 +3299,13 @@ parseStatement: true, parseSourceElement: true */
     }
 
     function createLiteral(token) {
-        console.log(token);
         if(Array.isArray(token)) {
             return {
                 type: Syntax.Literal,
-                value: token
+                value:token
             };
         }
+
         return {
             type: Syntax.Literal,
             value: token.value
@@ -3518,56 +3575,59 @@ parseStatement: true, parseSourceElement: true */
     }
     
     
-    function loadMacroDef(body) {
-        var ast = parse_stx(expand(body));
+    function loadMacroDef(body, macros) {
+        var ast = parse_stx(expand(body, macros));
         return eval("(" + gen.generate(ast) + ")");
     }
     
-    /* 
-     * Some types and metafunctions that are present in the expander:
-     * 
-     * Token ::
-     *   type: Num
-     *   value: Val  (a JavaScript value: String, Number, Regexp, etc.)
-     *   lineNumber: Num
-     *   lineStart: Num
-     *   range: [Num, Num]
-     * 
-     * SyntaxObject extends Token ::
-     *   context: [...]
-     * 
-     * The context field allows the expander to correctly track lexical information.
-     * 
-     * syntax-e :: (SyntaxObject) -> Val
-     * make-syntax :: (Value, SyntaxObject) -> SyntaxObject
-     */
-    
-    // [SyntaxObject] -> [FlatSyntaxObject]
-    function expand(tokens) {
-        var transformers = {};
+    function expand(tokens, macros) {
         var index = 0;
         var expanded = [];
-        
+
+        macros = macros || {};
+
+        if(typeof tokens === "undefined") {
+            return [];
+        }
+
+        console.log(macros)
         while(index < tokens.length) {
             var token = tokens[index++];
             if (token.value === "macro") {
                 var macroName = tokens[index++].value;
+                var macroType = tokens[index++];
                 var macroBody = tokens[index++];
-                
+
                 assert(macroBody.value === "{}", "expecting a macro body");
-                
-                transformers[macroName] = loadMacroDef(macroBody.inner);
+
+                macros[macroName] = {
+                    type: macroType.value,
+                    transformer: loadMacroDef(macroBody.inner, macros)
+                };
+            } else if (macros[token.value]) {
+                var type = macros[token.value].type;
+                var transformer = macros[token.value].transformer;
+                var first, second;
+
+                if (type === "()") {
+                    first = tokens[index++];
+
+                    assert(first.value === "()", "expecting a macro body");
+
+                    expanded = expanded.concat(transformer([first.inner]));
+                } else if (type === "(){}") {
+                    first = tokens[index++];
+                    second = tokens[index++];
+
+                    // todo: actual error messages, not asserts
+                    assert(first.value === "()", "expecting a macro body");
+                    assert(second.value === "{}", "expecting a macro body");
+
+                    expanded = expanded.concat(transformer([first.inner, second.inner]));
+                }
             } else if (token.value === "syntax") {
                 expanded.push(token);  // grab "syntax"
                 expanded.push(tokens[index++]); // and unexpanded body
-            } else if (typeof transformers[token.value] === "function") {
-                var transformer = transformers[token.value];
-                var callBody = tokens[index++];
-                
-                assert(callBody.value === "()", "expecting a macro body");
-                var result = transformer(callBody.inner);
-                // console.log(result);
-                expanded = expanded.concat(result);
             } else if (token.value === "{}" || token.value === "()" || token.value === "[]") {
                 // flatten the tree
                 expanded.push({
@@ -3577,7 +3637,7 @@ parseStatement: true, parseSourceElement: true */
                     lineNumber: token.startLineNumber,
                     lineStart: token.startLineStart
                 });
-                expanded = expanded.concat(expand(token.inner));
+                expanded = expanded.concat(expand(token.inner, macros));
                 expanded.push({
                     type: Token.Punctuator,
                     value: token.value[1],
@@ -3589,7 +3649,6 @@ parseStatement: true, parseSourceElement: true */
                 expanded.push(token);
             }
         }
-        
         return expanded;
     }
     
@@ -3834,8 +3893,12 @@ parseStatement: true, parseSourceElement: true */
             }
         }
 
-        var tokenStream = expand(read(source));
-        
+        var macro_file = fs.readFileSync("base_macros.js", "utf8");
+        var macroDefs = {};
+        var macros = expand(read(macro_file), macroDefs);
+
+        var tokenStream = expand(read(source), macroDefs);
+
         return parse_stx(tokenStream, options);
     }
     // Sync with package.json.
