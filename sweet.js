@@ -583,6 +583,17 @@ var fs = require("fs");
             };
         }
 
+        if (ch1 === "#") {
+            ++index;
+            return {
+                type: Token.Punctuator,
+                value: ch1,
+                lineNumber: lineNumber,
+                lineStart: lineStart,
+                range: [start, index]
+            }
+        }
+
         // Dot (.) can also start a floating-point number, hence the need
         // to check the next character.
 
@@ -3590,7 +3601,6 @@ var fs = require("fs");
             return [];
         }
 
-        console.log(macros)
         while(index < tokens.length) {
             var token = tokens[index++];
             if (token.value === "macro") {
@@ -3622,8 +3632,9 @@ var fs = require("fs");
                     // todo: actual error messages, not asserts
                     assert(first.value === "()", "expecting a macro body");
                     assert(second.value === "{}", "expecting a macro body");
+                    var trans_result = transformer([first.inner, second.inner]);
 
-                    expanded = expanded.concat(transformer([first.inner, second.inner]));
+                    expanded = expanded.concat(trans_result);
                 }
             } else if (token.value === "syntax") {
                 expanded.push(token);  // grab "syntax"
@@ -3810,7 +3821,6 @@ var fs = require("fs");
     // (SyntaxObject, {}) -> SyntaxObject
     function parse_stx(code, options) {
         var program, toString;
-
 
         tokenStream = code;
         

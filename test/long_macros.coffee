@@ -40,7 +40,7 @@ describe "parser/expander", ->
     mac = """
       macro id "()" {
         function id(stx) {
-            return syntax (stx[0]) { 4 };
+            return syntax_macro (## + 4) { stx[0][0] };
         }
       }
       id(2)
