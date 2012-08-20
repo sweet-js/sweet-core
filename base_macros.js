@@ -1,9 +1,22 @@
-macro syntax_macro "(){}" {
+defmacro syntax_fmt "(){}" {
   function syn(stx) {
-    var s = syntax { syntax };
-    var b = syntax { {} }
-    b.inner = stx[0];
+    // var syntaxKeyword = syntax { syntax };
+    // var syntaxBody = syntax { {} }
 
-    return [s, b]
+    // var pattern = stx[0];
+    // var replace = stx[1];
+    // var idx = 0;
+
+    // pattern.forEach(function(val) {
+    //   if(val.value === "#") {
+    //     return replace[idx++];
+    //   } else {
+    //     return val;
+    //   }
+    // })
+
+    // syntaxBody.inner = formatted;
+
+    return syntax { [] }; //[syntaxKeyword, syntaxBody]
   }
 }
