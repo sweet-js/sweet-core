@@ -8,7 +8,7 @@ module.exports = function(grunt) {
   // Project configuration.
   grunt.initConfig({
     lint: {
-      files: ['grunt.js', 'lib/**/*.js', 'test/**/*.js']
+      files: ['grunt.js', 'lib/**/*.js']
     },
     mocha: {
       files: ['build/**/*.js']
@@ -36,11 +36,11 @@ module.exports = function(grunt) {
     },
     build: {
       main: {
-        src: ["src/sweet.js"],
+        src: "src/*.js",
         dest: "lib/"
       },
       test: {
-        src: ["test/macros.js", "test/long_macros.js"],
+        src: "test/*.js",
         dest: "build/"
       }
     }
@@ -53,7 +53,7 @@ module.exports = function(grunt) {
   grunt.registerMultiTask('build', "Compile the src and tests",  function() {
     var done = this.async();
 
-    var files = this.file.src;
+    var files = grunt.file.expandFiles(this.file.src);
     var outpath = this.file.dest;
     var processed = 0;
 
