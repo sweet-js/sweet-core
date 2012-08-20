@@ -1562,6 +1562,7 @@ var fs = require("fs");
             return createLiteral(lex());
         }
 
+        console.log(tokenStream[index])
         return throwUnexpected(lex());
     }
 
@@ -1670,16 +1671,16 @@ var fs = require("fs");
 
     function toObjectNode (obj) {
         // todo: hacky, fixup
-        var props = Object.keys(obj[0]).map(function(key) {
-            var raw = obj[0][key];
+        var props = Object.keys(obj).map(function(key) {
+            var raw = obj[key];
             var value;
             if(Array.isArray(raw)) {
                 value = toArrayNode(raw);
             } else {
                 value = {
                     type: 'Literal',
-                    value: obj[0][key],
-                    raw: obj[0][key].toString()
+                    value: obj[key],
+                    raw: obj[key].toString()
                 };
             }
 
@@ -1700,12 +1701,21 @@ var fs = require("fs");
         };
     }
 
-    function parseSyntaxObject() {
-        var token = lex();
-        assert(token.value === "{}", "expecting delimiters to follow syntax");
+    // function parseSyntaxObject() {
+    //     var tokens = lex();
 
-        return toObjectNode(token.inner);
-    }
+    //     assert(tokens.value === "{}", "expecting delimiters to follow syntax");
+
+    //     var objExprs = tokens.inner.map(function(tok) {
+    //         return toObjectNode(tok);
+    //     });
+
+
+    //     return {
+    //         type: "ArrayExpression",
+    //         elements: objExprs
+    //     };
+    // }
 
     function parseLeftHandSideExpressionAllowCall() {
         var useNew, expr;
@@ -1715,9 +1725,9 @@ var fs = require("fs");
 
         // handle "syntax" primitive
         // todo: error handling
-        if(expr.name === "syntax") {
-            return parseSyntaxObject();
-        }
+        // if(expr.name === "syntax") {
+        //     return parseSyntaxObject();
+        // }
 
         while (index < length) {
             if (match('.')) {
@@ -3591,6 +3601,36 @@ var fs = require("fs");
         return eval("(" + gen.generate(ast) + ")");
     }
     
+    function flatten(tokens) {
+        var flat = [];
+        if ((typeof tokens === "undefined") || (!Array.isArray(tokens.inner))) {
+            return [];
+        }
+
+        tokens.inner.forEach(function(tok) {
+            if (tok.value === "{}" || tok.value === "()" || tok.value === "[]") {
+                flat.push({
+                    type: Token.Punctuator,
+                    value: tok.value[0],
+                    range: tok.startRange,
+                    lineNumber: tok.startLineNumber,
+                    lineStart: tok.startLineStart
+                });
+                flat.concat(flatten(tok.inner));
+                flat.push({
+                    type: Token.Punctuator,
+                    value: tok.value[1],
+                    range: tok.endRange,
+                    lineNumber: tok.endLineNumber,
+                    lineStart: tok.endLineStart
+                });
+            } else {
+                flat.push(tok);
+            }
+        });
+        return flat;
+    }
+
     function expand(tokens, macros) {
         var index = 0;
         var expanded = [];
@@ -3603,7 +3643,7 @@ var fs = require("fs");
 
         while(index < tokens.length) {
             var token = tokens[index++];
-            if (token.value === "macro") {
+            if ((token.type === Token.Identifier) && (token.value === "defmacro")) {
                 var macroName = tokens[index++].value;
                 var macroType = tokens[index++];
                 var macroBody = tokens[index++];
@@ -3614,32 +3654,34 @@ var fs = require("fs");
                     type: macroType.value,
                     transformer: loadMacroDef(macroBody.inner, macros)
                 };
-            } else if (macros[token.value]) {
-                var type = macros[token.value].type;
-                var transformer = macros[token.value].transformer;
-                var first, second;
+            // } else if (macros[token.value]) {
+            //     var type = macros[token.value].type;
+            //     var transformer = macros[token.value].transformer;
+            //     var first, second;
 
-                if (type === "()") {
-                    first = tokens[index++];
+            //     if (type === "()") {
+            //         first = tokens[index++];
 
-                    assert(first.value === "()", "expecting a macro body");
+            //         assert(first.value === "()", "expecting a macro body");
 
-                    expanded = expanded.concat(transformer([first.inner]));
-                } else if (type === "(){}") {
-                    first = tokens[index++];
-                    second = tokens[index++];
+            //         expanded = expanded.concat(transformer([first.inner]));
+            //     } else if (type === "(){}") {
+            //         first = tokens[index++];
+            //         second = tokens[index++];
 
-                    // todo: actual error messages, not asserts
-                    assert(first.value === "()", "expecting a macro body");
-                    assert(second.value === "{}", "expecting a macro body");
-                    var trans_result = transformer([first.inner, second.inner]);
+            //         // todo: actual error messages, not asserts
+            //         assert(first.value === "()", "expecting a macro body");
+            //         assert(second.value === "{}", "expecting a macro body");
+            //         var trans_result = transformer([first.inner, second.inner]);
 
-                    expanded = expanded.concat(trans_result);
-                }
-            } else if (token.value === "syntax") {
-                expanded.push(token);  // grab "syntax"
-                expanded.push(tokens[index++]); // and unexpanded body
-            } else if (token.value === "{}" || token.value === "()" || token.value === "[]") {
+            //         expanded = expanded.concat(trans_result);
+            //     }
+            // } else if (token.value === "syntax") {
+            //     expanded.push(token);  // grab "syntax"
+            //     tokens[index].inner = flatten(tokens[index]);
+            //     expanded.push(tokens[index]); // and unexpanded body
+            //     index++;
+            } else if (token.type === Token.Delimiter && (token.value === "{}" || token.value === "()" || token.value === "[]")) {
                 // flatten the tree
                 expanded.push({
                     type: Token.Punctuator,
@@ -3691,13 +3733,13 @@ var fs = require("fs");
         
         if(isIn(getChar(), delimiters)) {
             return readDelim();
-        } else if(getChar() === "#") {
-            // todo: some hard coded assumptions here, will probably change everything anyway so no biggie
-            nextChar();
-            var syntaxTok = readDelim();
-            syntaxTok.value = "#{}";
+        // } else if(getChar() === "#") {
+        //     // todo: some hard coded assumptions here, will probably change everything anyway so no biggie
+        //     nextChar();
+        //     var syntaxTok = readDelim();
+        //     syntaxTok.value = "#{}";
             
-            return syntaxTok;
+        //     return syntaxTok;
         } else if(getChar() === "/") {
             var prev = back(1);
             if (prev) {
@@ -3750,7 +3792,7 @@ var fs = require("fs");
         var startRange = token.range;
         while(index <= length) {
             token = readLoop(inner, (startDelim.value === "(" || startDelim.value === "["));
-            if(token.value === matchDelim[startDelim.value]) {
+            if((token.type === Token.Punctuator) && (token.value === matchDelim[startDelim.value])) {
                 break;
             } else {
                 inner.push(token);
@@ -3903,9 +3945,9 @@ var fs = require("fs");
             }
         }
 
-        var macro_file = fs.readFileSync("base_macros.js", "utf8");
+        // var macro_file = fs.readFileSync("base_macros.js", "utf8");
         var macroDefs = {};
-        var macros = expand(read(macro_file), macroDefs);
+        // var macros = expand(read(macro_file), macroDefs);
 
         var tokenStream = expand(read(source), macroDefs);
 
