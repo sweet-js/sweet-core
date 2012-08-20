@@ -1,5 +1,5 @@
 var should = require("should");
-var parser = require("../sweet");
+var parser = require("../lib/sweet");
 var gen = require("escodegen");
 
 describe("reader", function() {
@@ -95,7 +95,7 @@ describe("reader", function() {
             .should.equal("b");
     });
     
-    it("should match up identifier and a squar delimiter", function() {
+    it("should match up identifier and a square delimiter", function() {
         parser.read("foo [a, b]")[0].value
             .should.equal("foo");
         
@@ -138,7 +138,8 @@ describe("reader", function() {
         parser.read("foo ('bar')")[1].inner[0].value
             .should.equal("bar");
     });
-    
+
+
     it("should read delimiter in assign regex", function() {
         parser.read("{x = /a}b/}")[0].inner[2].literal
             .should.equal("/a}b/");
@@ -312,28 +313,4 @@ describe("reader", function() {
             .inner[9].value
             .should.equal("/");
     });
-});
-
-
-
-describe("expander", function() {
-    // var macnum = "macro PI { case PI => {3.14} }";
-    // var macadd = "macro add { case add (a, b) => {a + b} }";
-    
-    // it("should expand a macro definition", function() {
-    //     parser.expand(macnum + "\n" + "PI")[0]
-    //         .should.equal(3.14);
-    // });
-    
-    // it("should expand a macro function", function() {
-    //     parser.expand(macadd + "\n" + "add(2,2)")[0].join("")
-    //         .should.equal("2+2");
-    // });
-
-    it("should work with syntax objects somehow", function() {
-        // parser.expand(parser.read("syntax(x)")).should.equal("")
-        // parser.parse("syntax(x)").body[0].expression[0].should.equal("x")
-        // parser.parse("syntax(x)").body[0].expression.should.equal("")
-        // gen.generate(parser.parse("syntax(x)")).should.equal("")
-    })
 });
