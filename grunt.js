@@ -4,19 +4,28 @@ module.exports = function(grunt) {
   // External libs.
   var Mocha = require('mocha');
   var path = require("path");
+  var rimraf = require("rimraf");
+  var async = require("async");
+  var exec = require("child_process").exec;
 
   // Project configuration.
   grunt.initConfig({
+
     lint: {
       files: ['grunt.js', 'lib/**/*.js']
     },
+
     mocha: {
-      files: ['build/**/*.js']
+      testdir: 'build/'
     },
-    growl: true,
+
     watch: {
       files: ['<config:build.test.src>', '<config:build.main.src>'],
       tasks: 'test'
+    },
+
+    clean: {
+      all: 'build'
     },
 
     jshint: {
@@ -34,6 +43,7 @@ module.exports = function(grunt) {
       },
       globals: {}
     },
+
     build: {
       main: {
         src: "src/*.js",
@@ -47,8 +57,10 @@ module.exports = function(grunt) {
   });
 
   // Default task.
-  grunt.registerTask('default', 'lint test');
+  grunt.registerTask('default', 'clean test');
+
   grunt.registerTask('test', 'build mocha');
+
 
   grunt.registerMultiTask('build', "Compile the src and tests",  function() {
     var done = this.async();
@@ -59,46 +71,54 @@ module.exports = function(grunt) {
 
     grunt.file.mkdir(outpath);
 
-    var finish = function(error, result, code) {
-      if(error) {
-        grunt.log.error(error);
-      } 
-
-      processed += 1;
-      if(processed >= files.length) {
-        grunt.log.ok("done");
-        done();
-      }
-    }
-
     files.forEach(function(file) {
+      var cmd = "bin/sjs --output " + outpath + path.basename(file) + " " + file;
+
       grunt.log.writeln("compiling " + file);
-      grunt.utils.spawn({
-        cmd: "bin/sjs",
-        args: ["--output", outpath + path.basename(file), file]
-      }, finish);
-    })
 
+      exec(cmd, function(error, out, err) {
+        if(error) {
+          grunt.log.error(error);
+        } 
+
+        grunt.log.write(out);
+        processed += 1;
+        if(processed >= files.length) {
+          grunt.log.ok("done");
+          done();
+        }
+      });
+    });
   });
 
 
-  grunt.registerMultiTask('mocha', 'Run unit tests with mocha.', function() {
-    var filepaths = grunt.file.expandFiles(this.file.src);
-    grunt.file.clearRequireCache(filepaths);
-    var paths = filepaths.map(resolveFilepaths);
-
-    var options = {};
-    if(grunt.config.get('growl')){
-      options.growl = true;
-    }
-
-    var mocha_instance = new Mocha(options);
-    paths.map(mocha_instance.addFile.bind(mocha_instance));
-    mocha_instance.run(this.async());
+  grunt.registerHelper('run_mocha', function(testdir, done) {
+    console.log(testdir)
+    exec("mocha --growl " + testdir, function(error, out, err) {
+      if(error) {
+        console.log(error);
+      }
+      console.log(out);
+      done(true);
+    });
   });
 
-  function resolveFilepaths(filepath) {
-    return path.resolve(filepath);
-  }
+  grunt.registerMultiTask('mocha', 'Run Mocha Tests', function() {
+    var done = this.async(),
 
+    testdir = this.data;
+
+    grunt.helper('run_mocha', testdir, done);
+  });
+
+  grunt.registerMultiTask("clean", "Cleans out the build files", function() {
+    var done = this.async();
+
+    rimraf(this.data, function(err) {
+      if(err) {
+        grunt.log.error(err);
+      }
+      done(true);
+    });
+  });
 };
