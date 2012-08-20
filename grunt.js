@@ -1,4 +1,5 @@
 /*global module:false*/
+var path = require("path");
 module.exports = function(grunt) {
 
   // Project configuration.
@@ -27,10 +28,48 @@ module.exports = function(grunt) {
         eqnull: true
       },
       globals: {}
+    },
+    build: {
+      main: {
+        src: ["src/sweet.js"],
+        dest: "lib/"
+      },
+      test: {
+        src: ["test/macros.js"],
+        dest: "build/"
+      }
     }
   });
 
   // Default task.
   grunt.registerTask('default', 'lint test');
+
+  grunt.registerMultiTask('build', "Compile the src and tests",  function() {
+    var done = this.async();
+
+    var files = this.file.src;
+    var outpath = this.file.dest;
+    var processed = 0;
+    grunt.file.mkdir(outpath);
+
+    var finish = function(error, result, code) {
+      if(error) {
+        grunt.log.error(error);
+      } 
+
+      processed += 1;
+      if(processed >= files.length) {
+        done();
+      }
+    }
+
+    files.forEach(function(file) {
+      grunt.utils.spawn({
+        cmd: "bin/sjs",
+        args: ["--output", outpath + path.basename(file), file]
+      }, finish);
+    })
+
+  });
 
 };
