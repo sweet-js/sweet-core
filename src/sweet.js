@@ -68,7 +68,8 @@ var fs = require("fs");
         NumericLiteral: 6,
         Punctuator: 7,
         StringLiteral: 8,
-        Delimiter: 9
+        Delimiter: 9,
+        Pattern: 10
     };
 
     TokenName = {};
@@ -3594,6 +3595,42 @@ var fs = require("fs");
         }
         return result;
     }
+
+    function isPatternVar(val) {
+        return val.type === Token.Identifier && val.value[0] === "$";
+    }
+
+    // ([Token]) -> [{}]
+    function loadPattern(pattern) {
+        var res = [];
+        for(var i = 0; i < pattern.length; i++) {
+            if(isPatternVar(pattern[i])) {
+                if(pattern[i+1] && pattern[i+1].value === ":") {
+                    if(pattern[i+2]) {
+                        res.push({
+                            type: Token.Pattern,
+                            value: pattern[i].value,
+                            parseType: pattern[i+2].value
+                        });
+                        i += 2;
+                    } else {
+                        // todo: better error message
+                        throw "expecting pattern type";
+                    }
+                } else {
+                    // assuming an identifier
+                    res.push({
+                        type: Token.Pattern,
+                        value: pattern[i].value,
+                        parseType: "ident"
+                    });
+                }
+            } else {
+                res.push(pattern[i]);
+            }
+        }
+        return res;
+    }
     
     /** 
     ... -> {
@@ -3602,16 +3639,16 @@ var fs = require("fs");
     }
     */    
     function loadMacroDef(body, macros) {
-        var casePattern = body[1];
+        var casePattern = body[1].inner;
         var caseBody = body[4]
 
         assert(body[0].value === "case", "begins with case keyword");
         return {
-            pattern: casePattern,
+            pattern: loadPattern(casePattern),
             body: caseBody
         };
     }
-    
+
     function flatten(tokens) {
         var flat = [];
         if ((typeof tokens === "undefined") || (!Array.isArray(tokens.inner))) {
@@ -3642,8 +3679,20 @@ var fs = require("fs");
         return flat;
     }
 
+    // ([Token], {pattern: [Token], body: [Token]}) -> [Token]
     function invokeMacro(callArgs, macroDefinition) {
-        return callArgs[0];
+        var patterns = macroDefinition.transformer.pattern;
+        var args = callArgs.slice(0);
+        args.push({type: Token.EOF});
+        var res = [];
+
+        patterns.forEach(function(pattern) {
+            var tmp = parse_stx(args, pattern.parseType, {tokens:true}).tokens;
+            tmp.pop();
+            res = res.concat(tmp);
+        });
+
+        return res;
     }
 
     function expand(tokens, macros) {
@@ -3674,7 +3723,7 @@ var fs = require("fs");
 
                 assert(callArgs.value === "()", "expecting delimiters around macro call");
 
-                expanded.push(invokeMacro(callArgs.inner, macros[token.value]));
+                expanded = expanded.concat(invokeMacro(callArgs.inner, macros[token.value]));
             // } else if (macros[token.value]) {
             //     var type = macros[token.value].type;
             //     var transformer = macros[token.value].transformer;
@@ -3732,7 +3781,7 @@ var fs = require("fs");
         var parenIdents = ["if", "while", "for", "with"];
         var last = toks.length - 1;
         
-        
+
         var fnExprTokens = ["(", "{", "[", "in", "typeof", "instanceof", "new", "return",
                             "case", "delete", "throw", "void", 
                             // assignment operators
@@ -3882,12 +3931,12 @@ var fs = require("fs");
     }
     
 
-    // (SyntaxObject, {}) -> SyntaxObject
-    function parse_stx(code, options) {
+    // (SyntaxObject, Str, {}) -> SyntaxObject
+    function parse_stx(code, nodeType, options) {
         var program, toString;
 
         tokenStream = code;
-        
+        nodeType = nodeType || "base";
         index = 0;
         length = tokenStream.length;
         buffer = null;
@@ -3921,7 +3970,14 @@ var fs = require("fs");
         
         patch();
         try {
-            program = parseProgram();
+            if(nodeType === "base") {
+                program = parseProgram();
+            } else if(nodeType === "expression") {
+                program = parseExpression();
+            } else if (nodeType === "lit") {
+                program = parsePrimaryExpression();
+            }
+
             if (typeof extra.comments !== 'undefined') {
                 program.comments = extra.comments;
             }
@@ -3973,7 +4029,7 @@ var fs = require("fs");
 
         var tokenStream = expand(read(source), macroDefs);
 
-        return parse_stx(tokenStream, options);
+        return parse_stx(tokenStream, "base", options);
     }
     // Sync with package.json.
     exports.version = '1.0.0-dev';
@@ -4001,6 +4057,8 @@ var fs = require("fs");
         }
 
         return types;
+
+
     }());
 
 }(typeof exports === 'undefined' ? (esprima = {}) : exports));

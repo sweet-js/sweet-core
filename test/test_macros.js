@@ -5,12 +5,11 @@ var gen = require ("escodegen");
 describe("parser", function() {
   it("should parse with the identity macro", function() {
     macro id "()" {
-      case ($id:ident) => {
-        $id
+      case ($x:lit) => {
+        $x
       }
     }
-    var x = id(5);
-    x.should.equal(5);
-    
+    var z = id(4);
+    z.should.equal(4);
   });
 });
