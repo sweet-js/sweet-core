@@ -93,12 +93,13 @@ module.exports = function(grunt) {
 
 
   grunt.registerHelper('run_mocha', function(testdir, done) {
-    console.log(testdir)
     exec("mocha --growl " + testdir, function(error, out, err) {
       if(error) {
-        console.log(error);
+        grunt.log.error(err);
+        done(false);
+        return;
       }
-      console.log(out);
+      grunt.log.ok(out);
       done(true);
     });
   });
