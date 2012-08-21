@@ -3595,10 +3595,21 @@ var fs = require("fs");
         return result;
     }
     
-    
+    /** 
+    ... -> {
+        pattern: [Token]
+        body: [Token]
+    }
+    */    
     function loadMacroDef(body, macros) {
-        var ast = parse_stx(expand(body, macros));
-        return eval("(" + gen.generate(ast) + ")");
+        var casePattern = body[1];
+        var caseBody = body[4]
+
+        assert(body[0].value === "case", "begins with case keyword");
+        return {
+            pattern: casePattern,
+            body: caseBody
+        };
     }
     
     function flatten(tokens) {
@@ -3631,6 +3642,10 @@ var fs = require("fs");
         return flat;
     }
 
+    function invokeMacro(callArgs, macroDefinition) {
+        return callArgs[0];
+    }
+
     function expand(tokens, macros) {
         var index = 0;
         var expanded = [];
@@ -3643,7 +3658,7 @@ var fs = require("fs");
 
         while(index < tokens.length) {
             var token = tokens[index++];
-            if ((token.type === Token.Identifier) && (token.value === "defmacro")) {
+            if ((token.type === Token.Identifier) && (token.value === "macro")) {
                 var macroName = tokens[index++].value;
                 var macroType = tokens[index++];
                 var macroBody = tokens[index++];
@@ -3654,6 +3669,12 @@ var fs = require("fs");
                     type: macroType.value,
                     transformer: loadMacroDef(macroBody.inner, macros)
                 };
+            } else if (token.type === Token.Identifier && macros.hasOwnProperty(token.value)) {
+                var callArgs = tokens[index++];
+
+                assert(callArgs.value === "()", "expecting delimiters around macro call");
+
+                expanded.push(invokeMacro(callArgs.inner, macros[token.value]));
             // } else if (macros[token.value]) {
             //     var type = macros[token.value].type;
             //     var transformer = macros[token.value].transformer;
@@ -3663,6 +3684,7 @@ var fs = require("fs");
             //         first = tokens[index++];
 
             //         assert(first.value === "()", "expecting a macro body");
+
 
             //         expanded = expanded.concat(transformer([first.inner]));
             //     } else if (type === "(){}") {
