@@ -31,5 +31,7 @@ describe("parser", function() {
     }
     var z = oddadd((2) <+> 4);
     z.should.equal(6);
+
   });
+
 });

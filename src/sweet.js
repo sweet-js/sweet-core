@@ -38,6 +38,8 @@ parseLeftHandSideExpression: true,
 parseStatement: true, parseSourceElement: true */
 var gen = require("escodegen");
 var fs = require("fs");
+require("contracts.js").autoload();
+
 
 (function (exports) {
     'use strict';
@@ -3775,17 +3777,38 @@ var fs = require("fs");
         return matches;
     }
 
-    // ([Token], {pattern: [Pattern], body: [Token]}) -> [Token]
-    function invokeMacro(callArgs, macroDefinition) {
-        var patterns = macroDefinition.transformer.pattern;
-        var matches = matchPatterns(callArgs, patterns);
-        // todo now use the matched up patterns with the macro body
-        return [callArgs[0].inner[0]];
-    }
+    var CToken = object({
+        value: Str,
+        type: Num
+    });
+
+    var CPattern = object({
+        parseType: Str,
+        value: Str,
+        inner: opt(arr([Self])) 
+    });
+
+    var CMacroDef = object({
+        pattern: arr([CPattern]),
+        body: arr([CToken])
+    })
+
+    var invokeMacro = guard(
+        // ([CToken], {pattern: [Pattern], body: [Token]}) -> [Token]
+        fun([arr([CToken]), CPattern], Any),
+        function invokeMacro(callArgs, macroDefinition) {
+            var patterns = macroDefinition.transformer.pattern;
+            var matches = matchPatterns(callArgs, patterns);
+            console.log("hi");
+            // todo now use the matched up patterns with the macro body
+            return [callArgs[0].inner[0]];
+        });
+
 
     function expand(tokens, macros) {
         var index = 0;
         var expanded = [];
+
 
         macros = macros || {};
 

@@ -93,7 +93,7 @@ module.exports = function(grunt) {
 
 
   grunt.registerHelper('run_mocha', function(testdir, done) {
-    exec("mocha --growl " + testdir, function(error, out, err) {
+    exec("mocha --growl --harmony_proxies --harmony_collections " + testdir, function(error, out, err) {
       if(error) {
         grunt.log.error(err);
         done(false);
