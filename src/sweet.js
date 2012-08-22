@@ -1563,7 +1563,6 @@ var fs = require("fs");
             return createLiteral(lex());
         }
 
-        console.log(tokenStream[index])
         return throwUnexpected(lex());
     }
 
@@ -3625,6 +3624,9 @@ var fs = require("fs");
                         parseType: "ident"
                     });
                 }
+            } else if (pattern[i].value === "()") {
+                pattern[i].inner = loadPattern(pattern[i].inner);
+                res.push(pattern[i]);
             } else {
                 res.push(pattern[i]);
             }
@@ -3679,20 +3681,106 @@ var fs = require("fs");
         return flat;
     }
 
-    // ([Token], {pattern: [Token], body: [Token]}) -> [Token]
-    function invokeMacro(callArgs, macroDefinition) {
-        var patterns = macroDefinition.transformer.pattern;
-        var args = callArgs.slice(0);
-        args.push({type: Token.EOF});
-        var res = [];
+    var mkTokenStream = (function() {
+        var streamObj = {
+            EOS: {},
+            curr: function() {
+                if(this._index >= this._length) {
+                    return this.EOS;
+                } else {
+                    return this._tokens[this._index];
+                }
+            },
+            peak: function(n) {
+                var lookahead = n || 1;
+
+                if(this._index + lookahead >= this._length) {
+                    return this.EOS;
+                } else {
+                    return this._tokens[this._index + lookahead];
+                }
+            },
+            back: function(n) {
+                var lookback = n || 1;
+
+                if(this._index - lookback >= this._length) {
+                    return this.EOS;
+                } else {
+                    return this._tokens[this._index - lookback];
+                }
+            },
+            next: function() {
+                if(this._index >= this._length) {
+                    return this.EOS;
+                } else {
+                    return this._tokens[this._index++];
+                }
+            },
+
+            rest: function() {
+                return this._tokens.slice(this._index);
+            }
+        };
+        return function(tokens) {
+            return Object.create(streamObj, {
+                _tokens: {value: tokens, writable: true},
+                _index:  {value: 0, writable: true},
+                _length: {value: tokens.length, writable: true}
+            });
+        }
+    })();
+
+    // Pattern = ?{
+    //      parseType: Str
+    //      value: Str
+    //      inner: Str?
+    // }
+    // ([Token], [Pattern]) -> [{pattern: Pattern, tokens: [Token]}]
+    function matchPatterns(callTokens, patterns) {
+        var matches = [];
+
+        var tmp = callTokens.slice(0);
+        tmp.push({type: Token.EOF});
+        var stream = mkTokenStream(tmp);
 
         patterns.forEach(function(pattern) {
-            var tmp = parse_stx(args, pattern.parseType, {tokens:true}).tokens;
-            tmp.pop();
-            res = res.concat(tmp);
-        });
+            if(pattern.type === Token.Pattern) {
+                var tmp = parse_stx(stream.rest(), pattern.parseType, {tokens:true}).tokens;
+                tmp.pop();
+                matches.push({
+                    pattern: pattern,
+                    tokens: tmp
+                });
+            } else {
+                var nextToken = stream.next();
+                if ((nextToken.value === "()") && (pattern.value === "()")) {
+                    var tokInner = nextToken.inner.slice(0);
+                    var patInner = pattern.inner;
+                    tokInner.push({type: Token.EOF});
 
-        return res;
+                    tmp = parse_stx(tokInner, patInner[0].parseType, {tokens:true}).tokens;
+                    tmp.pop();
+                    matches.push({
+                        pattern: patInner[0],
+                        tokens: tmp
+                    });
+                    // res = res.concat(tmp);
+                } else if(nextToken.value !== pattern.value) {
+                    // todo better messaging
+                    throw "did not match expected pattern";
+                }
+                // otherwise we have just matched and consumed a literal token
+            }
+        });
+        return matches;
+    }
+
+    // ([Token], {pattern: [Pattern], body: [Token]}) -> [Token]
+    function invokeMacro(callArgs, macroDefinition) {
+        var patterns = macroDefinition.transformer.pattern;
+        var matches = matchPatterns(callArgs, patterns);
+        // todo now use the matched up patterns with the macro body
+        return [callArgs[0].inner[0]];
     }
 
     function expand(tokens, macros) {
