@@ -53,13 +53,19 @@ module.exports = function(grunt) {
         src: "test/*.js",
         dest: "build/"
       }
+    },
+    browser: {
+      tests: {
+        src: "test/*.js",
+        dest: "browser/test_bundled.js"
+      }
     }
   });
 
   // Default task.
   grunt.registerTask('default', 'clean test');
 
-  grunt.registerTask('test', 'build mocha');
+  grunt.registerTask('test', 'build browser mocha');
 
 
   grunt.registerMultiTask('build', "Compile the src and tests",  function() {
@@ -91,6 +97,23 @@ module.exports = function(grunt) {
     });
   });
 
+  grunt.registerMultiTask('browser', 'browserify the tests', function() {
+    var done = this.async();
+
+    var test_files = grunt.file.expandFiles(this.data.src).join(" ");
+    var output_file = this.data.dest;
+    var cmd = "browserify -o " + output_file + " " + test_files;
+    grunt.log.writeln(cmd);
+    exec(cmd, function(error, out, err) {
+      if(error) {
+        grunt.log.error(err);
+        done(false);
+        return;
+      }
+      grunt.log.ok(out);
+      done(true);
+    });
+  })
 
   grunt.registerHelper('run_mocha', function(testdir, done) {
     exec("mocha --growl --harmony_proxies --harmony_collections " + testdir, function(error, out, err) {

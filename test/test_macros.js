@@ -1,4 +1,4 @@
-var should = require("should")
+var expect = require("expect.js")
 var parser = require("../lib/sweet")
 var gen = require ("escodegen");
 
@@ -23,15 +23,16 @@ describe("parser", function() {
   //   z.should.equal(42);
   // });
 
-  it("should expand a macro with a pattern `$x:lit <+> $y:lit`", function() {
-    macro oddadd "()" {
-      case (($x:lit) <+> $y:lit) {
-        $x + $y
-      }
-    }
-    var z = oddadd((2) <+> 4);
-    z.should.equal(6);
+  // it("should expand a macro with a pattern `$x:lit <+> $y:lit`", function() {
+  //   macro oddadd "()" {
+  //     case (($x:lit) <+> $y:lit) => {
+  //       $x + $y
+  //     }
+  //   }
+  //   var z = oddadd((2) <+> 4);
+  //   expect(z).to.be(6);
 
-  });
+  // });
+
 
 });
