@@ -3842,6 +3842,20 @@ require("contracts.js").autoload();
             return matches;
         });
 
+    makeSyntax or datum->syntax like
+    var takeContext = guard(
+        fun(CToken, CToken),
+
+        function takeContext(to, from) {
+            return {
+                type: to.type,
+                value: to.value,
+                lineNumber: from.lineNumber,
+                lineStart: from.lineStart,
+                range: from.range
+            };
+        });
+
     var invokeMacro = guard(
         fun([arr([___(CToken)]), CMacroDef], Any),
 
@@ -3850,15 +3864,27 @@ require("contracts.js").autoload();
             var matches = matchPatterns(callArgs, macroDefinition.pattern);
             var idx = 0;
             var res = [];
-            macroDefinition.body.forEach(function(token) {
-                if(matches[token.value] !== undefined) {
-                    res = res.concat(matches[token.value])
-                } else {
-                    res.push(token);
-                }
-            });
-            // todo now use the matched up patterns with the macro body
-            return res;
+
+            var substitute = function substitute(tokens, substitutions) {
+                var res = []
+                tokens.forEach(function(token) {
+                    if(matches[token.value] !== undefined) {
+                        // todo broken, need to take the context from toke
+                        // but can't exectly just apply it to every token in the match set
+                        res = res.concat(takeContext(matches[token.value], token.value));
+                    } else if (token.type === Token.Delimiter) {
+                        token.inner = substitute(token.inner, substitutions);
+                        console.log(token)
+                        res.push(token);
+                    } else {
+                        res.push(token);
+                    }
+                });
+                return res;
+            };
+
+            res = substitute(macroDefinition.body, matches);
+            return expand(res); // todo carry along the right macro defintions
         });
 
 
@@ -4139,7 +4165,7 @@ require("contracts.js").autoload();
         try {
             if(nodeType === "base") {
                 program = parseProgram();
-            } else if(nodeType === "expression") {
+            } else if(nodeType === "expr") {
                 program = parseExpression();
             } else if (nodeType === "lit") {
                 program = parsePrimaryExpression();
