@@ -36,10 +36,10 @@ parseFunctionDeclaration: true, parseFunctionExpression: true,
 parseFunctionSourceElements: true, parseVariableIdentifier: true,
 parseLeftHandSideExpression: true,
 parseStatement: true, parseSourceElement: true */
+
 var gen = require("escodegen");
 var fs = require("fs");
 require("contracts.js").autoload();
-
 
 (function (exports) {
     'use strict';
@@ -3697,7 +3697,7 @@ require("contracts.js").autoload();
         });
 
     var loadPattern = guard(
-        fun(Any, Any),
+        fun(CTokenStream, CPatternStream),
 
         // (CTokenStream) -> CPatternStream
         function loadPattern(tokens) {
