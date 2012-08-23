@@ -3615,7 +3615,7 @@ require("contracts.js").autoload();
             peek: fun(opt(Num), or(Null, C)),
             back: fun(opt(Num), or(Null, C)),
             next: fun(Undefined, or(Null, C)),
-            rest: fun(Undefined, arr([___(C)])),
+            // rest: fun(Undefined, arr([___(C)])),
             forEach: fun(fun(C, Any), Any)
         });
     }
@@ -3760,7 +3760,7 @@ require("contracts.js").autoload();
             assert(body[2].value === "=", "case pattern does not have `=>` token");
             assert(body[3].value === ">", "case pattern does not have `=>` token");
 
-            var caseBody = mkStream(body[4])
+            var caseBody = mkStream(body[4].inner)
             return {
                 pattern: loadPattern(casePattern),
                 body: caseBody
@@ -3804,11 +3804,11 @@ require("contracts.js").autoload();
 
     var matchPatterns = guard(
         fun([arr([___(CToken)]), CPatternStream], 
-            arr([object({pattern: CPattern, tokens: arr([___(CToken)])})])), 
+            Any), 
 
-        // ([CToken], CPatternStream) -> [{pattern: CPattern, tokens: [CToken]}]
+        // ([CToken], CPatternStream) -> {<key>: [CToken]}
         function matchPatterns(callTokens, patterns) {
-            var matches = [];
+            var matches = {};
 
             var tmp = callTokens.slice(0);
             tmp.push({type: Token.EOF});
@@ -3828,17 +3828,11 @@ require("contracts.js").autoload();
                     tokInner.push({type:Token.EOF});
                     tmp = parse_stx(tokInner, patInner.type, {tokens:true}).tokens;
                     tmp.pop(); // removing EOF...more hacks
-                    matches.push({
-                        pattern: patInner,
-                        tokens: tmp
-                    });
+                    matches[patInner.name] = tmp;
                 } else {
                     var tmp = parse_stx(stream.rest(), pattern.type, {tokens:true}).tokens;
                     tmp.pop();
-                    matches.push({
-                        pattern: pattern,
-                        tokens: tmp
-                    });
+                    matches[pattern.name] = tmp;
                 }
             });
             return matches;
@@ -3850,12 +3844,19 @@ require("contracts.js").autoload();
         // ([CToken], CMacroDef) -> [CToken]
         function invokeMacro(callArgs, macroDefinition) {
             var matches = matchPatterns(callArgs, macroDefinition.pattern);
-
-            // macroDefinition.body.forEach(function(token) {
-            //     console.log(token)
-            // });
+            var idx = 0;
+            var res = [];
+            macroDefinition.body.forEach(function(token) {
+                // console.log(token)
+                if(matches[token.value] !== undefined) {
+                    res = res.concat(matches[token.value])
+                } else {
+                    res.push(token);
+                }
+            });
             // todo now use the matched up patterns with the macro body
-            return [callArgs[0].inner[0]];
+            console.log(res)
+            return res;
         });
 
 
