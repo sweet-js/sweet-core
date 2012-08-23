@@ -3605,7 +3605,7 @@ require("contracts.js").autoload();
     var CPattern = object({
         type: Str,
         name: Str,
-        inner: opt(arr([Any])) 
+        inner: opt(Any)  // CPatternStream...but no recursive contracts yet
     });
 
 
@@ -3615,7 +3615,8 @@ require("contracts.js").autoload();
             peek: fun(opt(Num), or(Null, C)),
             back: fun(opt(Num), or(Null, C)),
             next: fun(Undefined, or(Null, C)),
-            rest: fun(Undefined, arr([___(C)]))
+            rest: fun(Undefined, arr([___(C)])),
+            forEach: fun(fun(C, Any), Any)
         });
     }
 
@@ -3669,6 +3670,13 @@ require("contracts.js").autoload();
             // (Unit) -> [Any]
             rest: function() {
                 return this._tokens.slice(this._index);
+            },
+
+            // ((Any) -> Any) -> Any
+            forEach: function(vis) {
+                for(var i = 0; i < this._length; i++) {
+                    vis(this._tokens[i]);
+                }
             }
         };
         return function(tokens) {
@@ -3702,16 +3710,17 @@ require("contracts.js").autoload();
         // (CTokenStream) -> CPatternStream
         function loadPattern(tokens) {
             var res = [];
-            console.log(tokens)
+
             var token = tokens.next();
             while(token) {
                 if(isPatternVar(token)) {
-                    if(tokens.peek() && tokens.peek().value === ":") {
-                        tokens.next(); // eat the :
+                    if(tokens.curr() && tokens.curr().value === ":") {
+                        tokens.next() ;// eat the :
+                        var parseType = tokens.next(); 
                         // todo error handling
                         res.push({
                             type: parseType.value,
-                            name: tokens.next().value
+                            name: token.value
                         });
                     } else {
                         // assuming an identifier
@@ -3794,10 +3803,10 @@ require("contracts.js").autoload();
 
 
     var matchPatterns = guard(
-        fun([arr([___(CToken)]), arr([___(CPattern)])], 
+        fun([arr([___(CToken)]), CPatternStream], 
             arr([object({pattern: CPattern, tokens: arr([___(CToken)])})])), 
 
-        // ([CToken], [CPattern]) -> [{pattern: CPattern, tokens: [CToken]}]
+        // ([CToken], CPatternStream) -> [{pattern: CPattern, tokens: [CToken]}]
         function matchPatterns(callTokens, patterns) {
             var matches = [];
 
@@ -3805,48 +3814,46 @@ require("contracts.js").autoload();
             tmp.push({type: Token.EOF});
             var stream = mkStream(tmp);
 
-            console.log(patterns)
             patterns.forEach(function(pattern) {
-                if(pattern.type === Token.Pattern) {
-                    var tmp = parse_stx(stream.rest(), pattern.parseType, {tokens:true}).tokens;
+                // 1. pattern type is "pattern_literal"
+                // 2. pattern type is "()"
+                // 3. pattern type is other (some parse object)
+                // todo real error handling
+                if (pattern.type === "pattern_literal") {
+                    assert(stream.next().value === pattern.name, "pattern literal does not match");
+                } else if (pattern.type === "()") { // hack
+                    var tokInner = stream.next().inner.slice(0);
+                    var patInner = pattern.inner.next();
+
+                    tokInner.push({type:Token.EOF});
+                    tmp = parse_stx(tokInner, patInner.type, {tokens:true}).tokens;
+                    tmp.pop(); // removing EOF...more hacks
+                    matches.push({
+                        pattern: patInner,
+                        tokens: tmp
+                    });
+                } else {
+                    var tmp = parse_stx(stream.rest(), pattern.type, {tokens:true}).tokens;
                     tmp.pop();
                     matches.push({
                         pattern: pattern,
                         tokens: tmp
                     });
-                } else {
-                    var nextToken = stream.next();
-                    if ((nextToken.value === "()") && (pattern.value === "()")) {
-                        var tokInner = nextToken.inner.slice(0);
-                        var patInner = pattern.inner;
-                        tokInner.push({type: Token.EOF});
-
-                        tmp = parse_stx(tokInner, patInner[0].parseType, {tokens:true}).tokens;
-                        tmp.pop();
-                        matches.push({
-                            pattern: patInner[0],
-                            tokens: tmp
-                        });
-                        // res = res.concat(tmp);
-                    } else if(nextToken.value !== pattern.value) {
-                        // todo better messaging
-                        console.log(pattern)
-                        throw "did not match expected pattern";
-                    }
-                    // otherwise we have just matched and consumed a literal token
                 }
             });
             return matches;
         });
 
-
     var invokeMacro = guard(
-        fun([arr([___(CToken)]), CMacroDef], arr([___(CToken)])),
+        fun([arr([___(CToken)]), CMacroDef], Any),
 
         // ([CToken], CMacroDef) -> [CToken]
         function invokeMacro(callArgs, macroDefinition) {
-            var patterns = macroDefinition.pattern;
-            var matches = matchPatterns(callArgs, patterns);
+            var matches = matchPatterns(callArgs, macroDefinition.pattern);
+
+            // macroDefinition.body.forEach(function(token) {
+            //     console.log(token)
+            // });
             // todo now use the matched up patterns with the macro body
             return [callArgs[0].inner[0]];
         });
@@ -3880,7 +3887,6 @@ require("contracts.js").autoload();
                 var callArgs = tokens[index++];
 
                 assert(callArgs.value === "()", "expecting delimiters around macro call");
-
                 expanded = expanded.concat(invokeMacro(callArgs.inner, macros[token.value].transformer));
             // } else if (macros[token.value]) {
             //     var type = macros[token.value].type;
@@ -4218,6 +4224,9 @@ require("contracts.js").autoload();
 
 
     }());
+
+    // setting up some contract options
+    show_parent_contracts(false);
 
 }(typeof exports === 'undefined' ? (esprima = {}) : exports));
 /* vim: set sw=4 ts=4 et tw=80 : */
