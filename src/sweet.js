@@ -3597,95 +3597,40 @@ require("contracts.js").autoload();
         return result;
     }
 
-    function isPatternVar(val) {
-        return val.type === Token.Identifier && val.value[0] === "$";
-    }
+    var CToken = object({
+        value: opt(or(Str, Num)),
+        type: opt(Num)
+    });
 
-    // ([Token]) -> [{}]
-    function loadPattern(pattern) {
-        var res = [];
-        for(var i = 0; i < pattern.length; i++) {
-            if(isPatternVar(pattern[i])) {
-                if(pattern[i+1] && pattern[i+1].value === ":") {
-                    if(pattern[i+2]) {
-                        res.push({
-                            type: Token.Pattern,
-                            value: pattern[i].value,
-                            parseType: pattern[i+2].value
-                        });
-                        i += 2;
-                    } else {
-                        // todo: better error message
-                        throw "expecting pattern type";
-                    }
-                } else {
-                    // assuming an identifier
-                    res.push({
-                        type: Token.Pattern,
-                        value: pattern[i].value,
-                        parseType: "ident"
-                    });
-                }
-            } else if (pattern[i].value === "()") {
-                pattern[i].inner = loadPattern(pattern[i].inner);
-                res.push(pattern[i]);
-            } else {
-                res.push(pattern[i]);
-            }
-        }
-        return res;
-    }
-    
-    /** 
-    ... -> {
-        pattern: [Token]
-        body: [Token]
-    }
-    */    
-    function loadMacroDef(body, macros) {
-        var casePattern = body[1].inner;
-        var caseBody = body[4]
+    var CPattern = object({
+        type: Str,
+        name: Str,
+        inner: opt(arr([Any])) 
+    });
 
-        assert(body[0].value === "case", "begins with case keyword");
-        return {
-            pattern: loadPattern(casePattern),
-            body: caseBody
-        };
-    }
 
-    function flatten(tokens) {
-        var flat = [];
-        if ((typeof tokens === "undefined") || (!Array.isArray(tokens.inner))) {
-            return [];
-        }
-
-        tokens.inner.forEach(function(tok) {
-            if (tok.value === "{}" || tok.value === "()" || tok.value === "[]") {
-                flat.push({
-                    type: Token.Punctuator,
-                    value: tok.value[0],
-                    range: tok.startRange,
-                    lineNumber: tok.startLineNumber,
-                    lineStart: tok.startLineStart
-                });
-                flat.concat(flatten(tok.inner));
-                flat.push({
-                    type: Token.Punctuator,
-                    value: tok.value[1],
-                    range: tok.endRange,
-                    lineNumber: tok.endLineNumber,
-                    lineStart: tok.endLineStart
-                });
-            } else {
-                flat.push(tok);
-            }
+    function mkStreamContract(C) {
+        return object({
+            curr: fun(Undefined, or(Null, C)),
+            peek: fun(opt(Num), or(Null, C)),
+            back: fun(opt(Num), or(Null, C)),
+            next: fun(Undefined, or(Null, C)),
+            rest: fun(Undefined, arr([___(C)]))
         });
-        return flat;
     }
 
-    var mkTokenStream = (function() {
+    var CStream = mkStreamContract(Any);
+    var CTokenStream = mkStreamContract(CToken);
+    var CPatternStream = mkStreamContract(CPattern);
+
+    var CMacroDef = object({
+        pattern: CPatternStream,
+        body: CTokenStream
+    });
+    var _makeStream = (function() {
         var streamObj = {
-            EOS: {},
+            EOS: null,
+            // (Unit) -> Any or Null
             curr: function() {
                 if(this._index >= this._length) {
                     return this.EOS;
@@ -3693,7 +3638,8 @@ require("contracts.js").autoload();
                     return this._tokens[this._index];
                 }
             },
-            peak: function(n) {
+            // (Num?) -> Any or Null
+            peek: function(n) {
                 var lookahead = n || 1;
 
                 if(this._index + lookahead >= this._length) {
@@ -3702,6 +3648,7 @@ require("contracts.js").autoload();
                     return this._tokens[this._index + lookahead];
                 }
             },
+            // (Num?) -> Any or Null
             back: function(n) {
                 var lookback = n || 1;
 
@@ -3711,6 +3658,7 @@ require("contracts.js").autoload();
                     return this._tokens[this._index - lookback];
                 }
             },
+            // (Unit) -> Any or Null
             next: function() {
                 if(this._index >= this._length) {
                     return this.EOS;
@@ -3718,88 +3666,187 @@ require("contracts.js").autoload();
                     return this._tokens[this._index++];
                 }
             },
-
+            // (Unit) -> [Any]
             rest: function() {
                 return this._tokens.slice(this._index);
             }
         };
         return function(tokens) {
             return Object.create(streamObj, {
-                _tokens: {value: tokens, writable: true},
-                _index:  {value: 0, writable: true},
-                _length: {value: tokens.length, writable: true}
+                _tokens: {value: tokens, writable: true, enumerable: false, configurable: true},
+                _index:  {value: 0, writable: true, enumerable: false, configurable: true},
+                _length: {value: tokens.length, writable: true, enumerable: false, configurable: true}
             });
         }
     })();
 
-    // Pattern = ?{
-    //      parseType: Str
-    //      value: Str
-    //      inner: Str?
-    // }
-    // ([Token], [Pattern]) -> [{pattern: Pattern, tokens: [Token]}]
-    function matchPatterns(callTokens, patterns) {
-        var matches = [];
+    var mkStream = guard(
+        fun(arr([___(Any)]), CStream),
 
-        var tmp = callTokens.slice(0);
-        tmp.push({type: Token.EOF});
-        var stream = mkTokenStream(tmp);
+        // ([Any]) -> CStream
+        _makeStream);
 
-        patterns.forEach(function(pattern) {
-            if(pattern.type === Token.Pattern) {
-                var tmp = parse_stx(stream.rest(), pattern.parseType, {tokens:true}).tokens;
-                tmp.pop();
-                matches.push({
-                    pattern: pattern,
-                    tokens: tmp
-                });
-            } else {
-                var nextToken = stream.next();
-                if ((nextToken.value === "()") && (pattern.value === "()")) {
-                    var tokInner = nextToken.inner.slice(0);
-                    var patInner = pattern.inner;
-                    tokInner.push({type: Token.EOF});
 
-                    tmp = parse_stx(tokInner, patInner[0].parseType, {tokens:true}).tokens;
+
+    var isPatternVar = guard(
+        fun(CToken, Bool),
+
+        // CToken -> Bool
+        function isPatternVar(val) {
+            return val.type === Token.Identifier && val.value[0] === "$";
+        });
+
+    var loadPattern = guard(
+        fun(Any, Any),
+
+        // (CTokenStream) -> CPatternStream
+        function loadPattern(tokens) {
+            var res = [];
+            console.log(tokens)
+            var token = tokens.next();
+            while(token) {
+                if(isPatternVar(token)) {
+                    if(tokens.peek() && tokens.peek().value === ":") {
+                        tokens.next(); // eat the :
+                        // todo error handling
+                        res.push({
+                            type: parseType.value,
+                            name: tokens.next().value
+                        });
+                    } else {
+                        // assuming an identifier
+                        res.push({
+                            type: "ident",
+                            name: token.value,
+                        });
+                    }
+                } else if (token.value === "()") {
+                    res.push({
+                        type: "()",
+                        name: "()",
+                        inner: loadPattern(mkStream(token.inner))
+                    });
+                } else {
+                    res.push({
+                        type: "pattern_literal",
+                        name: token.value
+                    });
+                }
+                token = tokens.next();
+            }
+
+            return mkStream(res);
+        });
+    
+    var loadMacroDef = guard(
+        fun([arr([___(CToken)])], CMacroDef),
+
+        // ([CToken]) -> CMacroDef
+        function loadMacroDef(body) {
+            // todo real error handling
+            assert(body[0].value === "case", "case pattern does not have `case` keyword");
+
+            var casePattern = mkStream(body[1].inner);
+
+            assert(body[2].value === "=", "case pattern does not have `=>` token");
+            assert(body[3].value === ">", "case pattern does not have `=>` token");
+
+            var caseBody = mkStream(body[4])
+            return {
+                pattern: loadPattern(casePattern),
+                body: caseBody
+            };
+        });
+
+    var flatten = guard(
+        fun(arr([___(CToken)]), arr([___(CToken)])),
+
+        // ([CToken]) -> [CToken]
+        function flatten(tokens) {
+            var flat = [];
+            if ((typeof tokens === "undefined") || (!Array.isArray(tokens.inner))) {
+                return [];
+            }
+
+            tokens.inner.forEach(function(tok) {
+                if (tok.value === "{}" || tok.value === "()" || tok.value === "[]") {
+                    flat.push({
+                        type: Token.Punctuator,
+                        value: tok.value[0],
+                        range: tok.startRange,
+                        lineNumber: tok.startLineNumber,
+                        lineStart: tok.startLineStart
+                    });
+                    flat.concat(flatten(tok.inner));
+                    flat.push({
+                        type: Token.Punctuator,
+                        value: tok.value[1],
+                        range: tok.endRange,
+                        lineNumber: tok.endLineNumber,
+                        lineStart: tok.endLineStart
+                    });
+                } else {
+                    flat.push(tok);
+                }
+            });
+            return flat;
+        });
+
+
+    var matchPatterns = guard(
+        fun([arr([___(CToken)]), arr([___(CPattern)])], 
+            arr([object({pattern: CPattern, tokens: arr([___(CToken)])})])), 
+
+        // ([CToken], [CPattern]) -> [{pattern: CPattern, tokens: [CToken]}]
+        function matchPatterns(callTokens, patterns) {
+            var matches = [];
+
+            var tmp = callTokens.slice(0);
+            tmp.push({type: Token.EOF});
+            var stream = mkStream(tmp);
+
+            console.log(patterns)
+            patterns.forEach(function(pattern) {
+                if(pattern.type === Token.Pattern) {
+                    var tmp = parse_stx(stream.rest(), pattern.parseType, {tokens:true}).tokens;
                     tmp.pop();
                     matches.push({
-                        pattern: patInner[0],
+                        pattern: pattern,
                         tokens: tmp
                     });
-                    // res = res.concat(tmp);
-                } else if(nextToken.value !== pattern.value) {
-                    // todo better messaging
-                    throw "did not match expected pattern";
+                } else {
+                    var nextToken = stream.next();
+                    if ((nextToken.value === "()") && (pattern.value === "()")) {
+                        var tokInner = nextToken.inner.slice(0);
+                        var patInner = pattern.inner;
+                        tokInner.push({type: Token.EOF});
+
+                        tmp = parse_stx(tokInner, patInner[0].parseType, {tokens:true}).tokens;
+                        tmp.pop();
+                        matches.push({
+                            pattern: patInner[0],
+                            tokens: tmp
+                        });
+                        // res = res.concat(tmp);
+                    } else if(nextToken.value !== pattern.value) {
+                        // todo better messaging
+                        console.log(pattern)
+                        throw "did not match expected pattern";
+                    }
+                    // otherwise we have just matched and consumed a literal token
                 }
-                // otherwise we have just matched and consumed a literal token
-            }
+            });
+            return matches;
         });
-        return matches;
-    }
 
-    var CToken = object({
-        value: Str,
-        type: Num
-    });
-
-    var CPattern = object({
-        parseType: Str,
-        value: Str,
-        inner: opt(arr([Self])) 
-    });
-
-    var CMacroDef = object({
-        pattern: arr([CPattern]),
-        body: arr([CToken])
-    })
 
     var invokeMacro = guard(
-        // ([CToken], {pattern: [Pattern], body: [Token]}) -> [Token]
-        fun([arr([CToken]), CPattern], Any),
+        fun([arr([___(CToken)]), CMacroDef], arr([___(CToken)])),
+
+        // ([CToken], CMacroDef) -> [CToken]
         function invokeMacro(callArgs, macroDefinition) {
-            var patterns = macroDefinition.transformer.pattern;
+            var patterns = macroDefinition.pattern;
             var matches = matchPatterns(callArgs, patterns);
-            console.log("hi");
             // todo now use the matched up patterns with the macro body
             return [callArgs[0].inner[0]];
         });
@@ -3834,7 +3881,7 @@ require("contracts.js").autoload();
 
                 assert(callArgs.value === "()", "expecting delimiters around macro call");
 
-                expanded = expanded.concat(invokeMacro(callArgs.inner, macros[token.value]));
+                expanded = expanded.concat(invokeMacro(callArgs.inner, macros[token.value].transformer));
             // } else if (macros[token.value]) {
             //     var type = macros[token.value].type;
             //     var transformer = macros[token.value].transformer;
