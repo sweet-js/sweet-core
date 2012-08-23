@@ -56,7 +56,7 @@ module.exports = function(grunt) {
     },
     browser: {
       tests: {
-        src: "test/*.js",
+        src: "build/*.js",
         dest: "browser/test_bundled.js"
       }
     }
@@ -65,7 +65,7 @@ module.exports = function(grunt) {
   // Default task.
   grunt.registerTask('default', 'clean test');
 
-  grunt.registerTask('test', 'build browser mocha');
+  grunt.registerTask('test', 'clean build browser mocha');
 
 
   grunt.registerMultiTask('build', "Compile the src and tests",  function() {
