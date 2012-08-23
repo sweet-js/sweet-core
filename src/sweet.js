@@ -3615,6 +3615,7 @@ require("contracts.js").autoload();
             peek: fun(opt(Num), or(Null, C)),
             back: fun(opt(Num), or(Null, C)),
             next: fun(Undefined, or(Null, C)),
+            advance: fun(Num, Undefined),
             // rest: fun(Undefined, arr([___(C)])),
             forEach: fun(fun(C, Any), Any)
         });
@@ -3661,11 +3662,15 @@ require("contracts.js").autoload();
             },
             // (Unit) -> Any or Null
             next: function() {
+
                 if(this._index >= this._length) {
                     return this.EOS;
                 } else {
                     return this._tokens[this._index++];
                 }
+            },
+            advance: function(n) {
+                this._index += n;
             },
             // (Unit) -> [Any]
             rest: function() {
@@ -3827,12 +3832,11 @@ require("contracts.js").autoload();
 
                     tokInner.push({type:Token.EOF});
                     tmp = parse_stx(tokInner, patInner.type, {tokens:true}).tokens;
-                    tmp.pop(); // removing EOF...more hacks
                     matches[patInner.name] = tmp;
                 } else {
-                    var tmp = parse_stx(stream.rest(), pattern.type, {tokens:true}).tokens;
-                    tmp.pop();
-                    matches[pattern.name] = tmp;
+                    var tmp = parse_stx(stream.rest(), pattern.type, {tokens:true});
+                    stream.advance(tmp.tokens.length);
+                    matches[pattern.name] = tmp.tokens;
                 }
             });
             return matches;
@@ -3847,7 +3851,6 @@ require("contracts.js").autoload();
             var idx = 0;
             var res = [];
             macroDefinition.body.forEach(function(token) {
-                // console.log(token)
                 if(matches[token.value] !== undefined) {
                     res = res.concat(matches[token.value])
                 } else {
@@ -3855,7 +3858,6 @@ require("contracts.js").autoload();
                 }
             });
             // todo now use the matched up patterns with the macro body
-            console.log(res)
             return res;
         });
 
@@ -4147,7 +4149,7 @@ require("contracts.js").autoload();
                 program.comments = extra.comments;
             }
             if (typeof extra.tokens !== 'undefined') {
-                program.tokens = tokenStream;
+                program.tokens = tokenStream.slice(0, index);
             }
             if (typeof extra.errors !== 'undefined') {
                 program.errors = extra.errors;
