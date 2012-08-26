@@ -3599,7 +3599,7 @@ require("contracts.js").autoload();
 
     var CToken = object({
         value: opt(or(Str, Num)),
-        type: opt(Num)
+        type: Num
     });
 
     var CPattern = object({
@@ -3842,18 +3842,21 @@ require("contracts.js").autoload();
             return matches;
         });
 
-    makeSyntax or datum->syntax like
+    //makeSyntax or datum->syntax like
     var takeContext = guard(
-        fun(CToken, CToken),
+        fun([arr([___(CToken)]), CToken], Any),
 
         function takeContext(to, from) {
-            return {
-                type: to.type,
-                value: to.value,
-                lineNumber: from.lineNumber,
-                lineStart: from.lineStart,
-                range: from.range
-            };
+            return to.map(function(tok) {
+                return {
+                    type: tok.type,
+                    value: tok.value,
+                    lineNumber: from.lineNumber,
+                    lineStart: from.lineStart,
+                    // range is kinda wrong I think
+                    range: from.range
+                };
+            });
         });
 
     var invokeMacro = guard(
@@ -3871,10 +3874,9 @@ require("contracts.js").autoload();
                     if(matches[token.value] !== undefined) {
                         // todo broken, need to take the context from toke
                         // but can't exectly just apply it to every token in the match set
-                        res = res.concat(takeContext(matches[token.value], token.value));
+                        res = res.concat(takeContext(matches[token.value], token));
                     } else if (token.type === Token.Delimiter) {
                         token.inner = substitute(token.inner, substitutions);
-                        console.log(token)
                         res.push(token);
                     } else {
                         res.push(token);
@@ -3917,34 +3919,6 @@ require("contracts.js").autoload();
 
                 assert(callArgs.value === "()", "expecting delimiters around macro call");
                 expanded = expanded.concat(invokeMacro(callArgs.inner, macros[token.value].transformer));
-            // } else if (macros[token.value]) {
-            //     var type = macros[token.value].type;
-            //     var transformer = macros[token.value].transformer;
-            //     var first, second;
-
-            //     if (type === "()") {
-            //         first = tokens[index++];
-
-            //         assert(first.value === "()", "expecting a macro body");
-
-
-            //         expanded = expanded.concat(transformer([first.inner]));
-            //     } else if (type === "(){}") {
-            //         first = tokens[index++];
-            //         second = tokens[index++];
-
-            //         // todo: actual error messages, not asserts
-            //         assert(first.value === "()", "expecting a macro body");
-            //         assert(second.value === "{}", "expecting a macro body");
-            //         var trans_result = transformer([first.inner, second.inner]);
-
-            //         expanded = expanded.concat(trans_result);
-            //     }
-            // } else if (token.value === "syntax") {
-            //     expanded.push(token);  // grab "syntax"
-            //     tokens[index].inner = flatten(tokens[index]);
-            //     expanded.push(tokens[index]); // and unexpanded body
-            //     index++;
             } else if (token.type === Token.Delimiter && (token.value === "{}" || token.value === "()" || token.value === "[]")) {
                 // flatten the tree
                 expanded.push({
