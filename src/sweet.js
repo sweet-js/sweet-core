@@ -39,7 +39,11 @@ parseStatement: true, parseSourceElement: true */
 
 var gen = require("escodegen");
 var fs = require("fs");
-require("contracts.js").autoload();
+var _ = require("underscore")
+var C = require("contracts.js") // todo parser fails if ; is added here
+// var Macros = C.use(require("../lib/macros.js"), "parser");
+C.autoload();
+C.enabled(false);
 
 (function (exports) {
     'use strict';
@@ -1196,6 +1200,7 @@ require("contracts.js").autoload();
 
     function throwUnexpected(token) {
         var s;
+
 
         if (token.type === Token.EOF) {
             throwError(token, Messages.UnexpectedEOS);
@@ -3598,182 +3603,228 @@ require("contracts.js").autoload();
     }
 
     var CToken = object({
+        type: Num,
         value: opt(or(Str, Num)),
-        type: Num
+        inner: opt(arr([___(CToken)])), // or CSyntax...
+        lineNumber: opt(Num),
+        lineStart: opt(Num)
+        // range is sometimes here but we don't care about it since
+        // it is going to be wrong...vestigial property
+    });
+
+    var CSyntax = object({
+        token: CToken,
+        context: object({
+            name: Str
+        })
     });
 
     var CPattern = object({
-        type: Str,
-        name: Str,
-        inner: opt(Any)  // CPatternStream...but no recursive contracts yet
-    });
+        value: Str,
+        class: Str
+        // inner: [...CPattern]
+    })
 
+    var CMacro = fun(arr([___(CSyntax)]), arr([___(CSyntax)]));
 
-    function mkStreamContract(C) {
-        return object({
-            curr: fun(Undefined, or(Null, C)),
-            peek: fun(opt(Num), or(Null, C)),
-            back: fun(opt(Num), or(Null, C)),
-            next: fun(Undefined, or(Null, C)),
-            advance: fun(Num, Undefined),
-            // rest: fun(Undefined, arr([___(C)])),
-            forEach: fun(fun(C, Any), Any)
-        });
-    }
+    var tokensToSyntax = guard(
+        // todo fix bugs in contract library
+        fun(Any, Any), //arr([___(CToken)]), arr([___(CSyntax)])),
 
-    var CStream = mkStreamContract(Any);
-    var CTokenStream = mkStreamContract(CToken);
-    var CPatternStream = mkStreamContract(CPattern);
-
-    var CMacroDef = object({
-        pattern: CPatternStream,
-        body: CTokenStream
-    });
-    var _makeStream = (function() {
-        var streamObj = {
-            EOS: null,
-            // (Unit) -> Any or Null
-            curr: function() {
-                if(this._index >= this._length) {
-                    return this.EOS;
-                } else {
-                    return this._tokens[this._index];
-                }
-            },
-            // (Num?) -> Any or Null
-            peek: function(n) {
-                var lookahead = n || 1;
-
-                if(this._index + lookahead >= this._length) {
-                    return this.EOS;
-                } else {
-                    return this._tokens[this._index + lookahead];
-                }
-            },
-            // (Num?) -> Any or Null
-            back: function(n) {
-                var lookback = n || 1;
-
-                if(this._index - lookback >= this._length) {
-                    return this.EOS;
-                } else {
-                    return this._tokens[this._index - lookback];
-                }
-            },
-            // (Unit) -> Any or Null
-            next: function() {
-
-                if(this._index >= this._length) {
-                    return this.EOS;
-                } else {
-                    return this._tokens[this._index++];
-                }
-            },
-            advance: function(n) {
-                this._index += n;
-            },
-            // (Unit) -> [Any]
-            rest: function() {
-                return this._tokens.slice(this._index);
-            },
-
-            // ((Any) -> Any) -> Any
-            forEach: function(vis) {
-                for(var i = 0; i < this._length; i++) {
-                    vis(this._tokens[i]);
-                }
+        // ([...CToken]) -> [...CSyntax]
+        function tokensToSyntax(tokens) {
+            if(!_.isArray(tokens)) {
+                tokens = [tokens];
             }
-        };
-        return function(tokens) {
-            return Object.create(streamObj, {
-                _tokens: {value: tokens, writable: true, enumerable: false, configurable: true},
-                _index:  {value: 0, writable: true, enumerable: false, configurable: true},
-                _length: {value: tokens.length, writable: true, enumerable: false, configurable: true}
+            return _.map(tokens, function(token) {
+                if(token.inner) {
+                    token.inner = tokensToSyntax(token.inner);
+                }
+
+                return {
+                    token: token,
+                    context: {
+                      name: "<dot>"
+                    }
+                };
+            }); 
+        });
+
+    var syntaxToTokens = guard(
+        fun(Any, Any),
+        function syntaxToTokens(syntax) {
+            return _.map(syntax, function(stx) {
+                if(stx.token.inner) {
+                    stx.token.inner = syntaxToTokens(stx.token.inner);
+                }
+                return stx.token;
             });
-        }
-    })();
-
-    var mkStream = guard(
-        fun(arr([___(Any)]), CStream),
-
-        // ([Any]) -> CStream
-        _makeStream);
-
+        });
 
 
     var isPatternVar = guard(
-        fun(CToken, Bool),
+        fun(Any, Any),
 
         // CToken -> Bool
-        function isPatternVar(val) {
-            return val.type === Token.Identifier && val.value[0] === "$";
+        function isPatternVar(token) {
+            return token.type === Token.Identifier && token.value[0] === "$";
         });
 
-    var loadPattern = guard(
-        fun(CTokenStream, CPatternStream),
+    var mkPatternArray = guard(
+        fun(Any, Any),
 
-        // (CTokenStream) -> CPatternStream
-        function loadPattern(tokens) {
-            var res = [];
+        // ([...CSyntax]) -> [...CPattern]
+        function loadPattern(patterns) {
+            var result = [];
+            var index = 0;
 
-            var token = tokens.next();
-            while(token) {
+            while(index < patterns.length) {
+                var token = patterns[index++].token;
+
                 if(isPatternVar(token)) {
-                    if(tokens.curr() && tokens.curr().value === ":") {
-                        tokens.next() ;// eat the :
-                        var parseType = tokens.next(); 
+                    if(patterns[index] && patterns[index].token.value === ":") {
+                        index++;    // eat the :
+                        var parseType = patterns[index++].token;
+
                         // todo error handling
-                        res.push({
-                            type: parseType.value,
-                            name: token.value
+                        result.push({
+                            class: parseType.value,
+                            value: token.value
                         });
                     } else {
                         // assuming an identifier
-                        res.push({
-                            type: "ident",
-                            name: token.value,
+                        result.push({
+                            class: "ident",
+                            value: token.value,
                         });
                     }
                 } else if (token.value === "()") {
-                    res.push({
-                        type: "()",
-                        name: "()",
-                        inner: loadPattern(mkStream(token.inner))
+                    result.push({
+                        class: "()",
+                        value: "()",
+                        inner: loadPattern(token.inner)
                     });
                 } else {
-                    res.push({
-                        type: "pattern_literal",
-                        name: token.value
+                    result.push({
+                        class: "pattern_literal",
+                        value: token.value
                     });
                 }
-                token = tokens.next();
             }
 
-            return mkStream(res);
+            return result;
         });
-    
-    var loadMacroDef = guard(
-        fun([arr([___(CToken)])], CMacroDef),
 
-        // ([CToken]) -> CMacroDef
-        function loadMacroDef(body) {
-            // todo real error handling
-            assert(body[0].value === "case", "case pattern does not have `case` keyword");
+    var matchPatterns = guard(
+        fun(Any, Any),
 
-            var casePattern = mkStream(body[1].inner);
+        // ([...CSyntax], [...CPattern]) -> {<key>: [...CSyntax]}
+        function matchPatterns(callSyntax, patterns) {
+            var matches = {};
+            var callIdx = 0;
+            var parseResult;
+            var syntax = [].concat(callSyntax, tokensToSyntax({type: Token.EOF}));
 
-            assert(body[2].value === "=", "case pattern does not have `=>` token");
-            assert(body[3].value === ">", "case pattern does not have `=>` token");
+            patterns.forEach(function(pattern) {
+                // 1. pattern type is "pattern_literal"
+                // 2. pattern type is "()"
+                // 3. pattern type is other (some parse object)
+                // todo real error handling
 
-            var caseBody = mkStream(body[4].inner)
-            return {
-                pattern: loadPattern(casePattern),
-                body: caseBody
+                if (pattern.class === "pattern_literal") {
+                    assert(syntax[callIdx++].token.value === pattern.value, "pattern literal does not match");
+                } else if (pattern.class === "()") { // hack
+                    var tokInner = syntax[callIdx++].token.inner.slice(0);
+                    var patInner = _.first(pattern.inner);
+
+                    tokInner = [].concat(tokInner, tokensToSyntax({type:Token.EOF}));
+
+                    parseResult = parse_stx(syntaxToTokens(tokInner), patInner.class, {tokens:true}).tokens;
+
+                    matches[patInner.value] = tokensToSyntax(parseResult);
+
+                } else {
+                    var parseResult = parse_stx(syntaxToTokens(_.rest(syntax, callIdx)), pattern.class, {tokens:true});
+                    callIdx += parseResult.tokens.length;
+                    matches[pattern.value] = tokensToSyntax(parseResult.tokens);
+                }
+            });
+            return matches;
+        });
+
+    var takeContext = guard(
+        fun([Any, Any], Any), 
+
+        // (CSyntax, [...CSyntax]) -> [...CSyntax]
+        function takeContext(from, to) {
+            return _.map(to, function(stx) {
+                return {
+                    token: {
+                        value: stx.token.value,
+                        type: stx.token.type,
+                        lineNumber: from.token.lineNumber,
+                        lineStart: from.token.lineStart,
+                        range: from.token.range // this is a lie
+                    },
+                    context: stx.context
+                }
+            })
+        });
+
+    var mkMacroTransformer = guard( 
+        fun(Any, Any),
+
+        // ([...CSyntax], [...CSyntax]) -> CMacro
+        function mkMacroTransformer(patternSyntax, bodySyntax) {
+            var pattern = mkPatternArray(patternSyntax);
+
+            return function(callSyntax) {
+                var matches = matchPatterns(callSyntax, pattern);
+
+                // ([...CSyntax]) -> [...CSyntax]
+                var substitute = function(toSubstitute) {
+                    return _.reduce(toSubstitute, function(acc, stx) {
+
+                        if(stx.token.type === Token.Delimiter) {
+                            stx.token.inner = substitute(stx.token.inner);
+                            return acc.concat(stx);
+                        } else {
+                            if(matches[stx.token.value] !== undefined) {
+                                return acc.concat(takeContext(stx, matches[stx.token.value]));
+                            } else {
+                                return acc.concat(stx);
+                            }
+                        }
+
+                    }, []);
+                };
+
+                return substitute(bodySyntax);
+
             };
         });
 
+    var loadMacro = guard(
+        fun(Any, Any),
+
+        // ([CSyntax]) -> CMacro
+        function loadMacro(macroBody) {
+            // todo real error handling
+            assert(macroBody[0].token.value === "case", "case pattern does not have `case` keyword");
+            assert((macroBody[2].token.value === "=") 
+                && (macroBody[3].token.value === ">"), "case pattern does not have `=>` token");
+
+            var casePattern = macroBody[1].token.inner;
+            var caseBody = macroBody[4].token.inner;
+
+            return mkMacroTransformer(casePattern, caseBody);
+        });
+
+
+
+
     var flatten = guard(
-        fun(arr([___(CToken)]), arr([___(CToken)])),
+        fun(Any, Any),
 
         // ([CToken]) -> [CToken]
         function flatten(tokens) {
@@ -3807,141 +3858,64 @@ require("contracts.js").autoload();
         });
 
 
-    var matchPatterns = guard(
-        fun([arr([___(CToken)]), CPatternStream], 
-            Any), 
-
-        // ([CToken], CPatternStream) -> {<key>: [CToken]}
-        function matchPatterns(callTokens, patterns) {
-            var matches = {};
-
-            var tmp = callTokens.slice(0);
-            tmp.push({type: Token.EOF});
-            var stream = mkStream(tmp);
-
-            patterns.forEach(function(pattern) {
-                // 1. pattern type is "pattern_literal"
-                // 2. pattern type is "()"
-                // 3. pattern type is other (some parse object)
-                // todo real error handling
-                if (pattern.type === "pattern_literal") {
-                    assert(stream.next().value === pattern.name, "pattern literal does not match");
-                } else if (pattern.type === "()") { // hack
-                    var tokInner = stream.next().inner.slice(0);
-                    var patInner = pattern.inner.next();
-
-                    tokInner.push({type:Token.EOF});
-                    tmp = parse_stx(tokInner, patInner.type, {tokens:true}).tokens;
-                    matches[patInner.name] = tmp;
-                } else {
-                    var tmp = parse_stx(stream.rest(), pattern.type, {tokens:true});
-                    stream.advance(tmp.tokens.length);
-                    matches[pattern.name] = tmp.tokens;
-                }
-            });
-            return matches;
-        });
-
-    //makeSyntax or datum->syntax like
-    var takeContext = guard(
-        fun([arr([___(CToken)]), CToken], Any),
-
-        function takeContext(to, from) {
-            return to.map(function(tok) {
-                return {
-                    type: tok.type,
-                    value: tok.value,
-                    lineNumber: from.lineNumber,
-                    lineStart: from.lineStart,
-                    // range is kinda wrong I think
-                    range: from.range
-                };
-            });
-        });
-
-    var invokeMacro = guard(
-        fun([arr([___(CToken)]), CMacroDef], Any),
-
-        // ([CToken], CMacroDef) -> [CToken]
-        function invokeMacro(callArgs, macroDefinition) {
-            var matches = matchPatterns(callArgs, macroDefinition.pattern);
-            var idx = 0;
-            var res = [];
-
-            var substitute = function substitute(tokens, substitutions) {
-                var res = []
-                tokens.forEach(function(token) {
-                    if(matches[token.value] !== undefined) {
-                        // todo broken, need to take the context from toke
-                        // but can't exectly just apply it to every token in the match set
-                        res = res.concat(takeContext(matches[token.value], token));
-                    } else if (token.type === Token.Delimiter) {
-                        token.inner = substitute(token.inner, substitutions);
-                        res.push(token);
-                    } else {
-                        res.push(token);
-                    }
-                });
-                return res;
-            };
-
-            res = substitute(macroDefinition.body, matches);
-            return expand(res); // todo carry along the right macro defintions
-        });
-
-
-    function expand(tokens, macros) {
+    // (CSyntax) -> CSyntax
+    function expand(stx, macros) {
         var index = 0;
         var expanded = [];
 
 
         macros = macros || {};
 
-        if(typeof tokens === "undefined") {
+        if(typeof stx === "undefined") {
             return [];
         }
 
-        while(index < tokens.length) {
-            var token = tokens[index++];
+        while(index < stx.length) {
+            var token = stx[index++].token;
             if ((token.type === Token.Identifier) && (token.value === "macro")) {
-                var macroName = tokens[index++].value;
-                var macroType = tokens[index++];
-                var macroBody = tokens[index++];
+                var macroName = stx[index++].token.value;
+                var macroType = stx[index++].token;
+                var macroBody = stx[index++].token;
 
                 assert(macroBody.value === "{}", "expecting a macro body");
 
                 macros[macroName] = {
                     type: macroType.value,
-                    transformer: loadMacroDef(macroBody.inner, macros)
+                    transformer: loadMacro(macroBody.inner, macros)
                 };
             } else if (token.type === Token.Identifier && macros.hasOwnProperty(token.value)) {
-                var callArgs = tokens[index++];
+                var callArgs = stx[index++].token;
 
                 assert(callArgs.value === "()", "expecting delimiters around macro call");
-                expanded = expanded.concat(invokeMacro(callArgs.inner, macros[token.value].transformer));
-            } else if (token.type === Token.Delimiter && (token.value === "{}" || token.value === "()" || token.value === "[]")) {
+                var macResult = macros[token.value].transformer(callArgs.inner);
+
+                expanded = expanded.concat(expand(macResult));
+            } else if (token.type === Token.Delimiter) {
                 // flatten the tree
-                expanded.push({
+                expanded = expanded.concat(tokensToSyntax({
                     type: Token.Punctuator,
                     value: token.value[0],
                     range: token.startRange,
                     lineNumber: token.startLineNumber,
                     lineStart: token.startLineStart
-                });
+                }));
                 expanded = expanded.concat(expand(token.inner, macros));
-                expanded.push({
+                expanded = expanded.concat(tokensToSyntax({
                     type: Token.Punctuator,
                     value: token.value[1],
                     range: token.endRange,
                     lineNumber: token.endLineNumber,
                     lineStart: token.endLineStart
-                });
+                }));
             } else {
-                expanded.push(token);
+                expanded = expanded.concat(tokensToSyntax(token));
             }
         }
+
         return expanded;
     }
+
+
     
     function readLoop(toks, inExprDelim) {
         var delimiters = ['(', '{', '['];
@@ -4060,7 +4034,7 @@ require("contracts.js").autoload();
     
     
     
-    // (Str) -> [Token]
+    // (Str) -> [...CSyntax]
     function read(code) {
         var token, tokenTree = [];
         
@@ -4087,14 +4061,14 @@ require("contracts.js").autoload();
         if(last && last.type !== Token.EOF) {
             tokenTree.push({
                 type: Token.EOF,
+                value: "",
                 lineNumber: last.lineNumber,
                 lineStart: last.lineStart,
                 range: [index, index]
             });
         }
         
-        
-        return tokenTree;
+        return tokensToSyntax(tokenTree);
     }
     
 
@@ -4194,7 +4168,7 @@ require("contracts.js").autoload();
         var macroDefs = {};
         // var macros = expand(read(macro_file), macroDefs);
 
-        var tokenStream = expand(read(source), macroDefs);
+        var tokenStream = syntaxToTokens(expand(read(source), macroDefs));
 
         return parse_stx(tokenStream, "base", options);
     }
@@ -4204,6 +4178,8 @@ require("contracts.js").autoload();
     exports.parse = parse;
     exports.read = read;
     exports.expand = expand;
+    exports.syntaxToTokens = syntaxToTokens;
+    exports.tokensToSyntax = tokensToSyntax;
 
     // Deep copy.
     exports.Syntax = (function () {
