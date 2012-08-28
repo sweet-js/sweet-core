@@ -1215,6 +1215,7 @@ C.enabled(false);
         }
 
         if (token.type === Token.Identifier) {
+            console.log(token)
             throwError(token, Messages.UnexpectedIdentifier);
         }
 
@@ -3715,6 +3716,15 @@ C.enabled(false);
             return result;
         });
 
+
+    var isReplicationSyntax = guard(
+        fun(Any, Any),
+
+        // (CPattern or Undefined) -> Bool
+        function isReplicationPattern(pat) {
+            return pat && pat.value === "___";
+        });
+
     var matchPatterns = guard(
         fun(Any, Any),
 
@@ -3725,13 +3735,20 @@ C.enabled(false);
             var parseResult;
             var syntax = [].concat(callSyntax, tokensToSyntax({type: Token.EOF}));
 
-            patterns.forEach(function(pattern) {
+            patterns.forEach(function(pattern, patternIdx) {
                 // 1. pattern type is "pattern_literal"
                 // 2. pattern type is "()"
                 // 3. pattern type is other (some parse object)
                 // todo real error handling
+                var rep = false;
 
-                if (pattern.class === "pattern_literal") {
+                if(isReplicationSyntax(patterns[patternIdx+1])) {
+                    rep = true;
+                }
+
+                if(pattern.value === "___") {
+                    // do nothing
+                } else if (pattern.class === "pattern_literal") {
                     assert(syntax[callIdx++].token.value === pattern.value, "pattern literal does not match");
                 } else if (pattern.class === "()") { // hack
                     var tokInner = syntax[callIdx++].token.inner.slice(0);
@@ -3741,12 +3758,29 @@ C.enabled(false);
 
                     parseResult = parse_stx(syntaxToTokens(tokInner), patInner.class, {tokens:true}).tokens;
 
-                    matches[patInner.value] = tokensToSyntax(parseResult);
+                    // todo deal with replication
+                    matches[patInner.value] = [tokensToSyntax(parseResult)];
 
                 } else {
-                    var parseResult = parse_stx(syntaxToTokens(_.rest(syntax, callIdx)), pattern.class, {tokens:true});
-                    callIdx += parseResult.tokens.length;
-                    matches[pattern.value] = tokensToSyntax(parseResult.tokens);
+                    matches[pattern.value] = [];
+                    do {
+                        // attempt to parse
+                        parseResult = parse_stx(syntaxToTokens(_.rest(syntax, callIdx)), 
+                                                    pattern.class, 
+                                                    {tokens:true});
+
+                        // move forward in the call tokens the number of succesfully parsed tokens
+                        callIdx += parseResult.tokens.length;
+
+                        matches[pattern.value].push(tokensToSyntax(parseResult.tokens));
+
+                        // hard coding separator at the moment
+                        if(rep && syntax[callIdx].token.value !== ",") {
+                            rep = false;
+                        } else if (rep) { // only consume "," if we are replicating
+                            callIdx++;
+                        }
+                    } while(rep);
                 }
             });
             return matches;
@@ -3771,6 +3805,32 @@ C.enabled(false);
             })
         });
 
+    var joinSyntax = guard(
+        fun(Any, Any),
+
+        // ([...[...CSyntax]], Str) -> [...CSyntax]
+        function joinSyntax(tojoin, punc) {
+            return _.reduceRight(tojoin, function(acc, join) {
+                return acc.concat(mkSyntax(punc, Token.Punctuator, _.first(join)), join);
+            }, []);
+        });
+
+    var mkSyntax = guard(
+        fun(Any, Any),
+
+        // (Any, Num, CSyntax) -> CSyntax
+        function mkSyntax(value, type, stx) {
+            return {
+                token: {
+                    type: type,
+                    value: value,
+                    lineStart: stx.token.lineStart,
+                    lineNumber: stx.token.lineNumber
+                },
+                context: stx.context
+            };
+        });
+
     var mkMacroTransformer = guard( 
         fun(Any, Any),
 
@@ -3783,14 +3843,22 @@ C.enabled(false);
 
                 // ([...CSyntax]) -> [...CSyntax]
                 var substitute = function(toSubstitute) {
-                    return _.reduce(toSubstitute, function(acc, stx) {
+                    return _.reduce(toSubstitute, function(acc, stx, stxIdx) {
 
                         if(stx.token.type === Token.Delimiter) {
                             stx.token.inner = substitute(stx.token.inner);
                             return acc.concat(stx);
+                        } else if (stx.token.value === "___") {
+                            return acc;
                         } else {
-                            if(matches[stx.token.value] !== undefined) {
-                                return acc.concat(takeContext(stx, matches[stx.token.value]));
+                            var matchedSyntax = matches[stx.token.value];
+
+                            if(matchedSyntax !== undefined) {
+                                if(toSubstitute[stxIdx+1] && toSubstitute[stxIdx+1].value === "___") {
+                                    return acc.concat(joinSyntax(matchedSyntax, ","));
+                                } else {
+                                    return acc.concat(takeContext(stx, _.first(matchedSyntax)));
+                                }
                             } else {
                                 return acc.concat(stx);
                             }
