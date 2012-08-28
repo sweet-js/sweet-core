@@ -84,6 +84,7 @@ module.exports = function(grunt) {
 
       exec(cmd, function(error, out, err) {
         if(error) {
+          grunt.log.error("Failure compiling: " + file);
           grunt.log.error(error);
         } 
 
