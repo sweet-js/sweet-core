@@ -31,7 +31,6 @@ describe("parser", function() {
     }
     var z = oddadd(2 <+> 4);
     expect(z).to.be(6);
-
   });
 
   it("should expand a macro with a pattern `($x:lit) <+> $y:lit`", function() {
@@ -77,14 +76,14 @@ describe("parser", function() {
     expect(z()).to.be(8);
   });
 
-  // it("should expand a comma separated list of literals", function() {
-  //   macro call "()" {
-  //     case ($x:lit ___) => {
-  //       $x ___
-  //     }
-  //   }
-  //   var z = call(1,2,3)
-  //   expect(z).to.be(1)
-  // });
+  it("should expand a comma separated list of literals", function() {
+    macro call "()" {
+      case ($x:lit ___) => {
+        $x ___
+      }
+    }
+    var z = call(1,2,3)
+    expect(z).to.be(1)
+  });
 
 });
