@@ -3699,10 +3699,10 @@ C.enabled(false);
                             value: token.value,
                         });
                     }
-                } else if (token.value === "()") {
+                } else if (token.type === Token.Delimiter) {
                     result.push({
-                        class: "()",
-                        value: "()",
+                        class: "__delimiter",
+                        value: token.value,
                         inner: loadPattern(token.inner)
                     });
                 } else {
@@ -3768,17 +3768,24 @@ C.enabled(false);
                 } else if (pattern.class === "pattern_literal") {
                     assert(syntax[callIdx++].token.value === pattern.value, "pattern literal does not match");
                 } else {
-                    if(pattern.class !== "()") {
+                    if(pattern.class !== "__delimiter") {
                         matches[pattern.value] = [];
                     }
-
+                    var innerMatches;
                     do {
-                        if (rep && pattern.class === "()") {
-                            var innerMatches = matchPatterns(_.rest(syntax, callIdx), pattern.inner);
-                            // need to move forward the callIdx depending on the amount consumed in 
-                            // the recursive call
+                        if (rep && pattern.class === "__delimiter") {
+                            assert(syntax[callIdx].token.type !== Token.Delimiter, "unexpected delimiter");
+                            innerMatches = matchPatterns(_.rest(syntax, callIdx), pattern.inner);
+
                             matches = mergeMatches(matches, innerMatches.matches);
                             callIdx += innerMatches.consumed;
+                        } else if (pattern.class === "__delimiter") {
+                            assert(syntax[callIdx].token.type === Token.Delimiter, "missing expected delimiter");
+
+                            innerMatches = matchPatterns(syntax[callIdx].token.inner, pattern.inner);
+
+                            matches = mergeMatches(matches, innerMatches.matches);
+                            callIdx++;
                         } else {
                             // attempt to parse
                             parseResult = parse_stx(syntaxToTokens(_.rest(syntax, callIdx)), 
@@ -3866,7 +3873,6 @@ C.enabled(false);
 
             return function(callSyntax) {
                 
-
                 var matches = _.chain(_.zip(callSyntax, patterns))
                                 .map(function(ziped) {
                                     var call = ziped[0], 
@@ -3961,10 +3967,10 @@ C.enabled(false);
     var flatten = guard(
         fun(Any, Any),
 
-        // ([CToken]) -> [CToken]
+        // ([...CToken]) -> [...CToken]
         function flatten(tokens) {
             var flat = [];
-            if ((typeof tokens === "undefined") || (!Array.isArray(tokens.inner))) {
+            if ((typeof tokens === "undefined") || (!_.isArray(tokens.inner))) {
                 return [];
             }
 
