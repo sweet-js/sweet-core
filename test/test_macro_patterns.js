@@ -1,8 +1,6 @@
 var expect = require("expect.js")
-var parser = require("../lib/sweet")
-var gen = require ("escodegen");
 
-describe("parser", function() {
+describe("macro expander", function() {
   it("should expand a macro with pattern `$x:lit`", function() {
     macro id {
       case ($x:lit) => {
@@ -33,16 +31,16 @@ describe("parser", function() {
     expect(z).to.be(6);
   });
 
-  // it("should expand a macro with a pattern `($x:lit) <+> $y:lit`", function() {
-  //   macro oddadd {
-  //     case (($x:lit) <+> $y:lit) => {
-  //       $x + $y
-  //     }
-  //   }
-  //   var z = oddadd((2) <+> 4);
-  //   expect(z).to.be(6);
+  it("should expand a macro with a pattern `($x:lit) <+> $y:lit`", function() {
+    macro oddadd {
+      case (($x:lit) <+> $y:lit) => {
+        $x + $y
+      }
+    }
+    var z = oddadd((2) <+> 4);
+    expect(z).to.be(6);
 
-  // });
+  });
 
   it("should expand a macro with a pattern `$x:expr`", function() {
     macro expr {
@@ -65,6 +63,7 @@ describe("parser", function() {
     expect(z).to.be(12);
 
   });
+
 
   it("should expand a thunk macro", function() {
     macro thunk {
@@ -163,6 +162,5 @@ describe("parser", function() {
     expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15])
   });
  
-
 
 });
