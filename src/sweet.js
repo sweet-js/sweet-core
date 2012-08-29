@@ -3834,12 +3834,28 @@ C.enabled(false);
     var mkMacroTransformer = guard( 
         fun(Any, Any),
 
-        // ([...CSyntax], [...CSyntax]) -> CMacro
-        function mkMacroTransformer(patternSyntax, bodySyntax) {
-            var pattern = mkPatternArray(patternSyntax);
+        // ([...{pattern: [...CSyntax], body: CSyntax}]) -> CMacro
+        function mkMacroTransformer(macroCases) {
+            var patternSyntax = macroCases[0].pattern[0].token.inner;
+            var bodySyntax = macroCases[0].body.token.inner;
+
+            var patterns = _.map(macroCases[0].pattern, function(pat) {
+                return mkPatternArray(pat.token.inner);
+            });
+            // todo confirm that delimiter types from macro call and macro def are the same
 
             return function(callSyntax) {
-                var matches = matchPatterns(callSyntax, pattern);
+                
+
+                var matches = _.chain(_.zip(callSyntax, patterns))
+                                .map(function(ziped) {
+                                    var call = ziped[0], 
+                                        pat = ziped[1];
+
+                                    return matchPatterns(call.token.inner, pat);
+                                }).reduce(function(acc, matchObj) {
+                                    return _.extend(acc, matchObj);
+                                }, {}).value();
 
                 // ([...CSyntax]) -> [...CSyntax]
                 var substitute = function(toSubstitute) {
@@ -3853,6 +3869,7 @@ C.enabled(false);
                         } else {
                             var matchedSyntax = matches[stx.token.value];
 
+                            // todo: report error if pattern var in body but in matches
                             if(matchedSyntax !== undefined) {
                                 if(toSubstitute[stxIdx+1] && toSubstitute[stxIdx+1].value === "___") {
                                     return acc.concat(joinSyntax(matchedSyntax, ","));
@@ -3872,20 +3889,48 @@ C.enabled(false);
             };
         });
 
+    var matchStx = guard(
+        fun(Any, Any), 
+
+        // (Any, CSyntax) -> Bool
+        function matchStx(value, stx) {
+            return stx && stx.token && stx.token.value === value;
+        });
+
     var loadMacro = guard(
         fun(Any, Any),
 
-        // ([CSyntax]) -> CMacro
+        // ([...CSyntax]) -> { transformer: CMacro, toConsume: Num }
         function loadMacro(macroBody) {
-            // todo real error handling
-            assert(macroBody[0].token.value === "case", "case pattern does not have `case` keyword");
-            assert((macroBody[2].token.value === "=") 
-                && (macroBody[3].token.value === ">"), "case pattern does not have `=>` token");
+            var macroCases = [];
+            var lastCaseIdx = 0;
+            var mostDelimToMatch = 1;
 
-            var casePattern = macroBody[1].token.inner;
-            var caseBody = macroBody[4].token.inner;
+            _.each(macroBody, function(stx, idx) {
+                // todo not too elegant yet
+                // todo better error handling
+                if (stx.token.value === "case") {
+                    lastCaseIdx = idx;
+                } else if (stx.token.value === ">" && macroBody[idx-1].token.value === "=") {
+                    // grab all of the delimiters between "case" and "=>"
+                    var caseDelim = macroBody.slice(lastCaseIdx+1, idx-1);
 
-            return mkMacroTransformer(casePattern, caseBody);
+                    assert(_.all(caseDelim, function(stx) { 
+                        return stx.token.type === Token.Delimiter
+                    }), "expecting delimiters in macro case expression");
+
+                    mostDelimToMatch = (caseDelim.length > mostDelimToMatch) ? caseDelim.length : mostDelimToMatch;
+                    macroCases.push({
+                        pattern: caseDelim,
+                        body: macroBody[idx+1]
+                    });
+                }
+            });
+
+            return {
+                transformer: mkMacroTransformer(macroCases),
+                toConsume: mostDelimToMatch
+            };
         });
 
 
@@ -3942,20 +3987,22 @@ C.enabled(false);
             var token = stx[index++].token;
             if ((token.type === Token.Identifier) && (token.value === "macro")) {
                 var macroName = stx[index++].token.value;
-                var macroType = stx[index++].token;
                 var macroBody = stx[index++].token;
 
                 assert(macroBody.value === "{}", "expecting a macro body");
 
-                macros[macroName] = {
-                    type: macroType.value,
-                    transformer: loadMacro(macroBody.inner, macros)
-                };
+                macros[macroName] = loadMacro(macroBody.inner, macros);
             } else if (token.type === Token.Identifier && macros.hasOwnProperty(token.value)) {
-                var callArgs = stx[index++].token;
+                var macroDef = macros[token.value];
 
-                assert(callArgs.value === "()", "expecting delimiters around macro call");
-                var macResult = macros[token.value].transformer(callArgs.inner);
+                var callArgs = _.map(_.range(macroDef.toConsume), function() {
+                    assert(stx[index].token.type === Token.Delimiter, 
+                        "expecting delimiters in macro call");
+
+                    return stx[index++];
+                });
+
+                var macResult = macros[token.value].transformer(callArgs);
 
                 expanded = expanded.concat(expand(macResult));
             } else if (token.type === Token.Delimiter) {
@@ -4182,9 +4229,12 @@ C.enabled(false);
             if(nodeType === "base") {
                 program = parseProgram();
             } else if(nodeType === "expr") {
-                program = parseExpression();
+                program = parseAssignmentExpression();
             } else if (nodeType === "lit") {
                 program = parsePrimaryExpression();
+            } else if (nodeType === "ident") {
+                program = parsePrimaryExpression();
+                // todo assert we got and ident...
             }
 
             if (typeof extra.comments !== 'undefined') {
