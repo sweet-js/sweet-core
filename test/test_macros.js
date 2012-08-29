@@ -4,7 +4,7 @@ var gen = require ("escodegen");
 
 describe("parser", function() {
   it("should expand a macro with pattern `$x:lit`", function() {
-    macro id "()" {
+    macro id {
       case ($x:lit) => {
         $x
       }
@@ -14,7 +14,7 @@ describe("parser", function() {
   });
 
   it("should expand a macro with pattern `=> $x:lit`", function() {
-    macro litid "()" {
+    macro litid {
       case (=> $x:lit) => {
         $x
       }
@@ -24,7 +24,7 @@ describe("parser", function() {
   });
 
   it("should expand a macro with a pattern `$x:lit <+> $y:lit`", function() {
-    macro oddadd "()" {
+    macro oddadd {
       case ($x:lit <+> $y:lit) => {
         $x + $y
       }
@@ -34,7 +34,7 @@ describe("parser", function() {
   });
 
   it("should expand a macro with a pattern `($x:lit) <+> $y:lit`", function() {
-    macro oddadd "()" {
+    macro oddadd {
       case (($x:lit) <+> $y:lit) => {
         $x + $y
       }
@@ -45,7 +45,7 @@ describe("parser", function() {
   });
 
   it("should expand a macro with a pattern `$x:expr`", function() {
-    macro expr "()" {
+    macro expr {
       case ($x:expr) => {
         $x
       }
@@ -56,7 +56,7 @@ describe("parser", function() {
   });
 
   it("should expand a macro with a pattern `$x:expr plus! $y:expr`", function() {
-    macro expr "()" {
+    macro expr {
       case ($x:expr plus! $y:expr) => {
         $x + $y
       }
@@ -67,7 +67,7 @@ describe("parser", function() {
   });
 
   it("should expand a thunk macro", function() {
-    macro thunk "()" {
+    macro thunk {
       case ($x:expr) => {
         function() { return $x; }
       }
@@ -77,7 +77,7 @@ describe("parser", function() {
   });
 
   it("should expand a comma separated list of literals", function() {
-    macro call "()" {
+    macro call {
       case ($x:lit ___) => {
         $x ___
       }
@@ -85,5 +85,40 @@ describe("parser", function() {
     var z = call(1,2,3)
     expect(z).to.be(1)
   });
+
+  it("should expand a comma separated list of exprs", function() {
+    macro call {
+      case ($x:expr ___) => {
+        $x ___
+      }
+    }
+    var z = call(2+2, 10*2)
+    expect(z).to.be(4)
+  });
+
+  it("should expand multiple macro body types", function() {
+    macro assign {
+      case ($x) {$y:expr} => {
+        var $x = $y;
+      }
+    }
+
+    assign (z) {2+2}
+
+    expect(z).to.be(4);
+  });
+
+  // it("should expand a let macro", function() {
+  //   macro let "(){}" {
+  //     case (($x = $v:expr) ___) { $body:expr } => {
+  //       (function($x ___) { return $body; })($v ___);
+  //     }
+  //   }
+  // });
+ 
+
+
+
+
 
 });
