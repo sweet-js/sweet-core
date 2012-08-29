@@ -3725,10 +3725,26 @@ C.enabled(false);
             return pat && pat.value === "___";
         });
 
+    var mergeMatches = guard(
+        fun(Any, Any),
+
+        // ({<key>: [...[...CSyntax]]}, {<key>: [...[...CSyntax]]}) -> {<key>: [...[...CSyntax]]}
+        // mutating orig
+        function mergeMatches(orig, next) {
+            _.each(_.keys(next), function(nextKey) {
+                if(_.isArray(orig[nextKey])) {
+                    orig[nextKey] = orig[nextKey].concat(next[nextKey]);
+                } else {
+                    orig[nextKey] = next[nextKey];
+                }
+            });
+            return orig;
+        });
+
     var matchPatterns = guard(
         fun(Any, Any),
 
-        // ([...CSyntax], [...CPattern]) -> {<key>: [...CSyntax]}
+        // ([...CSyntax], [...CPattern]) -> {matches: {<key>: [...[...CSyntax]]}, consumed: Num}
         function matchPatterns(callSyntax, patterns) {
             var matches = {};
             var callIdx = 0;
@@ -3742,6 +3758,7 @@ C.enabled(false);
                 // todo real error handling
                 var rep = false;
 
+                // next pattern token is replication
                 if(isReplicationSyntax(patterns[patternIdx+1])) {
                     rep = true;
                 }
@@ -3750,29 +3767,29 @@ C.enabled(false);
                     // do nothing
                 } else if (pattern.class === "pattern_literal") {
                     assert(syntax[callIdx++].token.value === pattern.value, "pattern literal does not match");
-                } else if (pattern.class === "()") { // hack
-                    var tokInner = syntax[callIdx++].token.inner.slice(0);
-                    var patInner = _.first(pattern.inner);
-
-                    tokInner = [].concat(tokInner, tokensToSyntax({type:Token.EOF}));
-
-                    parseResult = parse_stx(syntaxToTokens(tokInner), patInner.class, {tokens:true}).tokens;
-
-                    // todo deal with replication
-                    matches[patInner.value] = [tokensToSyntax(parseResult)];
-
                 } else {
-                    matches[pattern.value] = [];
+                    if(pattern.class !== "()") {
+                        matches[pattern.value] = [];
+                    }
+
                     do {
-                        // attempt to parse
-                        parseResult = parse_stx(syntaxToTokens(_.rest(syntax, callIdx)), 
-                                                    pattern.class, 
-                                                    {tokens:true});
+                        if (rep && pattern.class === "()") {
+                            var innerMatches = matchPatterns(_.rest(syntax, callIdx), pattern.inner);
+                            // need to move forward the callIdx depending on the amount consumed in 
+                            // the recursive call
+                            matches = mergeMatches(matches, innerMatches.matches);
+                            callIdx += innerMatches.consumed;
+                        } else {
+                            // attempt to parse
+                            parseResult = parse_stx(syntaxToTokens(_.rest(syntax, callIdx)), 
+                                                        pattern.class, 
+                                                        {tokens:true});
 
-                        // move forward in the call tokens the number of succesfully parsed tokens
-                        callIdx += parseResult.tokens.length;
+                            // move forward in the call tokens the number of succesfully parsed tokens
+                            callIdx += parseResult.tokens.length;
 
-                        matches[pattern.value].push(tokensToSyntax(parseResult.tokens));
+                            matches[pattern.value].push(tokensToSyntax(parseResult.tokens));
+                        }
 
                         // hard coding separator at the moment
                         if(rep && syntax[callIdx].token.value !== ",") {
@@ -3783,7 +3800,10 @@ C.enabled(false);
                     } while(rep);
                 }
             });
-            return matches;
+            return {
+                matches: matches,
+                consumed: callIdx
+            };
         });
 
     var takeContext = guard(
@@ -3810,9 +3830,9 @@ C.enabled(false);
 
         // ([...[...CSyntax]], Str) -> [...CSyntax]
         function joinSyntax(tojoin, punc) {
-            return _.reduceRight(tojoin, function(acc, join) {
+            return _.reduce(_.rest(tojoin, 1), function(acc, join) {
                 return acc.concat(mkSyntax(punc, Token.Punctuator, _.first(join)), join);
-            }, []);
+            }, _.first(tojoin));
         });
 
     var mkSyntax = guard(
@@ -3852,10 +3872,11 @@ C.enabled(false);
                                     var call = ziped[0], 
                                         pat = ziped[1];
 
-                                    return matchPatterns(call.token.inner, pat);
+                                    return matchPatterns(call.token.inner, pat).matches;
                                 }).reduce(function(acc, matchObj) {
                                     return _.extend(acc, matchObj);
                                 }, {}).value();
+
 
                 // ([...CSyntax]) -> [...CSyntax]
                 var substitute = function(toSubstitute) {
@@ -3871,8 +3892,9 @@ C.enabled(false);
 
                             // todo: report error if pattern var in body but in matches
                             if(matchedSyntax !== undefined) {
-                                if(toSubstitute[stxIdx+1] && toSubstitute[stxIdx+1].value === "___") {
-                                    return acc.concat(joinSyntax(matchedSyntax, ","));
+                                if(toSubstitute[stxIdx+1] && toSubstitute[stxIdx+1].token.value === "___") {
+                                    var tmp = joinSyntax(matchedSyntax, ",");
+                                    return acc.concat(tmp);
                                 } else {
                                     return acc.concat(takeContext(stx, _.first(matchedSyntax)));
                                 }
@@ -4003,7 +4025,6 @@ C.enabled(false);
                 });
 
                 var macResult = macros[token.value].transformer(callArgs);
-
                 expanded = expanded.concat(expand(macResult));
             } else if (token.type === Token.Delimiter) {
                 // flatten the tree

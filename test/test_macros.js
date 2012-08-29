@@ -33,16 +33,16 @@ describe("parser", function() {
     expect(z).to.be(6);
   });
 
-  it("should expand a macro with a pattern `($x:lit) <+> $y:lit`", function() {
-    macro oddadd {
-      case (($x:lit) <+> $y:lit) => {
-        $x + $y
-      }
-    }
-    var z = oddadd((2) <+> 4);
-    expect(z).to.be(6);
+  // it("should expand a macro with a pattern `($x:lit) <+> $y:lit`", function() {
+  //   macro oddadd {
+  //     case (($x:lit) <+> $y:lit) => {
+  //       $x + $y
+  //     }
+  //   }
+  //   var z = oddadd((2) <+> 4);
+  //   expect(z).to.be(6);
 
-  });
+  // });
 
   it("should expand a macro with a pattern `$x:expr`", function() {
     macro expr {
@@ -76,25 +76,6 @@ describe("parser", function() {
     expect(z()).to.be(8);
   });
 
-  it("should expand a comma separated list of literals", function() {
-    macro call {
-      case ($x:lit ___) => {
-        $x ___
-      }
-    }
-    var z = call(1,2,3)
-    expect(z).to.be(1)
-  });
-
-  it("should expand a comma separated list of exprs", function() {
-    macro call {
-      case ($x:expr ___) => {
-        $x ___
-      }
-    }
-    var z = call(2+2, 10*2)
-    expect(z).to.be(4)
-  });
 
   it("should expand multiple macro body types", function() {
     macro assign {
@@ -108,17 +89,30 @@ describe("parser", function() {
     expect(z).to.be(4);
   });
 
-  // it("should expand a let macro", function() {
-  //   macro let "(){}" {
-  //     case (($x = $v:expr) ___) { $body:expr } => {
-  //       (function($x ___) { return $body; })($v ___);
-  //     }
-  //   }
-  // });
+  it("should expand a simple let macro", function() {
+    macro lett {
+      case ($x = $v:expr) {$y:expr} => {
+        (function($x) { return $y; })($v);
+      }
+    }
+
+    var foo = lett (z = 1) {z+2}
+
+    expect(foo).to.be(3)
+  });
+
+  it("should expand a complex let macro", function() {
+    macro lett {
+      case ( ($x = $v:expr) ___ ) {$y:expr} => {
+        (function($x ___) { return $y; })($v ___);
+      }
+    }
+
+    var foo = lett (z = 1, t = 5 + 2) {z+t}
+
+    expect(foo).to.be(8)
+  });
  
-
-
-
 
 
 });
