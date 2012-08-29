@@ -3774,7 +3774,7 @@ C.enabled(false);
                     var innerMatches;
                     do {
                         if (rep && pattern.class === "__delimiter") {
-                            assert(syntax[callIdx].token.type !== Token.Delimiter, "unexpected delimiter");
+                            // assert(syntax[callIdx].token.type !== Token.Delimiter, "unexpected delimiter");
                             innerMatches = matchPatterns(_.rest(syntax, callIdx), pattern.inner);
 
                             matches = mergeMatches(matches, innerMatches.matches);

@@ -112,6 +112,19 @@ describe("parser", function() {
     expect(z[0]).to.be(4);
   });
 
+  it("should expand literal parens with ellipses", function() {
+    macro paren {
+      case ( (($x:lit)) ___) => {
+        [$x ___]
+      }
+    }
+    var z = paren ((4), (3));
+
+    expect(z[0]).to.be(4);
+    expect(z[1]).to.be(3);
+  });
+
+
   it("should expand a simple let macro", function() {
     macro lett {
       case ($x = $v:expr) {$y:expr} => {
@@ -137,17 +150,18 @@ describe("parser", function() {
     expect(foo).to.be(8)
   });
 
-  // it("should expand a nested ellipses macro", function() {
-  //   macro nest {
-  //     case ( (($x:lit ; $y:lit ___)) ___ ) => {
-  //       [ [$x ___], [$y ___] ___]
-  //     }
-  //   }
+  it("should expand a nested ellipses macro", function() {
+    macro nest {
+      case ( (($x:lit ; $y:lit ___)) ___ ) => {
+        [ [$x ___], [$y ___] ___]
+      }
+    }
 
-  //   var foo = nest ( (1; 2,3,4,5), (10; 11, 12, 13, 14, 15) )
+    var foo = nest ( (1; 2,3,4,5), (10; 11, 12, 13, 14, 15) )
 
-  //   expect(foo).to.be(8)
-  // });
+    expect(foo[0]).to.eql([1,10])
+    expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15])
+  });
  
 
 
