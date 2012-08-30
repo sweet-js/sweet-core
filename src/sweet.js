@@ -43,7 +43,7 @@ var _ = require("underscore")
 var C = require("contracts.js") // todo parser fails if ; is added here
 // var Macros = C.use(require("../lib/macros.js"), "parser");
 C.autoload();
-C.enabled(false);
+C.enabled(true);
 
 (function (exports) {
     'use strict';
@@ -75,7 +75,8 @@ C.enabled(false);
         Punctuator: 7,
         StringLiteral: 8,
         Delimiter: 9,
-        Pattern: 10
+        Pattern: 10,
+        RegexLiteral: 11
     };
 
     TokenName = {};
@@ -1065,6 +1066,7 @@ C.enabled(false);
         }
 
         return {
+            type: Token.RegexLiteral,
             literal: str,
             value: value,
             range: [start, index]
@@ -3605,8 +3607,8 @@ C.enabled(false);
 
     var CToken = object({
         type: Num,
-        value: opt(or(Str, Num)),
-        inner: opt(arr([___(CToken)])), // or CSyntax...
+        value: opt(Any),
+        // inner: opt(arr([___(CToken)])), // or CSyntax...
         lineNumber: opt(Num),
         lineStart: opt(Num)
         // range is sometimes here but we don't care about it since
@@ -3624,10 +3626,23 @@ C.enabled(false);
     //     context: Any // CMark or CRename
     // });
 
+    // hacking with opts due to lack of proper contract inheritance
+    var CContext = or(Null, object({
+        mark: opt(Str),
+        // id: opt(CSyntax), 
+        name: opt(Str),
+        context: or(Null, Self)
+    }));
+
     var CSyntax = object({
         token: CToken,
-        context: Any // CMark or CRename
+        context: CContext 
     });
+
+    // token: { value: token, enumerable: true, configurable: true},
+    // context: { value: ctx, writable: false, enumerable: true, configurable: true},
+    // consed: {value: true, enumerable: true, writable: true, configurable: true}
+
 
     var CPattern = object({
         value: Str,
@@ -3638,7 +3653,7 @@ C.enabled(false);
     var CMacro = fun(arr([___(CSyntax)]), arr([___(CSyntax)]));
 
     var mkSyntax = guard(
-        fun(Any, Any),
+        fun([Any, Num, CSyntax], CSyntax),
 
         // (Any, Num, CSyntax) -> CSyntax
         function mkSyntax(value, type, stx) {
@@ -3651,51 +3666,66 @@ C.enabled(false);
         });
 
     // probably a more javascripty way than faking constructors but screw it
-    var Mark = function(mark, ctx) { 
-        return {
-            mark: mark,
-            context: ctx
-        };
-    }
+    var Mark = guard(
+        fun([Num, CContext], CContext),
+
+        // (Num) -> CContext
+        function(mark, ctx) { 
+            return {
+                mark: mark,
+                context: ctx
+            };
+        });
+
     var isMark = function(m) {
         return (typeof m.mark !== undefined);
     };
 
-    var Rename = function(id, name, ctx) {
-        return {
-            id: id,
-            name: name,
-            context: ctx
-        };
-    }
+    var Rename = guard(
+        fun([CSyntax, Str, CContext], CContext),
+
+        // (CSyntax, Str) -> CContext
+        function(id, name, ctx) {
+            return {
+                id: id,
+                name: name,
+                context: ctx
+            };
+        });
+
     var isRename = function(r) { 
         return (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
     }
 
 
     var syntaxFromToken = guard(
-        fun(Any, Any),
+        fun([CToken, opt(CContext)], CSyntax),
 
         // (CToken, CSyntax?) -> CSyntax
-        function syntaxFromToken(token, oldstx) {
+        function syntaxFromToken(token, oldctx) {
             // if given old syntax object steal its context otherwise create one fresh
-            var ctx = oldstx ? oldstx.context : {};
+            var ctx = (typeof oldctx !== 'undefined') ? oldctx : null;
 
             return Object.create({
+
                 // (?) -> CSyntax
                 // non mutating
-                mark: function(mark) {
-                    // clone the token so we don't mutate the original inner property
-                    var markedToken = _.clone(this.token);
-                    if(this.token.inner) {
-                        var markedInner = _.map(this.token.inner, function(stx) {
-                            return stx.mark(mark);
-                        });
-                        markedToken.inner = markedInner;
-                    }
-                    var newMark = Mark(mark, this.context);
-                    return syntaxFromToken(markedToken, newMark);
-                },
+                mark: guard(
+                    fun(Num, CSyntax),
+
+                    function mark(mark) {
+                        // clone the token so we don't mutate the original inner property
+                        var markedToken = _.clone(this.token);
+                        if(this.token.inner) {
+                            var markedInner = _.map(this.token.inner, function(stx) {
+                                return stx.mark(mark);
+                            });
+                            markedToken.inner = markedInner;
+                        }
+                        var newMark = Mark(mark, this.context);
+                        var stmp = syntaxFromToken(markedToken, newMark);
+                        return stmp;
+                    }),
 
                 // (CSyntax, Str) -> CSyntax
                 // non mutating
@@ -3711,8 +3741,8 @@ C.enabled(false);
                     return syntaxFromToken(renamedToken, newRename);
                 }
             }, {
-                token: { value: token, enumerable: true},
-                context: { value: ctx, writable: false, enumerable: true},
+                token: { value: token, enumerable: true, configurable: true},
+                context: { value: ctx, writable: false, enumerable: true, configurable: true},
                 consed: {value: true, enumerable: true, writable: true, configurable: true}
             });
         });
@@ -3746,7 +3776,7 @@ C.enabled(false);
         });
 
     var resolve = guard(
-        fun(Any, Any),
+        fun(CSyntax, CToken),
 
         // (CSyntax) -> CToken
         function resolve(stx) {
@@ -3794,6 +3824,7 @@ C.enabled(false);
 
     var syntaxToTokens = guard(
         fun(Any, Any),
+        // ([...CSyntax]) -> [...CToken]
         function syntaxToTokens(syntax) {
             return _.map(syntax, function(stx) {
                 if(stx.token.inner) {
@@ -3805,7 +3836,7 @@ C.enabled(false);
 
 
     var isPatternVar = guard(
-        fun(Any, Any),
+        fun(CToken, Bool),
 
         // CToken -> Bool
         function isPatternVar(token) {
@@ -4042,7 +4073,7 @@ C.enabled(false);
         });
 
     var matchStx = guard(
-        fun(Any, Any), 
+        fun([Any, CSyntax], Bool), 
 
         // (Any, CSyntax) -> Bool
         function matchStx(value, stx) {
@@ -4158,15 +4189,12 @@ C.enabled(false);
                 // callArgs.mark(fresh());
                 // console.log(callArgs)
 
-                // cons up a new callArgs via mark
                 var newMark = fresh();
 
                 var markedArgs = _.map(callArgs, function(arg) { return arg.mark(newMark); });
                 var macResult = macros[token.value].transformer(markedArgs);
                 var markedResult = _.map(macResult, function(arg) { return arg.mark(newMark); });
-                // cons up a new macResult via mark
-                // expand it
-                // and continue
+                
                 expanded = expanded.concat(expand(markedResult));
             } else if (token.type === Token.Delimiter) {
                 // flatten the tree
