@@ -3616,7 +3616,11 @@ C.enabled(false);
     var CSyntax = object({
         token: CToken,
         context: object({
-            name: Str
+            mark: arr([___(Num)]),
+            rename: arr([___(object({
+                id: Str,
+                name: Str
+            }))])
         })
     });
 
@@ -3628,11 +3632,74 @@ C.enabled(false);
 
     var CMacro = fun(arr([___(CSyntax)]), arr([___(CSyntax)]));
 
-    var tokensToSyntax = guard(
-        // todo fix bugs in contract library
-        fun(Any, Any), //arr([___(CToken)]), arr([___(CSyntax)])),
+    var mkSyntax = guard(
+        fun(Any, Any),
 
-        // ([...CToken]) -> [...CSyntax]
+        // (Any, Num, CSyntax) -> CSyntax
+        function mkSyntax(value, type, stx) {
+            return syntaxFromToken({
+                type: type,
+                value: value,
+                lineStart: stx.token.lineStart,
+                lineNumber: stx.token.lineNumber
+            }, stx);
+        });
+
+    var syntaxFromToken = guard(
+        fun(Any, Any),
+
+        // (CToken, CSyntax?) -> CSyntax
+        function syntaxFromToken(token, oldstx) {
+            // if given old syntax object steal its context otherwise create one fresh
+            var ctx = oldstx ? oldstx.context : { mark: [], rename: [] };
+
+            return Object.create({
+                setMark: function(mark) {
+                    if(this.token.inner) {
+                        _.each(this.token.inner, function(stx) {
+                            stx.setMark(mark);
+                        });
+                    }
+                    this.context.mark.push(mark);
+                },
+                setRename: function(ident, name) {
+                    if(this.token.inner) {
+                        _.each(this.token.inner, function(stx) {
+                            stx.setRename(ident, name);
+                        });
+                    }
+                    this.context.rename.push({
+                        ident: ident,
+                        name: name
+                    });
+                },
+                marksof: function() {
+                    return _.foldl(this.context.mark, function(acc, mark) {
+                        if(_.last(acc) === mark) {
+                            // drop dups
+                            return acc.slice(0, acc.length - 1);
+                        } else {
+                            return acc.concat(mark);
+                        }
+                    }, []);
+                },
+                resolve: function() {
+                    assert(this.token.type === Token.Identifier, "resolve only works on identifiers");
+                    // todo need to restructure how we're holding onto marks and renames...
+                    // they need to be interleaved so we can "pop" them
+                }
+            }, {
+                token: { value: token },
+                context: { value: ctx, writable: false}
+            });
+        });
+
+
+
+    var tokensToSyntax = guard(
+        fun(Any, Any), 
+
+        // (CToken or [...CToken]) -> [...CSyntax]
         function tokensToSyntax(tokens) {
             if(!_.isArray(tokens)) {
                 tokens = [tokens];
@@ -3641,13 +3708,7 @@ C.enabled(false);
                 if(token.inner) {
                     token.inner = tokensToSyntax(token.inner);
                 }
-
-                return {
-                    token: token,
-                    context: {
-                      name: "<dot>"
-                    }
-                };
+                return syntaxFromToken(token);
             }); 
         });
 
@@ -3842,21 +3903,6 @@ C.enabled(false);
             }, _.first(tojoin));
         });
 
-    var mkSyntax = guard(
-        fun(Any, Any),
-
-        // (Any, Num, CSyntax) -> CSyntax
-        function mkSyntax(value, type, stx) {
-            return {
-                token: {
-                    type: type,
-                    value: value,
-                    lineStart: stx.token.lineStart,
-                    lineNumber: stx.token.lineNumber
-                },
-                context: stx.context
-            };
-        });
 
     var mkMacroTransformer = guard( 
         fun(Any, Any),
