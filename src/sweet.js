@@ -3613,15 +3613,20 @@ C.enabled(false);
         // it is going to be wrong...vestigial property
     });
 
+    // var CMark = object({
+    //     mark: Str,
+    //     context: Any // CMark or CRename
+    // });
+
+    // var CRename = object({
+    //     id: CSyntax, // but only idents
+    //     name: Str,
+    //     context: Any // CMark or CRename
+    // });
+
     var CSyntax = object({
         token: CToken,
-        context: object({
-            mark: arr([___(Num)]),
-            rename: arr([___(object({
-                id: Str,
-                name: Str
-            }))])
-        })
+        context: Any // CMark or CRename
     });
 
     var CPattern = object({
@@ -3645,55 +3650,119 @@ C.enabled(false);
             }, stx);
         });
 
+    // probably a more javascripty way than faking constructors but screw it
+    var Mark = function(mark, ctx) { 
+        return {
+            mark: mark,
+            context: ctx
+        };
+    }
+    var isMark = function(m) {
+        return (typeof m.mark !== undefined);
+    };
+
+    var Rename = function(id, name, ctx) {
+        return {
+            id: id,
+            name: name,
+            context: ctx
+        };
+    }
+    var isRename = function(r) { 
+        return (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
+    }
+
+
     var syntaxFromToken = guard(
         fun(Any, Any),
 
         // (CToken, CSyntax?) -> CSyntax
         function syntaxFromToken(token, oldstx) {
             // if given old syntax object steal its context otherwise create one fresh
-            var ctx = oldstx ? oldstx.context : { mark: [], rename: [] };
+            var ctx = oldstx ? oldstx.context : {};
 
             return Object.create({
-                setMark: function(mark) {
+                // (Str) -> Undefined
+                mark: function(mark) {
                     if(this.token.inner) {
                         _.each(this.token.inner, function(stx) {
                             stx.setMark(mark);
                         });
                     }
-                    this.context.mark.push(mark);
+                    this.context = Mark(mark, this.context);
                 },
-                setRename: function(ident, name) {
+
+                rename: function(ident, name) {
                     if(this.token.inner) {
                         _.each(this.token.inner, function(stx) {
                             stx.setRename(ident, name);
                         });
                     }
-                    this.context.rename.push({
-                        ident: ident,
-                        name: name
-                    });
-                },
-                marksof: function() {
-                    return _.foldl(this.context.mark, function(acc, mark) {
-                        if(_.last(acc) === mark) {
-                            // drop dups
-                            return acc.slice(0, acc.length - 1);
-                        } else {
-                            return acc.concat(mark);
-                        }
-                    }, []);
-                },
-                resolve: function() {
-                    assert(this.token.type === Token.Identifier, "resolve only works on identifiers");
-                    // todo need to restructure how we're holding onto marks and renames...
-                    // they need to be interleaved so we can "pop" them
+                    this.context = Rename(ident, name, this.context);
                 }
             }, {
-                token: { value: token },
-                context: { value: ctx, writable: false}
+                token: { value: token , enumerable: true},
+                context: { value: ctx, writable: false, enumerable: true}
             });
         });
 
+    var remdup = guard(
+        fun(Any, Any),
+
+        function remdup(mark, mlist) {
+            if(mark === _.first(mlist)) {
+                return _.rest(mlist, 1);
+            } else {
+                return [mark].concat(mlist);
+            }
+        });
+
+    var marksof = guard(
+        fun(Any, Any),
+
+        // (CSyntax) -> [...Num]
+        function marksof(stx) {
+            var mark, submarks;
+            if(isMark(stx.context)) {
+                mark = stx.context.mark;
+                submarks = marksof(syntaxFromToken(stx.token, stx.context.context));
+                return remdup(mark, submarks);
+            } else if(isRename(stx.context)) {
+                return marksof(stx.context.context);
+            } else {
+                return [];
+            }
+        });
+
+    var resolve = guard(
+        fun(Any, Any),
+
+        // (CSyntax) -> CToken
+        function resolve(stx) {
+            if(isMark(stx.context)) {
+                return resolve(syntaxFromToken(stx.token, stx.context.context));
+            } else if (isRename(stx.context)) {
+                var idName = resolve(stx.context.id);
+                var subName = resolve(syntaxFromToken(stx.token, stx.context.context));
+
+                var idMarks = marksof(stx.context.id);
+                var subMarks = marksof(syntaxFromToken(stx.token, stx.context.context));
+
+                if((idName === subName) && (_.difference(idMarks, subMarks).length === 0)) {
+                    return stx.context.name;
+                } else {
+                    return resolve(syntaxFromToken(stx.token, stx.context.context));
+                }
+            } else {
+                return stx.token.value;
+            }
+        });
+
+    var nextFresh = 0;
+    var fresh = function() {
+        // todo: something more globally unique
+        return nextFresh++;
+    };
 
 
     var tokensToSyntax = guard(
@@ -4069,12 +4138,17 @@ C.enabled(false);
             } else if (token.type === Token.Identifier && macros.hasOwnProperty(token.value)) {
                 var macroDef = macros[token.value];
 
+                // todo resolve/mark macro names
+
                 var callArgs = _.map(_.range(macroDef.toConsume), function() {
                     assert(stx[index].token.type === Token.Delimiter, 
                         "expecting delimiters in macro call");
 
                     return stx[index++];
                 });
+
+                // callArgs.mark(fresh());
+                // console.log(callArgs)
 
                 var macResult = macros[token.value].transformer(callArgs);
                 expanded = expanded.concat(expand(macResult));
