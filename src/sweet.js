@@ -3682,27 +3682,38 @@ C.enabled(false);
             var ctx = oldstx ? oldstx.context : {};
 
             return Object.create({
-                // (Str) -> Undefined
+                // (?) -> CSyntax
+                // non mutating
                 mark: function(mark) {
+                    // clone the token so we don't mutate the original inner property
+                    var markedToken = _.clone(this.token);
                     if(this.token.inner) {
-                        _.each(this.token.inner, function(stx) {
-                            stx.setMark(mark);
+                        var markedInner = _.map(this.token.inner, function(stx) {
+                            return stx.mark(mark);
                         });
+                        markedToken.inner = markedInner;
                     }
-                    this.context = Mark(mark, this.context);
+                    var newMark = Mark(mark, this.context);
+                    return syntaxFromToken(markedToken, newMark);
                 },
 
+                // (CSyntax, Str) -> CSyntax
+                // non mutating
                 rename: function(ident, name) {
+                    var renamedToken = _.clone(this.token);
                     if(this.token.inner) {
-                        _.each(this.token.inner, function(stx) {
-                            stx.setRename(ident, name);
+                        var renamedInner = _.map(this.token.inner, function(stx) {
+                            return stx.rename(ident, name);
                         });
+                        renamedToken.inner = renamedInner;
                     }
-                    this.context = Rename(ident, name, this.context);
+                    var newRename = Rename(ident, name, this.context);
+                    return syntaxFromToken(renamedToken, newRename);
                 }
             }, {
-                token: { value: token , enumerable: true},
-                context: { value: ctx, writable: false, enumerable: true}
+                token: { value: token, enumerable: true},
+                context: { value: ctx, writable: false, enumerable: true},
+                consed: {value: true, enumerable: true, writable: true, configurable: true}
             });
         });
 
@@ -3949,17 +3960,14 @@ C.enabled(false);
         // (CSyntax, [...CSyntax]) -> [...CSyntax]
         function takeContext(from, to) {
             return _.map(to, function(stx) {
-                return {
-                    token: {
+                return syntaxFromToken({
                         value: stx.token.value,
                         type: stx.token.type,
                         lineNumber: from.token.lineNumber,
                         lineStart: from.token.lineStart,
                         range: from.token.range // this is a lie
-                    },
-                    context: stx.context
-                }
-            })
+                    }, stx.context);
+            });
         });
 
     var joinSyntax = guard(
@@ -4004,6 +4012,7 @@ C.enabled(false);
                     return _.reduce(toSubstitute, function(acc, stx, stxIdx) {
 
                         if(stx.token.type === Token.Delimiter) {
+                            // mutating...
                             stx.token.inner = substitute(stx.token.inner);
                             return acc.concat(stx);
                         } else if (stx.token.value === "___") {
@@ -4136,9 +4145,8 @@ C.enabled(false);
 
                 macros[macroName] = loadMacro(macroBody.inner, macros);
             } else if (token.type === Token.Identifier && macros.hasOwnProperty(token.value)) {
-                var macroDef = macros[token.value];
-
                 // todo resolve/mark macro names
+                var macroDef = macros[token.value];
 
                 var callArgs = _.map(_.range(macroDef.toConsume), function() {
                     assert(stx[index].token.type === Token.Delimiter, 
@@ -4150,8 +4158,16 @@ C.enabled(false);
                 // callArgs.mark(fresh());
                 // console.log(callArgs)
 
-                var macResult = macros[token.value].transformer(callArgs);
-                expanded = expanded.concat(expand(macResult));
+                // cons up a new callArgs via mark
+                var newMark = fresh();
+
+                var markedArgs = _.map(callArgs, function(arg) { return arg.mark(newMark); });
+                var macResult = macros[token.value].transformer(markedArgs);
+                var markedResult = _.map(macResult, function(arg) { return arg.mark(newMark); });
+                // cons up a new macResult via mark
+                // expand it
+                // and continue
+                expanded = expanded.concat(expand(markedResult));
             } else if (token.type === Token.Delimiter) {
                 // flatten the tree
                 expanded = expanded.concat(tokensToSyntax({
