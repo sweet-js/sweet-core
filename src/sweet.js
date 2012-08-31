@@ -3701,7 +3701,7 @@ C.enabled(true);
     var syntaxFromToken = guard(
         fun([CToken, opt(CContext)], CSyntax),
 
-        // (CToken, CSyntax?) -> CSyntax
+        // (CToken, CContext?) -> CSyntax
         function syntaxFromToken(token, oldctx) {
             // if given old syntax object steal its context otherwise create one fresh
             var ctx = (typeof oldctx !== 'undefined') ? oldctx : null;
@@ -3727,17 +3727,22 @@ C.enabled(true);
                         return stmp;
                     }),
 
-                // (CSyntax, Str) -> CSyntax
+                // (CSyntax or [...CSyntax], Str) -> CSyntax
                 // non mutating
-                rename: function(ident, name) {
+                rename: function(idents, name) {
                     var renamedToken = _.clone(this.token);
                     if(this.token.inner) {
                         var renamedInner = _.map(this.token.inner, function(stx) {
-                            return stx.rename(ident, name);
+                            return stx.rename(idents, name);
                         });
                         renamedToken.inner = renamedInner;
                     }
-                    var newRename = Rename(ident, name, this.context);
+                    // wrap idents in a list if given a single
+                    var ids = _.isArray(idents) ? idents : [idents];
+
+                    var newRename = _.reduce(ids, function(ctx, id) {
+                        return Rename(id, name, ctx);
+                    }, this.context);
                     return syntaxFromToken(renamedToken, newRename);
                 }
             }, {
@@ -4153,6 +4158,30 @@ C.enabled(true);
             return flat;
         });
 
+    // wraps the array of syntax objects in the delimiters given by the second argument
+    var flatWrapDelim = guard(
+        fun([Any, CSyntax], Any),
+        // ([...CSyntax], CSyntax) -> [...CSyntax]
+        function flatWrapDelim(towrap, delimSyntax) {
+            assert(delimSyntax.token.type === Token.Delimiter, "expecting a delimiter token");
+            var flat = [syntaxFromToken({
+                type: Token.Punctuator,
+                value: delimSyntax.token.value[0],
+                range: delimSyntax.token.startRange,
+                lineNumber: delimSyntax.token.startLineNumber,
+                lineStart: delimSyntax.token.startLineStart
+            }, delimSyntax.context)];
+            flat = flat.concat(towrap);
+            flat = flat.concat(syntaxFromToken({
+                type: Token.Punctuator,
+                value: delimSyntax.token.value[1],
+                range: delimSyntax.token.endRange,
+                lineNumber: delimSyntax.token.endLineNumber,
+                lineStart: delimSyntax.token.endLineStart
+            }, delimSyntax.context));
+            return flat;
+        });
+
 
     // (CSyntax) -> CSyntax
     function expand(stx, macros) {
@@ -4194,8 +4223,37 @@ C.enabled(true);
                 var markedArgs = _.map(callArgs, function(arg) { return arg.mark(newMark); });
                 var macResult = macros[token.value].transformer(markedArgs);
                 var markedResult = _.map(macResult, function(arg) { return arg.mark(newMark); });
-                
+
                 expanded = expanded.concat(expand(markedResult));
+
+            } else if ((token.type === Token.Keyword) && (token.value === "function")) {
+                // todo expand this to more than just "function" (ie decl and vars)
+                var functionArgs = stx[index++];
+                var functionBody = stx[index++];
+
+                assert(functionArgs.token.type === Token.Delimiter, "expecting delimiter for function params");
+                assert(functionBody.token.type === Token.Delimiter, "expecting delimiter for function body");
+
+                var newName = "_$_" + fresh();
+
+                var renamedArgs = _.map(functionArgs.token.inner, function(id) {
+                    return id.rename(id, newName); 
+                });
+
+                var renamedBody = functionBody.rename(functionArgs.token.inner, newName);
+
+                var flatArg = flatWrapDelim(renamedArgs, functionArgs)
+
+                var tmpbody = expand([renamedBody]);
+
+                // console.log(renamedBody);
+                // console.log(tmpbody);
+
+                expanded = expanded.concat(tokensToSyntax(token));
+                // console.log(token)
+                expanded = expanded.concat(flatArg);
+                // console.log(flatArg)
+                expanded = expanded.concat(tmpbody);
             } else if (token.type === Token.Delimiter) {
                 // flatten the tree
                 expanded = expanded.concat(tokensToSyntax({
@@ -4478,6 +4536,7 @@ C.enabled(true);
         // var macros = expand(read(macro_file), macroDefs);
 
         var tokenStream = syntaxToTokens(expand(read(source), macroDefs));
+        // console.log(tokenStream)
 
         return parse_stx(tokenStream, "base", options);
     }
