@@ -3626,6 +3626,7 @@ C.enabled(true);
     //     context: Any // CMark or CRename
     // });
 
+
     // hacking with opts due to lack of proper contract inheritance
     var CContext = or(Null, object({
         mark: opt(Str),
@@ -3637,6 +3638,10 @@ C.enabled(true);
     var CSyntax = object({
         token: CToken,
         context: CContext 
+    });
+
+    var CVar = object({
+        id: CSyntax
     });
 
     // token: { value: token, enumerable: true, configurable: true},
@@ -3676,6 +3681,14 @@ C.enabled(true);
                 context: ctx
             };
         });
+
+    var Var = guard(
+        fun(CSyntax, CVar),
+        function (id) {
+            return {
+                id: id
+            };
+        })
 
     var isMark = function(m) {
         return (typeof m.mark !== undefined);
@@ -4006,14 +4019,24 @@ C.enabled(true);
             });
         });
 
-    var joinSyntax = guard(
+    var joinSyntaxArrs = guard(
         fun(Any, Any),
 
         // ([...[...CSyntax]], Str) -> [...CSyntax]
-        function joinSyntax(tojoin, punc) {
+        function joinSyntaxArrs(tojoin, punc) {
             return _.reduce(_.rest(tojoin, 1), function(acc, join) {
                 return acc.concat(mkSyntax(punc, Token.Punctuator, _.first(join)), join);
             }, _.first(tojoin));
+        });
+
+    var joinSyntax = guard(
+        fun([Any, Str], Any),
+
+        // ([...CSyntax], Str) -> [...CSyntax])
+        function joinSyntax(tojoin, punc) {
+            return _.reduce(tojoin, function (acc, join) {
+                return acc.concat(mkSyntax(punc, Token.Punctuator, join), join);
+            }, [_.first(tojoin)]);
         });
 
 
@@ -4059,7 +4082,7 @@ C.enabled(true);
                             // todo: report error if pattern var in body but in matches
                             if(matchedSyntax !== undefined) {
                                 if(toSubstitute[stxIdx+1] && toSubstitute[stxIdx+1].token.value === "___") {
-                                    var tmp = joinSyntax(matchedSyntax, ",");
+                                    var tmp = joinSyntaxArrs(matchedSyntax, ",");
                                     return acc.concat(tmp);
                                 } else {
                                     return acc.concat(takeContext(stx, _.first(matchedSyntax)));
@@ -4161,6 +4184,7 @@ C.enabled(true);
     // wraps the array of syntax objects in the delimiters given by the second argument
     var flatWrapDelim = guard(
         fun([Any, CSyntax], Any),
+
         // ([...CSyntax], CSyntax) -> [...CSyntax]
         function flatWrapDelim(towrap, delimSyntax) {
             assert(delimSyntax.token.type === Token.Delimiter, "expecting a delimiter token");
@@ -4182,14 +4206,27 @@ C.enabled(true);
             return flat;
         });
 
+    var getArgList = guard(
+        fun(CSyntax, Any),
+
+        // (CSyntax) -> [...CSyntax]
+        function getArgList(argSyntax) {
+            assert(argSyntax.token.type === Token.Delimiter, 
+                "expecting delimiter for function params");
+            return _.filter(argSyntax.token.inner, function(stx) {
+                return stx.token.value !== ",";
+            })
+        });
+
 
     // (CSyntax) -> CSyntax
-    function expand(stx, macros) {
+    function expand(stx, macros, env) {
         var index = 0;
         var expanded = [];
 
 
         macros = macros || {};
+        env = env || {};
 
         if(typeof stx === "undefined") {
             return [];
@@ -4226,34 +4263,59 @@ C.enabled(true);
 
                 expanded = expanded.concat(expand(markedResult));
 
+            // function (args) { body }
             } else if ((token.type === Token.Keyword) && (token.value === "function")) {
                 // todo expand this to more than just "function" (ie decl and vars)
-                var functionArgs = stx[index++];
-                var functionBody = stx[index++];
 
-                assert(functionArgs.token.type === Token.Delimiter, "expecting delimiter for function params");
-                assert(functionBody.token.type === Token.Delimiter, "expecting delimiter for function body");
+                var argsDelim = stx[index++];
+                var bodyDelim = stx[index++];
 
-                var newName = "_$_" + fresh();
+                assert(argsDelim.token.type === Token.Delimiter, "expecting delimiter for function params");
+                assert(bodyDelim.token.type === Token.Delimiter, "expecting delimiter for function body");
 
-                var renamedArgs = _.map(functionArgs.token.inner, function(id) {
-                    return id.rename(id, newName); 
+                var args = getArgList(argsDelim);
+
+                var freshNames = _.map(args, function(arg) {
+                    // todo better fresh names (timestamped or something)
+                    return "__" + fresh();
                 });
 
-                var renamedBody = functionBody.rename(functionArgs.token.inner, newName);
+                var freshnameArgPairs = _.zip(freshNames, args);
 
-                var flatArg = flatWrapDelim(renamedArgs, functionArgs)
+                var renamedArgs = _.map(freshnameArgPairs, function(argPair) {
+                    var freshName = argPair[0];
+                    var arg = argPair[1];
+                    return arg.rename(arg, freshName); 
+                });
 
-                var tmpbody = expand([renamedBody]);
+                var newEnv = _.reduce(_.zip(freshNames, renamedArgs), function (accEnv, argPair) {
+                    var freshName = argPair[0]
+                    var renamedArg = argPair[1];
+                    _.extend({ freshName: Var(renamedArg) }, accEnv);
+                }, env);
+
+
+                // var body = bodyDelim.token.inner;
+                var renamedBody = _.reduce(freshnameArgPairs, function (accBody, argPair) {
+                    var freshName = argPair[0];
+                    var arg = argPair[1];
+                    return accBody.reanme(arg, freshName);
+                }, bodyDelim);
+                renamedBody = expand(renamedBody, macros, newEnv)
+
+                var flatArgs = flatWrapDelim(joinSyntax(renamedArgs, ","), argsDelim);
+
+                // wrap up body again
+                var flatBody = flatWrapDelim(renamedBody, bodyDelim);
 
                 // console.log(renamedBody);
                 // console.log(tmpbody);
 
                 expanded = expanded.concat(tokensToSyntax(token));
                 // console.log(token)
-                expanded = expanded.concat(flatArg);
+                expanded = expanded.concat(flatArgs);
                 // console.log(flatArg)
-                expanded = expanded.concat(tmpbody);
+                expanded = expanded.concat(flatBody);
             } else if (token.type === Token.Delimiter) {
                 // flatten the tree
                 expanded = expanded.concat(tokensToSyntax({
