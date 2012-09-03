@@ -43,7 +43,7 @@ var _ = require("underscore")
 var C = require("contracts.js") // todo parser fails if ; is added here
 // var Macros = C.use(require("../lib/macros.js"), "parser");
 C.autoload();
-C.enabled(true);
+C.enabled(false);
 
 (function (exports) {
     'use strict';
@@ -4024,6 +4024,8 @@ C.enabled(true);
 
         // ([...[...CSyntax]], Str) -> [...CSyntax]
         function joinSyntaxArrs(tojoin, punc) {
+            // if(tojoin.length = 0) { return []; }
+
             return _.reduce(_.rest(tojoin, 1), function(acc, join) {
                 return acc.concat(mkSyntax(punc, Token.Punctuator, _.first(join)), join);
             }, _.first(tojoin));
@@ -4034,6 +4036,8 @@ C.enabled(true);
 
         // ([...CSyntax], Str) -> [...CSyntax])
         function joinSyntax(tojoin, punc) {
+            if(tojoin.length === 0) { return []; }
+
             return _.reduce(tojoin, function (acc, join) {
                 return acc.concat(mkSyntax(punc, Token.Punctuator, join), join);
             }, [_.first(tojoin)]);
@@ -4268,6 +4272,10 @@ C.enabled(true);
                 // todo expand this to more than just "function" (ie decl and vars)
 
                 var argsDelim = stx[index++];
+                // function name(...) {...}
+                if(argsDelim.token.type === Token.Identifier) {
+                    argsDelim = stx[index++];
+                } 
                 var bodyDelim = stx[index++];
 
                 assert(argsDelim.token.type === Token.Delimiter, "expecting delimiter for function params");
@@ -4299,14 +4307,14 @@ C.enabled(true);
                 var renamedBody = _.reduce(freshnameArgPairs, function (accBody, argPair) {
                     var freshName = argPair[0];
                     var arg = argPair[1];
-                    return accBody.reanme(arg, freshName);
+                    return accBody.rename(arg, freshName);
                 }, bodyDelim);
-                renamedBody = expand(renamedBody, macros, newEnv)
+                var flatBody = expand([renamedBody], macros, newEnv)
 
                 var flatArgs = flatWrapDelim(joinSyntax(renamedArgs, ","), argsDelim);
 
                 // wrap up body again
-                var flatBody = flatWrapDelim(renamedBody, bodyDelim);
+                // var flatBody = flatWrapDelim(renamedBody, bodyDelim);
 
                 // console.log(renamedBody);
                 // console.log(tmpbody);
