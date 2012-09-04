@@ -4038,7 +4038,7 @@ C.enabled(false);
         function joinSyntax(tojoin, punc) {
             if(tojoin.length === 0) { return []; }
 
-            return _.reduce(tojoin, function (acc, join) {
+            return _.reduce(_.rest(tojoin, 1), function (acc, join) {
                 return acc.concat(mkSyntax(punc, Token.Punctuator, join), join);
             }, [_.first(tojoin)]);
         });
@@ -4272,8 +4272,10 @@ C.enabled(false);
                 // todo expand this to more than just "function" (ie decl and vars)
 
                 var argsDelim = stx[index++];
+                var functionName;
                 // function name(...) {...}
                 if(argsDelim.token.type === Token.Identifier) {
+                    functionName = argsDelim;
                     argsDelim = stx[index++];
                 } 
                 var bodyDelim = stx[index++];
@@ -4321,6 +4323,9 @@ C.enabled(false);
 
                 expanded = expanded.concat(tokensToSyntax(token));
                 // console.log(token)
+                if(functionName) {
+                    expanded = expanded.concat(functionName);
+                }
                 expanded = expanded.concat(flatArgs);
                 // console.log(flatArg)
                 expanded = expanded.concat(flatBody);
@@ -4606,7 +4611,6 @@ C.enabled(false);
         // var macros = expand(read(macro_file), macroDefs);
 
         var tokenStream = syntaxToTokens(expand(read(source), macroDefs));
-        // console.log(tokenStream)
 
         return parse_stx(tokenStream, "base", options);
     }
