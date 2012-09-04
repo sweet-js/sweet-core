@@ -1,0 +1,471 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mocha Tests</title>
+  <script src="jquery.js"></script>
+  <script src="parser_bundle.js"></script>
+  <script>
+  $(document).ready(function() {
+    var code = $("#sweetjs").text();
+    parser.parse(code);
+  })
+  </script>
+  <script id="sweetjs" type="text/sweetjs">
+/*
+  Copyright (C) 2012 Ariya Hidayat <ariya.hidayat@gmail.com>
+  Copyright (C) 2012 Mathias Bynens <mathias@qiwi.be>
+  Copyright (C) 2012 Joost-Wim Boekesteijn <joost-wim@boekesteijn.nl>
+  Copyright (C) 2012 Kris Kowal <kris.kowal@cixar.com>
+  Copyright (C) 2012 Yusuke Suzuki <utatane.tea@gmail.com>
+  Copyright (C) 2012 Arpad Borsos <arpad.borsos@googlemail.com>
+  Copyright (C) 2011 Ariya Hidayat <ariya.hidayat@gmail.com>
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*jslint bitwise:true plusplus:true */
+/*global esprima:true, exports:true,
+throwError: true, createLiteral: true, generateStatement: true,
+parseAssignmentExpression: true, parseBlock: true, parseExpression: true,
+parseFunctionDeclaration: true, parseFunctionExpression: true,
+parseFunctionSourceElements: true, parseVariableIdentifier: true,
+parseLeftHandSideExpression: true,
+parseStatement: true, parseSourceElement: true */
+
+var gen = require("escodegen");
+var fs = require("fs");
+var _ = require("underscore")
+var C = require("contracts.js") // todo parser fails if ; is added here
+// var Macros = C.use(require("../lib/macros.js"), "parser");
+C.autoload();
+C.enabled(false);
+
+(function (exports) {
+    'use strict';
+
+    var Token,
+        TokenName,
+        Syntax,
+        PropertyKind,
+        Messages,
+        Regex,
+        source,
+        strict,
+        index,
+        lineNumber,
+        lineStart,
+        length,
+        buffer,
+        state,
+        tokenStream,
+        extra;
+
+    Token = {
+        BooleanLiteral: 1,
+        EOF: 2,
+        Identifier: 3,
+        Keyword: 4,
+        NullLiteral: 5,
+        NumericLiteral: 6,
+        Punctuator: 7,
+        StringLiteral: 8,
+        Delimiter: 9,
+        Pattern: 10,
+        RegexLiteral: 11
+    };
+
+    TokenName = {};
+    TokenName[Token.BooleanLiteral] = 'Boolean';
+    TokenName[Token.EOF] = '<end>';
+    TokenName[Token.Identifier] = 'Identifier';
+    TokenName[Token.Keyword] = 'Keyword';
+    TokenName[Token.NullLiteral] = 'Null';
+    TokenName[Token.NumericLiteral] = 'Numeric';
+    TokenName[Token.Punctuator] = 'Punctuator';
+    TokenName[Token.StringLiteral] = 'String';
+    TokenName[Token.Delimiter] = 'Delimiter';
+
+    Syntax = {
+        AssignmentExpression: 'AssignmentExpression',
+        ArrayExpression: 'ArrayExpression',
+        BlockStatement: 'BlockStatement',
+        BinaryExpression: 'BinaryExpression',
+        BreakStatement: 'BreakStatement',
+        CallExpression: 'CallExpression',
+        CatchClause: 'CatchClause',
+        ConditionalExpression: 'ConditionalExpression',
+        ContinueStatement: 'ContinueStatement',
+        DoWhileStatement: 'DoWhileStatement',
+        DebuggerStatement: 'DebuggerStatement',
+        EmptyStatement: 'EmptyStatement',
+        ExpressionStatement: 'ExpressionStatement',
+        ForStatement: 'ForStatement',
+        ForInStatement: 'ForInStatement',
+        FunctionDeclaration: 'FunctionDeclaration',
+        FunctionExpression: 'FunctionExpression',
+        Identifier: 'Identifier',
+        IfStatement: 'IfStatement',
+        Literal: 'Literal',
+        LabeledStatement: 'LabeledStatement',
+        LogicalExpression: 'LogicalExpression',
+        MemberExpression: 'MemberExpression',
+        NewExpression: 'NewExpression',
+        ObjectExpression: 'ObjectExpression',
+        Program: 'Program',
+        Property: 'Property',
+        ReturnStatement: 'ReturnStatement',
+        SequenceExpression: 'SequenceExpression',
+        SwitchStatement: 'SwitchStatement',
+        SwitchCase: 'SwitchCase',
+        ThisExpression: 'ThisExpression',
+        ThrowStatement: 'ThrowStatement',
+        TryStatement: 'TryStatement',
+        UnaryExpression: 'UnaryExpression',
+        UpdateExpression: 'UpdateExpression',
+        VariableDeclaration: 'VariableDeclaration',
+        VariableDeclarator: 'VariableDeclarator',
+        WhileStatement: 'WhileStatement',
+        WithStatement: 'WithStatement'
+    };
+
+    PropertyKind = {
+        Data: 1,
+        Get: 2,
+        Set: 4
+    };
+
+
+
+
+
+
+    
+    function readLoop(toks, inExprDelim) {
+        var delimiters = ['(', '{', '['];
+        var parenIdents = ["if", "while", "for", "with"];
+        var last = toks.length - 1;
+        
+
+        var fnExprTokens = ["(", "{", "[", "in", "typeof", "instanceof", "new", "return",
+                            "case", "delete", "throw", "void", 
+                            // assignment operators
+                            "=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=", "&=", "|=", "^=",
+                            ",",
+                            // binary/unary operators
+                            "+", "-", "*", "/", "%", "++", "--", "<<", ">>", ">>>", "&", "|", "^", "!", "~",
+                            "&&", "||", "?", ":",
+                            "===", "==", ">=", "<=", "<", ">", "!=", "!=="];
+        // var fnDeclTokens = [";", "}", ")", "]", ident, literal, "debugger", "break", "continue", "else"];
+        // don't need since these are all implicit in the else branch
+        
+        function back(n) {
+            var idx = (toks.length - n > 0) ? (toks.length - n) : 0;
+            return toks[idx];
+        }
+        
+        
+        skipComment();
+        
+        if(isIn(getChar(), delimiters)) {
+            return readDelim();
+        // } else if(getChar() === "#") {
+        //     // todo: some hard coded assumptions here, will probably change everything anyway so no biggie
+        //     nextChar();
+        //     var syntaxTok = readDelim();
+        //     syntaxTok.value = "#{}";
+            
+        //     return syntaxTok;
+        } else if(getChar() === "/") {
+            var prev = back(1);
+            if (prev) {
+                if (prev.value === "()") {
+                    if(isIn(back(2).value, parenIdents)) {
+                        return scanRegExp();
+                    } else {
+                        return advance();
+                    }
+                } else if(prev.value === "{}") {
+                    if(back(4).value === "function" && isIn(back(5).value, fnExprTokens)) {
+                        return advance();
+                    } else if (back(4).value === "function" && (toks.length - 5 <= 0) && inExprDelim) {
+                        // case where: (function foo() {} /asdf/) or [function foo() {} /asdf]
+                        return advance();
+                    } else {
+                        return scanRegExp();
+                    }
+                } else if(prev.type === Token.Punctuator) {
+                    return scanRegExp();
+                } else if(isKeyword(toks[toks.length - 1].value)) {
+                    return scanRegExp();
+                } else {
+                    return advance();
+                }
+            } else {
+                return scanRegExp();
+            }
+        } else {
+            return advance();
+        }
+    }
+    
+    function readDelim() {
+        var startDelim = advance(),
+            matchDelim = {
+                '(': ')',
+                '{': '}',
+                '[': ']'
+            },
+            inner = [];
+        
+        var delimiters = ['(', '{', '['];
+        var token = startDelim;
+        
+        assert(delimiters.indexOf(startDelim.value) !== -1, "Need to begin at the delimiter");
+        
+        var startLineNumber = token.lineNumber;
+        var startLineStart = token.lineStart;
+        var startRange = token.range;
+        while(index <= length) {
+            token = readLoop(inner, (startDelim.value === "(" || startDelim.value === "["));
+            if((token.type === Token.Punctuator) && (token.value === matchDelim[startDelim.value])) {
+                break;
+            } else {
+                inner.push(token);
+            }
+        }
+        
+        // at the end of the stream but the very last char wasn't the closing delimiter
+        if(index >= length && matchDelim[startDelim.value] !== source[length-1]) {
+            throwError({}, Messages.UnexpectedEOS);
+        }
+        
+        var endLineNumber = token.lineNumber;
+        var endLineStart = token.lineStart;
+        var endRange = token.range;
+        return {
+            type: Token.Delimiter,
+            value: startDelim.value + matchDelim[startDelim.value], 
+            inner: inner,
+            startLineNumber: startLineNumber,
+            startLineStart: startLineStart,
+            startRange: startRange,
+            endLineNumber: endLineNumber,
+            endLineStart: endLineStart,
+            endRange: endRange
+        };
+    };
+    
+    
+    
+    // (Str) -> [...CSyntax]
+    function read(code) {
+        var token, tokenTree = [];
+        
+        source = code;
+        index = 0;
+        lineNumber = (source.length > 0) ? 1 : 0;
+        lineStart = 0;
+        length = source.length;
+        buffer = null;
+        state = {
+            allowIn: true,
+            labelSet: {},
+            lastParenthesized: null,
+            inFunctionBody: false,
+            inIteration: false,
+            inSwitch: false
+        };
+        
+        
+        while(index < length) {
+            tokenTree.push(readLoop(tokenTree));
+        }
+        var last = tokenTree[tokenTree.length-1];
+        if(last && last.type !== Token.EOF) {
+            tokenTree.push({
+                type: Token.EOF,
+                value: "",
+                lineNumber: last.lineNumber,
+                lineStart: last.lineStart,
+                range: [index, index]
+            });
+        }
+        
+        return tokensToSyntax(tokenTree);
+    }
+    
+
+    // (SyntaxObject, Str, {}) -> SyntaxObject
+    function parse_stx(code, nodeType, options) {
+        var program, toString;
+
+        tokenStream = code;
+        nodeType = nodeType || "base";
+        index = 0;
+        length = tokenStream.length;
+        buffer = null;
+        state = {
+            allowIn: true,
+            labelSet: {},
+            lastParenthesized: null,
+            inFunctionBody: false,
+            inIteration: false,
+            inSwitch: false
+        };
+
+        extra = {};
+        if (typeof options !== 'undefined') {
+            if(options.range || options.loc) {
+                assert(false, "Not range and loc is not currently implemented");
+            }
+            extra.range = (typeof options.range === 'boolean') && options.range;
+            extra.loc = (typeof options.loc === 'boolean') && options.loc;
+            extra.raw = (typeof options.raw === 'boolean') && options.raw;
+            if (typeof options.tokens === 'boolean' && options.tokens) {
+                extra.tokens = [];
+            }
+            if (typeof options.comment === 'boolean' && options.comment) {
+                extra.comments = [];
+            }
+            if (typeof options.tolerant === 'boolean' && options.tolerant) {
+                extra.errors = [];
+            }
+        }
+        
+        patch();
+        try {
+            if(nodeType === "base") {
+                program = parseProgram();
+            } else if(nodeType === "expr") {
+                program = parseAssignmentExpression();
+            } else if (nodeType === "lit") {
+                program = parsePrimaryExpression();
+            } else if (nodeType === "ident") {
+                program = parsePrimaryExpression();
+                // todo assert we got and ident...
+            }
+
+            if (typeof extra.comments !== 'undefined') {
+                program.comments = extra.comments;
+            }
+            if (typeof extra.tokens !== 'undefined') {
+                program.tokens = tokenStream.slice(0, index);
+            }
+            if (typeof extra.errors !== 'undefined') {
+                program.errors = extra.errors;
+            }
+        } catch (e) {
+            throw e;
+        } finally {
+            unpatch();
+            extra = {};
+        }
+
+        return program;
+    }
+    
+    function parse(code, options) {
+        var program, toString;
+
+        toString = String;
+        if (typeof code !== 'string' && !(code instanceof String)) {
+            code = toString(code);
+        }
+        
+        var source = code;
+
+        if (source.length > 0) {
+            if (typeof source[0] === 'undefined') {
+                // Try first to convert to a string. This is good as fast path
+                // for old IE which understands string indexing for string
+                // literals only and not for string object.
+                if (code instanceof String) {
+                    source = code.valueOf();
+                }
+
+                // Force accessing the characters via an array.
+                if (typeof source[0] === 'undefined') {
+                    source = stringToArray(code);
+                }
+            }
+        }
+
+        // var macro_file = fs.readFileSync("base_macros.js", "utf8");
+        var macroDefs = {};
+        // var macros = expand(read(macro_file), macroDefs);
+
+        var expanded = expand(read(source), macroDefs);
+        expanded = _.map(expanded, function(stx) {
+            if(stx.token.type === Token.Identifier) {
+                var id = resolve(stx);
+                return mkSyntax(id, Token.Identifier, stx);
+            } else {
+                return stx;
+            }
+        })
+        var tokenStream = syntaxToTokens(expanded);
+
+        return parse_stx(tokenStream, "base", options);
+    }
+    // Sync with package.json.
+    exports.version = '1.0.0-dev';
+
+    exports.parse = parse;
+    exports.read = read;
+    exports.expand = expand;
+    exports.syntaxToTokens = syntaxToTokens;
+    exports.tokensToSyntax = tokensToSyntax;
+
+    // Deep copy.
+    exports.Syntax = (function () {
+        var name, types = {};
+
+        if (typeof Object.create === 'function') {
+            types = Object.create(null);
+        }
+
+        for (name in Syntax) {
+            if (Syntax.hasOwnProperty(name)) {
+                types[name] = Syntax[name];
+            }
+        }
+
+        if (typeof Object.freeze === 'function') {
+            Object.freeze(types);
+        }
+
+        return types;
+
+
+    }());
+
+    // setting up some contract options
+    show_parent_contracts(false);
+
+}(typeof exports === 'undefined' ? (esprima = {}) : exports));
+/* vim: set sw=4 ts=4 et tw=80 : */
+
+  </script>
+</head>
+<body>
+  Parsing...
+</body>
+</html>

@@ -58,6 +58,10 @@ module.exports = function(grunt) {
       tests: {
         src: "build/*.js",
         dest: "browser/test_bundled.js"
+      },
+      parser: {
+        src: "browser/load_parser.js",
+        dest: "browser/parser_bundle.js"
       }
     }
   });
