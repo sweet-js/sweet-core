@@ -3629,7 +3629,7 @@ C.enabled(false);
 
     // hacking with opts due to lack of proper contract inheritance
     var CContext = or(Null, object({
-        mark: opt(Str),
+        mark: opt(Num),
         // id: opt(CSyntax), 
         name: opt(Str),
         context: or(Null, Self)
@@ -3667,7 +3667,7 @@ C.enabled(false);
                 value: value,
                 lineStart: stx.token.lineStart,
                 lineNumber: stx.token.lineNumber
-            }, stx);
+            }, stx.context);
         });
 
     // probably a more javascripty way than faking constructors but screw it
@@ -3684,14 +3684,15 @@ C.enabled(false);
 
     var Var = guard(
         fun(CSyntax, CVar),
+
         function (id) {
             return {
                 id: id
             };
         })
 
-    var isMark = function(m) {
-        return (typeof m.mark !== undefined);
+    var isMark = function isMark(m) {
+        return m && (typeof m.mark !== 'undefined');
     };
 
     var Rename = guard(
@@ -3707,7 +3708,7 @@ C.enabled(false);
         });
 
     var isRename = function(r) { 
-        return (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
+        return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
     }
 
 
@@ -3787,14 +3788,14 @@ C.enabled(false);
                 submarks = marksof(syntaxFromToken(stx.token, stx.context.context));
                 return remdup(mark, submarks);
             } else if(isRename(stx.context)) {
-                return marksof(stx.context.context);
+                return marksof(syntaxFromToken(stx.token, stx.context.context));
             } else {
                 return [];
             }
         });
 
     var resolve = guard(
-        fun(CSyntax, CToken),
+        fun(CSyntax, Str),
 
         // (CSyntax) -> CToken
         function resolve(stx) {
@@ -3982,10 +3983,16 @@ C.enabled(false);
                                                         pattern.class, 
                                                         {tokens:true});
 
+                            // todo: FIX FOR DELIMITERS TOO
+
+                            var endSlice = callIdx + parseResult.tokens.length;
+                            var matchedSyntax = syntax.slice(callIdx, endSlice);
+                            assert(matchedSyntax.length === parseResult.tokens.length, "tokens and slice do not match");
                             // move forward in the call tokens the number of succesfully parsed tokens
                             callIdx += parseResult.tokens.length;
 
-                            matches[pattern.value].push(tokensToSyntax(parseResult.tokens));
+
+                            matches[pattern.value].push(matchedSyntax);
                         }
 
                         // hard coding separator at the moment
@@ -4003,11 +4010,12 @@ C.enabled(false);
             };
         });
 
-    var takeContext = guard(
+    // take the line context (not lexical...um should clarify this a bit)
+    var takeLineContext = guard(
         fun([Any, Any], Any), 
 
         // (CSyntax, [...CSyntax]) -> [...CSyntax]
-        function takeContext(from, to) {
+        function takeLineContext(from, to) {
             return _.map(to, function(stx) {
                 return syntaxFromToken({
                         value: stx.token.value,
@@ -4089,7 +4097,7 @@ C.enabled(false);
                                     var tmp = joinSyntaxArrs(matchedSyntax, ",");
                                     return acc.concat(tmp);
                                 } else {
-                                    return acc.concat(takeContext(stx, _.first(matchedSyntax)));
+                                    return acc.concat(takeLineContext(stx, _.first(matchedSyntax)));
                                 }
                             } else {
                                 return acc.concat(stx);
@@ -4237,7 +4245,8 @@ C.enabled(false);
         }
 
         while(index < stx.length) {
-            var token = stx[index++].token;
+            var currStx = stx[index++];
+            var token = currStx.token;
             if ((token.type === Token.Identifier) && (token.value === "macro")) {
                 var macroName = stx[index++].token.value;
                 var macroBody = stx[index++].token;
@@ -4301,7 +4310,9 @@ C.enabled(false);
                 var newEnv = _.reduce(_.zip(freshNames, renamedArgs), function (accEnv, argPair) {
                     var freshName = argPair[0]
                     var renamedArg = argPair[1];
-                    _.extend({ freshName: Var(renamedArg) }, accEnv);
+                    var o = {};
+                    o[freshName] = Var(renamedArg);
+                    return _.extend(o, accEnv);
                 }, env);
 
 
@@ -4329,6 +4340,18 @@ C.enabled(false);
                 expanded = expanded.concat(flatArgs);
                 // console.log(flatArg)
                 expanded = expanded.concat(flatBody);
+            } else if (token.type === Token.Identifier) {
+                var resolvedIdent = resolve(currStx);
+
+                var ident;
+                if(env.hasOwnProperty(resolvedIdent)) {
+                    ident = env[resolvedIdent].id;
+                } else {
+                    // todo is this right?
+                    // ident = mkSyntax(resolvedIdent, Token.Identifier, currStx); 
+                    ident = currStx
+                }
+                expanded = expanded.concat(ident);
             } else if (token.type === Token.Delimiter) {
                 // flatten the tree
                 expanded = expanded.concat(tokensToSyntax({
@@ -4610,7 +4633,16 @@ C.enabled(false);
         var macroDefs = {};
         // var macros = expand(read(macro_file), macroDefs);
 
-        var tokenStream = syntaxToTokens(expand(read(source), macroDefs));
+        var expanded = expand(read(source), macroDefs);
+        expanded = _.map(expanded, function(stx) {
+            if(stx.token.type === Token.Identifier) {
+                var id = resolve(stx);
+                return mkSyntax(id, Token.Identifier, stx);
+            } else {
+                return stx;
+            }
+        })
+        var tokenStream = syntaxToTokens(expanded);
 
         return parse_stx(tokenStream, "base", options);
     }
