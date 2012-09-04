@@ -4016,6 +4016,8 @@ C.enabled(false);
 
         // (CSyntax, [...CSyntax]) -> [...CSyntax]
         function takeLineContext(from, to) {
+            // todo could be nicer about the line numbers...currently just
+            // taking from the macro name but could also do offset
             return _.map(to, function(stx) {
                 return syntaxFromToken({
                         value: stx.token.value,
@@ -4055,7 +4057,7 @@ C.enabled(false);
     var mkMacroTransformer = guard( 
         fun(Any, Any),
 
-        // ([...{pattern: [...CSyntax], body: CSyntax}]) -> CMacro
+        // ([...{pattern: [...CSyntax], body: CSyntax}], CSyntax) -> CMacro
         function mkMacroTransformer(macroCases) {
             var patternSyntax = macroCases[0].pattern[0].token.inner;
             var bodySyntax = macroCases[0].body.token.inner;
@@ -4065,7 +4067,7 @@ C.enabled(false);
             });
             // todo confirm that delimiter types from macro call and macro def are the same
 
-            return function(callSyntax) {
+            return function(callSyntax, macroNameStx) {
                 
                 var matches = _.chain(_.zip(callSyntax, patterns))
                                 .map(function(ziped) {
@@ -4097,10 +4099,10 @@ C.enabled(false);
                                     var tmp = joinSyntaxArrs(matchedSyntax, ",");
                                     return acc.concat(tmp);
                                 } else {
-                                    return acc.concat(takeLineContext(stx, _.first(matchedSyntax)));
+                                    return acc.concat(takeLineContext(macroNameStx, _.first(matchedSyntax)));
                                 }
                             } else {
-                                return acc.concat(stx);
+                                return acc.concat(takeLineContext(macroNameStx, [stx]));
                             }
                         }
 
@@ -4123,7 +4125,7 @@ C.enabled(false);
     var loadMacro = guard(
         fun(Any, Any),
 
-        // ([...CSyntax]) -> { transformer: CMacro, toConsume: Num }
+        // ([...CSyntax], CSyntax) -> { transformer: CMacro, toConsume: Num }
         function loadMacro(macroBody) {
             var macroCases = [];
             var lastCaseIdx = 0;
@@ -4248,12 +4250,13 @@ C.enabled(false);
             var currStx = stx[index++];
             var token = currStx.token;
             if ((token.type === Token.Identifier) && (token.value === "macro")) {
-                var macroName = stx[index++].token.value;
+                var macroNameStx = stx[index++];
+                var macroName = macroNameStx.token.value;
                 var macroBody = stx[index++].token;
 
                 assert(macroBody.value === "{}", "expecting a macro body");
 
-                macros[macroName] = loadMacro(macroBody.inner, macros);
+                macros[macroName] = loadMacro(macroBody.inner);
             } else if (token.type === Token.Identifier && macros.hasOwnProperty(token.value)) {
                 // todo resolve/mark macro names
                 var macroDef = macros[token.value];
@@ -4271,7 +4274,7 @@ C.enabled(false);
                 var newMark = fresh();
 
                 var markedArgs = _.map(callArgs, function(arg) { return arg.mark(newMark); });
-                var macResult = macros[token.value].transformer(markedArgs);
+                var macResult = macros[token.value].transformer(markedArgs, currStx);
                 var markedResult = _.map(macResult, function(arg) { return arg.mark(newMark); });
 
                 expanded = expanded.concat(expand(markedResult));
