@@ -177,7 +177,65 @@ So I think we have to have hoisting happen after macro expansion. But what does 
 
 ## Hygiene
 
-Should be [fun](http://www.quotationspage.com/quote/26964.html)...
+    env :: Names -> Var
+
+    expand (e, env) =>
+      match e
+        // function def
+        case [functionStx, (args...), {body...}, ...] =>
+
+          freshNames = map(args, -> fresh())
+
+          freshnameArgPairs = zip(freshNames, args)
+
+          // rename the args
+          renamedArgs = map(freshnameArgPairs, ([feshName, arg]) ->
+            rename(arg, arg, freshName)
+          )
+
+          // extend the environment with a mapping
+          // from the fresh name to a var with the
+          // renamed identifier
+          newEnv = reduce(zip(feshNames, renamedArgs), env,
+                          ([freshName, renamedArg], accEnv) -> 
+                            env + { freshName : Var(renamedArg) })
+          
+
+          // rename the old arguments in the body with the 
+          // fresh name and expand in the context of the
+          // extended environment
+          renamedBody = expand(reduce(zip(freshNames, args), body, 
+                      ([freshName, arg], accBody) ->
+                        rename(accBody, arg, freshName)))
+
+          // the function now has the renamed params
+          // and the expanded/renamed body
+          #{functionStx, renamedArgs, renamedBody}
+
+        case [idStx, ...] =>
+
+          // resolve pulls out possibly renamings from the identifier
+          resolvedIdent = resolve(idStx)
+
+          // lookup the id in the environment (it should be a Var())
+          ident = match env.get(resolvedIdent) Var(i) => i
+          // and return the environments version of it
+          ident
+
+        case [idMac, args] =>
+          // pull the resolved macro name out of the environment
+          val = env.get(resolve(idMac))
+
+          newMark = fresh
+
+          // give the new mark to the args 
+          // (need to do this with the macro name?)
+          exp = eval(app(val, mark([idMac, args], newMark)))
+          // and eval it
+
+          // and mark the result of invocation with the same mark
+          // and then expand 
+          expand(mark(exp, newMark))
 
 ## Modules
 
