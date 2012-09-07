@@ -607,13 +607,26 @@ C.enabled(false);
 
         ch2 = source[index + 1];
         if (ch1 === '.' && !isDecimalDigit(ch2)) {
-            return {
-                type: Token.Punctuator,
-                value: nextChar(),
-                lineNumber: lineNumber,
-                lineStart: lineStart,
-                range: [start, index]
-            };
+            if (source[index + 1] === "." && source[index + 2] === ".") {
+                nextChar();
+                nextChar();
+                nextChar();
+                return {
+                    type: Token.Punctuator,
+                    value: "...",
+                    lineNumber: lineNumber,
+                    lineStart: lineStart,
+                    range: [start, index]
+                };
+            } else {
+                return {
+                    type: Token.Punctuator,
+                    value: nextChar(),
+                    lineNumber: lineNumber,
+                    lineStart: lineStart,
+                    range: [start, index]
+                };
+            }
         }
 
         // Peek more characters.
@@ -3915,7 +3928,7 @@ C.enabled(false);
 
         // (CPattern or Undefined) -> Bool
         function isReplicationPattern(pat) {
-            return pat && pat.value === "___";
+            return pat && pat.value === "...";
         });
 
     var mergeMatches = guard(
@@ -3956,7 +3969,7 @@ C.enabled(false);
                     rep = true;
                 }
 
-                if(pattern.value === "___") {
+                if(pattern.value === "...") {
                     // do nothing
                 } else if (pattern.class === "pattern_literal") {
                     assert(syntax[callIdx++].token.value === pattern.value, "pattern literal does not match");
@@ -4055,7 +4068,6 @@ C.enabled(false);
             }, [_.first(tojoin)]);
         });
 
-
     var mkMacroTransformer = guard( 
         fun(Any, Any),
 
@@ -4090,14 +4102,14 @@ C.enabled(false);
                             // mutating...
                             stx.token.inner = substitute(stx.token.inner);
                             return acc.concat(stx);
-                        } else if (stx.token.value === "___") {
+                        } else if (stx.token.value === "...") {
                             return acc;
                         } else {
                             var matchedSyntax = matches[stx.token.value];
 
                             // todo: report error if pattern var in body but in matches
                             if(matchedSyntax !== undefined) {
-                                if(toSubstitute[stxIdx+1] && toSubstitute[stxIdx+1].token.value === "___") {
+                                if(toSubstitute[stxIdx+1] && toSubstitute[stxIdx+1].token.value === "...") {
                                     var tmp = joinSyntaxArrs(matchedSyntax, ",");
                                     return acc.concat(tmp);
                                 } else {
@@ -4223,7 +4235,7 @@ C.enabled(false);
         });
 
     var getArgList = guard(
-        fun(CSyntax, Any),
+        fun(CSyntax, arr([___(CSyntax)])),
 
         // (CSyntax) -> [...CSyntax]
         function getArgList(argSyntax) {

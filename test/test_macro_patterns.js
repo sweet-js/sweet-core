@@ -113,8 +113,8 @@ describe("macro expander", function() {
 
   it("should expand literal parens with ellipses", function() {
     macro paren {
-      case ( (($x:lit)) ___) => {
-        [$x ___]
+      case ( (($x:lit)) ...) => {
+        [$x ...]
       }
     }
     var z = paren ((4), (3));
@@ -139,8 +139,8 @@ describe("macro expander", function() {
 
   it("should expand a complex let macro", function() {
     macro lett {
-      case ( ($x = $v:expr) ___ ) {$y:expr} => {
-        (function($x ___) { return $y; })($v ___);
+      case ( ($x = $v:expr) ... ) {$y:expr} => {
+        (function($x ...) { return $y; })($v ...);
       }
     }
 
@@ -151,8 +151,8 @@ describe("macro expander", function() {
 
   it("should expand a nested ellipses macro", function() {
     macro nest {
-      case ( (($x:lit ; $y:lit ___)) ___ ) => {
-        [ [$x ___], [$y ___] ___]
+      case ( (($x:lit ; $y:lit ...)) ...) => {
+        [ [$x ...], [$y ...] ...]
       }
     }
 
@@ -162,5 +162,4 @@ describe("macro expander", function() {
     expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15])
   });
  
-
 });
