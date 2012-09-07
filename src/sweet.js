@@ -1396,7 +1396,7 @@ C.enabled(false);
 
         return {
             type: Syntax.Identifier,
-            name: token.value
+            name: token.value       // objects keys are not resolved
         };
     }
 
@@ -1517,7 +1517,7 @@ C.enabled(false);
         if (type === Token.Identifier) {
             return {
                 type: Syntax.Identifier,
-                name: lex().token.value
+                name: resolve(lex())
             };
         }
 
@@ -2165,7 +2165,8 @@ C.enabled(false);
     // 12.2 Variable Statement
 
     function parseVariableIdentifier() {
-        var token = lex().token;
+        var stx = lex(),
+            token = stx.token;
 
         if (token.type !== Token.Identifier) {
             throwUnexpected(token);
@@ -2173,7 +2174,7 @@ C.enabled(false);
 
         return {
             type: Syntax.Identifier,
-            name: token.value
+            name: resolve(stx)
         };
     }
 
