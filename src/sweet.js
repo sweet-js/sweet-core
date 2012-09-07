@@ -3887,6 +3887,7 @@ C.enabled(false);
 
             while(index < patterns.length) {
                 var token = patterns[index++].token;
+                var next = patterns[index];
 
                 if(isPatternVar(token)) {
                     if(patterns[index] && patterns[index].token.value === ":") {
@@ -3905,6 +3906,21 @@ C.enabled(false);
                             value: token.value,
                         });
                     }
+                } else if (token.value === "...") {
+                    var sep = ",";
+                    if(next && next.token.value === "()") {
+                        if(next.token.inner.length === 0) {
+                            sep = " ";
+                        } else {
+                            sep =  next.token.inner[0].value
+                        }
+                        index++;
+                    }
+                    result.push({
+                        class: "pattern_literal",
+                        value: token.value,
+                        sep: ","
+                    })
                 } else if (token.type === Token.Delimiter) {
                     result.push({
                         class: "__delimiter",
@@ -3928,7 +3944,7 @@ C.enabled(false);
 
         // (CPattern or Undefined) -> Bool
         function isReplicationPattern(pat) {
-            return pat && pat.value === "...";
+            return pat && pat.value === "..."
         });
 
     var mergeMatches = guard(
@@ -3962,11 +3978,12 @@ C.enabled(false);
                 // 2. pattern type is "()"
                 // 3. pattern type is other (some parse object)
                 // todo real error handling
-                var rep = false;
+                var rep = false, sep;
 
                 // next pattern token is replication
                 if(isReplicationSyntax(patterns[patternIdx+1])) {
                     rep = true;
+                    sep = patterns[patternIdx+1].sep;
                 }
 
                 if(pattern.value === "...") {
@@ -4011,7 +4028,7 @@ C.enabled(false);
                         }
 
                         // hard coding separator at the moment
-                        if(rep && syntax[callIdx].token.value !== ",") {
+                        if(rep && syntax[callIdx].token.value !== sep) {
                             rep = false;
                         } else if (rep) { // only consume "," if we are replicating
                             callIdx++;

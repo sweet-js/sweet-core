@@ -139,7 +139,7 @@ describe("macro expander", function() {
 
   it("should expand a complex let macro", function() {
     macro lett {
-      case ( ($x = $v:expr) ... ) {$y:expr} => {
+      case ( ($x = $v:expr) ...(,)) {$y:expr} => {
         (function($x ...) { return $y; })($v ...);
       }
     }
