@@ -3877,6 +3877,7 @@ C.enabled(false);
             return token.type === Token.Identifier && token.value[0] === "$";
         });
 
+
     var mkPatternArray = guard(
         fun(Any, Any),
 
@@ -3912,15 +3913,15 @@ C.enabled(false);
                         if(next.token.inner.length === 0) {
                             sep = " ";
                         } else {
-                            sep =  next.token.inner[0].value
+                            sep =  next.token.inner[0].token.value
                         }
                         index++;
                     }
                     result.push({
                         class: "pattern_literal",
                         value: token.value,
-                        sep: ","
-                    })
+                        sep: sep
+                    });
                 } else if (token.type === Token.Delimiter) {
                     result.push({
                         class: "__delimiter",
@@ -4027,10 +4028,13 @@ C.enabled(false);
                             matches[pattern.value].push(matchedSyntax);
                         }
 
-                        // hard coding separator at the moment
-                        if(rep && syntax[callIdx].token.value !== sep) {
+                        if(rep && sep === " ") {
+                            if(syntax[callIdx] && syntax[callIdx].token.type === Token.EOF) {
+                                rep = false;
+                            } 
+                        } else if(rep && syntax[callIdx].token.value !== sep) {
                             rep = false;
-                        } else if (rep) { // only consume "," if we are replicating
+                        } else if (rep) { // only consume sep if we are replicating
                             callIdx++;
                         }
                     } while(rep);
@@ -4112,13 +4116,22 @@ C.enabled(false);
 
 
                 // ([...CSyntax]) -> [...CSyntax]
-                var substitute = function(toSubstitute) {
+                var substitute = function(toSubstitute, rep) {
+                    var rep = rep || false;
+
                     return _.reduce(toSubstitute, function(acc, stx, stxIdx) {
+                        var nextIsEllipse = (toSubstitute[stxIdx+1] && toSubstitute[stxIdx+1].token.value === "...");
+                        var lastWasEllipse = (toSubstitute[stxIdx-1] && toSubstitute[stxIdx-1].token.value === "...");
 
                         if(stx.token.type === Token.Delimiter) {
-                            // mutating...
-                            stx.token.inner = substitute(stx.token.inner);
-                            return acc.concat(stx);
+                            if(lastWasEllipse) {
+                                // skip over the separator selector in ...(,)
+                                return acc;
+                            } else {
+                                // mutating...
+                                stx.token.inner = substitute(stx.token.inner, rep || nextIsEllipse);
+                                return acc.concat(stx);
+                            }
                         } else if (stx.token.value === "...") {
                             return acc;
                         } else {
@@ -4126,7 +4139,15 @@ C.enabled(false);
 
                             // todo: report error if pattern var in body but in matches
                             if(matchedSyntax !== undefined) {
-                                if(toSubstitute[stxIdx+1] && toSubstitute[stxIdx+1].token.value === "...") {
+                                if(nextIsEllipse) {
+                                    var sep = ",";
+                                    if(toSubstitute[stxIdx+2] && toSubstitute[stxIdx+2].token.value === "()") {
+                                        if(toSubstitute[stxIdx+2].token.inner.length === 0) {
+                                            sep = " ";
+                                        } else {
+                                            sep =  toSubstitute[stxIdx+2].token.inner[0].token.value
+                                        }
+                                    }
                                     var tmp = joinSyntaxArrs(matchedSyntax, ",");
                                     return acc.concat(tmp);
                                 } else {
