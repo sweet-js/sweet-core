@@ -1152,7 +1152,7 @@ C.enabled(false);
     function peekLineTerminator() {
         var pos, line, start, found;
 
-        found = tokenStream[index-1].lineNumber !== tokenStream[index].lineNumber;
+        found = tokenStream[index-1].token.lineNumber !== tokenStream[index].token.lineNumber;
 
         return found;
     }
@@ -1238,7 +1238,7 @@ C.enabled(false);
     // If not, an exception will be thrown.
 
     function expect(value) {
-        var token = lex();
+        var token = lex().token;
         if (token.type !== Token.Punctuator || token.value !== value) {
             throwUnexpected(token);
         }
@@ -1248,7 +1248,7 @@ C.enabled(false);
     // If not, an exception will be thrown.
 
     function expectKeyword(keyword) {
-        var token = lex();
+        var token = lex().token;
         if (token.type !== Token.Keyword || token.value !== keyword) {
             throwUnexpected(token);
         }
@@ -1257,21 +1257,21 @@ C.enabled(false);
     // Return true if the next token matches the specified punctuator.
 
     function match(value) {
-        var token = lookahead();
+        var token = lookahead().token;
         return token.type === Token.Punctuator && token.value === value;
     }
 
     // Return true if the next token matches the specified keyword
 
     function matchKeyword(keyword) {
-        var token = lookahead();
+        var token = lookahead().token;
         return token.type === Token.Keyword && token.value === keyword;
     }
 
     // Return true if the next token is an assignment operator
 
     function matchAssign() {
-        var token = lookahead(),
+        var token = lookahead().token,
             op = token.value;
 
         if (token.type !== Token.Punctuator) {
@@ -1294,12 +1294,12 @@ C.enabled(false);
     function consumeSemicolon() {
         var token, line;
 
-        if(tokenStream[index].value === ";") {
-            lex();
+        if(tokenStream[index].token.value === ";") {
+            lex().token;
             return;
         }
         // if (source[index] === ';') {
-        //     lex();
+        //     lex().token;
         //     return;
         // }
 
@@ -1310,13 +1310,13 @@ C.enabled(false);
         // }
 
         // if (match(';')) {
-        //     lex();
+        //     lex().token;
         //     return;
         // }
 
         // todo: cleanup
-        line = tokenStream[index-1].lineNumber;
-        token = tokenStream[index];
+        line = tokenStream[index-1].token.lineNumber;
+        token = tokenStream[index].token;
         if(line !== token.lineNumber) {
             return;
         }
@@ -1342,7 +1342,7 @@ C.enabled(false);
 
         while (!match(']')) {
             if (match(',')) {
-                lex();
+                lex().token;
                 elements.push(undef);
             } else {
                 elements.push(parseAssignmentExpression());
@@ -1382,7 +1382,7 @@ C.enabled(false);
     }
 
     function parseObjectPropertyKey() {
-        var token = lex();
+        var token = lex().token;
 
         // Note: This function is called only from parseObjectProperty(), where
         // EOF and Punctuator tokens are already filtered out.
@@ -1403,7 +1403,7 @@ C.enabled(false);
     function parseObjectProperty() {
         var token, key, id, param;
 
-        token = lookahead();
+        token = lookahead().token;
 
         if (token.type === Token.Identifier) {
 
@@ -1424,9 +1424,9 @@ C.enabled(false);
             } else if (token.value === 'set' && !match(':')) {
                 key = parseObjectPropertyKey();
                 expect('(');
-                token = lookahead();
+                token = lookahead().token;
                 if (token.type !== Token.Identifier) {
-                    throwUnexpected(lex());
+                    throwUnexpected(lex().token);
                 }
                 param = [ parseVariableIdentifier() ];
                 expect(')');
@@ -1511,13 +1511,13 @@ C.enabled(false);
 
     function parsePrimaryExpression() {
         var expr,
-            token = lookahead(),
+            token = lookahead().token,
             type = token.type;
 
         if (type === Token.Identifier) {
             return {
                 type: Syntax.Identifier,
-                name: lex().value
+                name: lex().token.value
             };
         }
 
@@ -1525,12 +1525,12 @@ C.enabled(false);
             if (strict && token.octal) {
                 throwErrorTolerant(token, Messages.StrictOctalLiteral);
             }
-            return createLiteral(lex());
+            return createLiteral(lex().token);
         }
 
         if (type === Token.Keyword) {
             if (matchKeyword('this')) {
-                lex();
+                lex().token;
                 return {
                     type: Syntax.ThisExpression
                 };
@@ -1570,10 +1570,10 @@ C.enabled(false);
 
 
         if(token.value instanceof RegExp) {
-            return createLiteral(lex());
+            return createLiteral(lex().token);
         }
 
-        return throwUnexpected(lex());
+        return throwUnexpected(lex().token);
     }
 
     // 11.2 Left-Hand-Side Expressions
@@ -1600,7 +1600,7 @@ C.enabled(false);
 
 
     function parseNonComputedProperty() {
-        var token = lex();
+        var token = lex().token;
 
         if (!isIdentifierName(token)) {
             throwUnexpected(token);
@@ -1712,7 +1712,7 @@ C.enabled(false);
     }
 
     // function parseSyntaxObject() {
-    //     var tokens = lex();
+    //     var tokens = lex().token;
 
     //     assert(tokens.value === "{}", "expecting delimiters to follow syntax");
 
@@ -1792,7 +1792,7 @@ C.enabled(false);
 
             expr = {
                 type: Syntax.UpdateExpression,
-                operator: lex().value,
+                operator: lex().token.value,
                 argument: expr,
                 prefix: false
             };
@@ -1807,7 +1807,7 @@ C.enabled(false);
         var token, expr;
 
         if (match('++') || match('--')) {
-            token = lex();
+            token = lex().token;
             expr = parseUnaryExpression();
             // 11.4.4, 11.4.5
             if (strict && expr.type === Syntax.Identifier && isRestrictedWord(expr.name)) {
@@ -1830,7 +1830,7 @@ C.enabled(false);
         if (match('+') || match('-') || match('~') || match('!')) {
             expr = {
                 type: Syntax.UnaryExpression,
-                operator: lex().value,
+                operator: lex().token.value,
                 argument: parseUnaryExpression()
             };
             return expr;
@@ -1839,7 +1839,7 @@ C.enabled(false);
         if (matchKeyword('delete') || matchKeyword('void') || matchKeyword('typeof')) {
             expr = {
                 type: Syntax.UnaryExpression,
-                operator: lex().value,
+                operator: lex().token.value,
                 argument: parseUnaryExpression()
             };
             if (strict && expr.operator === 'delete' && expr.argument.type === Syntax.Identifier) {
@@ -1859,7 +1859,7 @@ C.enabled(false);
         while (match('*') || match('/') || match('%')) {
             expr = {
                 type: Syntax.BinaryExpression,
-                operator: lex().value,
+                operator: lex().token.value,
                 left: expr,
                 right: parseUnaryExpression()
             };
@@ -1876,7 +1876,7 @@ C.enabled(false);
         while (match('+') || match('-')) {
             expr = {
                 type: Syntax.BinaryExpression,
-                operator: lex().value,
+                operator: lex().token.value,
                 left: expr,
                 right: parseMultiplicativeExpression()
             };
@@ -1897,7 +1897,7 @@ C.enabled(false);
         while (match('<<') || match('>>') || match('>>>')) {
             expr = {
                 type: Syntax.BinaryExpression,
-                operator: lex().value,
+                operator: lex().token.value,
                 left: expr,
                 right: parseAdditiveExpression()
             };
@@ -1918,7 +1918,7 @@ C.enabled(false);
         if (match('<') || match('>') || match('<=') || match('>=')) {
             expr = {
                 type: Syntax.BinaryExpression,
-                operator: lex().value,
+                operator: lex().token.value,
                 left: expr,
                 right: parseRelationalExpression()
             };
@@ -1956,7 +1956,7 @@ C.enabled(false);
         while (match('==') || match('!=') || match('===') || match('!==')) {
             expr = {
                 type: Syntax.BinaryExpression,
-                operator: lex().value,
+                operator: lex().token.value,
                 left: expr,
                 right: parseRelationalExpression()
             };
@@ -2095,7 +2095,7 @@ C.enabled(false);
 
             expr = {
                 type: Syntax.AssignmentExpression,
-                operator: lex().value,
+                operator: lex().token.value,
                 left: expr,
                 right: parseAssignmentExpression()
             };
@@ -2165,7 +2165,7 @@ C.enabled(false);
     // 12.2 Variable Statement
 
     function parseVariableIdentifier() {
-        var token = lex();
+        var token = lex().token;
 
         if (token.type !== Token.Identifier) {
             throwUnexpected(token);
@@ -2363,7 +2363,7 @@ C.enabled(false);
     }
 
     function parseForVariableDeclaration() {
-        var token = lex();
+        var token = lex().token;
 
         return {
             type: Syntax.VariableDeclaration,
@@ -2466,7 +2466,7 @@ C.enabled(false);
         expectKeyword('continue');
 
         // Optimize the most common form: 'continue;'.
-        if (tokenStream[index].value === ";") {
+        if (tokenStream[index].token.value === ";") {
             lex();
 
             if (!state.inIteration) {
@@ -2490,7 +2490,7 @@ C.enabled(false);
             };
         }
 
-        token = lookahead();
+        token = lookahead().token;
         if (token.type === Token.Identifier) {
             label = parseVariableIdentifier();
 
@@ -2543,7 +2543,7 @@ C.enabled(false);
             };
         }
 
-        token = lookahead();
+        token = lookahead().token;
         if (token.type === Token.Identifier) {
             label = parseVariableIdentifier();
 
@@ -2595,7 +2595,7 @@ C.enabled(false);
         }
 
         if (!match(';')) {
-            token = lookahead();
+            token = lookahead().token;
             if (!match('}') && token.type !== Token.EOF) {
                 argument = parseExpression();
             }
@@ -2802,7 +2802,7 @@ C.enabled(false);
     // 12 Statements
 
     function parseStatement() {
-        var token = lookahead(),
+        var token = lookahead().token,
             expr,
             labeledBody;
 
@@ -2896,7 +2896,7 @@ C.enabled(false);
         expect('{');
 
         while (index < length) {
-            token = lookahead();
+            token = lookahead().token;
             if (token.type !== Token.StringLiteral) {
                 break;
             }
@@ -2958,7 +2958,7 @@ C.enabled(false);
         var id, param, params = [], body, token, firstRestricted, message, previousStrict, paramSet;
 
         expectKeyword('function');
-        token = lookahead();
+        token = lookahead().token;
         id = parseVariableIdentifier();
         if (strict) {
             if (isRestrictedWord(token.value)) {
@@ -2979,7 +2979,7 @@ C.enabled(false);
         if (!match(')')) {
             paramSet = {};
             while (index < length) {
-                token = lookahead();
+                token = lookahead().token;
                 param = parseVariableIdentifier();
                 if (strict) {
                     if (isRestrictedWord(token.value)) {
@@ -3032,7 +3032,7 @@ C.enabled(false);
         expectKeyword('function');
 
         if (!match('(')) {
-            token = lookahead();
+            token = lookahead().token;
             id = parseVariableIdentifier();
             if (strict) {
                 if (isRestrictedWord(token.value)) {
@@ -3054,7 +3054,7 @@ C.enabled(false);
         if (!match(')')) {
             paramSet = {};
             while (index < length) {
-                token = lookahead();
+                token = lookahead().token;
                 param = parseVariableIdentifier();
                 if (strict) {
                     if (isRestrictedWord(token.value)) {
@@ -3104,7 +3104,7 @@ C.enabled(false);
     // 14 Program
 
     function parseSourceElement() {
-        var token = lookahead();
+        var token = lookahead().token;
 
         if (token.type === Token.Keyword) {
             switch (token.value) {
@@ -3384,7 +3384,7 @@ C.enabled(false);
 
                 // skipComment();
                 
-                var curr = tokenStream[index];
+                var curr = tokenStream[index].token;
                 
                 rangeInfo = [curr.range[0], 0];
                 locInfo = {
@@ -3396,7 +3396,7 @@ C.enabled(false);
 
                 node = parseFunction.apply(null, arguments);
                 if (typeof node !== 'undefined') {
-                    var last = tokenStream[index];
+                    var last = tokenStream[index].token;
 
                     if (range) {
                         rangeInfo[1] = last.range[1];
@@ -3711,6 +3711,46 @@ C.enabled(false);
         return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
     }
 
+    var syntaxProto =  {
+        // (?) -> CSyntax
+        // non mutating
+        mark: guard(
+            fun(Num, CSyntax),
+
+            function mark(mark) {
+                // clone the token so we don't mutate the original inner property
+                var markedToken = _.clone(this.token);
+                if(this.token.inner) {
+                    var markedInner = _.map(this.token.inner, function(stx) {
+                        return stx.mark(mark);
+                    });
+                    markedToken.inner = markedInner;
+                }
+                var newMark = Mark(mark, this.context);
+                var stmp = syntaxFromToken(markedToken, newMark);
+                return stmp;
+            }),
+
+        // (CSyntax or [...CSyntax], Str) -> CSyntax
+        // non mutating
+        rename: function(idents, name) {
+            var renamedToken = _.clone(this.token);
+            if(this.token.inner) {
+                var renamedInner = _.map(this.token.inner, function(stx) {
+                    return stx.rename(idents, name);
+                });
+                renamedToken.inner = renamedInner;
+            }
+            // wrap idents in a list if given a single
+            var ids = _.isArray(idents) ? idents : [idents];
+
+            var newRename = _.reduce(ids, function(ctx, id) {
+                return Rename(id, name, ctx);
+            }, this.context);
+            return syntaxFromToken(renamedToken, newRename);
+        }
+    };
+
 
     var syntaxFromToken = guard(
         fun([CToken, opt(CContext)], CSyntax),
@@ -3720,46 +3760,7 @@ C.enabled(false);
             // if given old syntax object steal its context otherwise create one fresh
             var ctx = (typeof oldctx !== 'undefined') ? oldctx : null;
 
-            return Object.create({
-
-                // (?) -> CSyntax
-                // non mutating
-                mark: guard(
-                    fun(Num, CSyntax),
-
-                    function mark(mark) {
-                        // clone the token so we don't mutate the original inner property
-                        var markedToken = _.clone(this.token);
-                        if(this.token.inner) {
-                            var markedInner = _.map(this.token.inner, function(stx) {
-                                return stx.mark(mark);
-                            });
-                            markedToken.inner = markedInner;
-                        }
-                        var newMark = Mark(mark, this.context);
-                        var stmp = syntaxFromToken(markedToken, newMark);
-                        return stmp;
-                    }),
-
-                // (CSyntax or [...CSyntax], Str) -> CSyntax
-                // non mutating
-                rename: function(idents, name) {
-                    var renamedToken = _.clone(this.token);
-                    if(this.token.inner) {
-                        var renamedInner = _.map(this.token.inner, function(stx) {
-                            return stx.rename(idents, name);
-                        });
-                        renamedToken.inner = renamedInner;
-                    }
-                    // wrap idents in a list if given a single
-                    var ids = _.isArray(idents) ? idents : [idents];
-
-                    var newRename = _.reduce(ids, function(ctx, id) {
-                        return Rename(id, name, ctx);
-                    }, this.context);
-                    return syntaxFromToken(renamedToken, newRename);
-                }
-            }, {
+            return Object.create(syntaxProto, {
                 token: { value: token, enumerable: true, configurable: true},
                 context: { value: ctx, writable: false, enumerable: true, configurable: true},
                 consed: {value: true, enumerable: true, writable: true, configurable: true}
@@ -3809,7 +3810,7 @@ C.enabled(false);
                 var subMarks = marksof(syntaxFromToken(stx.token, stx.context.context));
 
                 if((idName === subName) && (_.difference(idMarks, subMarks).length === 0)) {
-                    return stx.context.name;
+                    return stx.token.value + stx.context.name;
                 } else {
                     return resolve(syntaxFromToken(stx.token, stx.context.context));
                 }
@@ -3979,7 +3980,7 @@ C.enabled(false);
                             callIdx++;
                         } else {
                             // attempt to parse
-                            parseResult = parse_stx(syntaxToTokens(_.rest(syntax, callIdx)), 
+                            parseResult = parse_stx(_.rest(syntax, callIdx), 
                                                         pattern.class, 
                                                         {tokens:true});
 
@@ -4249,6 +4250,9 @@ C.enabled(false);
         while(index < stx.length) {
             var currStx = stx[index++];
             var token = currStx.token;
+            if(typeof token === 'undefined') {
+                console.log(currStx);
+            }
             if ((token.type === Token.Identifier) && (token.value === "macro")) {
                 var macroNameStx = stx[index++];
                 var macroName = macroNameStx.token.value;
@@ -4299,7 +4303,7 @@ C.enabled(false);
 
                 var freshNames = _.map(args, function(arg) {
                     // todo better fresh names (timestamped or something)
-                    return "__" + fresh();
+                    return "$" + fresh();
                 });
 
                 var freshnameArgPairs = _.zip(freshNames, args);
@@ -4340,6 +4344,7 @@ C.enabled(false);
                 if(functionName) {
                     expanded = expanded.concat(functionName);
                 }
+                
                 expanded = expanded.concat(flatArgs);
                 // console.log(flatArg)
                 expanded = expanded.concat(flatBody);
@@ -4637,15 +4642,15 @@ C.enabled(false);
         // var macros = expand(read(macro_file), macroDefs);
 
         var expanded = expand(read(source), macroDefs);
-        expanded = _.map(expanded, function(stx) {
-            if(stx.token.type === Token.Identifier) {
-                var id = resolve(stx);
-                return mkSyntax(id, Token.Identifier, stx);
-            } else {
-                return stx;
-            }
-        })
-        var tokenStream = syntaxToTokens(expanded);
+        // expanded = _.map(expanded, function(stx) {
+        //     if(stx.token.type === Token.Identifier) {
+        //         var id = resolve(stx);
+        //         return mkSyntax(id, Token.Identifier, stx);
+        //     } else {
+        //         return stx;
+        //     }
+        // })
+        var tokenStream = expanded;
 
         return parse_stx(tokenStream, "base", options);
     }
