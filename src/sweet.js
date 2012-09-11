@@ -3874,7 +3874,9 @@ C.enabled(false);
 
         // CToken -> Bool
         function isPatternVar(token) {
-            return token.type === Token.Identifier && token.value[0] === "$";
+            return token.type === Token.Identifier 
+                && token.value[0] === "$"   // starts with $
+                && token.value !== "$";     // but isn't $
         });
 
 
@@ -3913,6 +3915,10 @@ C.enabled(false);
                             return acc;
                         }
                     }
+                    // skip over $
+                    if (patStx.token.value === "$" && next && next.token.type === Token.Delimiter) {
+                        return acc;
+                    }
 
                     if(isPatternVar(patStx.token)) {
                         if(next && next.token.value === ":" ) {
@@ -3922,6 +3928,9 @@ C.enabled(false);
                             patStx.class = "ident";
                         }
                     } else if (patStx.token.type === Token.Delimiter) {
+                        if (last && last.token.value === "$") {
+                            patStx.class = "pattern_group";
+                        }
                         patStx.token.inner = loadPattern(patStx.token.inner);
                     } else {
                         patStx.class = "pattern_literal";
@@ -3993,12 +4002,17 @@ C.enabled(false);
                     var innerMatches;
                     do {
                         if (pattern.token.type === Token.Delimiter) {
-                            assert(syntax[callIdx].token.type === Token.Delimiter, "missing expected delimiter");
+                            if (pattern.class === "pattern_group") {
+                                innerMatches = matchPatterns(_.rest(syntax,callIdx), pattern.token.inner);
+                                matches = mergeMatches(matches, innerMatches.matches);
+                                callIdx += innerMatches.consumed;
+                            } else {
+                                assert(syntax[callIdx].token.type === Token.Delimiter, "missing expected delimiter");
 
-                            innerMatches = matchPatterns(syntax[callIdx].token.inner, pattern.token.inner);
-
-                            matches = mergeMatches(matches, innerMatches.matches);
-                            callIdx++;
+                                innerMatches = matchPatterns(syntax[callIdx].token.inner, pattern.token.inner);
+                                matches = mergeMatches(matches, innerMatches.matches);
+                                callIdx++;
+                            }
                         } else {
                             // attempt to parse
                             parseResult = parse_stx(_.rest(syntax, callIdx), 
