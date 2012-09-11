@@ -3878,75 +3878,81 @@ C.enabled(false);
         });
 
 
-    var mkPatternArray = guard(
+    var containsPatternVar = function(patterns) {
+        return _.any(patterns, function(pat) {
+            if(pat.token.type === Token.Delimiter) {
+                return containsPatternVar(pat.token.inner);
+            } else {
+                return isPatternVar(pat);
+            }
+        });
+    }
+
+    var loadPattern = guard(
         fun(Any, Any),
 
         // ([...CSyntax]) -> [...CPattern]
         function loadPattern(patterns) {
-            var result = [];
-            var index = 0;
 
-            while(index < patterns.length) {
-                var token = patterns[index++].token;
-                var next = patterns[index];
+            return _.chain(patterns)
+                // first pass to merge the pattern variables together
+                .reduce(function(acc, patStx, idx) {
+                    var last = patterns[idx-1];
+                    var lastLast = patterns[idx-2];
+                    var next = patterns[idx+1];
+                    var nextNext = patterns[idx+2];
 
-                if(isPatternVar(token)) {
-                    if(patterns[index] && patterns[index].token.value === ":") {
-                        index++;    // eat the :
-                        var parseType = patterns[index++].token;
-
-                        // todo error handling
-                        result.push({
-                            class: parseType.value,
-                            value: token.value
-                        });
-                    } else {
-                        // assuming an identifier
-                        result.push({
-                            class: "ident",
-                            value: token.value,
-                        });
-                    }
-                } else if (token.value === "...") {
-                    var sep = ",";
-                    if(next && next.token.value === "()") {
-                        if(next.token.inner.length === 0) {
-                            sep = " ";
-                        } else {
-                            sep =  next.token.inner[0].token.value
+                    // skip over the `:lit` part of `$x:lit`
+                    if (patStx.token.value === ":") {
+                        if(last && isPatternVar(last.token)) {
+                            return acc;
                         }
-                        index++;
+                    } 
+                    if(last && last.token.value === ":") {
+                        if(lastLast && isPatternVar(lastLast.token)) {
+                            return acc;
+                        }
                     }
-                    result.push({
-                        class: "pattern_literal",
-                        value: token.value,
-                        sep: sep
-                    });
-                } else if (token.type === Token.Delimiter) {
-                    result.push({
-                        class: "__delimiter",
-                        value: token.value,
-                        inner: loadPattern(token.inner)
-                    });
-                } else {
-                    result.push({
-                        class: "pattern_literal",
-                        value: token.value
-                    });
-                }
-            }
 
-            return result;
+                    if(isPatternVar(patStx.token)) {
+                        if(next && next.token.value === ":" ) {
+                            assert(typeof nextNext !== 'undefined', "expecting a pattern class");
+                            patStx.class = nextNext.token.value;
+                        } else {
+                            patStx.class = "ident";
+                        }
+                    } else if (patStx.token.type === Token.Delimiter) {
+                        patStx.token.inner = loadPattern(patStx.token.inner);
+                    } else {
+                        patStx.class = "pattern_literal";
+                    }
+                    return acc.concat(patStx);
+                // then second pass to mark repeat and separator
+                }, []).reduce(function(acc, patStx, idx, patterns) {
+                    var separator = " ";
+                    var repeat = false;
+                    var next = patterns[idx+1];
+                    var nextNext = patterns[idx+2];
+
+                    if(next && next.token.value === "...") {
+                        repeat = true;
+                        separator = " ";
+                    } else if(delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
+                        repeat = true;
+                        separator = next.token.inner[0].token.value;
+                    }
+
+                    // skip over ... and (,)
+                    if(patStx.token.value === "..." 
+                            || (delimIsSeparator(patStx) && next && next.token.value === "...")) {
+                        return acc;
+                    }
+                    patStx.repeat = repeat;
+                    patStx.separator = separator;
+                    return acc.concat(patStx);
+                }, []).value();
         });
 
-
-    var isReplicationSyntax = guard(
-        fun(Any, Any),
-
-        // (CPattern or Undefined) -> Bool
-        function isReplicationPattern(pat) {
-            return pat && pat.value === "..."
-        });
 
     var mergeMatches = guard(
         fun(Any, Any),
@@ -3968,45 +3974,28 @@ C.enabled(false);
         fun(Any, Any),
 
         // ([...CSyntax], [...CPattern]) -> {matches: {<key>: [...[...CSyntax]]}, consumed: Num}
-        function matchPatterns(callSyntax, patterns) {
+        function matchPatterns(callStx, patterns) {
             var matches = {};
             var callIdx = 0;
             var parseResult;
-            var syntax = [].concat(callSyntax, tokensToSyntax({type: Token.EOF}));
+            var syntax = [].concat(callStx, tokensToSyntax({type: Token.EOF}));
 
             patterns.forEach(function(pattern, patternIdx) {
-                // 1. pattern type is "pattern_literal"
-                // 2. pattern type is "()"
-                // 3. pattern type is other (some parse object)
                 // todo real error handling
-                var rep = false, sep;
+                var repeat = pattern.repeat, separator = pattern.separator;
 
-                // next pattern token is replication
-                if(isReplicationSyntax(patterns[patternIdx+1])) {
-                    rep = true;
-                    sep = patterns[patternIdx+1].sep;
-                }
-
-                if(pattern.value === "...") {
-                    // do nothing
-                } else if (pattern.class === "pattern_literal") {
-                    assert(syntax[callIdx++].token.value === pattern.value, "pattern literal does not match");
+                if (pattern.class === "pattern_literal" && pattern.token.type !== Token.Delimiter) {
+                    assert(syntax[callIdx++].token.value === pattern.token.value, "pattern literal does not match");
                 } else {
-                    if(pattern.class !== "__delimiter") {
-                        matches[pattern.value] = [];
+                    if(pattern.token.type !== Token.Delimiter) {
+                        matches[pattern.token.value] = [];
                     }
                     var innerMatches;
                     do {
-                        if (rep && pattern.class === "__delimiter") {
-                            // assert(syntax[callIdx].token.type !== Token.Delimiter, "unexpected delimiter");
-                            innerMatches = matchPatterns(_.rest(syntax, callIdx), pattern.inner);
-
-                            matches = mergeMatches(matches, innerMatches.matches);
-                            callIdx += innerMatches.consumed;
-                        } else if (pattern.class === "__delimiter") {
+                        if (pattern.token.type === Token.Delimiter) {
                             assert(syntax[callIdx].token.type === Token.Delimiter, "missing expected delimiter");
 
-                            innerMatches = matchPatterns(syntax[callIdx].token.inner, pattern.inner);
+                            innerMatches = matchPatterns(syntax[callIdx].token.inner, pattern.token.inner);
 
                             matches = mergeMatches(matches, innerMatches.matches);
                             callIdx++;
@@ -4016,8 +4005,6 @@ C.enabled(false);
                                                         pattern.class, 
                                                         {tokens:true});
 
-                            // todo: FIX FOR DELIMITERS TOO
-
                             var endSlice = callIdx + parseResult.tokens.length;
                             var matchedSyntax = syntax.slice(callIdx, endSlice);
                             assert(matchedSyntax.length === parseResult.tokens.length, "tokens and slice do not match");
@@ -4025,19 +4012,19 @@ C.enabled(false);
                             callIdx += parseResult.tokens.length;
 
 
-                            matches[pattern.value].push(matchedSyntax);
+                            matches[pattern.token.value].push(matchedSyntax);
                         }
 
-                        if(rep && sep === " ") {
+                        if(repeat && separator === " ") {
                             if(syntax[callIdx] && syntax[callIdx].token.type === Token.EOF) {
-                                rep = false;
+                                repeat = false;
                             } 
-                        } else if(rep && syntax[callIdx].token.value !== sep) {
-                            rep = false;
-                        } else if (rep) { // only consume sep if we are replicating
+                        } else if(repeat && syntax[callIdx].token.value !== separator) {
+                            repeat = false;
+                        } else if (repeat) { // only consume separator if we are replicating
                             callIdx++;
                         }
-                    } while(rep);
+                    } while(repeat);
                 }
             });
             return {
@@ -4089,6 +4076,19 @@ C.enabled(false);
             }, [_.first(tojoin)]);
         });
 
+    var delimIsSeparator = guard(
+        fun(Any, Any), 
+
+        // (CSyntax) -> Bool
+        function delimIsSeparator(delim) {
+            return (delim && delim.token.type === Token.Delimiter 
+                    && delim.token.value === "()"
+                    && delim.token.inner.length === 1
+                    && delim.token.inner[0].token.type !== Token.Delimiter
+                    && !containsPatternVar(delim.token.inner));
+        }
+    );
+
     var mkMacroTransformer = guard( 
         fun(Any, Any),
 
@@ -4098,7 +4098,7 @@ C.enabled(false);
             var bodySyntax = macroCases[0].body.token.inner;
 
             var patterns = _.map(macroCases[0].pattern, function(pat) {
-                return mkPatternArray(pat.token.inner);
+                return loadPattern(pat.token.inner);
             });
             // todo confirm that delimiter types from macro call and macro def are the same
 
@@ -4116,49 +4116,52 @@ C.enabled(false);
 
 
                 // ([...CSyntax]) -> [...CSyntax]
-                var substitute = function(toSubstitute, rep) {
-                    var rep = rep || false;
+                var substitute = function(toSubstitute) {
 
-                    return _.reduce(toSubstitute, function(acc, stx, stxIdx) {
-                        var nextIsEllipse = (toSubstitute[stxIdx+1] && toSubstitute[stxIdx+1].token.value === "...");
-                        var lastWasEllipse = (toSubstitute[stxIdx-1] && toSubstitute[stxIdx-1].token.value === "...");
+                    return _.chain(toSubstitute)
+                        .reduce(function(acc, bodyStx, idx, original) {
+                            // first find the ellipses and mark the syntax objects
+                            var next = original[idx+1];
+                            var nextNext = original[idx+2];
 
-                        if(stx.token.type === Token.Delimiter) {
-                            if(lastWasEllipse) {
-                                // skip over the separator selector in ...(,)
+                            // drop `...`
+                            if(bodyStx.token.value === "...") {
                                 return acc;
-                            } else {
-                                // mutating...
-                                stx.token.inner = substitute(stx.token.inner, rep || nextIsEllipse);
-                                return acc.concat(stx);
                             }
-                        } else if (stx.token.value === "...") {
-                            return acc;
-                        } else {
-                            var matchedSyntax = matches[stx.token.value];
+                            // drop `(<separator)` when followed by an ellipse
+                            if(delimIsSeparator(bodyStx) && next && next.token.value === "...") {
+                                return acc;
+                            }
 
-                            // todo: report error if pattern var in body but in matches
-                            if(matchedSyntax !== undefined) {
-                                if(nextIsEllipse) {
-                                    var sep = ",";
-                                    if(toSubstitute[stxIdx+2] && toSubstitute[stxIdx+2].token.value === "()") {
-                                        if(toSubstitute[stxIdx+2].token.inner.length === 0) {
-                                            sep = " ";
-                                        } else {
-                                            sep =  toSubstitute[stxIdx+2].token.inner[0].token.value
-                                        }
+                            if(next && next.token.value === "...") {
+                                bodyStx.repeat = true;
+                                bodyStx.separator = " "; // default to space separated
+                            } else if(delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
+                                bodyStx.repeat = true;
+                                bodyStx.separator = next.token.inner[0].token.value;
+                            }
+
+                            return acc.concat(bodyStx);
+                        }, []).reduce(function(acc, bodyStx, idx) {
+                            // then do the actual substitution
+                            var matchedSyntax = matches[bodyStx.token.value];
+
+                            if(bodyStx.token.type === Token.Delimiter) {
+                                bodyStx.token.inner = substitute(bodyStx.token.inner);
+                                return acc.concat(bodyStx);
+                            } else  {
+                                // todo: report error if pattern var in body but in matches
+                                if(matchedSyntax !== undefined) {
+                                    if(bodyStx.repeat) {
+                                        return acc.concat(joinSyntaxArrs(matchedSyntax, bodyStx.separator));
+                                    } else {
+                                        return acc.concat(takeLineContext(macroNameStx, _.first(matchedSyntax)));
                                     }
-                                    var tmp = joinSyntaxArrs(matchedSyntax, ",");
-                                    return acc.concat(tmp);
                                 } else {
-                                    return acc.concat(takeLineContext(macroNameStx, _.first(matchedSyntax)));
+                                    return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
                                 }
-                            } else {
-                                return acc.concat(takeLineContext(macroNameStx, [stx]));
                             }
-                        }
-
-                    }, []);
+                        }, []).value();
                 };
 
                 return substitute(bodySyntax);
