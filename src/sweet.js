@@ -3725,25 +3725,37 @@ C.enabled(false);
         return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
     }
 
+    var DummyRename = guard(
+        fun(Any, Any),
+
+        function(name, ctx) {
+            return {
+                dummy_name: name,
+                context: ctx      
+            };
+        });
+
+    var isDummyRename = function(r) {
+        return r && (typeof r.dummy_name !== 'undefined');
+    }
+
+
     var syntaxProto =  {
         // (?) -> CSyntax
         // non mutating
-        mark: guard(
-            fun(Num, CSyntax),
-
-            function mark(mark) {
-                // clone the token so we don't mutate the original inner property
-                var markedToken = _.clone(this.token);
-                if(this.token.inner) {
-                    var markedInner = _.map(this.token.inner, function(stx) {
-                        return stx.mark(mark);
-                    });
-                    markedToken.inner = markedInner;
-                }
-                var newMark = Mark(mark, this.context);
-                var stmp = syntaxFromToken(markedToken, newMark);
-                return stmp;
-            }),
+        mark: function mark(mark) {
+            // clone the token so we don't mutate the original inner property
+            var markedToken = _.clone(this.token);
+            if(this.token.inner) {
+                var markedInner = _.map(this.token.inner, function(stx) {
+                    return stx.mark(mark);
+                });
+                markedToken.inner = markedInner;
+            }
+            var newMark = Mark(mark, this.context);
+            var stmp = syntaxFromToken(markedToken, newMark);
+            return stmp;
+        },
 
         // (CSyntax or [...CSyntax], Str) -> CSyntax
         // non mutating
@@ -3762,6 +3774,18 @@ C.enabled(false);
                 return Rename(id, name, ctx);
             }, this.context);
             return syntaxFromToken(renamedToken, newRename);
+        },
+
+        push_dummy_rename: function(name) {
+            var renamedToken = _.clone(this.token);
+            if(this.token.inner) {
+                var renamedInner = _.map(this.token.inner, function(stx) {
+                    return stx.push_dummy_rename(name);
+                });
+                renamedToken.inner = renamedInner;
+            }
+
+            return syntaxFromToken(renamedToken, DummyRename(name, this.context));
         }
     };
 
@@ -3802,7 +3826,7 @@ C.enabled(false);
                 mark = stx.context.mark;
                 submarks = marksof(syntaxFromToken(stx.token, stx.context.context));
                 return remdup(mark, submarks);
-            } else if(isRename(stx.context)) {
+            } else if(isRename(stx.context) || isDummyRename(stx.context)) {
                 return marksof(syntaxFromToken(stx.token, stx.context.context));
             } else {
                 return [];
@@ -3814,7 +3838,7 @@ C.enabled(false);
 
         // (CSyntax) -> CToken
         function resolve(stx) {
-            if(isMark(stx.context)) {
+            if(isMark(stx.context) || isDummyRename(stx.context)) {
                 return resolve(syntaxFromToken(stx.token, stx.context.context));
             } else if (isRename(stx.context)) {
                 var idName = resolve(stx.context.id);
@@ -4123,6 +4147,7 @@ C.enabled(false);
                                     var call = ziped[0], 
                                         pat = ziped[1];
 
+                                    // getEnv
                                     return matchPatterns(call.token.inner, pat).matches;
                                 }).reduce(function(acc, matchObj) {
                                     return _.extend(acc, matchObj);
@@ -4411,8 +4436,12 @@ C.enabled(false);
                     var arg = argPair[1];
                     return accBody.rename(arg, freshName);
                 }, bodyDelim);
-                var flatBody = expand([renamedBody], macros, newEnv)
 
+                // push a dummy rename to the body
+                var dummyName = fresh();
+                renamedBody = renamedBody.push_dummy_rename(dummyName);
+
+                var flatBody = expand([renamedBody], macros, newEnv)
                 var flatArgs = flatWrapDelim(joinSyntax(renamedArgs, ","), argsDelim);
 
                 // wrap up body again
