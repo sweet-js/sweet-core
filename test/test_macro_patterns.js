@@ -111,10 +111,22 @@ describe("macro expander", function() {
     expect(z[0]).to.be(4);
   });
 
+  it("should expand with ellipses", function() {
+    macro paren {
+      case ( $x:lit (,) ...) => {
+        [$x (,) ...]
+      }
+    }
+    var z = paren (4, 3);
+
+    expect(z[0]).to.be(4);
+    expect(z[1]).to.be(3);
+  });
+
   it("should expand literal parens with ellipses", function() {
     macro paren {
-      case ( (($x:lit)) ...) => {
-        [$x ...]
+      case ( ($x:lit) (,) ...) => {
+        [$x (,) ...]
       }
     }
     var z = paren ((4), (3));
@@ -139,8 +151,8 @@ describe("macro expander", function() {
 
   it("should expand a complex let macro", function() {
     macro lett {
-      case ( ($x = $v:expr) ...(,)) {$y:expr} => {
-        (function($x ...) { return $y; })($v ...);
+      case ( $($x = $v:expr) (,) ...) {$y:expr} => {
+        (function($x (,) ...) { return $y; })($v (,) ...);
       }
     }
 
@@ -151,8 +163,8 @@ describe("macro expander", function() {
 
   it("should expand a nested ellipses macro", function() {
     macro nest {
-      case ( (($x:lit ; $y:lit ...)) ...) => {
-        [ [$x ...], [$y ...] ...]
+      case ( ($x:lit ; $y:lit (,) ...) (,) ...) => {
+        [ [$x (,) ...], [$y (,) ...] ]
       }
     }
 
@@ -161,5 +173,38 @@ describe("macro expander", function() {
     expect(foo[0]).to.eql([1,10])
     expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15])
   });
- 
+
+  it("should expand an ellipses with a ; delimiter", function() {
+    macro semi {
+      case ( $x:lit (;) ...) => {
+        [$x (,) ...]
+      }
+    }
+    var a = semi(1;2;3;4);
+    expect(a.length).to.be(4);
+    expect(a[1]).to.be(2);
+  });
+
+  // it("should expand a repeated delimiter in the macro body", function() {
+  //   macro delim {
+  //     case ($x:lit ...) => {
+  //       var x = ($x) (,) ...
+  //     }
+  //   }
+  //   delim (1 2 3)
+  // });
+
+  // it("should expand an ellipsese no separator", function() {
+  
+  //     case ($x:ident ...) => {
+  //       var $($x = 2) (,) ...
+  //     }
+  //   }
+  //   semi(w x y z)
+  //   expect(w).to.be(2);
+  //   expect(x).to.be(2);
+  //   expect(y).to.be(2);
+  //   expect(z).to.be(2);
+  // });
+
 });

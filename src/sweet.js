@@ -4135,6 +4135,7 @@ C.enabled(false);
                     return _.chain(toSubstitute)
                         .reduce(function(acc, bodyStx, idx, original) {
                             // first find the ellipses and mark the syntax objects
+                            var last = original[idx-1];
                             var next = original[idx+1];
                             var nextNext = original[idx+2];
 
@@ -4145,6 +4146,15 @@ C.enabled(false);
                             // drop `(<separator)` when followed by an ellipse
                             if(delimIsSeparator(bodyStx) && next && next.token.value === "...") {
                                 return acc;
+                            }
+
+                            // skip the $ in $(...)
+                            if (bodyStx.token.value === "$" && next && next.token.type === Token.Delimiter) {
+                                return acc;
+                            }
+
+                            if (bodyStx.token.type === Token.Delimiter && last && last.token.value === "$") {
+                                bodyStx.group = true;
                             }
 
                             if(next && next.token.value === "...") {
@@ -4161,8 +4171,12 @@ C.enabled(false);
                             var matchedSyntax = matches[bodyStx.token.value];
 
                             if(bodyStx.token.type === Token.Delimiter) {
-                                bodyStx.token.inner = substitute(bodyStx.token.inner);
-                                return acc.concat(bodyStx);
+                                if (bodyStx.group) {
+                                    return acc.concat(substitute(bodyStx.token.inner));
+                                } else {
+                                    bodyStx.token.inner = substitute(bodyStx.token.inner);
+                                    return acc.concat(bodyStx);
+                                }
                             } else  {
                                 // todo: report error if pattern var in body but in matches
                                 if(matchedSyntax !== undefined) {
