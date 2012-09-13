@@ -3786,8 +3786,37 @@ C.enabled(false);
             }
 
             return syntaxFromToken(renamedToken, DummyRename(name, this.context));
+        },
+
+        swap_dummy_rename: function(ident, name, dummyName) {
+            var swappedToken = _.clone(this.token);
+            if(this.token.inner) {
+                var swappedInner = _.map(this.token.inner, function(stx) {
+                    return stx.swap_dummy_rename(ident, name, dummyName);
+                });
+                swappedToken.inner = swappedInner;
+            }
+            var dummyParentCtx = findDummyParent(this.context, dummyName);
+            if(dummyParentCtx) {
+                // using mutation!
+                var swappedRename = Rename(ident, name, dummyParentCtx.context.context);
+                dummyParentCtx.context = swappedRename;
+            }
+            return this;
         }
     };
+
+    function findDummyParent(ctx, dummyName) {
+        if(ctx === null || ctx.context === null) {
+            return null
+        }
+
+        if(isDummyRename(ctx.context) && ctx.context.dummy_name === dummyName) {
+            return ctx;
+        } else {
+            return findDummyParent(ctx.context);
+        }
+    }
 
 
     var syntaxFromToken = guard(
@@ -3800,7 +3829,7 @@ C.enabled(false);
 
             return Object.create(syntaxProto, {
                 token: { value: token, enumerable: true, configurable: true},
-                context: { value: ctx, writable: false, enumerable: true, configurable: true},
+                context: { value: ctx, writable: true, enumerable: true, configurable: true},
                 consed: {value: true, enumerable: true, writable: true, configurable: true}
             });
         });
@@ -4039,6 +4068,7 @@ C.enabled(false);
                             }
                         } else {
                             // attempt to parse
+                            // TODO: not sure this works in the presense of delimiters...
                             parseResult = parse_stx(_.rest(syntax, callIdx), 
                                                         pattern.class, 
                                                         {tokens:true});
@@ -4272,35 +4302,30 @@ C.enabled(false);
     var flatten = guard(
         fun(Any, Any),
 
-        // ([...CToken]) -> [...CToken]
-        function flatten(tokens) {
-            var flat = [];
-            if ((typeof tokens === "undefined") || (!_.isArray(tokens.inner))) {
-                return [];
-            }
-
-            tokens.inner.forEach(function(tok) {
-                if (tok.value === "{}" || tok.value === "()" || tok.value === "[]") {
-                    flat.push({
-                        type: Token.Punctuator,
-                        value: tok.value[0],
-                        range: tok.startRange,
-                        lineNumber: tok.startLineNumber,
-                        lineStart: tok.startLineStart
-                    });
-                    flat.concat(flatten(tok.inner));
-                    flat.push({
-                        type: Token.Punctuator,
-                        value: tok.value[1],
-                        range: tok.endRange,
-                        lineNumber: tok.endLineNumber,
-                        lineStart: tok.endLineStart
-                    });
-                } else {
-                    flat.push(tok);
+        // ([...CSyntax]) -> [...CSyntax]
+        function flatten(stxArr) {
+            return _.reduce(stxArr, function(acc, stx) {
+                if(typeof stx.token === "undefined") {
+                    console.log(stx)
                 }
-            });
-            return flat;
+                if (stx.token.type === Token.Delimiter) {
+                    return acc.concat(syntaxFromToken({
+                        type: Token.Punctuator,
+                        value: stx.token.value[0],
+                        range: stx.token.startRange,
+                        lineNumber: stx.token.startLineNumber,
+                        lineStart: stx.token.startLineStart
+                    }, stx.context)).concat(flatten(stx.token.inner)).concat(syntaxFromToken({
+                        type: Token.Punctuator,
+                        value: stx.token.value[1],
+                        range: stx.token.endRange,
+                        lineNumber: stx.token.endLineNumber,
+                        lineStart: stx.token.endLineStart
+                    }, stx.context));
+                } else {
+                    return acc.concat(stx);
+                }
+            }, [])
         });
 
     // wraps the array of syntax objects in the delimiters given by the second argument
@@ -4340,6 +4365,41 @@ C.enabled(false);
             })
         });
 
+    function isFunctionStx(stx) {
+        return stx && stx.token.type === Token.Keyword
+                   && stx.token.value === "function";
+    }
+    function isVarStx(stx) {
+        return stx && stx.token.type === Token.Keyword
+                   && stx.token.value === "var";
+    }
+
+    // finds all the identifiers being bound by var statements
+    // in the array of syntax objects
+    // ([...CSyntax]) -> [...CSyntax]
+    function getVarIdentifiers(body) {
+        return _.reduce(body, function(acc, curr, idx) {
+            var atFunctionDelimiter;
+
+            if (curr.token.type === Token.Delimiter) {
+                atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1]) 
+                                                                  || isFunctionStx(body[idx-2]))) ||
+                                      (curr.token.value === "{}" && (isFunctionStx(body[idx-2])
+                                                                  || isFunctionStx(body[idx-3])))
+                // don't look for var idents inside nested functions
+                if(!atFunctionDelimiter) {
+                    return acc.concat(getVarIdentifiers(curr.token.inner));
+                } else {
+                    return acc;
+                }
+            } else if (isVarStx(body[idx-1])) {
+                // todo at the moment only dealing with single idents in the var statement
+                return acc.concat(curr);
+            } else {
+                return acc;
+            }
+        }, []);
+    }
 
     // (CSyntax) -> CSyntax
     function expand(stx, macros, env) {
@@ -4388,7 +4448,7 @@ C.enabled(false);
                 var macResult = macros[token.value].transformer(markedArgs, currStx);
                 var markedResult = _.map(macResult, function(arg) { return arg.mark(newMark); });
 
-                expanded = expanded.concat(expand(markedResult));
+                expanded = expanded.concat(expand(markedResult, macros, env));
 
             // function (args) { body }
             } else if ((token.type === Token.Keyword) && (token.value === "function")) {
@@ -4441,24 +4501,39 @@ C.enabled(false);
                 var dummyName = fresh();
                 renamedBody = renamedBody.push_dummy_rename(dummyName);
 
-                var flatBody = expand([renamedBody], macros, newEnv)
+                var flatBody = expand([renamedBody], macros, newEnv);
                 var flatArgs = flatWrapDelim(joinSyntax(renamedArgs, ","), argsDelim);
 
-                // wrap up body again
-                // var flatBody = flatWrapDelim(renamedBody, bodyDelim);
+                var varIdents = getVarIdentifiers(flatBody);
+                varIdents = _.filter(varIdents, function(varId) {
+                    // only pick the var identifiers that are not 
+                    // resolve equal to a parameter of this function
+                    return !(_.any(renamedArgs, function(param) {
+                        return resolve(varId) === resolve(param);
+                    }));
+                });
 
-                // console.log(renamedBody);
-                // console.log(tmpbody);
 
-                expanded = expanded.concat(tokensToSyntax(token));
-                // console.log(token)
+                var freshVarNames = _.map(varIdents, function() {
+                    return "$" + fresh();
+                });
+                var freshnameVarIdents = _.zip(freshVarNames, varIdents);
+
+                // var varRenamedFlatBody = flatBody;
+                var varRenamedFlatBody = _.map(flatBody, function(body) {
+                    return _.reduce(freshnameVarIdents, function(accBody, varPair) {
+                        var freshName = varPair[0];
+                        var ident = varPair[1].rename(ident, freshName);
+                        return accBody.swap_dummy_rename(ident, freshName, dummyName);
+                    }, body);
+                });
+
+                expanded = expanded.concat(currStx);
                 if(functionName) {
                     expanded = expanded.concat(functionName);
                 }
-                
                 expanded = expanded.concat(flatArgs);
-                // console.log(flatArg)
-                expanded = expanded.concat(flatBody);
+                expanded = expanded.concat(varRenamedFlatBody);
             } else if (token.type === Token.Identifier) {
                 var resolvedIdent = resolve(currStx);
 
@@ -4472,22 +4547,8 @@ C.enabled(false);
                 }
                 expanded = expanded.concat(ident);
             } else if (token.type === Token.Delimiter) {
-                // flatten the tree
-                expanded = expanded.concat(tokensToSyntax({
-                    type: Token.Punctuator,
-                    value: token.value[0],
-                    range: token.startRange,
-                    lineNumber: token.startLineNumber,
-                    lineStart: token.startLineStart
-                }));
-                expanded = expanded.concat(expand(token.inner, macros));
-                expanded = expanded.concat(tokensToSyntax({
-                    type: Token.Punctuator,
-                    value: token.value[1],
-                    range: token.endRange,
-                    lineNumber: token.endLineNumber,
-                    lineStart: token.endLineStart
-                }));
+                currStx.token.inner = expand(token.inner, macros, env);
+                expanded = expanded.concat(currStx);
             } else {
                 expanded = expanded.concat(tokensToSyntax(token));
             }
@@ -4495,8 +4556,6 @@ C.enabled(false);
 
         return expanded;
     }
-
-
     
     function readLoop(toks, inExprDelim) {
         var delimiters = ['(', '{', '['];
@@ -4752,7 +4811,7 @@ C.enabled(false);
         var macroDefs = {};
         // var macros = expand(read(macro_file), macroDefs);
 
-        var expanded = expand(read(source), macroDefs);
+        var expanded = flatten(expand(read(source), macroDefs));
         // expanded = _.map(expanded, function(stx) {
         //     if(stx.token.type === Token.Identifier) {
         //         var id = resolve(stx);
