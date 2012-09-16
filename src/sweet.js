@@ -3800,15 +3800,27 @@ C.enabled(false);
                 });
                 swappedToken.inner = swappedInner;
             }
-            var dummyParentCtx = findDummyParent(this.context, dummyName);
-            if(dummyParentCtx) {
-                // using mutation!
-                var swappedRename = Rename(ident, name, dummyParentCtx.context.context);
-                dummyParentCtx.context = swappedRename;
-            }
-            return this;
+
+            return syntaxFromToken(swappedToken, 
+                                    renameDummyCtx(this.context, ident, name, dummyName));
         }
     };
+
+    function renameDummyCtx(ctx, ident, name, dummyName) {
+        if(ctx === null) {
+            return null;
+        } else if(isDummyRename(ctx) && ctx.dummy_name === dummyName) {
+            return Rename(ident, name, DummyRename(ctx.dummy_name, ctx.context));
+        } else if(isDummyRename(ctx) && ctx.dummy_name !== dummyName) {
+            return DummyRename(ctx.dummy_name, renameDummyCtx(ctx.context, ident, name, dummyName));
+        } else if(isMark(ctx)) {
+            return Mark(ctx.mark, renameDummyCtx(ctx.context, ident, name, dummyName));
+        } else if(isRename(ctx)) {
+            return Rename(ctx.id, ctx.name, renameDummyCtx(ctx.context, ident, name, dummyName));
+        } else {
+            assert(false, "expecting a fixed set of context types");
+        }
+    }
 
     function findDummyParent(ctx, dummyName) {
         if(ctx === null || ctx.context === null) {
@@ -4510,6 +4522,7 @@ C.enabled(false);
 
                 // push a dummy rename to the body
                 var dummyName = fresh();
+
                 renamedBody = renamedBody.push_dummy_rename(dummyName);
 
                 var flatBody = expand([renamedBody], macros, newEnv);
@@ -4524,20 +4537,17 @@ C.enabled(false);
                     }));
                 });
 
-
                 var freshVarNames = _.map(varIdents, function() {
                     return "$" + fresh();
                 });
                 var freshnameVarIdents = _.zip(freshVarNames, varIdents);
 
                 // var varRenamedFlatBody = flatBody;
-                var varRenamedFlatBody = _.map(flatBody, function(body) {
-                    return _.reduce(freshnameVarIdents, function(accBody, varPair) {
+                var varRenamedFlatBody = _.reduce(freshnameVarIdents, function(accBody, varPair) {
                         var freshName = varPair[0];
-                        var ident = varPair[1].rename(varPair[1], freshName);
+                        var ident = varPair[1];
                         return accBody.swap_dummy_rename(ident, freshName, dummyName);
-                    }, body);
-                });
+                }, flatBody[0]);
 
                 expanded = expanded.concat(currStx);
                 if(functionName) {
