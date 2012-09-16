@@ -38,12 +38,13 @@ parseLeftHandSideExpression: true,
 parseStatement: true, parseSourceElement: true */
 
 var gen = require("escodegen");
-var fs = require("fs");
 var _ = require("underscore")
-var C = require("contracts.js") // todo parser fails if ; is added here
+var fs = require("fs");
+
+// var C = require("contracts.js") // todo parser fails if ; is added here
 // var Macros = C.use(require("../lib/macros.js"), "parser");
-C.autoload();
-C.enabled(false);
+// C.autoload();
+// C.enabled(false);
 
 (function (exports) {
     'use strict';
@@ -3623,15 +3624,15 @@ C.enabled(false);
         return result;
     }
 
-    var CToken = object({
-        type: Num,
-        value: opt(Any),
-        // inner: opt(arr([___(CToken)])), // or CSyntax...
-        lineNumber: opt(Num),
-        lineStart: opt(Num)
-        // range is sometimes here but we don't care about it since
-        // it is going to be wrong...vestigial property
-    });
+    // var CToken = object({
+    //     type: Num,
+    //     value: opt(Any),
+    //     // inner: opt(arr([___(CToken)])), // or CSyntax...
+    //     lineNumber: opt(Num),
+    //     lineStart: opt(Num)
+    //     // range is sometimes here but we don't care about it since
+    //     // it is going to be wrong...vestigial property
+    // });
 
     // var CMark = object({
     //     mark: Str,
@@ -3645,99 +3646,84 @@ C.enabled(false);
     // });
 
 
-    // hacking with opts due to lack of proper contract inheritance
-    var CContext = or(Null, object({
-        mark: opt(Num),
-        // id: opt(CSyntax), 
-        name: opt(Str),
-        context: or(Null, Self)
-    }));
+    // var CContext = or(Null, object({
+    //     mark: opt(Num),
+    //     // id: opt(CSyntax), 
+    //     name: opt(Str),
+    //     context: or(Null, Self)
+    // }));
 
-    var CSyntax = object({
-        token: CToken,
-        context: CContext 
-    });
+    // var CSyntax = object({
+    //     token: CToken,
+    //     context: CContext 
+    // });
 
-    var CVar = object({
-        id: CSyntax
-    });
+    // var CVar = object({
+    //     id: CSyntax
+    // });
 
     // token: { value: token, enumerable: true, configurable: true},
     // context: { value: ctx, writable: false, enumerable: true, configurable: true},
     // consed: {value: true, enumerable: true, writable: true, configurable: true}
 
 
-    var CPattern = object({
-        value: Str,
-        class: Str
-        // inner: [...CPattern]
-    })
+    // var CPattern = object({
+    //     value: Str,
+    //     class: Str
+    //     // inner: [...CPattern]
+    // })
 
-    var CMacro = fun(arr([___(CSyntax)]), arr([___(CSyntax)]));
+    // var CMacro = fun(arr([___(CSyntax)]), arr([___(CSyntax)]));
 
-    var mkSyntax = guard(
-        fun([Any, Num, CSyntax], CSyntax),
-
-        // (Any, Num, CSyntax) -> CSyntax
-        function mkSyntax(value, type, stx) {
-            return syntaxFromToken({
-                type: type,
-                value: value,
-                lineStart: stx.token.lineStart,
-                lineNumber: stx.token.lineNumber
-            }, stx.context);
-        });
+    // (Any, Num, CSyntax) -> CSyntax
+    function mkSyntax(value, type, stx) {
+        return syntaxFromToken({
+            type: type,
+            value: value,
+            lineStart: stx.token.lineStart,
+            lineNumber: stx.token.lineNumber
+        }, stx.context);
+    }
 
     // probably a more javascripty way than faking constructors but screw it
-    var Mark = guard(
-        fun([Num, CContext], CContext),
+    // (Num) -> CContext
+    function Mark(mark, ctx) { 
+        return {
+            mark: mark,
+            context: ctx
+        };
+    }
 
-        // (Num) -> CContext
-        function(mark, ctx) { 
-            return {
-                mark: mark,
-                context: ctx
-            };
-        });
 
-    var Var = guard(
-        fun(CSyntax, CVar),
-
-        function (id) {
-            return {
-                id: id
-            };
-        })
+    function Var(id) {
+        return {
+            id: id
+        };
+    }
 
     var isMark = function isMark(m) {
         return m && (typeof m.mark !== 'undefined');
     };
 
-    var Rename = guard(
-        fun([CSyntax, Str, CContext], CContext),
-
-        // (CSyntax, Str) -> CContext
-        function(id, name, ctx) {
-            return {
-                id: id,
-                name: name,
-                context: ctx
-            };
-        });
+    // (CSyntax, Str) -> CContext
+    function Rename(id, name, ctx) {
+        return {
+            id: id,
+            name: name,
+            context: ctx
+        };
+    }
 
     var isRename = function(r) { 
         return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
     }
 
-    var DummyRename = guard(
-        fun(Any, Any),
-
-        function(name, ctx) {
-            return {
-                dummy_name: name,
-                context: ctx      
-            };
-        });
+    function DummyRename(name, ctx) {
+        return {
+            dummy_name: name,
+            context: ctx      
+        };
+    }
 
     var isDummyRename = function(r) {
         return r && (typeof r.dummy_name !== 'undefined');
@@ -3835,71 +3821,59 @@ C.enabled(false);
     }
 
 
-    var syntaxFromToken = guard(
-        fun([CToken, opt(CContext)], CSyntax),
+    // (CToken, CContext?) -> CSyntax
+    function syntaxFromToken(token, oldctx) {
+        // if given old syntax object steal its context otherwise create one fresh
+        var ctx = (typeof oldctx !== 'undefined') ? oldctx : null;
 
-        // (CToken, CContext?) -> CSyntax
-        function syntaxFromToken(token, oldctx) {
-            // if given old syntax object steal its context otherwise create one fresh
-            var ctx = (typeof oldctx !== 'undefined') ? oldctx : null;
-
-            return Object.create(syntaxProto, {
-                token: { value: token, enumerable: true, configurable: true},
-                context: { value: ctx, writable: true, enumerable: true, configurable: true}
-            });
+        return Object.create(syntaxProto, {
+            token: { value: token, enumerable: true, configurable: true},
+            context: { value: ctx, writable: true, enumerable: true, configurable: true}
         });
+    }
 
-    var remdup = guard(
-        fun(Any, Any),
+    function remdup(mark, mlist) {
+        if(mark === _.first(mlist)) {
+            return _.rest(mlist, 1);
+        } else {
+            return [mark].concat(mlist);
+        }
+    }
 
-        function remdup(mark, mlist) {
-            if(mark === _.first(mlist)) {
-                return _.rest(mlist, 1);
+    // (CSyntax) -> [...Num]
+    function marksof(stx) {
+        var mark, submarks;
+        if(isMark(stx.context)) {
+            mark = stx.context.mark;
+            submarks = marksof(syntaxFromToken(stx.token, stx.context.context));
+            return remdup(mark, submarks);
+        } else if(isRename(stx.context) || isDummyRename(stx.context)) {
+            return marksof(syntaxFromToken(stx.token, stx.context.context));
+        } else {
+            return [];
+        }
+    }
+
+    // (CSyntax) -> CToken
+    function resolve(stx) {
+        if(isMark(stx.context) || isDummyRename(stx.context)) {
+            return resolve(syntaxFromToken(stx.token, stx.context.context));
+        } else if (isRename(stx.context)) {
+            var idName = resolve(stx.context.id);
+            var subName = resolve(syntaxFromToken(stx.token, stx.context.context));
+
+            var idMarks = marksof(stx.context.id);
+            var subMarks = marksof(syntaxFromToken(stx.token, stx.context.context));
+
+            if((idName === subName) && (_.difference(idMarks, subMarks).length === 0)) {
+                return stx.token.value + stx.context.name;
             } else {
-                return [mark].concat(mlist);
-            }
-        });
-
-    var marksof = guard(
-        fun(Any, Any),
-
-        // (CSyntax) -> [...Num]
-        function marksof(stx) {
-            var mark, submarks;
-            if(isMark(stx.context)) {
-                mark = stx.context.mark;
-                submarks = marksof(syntaxFromToken(stx.token, stx.context.context));
-                return remdup(mark, submarks);
-            } else if(isRename(stx.context) || isDummyRename(stx.context)) {
-                return marksof(syntaxFromToken(stx.token, stx.context.context));
-            } else {
-                return [];
-            }
-        });
-
-    var resolve = guard(
-        fun(CSyntax, Str),
-
-        // (CSyntax) -> CToken
-        function resolve(stx) {
-            if(isMark(stx.context) || isDummyRename(stx.context)) {
                 return resolve(syntaxFromToken(stx.token, stx.context.context));
-            } else if (isRename(stx.context)) {
-                var idName = resolve(stx.context.id);
-                var subName = resolve(syntaxFromToken(stx.token, stx.context.context));
-
-                var idMarks = marksof(stx.context.id);
-                var subMarks = marksof(syntaxFromToken(stx.token, stx.context.context));
-
-                if((idName === subName) && (_.difference(idMarks, subMarks).length === 0)) {
-                    return stx.token.value + stx.context.name;
-                } else {
-                    return resolve(syntaxFromToken(stx.token, stx.context.context));
-                }
-            } else {
-                return stx.token.value;
             }
-        });
+        } else {
+            return stx.token.value;
+        }
+    }
 
     var nextFresh = 0;
     var fresh = function() {
@@ -3908,44 +3882,37 @@ C.enabled(false);
     };
 
 
-    var tokensToSyntax = guard(
-        fun(Any, Any), 
 
-        // (CToken or [...CToken]) -> [...CSyntax]
-        function tokensToSyntax(tokens) {
-            if(!_.isArray(tokens)) {
-                tokens = [tokens];
+    // (CToken or [...CToken]) -> [...CSyntax]
+    function tokensToSyntax(tokens) {
+        if(!_.isArray(tokens)) {
+            tokens = [tokens];
+        }
+        return _.map(tokens, function(token) {
+            if(token.inner) {
+                token.inner = tokensToSyntax(token.inner);
             }
-            return _.map(tokens, function(token) {
-                if(token.inner) {
-                    token.inner = tokensToSyntax(token.inner);
-                }
-                return syntaxFromToken(token);
-            }); 
+            return syntaxFromToken(token);
+        }); 
+    }
+
+    // ([...CSyntax]) -> [...CToken]
+    function syntaxToTokens(syntax) {
+        return _.map(syntax, function(stx) {
+            if(stx.token.inner) {
+                stx.token.inner = syntaxToTokens(stx.token.inner);
+            }
+            return stx.token;
         });
-
-    var syntaxToTokens = guard(
-        fun(Any, Any),
-        // ([...CSyntax]) -> [...CToken]
-        function syntaxToTokens(syntax) {
-            return _.map(syntax, function(stx) {
-                if(stx.token.inner) {
-                    stx.token.inner = syntaxToTokens(stx.token.inner);
-                }
-                return stx.token;
-            });
-        });
+    }
 
 
-    var isPatternVar = guard(
-        fun(CToken, Bool),
-
-        // CToken -> Bool
-        function isPatternVar(token) {
-            return token.type === Token.Identifier 
-                && token.value[0] === "$"   // starts with $
-                && token.value !== "$";     // but isn't $
-        });
+    // CToken -> Bool
+    function isPatternVar(token) {
+        return token.type === Token.Identifier 
+            && token.value[0] === "$"   // starts with $
+            && token.value !== "$";     // but isn't $
+    }
 
 
     var containsPatternVar = function(patterns) {
@@ -3958,427 +3925,384 @@ C.enabled(false);
         });
     }
 
-    var loadPattern = guard(
-        fun(Any, Any),
+    // ([...CSyntax]) -> [...CPattern]
+    function loadPattern(patterns) {
 
-        // ([...CSyntax]) -> [...CPattern]
-        function loadPattern(patterns) {
+        return _.chain(patterns)
+            // first pass to merge the pattern variables together
+            .reduce(function(acc, patStx, idx) {
+                var last = patterns[idx-1];
+                var lastLast = patterns[idx-2];
+                var next = patterns[idx+1];
+                var nextNext = patterns[idx+2];
 
-            return _.chain(patterns)
-                // first pass to merge the pattern variables together
-                .reduce(function(acc, patStx, idx) {
-                    var last = patterns[idx-1];
-                    var lastLast = patterns[idx-2];
-                    var next = patterns[idx+1];
-                    var nextNext = patterns[idx+2];
-
-                    // skip over the `:lit` part of `$x:lit`
-                    if (patStx.token.value === ":") {
-                        if(last && isPatternVar(last.token)) {
-                            return acc;
-                        }
-                    } 
-                    if(last && last.token.value === ":") {
-                        if(lastLast && isPatternVar(lastLast.token)) {
-                            return acc;
-                        }
-                    }
-                    // skip over $
-                    if (patStx.token.value === "$" && next && next.token.type === Token.Delimiter) {
+                // skip over the `:lit` part of `$x:lit`
+                if (patStx.token.value === ":") {
+                    if(last && isPatternVar(last.token)) {
                         return acc;
                     }
-
-                    if(isPatternVar(patStx.token)) {
-                        if(next && next.token.value === ":" ) {
-                            assert(typeof nextNext !== 'undefined', "expecting a pattern class");
-                            patStx.class = nextNext.token.value;
-                        } else {
-                            patStx.class = "ident";
-                        }
-                    } else if (patStx.token.type === Token.Delimiter) {
-                        if (last && last.token.value === "$") {
-                            patStx.class = "pattern_group";
-                        }
-                        patStx.token.inner = loadPattern(patStx.token.inner);
-                    } else {
-                        patStx.class = "pattern_literal";
-                    }
-                    return acc.concat(patStx);
-                // then second pass to mark repeat and separator
-                }, []).reduce(function(acc, patStx, idx, patterns) {
-                    var separator = " ";
-                    var repeat = false;
-                    var next = patterns[idx+1];
-                    var nextNext = patterns[idx+2];
-
-                    if(next && next.token.value === "...") {
-                        repeat = true;
-                        separator = " ";
-                    } else if(delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
-                        repeat = true;
-                        separator = next.token.inner[0].token.value;
-                    }
-
-                    // skip over ... and (,)
-                    if(patStx.token.value === "..." 
-                            || (delimIsSeparator(patStx) && next && next.token.value === "...")) {
+                } 
+                if(last && last.token.value === ":") {
+                    if(lastLast && isPatternVar(lastLast.token)) {
                         return acc;
                     }
-                    patStx.repeat = repeat;
-                    patStx.separator = separator;
-                    return acc.concat(patStx);
-                }, []).value();
-        });
-
-
-    var mergeMatches = guard(
-        fun(Any, Any),
-
-        // ({<key>: [...[...CSyntax]]}, {<key>: [...[...CSyntax]]}) -> {<key>: [...[...CSyntax]]}
-        // mutating orig
-        function mergeMatches(orig, next) {
-            _.each(_.keys(next), function(nextKey) {
-                if(_.isArray(orig[nextKey])) {
-                    orig[nextKey] = orig[nextKey].concat(next[nextKey]);
-                } else {
-                    orig[nextKey] = next[nextKey];
                 }
-            });
-            return orig;
-        });
+                // skip over $
+                if (patStx.token.value === "$" && next && next.token.type === Token.Delimiter) {
+                    return acc;
+                }
 
-    var matchPatterns = guard(
-        fun(Any, Any),
-
-        // ([...CSyntax], [...CPattern]) -> {matches: {<key>: [...[...CSyntax]]}, consumed: Num}
-        function matchPatterns(callStx, patterns) {
-            var matches = {};
-            var callIdx = 0;
-            var parseResult;
-            var syntax = [].concat(callStx, tokensToSyntax({type: Token.EOF}));
-
-            patterns.forEach(function(pattern, patternIdx) {
-                // todo real error handling
-                var repeat = pattern.repeat, separator = pattern.separator;
-
-                if (pattern.class === "pattern_literal" && pattern.token.type !== Token.Delimiter) {
-                    assert(syntax[callIdx++].token.value === pattern.token.value, "pattern literal does not match");
-                } else {
-                    if(pattern.token.type !== Token.Delimiter) {
-                        matches[pattern.token.value] = [];
+                if(isPatternVar(patStx.token)) {
+                    if(next && next.token.value === ":" ) {
+                        assert(typeof nextNext !== 'undefined', "expecting a pattern class");
+                        patStx.class = nextNext.token.value;
+                    } else {
+                        patStx.class = "ident";
                     }
-                    var innerMatches;
-                    do {
-                        if (pattern.token.type === Token.Delimiter) {
-                            if (pattern.class === "pattern_group") {
-                                innerMatches = matchPatterns(_.rest(syntax,callIdx), pattern.token.inner);
-                                matches = mergeMatches(matches, innerMatches.matches);
-                                callIdx += innerMatches.consumed;
-                            } else {
-                                assert(syntax[callIdx].token.type === Token.Delimiter, "missing expected delimiter");
+                } else if (patStx.token.type === Token.Delimiter) {
+                    if (last && last.token.value === "$") {
+                        patStx.class = "pattern_group";
+                    }
+                    patStx.token.inner = loadPattern(patStx.token.inner);
+                } else {
+                    patStx.class = "pattern_literal";
+                }
+                return acc.concat(patStx);
+            // then second pass to mark repeat and separator
+            }, []).reduce(function(acc, patStx, idx, patterns) {
+                var separator = " ";
+                var repeat = false;
+                var next = patterns[idx+1];
+                var nextNext = patterns[idx+2];
 
-                                innerMatches = matchPatterns(syntax[callIdx].token.inner, pattern.token.inner);
-                                matches = mergeMatches(matches, innerMatches.matches);
-                                callIdx++;
-                            }
+                if(next && next.token.value === "...") {
+                    repeat = true;
+                    separator = " ";
+                } else if(delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
+                    repeat = true;
+                    separator = next.token.inner[0].token.value;
+                }
+
+                // skip over ... and (,)
+                if(patStx.token.value === "..." 
+                        || (delimIsSeparator(patStx) && next && next.token.value === "...")) {
+                    return acc;
+                }
+                patStx.repeat = repeat;
+                patStx.separator = separator;
+                return acc.concat(patStx);
+            }, []).value();
+    }
+
+
+    // ({<key>: [...[...CSyntax]]}, {<key>: [...[...CSyntax]]}) -> {<key>: [...[...CSyntax]]}
+    // mutating orig
+    function mergeMatches(orig, next) {
+        _.each(_.keys(next), function(nextKey) {
+            if(_.isArray(orig[nextKey])) {
+                orig[nextKey] = orig[nextKey].concat(next[nextKey]);
+            } else {
+                orig[nextKey] = next[nextKey];
+            }
+        });
+        return orig;
+    }
+
+    // ([...CSyntax], [...CPattern]) -> {matches: {<key>: [...[...CSyntax]]}, consumed: Num}
+    function matchPatterns(callStx, patterns) {
+        var matches = {};
+        var callIdx = 0;
+        var parseResult;
+        var syntax = [].concat(callStx, tokensToSyntax({type: Token.EOF}));
+
+        patterns.forEach(function(pattern, patternIdx) {
+            // todo real error handling
+            var repeat = pattern.repeat, separator = pattern.separator;
+
+            if (pattern.class === "pattern_literal" && pattern.token.type !== Token.Delimiter) {
+                assert(syntax[callIdx++].token.value === pattern.token.value, "pattern literal does not match");
+            } else {
+                if(pattern.token.type !== Token.Delimiter) {
+                    matches[pattern.token.value] = [];
+                }
+                var innerMatches;
+                do {
+                    if (pattern.token.type === Token.Delimiter) {
+                        if (pattern.class === "pattern_group") {
+                            innerMatches = matchPatterns(_.rest(syntax,callIdx), pattern.token.inner);
+                            matches = mergeMatches(matches, innerMatches.matches);
+                            callIdx += innerMatches.consumed;
                         } else {
-                            // attempt to parse
-                            // TODO: not sure this works in the presense of delimiters...
-                            parseResult = parse_stx(_.rest(syntax, callIdx), 
-                                                        pattern.class, 
-                                                        {tokens:true});
+                            assert(syntax[callIdx].token.type === Token.Delimiter, "missing expected delimiter");
 
-                            var endSlice = callIdx + parseResult.tokens.length;
-                            var matchedSyntax = syntax.slice(callIdx, endSlice);
-                            assert(matchedSyntax.length === parseResult.tokens.length, "tokens and slice do not match");
-                            // move forward in the call tokens the number of succesfully parsed tokens
-                            callIdx += parseResult.tokens.length;
-
-
-                            matches[pattern.token.value].push(matchedSyntax);
-                        }
-
-                        if(repeat && separator === " ") {
-                            if(syntax[callIdx] && syntax[callIdx].token.type === Token.EOF) {
-                                repeat = false;
-                            } 
-                        } else if(repeat && syntax[callIdx].token.value !== separator) {
-                            repeat = false;
-                        } else if (repeat) { // only consume separator if we are replicating
+                            innerMatches = matchPatterns(syntax[callIdx].token.inner, pattern.token.inner);
+                            matches = mergeMatches(matches, innerMatches.matches);
                             callIdx++;
                         }
-                    } while(repeat);
-                }
-            });
-            return {
-                matches: matches,
-                consumed: callIdx
-            };
+                    } else {
+                        // attempt to parse
+                        // TODO: not sure this works in the presense of delimiters...
+                        parseResult = parse_stx(_.rest(syntax, callIdx), 
+                                                    pattern.class, 
+                                                    {tokens:true});
+
+                        var endSlice = callIdx + parseResult.tokens.length;
+                        var matchedSyntax = syntax.slice(callIdx, endSlice);
+                        assert(matchedSyntax.length === parseResult.tokens.length, "tokens and slice do not match");
+                        // move forward in the call tokens the number of succesfully parsed tokens
+                        callIdx += parseResult.tokens.length;
+
+
+                        matches[pattern.token.value].push(matchedSyntax);
+                    }
+
+                    if(repeat && separator === " ") {
+                        if(syntax[callIdx] && syntax[callIdx].token.type === Token.EOF) {
+                            repeat = false;
+                        } 
+                    } else if(repeat && syntax[callIdx].token.value !== separator) {
+                        repeat = false;
+                    } else if (repeat) { // only consume separator if we are replicating
+                        callIdx++;
+                    }
+                } while(repeat);
+            }
         });
+        return {
+            matches: matches,
+            consumed: callIdx
+        };
+    }
 
     // take the line context (not lexical...um should clarify this a bit)
-    var takeLineContext = guard(
-        fun([Any, Any], Any), 
-
-        // (CSyntax, [...CSyntax]) -> [...CSyntax]
-        function takeLineContext(from, to) {
-            // todo could be nicer about the line numbers...currently just
-            // taking from the macro name but could also do offset
-            return _.map(to, function(stx) {
-                return syntaxFromToken({
-                        value: stx.token.value,
-                        type: stx.token.type,
-                        lineNumber: from.token.lineNumber,
-                        lineStart: from.token.lineStart,
-                        range: from.token.range // this is a lie
-                    }, stx.context);
-            });
+    // (CSyntax, [...CSyntax]) -> [...CSyntax]
+    function takeLineContext(from, to) {
+        // todo could be nicer about the line numbers...currently just
+        // taking from the macro name but could also do offset
+        return _.map(to, function(stx) {
+            return syntaxFromToken({
+                    value: stx.token.value,
+                    type: stx.token.type,
+                    lineNumber: from.token.lineNumber,
+                    lineStart: from.token.lineStart,
+                    range: from.token.range // this is a lie
+                }, stx.context);
         });
+    }
 
-    var joinSyntaxArrs = guard(
-        fun(Any, Any),
+    // ([...[...CSyntax]], Str) -> [...CSyntax]
+    function joinSyntaxArrs(tojoin, punc) {
+        // if(tojoin.length = 0) { return []; }
 
-        // ([...[...CSyntax]], Str) -> [...CSyntax]
-        function joinSyntaxArrs(tojoin, punc) {
-            // if(tojoin.length = 0) { return []; }
+        return _.reduce(_.rest(tojoin, 1), function(acc, join) {
+            return acc.concat(mkSyntax(punc, Token.Punctuator, _.first(join)), join);
+        }, _.first(tojoin));
+    }
 
-            return _.reduce(_.rest(tojoin, 1), function(acc, join) {
-                return acc.concat(mkSyntax(punc, Token.Punctuator, _.first(join)), join);
-            }, _.first(tojoin));
+    // ([...CSyntax], Str) -> [...CSyntax])
+    function joinSyntax(tojoin, punc) {
+        if(tojoin.length === 0) { return []; }
+
+        return _.reduce(_.rest(tojoin, 1), function (acc, join) {
+            return acc.concat(mkSyntax(punc, Token.Punctuator, join), join);
+        }, [_.first(tojoin)]);
+    }
+
+    // (CSyntax) -> Bool
+    function delimIsSeparator(delim) {
+        return (delim && delim.token.type === Token.Delimiter 
+                && delim.token.value === "()"
+                && delim.token.inner.length === 1
+                && delim.token.inner[0].token.type !== Token.Delimiter
+                && !containsPatternVar(delim.token.inner));
+    }
+
+    // ([...{pattern: [...CSyntax], body: CSyntax}], CSyntax) -> CMacro
+    function mkMacroTransformer(macroCases) {
+        var patternSyntax = macroCases[0].pattern[0].token.inner;
+        var bodySyntax = macroCases[0].body.token.inner;
+
+        var patterns = _.map(macroCases[0].pattern, function(pat) {
+            return loadPattern(pat.token.inner);
         });
+        // todo confirm that delimiter types from macro call and macro def are the same
 
-    var joinSyntax = guard(
-        fun([Any, Str], Any),
+        return function(callSyntax, macroNameStx) {
+            
+            var matches = _.chain(_.zip(callSyntax, patterns))
+                            .map(function(ziped) {
+                                var call = ziped[0], 
+                                    pat = ziped[1];
 
-        // ([...CSyntax], Str) -> [...CSyntax])
-        function joinSyntax(tojoin, punc) {
-            if(tojoin.length === 0) { return []; }
-
-            return _.reduce(_.rest(tojoin, 1), function (acc, join) {
-                return acc.concat(mkSyntax(punc, Token.Punctuator, join), join);
-            }, [_.first(tojoin)]);
-        });
-
-    var delimIsSeparator = guard(
-        fun(Any, Any), 
-
-        // (CSyntax) -> Bool
-        function delimIsSeparator(delim) {
-            return (delim && delim.token.type === Token.Delimiter 
-                    && delim.token.value === "()"
-                    && delim.token.inner.length === 1
-                    && delim.token.inner[0].token.type !== Token.Delimiter
-                    && !containsPatternVar(delim.token.inner));
-        }
-    );
-
-    var mkMacroTransformer = guard( 
-        fun(Any, Any),
-
-        // ([...{pattern: [...CSyntax], body: CSyntax}], CSyntax) -> CMacro
-        function mkMacroTransformer(macroCases) {
-            var patternSyntax = macroCases[0].pattern[0].token.inner;
-            var bodySyntax = macroCases[0].body.token.inner;
-
-            var patterns = _.map(macroCases[0].pattern, function(pat) {
-                return loadPattern(pat.token.inner);
-            });
-            // todo confirm that delimiter types from macro call and macro def are the same
-
-            return function(callSyntax, macroNameStx) {
-                
-                var matches = _.chain(_.zip(callSyntax, patterns))
-                                .map(function(ziped) {
-                                    var call = ziped[0], 
-                                        pat = ziped[1];
-
-                                    // getEnv
-                                    return matchPatterns(call.token.inner, pat).matches;
-                                }).reduce(function(acc, matchObj) {
-                                    return _.extend(acc, matchObj);
-                                }, {}).value();
+                                // getEnv
+                                return matchPatterns(call.token.inner, pat).matches;
+                            }).reduce(function(acc, matchObj) {
+                                return _.extend(acc, matchObj);
+                            }, {}).value();
 
 
-                // ([...CSyntax]) -> [...CSyntax]
-                var substitute = function(toSubstitute) {
+            // ([...CSyntax]) -> [...CSyntax]
+            var substitute = function(toSubstitute) {
 
-                    return _.chain(toSubstitute)
-                        .reduce(function(acc, bodyStx, idx, original) {
-                            // first find the ellipses and mark the syntax objects
-                            var last = original[idx-1];
-                            var next = original[idx+1];
-                            var nextNext = original[idx+2];
+                return _.chain(toSubstitute)
+                    .reduce(function(acc, bodyStx, idx, original) {
+                        // first find the ellipses and mark the syntax objects
+                        var last = original[idx-1];
+                        var next = original[idx+1];
+                        var nextNext = original[idx+2];
 
-                            // drop `...`
-                            if(bodyStx.token.value === "...") {
-                                return acc;
+                        // drop `...`
+                        if(bodyStx.token.value === "...") {
+                            return acc;
+                        }
+                        // drop `(<separator)` when followed by an ellipse
+                        if(delimIsSeparator(bodyStx) && next && next.token.value === "...") {
+                            return acc;
+                        }
+
+                        // skip the $ in $(...)
+                        if (bodyStx.token.value === "$" && next && next.token.type === Token.Delimiter) {
+                            return acc;
+                        }
+
+                        if (bodyStx.token.type === Token.Delimiter && last && last.token.value === "$") {
+                            bodyStx.group = true;
+                        }
+
+                        if(next && next.token.value === "...") {
+                            bodyStx.repeat = true;
+                            bodyStx.separator = " "; // default to space separated
+                        } else if(delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
+                            bodyStx.repeat = true;
+                            bodyStx.separator = next.token.inner[0].token.value;
+                        }
+
+                        return acc.concat(bodyStx);
+                    }, []).reduce(function(acc, bodyStx, idx) {
+                        // then do the actual substitution
+                        var matchedSyntax = matches[bodyStx.token.value];
+
+                        if(bodyStx.token.type === Token.Delimiter) {
+                            if (bodyStx.group) {
+                                return acc.concat(substitute(bodyStx.token.inner));
+                            } else {
+                                bodyStx.token.inner = substitute(bodyStx.token.inner);
+                                return acc.concat(bodyStx);
                             }
-                            // drop `(<separator)` when followed by an ellipse
-                            if(delimIsSeparator(bodyStx) && next && next.token.value === "...") {
-                                return acc;
-                            }
-
-                            // skip the $ in $(...)
-                            if (bodyStx.token.value === "$" && next && next.token.type === Token.Delimiter) {
-                                return acc;
-                            }
-
-                            if (bodyStx.token.type === Token.Delimiter && last && last.token.value === "$") {
-                                bodyStx.group = true;
-                            }
-
-                            if(next && next.token.value === "...") {
-                                bodyStx.repeat = true;
-                                bodyStx.separator = " "; // default to space separated
-                            } else if(delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
-                                bodyStx.repeat = true;
-                                bodyStx.separator = next.token.inner[0].token.value;
-                            }
-
-                            return acc.concat(bodyStx);
-                        }, []).reduce(function(acc, bodyStx, idx) {
-                            // then do the actual substitution
-                            var matchedSyntax = matches[bodyStx.token.value];
-
-                            if(bodyStx.token.type === Token.Delimiter) {
-                                if (bodyStx.group) {
-                                    return acc.concat(substitute(bodyStx.token.inner));
+                        } else  {
+                            // todo: report error if pattern var in body but in matches
+                            if(matchedSyntax !== undefined) {
+                                if(bodyStx.repeat) {
+                                    return acc.concat(joinSyntaxArrs(matchedSyntax, bodyStx.separator));
                                 } else {
-                                    bodyStx.token.inner = substitute(bodyStx.token.inner);
-                                    return acc.concat(bodyStx);
+                                    return acc.concat(takeLineContext(macroNameStx, _.first(matchedSyntax)));
                                 }
-                            } else  {
-                                // todo: report error if pattern var in body but in matches
-                                if(matchedSyntax !== undefined) {
-                                    if(bodyStx.repeat) {
-                                        return acc.concat(joinSyntaxArrs(matchedSyntax, bodyStx.separator));
-                                    } else {
-                                        return acc.concat(takeLineContext(macroNameStx, _.first(matchedSyntax)));
-                                    }
-                                } else {
-                                    return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
-                                }
+                            } else {
+                                return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
                             }
-                        }, []).value();
-                };
-
-                return substitute(bodySyntax);
-
+                        }
+                    }, []).value();
             };
+
+            return substitute(bodySyntax);
+
+        };
+    }
+
+    // (Any, CSyntax) -> Bool
+    function matchStx(value, stx) {
+        return stx && stx.token && stx.token.value === value;
+    }
+
+    // ([...CSyntax], CSyntax) -> { transformer: CMacro, toConsume: Num }
+    function loadMacro(macroBody) {
+        var macroCases = [];
+        var lastCaseIdx = 0;
+        var mostDelimToMatch = 1;
+
+        _.each(macroBody, function(stx, idx) {
+            // todo not too elegant yet
+            // todo better error handling
+            if (stx.token.value === "case") {
+                lastCaseIdx = idx;
+            } else if (stx.token.value === ">" && macroBody[idx-1].token.value === "=") {
+                // grab all of the delimiters between "case" and "=>"
+                var caseDelim = macroBody.slice(lastCaseIdx+1, idx-1);
+
+                assert(_.all(caseDelim, function(stx) { 
+                    return stx.token.type === Token.Delimiter
+                }), "expecting delimiters in macro case expression");
+
+                mostDelimToMatch = (caseDelim.length > mostDelimToMatch) ? caseDelim.length : mostDelimToMatch;
+                macroCases.push({
+                    pattern: caseDelim,
+                    body: macroBody[idx+1]
+                });
+            }
         });
 
-    var matchStx = guard(
-        fun([Any, CSyntax], Bool), 
+        return {
+            transformer: mkMacroTransformer(macroCases),
+            toConsume: mostDelimToMatch
+        };
+    }
 
-        // (Any, CSyntax) -> Bool
-        function matchStx(value, stx) {
-            return stx && stx.token && stx.token.value === value;
-        });
-
-    var loadMacro = guard(
-        fun(Any, Any),
-
-        // ([...CSyntax], CSyntax) -> { transformer: CMacro, toConsume: Num }
-        function loadMacro(macroBody) {
-            var macroCases = [];
-            var lastCaseIdx = 0;
-            var mostDelimToMatch = 1;
-
-            _.each(macroBody, function(stx, idx) {
-                // todo not too elegant yet
-                // todo better error handling
-                if (stx.token.value === "case") {
-                    lastCaseIdx = idx;
-                } else if (stx.token.value === ">" && macroBody[idx-1].token.value === "=") {
-                    // grab all of the delimiters between "case" and "=>"
-                    var caseDelim = macroBody.slice(lastCaseIdx+1, idx-1);
-
-                    assert(_.all(caseDelim, function(stx) { 
-                        return stx.token.type === Token.Delimiter
-                    }), "expecting delimiters in macro case expression");
-
-                    mostDelimToMatch = (caseDelim.length > mostDelimToMatch) ? caseDelim.length : mostDelimToMatch;
-                    macroCases.push({
-                        pattern: caseDelim,
-                        body: macroBody[idx+1]
-                    });
-                }
-            });
-
-            return {
-                transformer: mkMacroTransformer(macroCases),
-                toConsume: mostDelimToMatch
-            };
-        });
-
-
-
-
-    var flatten = guard(
-        fun(Any, Any),
-
-        // ([...CSyntax]) -> [...CSyntax]
-        function flatten(stxArr) {
-            return _.reduce(stxArr, function(acc, stx) {
-                if(typeof stx.token === "undefined") {
-                    console.log(stx)
-                }
-                if (stx.token.type === Token.Delimiter) {
-                    return acc.concat(syntaxFromToken({
-                        type: Token.Punctuator,
-                        value: stx.token.value[0],
-                        range: stx.token.startRange,
-                        lineNumber: stx.token.startLineNumber,
-                        lineStart: stx.token.startLineStart
-                    }, stx.context)).concat(flatten(stx.token.inner)).concat(syntaxFromToken({
-                        type: Token.Punctuator,
-                        value: stx.token.value[1],
-                        range: stx.token.endRange,
-                        lineNumber: stx.token.endLineNumber,
-                        lineStart: stx.token.endLineStart
-                    }, stx.context));
-                } else {
-                    return acc.concat(stx);
-                }
-            }, [])
-        });
+    // ([...CSyntax]) -> [...CSyntax]
+    function flatten(stxArr) {
+        return _.reduce(stxArr, function(acc, stx) {
+            if(typeof stx.token === "undefined") {
+                console.log(stx)
+            }
+            if (stx.token.type === Token.Delimiter) {
+                return acc.concat(syntaxFromToken({
+                    type: Token.Punctuator,
+                    value: stx.token.value[0],
+                    range: stx.token.startRange,
+                    lineNumber: stx.token.startLineNumber,
+                    lineStart: stx.token.startLineStart
+                }, stx.context)).concat(flatten(stx.token.inner)).concat(syntaxFromToken({
+                    type: Token.Punctuator,
+                    value: stx.token.value[1],
+                    range: stx.token.endRange,
+                    lineNumber: stx.token.endLineNumber,
+                    lineStart: stx.token.endLineStart
+                }, stx.context));
+            } else {
+                return acc.concat(stx);
+            }
+        }, []);
+    }
 
     // wraps the array of syntax objects in the delimiters given by the second argument
-    var flatWrapDelim = guard(
-        fun([Any, CSyntax], Any),
+    // ([...CSyntax], CSyntax) -> [...CSyntax]
+    function flatWrapDelim(towrap, delimSyntax) {
+        assert(delimSyntax.token.type === Token.Delimiter, "expecting a delimiter token");
+        var flat = [syntaxFromToken({
+            type: Token.Punctuator,
+            value: delimSyntax.token.value[0],
+            range: delimSyntax.token.startRange,
+            lineNumber: delimSyntax.token.startLineNumber,
+            lineStart: delimSyntax.token.startLineStart
+        }, delimSyntax.context)];
+        flat = flat.concat(towrap);
+        flat = flat.concat(syntaxFromToken({
+            type: Token.Punctuator,
+            value: delimSyntax.token.value[1],
+            range: delimSyntax.token.endRange,
+            lineNumber: delimSyntax.token.endLineNumber,
+            lineStart: delimSyntax.token.endLineStart
+        }, delimSyntax.context));
+        return flat;
+    }
 
-        // ([...CSyntax], CSyntax) -> [...CSyntax]
-        function flatWrapDelim(towrap, delimSyntax) {
-            assert(delimSyntax.token.type === Token.Delimiter, "expecting a delimiter token");
-            var flat = [syntaxFromToken({
-                type: Token.Punctuator,
-                value: delimSyntax.token.value[0],
-                range: delimSyntax.token.startRange,
-                lineNumber: delimSyntax.token.startLineNumber,
-                lineStart: delimSyntax.token.startLineStart
-            }, delimSyntax.context)];
-            flat = flat.concat(towrap);
-            flat = flat.concat(syntaxFromToken({
-                type: Token.Punctuator,
-                value: delimSyntax.token.value[1],
-                range: delimSyntax.token.endRange,
-                lineNumber: delimSyntax.token.endLineNumber,
-                lineStart: delimSyntax.token.endLineStart
-            }, delimSyntax.context));
-            return flat;
-        });
-
-    var getArgList = guard(
-        fun(CSyntax, arr([___(CSyntax)])),
-
-        // (CSyntax) -> [...CSyntax]
-        function getArgList(argSyntax) {
-            assert(argSyntax.token.type === Token.Delimiter, 
-                "expecting delimiter for function params");
-            return _.filter(argSyntax.token.inner, function(stx) {
-                return stx.token.value !== ",";
-            })
-        });
+    // (CSyntax) -> [...CSyntax]
+    function getArgList(argSyntax) {
+        assert(argSyntax.token.type === Token.Delimiter, 
+            "expecting delimiter for function params");
+        return _.filter(argSyntax.token.inner, function(stx) {
+            return stx.token.value !== ",";
+        })
+    }
 
     function isFunctionStx(stx) {
         return stx && stx.token.type === Token.Keyword
@@ -4883,9 +4807,5 @@ C.enabled(false);
 
 
     }());
-
-    // setting up some contract options
-    show_parent_contracts(false);
-
 }(typeof exports === 'undefined' ? (esprima = {}) : exports));
 /* vim: set sw=4 ts=4 et tw=80 : */
