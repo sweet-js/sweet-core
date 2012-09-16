@@ -41,10 +41,6 @@ var gen = require("escodegen");
 var _ = require("underscore")
 var fs = require("fs");
 
-// var C = require("contracts.js") // todo parser fails if ; is added here
-// var Macros = C.use(require("../lib/macros.js"), "parser");
-// C.autoload();
-// C.enabled(false);
 
 (function (exports) {
     'use strict';
