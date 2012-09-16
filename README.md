@@ -27,3 +27,13 @@ And compile it with `sjs`:
     $ node output.js
     10
 
+
+## Hacking
+
+Install dev dependencies:
+
+    $ npm install expect.js mocha shelljs
+
+And build with shelljs:
+
+    $ shjs build
