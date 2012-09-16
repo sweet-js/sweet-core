@@ -237,6 +237,12 @@ So I think we have to have hoisting happen after macro expansion. But what does 
           // and then expand 
           expand(mark(exp, newMark))
 
+        case [var, bindings...] =>
+          // if binding has same name as immediate enclosing param
+          //    then keep the same name as the param
+          // if binding is *not* shadowed by an immediate param
+          //    then rename binding in enclosing function scope
+
 ## Modules
 
 Details about importing macros from another module...

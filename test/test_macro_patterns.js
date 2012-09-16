@@ -185,6 +185,9 @@ describe("macro expander", function() {
     expect(a[1]).to.be(2);
   });
 
+
+  // BREADCRUMB
+
   // it("should expand a repeated delimiter in the macro body", function() {
   //   macro delim {
   //     case ($x:lit ...) => {

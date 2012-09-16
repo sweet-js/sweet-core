@@ -1528,9 +1528,10 @@ C.enabled(false);
             type = token.type;
 
         if (type === Token.Identifier) {
+            var name = (extra.noresolve) ? lex().token.value : resolve(lex());
             return {
                 type: Syntax.Identifier,
-                name: resolve(lex())
+                name: name
             };
         }
 
@@ -2184,10 +2185,13 @@ C.enabled(false);
         if (token.type !== Token.Identifier) {
             throwUnexpected(token);
         }
-
+        // note we are intentionlly leaving the name as a
+        // syntax object under the noresolve flag, helps with
+        // finding variable idents in the expander
+        var name = (extra.noresolve) ? stx : resolve(stx);
         return {
             type: Syntax.Identifier,
-            name: resolve(stx)
+            name: name
         };
     }
 
@@ -3829,8 +3833,7 @@ C.enabled(false);
 
             return Object.create(syntaxProto, {
                 token: { value: token, enumerable: true, configurable: true},
-                context: { value: ctx, writable: true, enumerable: true, configurable: true},
-                consed: {value: true, enumerable: true, writable: true, configurable: true}
+                context: { value: ctx, writable: true, enumerable: true, configurable: true}
             });
         });
 
@@ -4374,6 +4377,12 @@ C.enabled(false);
                    && stx.token.value === "var";
     }
 
+    function varNamesInAST(ast) {
+        return _.map(ast, function(item) {
+            return item.id.name;
+        });
+    }
+
     // finds all the identifiers being bound by var statements
     // in the array of syntax objects
     // ([...CSyntax]) -> [...CSyntax]
@@ -4393,8 +4402,10 @@ C.enabled(false);
                     return acc;
                 }
             } else if (isVarStx(body[idx-1])) {
-                // todo at the moment only dealing with single idents in the var statement
-                return acc.concat(curr);
+                var parseResult = parse_stx(flatten(body.slice(idx)), 
+                                            "varDeclarationList", 
+                                            {noresolve: true});
+                return acc.concat(varNamesInAST(parseResult));
             } else {
                 return acc;
             }
@@ -4523,7 +4534,7 @@ C.enabled(false);
                 var varRenamedFlatBody = _.map(flatBody, function(body) {
                     return _.reduce(freshnameVarIdents, function(accBody, varPair) {
                         var freshName = varPair[0];
-                        var ident = varPair[1].rename(ident, freshName);
+                        var ident = varPair[1].rename(varPair[1], freshName);
                         return accBody.swap_dummy_rename(ident, freshName, dummyName);
                     }, body);
                 });
@@ -4747,6 +4758,11 @@ C.enabled(false);
             if (typeof options.tolerant === 'boolean' && options.tolerant) {
                 extra.errors = [];
             }
+            if(typeof options.noresolve === 'boolean' && options.noresolve) {
+                extra.noresolve = options.noresolve
+            } else {
+                extra.noresolve = false;
+            }
         }
         
         patch();
@@ -4760,6 +4776,8 @@ C.enabled(false);
             } else if (nodeType === "ident") {
                 program = parsePrimaryExpression();
                 // todo assert we got and ident...
+            } else if (nodeType === "varDeclarationList") {
+                program = parseVariableDeclarationList();
             }
 
             if (typeof extra.comments !== 'undefined') {
