@@ -27,6 +27,8 @@ And compile it with `sjs`:
     $ node output.js
     10
 
+Docs to come. At the moment the best documentation for what works is the [pattern](https://github.com/mozilla/sweet.js/blob/master/test/test_macro_patterns.js) and [hygiene](https://github.com/mozilla/sweet.js/blob/master/test/test_macro_hygine.js) tests.
+
 
 ## Hacking
 
