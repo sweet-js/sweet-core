@@ -9,7 +9,7 @@ Early stage at the moment. Lots of bugs so be warned!
 
 Clone sweet.js and then install its dependencies:
 
-    $ npm install underscore optimist
+    $ npm install underscore optimist escodegen
 
 To try it out make a file `test_macros.js`:
 
