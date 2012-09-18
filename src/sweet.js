@@ -4698,7 +4698,7 @@ var fs = require("fs");
             
         //     return syntaxTok;
         } 
-        
+
         if(getChar() === "/") {
             var prev = back(1);
             if (prev) {
@@ -4872,7 +4872,12 @@ var fs = require("fs");
                 "PrimaryExpression": parsePrimaryExpression,
                 "VariableDeclarationList": parseVariableDeclarationList,
                 "StatementList": parseStatementList,
-                "SourceElements": parseSourceElements,
+                "SourceElements": function() {
+                    // hack, otherwise fails on return statements
+                    // might need to do other places too
+                    state.inFunctionBody = true;
+                    return parseSourceElements();
+                },
                 "FunctionDeclaration": parseFunctionDeclaration,
                 "FunctionExpression": parseFunctionExpression,
                 "ExpressionStatement": parseExpressionStatement,

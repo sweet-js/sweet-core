@@ -228,10 +228,10 @@ describe("macro expander", function() {
       }
     }
     def add (a, b) {
-      a + b;
+      return a + b;
     }
 
-    // expect(add(2,2));.to.be(4);
+    expect(add(2,2)).to.be(4);
   });
 
 });
