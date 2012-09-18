@@ -22,11 +22,13 @@ target.build = function() {
 }
 
 target.build_browser = function() {
-  echo("building browser tests");
+  echo("\nbuilding browser tests...");
   var test_files = ls("build/*.js").join(" ");
   exec("browserify -o browser/test_bundled.js " + test_files);
+  exec("browserify -o browser/parser_bundle.js browser/load_parser.js");
 }
 
 target.test = function() {
+  echo("\nrunning tests...");
   exec("mocha --growl build/");
 }
