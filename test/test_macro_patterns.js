@@ -161,32 +161,49 @@ describe("macro expander", function() {
     expect(foo).to.be(8)
   });
 
-  it("should expand a nested ellipses macro", function() {
+  it("should handle ellipses in output delimiters", function() {
+    macro m {
+      case ( $x:lit (,) ...) => {
+        [[$x] (,) ...]
+      }
+    }
+    var x = m ( 1, 2, 3 );
+    expect(x).to.eql([[1],[2],[3]]);
+  });
+
+  it("should expand simple nested ellipses", function() {
     macro nest {
-      case ( ($x:lit ; $y:lit (,) ...) (,) ...) => {
-        [ [$x (,) ...], [$y (,) ...] ]
+      case ( ($x:lit (,) ...) (,) ... ) => {
+        [ [$x (,) ...] (,) ...]
       }
     }
-
-    var foo = nest ( (1; 2,3,4,5), (10; 11, 12, 13, 14, 15) )
-
-    expect(foo[0]).to.eql([1,10])
-    expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15])
+    var x = nest ( (1, 2, 3), (4, 5, 6) );
   });
 
-  it("should expand an ellipses with a ; delimiter", function() {
-    macro semi {
-      case ( $x:lit (;) ...) => {
-        [$x (,) ...]
-      }
-    }
-    var a = semi(1;2;3;4);
-    expect(a.length).to.be(4);
-    expect(a[1]).to.be(2);
-  });
+  // it("should expand a nested ellipses macro", function() {
+  //   macro nest {
+  //     case ( ($x:lit ; $y:lit (,) ...) (,) ...) => {
+  //       [ [$x (,) ...], [$y (,) ...] ... ]
+  //     }
+  //   }
 
+  //   var foo = nest ( (1; 2,3,4,5), (10; 11, 12, 13, 14, 15) );
 
-  // BREADCRUMB
+  //   expect(foo[0]).to.eql([1,10]);
+  //   expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15]);
+  // });
+
+  // it("should expand an ellipses with a ; delimiter", function() {
+  //   macro semi {
+  //     case ( $x:lit (;) ...) => {
+  //       [$x (,) ...]
+  //     }
+  //   }
+  //   var a = semi(1;2;3;4);
+  //   expect(a.length).to.be(4);
+  //   expect(a[1]).to.be(2);
+  // });
+
 
   // it("should expand a repeated delimiter in the macro body", function() {
   //   macro delim {
