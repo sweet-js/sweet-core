@@ -4503,7 +4503,7 @@ var fs = require("fs");
                 }
             } else if (isVarStx(body[idx-1])) {
                 var parseResult = parse_stx(flatten(body.slice(idx)), 
-                                            "varDeclarationList", 
+                                            "VariableDeclarationList", 
                                             {noresolve: true});
                 return acc.concat(varNamesInAST(parseResult));
             } else {
@@ -4864,21 +4864,44 @@ var fs = require("fs");
         
         patch();
         try {
-            if(nodeType === "base") {
-                program = parseProgram();
-            } else if(nodeType === "expr") {
-                program = parseAssignmentExpression();
-            } else if (nodeType === "lit") {
-                program = parsePrimaryExpression();
-            } else if (nodeType === "ident") {
-                program = parsePrimaryExpression();
-                // todo assert we got and ident...
-            } else if (nodeType === "varDeclarationList") {
-                program = parseVariableDeclarationList();
-            } else if (nodeType === "StatementList") {
-                program = parseStatementList();
-            } else if (nodeType === "SourceElements") {
-                program = parseSourceElements();
+            var classToParse = {
+                "base": parseProgram,
+                "Program": parseProgram,
+                "expr": parseAssignmentExpression,
+                "ident": parsePrimaryExpression,
+                "lit": parsePrimaryExpression,
+                "LogicalANDExpression": parseLogicalANDExpression,
+                "PrimaryExpression": parsePrimaryExpression,
+                "VariableDeclarationList": parseVariableDeclarationList,
+                "StatementList": parseStatementList,
+                "SourceElements": parseSourceElements,
+                "FunctionDeclaration": parseFunctionDeclaration,
+                "FunctionExpression": parseFunctionExpression,
+                "ExpressionStatement": parseExpressionStatement,
+                "IfStatement": parseIfStatement,
+                "BreakStatement": parseBreakStatement,
+                "ContinueStatement": parseContinueStatement,
+                "WithStatement": parseWithStatement,
+                "SwitchStatement": parseSwitchStatement,
+                "ReturnStatement": parseReturnStatement,
+                "ThrowStatement": parseThrowStatement,
+                "TryStatement": parseTryStatement,
+                "WhileStatement": parseWhileStatement,
+                "ForStatement": parseForStatement,
+                "VariableDeclaration": parseVariableDeclaration,
+                "ArrayExpression": parseArrayInitialiser,
+                "ObjectExpression": parseObjectInitialiser,
+                "SequenceExpression": parseExpression,
+                "AssignmentExpression": parseAssignmentExpression,
+                "ConditionalExpression": parseConditionalExpression,
+                "NewExpression": parseNewExpression,
+                "CallExpression": parseLeftHandSideExpressionAllowCall,
+                "Block": parseBlock
+            }
+            if(classToParse[nodeType]) {
+                program = classToParse[nodeType]();
+            } else {
+                assert(false, "unmtached parse class" + nodeType);
             }
 
             if (typeof extra.comments !== 'undefined') {
