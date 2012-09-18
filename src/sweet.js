@@ -4199,6 +4199,15 @@ var fs = require("fs");
         }, [_.first(tojoin)]);
     }
 
+    // ([...[...CSyntax]], Str) -> [...CSyntax]
+    function joinSyntaxArr(tojoin, punc) {
+        if(tojoin.length === 0) { return []; } 
+
+        return _.reduce(_.rest(tojoin, 1), function (acc, join){
+            return acc.concat(mkSyntax(punc, Token.Punctuator, _.first(join)), join);
+        }, _.first(tojoin))
+    }
+
     // (CSyntax) -> Bool
     function delimIsSeparator(delim) {
         return (delim && delim.token.type === Token.Delimiter 
@@ -4319,12 +4328,21 @@ var fs = require("fs");
                                     return renv;
                                 });
 
-                                var transcribedDelim = _.map(restrictedEnv, function(renv) {
-                                    var newBody = syntaxFromToken(_.clone(bodyStx.token), bodyStx.concat);
-                                    newBody.token.inner = transcribe(bodyStx.token.inner, renv);
-                                    return newBody;
+                                var transcribed = _.map(restrictedEnv, function(renv) {
+                                    if(bodyStx.group) {
+                                        return transcribe(bodyStx.token.inner, renv);
+                                    } else {
+                                        var newBody = syntaxFromToken(_.clone(bodyStx.token), bodyStx.concat);
+                                        newBody.token.inner = transcribe(bodyStx.token.inner, renv);
+                                        return newBody;
+                                    }
                                 });
-                                var joined = joinSyntax(transcribedDelim, bodyStx.separator)
+                                var joined;
+                                if(bodyStx.group) {
+                                    joined = joinSyntaxArr(transcribed, bodyStx.separator);
+                                } else {
+                                    joined = joinSyntax(transcribed, bodyStx.separator)
+                                }
                                 return acc.concat(joined);
                             } else {
                                 assert(env[bodyStx.token.value].level === 1, "ellipses level does not match");
@@ -4342,27 +4360,6 @@ var fs = require("fs");
                                 return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
                             }
                         }
-
-                        // if(bodyStx.token.type === Token.Delimiter) {
-                        //     if (bodyStx.group) {
-                        //         return acc.concat(transcribe(bodyStx.token.inner));
-                        //     } else {
-                        //         bodyStx.token.inner = transcribe(bodyStx.token.inner);
-                        //         return acc.concat(bodyStx);
-                        //     }
-                        // } else  {
-                        //     // todo: report error if pattern var in body but in matches
-                        //     if(matchedSyntax !== undefined) {
-                        //         return acc.concat(takeLineContext(macroNameStx, matchedSyntax.match))
-                        //         // if(bodyStx.repeat) {
-                        //         //     return acc.concat(joinSyntaxArrs(matchedSyntax, bodyStx.separator));
-                        //         // } else {
-                        //         //     return acc.concat(takeLineContext(macroNameStx, _.first(matchedSyntax)));
-                        //         // }
-                        //     } else {
-                        //         return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
-                        //     }
-                        // }
                     }, []).value();
             };
 
