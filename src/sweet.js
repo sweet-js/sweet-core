@@ -4004,71 +4004,164 @@ var fs = require("fs");
         return orig;
     }
 
-    // ([...CSyntax], [...CPattern]) -> {matches: {<key>: [...[...CSyntax]]}, consumed: Num}
-    function matchPatterns(callStx, patterns) {
-        var matches = {};
+    // assume callStx has EOF at the very end
+    function matchPattern(callStx, pattern) {
         var callIdx = 0;
-        var parseResult;
-        var syntax = [].concat(callStx, tokensToSyntax({type: Token.EOF}));
+        var match;
+        var consumed = 0;
 
-        patterns.forEach(function(pattern, patternIdx) {
-            // todo real error handling
-            var repeat = pattern.repeat, separator = pattern.separator;
+        if(pattern.class === "pattern_literal") {
+            // confirm eq call and we're done
+            consumed = 1;
+        } else {
+            assert(pattern.token.type !== Token.Delimiter, "delimiters should be handled one level up");
+            // match pattern and add to env at level 0
 
-            if (pattern.class === "pattern_literal" && pattern.token.type !== Token.Delimiter) {
-                assert(syntax[callIdx++].token.value === pattern.token.value, "pattern literal does not match");
-            } else {
-                if(pattern.token.type !== Token.Delimiter) {
-                    matches[pattern.token.value] = [];
-                }
-                var innerMatches;
-                do {
-                    if (pattern.token.type === Token.Delimiter) {
-                        if (pattern.class === "pattern_group") {
-                            innerMatches = matchPatterns(_.rest(syntax,callIdx), pattern.token.inner);
-                            matches = mergeMatches(matches, innerMatches.matches);
-                            callIdx += innerMatches.consumed;
-                        } else {
-                            assert(syntax[callIdx].token.type === Token.Delimiter, "missing expected delimiter");
+            // attempt to parse
+            var parseResult = parse_stx(callStx, 
+                                        pattern.class, 
+                                        {tokens:true});
 
-                            innerMatches = matchPatterns(syntax[callIdx].token.inner, pattern.token.inner);
-                            matches = mergeMatches(matches, innerMatches.matches);
-                            callIdx++;
-                        }
-                    } else {
-                        // attempt to parse
-                        // TODO: not sure this works in the presense of delimiters...
-                        parseResult = parse_stx(_.rest(syntax, callIdx), 
-                                                    pattern.class, 
-                                                    {tokens:true});
+            var consumed = parseResult.tokens.length;
+            var matchedSyntax = callStx.slice(0, consumed);
 
-                        var endSlice = callIdx + parseResult.tokens.length;
-                        var matchedSyntax = syntax.slice(callIdx, endSlice);
-                        assert(matchedSyntax.length === parseResult.tokens.length, "tokens and slice do not match");
-                        // move forward in the call tokens the number of succesfully parsed tokens
-                        callIdx += parseResult.tokens.length;
-
-
-                        matches[pattern.token.value].push(matchedSyntax);
-                    }
-
-                    if(repeat && separator === " ") {
-                        if(syntax[callIdx] && syntax[callIdx].token.type === Token.EOF) {
-                            repeat = false;
-                        } 
-                    } else if(repeat && syntax[callIdx].token.value !== separator) {
-                        repeat = false;
-                    } else if (repeat) { // only consume separator if we are replicating
-                        callIdx++;
-                    }
-                } while(repeat);
-            }
-        });
+            match = {
+                level: 0,
+                match: matchedSyntax
+            };
+        }
         return {
-            matches: matches,
-            consumed: callIdx
+            consumed: consumed,
+            match: match
         };
     }
+
+    // will look something like:
+    /*
+    {
+        "$x": {
+            level: 2,
+            match: [{
+                level: 1,
+                match: [{
+                    level: 0,
+                    match: [tok1, tok2, ...]
+                }, {
+                    level: 0,
+                    match: [tok1, tok2, ...]
+                }]
+            }, {
+                level: 1,
+                match: [{
+                    level: 0,
+                    match: [tok1, tok2, ...]
+                }]
+            }]
+        },
+        "$y" : ...
+    }
+    */
+    function buildPatternEnv(callStx, patterns) {
+        var env = {};
+        var callIdx = 0;
+        var callStx = [].concat(callStx, tokensToSyntax({type: Token.EOF}));
+
+        patterns.forEach(function(pattern) {
+            var patternMatch;
+            var repeat = pattern.repeat;
+
+            // intialize if necessary
+            if(pattern.repeat && pattern.token.type !== Token.Delimiter) {
+                env[pattern.token.value] = {
+                    level: 1,
+                    match: []
+                };
+            }
+            // what happens if we have extra unmatched tokens in callStx?
+
+            do {
+                var consumed = 0;
+                if(pattern.token.type === Token.Delimiter) {
+                    // dont forget pattern_group vs normal delims
+
+                    if(pattern.class === "pattern_group") {
+                        // pattern groups don't match their delimiters
+                        var subEnv = buildPatternEnv(_.rest(callStx, callIdx), pattern.token.inner);
+                        consumed = subEnv.consumed;
+                        callIdx += consumed;
+                    } else {
+                        // better error handling
+                        assert(callStx[callIdx].token.type === Token.Delimiter, "expecting delimiter");
+                        var subEnv = buildPatternEnv(callStx[callIdx].token.inner, pattern.token.inner);
+                        consumed = subEnv.consumed;
+                        // consumed is the number of tokens inside the delimiter but we just need to 
+                        // move forward one token on this level
+                        callIdx += (consumed > 0) ? 1 : 0;
+                    }
+
+                    // merge the subpattern matches with the current environment
+                    _.keys(subEnv.env).forEach(function(patternKey) {
+                        if(pattern.repeat) {
+                            // if this is a repeat pattern we need to bump the level
+                            var nextLevel = subEnv.env[patternKey].level + 1;
+
+                            if(env[patternKey]) {
+                                env[patternKey].level = nextLevel;
+                                env[patternKey].match.push(subEnv.env[patternKey].match);
+                            } else {
+                                // initialize if we haven't done so already
+                                env[patternKey] = {
+                                    level: nextLevel,
+                                    match: [subEnv.env[patternKey].match]
+                                };
+                            }
+                        } else {
+                            // otherwise accept the environment as-is
+                            env[patternKey] = subEnv.env[patternKey];
+                        }
+                    });
+
+                } else {
+                    // match pattern
+                    patternMatch = matchPattern(_.rest(callStx, callIdx), pattern);
+
+                    // note how many tokens we consumed
+                    consumed = patternMatch.consumed;
+                    callIdx += consumed;
+
+                    // push the match onto this value's slot in the environment
+                    if(pattern.repeat) {
+                        env[pattern.token.value].match.push(patternMatch.match);
+                    } else {
+                        env[pattern.token.value] = patternMatch.match;
+                    }
+                }
+
+                if(pattern.repeat && pattern.separator === " ") {
+                    // stop repeating if we're at the end of the syntax
+                    if((callIdx >= callStx.length) || (callStx[callIdx].token.type === Token.EOF)) {
+                        repeat = false;
+                    }
+                } else if(pattern.repeat && callStx[callIdx].token.value !== pattern.separator) {
+                    // stop repeating if the next token isn't the repeat separator
+                    repeat = false;
+                } else if(consumed <= 0) {
+                    // stop repeating if the pattern did not match
+                    repeat = false;
+                } else if(pattern.repeat) {
+                    // consume the separator
+                    // todo: this is assuming all separators are single tokens, might want to revise at some point
+                    callIdx++;
+                }
+            } while (repeat);
+        });
+
+        return {
+            consumed: callIdx,
+            env: env
+        };
+    }
+
 
     // take the line context (not lexical...um should clarify this a bit)
     // (CSyntax, [...CSyntax]) -> [...CSyntax]
@@ -4130,8 +4223,7 @@ var fs = require("fs");
                                 var call = ziped[0], 
                                     pat = ziped[1];
 
-                                // getEnv
-                                return matchPatterns(call.token.inner, pat).matches;
+                                return buildPatternEnv(call.token.inner, pat).env;
                             }).reduce(function(acc, matchObj) {
                                 return _.extend(acc, matchObj);
                             }, {}).value();
@@ -4188,11 +4280,12 @@ var fs = require("fs");
                         } else  {
                             // todo: report error if pattern var in body but in matches
                             if(matchedSyntax !== undefined) {
-                                if(bodyStx.repeat) {
-                                    return acc.concat(joinSyntaxArrs(matchedSyntax, bodyStx.separator));
-                                } else {
-                                    return acc.concat(takeLineContext(macroNameStx, _.first(matchedSyntax)));
-                                }
+                                return acc.concat(takeLineContext(macroNameStx, matchedSyntax.match))
+                                // if(bodyStx.repeat) {
+                                //     return acc.concat(joinSyntaxArrs(matchedSyntax, bodyStx.separator));
+                                // } else {
+                                //     return acc.concat(takeLineContext(macroNameStx, _.first(matchedSyntax)));
+                                // }
                             } else {
                                 return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
                             }
