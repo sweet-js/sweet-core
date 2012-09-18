@@ -3,7 +3,7 @@ sweet.js
 
 Macros for JavaScript! 
 
-Overview and motivation in this [talk](https://air.mozilla.org/sweetjs/)
+Overview and motivation in this [talk](https://air.mozilla.org/sweetjs/).
 
 Early stage at the moment. Lots of bugs so be warned!
 
@@ -15,13 +15,19 @@ Clone sweet.js and then install its dependencies:
 
 To try it out make a file `test_macros.js`:
 
-    macro id {
-      case ($x:expr) => {
-        $x
+    // functions can now be spelled def!
+    macro def {
+      case $name:ident ($params:ident (,) ...) { $body:SourceElements } => {
+        function $name ($params (,) ...) {
+          $body
+        }
       }
     }
+    def add (a, b) {
+      return a + b;
+    }
 
-    console.log( id(2+2*4) );
+    console.log( add(3, 7) );
 
 And compile it with `sjs`:
   
