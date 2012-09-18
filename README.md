@@ -34,7 +34,8 @@ Docs to come. At the moment the best documentation for what works is the [patter
 
 Install dev dependencies:
 
-    $ npm install expect.js mocha shelljs
+    $ npm install expect.js
+    $ npm install -g shelljs mocha
 
 And build with shelljs:
 
