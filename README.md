@@ -1,7 +1,9 @@
 sweet.js
 ========
 
-Macros for JavaScript!
+Macros for JavaScript! 
+
+Overview and motivation in this [talk](https://air.mozilla.org/sweetjs/)
 
 Early stage at the moment. Lots of bugs so be warned!
 
