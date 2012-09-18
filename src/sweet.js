@@ -3791,17 +3791,20 @@ var fs = require("fs");
     function renameDummyCtx(ctx, ident, name, dummyName) {
         if(ctx === null) {
             return null;
-        } else if(isDummyRename(ctx) && ctx.dummy_name === dummyName) {
+        } 
+        if(isDummyRename(ctx) && ctx.dummy_name === dummyName) {
             return Rename(ident, name, DummyRename(ctx.dummy_name, ctx.context));
-        } else if(isDummyRename(ctx) && ctx.dummy_name !== dummyName) {
+        } 
+        if(isDummyRename(ctx) && ctx.dummy_name !== dummyName) {
             return DummyRename(ctx.dummy_name, renameDummyCtx(ctx.context, ident, name, dummyName));
-        } else if(isMark(ctx)) {
+        } 
+        if(isMark(ctx)) {
             return Mark(ctx.mark, renameDummyCtx(ctx.context, ident, name, dummyName));
-        } else if(isRename(ctx)) {
+        } 
+        if(isRename(ctx)) {
             return Rename(ctx.id, ctx.name, renameDummyCtx(ctx.context, ident, name, dummyName));
-        } else {
-            assert(false, "expecting a fixed set of context types");
-        }
+        } 
+        assert(false, "expecting a fixed set of context types");
     }
 
     function findDummyParent(ctx, dummyName) {
@@ -3811,9 +3814,8 @@ var fs = require("fs");
 
         if(isDummyRename(ctx.context) && ctx.context.dummy_name === dummyName) {
             return ctx;
-        } else {
-            return findDummyParent(ctx.context);
         }
+        return findDummyParent(ctx.context);
     }
 
 
@@ -3831,9 +3833,8 @@ var fs = require("fs");
     function remdup(mark, mlist) {
         if(mark === _.first(mlist)) {
             return _.rest(mlist, 1);
-        } else {
-            return [mark].concat(mlist);
         }
+        return [mark].concat(mlist);
     }
 
     // (CSyntax) -> [...Num]
@@ -3843,18 +3844,19 @@ var fs = require("fs");
             mark = stx.context.mark;
             submarks = marksof(syntaxFromToken(stx.token, stx.context.context));
             return remdup(mark, submarks);
-        } else if(isRename(stx.context) || isDummyRename(stx.context)) {
+        } 
+        if(isRename(stx.context) || isDummyRename(stx.context)) {
             return marksof(syntaxFromToken(stx.token, stx.context.context));
-        } else {
-            return [];
-        }
+        } 
+        return [];
     }
 
     // (CSyntax) -> CToken
     function resolve(stx) {
         if(isMark(stx.context) || isDummyRename(stx.context)) {
             return resolve(syntaxFromToken(stx.token, stx.context.context));
-        } else if (isRename(stx.context)) {
+        } 
+        if (isRename(stx.context)) {
             var idName = resolve(stx.context.id);
             var subName = resolve(syntaxFromToken(stx.token, stx.context.context));
 
@@ -3863,12 +3865,10 @@ var fs = require("fs");
 
             if((idName === subName) && (_.difference(idMarks, subMarks).length === 0)) {
                 return stx.token.value + stx.context.name;
-            } else {
-                return resolve(syntaxFromToken(stx.token, stx.context.context));
-            }
-        } else {
-            return stx.token.value;
-        }
+            } 
+            return resolve(syntaxFromToken(stx.token, stx.context.context));
+        } 
+        return stx.token.value;
     }
 
     var nextFresh = 0;
@@ -3915,9 +3915,8 @@ var fs = require("fs");
         return _.any(patterns, function(pat) {
             if(pat.token.type === Token.Delimiter) {
                 return containsPatternVar(pat.token.inner);
-            } else {
-                return isPatternVar(pat);
-            }
+            } 
+            return isPatternVar(pat);
         });
     }
 
@@ -4358,13 +4357,13 @@ var fs = require("fs");
                             if(bodyStx.token.type === Token.Delimiter) {
                                 bodyStx.token.inner = transcribe(bodyStx.token.inner, env);
                                 return acc.concat(bodyStx);
-                            } else if(env[bodyStx.token.value]) {
+                            } 
+                            if(env[bodyStx.token.value]) {
                                 assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match");
                                 return acc.concat(takeLineContext(macroNameStx, 
                                                                   env[bodyStx.token.value].match));
-                            } else {
-                                return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
-                            }
+                            } 
+                            return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
                         }
                     }, []).value();
             };
@@ -4431,9 +4430,8 @@ var fs = require("fs");
                     lineNumber: stx.token.endLineNumber,
                     lineStart: stx.token.endLineStart
                 }, stx.context));
-            } else {
-                return acc.concat(stx);
-            }
+            } 
+            return acc.concat(stx);
         }, []);
     }
 
@@ -4498,17 +4496,16 @@ var fs = require("fs");
                 // don't look for var idents inside nested functions
                 if(!atFunctionDelimiter) {
                     return acc.concat(getVarIdentifiers(curr.token.inner));
-                } else {
-                    return acc;
-                }
-            } else if (isVarStx(body[idx-1])) {
+                } 
+                return acc;
+            } 
+            if (isVarStx(body[idx-1])) {
                 var parseResult = parse_stx(flatten(body.slice(idx)), 
                                             "VariableDeclarationList", 
                                             {noresolve: true});
                 return acc.concat(varNamesInAST(parseResult));
-            } else {
-                return acc;
             }
+            return acc;
         }, []);
     }
 
@@ -4700,37 +4697,38 @@ var fs = require("fs");
         //     syntaxTok.value = "#{}";
             
         //     return syntaxTok;
-        } else if(getChar() === "/") {
+        } 
+        
+        if(getChar() === "/") {
             var prev = back(1);
             if (prev) {
                 if (prev.value === "()") {
                     if(isIn(back(2).value, parenIdents)) {
                         return scanRegExp();
-                    } else {
-                        return advance();
-                    }
-                } else if(prev.value === "{}") {
+                    } 
+                    return advance();
+                } 
+                if(prev.value === "{}") {
                     if(back(4).value === "function" && isIn(back(5).value, fnExprTokens)) {
                         return advance();
-                    } else if (back(4).value === "function" && (toks.length - 5 <= 0) && inExprDelim) {
+                    } 
+                    if (back(4).value === "function" && (toks.length - 5 <= 0) && inExprDelim) {
                         // case where: (function foo() {} /asdf/) or [function foo() {} /asdf]
                         return advance();
-                    } else {
-                        return scanRegExp();
-                    }
-                } else if(prev.type === Token.Punctuator) {
+                    } 
                     return scanRegExp();
-                } else if(isKeyword(toks[toks.length - 1].value)) {
+                } 
+                if(prev.type === Token.Punctuator) {
                     return scanRegExp();
-                } else {
-                    return advance();
-                }
-            } else {
-                return scanRegExp();
-            }
-        } else {
-            return advance();
-        }
+                } 
+                if(isKeyword(toks[toks.length - 1].value)) {
+                    return scanRegExp();
+                } 
+                return advance();
+            } 
+            return scanRegExp();
+        } 
+        return advance();
     }
     
     function readDelim() {
