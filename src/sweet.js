@@ -4030,7 +4030,7 @@ var fs = require("fs");
         };
     }
 
-    // will look something like:
+    // the environment will look something like:
     /*
     {
         "$x": {
@@ -4234,12 +4234,9 @@ var fs = require("fs");
 
     // ([...{pattern: [...CSyntax], body: CSyntax}], CSyntax) -> CMacro
     function mkMacroTransformer(macroCases) {
-        var patternSyntax = macroCases[0].pattern[0].token.inner;
+        var patterns = macroCases[0].pattern;
         var bodySyntax = macroCases[0].body.token.inner;
 
-        var patterns = _.map(macroCases[0].pattern, function(pat) {
-            return loadPattern(pat.token.inner);
-        });
         // todo confirm that delimiter types from macro call and macro def are the same
 
         return function(callSyntax, macroNameStx) {
@@ -4249,7 +4246,16 @@ var fs = require("fs");
                                 var call = ziped[0], 
                                     pat = ziped[1];
 
-                                return buildPatternEnv(call.token.inner, pat).env;
+                                if (pat.token.type === Token.Delimiter) {
+                                    assert(call.token.type === Token.Delimiter 
+                                            && call.token.value === pat.token.value, "macro invocation does not match pattern");
+                                    call = call.token.inner;
+                                    pat = pat.token.inner;
+                                } else {
+                                    call = [call];
+                                    pat = [pat];
+                                }
+                                return buildPatternEnv(call, pat).env;
                             }).reduce(function(acc, matchObj) {
                                 return _.extend(acc, matchObj);
                             }, {}).value();
@@ -4386,15 +4392,14 @@ var fs = require("fs");
                 lastCaseIdx = idx;
             } else if (stx.token.value === ">" && macroBody[idx-1].token.value === "=") {
                 // grab all of the delimiters between "case" and "=>"
-                var caseDelim = macroBody.slice(lastCaseIdx+1, idx-1);
+                var patterns = macroBody.slice(lastCaseIdx+1, idx-1);
 
-                assert(_.all(caseDelim, function(stx) { 
-                    return stx.token.type === Token.Delimiter
-                }), "expecting delimiters in macro case expression");
+                var patterns = loadPattern(patterns);
 
-                mostDelimToMatch = (caseDelim.length > mostDelimToMatch) ? caseDelim.length : mostDelimToMatch;
+
+                mostDelimToMatch = (patterns.length > mostDelimToMatch) ? patterns.length : mostDelimToMatch;
                 macroCases.push({
-                    pattern: caseDelim,
+                    pattern: patterns,
                     body: macroBody[idx+1]
                 });
             }
@@ -4539,9 +4544,8 @@ var fs = require("fs");
                 var macroDef = macros[token.value];
 
                 var callArgs = _.map(_.range(macroDef.toConsume), function() {
-                    assert(stx[index].token.type === Token.Delimiter, 
-                        "expecting delimiters in macro call");
-
+                    assert(!(stx[index].token.type === Token.Punctuator && stx[index].token.value === ","), 
+                        "commas are not allowed in macro call");
                     return stx[index++];
                 });
 
@@ -4871,6 +4875,10 @@ var fs = require("fs");
                 // todo assert we got and ident...
             } else if (nodeType === "varDeclarationList") {
                 program = parseVariableDeclarationList();
+            } else if (nodeType === "StatementList") {
+                program = parseStatementList();
+            } else if (nodeType === "SourceElements") {
+                program = parseSourceElements();
             }
 
             if (typeof extra.comments !== 'undefined') {
