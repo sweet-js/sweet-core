@@ -1,7 +1,7 @@
 sweet.js
 ========
 
-Macros for JavaScript! 
+Hygienic Macros for JavaScript! 
 
 Overview and motivation in this [talk](https://air.mozilla.org/sweetjs/).
 

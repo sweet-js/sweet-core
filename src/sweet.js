@@ -4006,19 +4006,20 @@ var fs = require("fs");
     // assume callStx has EOF at the very end
     function matchPattern(callStx, pattern) {
         var callIdx = 0;
-        var match;
         var consumed = 0;
-
-        assert(pattern.token.type !== Token.Delimiter, "delimiters should be handled one level up");
-        // match pattern and add to env at level 0
+        var matchedSyntax;
 
         // attempt to parse
-        var parseResult = parse_stx(callStx, 
-                                    pattern.class, 
-                                    {tokens:true});
+        try {
+            var parseResult = parse_stx(callStx, 
+                                        pattern.class, 
+                                        {tokens:true});
 
-        var consumed = parseResult.tokens.length;
-        var matchedSyntax = callStx.slice(0, consumed);
+            consumed = parseResult.tokens.length;
+            matchedSyntax = callStx.slice(0, consumed);
+        } catch (e) {
+            consumed = 0;
+        }
 
         return {
             consumed: consumed,
@@ -4059,9 +4060,21 @@ var fs = require("fs");
         var callIdx = 0;
         var callStx = [].concat(callStx, tokensToSyntax({type: Token.EOF}));
 
+
+        /*
+        So the problem I'm trying to solve is that I need a way to gracefully fail to match
+        a pattern. Right now it just blows up with a filing assert.
+        */
+        var matchFailed = false;
+
         patterns.forEach(function(pattern) {
             var patternMatch;
             var repeat = pattern.repeat;
+
+            if(matchFailed) {
+                // just do an early return through the remaining patterns
+                return;
+            }
 
             // what happens if we have extra unmatched tokens in callStx?
 
@@ -4109,11 +4122,13 @@ var fs = require("fs");
 
                 } else {
                     if(pattern.class === "pattern_literal") {
-                        // todo: better error handling
-                        assert(pattern.token.value === callStx[callIdx].token.value, "pattern did not match literal");
-                        // consume the literal
-                        consumed = 1;
-                        callIdx += consumed;
+                        if(pattern.token.value !== callStx[callIdx].token.value) {
+                            consumed = 0;
+                        } else {
+                            // consume the literal
+                            consumed = 1;
+                            callIdx += consumed;
+                        }
                     } else {
                         // match pattern
                         patternMatch = matchPattern(_.rest(callStx, callIdx), pattern);
@@ -4137,6 +4152,14 @@ var fs = require("fs");
                             env[pattern.token.value] = patternMatch.match;
                         }
                     }
+                }
+
+                // if we matched no tokens note that the match failed 
+                // so we don't check the remaining patterns and break out
+                // of the repeat loop
+                if(consumed === 0) {
+                    matchFailed = true;
+                    break;
                 }
 
                 if(pattern.repeat && pattern.separator === " ") {
@@ -4231,33 +4254,64 @@ var fs = require("fs");
         return fv;
     }
 
+    function attemptToMatchMacroCall(callSyntax, patterns) {
+        var matchSucceeded = true;
+        var matches = _.chain(_.zip(callSyntax, patterns))
+                        .map(function(ziped) {
+                            var call = ziped[0], 
+                                pat = ziped[1];
+
+                            if (pat.token.type === Token.Delimiter) {
+                                assert(call.token.type === Token.Delimiter 
+                                        && call.token.value === pat.token.value, "macro invocation does not match pattern");
+                                call = call.token.inner;
+                                pat = pat.token.inner;
+                            } else {
+                                call = [call];
+                                pat = [pat];
+                            }
+                            var patternEnv = buildPatternEnv(call, pat)
+
+                            // only failed if there was a pattern
+                            if(pat.length !== 0 && patternEnv.consumed === 0) {
+                                matchSucceeded = false;
+                            }
+
+                            return patternEnv.env;
+                        }).reduce(function(acc, matchObj) {
+                            return _.extend(acc, matchObj);
+                        }, {}).value();
+
+        return {
+            matches: matches,
+            matchSucceeded: matchSucceeded
+        };
+    }
+
     // ([...{pattern: [...CSyntax], body: CSyntax}], CSyntax) -> CMacro
     function mkMacroTransformer(macroCases) {
         var patterns = macroCases[0].pattern;
         var bodySyntax = macroCases[0].body.token.inner;
 
-        // todo confirm that delimiter types from macro call and macro def are the same
-
         return function(callSyntax, macroNameStx) {
-            
-            var matches = _.chain(_.zip(callSyntax, patterns))
-                            .map(function(ziped) {
-                                var call = ziped[0], 
-                                    pat = ziped[1];
 
-                                if (pat.token.type === Token.Delimiter) {
-                                    assert(call.token.type === Token.Delimiter 
-                                            && call.token.value === pat.token.value, "macro invocation does not match pattern");
-                                    call = call.token.inner;
-                                    pat = pat.token.inner;
-                                } else {
-                                    call = [call];
-                                    pat = [pat];
-                                }
-                                return buildPatternEnv(call, pat).env;
-                            }).reduce(function(acc, matchObj) {
-                                return _.extend(acc, matchObj);
-                            }, {}).value();
+            // foreach case in macroCases
+            //      if test case.pattern
+            //          return trascribe(case.body.token.inner, buildenv)
+            var potentialMatches;
+            var matches;
+            for (var i = 0; i < macroCases.length; i++) {
+                potentialMatches = attemptToMatchMacroCall(callSyntax, macroCases[i].pattern);
+
+                if(potentialMatches.matchSucceeded) {
+                    bodySyntax = macroCases[i].body.token.inner;
+                    matches = potentialMatches.matches;
+                    break;
+                }
+            }
+
+            // todo: something better than an assert
+            assert(potentialMatches.matchSucceeded, "macro invocation did not match");
 
 
             // ([...CSyntax]) -> [...CSyntax]
