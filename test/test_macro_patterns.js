@@ -234,4 +234,37 @@ describe("macro expander", function() {
     expect(add(2,2)).to.be(4);
   });
 
+
+  it("should handle multiple cases", function() {
+    macro m {
+      case four => {
+        4
+      }
+      case two => {
+        2
+      }
+    }
+    var n = m four;
+    expect(n).to.be(4)
+    var n = m two;
+    expect(n).to.be(2)
+  });
+
+  it("should handle recursive macros", function() {
+    macro rot {
+      case [$x:lit] => {
+        [$x]
+      }
+      case [$x:lit, $y:lit] => {
+        [$x, $y]
+      }
+    }
+
+    var l = rot [1]
+    expect(l).to.eql([1])
+
+    var ll = rot [1,2]
+    expect(ll).to.eql([1, 2])
+  });
+
 });

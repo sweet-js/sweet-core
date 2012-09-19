@@ -4061,10 +4061,6 @@ var fs = require("fs");
         var callStx = [].concat(callStx, tokensToSyntax({type: Token.EOF}));
 
 
-        /*
-        So the problem I'm trying to solve is that I need a way to gracefully fail to match
-        a pattern. Right now it just blows up with a filing assert.
-        */
         var matchFailed = false;
 
         patterns.forEach(function(pattern) {
@@ -4093,6 +4089,11 @@ var fs = require("fs");
                         assert(callStx[callIdx].token.type === Token.Delimiter, "expecting delimiter");
                         var subEnv = buildPatternEnv(callStx[callIdx].token.inner, pattern.token.inner);
                         consumed = subEnv.consumed;
+                        if(consumed !== callStx[callIdx].token.inner.length && repeat === false) { 
+                            matchFailed = true;
+                            callIdx = 0;
+                            break;
+                        }
                         // consumed is the number of tokens inside the delimiter but we just need to 
                         // move forward one token on this level
                         callIdx += (consumed > 0) ? 1 : 0;
@@ -4159,6 +4160,7 @@ var fs = require("fs");
                 // of the repeat loop
                 if(consumed === 0) {
                     matchFailed = true;
+                    callIdx = 0;
                     break;
                 }
 
@@ -4256,6 +4258,14 @@ var fs = require("fs");
 
     function attemptToMatchMacroCall(callSyntax, patterns) {
         var matchSucceeded = true;
+        // early exit, the call and patterns don't have the same number of forms
+        if(callSyntax.length !== patterns.length) {
+            return {
+                matches: {},
+                matchSucceeded: false
+            }
+        }
+
         var matches = _.chain(_.zip(callSyntax, patterns))
                         .map(function(ziped) {
                             var call = ziped[0], 
@@ -4273,7 +4283,7 @@ var fs = require("fs");
                             var patternEnv = buildPatternEnv(call, pat)
 
                             // only failed if there was a pattern
-                            if(pat.length !== 0 && patternEnv.consumed === 0) {
+                            if(pat.length !== 0 && patternEnv.consumed !== call.length) {
                                 matchSucceeded = false;
                             }
 
@@ -4288,23 +4298,37 @@ var fs = require("fs");
         };
     }
 
+    // ([...CSyntax]) -> Num
+    function patternLength (patterns) {
+        return _.reduce(patterns, function(acc, pat) {
+            if(pat.token.type === Token.Delimiter) {
+                // the one is to include the delimiter itself in the count
+                return acc + 1 + patternLength(pat.token.inner);
+            }
+            return acc + 1;
+        }, 0)
+    }
+
     // ([...{pattern: [...CSyntax], body: CSyntax}], CSyntax) -> CMacro
     function mkMacroTransformer(macroCases) {
         var patterns = macroCases[0].pattern;
         var bodySyntax = macroCases[0].body.token.inner;
 
+        // grab the patterns from each case and sort them by longest number of patterns
+        var sortedCases = _.sortBy(macroCases, function(mcase) {
+                                    return patternLength(mcase.pattern); 
+                                }).reverse();
+
         return function(callSyntax, macroNameStx) {
 
-            // foreach case in macroCases
-            //      if test case.pattern
-            //          return trascribe(case.body.token.inner, buildenv)
             var potentialMatches;
             var matches;
-            for (var i = 0; i < macroCases.length; i++) {
-                potentialMatches = attemptToMatchMacroCall(callSyntax, macroCases[i].pattern);
+
+            for (var i = 0; i < sortedCases.length; i++) {
+                potentialMatches = attemptToMatchMacroCall(callSyntax, sortedCases[i].pattern);
 
                 if(potentialMatches.matchSucceeded) {
-                    bodySyntax = macroCases[i].body.token.inner;
+                    bodySyntax = sortedCases[i].body.token.inner;
                     matches = potentialMatches.matches;
                     break;
                 }
@@ -4315,9 +4339,9 @@ var fs = require("fs");
 
 
             // ([...CSyntax]) -> [...CSyntax]
-            var transcribe = function(pattern, env) {
+            var transcribe = function(bodyPattern, env) {
 
-                return _.chain(pattern)
+                return _.chain(bodyPattern)
                     .reduce(function(acc, bodyStx, idx, original) {
                         // first find the ellipses and mark the syntax objects
                         // (note that this step does not eagerly go into delimiter bodies)
