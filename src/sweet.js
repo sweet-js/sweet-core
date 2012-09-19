@@ -4311,9 +4311,6 @@ var fs = require("fs");
 
     // ([...{pattern: [...CSyntax], body: CSyntax}], CSyntax) -> CMacro
     function mkMacroTransformer(macroCases) {
-        var patterns = macroCases[0].pattern;
-        var bodySyntax = macroCases[0].body.token.inner;
-
         // grab the patterns from each case and sort them by longest number of patterns
         var sortedCases = _.sortBy(macroCases, function(mcase) {
                                     return patternLength(mcase.pattern); 
@@ -4323,6 +4320,7 @@ var fs = require("fs");
 
             var potentialMatches;
             var matches;
+            var bodySyntax;
 
             for (var i = 0; i < sortedCases.length; i++) {
                 potentialMatches = attemptToMatchMacroCall(callSyntax, sortedCases[i].pattern);
@@ -4335,13 +4333,14 @@ var fs = require("fs");
             }
 
             // todo: something better than an assert
-            assert(potentialMatches.matchSucceeded, "macro invocation did not match");
+            assert(potentialMatches.matchSucceeded, "no macro cases matched");
 
 
             // ([...CSyntax]) -> [...CSyntax]
             var transcribe = function(bodyPattern, env) {
 
                 return _.chain(bodyPattern)
+                    // todo: eagerly process this macro body
                     .reduce(function(acc, bodyStx, idx, original) {
                         // first find the ellipses and mark the syntax objects
                         // (note that this step does not eagerly go into delimiter bodies)
@@ -4415,7 +4414,7 @@ var fs = require("fs");
                                     if(bodyStx.group) {
                                         return transcribe(bodyStx.token.inner, renv);
                                     } else {
-                                        var newBody = syntaxFromToken(_.clone(bodyStx.token), bodyStx.concat);
+                                        var newBody = syntaxFromToken(_.clone(bodyStx.token), bodyStx.context);
                                         newBody.token.inner = transcribe(bodyStx.token.inner, renv);
                                         return newBody;
                                     }
@@ -4433,8 +4432,9 @@ var fs = require("fs");
                             }
                         } else {
                             if(bodyStx.token.type === Token.Delimiter) {
-                                bodyStx.token.inner = transcribe(bodyStx.token.inner, env);
-                                return acc.concat(bodyStx);
+                                var newBody = syntaxFromToken(_.clone(bodyStx.token), bodySyntax.context);
+                                newBody.token.inner = transcribe(bodyStx.token.inner, env);
+                                return acc.concat(newBody);
                             } 
                             if(env[bodyStx.token.value]) {
                                 assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match");

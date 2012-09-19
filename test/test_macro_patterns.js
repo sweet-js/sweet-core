@@ -250,8 +250,8 @@ describe("macro expander", function() {
     expect(n).to.be(2)
   });
 
-  it("should handle recursive macros", function() {
-    macro rot {
+  it("should handle multiple cases when matching different length patterns", function() {
+    macro arrid {
       case [$x:lit] => {
         [$x]
       }
@@ -260,11 +260,28 @@ describe("macro expander", function() {
       }
     }
 
+    var l = arrid [1]
+    expect(l).to.eql([1])
+
+    var ll = arrid [1,2]
+    expect(ll).to.eql([1, 2])
+  });
+
+  it("should handle recursive macros", function() {
+    macro rot {
+      case [$x:lit] => {
+        [$x]
+      }
+      case [$x:lit, $y:lit] => {
+        [rot [$y], $x]
+      }
+    }
+
     var l = rot [1]
     expect(l).to.eql([1])
 
     var ll = rot [1,2]
-    expect(ll).to.eql([1, 2])
+    expect(ll).to.eql([[2], 1])
   });
 
 });
