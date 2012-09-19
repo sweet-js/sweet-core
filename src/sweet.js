@@ -4425,11 +4425,11 @@ var fs = require("fs");
                                 } else {
                                     joined = joinSyntax(transcribed, bodyStx.separator)
                                 }
+
                                 return acc.concat(joined);
-                            } else {
-                                assert(env[bodyStx.token.value].level === 1, "ellipses level does not match");
-                                return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match, bodyStx.separator));
                             }
+                            assert(env[bodyStx.token.value].level === 1, "ellipses level does not match");
+                            return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match, bodyStx.separator));
                         } else {
                             if(bodyStx.token.type === Token.Delimiter) {
                                 var newBody = syntaxFromToken(_.clone(bodyStx.token), bodySyntax.context);
@@ -4600,16 +4600,25 @@ var fs = require("fs");
             return [];
         }
 
+        var doneLoadingMacroDefs;
+        if(stx[0] && stx[0].token.value === "macro") {
+            doneLoadingMacroDefs = false;
+        } else {
+            doneLoadingMacroDefs = true;
+        }
+
         while(index < stx.length) {
             var currStx = stx[index++];
             var token = currStx.token;
-            if(typeof token === 'undefined') {
-                console.log(currStx);
-            }
+
             if ((token.type === Token.Identifier) && (token.value === "macro")) {
                 var macroNameStx = stx[index++];
                 var macroName = macroNameStx.token.value;
                 var macroBody = stx[index++].token;
+
+                if(doneLoadingMacroDefs) {
+                    assert(false, "all macros must be defined at the top of the scope");
+                }
 
                 assert(macroBody.value === "{}", "expecting a macro body");
 
@@ -4637,7 +4646,7 @@ var fs = require("fs");
 
             // function (args) { body }
             } else if ((token.type === Token.Keyword) && (token.value === "function")) {
-                // todo expand this to more than just "function" (ie decl and vars)
+                doneLoadingMacroDefs = true;
 
                 var argsDelim = stx[index++];
                 var functionName;
@@ -4718,6 +4727,7 @@ var fs = require("fs");
                 expanded = expanded.concat(flatArgs);
                 expanded = expanded.concat(varRenamedFlatBody);
             } else if (token.type === Token.Identifier) {
+                doneLoadingMacroDefs = true;
                 var resolvedIdent = resolve(currStx);
 
                 var ident;
@@ -4730,9 +4740,11 @@ var fs = require("fs");
                 }
                 expanded = expanded.concat(ident);
             } else if (token.type === Token.Delimiter) {
+                doneLoadingMacroDefs = true;
                 currStx.token.inner = expand(token.inner, macros, env);
                 expanded = expanded.concat(currStx);
             } else {
+                doneLoadingMacroDefs = true;
                 expanded = expanded.concat(tokensToSyntax(token));
             }
         }

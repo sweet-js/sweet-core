@@ -284,4 +284,38 @@ describe("macro expander", function() {
     expect(ll).to.eql([[2], 1])
   });
 
+  it("should handle mutually recursive macros", function() {
+    macro a {
+      case [$x:lit] => {
+        b ($x)
+      }
+    }
+    macro b {
+      case ($x:lit) => {
+        [$x]
+      }
+      case ($x:lit, $y:lit) => {
+        a [$x]
+      }
+    }
+    var z = b (1, 2);
+    expect(z).to.eql([1]) 
+  });
+
+  it("should allow macro defining macros", function() {
+    macro mm {
+      case ($x:lit) => {
+        macro m {
+          case ($y:lit) => { 
+            [$x, $y] 
+          }
+        }
+      }
+    }
+
+    mm (42)
+    var z = m (24);
+    expect(z).to.eql([42,24])
+  });
+
 });
