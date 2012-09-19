@@ -3952,7 +3952,7 @@ var fs = require("fs");
                         assert(typeof nextNext !== 'undefined', "expecting a pattern class");
                         patStx.class = nextNext.token.value;
                     } else {
-                        patStx.class = "ident";
+                        patStx.class = "token";
                     }
                 } else if (patStx.token.type === Token.Delimiter) {
                     if (last && last.token.value === "$") {
@@ -4009,16 +4009,24 @@ var fs = require("fs");
         var consumed = 0;
         var matchedSyntax;
 
+        assert(callStx.length !== 0, "expecting a non empty array");
         // attempt to parse
-        try {
-            var parseResult = parse_stx(callStx, 
-                                        pattern.class, 
-                                        {tokens:true});
+        if(pattern.class === "token") {
+            if(callStx[0].token.type !== Token.EOF) {
+                consumed = 1;
+                matchedSyntax = callStx.slice(0, 1);
+            }
+        } else {
+            try {
+                var parseResult = parse_stx(callStx, 
+                                            pattern.class, 
+                                            {tokens:true});
 
-            consumed = parseResult.tokens.length;
-            matchedSyntax = callStx.slice(0, consumed);
-        } catch (e) {
-            consumed = 0;
+                consumed = parseResult.tokens.length;
+                matchedSyntax = callStx.slice(0, consumed);
+            } catch (e) {
+                consumed = 0;
+            }
         }
 
         return {
@@ -4196,6 +4204,19 @@ var fs = require("fs");
         // todo could be nicer about the line numbers...currently just
         // taking from the macro name but could also do offset
         return _.map(to, function(stx) {
+            if(stx.token.type === Token.Delimiter) {
+                return syntaxFromToken({
+                    type: Token.Delimiter,
+                    value: stx.token.value,
+                    inner: stx.token.inner,
+                    startRange: from.range,
+                    endRange: from.range,
+                    startLineNumber: from.token.lineNumber,
+                    startLineStart: from.token.lineStart,
+                    endLineNumber: from.token.lineNumber,
+                    endLineStart: from.token.lineStart
+                }, stx.context);
+            }
             return syntaxFromToken({
                     value: stx.token.value,
                     type: stx.token.type,

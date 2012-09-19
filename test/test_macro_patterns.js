@@ -78,7 +78,7 @@ describe("macro expander", function() {
 
   it("should expand multiple macro body types", function() {
     macro assign {
-      case ($x) {$y:expr} => {
+      case ($x:ident) {$y:expr} => {
         var $x = $y;
       }
     }
@@ -138,7 +138,7 @@ describe("macro expander", function() {
 
   it("should expand a simple let macro", function() {
     macro lett {
-      case ($x = $v:expr) {$y:expr} => {
+      case ($x:ident = $v:expr) {$y:expr} => {
         (function($x) { return $y; })($v);
       }
     }
@@ -151,7 +151,7 @@ describe("macro expander", function() {
 
   it("should expand a complex let macro", function() {
     macro lett {
-      case ( $($x = $v:expr) (,) ...) {$y:expr} => {
+      case ( $($x:ident = $v:expr) (,) ...) {$y:expr} => {
         (function($x (,) ...) { return $y; })($v (,) ...);
       }
     }
@@ -316,6 +316,16 @@ describe("macro expander", function() {
     mm (42)
     var z = m (24);
     expect(z).to.eql([42,24])
+  });
+
+  it("should allow matching of unparsed tokens", function() {
+    macro m {
+      case ($x) => {
+        $x
+      }
+    }
+    var z = m ([1,2,3]);
+    expect(z).to.eql([1,2,3]) 
   });
 
 });
