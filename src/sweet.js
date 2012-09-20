@@ -4536,24 +4536,17 @@ var fs = require("fs");
 
     // wraps the array of syntax objects in the delimiters given by the second argument
     // ([...CSyntax], CSyntax) -> [...CSyntax]
-    function flatWrapDelim(towrap, delimSyntax) {
+    function wrapDelim(towrap, delimSyntax) {
         assert(delimSyntax.token.type === Token.Delimiter, "expecting a delimiter token");
-        var flat = [syntaxFromToken({
-            type: Token.Punctuator,
-            value: delimSyntax.token.value[0],
-            range: delimSyntax.token.startRange,
-            lineNumber: delimSyntax.token.startLineNumber,
-            lineStart: delimSyntax.token.startLineStart
-        }, delimSyntax.context)];
-        flat = flat.concat(towrap);
-        flat = flat.concat(syntaxFromToken({
-            type: Token.Punctuator,
-            value: delimSyntax.token.value[1],
-            range: delimSyntax.token.endRange,
-            lineNumber: delimSyntax.token.endLineNumber,
-            lineStart: delimSyntax.token.endLineStart
-        }, delimSyntax.context));
-        return flat;
+
+        return syntaxFromToken({
+            type: Token.Delimiter,
+            value: delimSyntax.token.value,
+            inner: towrap,
+            range: delimSyntax.token.range,
+            startLineNumber: delimSyntax.token.startLineNumber,
+            lineStart: delimSyntax.token.lineStart
+        }, delimSyntax.context);
     }
 
     // (CSyntax) -> [...CSyntax]
@@ -4606,6 +4599,21 @@ var fs = require("fs");
             }
             return acc;
         }, []);
+    }
+
+    function replaceVarIdent(stx, orig, renamed) {
+        if(stx === orig) {
+            return renamed;
+        }
+        if(stx.token.type === Token.Delimiter) {
+            var replacedToken = _.clone(stx.token);
+            var replacedInner = _.map(replacedToken.inner, function(s) {
+                return replaceVarIdent(s, orig, renamed);
+            });
+            replacedToken.inner = replacedInner;
+            return syntaxFromToken(replacedToken, stx.context);
+        }
+        return stx;
     }
 
     // (CSyntax) -> CSyntax
@@ -4718,7 +4726,7 @@ var fs = require("fs");
                 renamedBody = renamedBody.push_dummy_rename(dummyName);
 
                 var flatBody = expand([renamedBody], macros, newEnv);
-                var flatArgs = flatWrapDelim(joinSyntax(renamedArgs, ","), argsDelim);
+                var flatArgs = wrapDelim(joinSyntax(renamedArgs, ","), argsDelim);
 
                 var varIdents = getVarIdentifiers(flatBody);
                 varIdents = _.filter(varIdents, function(varId) {
@@ -4737,8 +4745,12 @@ var fs = require("fs");
                 // var varRenamedFlatBody = flatBody;
                 var varRenamedFlatBody = _.reduce(freshnameVarIdents, function(accBody, varPair) {
                         var freshName = varPair[0];
-                        var ident = varPair[1];
-                        return accBody.swap_dummy_rename(ident, freshName, dummyName);
+                        var ident = varPair[1].rename(varPair[1], freshName);
+                        // first find and replace the var declarations
+                        var replacedBody = replaceVarIdent(accBody, varPair[1], ident);
+                        // var replacedBody = accBody; // replaceVarIdent(accBody, varPair[1], ident);
+                        // then swap the dummy renames
+                        return replacedBody.swap_dummy_rename(varPair[1], freshName, dummyName);
                 }, flatBody[0]);
 
                 expanded = expanded.concat(currStx);
