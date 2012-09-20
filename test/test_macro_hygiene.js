@@ -1,6 +1,6 @@
 var expect = require("expect.js")
 
-describe("macro hygine", function() {
+describe("macro hygiene", function() {
 
   it("should work for or macro", function() {
 
@@ -138,7 +138,7 @@ describe("macro hygine", function() {
 
   // todo this test needs a better api (syntax-case?)
 
-  // it("should work for another variant of hygine", function() {
+  // it("should work for another variant of hygiene", function() {
   //   (function(x) {
 
   //     macro n {
