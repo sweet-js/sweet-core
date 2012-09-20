@@ -91,6 +91,50 @@ describe("macro hygine", function() {
     expect(z).to.be("foo")
   });
 
+  it("should work for vars with hoisting", function() {
+    macro m {
+      case $x:lit => {
+        var tmp = $x;
+      }
+    }
+
+    var tmp = "outer"
+    m "inner"
+    expect(tmp).to.be("outer");
+
+  });
+
+  it("should work for vars with hoisting and params", function() {
+    function f(tmp) {
+      macro m {
+        case $x:lit => {
+          var tmp = $x;
+        }
+      }
+
+      var tmp = "outer"
+      m "inner"
+      expect(tmp).to.be("outer");
+    }
+
+    f("call")
+
+  });
+
+  it("should work for var with nested function", function() {
+    macro m {
+      case $x:lit => {
+        var tmp = $x;
+      }
+    }
+    function f() {
+      var tmp = "outer"
+      m "inner"
+      expect(tmp).to.be("outer");
+    }
+    f();
+  });
+
 
   // todo this test needs a better api (syntax-case?)
 
