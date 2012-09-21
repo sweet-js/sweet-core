@@ -13,9 +13,16 @@
   </script>
   <script id="sweetjs" type="text/sweetjs">
     function foo() {
-      var x, y, z;
-    }
-  </script>
+      macro m {
+        case $x:lit => {
+          var tmp = $x;
+        }
+      }
+
+      var tmp = "outer"
+      m "inner"
+    } 
+    </script>
 </head>
 <body>
   Parsing...
