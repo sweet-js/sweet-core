@@ -90,78 +90,10 @@ a.mozilla {
 <p id="slogan"><span>Sweeten your JavaScript</span></p>
 
 <p class="text">
- Sweet.js brings hygienic macros from languages like Scheme and Rust to JavaScript. Macros allow you to easily extend the syntax of JavaScript and create the language you've always wanted.
+Coming soon...
 </p>
 
 
-<p class="text">
-  Wish <code class="language-javascript">function</code> wasn't so long? What if you could define functions like this:
-</p>
-
-<pre><code class="language-javascript">
-def sweet(a) {
-  console.log("Macros are sweet!");
-}
-</code></pre>
-
-<p class="text">
-  Macros let you do this!
-</p>
-
-<pre><code class="language-javascript">
-macro def {
-  case $name:ident ($params:ident (,) ...) 
-                   {$body:SourceElements} => {
-    function $name ($params (,) ...) {
-      $body
-    }
-  }
-}
-</code></pre>
-
-<p class="text">
-  Want a better way to make "classy" objects?
-</p>
-
-<pre><code class="language-javascript">
-class Person {
-  constructor(name) {
-    this.name = name;
-  }
-
-  say(msg) {
-    console.log(this.name + " says " + msg);
-  }
-}
-var bob = new Person("Bob");
-bob.say("Macros are sweet!");
-</code></pre>
-
-<p class="text">
-  We can do this with macros too!
-</p>
-
-<pre><code class="language-javascript">
-macro class {
-  case $name:ident { 
-    constructor ($cparams:ident (,) ...) 
-                {$cbody:SourceElements}
-    $($mname:ident ($mparams:ident (,) ...) 
-                   {$mbody:SourceElements}) ... 
-  } => {
-
-    function $name ($cparams (,) ...) {
-      $cbody
-    }
-
-    $(
-    $name.prototype.$mname = function ($mparams (,) ...) {
-      $mbody
-    }) ...
-
-  }
-}
-</code></pre>
 
 </div>
 </div>
