@@ -90,12 +90,14 @@ a.mozilla {
 <p id="slogan"><span>Sweeten your JavaScript</span></p>
 
 <p class="text">
- Sweet.js brings hygienic macros from languages like Scheme and Rust to JavaScript. Macros allow you to easily extend the syntax of JavaScript and create the language you've always wanted.
+ Sweet.js brings hygienic macros from languages like Scheme and Rust to JavaScript. 
+ Macros allow you to sweeten the syntax of JavaScript and craft the language you've always wanted.
 </p>
 
 
 <p class="text">
-  Wish <code class="language-javascript">function</code> wasn't so long? What if you could define functions like this:
+  Wish the <code class="language-javascript">function</code> keyword in JavaScript wasn't so long? 
+  What if you could define functions with <code>def</code> instead?
 </p>
 
 <pre><code class="language-javascript">
@@ -110,11 +112,8 @@ def sweet(a) {
 
 <pre><code class="language-javascript">
 macro def {
-  case $name:ident ($params:ident (,) ...) 
-                   {$body:SourceElements} => {
-    function $name ($params (,) ...) {
-      $body
-    }
+  case $name:ident $params $body => {
+    function $name $params $body
   }
 }
 </code></pre>
@@ -124,13 +123,13 @@ macro def {
 </p>
 
 <pre><code class="language-javascript">
-class Person {
+classy Person {
   constructor(name) {
     this.name = name;
   }
 
   say(msg) {
-    console.log(this.name + " says " + msg);
+    console.log(this.name + " says: " + msg);
   }
 }
 var bob = new Person("Bob");
@@ -138,29 +137,146 @@ bob.say("Macros are sweet!");
 </code></pre>
 
 <p class="text">
-  We can do this with macros too!
+  Macros can do that too!
 </p>
 
 <pre><code class="language-javascript">
-macro class {
-  case $name:ident { 
-    constructor ($cparams:ident (,) ...) 
-                {$cbody:SourceElements}
-    $($mname:ident ($mparams:ident (,) ...) 
-                   {$mbody:SourceElements}) ... 
-  } => {
+macro classy {
+  case $className:ident { 
+    constructor $constParam $constBody
+    $($methodName:ident $methodParam $methodBody) ... } => {
 
-    function $name ($cparams (,) ...) {
-      $cbody
-    }
+    function $className $constParam $constBody
 
-    $(
-    $name.prototype.$mname = function ($mparams (,) ...) {
-      $mbody
-    }) ...
+    $($className.prototype.$methodName 
+      = function $methodName $methodParam $methodBody; ) ...
 
   }
+}  
+</code></pre>
+
+<h2>Getting sweet.js</h2>
+
+<p class="text">
+  Install the sweet.js compiler via npm:
+</p>
+
+<pre><code class="language-markup">
+  $ npm install -g sweet.js
+</code></pre>
+
+<p class="text">
+  Use the <code>sjs</code> binary to compile your sweet.js code:
+</p>
+
+<pre><code class="language-markup">
+  $ sjs -o output.js my_sweet_code.js
+</code></pre>
+
+<p class="text">
+  Sweet.js is still a young project so expect some bugs and missing features.
+  If you find a bug, please report it on <a href="https://github.com/mozilla/sweet.js/issues">github</a>.
+</p>
+
+<h2>Writing macros</h2>
+
+<p class="text">
+  You can think of macros as functions that take little bits of syntax and convert it to
+  new bits of syntax at compile-time. Macros are created with the <code>macro</code> keyword:
+</p>
+
+<pre><code class="language-javascript">
+macro id {
+  case ($x) => { $x }
 }
+</code></pre>
+
+<p class="text">
+  This can be read as "define a macro named 'id' that matches a single token surrounded by parenthesis and
+  when invoked returns just the matched token".
+</p>
+
+<pre><code class="language-javascript">
+var x = id ("foo")
+// compiles to -->
+var x = "foo"
+</code></pre>
+
+<p class="text">
+  A pattern name that begin with "<code>$</code>" in the left hand side of the macro definition
+  match any token and binds it to that name in macro body while everything else matches literally.
+</p>
+
+<pre><code class="language-javascript">
+macro m {
+  case ($x becomes $y) => { 
+    $x = $y;
+  }
+}
+m (a becomes b)
+// -->
+a = b
+</code></pre>
+
+<p class="text">
+  A pattern can have a parse AST class <code>:class</code> in which case rather than matching only
+  a single token the pattern matches all the tokens matched by the parse.
+</p>
+
+<pre><code class="language-javascript">
+macro m {
+  case ($x:expr) => { 
+    // ...
+  }
+}
+m (2 + 5 * 10)
+</code></pre>
+
+<p class="text">
+  The commonly used parse classes that have short names are 
+  <code>expr</code> (matches an expression),
+  <code>ident</code> (matches an identifier), and
+  <code>lit</code> (matches a literal). The full list is described <a href="#">here</a>.
+</p>
+
+<p class="text">
+  Repeated patterns can be matched with the <code>...</code> syntax.
+</p>
+
+<pre><code class="language-javascript">
+macro m {
+  case ($x ...) => { 
+    // ...
+  }
+}
+m (1 2 3 4)
+</code></pre>
+
+<p class="text">
+  A repeated pattern with separators between each repetition can be matched by
+  adding <code>(,)</code> between <code>...</code> and the pattern.
+</p>
+
+<pre><code class="language-javascript">
+macro m {
+  case ($x (,) ...) => { 
+    [$x (,) ...]
+  }
+}
+m (1, 2, 3, 4)
+</code></pre>
+
+<p class="text">
+  Repeated groups of patterns can be matched using <code>$()</code>.
+</p>
+
+<pre><code class="language-javascript">
+macro m {
+  case ( $($id:ident = $val:expr) (,) ...) => { 
+    $(var $id = $val;) ...
+  }
+}
+m (x = 10, y = 2+10)
 </code></pre>
 
 </div>
