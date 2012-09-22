@@ -4237,7 +4237,6 @@ var fs = require("fs");
             return acc.concat(mkSyntax(punc, Token.Punctuator, _.first(join.match)), join.match);
         }, _.first(tojoin).match);
     }
-
     // ([...CSyntax], Str) -> [...CSyntax])
     function joinSyntax(tojoin, punc) {
         if(tojoin.length === 0) { return []; }

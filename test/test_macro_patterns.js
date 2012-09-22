@@ -171,6 +171,16 @@ describe("macro expander", function() {
     expect(x).to.eql([[1],[2],[3]]);
   });
 
+  it("should work", function() {
+    macro m {
+      case { $($a $b) ... } => {
+        [$([$a, $b]) (,) ...];
+      }
+    }
+
+    var x = m { 1 2 3 4 }
+  });
+
   it("should expand simple nested ellipses", function() {
     macro nest {
       case ( ($x:lit (,) ...) (,) ... ) => {

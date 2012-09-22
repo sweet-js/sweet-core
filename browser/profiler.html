@@ -12,16 +12,36 @@
   })
   </script>
   <script id="sweetjs" type="text/sweetjs">
-    function foo() {
-      macro m {
-        case $x:lit => {
-          var tmp = $x;
-        }
+    macro classs {
+      case $className:ident { 
+        constructor $constParam $constBody
+        $($methodName:ident $methodParam $methodBody) ...
+      } => {
+
+        function $className $constParam $constBody
+
+        $(
+          $className.prototype.$methodName = function $methodName $methodParam $methodBody;
+        ) ...
+
+      }
+    }  
+
+    classs Person {
+
+      constructor(name) {
+        this.name = name;
       }
 
-      var tmp = "outer"
-      m "inner"
-    } 
+      say (msg) {
+        return "Macros are sweet!";
+      }
+
+      sayy (msg) {
+        return "Macros are sweet!";
+      }
+
+    }
     </script>
 </head>
 <body>
