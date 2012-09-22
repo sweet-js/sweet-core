@@ -15,7 +15,6 @@ body {
 }
 
 #body {
-  /*width: 80%;*/
   width: 600px;
   margin: 0 auto;
   position: relative;
@@ -30,6 +29,7 @@ body {
 #content {
   float: left;
   width: 650px;
+  padding-bottom:50px;
 }
 #slogan {
   font-size: 300%;
@@ -174,7 +174,7 @@ macro classy {
 </code></pre>
 
 <p class="text">
-  Sweet.js is still a young project so expect some bugs and missing features.
+  Sweet.js is still a young project so expect bugs and missing features.
   If you find a bug, please report it on <a href="https://github.com/mozilla/sweet.js/issues">github</a>.
 </p>
 
@@ -204,7 +204,7 @@ var x = "foo"
 
 <p class="text">
   A pattern name that begin with "<code>$</code>" in the left hand side of the macro definition
-  match any token and binds it to that name in macro body while everything else matches literally.
+  matches any token and binds it to that name in macro body while everything else matches literally.
 </p>
 
 <pre><code class="language-javascript">
@@ -219,8 +219,9 @@ a = b
 </code></pre>
 
 <p class="text">
-  A pattern can have a parse AST class <code>:class</code> in which case rather than matching only
-  a single token the pattern matches all the tokens matched by the parse.
+  A pattern name can be restricted to a particular parse class by using 
+  <code>$name:class</code> in which case rather than matching only
+  a single token the pattern matches all the tokens matched by the parse class.
 </p>
 
 <pre><code class="language-javascript">
@@ -253,8 +254,8 @@ m (1 2 3 4)
 </code></pre>
 
 <p class="text">
-  A repeated pattern with separators between each repetition can be matched by
-  adding <code>(,)</code> between <code>...</code> and the pattern.
+  A repeated pattern with a separator between each item can be matched by
+  adding <code>(,)</code> between <code>...</code> and the pattern being repeated.
 </p>
 
 <pre><code class="language-javascript">
@@ -265,6 +266,7 @@ macro m {
 }
 m (1, 2, 3, 4)
 </code></pre>
+
 
 <p class="text">
   Repeated groups of patterns can be matched using <code>$()</code>.
@@ -277,6 +279,19 @@ macro m {
   }
 }
 m (x = 10, y = 2+10)
+</code></pre>
+
+<p class="text">
+  Macros can match on multiple cases.
+</p>
+
+<pre><code class="language-javascript">
+macro m {
+  case ($x:lit) => { $x }
+  case ($x:lit, $y:lit) => { [$x, $y] }
+}
+m (1)     // --> 1
+m (1, 2)  // --> [1, 2]
 </code></pre>
 
 </div>
