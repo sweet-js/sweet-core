@@ -3,7 +3,7 @@ var path = require("path");
 
 target.all = function() {
   target.build();
-  target.build_browser();
+  // target.build_browser();
   target.test();
 }
 
