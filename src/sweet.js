@@ -4827,13 +4827,26 @@ var fs = require("fs");
                     return advance();
                 } 
                 if(prev.value === "{}") {
-                    if(back(4).value === "function" && isIn(back(5).value, fnExprTokens)) {
-                        return advance();
-                    } 
-                    if (back(4).value === "function" && (toks.length - 5 <= 0) && inExprDelim) {
-                        // case where: (function foo() {} /asdf/) or [function foo() {} /asdf]
-                        return advance();
-                    } 
+                    // named function
+                    if(back(4).value === "function") {
+                        if(isIn(back(5).value, fnExprTokens)) {
+                            return advance();
+                        }
+                        if ((toks.length - 5 <= 0) && inExprDelim) {
+                            // case where: (function foo() {} /asdf/) or [function foo() {} /asdf]
+                            return advance();
+                        }
+                    }
+                    // unnamed function
+                    if(back(3).value === "function") {
+                        if(isIn(back(4).value, fnExprTokens)) {
+                            return advance();
+                        }
+                        if ((toks.length - 4 <= 0) && inExprDelim) {
+                            // case where: (function foo() {} /asdf/) or [function foo() {} /asdf]
+                            return advance();
+                        }
+                    }
                     return scanRegExp();
                 } 
                 if(prev.type === Token.Punctuator) {

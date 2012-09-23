@@ -209,11 +209,16 @@ describe("reader", function() {
         expect(read("foo() /asdf/")[2].value)
             .to.equal("/");
     });
-    
+
+    it("should read / in a return statement correctly", function() {
+      expect(read("function foo() { return /42/; }")[5].value)
+            .to.equal("/");
+    });
+
     it("should read a / after {} in a function declaration as regex", function() {
         expect(read("function foo() {} /asdf/")[4].literal)
             .to.equal("/asdf/");
-        
+
         expect(read("{false} function foo() {} /42/i")[5].literal)
             .to.equal("/42/i");
         
@@ -271,7 +276,10 @@ describe("reader", function() {
     it("should read a / after {} in a function expression as divide", function() {
         expect(read("x = function foo() {} /asdf/")[6].value)
             .to.equal("/");
-        
+
+        expect(read("a = function () {}\n/4/\n7")[5].value)
+            .to.equal("/");
+
         expect(read("x = 42 / function foo() {} /42/i")[8].value)
             .to.equal("/");
         
