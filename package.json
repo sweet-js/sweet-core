@@ -1,0 +1,41 @@
+{
+  "name": "sweet.js",
+  "description": "Macros!",
+  "main": "sweet.js",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=0.4.0"
+  },
+  "author": "Tim Disney",
+  "licenses": [
+    {
+      "type": "BSD",
+      "url": "http://github.com/ariya/esprima/raw/master/LICENSE.BSD"
+    }
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "expect.js": "~0.1.2",
+    "optimist": "~0.3.4",
+    "underscore": "~1.3.3"
+  },
+  "devDependencies": {
+    "mocha": "~1.3.2",
+    "expect.js": "0.1.x",
+    "shelljs": "0.0.6"
+  },
+  "scripts": {
+    "test": "shjs build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mozilla/sweet.js.git"
+  },
+  "keywords": [
+    "macros",
+    "javascript"
+  ],
+  "license": "BSD"
+}
