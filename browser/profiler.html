@@ -1,0 +1,50 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Mocha Tests</title>
+  <script src="jquery.js"></script>
+  <script src="parser_bundle.js"></script>
+  <script>
+  $(document).ready(function() {
+    var code = $("#sweetjs").text();
+    var res = parser.parse(code);
+    console.log(res)
+  })
+  </script>
+  <script id="sweetjs" type="text/sweetjs">
+    macro classs {
+      case $className:ident { 
+        constructor $constParam $constBody
+        $($methodName:ident $methodParam $methodBody) ...
+      } => {
+
+        function $className $constParam $constBody
+
+        $(
+          $className.prototype.$methodName = function $methodName $methodParam $methodBody;
+        ) ...
+
+      }
+    }  
+
+    classs Person {
+
+      constructor(name) {
+        this.name = name;
+      }
+
+      say (msg) {
+        return "Macros are sweet!";
+      }
+
+      sayy (msg) {
+        return "Macros are sweet!";
+      }
+
+    }
+    </script>
+</head>
+<body>
+  Parsing...
+</body>
+</html>
