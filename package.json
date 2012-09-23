@@ -10,7 +10,7 @@
   "licenses": [
     {
       "type": "BSD",
-      "url": "http://github.com/ariya/esprima/raw/master/LICENSE.BSD"
+      "url": "http://github.com/mozilla/sweet.js/master/LICENSE.BSD"
     }
   ],
   "directories": {
