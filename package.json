@@ -1,6 +1,6 @@
 {
   "name": "sweet.js",
-  "description": "Macros!",
+  "description": "Hygienic Macros for JavaScript",
   "main": "sweet.js",
   "version": "0.1.0",
   "engines": {
