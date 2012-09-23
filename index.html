@@ -127,7 +127,7 @@ macro def {
 </p>
 
 <pre><code class="language-javascript">
-classy Person {
+class Person {
   constructor(name) {
     this.name = name;
   }
@@ -145,7 +145,7 @@ bob.say("Macros are sweet!");
 </p>
 
 <pre><code class="language-javascript">
-macro classy {
+macro class {
   case $className:ident { 
     constructor $constParam $constBody
     $($methodName:ident $methodParam $methodBody) ... } => {
