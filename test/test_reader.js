@@ -211,8 +211,8 @@ describe("reader", function() {
     });
 
     it("should read / in a return statement correctly", function() {
-      expect(read("function foo() { return /42/; }")[5].value)
-            .to.equal("/");
+      expect(read("function foo() { return /42/; }")[3].inner[1].literal)
+            .to.equal("/42/");
     });
 
     it("should read a / after {} in a function declaration as regex", function() {
