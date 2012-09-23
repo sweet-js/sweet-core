@@ -251,18 +251,7 @@ var fs = require("fs");
     // 7.6.1.2 Future Reserved Words
 
     function isFutureReservedWord(id) {
-        switch (id) {
-
-        // Future reserved words.
-        case 'class':
-        case 'enum':
-        case 'export':
-        case 'extends':
-        case 'import':
-        case 'super':
-            return true;
-        }
-
+        // we are allowing future reserved words so macros can be written for them
         return false;
     }
 
