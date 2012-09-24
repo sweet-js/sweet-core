@@ -15,17 +15,19 @@ Clone sweet.js and then install its dependencies:
 
 To try it out make a file `test_macros.js`:
 
-    // functions can now be spelled def!
-    macro def {
-      case $name:ident $params $body => {
-        function $name $params $body
-      }
-    }
-    def add (a, b) {
-      return a + b;
-    }
+```js
+// functions can now be spelled def!
+macro def {
+  case $name:ident $params $body => {
+    function $name $params $body
+  }
+}
+def add (a, b) {
+  return a + b;
+}
 
-    console.log( add(3, 7) );
+console.log( add(3, 7) );
+```
 
 And compile it with `sjs`:
   
