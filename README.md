@@ -1,7 +1,9 @@
 sweet.js
 ========
 
-Hygienic Macros for JavaScript! 
+Hygienic Macros for JavaScript!
+
+Documentation at [sweetjs.org](http://sweetjs.org).
 
 Overview and motivation in this [talk](https://air.mozilla.org/sweetjs/).
 
@@ -34,8 +36,6 @@ And compile it with `sjs`:
     $ bin/sjs -o output.js test_macros.js
     $ node output.js
     10
-
-Docs to come. At the moment the best documentation for what works is the [pattern](https://github.com/mozilla/sweet.js/blob/master/test/test_macro_patterns.js) and [hygiene](https://github.com/mozilla/sweet.js/blob/master/test/test_macro_hygiene.js) tests.
 
 
 ## Hacking
