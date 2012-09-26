@@ -277,6 +277,17 @@ describe("macro expander", function() {
     expect(ll).to.eql([1, 2])
   });
 
+  it("should handle more multiple cases", function() {
+    macro m {
+      case $n:ident => {42}
+      case $n:ident < $m:ident {} => {42}
+    }
+    var z = m foo;
+    var zz = m foo < foo {};
+    expect(z).to.be(42);
+    expect(zz).to.be(42);
+  });
+
   it("should handle recursive macros", function() {
     macro rot {
       case [$x:lit] => {
