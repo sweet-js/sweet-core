@@ -6,7 +6,7 @@ var Mocha = require("mocha");
 
 target.all = function() {
   target.build();
-  target.build_browser();
+  //target.build_browser();
   target.test();
 }
 
