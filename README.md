@@ -40,11 +40,10 @@ And compile it with `sjs`:
 
 ## Hacking
 
-Install dev dependencies:
+Install the dev dependencies:
 
-    $ npm install expect.js
-    $ npm install -g shelljs mocha
+    $ npm install --dev
 
-And build with shelljs:
+And run the tests
 
-    $ shjs build
+    $ npm test
