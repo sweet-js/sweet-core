@@ -13,6 +13,9 @@
       "url": "http://github.com/mozilla/sweet.js/master/LICENSE.BSD"
     }
   ],
+  "scripts": {
+    "test": "node build"
+  },
   "directories": {
     "test": "test"
   },
@@ -26,10 +29,8 @@
   "devDependencies": {
     "mocha": "~1.3.2",
     "expect.js": "0.1.x",
-    "shelljs": "0.0.6"
-  },
-  "scripts": {
-    "test": "shjs build"
+    "shelljs": "0.0.6",
+    "browserify": "1.16.x"
   },
   "repository": {
     "type": "git",

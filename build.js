@@ -1,9 +1,12 @@
 require("shelljs/make");
+var browserify = require("browserify");
 var path = require("path");
+var fs = require("fs");
+var Mocha = require("mocha");
 
 target.all = function() {
   target.build();
-  // target.build_browser();
+  target.build_browser();
   target.test();
 }
 
@@ -23,12 +26,25 @@ target.build = function() {
 
 target.build_browser = function() {
   echo("\nbuilding browser tests...");
-  var test_files = ls("build/*.js").join(" ");
-  exec("browserify -o browser/test_bundled.js " + test_files);
-  exec("browserify -o browser/parser_bundle.js browser/load_parser.js");
+
+  var b = browserify();
+  var test_files = ls("build/*.js").forEach(b.addEntry);
+  var bundle = b.bundle();
+  fs.writeFileSync("browser/test_bundled.js", bundle, "utf8");
+
+  b = browserify("browser/load_parser.js");
+  bundle = b.bundle();
+  fs.writeFileSync("browser/parser_bundle.js", bundle, "utf8");
 }
 
 target.test = function() {
   echo("\nrunning tests...");
-  exec("mocha --growl build/");
+  var mocha = new Mocha();
+
+  fs.readdirSync('build/').filter(function(file) {
+    return file.substr(-3) === '.js';
+  }).forEach(function(file) {
+    mocha.addFile(path.join("build/", file));
+  });
+  mocha.run();
 }
