@@ -1,4 +1,5 @@
 /*
+  Copyright (C) 2012 Tim Disney <tim@disnet.me>
   Copyright (C) 2012 Ariya Hidayat <ariya.hidayat@gmail.com>
   Copyright (C) 2012 Mathias Bynens <mathias@qiwi.be>
   Copyright (C) 2012 Joost-Wim Boekesteijn <joost-wim@boekesteijn.nl>
@@ -1915,33 +1916,17 @@ var fs = require("fs");
         previousAllowIn = state.allowIn;
         state.allowIn = true;
         expr = parseShiftExpression();
-        state.allowIn = previousAllowIn;
 
-        if (match('<') || match('>') || match('<=') || match('>=')) {
+        while (match('<') || match('>') || match('<=') || match('>=') || (previousAllowIn && matchKeyword('in')) || matchKeyword('instanceof')) {
             expr = {
                 type: Syntax.BinaryExpression,
                 operator: lex().token.value,
                 left: expr,
                 right: parseRelationalExpression()
             };
-        } else if (state.allowIn && matchKeyword('in')) {
-            lex();
-            expr = {
-                type: Syntax.BinaryExpression,
-                operator: 'in',
-                left: expr,
-                right: parseRelationalExpression()
-            };
-        } else if (matchKeyword('instanceof')) {
-            lex();
-            expr = {
-                type: Syntax.BinaryExpression,
-                operator: 'instanceof',
-                left: expr,
-                right: parseRelationalExpression()
-            };
         }
 
+        state.allowIn = previousAllowIn;
         return expr;
     }
 
