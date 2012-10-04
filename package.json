@@ -1,7 +1,7 @@
 {
   "name": "sweet.js",
   "description": "Hygienic Macros for JavaScript",
-  "main": "sweet.js",
+  "main": "lib/sweet.js",
   "version": "0.1.0",
   "engines": {
     "node": ">=0.4.0"
