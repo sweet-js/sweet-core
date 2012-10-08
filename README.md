@@ -15,7 +15,7 @@ Clone sweet.js and then install its dependencies:
 
     $ npm install underscore optimist escodegen
 
-To try it out make a file `test_macros.js`:
+To try it out make a file `test_macros.sjs`:
 
 ```js
 // functions can now be spelled def!
@@ -33,9 +33,28 @@ console.log( add(3, 7) );
 
 And compile it with `sjs`:
 
-    $ bin/sjs -o output.js test_macros.js
+    $ bin/sjs -o output.js test_macros.sjs
     $ node output.js
     10
+
+Alternately you can require an sjs file from node. For example, in `main.js` add:
+
+    var sjs = require('sweet.js'),
+        example = require('./example');
+    
+    example.one;
+
+Where ./example.sjs contains:
+
+    macro A {
+        case ($a + $b) => {
+	        $a
+	    }
+    }
+
+    exports.one = A(1 + 2);
+
+And just run `main.js` in node.
 
 ### Ruby gem
 
