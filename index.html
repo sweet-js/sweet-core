@@ -302,6 +302,18 @@ m (1)     // --> 1
 m (1, 2)  // --> [1, 2]
 </code></pre>
 
+<p class="text">
+And macros can call themselves.  
+</p>
+
+<pre><code class="language-javascript">
+macro m {
+  case ($base) => { [$base] }
+  case ($head $tail ...) => { [$head, m ($tail ...)] }
+}
+m (1 2 3 4 5)  // --> [1, [2, [3, [4, [5]]]]]
+</code></pre>
+
 </div>
 </div>
 
