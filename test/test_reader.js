@@ -1,10 +1,11 @@
 var expect = require("expect.js");
-var parser = require("../lib/sweet");
+var parser = require("../lib/parser");
+var expander = require("../lib/expander");
 var gen = require("escodegen");
 var _ = require("underscore");
 
 var read = _.wrap(parser.read, function(read_func, read_arg) {
-    return parser.syntaxToTokens(read_func(read_arg));
+    return expander.syntaxToTokens(read_func(read_arg));
 });
 
 describe("reader", function() {

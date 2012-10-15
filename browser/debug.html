@@ -1,0 +1,20 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Debug Sweet.js</title>
+  <script data-main="scripts/main" src="scripts/require.js"></script>
+  <script id="sweetjs" type="text/sweetjs">
+
+    macro oddadd {
+      case (($x:lit) <+> $y:lit) => {
+        $x + $y
+      }
+    }
+    var z = oddadd((2) <+> 4);
+
+    </script>
+</head>
+<body>
+  Parsing...
+</body>
+</html>
