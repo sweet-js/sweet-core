@@ -11,6 +11,8 @@ Early stage at the moment. Lots of bugs so be warned!
 
 ## Use
 
+### Using Node
+
 Clone sweet.js and then install its dependencies:
 
     $ npm install underscore optimist escodegen
@@ -56,7 +58,15 @@ Where ./example.sjs contains:
 
 And just run `main.js` in node.
 
-### Ruby gem
+### Using AMD in the browser
+
+An AMD loader is provided at [require-sweet](https://github.com/iammerrick/require-sweet).
+
+    define(['sweeten!a/javascript/dep-with-macros'], function(dep) {
+      // dep is compiled to JS at this point.
+    });
+
+### Using ruby
 
 To compile sweet.js source files from within Ruby, use the [SweetJS gem](https://github.com/magnetised/sweetjs):
 
