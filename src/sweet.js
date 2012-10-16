@@ -32,11 +32,11 @@
 
         factory(exports, parser, expander, codegen);
 
-        // // Alow require('./example') for an example.sjs file.
-        // require.extensions['.sjs'] = function(module, filename) {
-        //     var content = require('fs').readFileSync(filename, 'utf8');
-        //     module._compile(codegen.generate(parser.parse(content)), filename);
-        // };
+        // Alow require('./example') for an example.sjs file.
+        require.extensions['.sjs'] = function(module, filename) {
+            var content = require('fs').readFileSync(filename, 'utf8');
+            module._compile(codegen.generate(exports.parse(content)), filename);
+        };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports', 'parser', 'expander', 'escodegen'], factory);
