@@ -349,4 +349,12 @@ describe("macro expander", function() {
     expect(z).to.eql([1,2,3]) 
   });
 
+  // it("should allow fn calls as an :expr", function() {
+  //   macro m {
+  //     case ($x:expr) => {$x}
+  //   }
+  //   function id (x) { return x; }
+  //   var x = m( id(4) );
+  // });
+
 });
