@@ -39,7 +39,7 @@
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'parser', 'expander', 'escodegen'], factory);
+        define(['exports', './parser', './expander', './escodegen'], factory);
     } else {
         // Browser globals
         factory((root.sweet = {}), root.parser, root.expander, root.codegen);
@@ -79,4 +79,8 @@
         var ast = parser.parse(flattened);
         return ast;
     };
+    
+    exports.compile = function compile(code, options) {
+      return codegen.generate(exports.parse(code, options));
+    }
 }));

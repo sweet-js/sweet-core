@@ -1,5 +1,5 @@
-require(["scripts/sweet.js"], function(sweet) {
+require(["sweet"], function(sweet) {
   var code = document.getElementById("sweetjs").text;
-  var result = sweet.parse(code);
+  var result = sweet.compile(code);
   console.log(result);
 });
