@@ -1261,6 +1261,10 @@
         construct: function(l) { this.lit = l; }
     });
 
+    var Punc = TermTree.extend({
+        construct: function(p) { this.punc = p; }
+    });
+
     var Id = TermTree.extend({
         construct: function(id) { this.id = id; }
     });
@@ -1280,17 +1284,46 @@
         }
     });
 
+    var Call = TermTree.extend({
+        construct: function(fun, args) {
+            this.fun = fun;
+            this.args = args;
+        }
+    });
+
     var ReadTree = {
         head: null,
         rest: null,
 
         construct: function(toks) {
+            parser.assert(Array.isArray(toks), "expecting an array of tokens");
             this.rest = toks;
         },
 
         enforest: function(env) {
             if(this.head === null) {
                 this._loadHeadTerm();
+                this.enforest(env);
+            } else {
+                parser.assert(this.head.hasPrototype(TermTree), "expecting the head to be a term");
+
+                var r = this.rest;
+
+
+                if(r[0] && r[0].token.type === parser.Token.Delimiter
+                        && r[0].token.value === "()") {
+
+                    var termArgs = _.map(r[0].token.inner, function(p) { 
+                        var pr = ReadTree.create([p])
+                        pr.enforest();
+                        parser.assert(pr.rest.length === 0, "expecting enforest of argument to have no remainder");
+                        return pr.head;
+                    });
+
+                    this.head = Call.create(this.head, termArgs);
+                    this.rest = this.rest.slice(2);
+                    this.enforest(env);
+                }
             }
         },
 
@@ -1299,14 +1332,16 @@
 
             var r = this.rest;
 
-            if(r[0].token.type === parser.Token.Identifier
+            if(r[0] && r[1] && r[2]
+                    && r[0].token.type === parser.Token.Identifier
                     && r[0].token.value === "macro"
                     && r[1].token.type === parser.Token.Identifier
                     && r[2].token.type === parser.Token.Delimiter
                     && r[2].token.value === "{}") {
                 this.head = Macro.create(r[1], r[2].token.inner);
                 this.rest = this.rest.slice(3);
-            } else if (r[0].token.type === parser.Token.Keyword
+            } else if (r[0] && r[1] && r[2] && r[3]
+                    && r[0].token.type === parser.Token.Keyword
                     && r[0].token.value === "function"
                     && r[1].token.type === parser.Token.Identifier
                     && r[2].token.type === parser.Token.Delimiter
@@ -1315,14 +1350,18 @@
                     && r[3].token.value === "{}") {
                 this.head = Fun.create(r[1], r[2].token.inner, r[3].token.inner);
                 this.rest = this.rest.slice(4);
-            } else if (r[0].token.type === parser.Token.NumericLiteral
+            } else if (r[0] 
+                    && (r[0].token.type === parser.Token.NumericLiteral
                     || r[0].token.type === parser.Token.StringLiteral
                     || r[0].token.type === parser.Token.BoolLiteral
                     || r[0].token.type === parser.Token.RegexLiteral
-                    || r[0].token.type === parser.Token.NullLiteral) {
+                    || r[0].token.type === parser.Token.NullLiteral)) {
                 this.head = Lit.create(r[0]);
                 this.rest = this.rest.slice(1);
-            } else if(r[0].token.type === parser.Token.Identifier) {
+            } else if (r[0] && r[0].token.type === parser.Token.Punctuator) {
+                this.head = Punc.create(r[0]);
+                this.rest = this.rest.slice(1);
+            } else if(r[0] && r[0].token.type === parser.Token.Identifier) {
                 this.head = Id.create(r[0]);
                 this.rest = this.rest.slice(1);
             }
@@ -1335,44 +1374,8 @@
         return [r.head, r.rest];
     }
 
-    /*
-    Takes a ReadTree (r) and produces a pair of enforested TermTree and 
-    remainder of the read tree.
-    */
     function enforestold(r) {
-        var term = TermTree.extend({});
-
-        if(!r[0].hasPrototype(TermTree)
-            && r[0].token.type === parser.Token.Identifier
-            && r[0].token.value === "macro"
-            && r[1].token.type === parser.Token.Identifier
-            && r[2].token.type === parser.Token.Delimiter
-            && r[2].token.value === "{}") {
-            // macro name { body... } r...
-
-            term.macroDef = {
-                name: r[1],
-                body: r[2].token.inner
-            };
-
-            return enforest([term].concat(r.slice(2)));
-        } else if (!r[0].hasPrototype(TermTree)
-                    && r[0].token.type === parser.Token.Keyword
-                    && r[0].token.value === "function"
-                    && r[1].token.type === parser.Token.Identifier
-                    && r[2].token.type === parser.Token.Delimiter
-                    && r[2].token.value === "()"
-                    && r[3].token.type === parser.Token.Delimiter
-                    && r[3].token.value === "{}") {
-                    // function name (params...) { body... }
-
-            term.fun = {
-                name: r[1],
-                params: r[2].token.inner,
-                body: r[3].token.inner
-            };
-            return enforest([term].concat(r.slice(3)));
-        } else if(r[0].hasPrototype(TermTree) 
+        if(r[0].hasPrototype(TermTree) 
                     && r[1]
                     && (!r[1].hasPrototype(TermTree))
                     && r[1].token.type === parser.Token.Delimiter
@@ -1391,25 +1394,9 @@
             };
             return enforest([term].concat(r.slice(2)));
         } else if(!r[0].hasPrototype(TermTree) 
-                    && r[0].token.type === parser.Token.Identifier) {
-            // ident r...
-            term.id = r[0];
-            return enforest([term].concat(r.slice(1)));
-        } else if(!r[0].hasPrototype(TermTree)
-                && (r[0].token.type === parser.Token.NumericLiteral
-                || r[0].token.type === parser.Token.StringLiteral
-                || r[0].token.type === parser.Token.BoolLiteral
-                || r[0].token.type === parser.Token.RegexLiteral
-                || r[0].token.type === parser.Token.NullLiteral)) {
-                // literal r...
-            term.lit = r[0];
-            return enforest([term].concat(r.slice(1)));
-        } else if(!r[0].hasPrototype(TermTree) 
                     && r[0].token.type === parser.Token.Punctuator) {
             term.punc = r[0];
             return enforest([term].concat(r.slice(1)));
-        } else {
-            return r;
         }
 
 
