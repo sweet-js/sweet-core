@@ -1,5 +1,8 @@
-require(["sweet"], function(sweet) {
-  var code = document.getElementById("sweetjs").text;
-  var result = sweet.compile(code);
-  console.log(result);
+require(["sweet","./parser", "./expander"], function(sweet, parser, expander) {
+  window.run = function() {
+      var code = document.getElementById("sweetjs").text;
+      // var result = expander.enforest(parser.read(code));
+      var result = expander.expandf(parser.read(code));
+      console.log(result);
+  }
 });

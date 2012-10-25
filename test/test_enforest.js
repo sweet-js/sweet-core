@@ -4,6 +4,7 @@ var expect = require("expect.js");
 
 var enforest = expander.enforest;
 var read = parser.read;
+var expand = expander.expandf;
 
 describe("enforest", function() {
   it("should enforest a single ident", function() {
@@ -27,12 +28,12 @@ describe("enforest", function() {
     expect(res[0].lit.token.value).to.be('2');
   });
 
-  // it("should enforest a fcn call", function() {
-  //   var res = enforest(read("foo(1, 2);"));
+  it("should enforest a fcn call", function() {
+    var res = enforest(read("foo(1, 2);"));
 
-  //   expect(res[0].call.fun.id.token.value).to.be("foo");
-  //   expect(res[0].call.params[0][0].lit.token.value).to.be(1);
-  // });
+    expect(res[0].fun.id.token.value).to.be("foo");
+    expect(res[0].args[0].lit.token.value).to.be(1);
+  });
 
   it("should enforest a macro definition", function() {
     var res = enforest(read("macro id { case $x => { $x } } fun"));
@@ -48,4 +49,10 @@ describe("enforest", function() {
     expect(res[0].params[0].token.value).to.be("x");
 
   });
+});
+
+describe("expand", function() {
+    it("should load a simple id macro", function() {
+        var res = expand(read("macro id { case $x => { $x } }"));
+    });
 })

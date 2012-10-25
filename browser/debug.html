@@ -5,14 +5,9 @@
   <script data-main="scripts/main" src="scripts/require.js"></script>
   <script id="sweetjs" type="text/sweetjs">
 
-    macro oddadd {
-      case (($x:lit) <+> $y:lit) => {
-        $x + $y
-      }
-    }
-    var z = oddadd((2) <+> 4);
-
-    </script>
+    macro id { case $x => { $x } }
+    
+  </script>
 </head>
 <body>
   Parsing...
