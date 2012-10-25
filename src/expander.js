@@ -62,6 +62,11 @@
         return this instanceof F;
     }
 
+    // todo: add more message information
+    function throwError(msg) {
+        throw new Error(msg);
+    }
+
     // var CToken = object({
     //     type: Num,
     //     value: opt(Any),
@@ -1257,6 +1262,10 @@
 
     var TermTree = {};
 
+    var EOF = TermTree.extend({
+        construct: function() {}
+    });
+
     var Lit = TermTree.extend({
         construct: function(l) { this.lit = l; }
     });
@@ -1309,7 +1318,6 @@
 
                 var r = this.rest;
 
-
                 if(r[0] && r[0].token.type === parser.Token.Delimiter
                         && r[0].token.value === "()") {
 
@@ -1323,7 +1331,14 @@
                     this.head = Call.create(this.head, termArgs);
                     this.rest = this.rest.slice(2);
                     this.enforest(env);
+                } else if (false /* is a macro call */) {
+                    var transformer = env[name];
+                    var rt = transformer(this.rest);
+                    this.head = rt.head;
+                    this.rest = rt.rest;
+                    this.enforest(env);
                 }
+
             }
         },
 
@@ -1364,6 +1379,11 @@
             } else if(r[0] && r[0].token.type === parser.Token.Identifier) {
                 this.head = Id.create(r[0]);
                 this.rest = this.rest.slice(1);
+            } else if(r[0] && r[0].token.type === parser.Token.EOF) {
+                this.head = EOF.create();
+                this.rest = [];
+            } else {
+                parser.assert(false, "unexpected token");
             }
         }
     }
@@ -1374,36 +1394,91 @@
         return [r.head, r.rest];
     }
 
-    function enforestold(r) {
-        if(r[0].hasPrototype(TermTree) 
-                    && r[1]
-                    && (!r[1].hasPrototype(TermTree))
-                    && r[1].token.type === parser.Token.Delimiter
-                    && r[1].token.value === "()") {
-                    // t (r...) r...
 
-            var termArgs = _.map(r[1].token.inner, function(p) { 
-                var term = enforest([p]);
-                parser.assert(term.length === 1, "expecting enforest of argument to have no remainder");
-                return term;
-            });
-
-            term.call = {
-                fun: r[0],
-                params: termArgs
-            };
-            return enforest([term].concat(r.slice(2)));
-        } else if(!r[0].hasPrototype(TermTree) 
-                    && r[0].token.type === parser.Token.Punctuator) {
-            term.punc = r[0];
-            return enforest([term].concat(r.slice(1)));
+    function findCase(start, stx) {
+        parser.assert(start >= 0 && start < stx.length, "start out of bounds");
+        var idx = start;
+        while(idx < stx.length) {
+            // todo: handle literal escape
+            if(stx[idx].token.value === "case") {
+                return idx;
+            }
+            idx++;
         }
+        return -1;
+    }
 
+    // looking for index of `=>` in syntax array
+    function findCaseArrow(start, stx) {
+        parser.assert(start >= 0 && start < stx.length, "start out of bounds");
+        var idx = start;
+        while(idx < stx.length) {
+            // todo: handle literal escape
+            if(stx[idx].token.value === "=" && stx[idx+1] && stx[idx+1].token.value === ">") {
+                return idx;
+            }
+            idx++;
+        }
+        return -1;
+    }
 
+    // (Macro) -> (([...CSyntax]) -> ReadTree)
+    function loadMacroDef(mac) {
+        var body = mac.body;
+        var caseOffset = 0;
+        var arrowOffset = 0;
+        var casePattern;
+        var caseBody;
+        var caseBodyIdx;
+        var cases = [];
+
+        // load each of the macro cases
+        while(caseOffset < body.length && body[caseOffset].token.value === "case") {
+            arrowOffset = findCaseArrow(caseOffset, body);
+            if(arrowOffset > 0 && arrowOffset < body.length) {
+                // arrowOffset is at `=` in `=> {body}` so add two to get to the body
+                caseBodyIdx = arrowOffset + 2; 
+                if(caseBodyIdx >= body.length) {
+                    throwError("case body missing in macro definition");
+                }
+
+                casePattern = body.slice(caseOffset+1, arrowOffset);
+                caseBody = body[caseBodyIdx];
+
+                cases.push({
+                    pattern: loadPattern(casePattern),
+                    body: caseBody
+                });
+            } else {
+                throwError("case body missing in macro definition");
+            }
+
+            caseOffset = findCase(arrowOffset, body);
+            if(caseOffset < 0) {
+                break;
+            }
+        }
+    }
+
+    function expandf(toks) {
+        if(toks.length === 0) {
+            return [];
+        } 
+        var f = enforest(toks); 
+        var head = f[0];
+        var rest = f[1];
+
+        if(head.hasPrototype(Macro)) {
+            var def = loadMacroDef(head);
+            return expandf(rest);
+        } else {
+            return [head].concat(expandf(rest));
+        }
     }
 
     exports.enforest = enforest;
     exports.expand = expand;
+    exports.expandf = expandf;
     exports.resolve = resolve;
     exports.flatten = flatten;
     exports.tokensToSyntax = tokensToSyntax;
