@@ -5,8 +5,24 @@
   <script data-main="scripts/main" src="scripts/require.js"></script>
   <script id="sweetjs" type="text/sweetjs">
 
-    macro id { case $x => { $x } }
-    
+macro _L {
+  case () => {
+    nil
+  }
+  case ($car) => {
+    new Pair($car, nil)
+  }
+  case ($car, $rest ...) => {
+    new Pair($car, _L($rest ...))
+  }
+}
+
+var nil = new Object;
+function Pair(){};
+
+_L();
+// _L(1);
+//_L(1, 2);    
   </script>
 </head>
 <body>

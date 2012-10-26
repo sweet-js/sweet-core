@@ -1312,6 +1312,7 @@
         enforest: function(env) {
             if(this.head === null) {
                 this._loadHeadTerm();
+                parser.assert(this.head !== null, "expected head term to have been loaded");
                 this.enforest(env);
             } else {
                 parser.assert(this.head.hasPrototype(TermTree), "expecting the head to be a term");
@@ -1394,6 +1395,9 @@
         return [r.head, r.rest];
     }
 
+    function makeTransformer(cases) {
+        return {};
+    }
 
     function findCase(start, stx) {
         parser.assert(start >= 0 && start < stx.length, "start out of bounds");
@@ -1458,9 +1462,12 @@
                 break;
             }
         }
+        return makeTransformer(cases);
     }
 
-    function expandf(toks) {
+    function expandf(toks, env) {
+        var env = env || {};
+
         if(toks.length === 0) {
             return [];
         } 
