@@ -766,7 +766,7 @@
                             var patternEnv = buildPatternEnv(call, pat)
 
                             // only failed if there was a pattern
-                            if(pat.length !== 0 && patternEnv.consumed !== call.length) {
+                            if(pat.length !== 0 && (patternEnv.consumed !== call.length || patternEnv.consumed === 0 && call.length === 0)) {
                                 numberMatched = 0;
                             }
 
