@@ -1332,11 +1332,11 @@
                     this.head = Call.create(this.head, termArgs);
                     this.rest = this.rest.slice(2);
                     this.enforest(env);
-                } else if (false /* is a macro call */) {
-                    var transformer = env[name];
+                } else if (this.head.hasPrototype(Id) && env[this.head.id]) {
+                    var transformer = env[this.head.id];
                     var rt = transformer(this.rest);
-                    this.head = rt.head;
-                    this.rest = rt.rest;
+                    this.head = null;
+                    this.rest = [rt.result].concat(rt.rest);
                     this.enforest(env);
                 }
 
@@ -1389,14 +1389,20 @@
         }
     }
 
-    function enforest(toks) {
+    function enforest(toks, env) {
+        var env = env || {};
         var r = ReadTree.create(toks);
-        r.enforest();
+        r.enforest(env);
         return [r.head, r.rest];
     }
 
     function makeTransformer(cases) {
-        return {};
+        return function(stx) {
+            return {
+                result: stx[0],
+                rest: stx.slice(1)
+            };
+        };
     }
 
     function findCase(start, stx) {
@@ -1471,15 +1477,16 @@
         if(toks.length === 0) {
             return [];
         } 
-        var f = enforest(toks); 
+        var f = enforest(toks, env); 
         var head = f[0];
         var rest = f[1];
 
         if(head.hasPrototype(Macro)) {
             var def = loadMacroDef(head);
-            return expandf(rest);
+            env[head.name] = def;
+            return expandf(rest, env);
         } else {
-            return [head].concat(expandf(rest));
+            return [head].concat(expandf(rest, env));
         }
     }
 

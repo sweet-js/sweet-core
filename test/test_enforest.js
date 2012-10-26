@@ -53,6 +53,7 @@ describe("enforest", function() {
 
 describe("expand", function() {
     it("should load a simple id macro", function() {
-        var res = expand(read("macro id { case $x => { $x } }"));
+        var res = expand(read("macro m { case $x => { $x } }\nm 42"));
+        expect(res[0].lit.token.value).to.be(42);
     });
 })
