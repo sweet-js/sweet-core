@@ -1266,7 +1266,9 @@
         construct: function() {}
     });
 
-    var Lit = TermTree.extend({
+    var Expr = TermTree.extend({ construct: function() {} });
+
+    var Lit = Expr.extend({
         construct: function(l) { this.lit = l; }
     });
 
@@ -1274,7 +1276,7 @@
         construct: function(p) { this.punc = p; }
     });
 
-    var Id = TermTree.extend({
+    var Id = Expr.extend({
         construct: function(id) { this.id = id; }
     });
 
@@ -1293,7 +1295,7 @@
         }
     });
 
-    var Call = TermTree.extend({
+    var Call = Expr.extend({
         construct: function(fun, args) {
             this.fun = fun;
             this.args = args;
@@ -1317,12 +1319,12 @@
             } else {
                 parser.assert(this.head.hasPrototype(TermTree), "expecting the head to be a term");
 
-                var r = this.rest;
 
-                if(r[0] && r[0].token.type === parser.Token.Delimiter
-                        && r[0].token.value === "()") {
+                // function call
+                if(this.rest[0] && this.rest[0].token.type === parser.Token.Delimiter
+                        && this.rest[0].token.value === "()") {
 
-                    var termArgs = _.map(r[0].token.inner, function(p) { 
+                    var termArgs = _.map(this.rest[0].token.inner, function(p) { 
                         var pr = ReadTree.create([p])
                         pr.enforest();
                         parser.assert(pr.rest.length === 0, "expecting enforest of argument to have no remainder");
@@ -1332,22 +1334,26 @@
                     this.head = Call.create(this.head, termArgs);
                     this.rest = this.rest.slice(2);
                     this.enforest(env);
+                // macro call
                 } else if (this.head.hasPrototype(Id) && env[this.head.id]) {
                     var transformer = env[this.head.id];
-                    var rt = transformer(this.rest);
-                    this.head = null;
-                    this.rest = [rt.result].concat(rt.rest);
+                    var rt = transformer(this.rest, env);
+                    parser.assert(rt.result.hasPrototype(TermTree), "expecting a term as the result of the macro call");
+                    this.head = rt.result;
+                    this.rest = rt.rest;
                     this.enforest(env);
                 }
 
             }
         },
 
+        // when there is no term in `head` create it from the tokens in `rest`
         _loadHeadTerm: function() {
             parser.assert(this.head === null, "expecting head to be null");
 
             var r = this.rest;
 
+            // macro definition
             if(r[0] && r[1] && r[2]
                     && r[0].token.type === parser.Token.Identifier
                     && r[0].token.value === "macro"
@@ -1356,6 +1362,7 @@
                     && r[2].token.value === "{}") {
                 this.head = Macro.create(r[1], r[2].token.inner);
                 this.rest = this.rest.slice(3);
+            // function definition
             } else if (r[0] && r[1] && r[2] && r[3]
                     && r[0].token.type === parser.Token.Keyword
                     && r[0].token.value === "function"
@@ -1366,6 +1373,7 @@
                     && r[3].token.value === "{}") {
                 this.head = Fun.create(r[1], r[2].token.inner, r[3].token.inner);
                 this.rest = this.rest.slice(4);
+            // literal
             } else if (r[0] 
                     && (r[0].token.type === parser.Token.NumericLiteral
                     || r[0].token.type === parser.Token.StringLiteral
@@ -1374,15 +1382,19 @@
                     || r[0].token.type === parser.Token.NullLiteral)) {
                 this.head = Lit.create(r[0]);
                 this.rest = this.rest.slice(1);
+            // punctuator
             } else if (r[0] && r[0].token.type === parser.Token.Punctuator) {
                 this.head = Punc.create(r[0]);
                 this.rest = this.rest.slice(1);
+            // identifier
             } else if(r[0] && r[0].token.type === parser.Token.Identifier) {
                 this.head = Id.create(r[0]);
                 this.rest = this.rest.slice(1);
+            // end of file
             } else if(r[0] && r[0].token.type === parser.Token.EOF) {
                 this.head = EOF.create();
                 this.rest = [];
+            // oops
             } else {
                 parser.assert(false, "unexpected token");
             }
@@ -1393,15 +1405,222 @@
         var env = env || {};
         var r = ReadTree.create(toks);
         r.enforest(env);
-        return [r.head, r.rest];
+
+        return {
+            result: r.head, 
+            rest: r.rest
+        };
+    }
+
+    function get_expression(stx, env) {
+        var res = enforest(stx, env);
+        if(!res.result.hasPrototype(Expr)) {
+            return {
+                result: null,
+                rest: stx
+            };
+        }
+        return res;
     }
 
     function makeTransformer(cases) {
-        return function(stx) {
+        // the environment will look something like:
+        /*
+        {
+            "$x": {
+                level: 2,
+                match: [{
+                    level: 1,
+                    match: [{
+                        level: 0,
+                        match: [tok1, tok2, ...]
+                    }, {
+                        level: 0,
+                        match: [tok1, tok2, ...]
+                    }]
+                }, {
+                    level: 1,
+                    match: [{
+                        level: 0,
+                        match: [tok1, tok2, ...]
+                    }]
+                }]
+            },
+            "$y" : ...
+        }
+        */
+        function buildPatternEnv(stx, patterns) {
+            var env = {};
+            var callIdx = 0;
+            var stx = [].concat(stx, tokensToSyntax({type: parser.Token.EOF}));
+
+            var matchFailed = false;
+
+            patterns.forEach(function(pattern) {
+                var patternMatch;
+                var repeat = pattern.repeat;
+
+                if(matchFailed) {
+                    // just do an early return through the remaining patterns
+                    return;
+                }
+
+                // what happens if we have extra unmatched tokens in stx?
+
+                do {
+                    var consumed = 0;
+                    if(pattern.token.type === parser.Token.Delimiter) {
+                        if(pattern.class === "pattern_group") { 
+                            // pattern groups like $($e = $v) don't match their parens
+                            var subEnv = buildPatternEnv(_.rest(stx, callIdx), 
+                                                            pattern.token.inner);
+                            consumed = subEnv.consumed;
+                            callIdx += consumed;
+                        } else {
+                            if(stx[callIdx].token.type === parser.Token.Delimiter) {
+                                throwError("expecting a delimiter in pattern");
+                            }
+                            var subEnv = buildPatternEnv(stx[callIdx].token.inner, 
+                                                            pattern.token.inner);
+                            consumed = subEnv.consumed;
+                            if(consumed !== stx[callIdx].token.inner.length 
+                                    && repeat === false) { 
+                                matchFailed = true;
+                                callIdx = 0;
+                                break;
+                            }
+                            // consumed is the number of tokens inside the delimiter but 
+                            //we just need to  move forward one token on this level
+                            callIdx += (consumed > 0) ? 1 : 0;
+                        }
+
+                        // merge the subpattern matches with the current environment
+                        _.keys(subEnv.env).forEach(function(patternKey) {
+                            if(pattern.repeat) {
+                                // if this is a repeat pattern we need to bump the level
+                                var nextLevel = subEnv.env[patternKey].level + 1;
+
+                                if(env[patternKey]) {
+                                    env[patternKey].level = nextLevel;
+                                    env[patternKey].match.push(subEnv.env[patternKey]);
+                                } else {
+                                    // initialize if we haven't done so already
+                                    env[patternKey] = {
+                                        level: nextLevel,
+                                        match: [subEnv.env[patternKey]]
+                                    };
+                                }
+                            } else {
+                                // otherwise accept the environment as-is
+                                env[patternKey] = subEnv.env[patternKey];
+                            }
+                        });
+
+                    } else {
+                        if(pattern.class === "pattern_literal") {
+                            if(pattern.token.value !== stx[callIdx].token.value) {
+                                consumed = 0;
+                            } else {
+                                // consume the literal
+                                consumed = 1;
+                                callIdx += consumed;
+                            }
+                        } else {
+
+                            // BREADCRUMB:
+                            // need to switch the call here to use the get_expression
+                            // from of calling into enforest. also involves changing
+                            // what we're returning from this function to include
+                            // the matched syntax and rest instead of just the number
+                            // of consumed tokens.
+
+                            // match pattern
+                            patternMatch = matchPattern(_.rest(stx, callIdx), pattern);
+
+
+
+
+                            // note how many tokens we consumed
+                            consumed = patternMatch.consumed;
+                            callIdx += consumed;
+
+                            // push the match onto this value's slot in the environment
+                            if(pattern.repeat) {
+                                if(env[pattern.token.value]) {
+                                    env[pattern.token.value].match.push(patternMatch.match);
+                                } else {
+                                    // initialize if necessary
+                                    env[pattern.token.value] = {
+                                        level: 1,
+                                        match: [patternMatch.match]
+                                    };
+                                }
+                            } else {
+                                env[pattern.token.value] = patternMatch.match;
+                            }
+                        }
+                    }
+
+                    // if we matched no tokens note that the match failed 
+                    // so we don't check the remaining patterns and break out
+                    // of the repeat loop
+                    if(consumed === 0) {
+                        matchFailed = true;
+                        callIdx = 0;
+                        break;
+                    }
+
+                    if(pattern.repeat && pattern.separator === " ") {
+                        // stop repeating if we're at the end of the syntax
+                        if((callIdx >= callStx.length) 
+                            || (callStx[callIdx].token.type === parser.Token.EOF)) {
+                            repeat = false;
+                        }
+                    } else if(pattern.repeat && stx[callIdx].token.value !== pattern.separator) {
+                        // stop repeating if the next token isn't the repeat separator
+                        repeat = false;
+                    } else if(consumed <= 0) {
+                        // stop repeating if the pattern did not match
+                        repeat = false;
+                    } else if(pattern.repeat) {
+                        // consume the separator
+                        // todo: this is assuming all separators are single tokens, 
+                        // might want to revise at some point
+                        callIdx++;
+                    }
+                } while (repeat);
+            });
+
             return {
-                result: stx[0],
-                rest: stx.slice(1)
+                consumed: callIdx,
+                env: env
             };
+        }
+
+
+        // attempt to match pats against stx
+        // returns { result: null, rest: stx} if no match
+        function matchPattern(pats, stx, env) {
+            if(false) {
+                var patenv = buildPatternEnvironment(pats, stx, env)
+            }
+
+            var expr = get_expression(stx, env);
+            return {
+                result: expr.result,
+                rest: expr.rest
+            };
+        }
+
+        return function transform(stx, env) {
+            var match;
+            // try each case
+            for(var i = 0; i < cases.length; i++) {
+                match = matchPattern(cases[i], stx, env)
+                if(match.result !== null) {
+                    return match;
+                }
+            }   
         };
     }
 
@@ -1478,8 +1697,8 @@
             return [];
         } 
         var f = enforest(toks, env); 
-        var head = f[0];
-        var rest = f[1];
+        var head = f.result;
+        var rest = f.rest;
 
         if(head.hasPrototype(Macro)) {
             var def = loadMacroDef(head);
