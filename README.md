@@ -100,3 +100,10 @@ Install the dev dependencies:
 And run the tests
 
     $ npm test
+
+## Changelog
+
+* [0.1.1](https://github.com/mozilla/sweet.js/tree/v0.1.1)
+    * node autoloading, AMD support
+    * fixes to issues #18, #24, #26, #40
+* 0.1.0 (initial release)
