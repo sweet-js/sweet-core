@@ -15,9 +15,9 @@ Early stage at the moment. Lots of bugs so be warned!
 
 ### Using Node
 
-Clone sweet.js and then install its dependencies:
+Install with npm:
 
-    $ npm install underscore optimist escodegen
+    $ npm install sweet.js
 
 To try it out make a file `test_macros.sjs`:
 
@@ -37,7 +37,7 @@ console.log( add(3, 7) );
 
 And compile it with `sjs`:
 
-    $ bin/sjs -o output.js test_macros.sjs
+    $ sjs -o output.js test_macros.sjs
     $ node output.js
     10
 
@@ -97,7 +97,7 @@ Install the dev dependencies:
 
     $ npm install --dev
 
-And run the tests
+And run the [tests](https://github.com/mozilla/sweet.js/tree/master/test)
 
     $ npm test
 
