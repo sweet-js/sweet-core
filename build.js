@@ -4,9 +4,14 @@ var fs = require("fs");
 var Mocha = require("mocha");
 
 target.all = function() {
+  target.clean();
   target.build();
   target.build_browser();
   target.test();
+}
+
+target.clean = function() {
+  rm("build/*");
 }
 
 target.build = function() {
