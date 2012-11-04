@@ -203,7 +203,7 @@ describe("macro expander", function() {
   //   expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15]);
   // });
 
-  it("should expand an ellipses with a ; delimiter", function() {
+  it("should expand an ellipsis with a ; delimiter", function() {
     macro semi {
       case ( $x:lit (;) ...) => {
         [$x (,) ...]
@@ -215,8 +215,7 @@ describe("macro expander", function() {
   });
 
 
-  it("should expand an ellipsese no separator", function() {
-  
+  it("should expand an ellipsis with no separator", function() {
     macro semi {
       case ($x:ident ...) => {
         var $($x = 2) (,) ...
