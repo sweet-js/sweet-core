@@ -348,6 +348,24 @@ describe("macro expander", function() {
     expect(z).to.eql([1,2,3]) 
   });
 
+  it("should allow literal syntax", function() {
+    macro m {
+        case $x => {
+            macro $x {
+                case ($y $[...]) => {
+                    [$y (,) $[...]]
+                }
+            }
+        }
+    }
+
+    m n
+    var x = n (42 24);
+    expect(x[0]).to.be(42);
+    expect(x[1]).to.be(24);
+  });
+
+
   // it("should allow fn calls as an :expr", function() {
   //   macro m {
   //     case ($x:expr) => {$x}
