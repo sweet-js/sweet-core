@@ -97,7 +97,7 @@ Install the dev dependencies:
 
     $ npm install --dev
 
-And run the [tests](https://github.com/mozilla/sweet.js/tree/master/test)
+And run the [tests](https://github.com/mozilla/sweet.js/tree/master/test):
 
     $ npm test
 
