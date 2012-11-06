@@ -855,7 +855,11 @@
                         if(bodyStx.repeat) {
                             if(bodyStx.token.type === parser.Token.Delimiter) {
 
-                                var fv = freeVarsInPattern(bodyStx.token.inner);
+                                var fv = _.filter(freeVarsInPattern(bodyStx.token.inner), function(pat) {
+                                    // ignore "patterns" that aren't in the environment
+                                    // (treat them like literals)
+                                    return env.hasOwnProperty(pat);
+                                });
                                 var restrictedEnv = [];
                                 var nonScalar = _.find(fv, function(pat) {
                                     return env[pat].level > 0;

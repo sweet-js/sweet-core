@@ -353,16 +353,30 @@ describe("macro expander", function() {
         case $x => {
             macro $x {
                 case ($y $[...]) => {
-                    [$y (,) $[...]]
+                    [$y (,) $[...]];
                 }
             }
         }
     }
 
-    m n
+    m n;
     var x = n (42 24);
     expect(x[0]).to.be(42);
     expect(x[1]).to.be(24);
+  });
+
+  it("should allow literal syntax with pattern var literals", function() {
+    macro $test {
+      case ($op (|) ...) => {
+        macro rel {
+          case $x => { $x }
+          $(case ($x $op $y) => { 1 }) ...
+        }
+      }
+    }
+
+    $test (<|>)
+    rel(1 < 2 < 3)
   });
 
 
