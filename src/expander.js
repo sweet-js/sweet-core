@@ -422,6 +422,7 @@
                     separator = " ";
                 } else if(delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
                     repeat = true;
+                    parser.assert(next.token.inner.length === 1, "currently assuming all separators are a single token");
                     separator = next.token.inner[0].token.value;
                 }
 
@@ -1599,10 +1600,31 @@
 
 
         // attempt to match pats against stx
-        // returns { result: null, rest: stx} if no match
-        function matchPattern(pats, stx, env) {
+        // returns { result: [], rest: stx} if no match
+        function matchPatterns(pats, stx, env) {
+            var res = {
+                result: [], 
+                rest: []
+            };
+            var match;
             if(false) {
-                var patenv = buildPatternEnvironment(pats, stx, env)
+                for(var i = 0; i < pats.length; i++) {
+                    match = matchPattern(pats[i], stx, env);
+
+                    res.result = res.result.concat(match.match)
+                    stx = res.rest;
+
+                    if (!pats[i].repeat && res.match.length === 0) {
+                        // no match so we're done (but only if the pattern wasn't
+                        // a repeat since those match zero or more times)
+                        break;
+                    }
+
+                    if(stx.length === 0) {
+                        // todo worse than a break actually...
+                        break;
+                    }
+                }
             }
 
             var expr = get_expression(stx, env);
@@ -1616,11 +1638,15 @@
             var match;
             // try each case
             for(var i = 0; i < cases.length; i++) {
-                match = matchPattern(cases[i], stx, env)
-                if(match.result !== null) {
+                match = matchPatterns(cases[i], stx, env)
+                if(match.length > 0) {
+                    parser.assert(false, "not implemented")
+                    // not a return...
                     return match;
                 }
             }   
+            // should be returning [] or throwing an error?
+            parser.assert(false, "not implemented");
         };
     }
 
