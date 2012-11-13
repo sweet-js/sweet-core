@@ -26,15 +26,15 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require('./parser'));
+        factory(exports, require("es6-collections"), require('underscore'), require('./parser'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'parser'], factory);
+        define(['exports', 'es6-collections', 'underscore', 'parser'], factory);
     } else {
         // Browser globals
         factory((root.expander = {}), root._, root.parser);
     }
-}(this, function (exports, underscore, parser) {
+}(this, function (exports, es6, underscore, parser) {
     _ = underscore || _;
 
     // some convenience monkey patching
@@ -1336,8 +1336,8 @@
                     this.rest = this.rest.slice(2);
                     this.enforest(env);
                 // macro call
-                } else if (this.head.hasPrototype(Id) && env[this.head.id]) {
-                    var transformer = env[this.head.id];
+                } else if (this.head.hasPrototype(Id) && env.has(this.head.id.token.value)) {
+                    var transformer = env.get(this.head.id.token.value);
                     var rt = transformer(this.rest, env);
                     parser.assert(rt.result.hasPrototype(TermTree), "expecting a term as the result of the macro call");
                     this.head = rt.result;
@@ -1403,7 +1403,7 @@
     }
 
     function enforest(toks, env) {
-        var env = env || {};
+        var env = env || new Map();
         var r = ReadTree.create(toks);
         r.enforest(env);
 
@@ -1717,7 +1717,7 @@
     }
 
     function expandf(toks, env) {
-        var env = env || {};
+        var env = env || new Map();
 
         if(toks.length === 0) {
             return [];
@@ -1728,7 +1728,7 @@
 
         if(head.hasPrototype(Macro)) {
             var def = loadMacroDef(head);
-            env[head.name] = def;
+            env.set(head.name.token.value, def);
             return expandf(rest, env);
         } else {
             return [head].concat(expandf(rest, env));
