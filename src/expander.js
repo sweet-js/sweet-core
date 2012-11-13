@@ -705,7 +705,7 @@
         // early exit, this pattern can never match
         if(callSyntax.length < patterns.length) {
             return {
-                matches: {},
+                matches: Object.create(null),
                 numberMatched: 0
             }
         }
@@ -743,7 +743,7 @@
                             return patternEnv.env;
                         }).reduce(function(acc, matchObj) {
                             return _.extend(acc, matchObj);
-                        }, {}).value();
+                        }, Object.create(null)).value();
 
         return {
             matches: matches,
