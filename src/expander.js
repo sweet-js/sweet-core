@@ -915,8 +915,8 @@
                                 newBody.token.inner = transcribe(bodyStx.token.inner, env);
                                 return acc.concat(newBody);
                             } 
-                            if(env[bodyStx.token.value]) {
-                                parser.assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match");
+                            if(Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
+                                parser.assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match: " + bodyStx.token.value);
                                 return acc.concat(takeLineContext(macroNameStx, 
                                                                   env[bodyStx.token.value].match));
                             } 

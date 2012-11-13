@@ -379,6 +379,16 @@ describe("macro expander", function() {
     rel(1 < 2 < 3)
   });
 
+  it("should not fail with tokens that are on an object's prototype chain", function() {
+    // (had been using an object naively as a dictionary)
+    macro m {
+      case () => {
+        this.constructor
+      }
+    }
+
+    m ();
+  });
 
   // it("should allow fn calls as an :expr", function() {
   //   macro m {
