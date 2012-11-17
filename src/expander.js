@@ -26,15 +26,15 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require("es6-collections"), require('underscore'), require('./parser'));
+        factory(exports, require('underscore'), require('./parser'), require("es6-collections"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'es6-collections', 'underscore', 'parser'], factory);
+        define(['exports', 'underscore', 'parser', 'es6-collections'], factory);
     } else {
         // Browser globals
         factory((root.expander = {}), root._, root.parser);
     }
-}(this, function (exports, es6, underscore, parser) {
+}(this, function (exports, underscore, parser, es6) {
     _ = underscore || _;
 
     // some convenience monkey patching
@@ -1261,27 +1261,87 @@
         return expanded;
     }
 
-    var TermTree = {};
+    var TermTree = {
+        // -> [...Syntax]
+        destruct: function() {
+            return _.reduce(this.properties, _.bind(function(acc, prop) {
+                if(this[prop].hasPrototype(TermTree)) {
+                    return acc.concat(this[prop].destruct());
+                } else {
+                    return acc.concat(this[prop]);
+                }
+            }, this), []);
+        }
+    };
 
     var EOF = TermTree.extend({
-        construct: function() {}
+        properties: ["eof"],
+
+        construct: function(e) { this.eof = e; }
     });
 
     var Expr = TermTree.extend({ construct: function() {} });
 
     var Lit = Expr.extend({
+        properties: ["lit"],
+
         construct: function(l) { this.lit = l; }
     });
 
+    var Keyword = TermTree.extend({
+        properties: ["keyword"],
+
+        construct: function(k) { this.keyword = k; }
+    });
+
     var Punc = TermTree.extend({
+        properties: ["punc"],
+
         construct: function(p) { this.punc = p; }
     });
 
+    var Delimiter = TermTree.extend({
+        properties: ["delim"],
+
+        destruct: function() {
+            var openParen = syntaxFromToken({
+                type: parser.Token.Punctuator,
+                value: this.delim.token.value[0],
+                range: this.delim.token.startRange,
+                lineNumber: this.delim.token.startLineNumber,
+                lineStart: this.delim.token.startLineStart
+            });
+            var closeParen = syntaxFromToken({
+                type: parser.Token.Punctuator,
+                value: this.delim.token.value[1],
+                range: this.delim.token.endRange,
+                lineNumber: this.delim.token.endLineNumber,
+                lineStart: this.delim.token.endLineStart
+            });
+
+
+            var innerStx = _.reduce(this.delim.token.inner, function(acc, term) {
+                parser.assert(term && term.hasPrototype(TermTree), "expecting term trees in destruct of Delimiter");
+                return acc.concat(term.destruct());
+            }, []);
+
+            return [openParen]
+                    .concat(innerStx)
+                    .concat(closeParen);
+        },
+
+        construct: function(d) { this.delim = d; }
+    });
+
     var Id = Expr.extend({
+        properties: ["id"],
+
         construct: function(id) { this.id = id; }
     });
 
     var Fun = TermTree.extend({
+        properties: ["name", "params", "body"],
+
         construct: function(name, params, body) {
             this.name = name;
             this.params = params;
@@ -1290,6 +1350,8 @@
     });
 
     var Macro = TermTree.extend({
+        properties: ["name", "body"],
+
         construct: function(name, body) {
             this.name = name;
             this.body = body;
@@ -1297,6 +1359,16 @@
     });
 
     var Call = Expr.extend({
+        properties: ["fun", "args"],
+
+        destruct: function() {
+            parser.assert(this.fun.hasPrototype(TermTree), "expecting a term tree in destruct of call");
+            return this.fun.destruct().concat(_.reduce(this.args, function(acc, term) {
+                parser.assert(term && term.hasPrototype(TermTree), "expecting term trees in destruct of Call");
+                return acc.concat(term.destruct());
+            }, []));
+        },
+
         construct: function(fun, args) {
             this.fun = fun;
             this.args = args;
@@ -1320,23 +1392,22 @@
             } else {
                 parser.assert(this.head.hasPrototype(TermTree), "expecting the head to be a term");
 
+                // // function call
+                // if(this.rest[0] && this.rest[0].token.type === parser.Token.Delimiter
+                //         && this.rest[0].token.value === "()") {
 
-                // function call
-                if(this.rest[0] && this.rest[0].token.type === parser.Token.Delimiter
-                        && this.rest[0].token.value === "()") {
+                //     var termArgs = _.map(this.rest[0].token.inner, function(p) { 
+                //         var pr = ReadTree.create([p])
+                //         pr.enforest();
+                //         parser.assert(pr.rest.length === 0, "expecting enforest of argument to have no remainder");
+                //         return pr.head;
+                //     });
 
-                    var termArgs = _.map(this.rest[0].token.inner, function(p) { 
-                        var pr = ReadTree.create([p])
-                        pr.enforest();
-                        parser.assert(pr.rest.length === 0, "expecting enforest of argument to have no remainder");
-                        return pr.head;
-                    });
-
-                    this.head = Call.create(this.head, termArgs);
-                    this.rest = this.rest.slice(2);
-                    this.enforest(env);
+                //     this.head = Call.create(this.head, termArgs);
+                //     this.rest = this.rest.slice(2);
+                //     this.enforest(env);
                 // macro call
-                } else if (this.head.hasPrototype(Id) && env.has(this.head.id.token.value)) {
+                if (this.head.hasPrototype(Id) && env.has(this.head.id.token.value)) {
                     var transformer = env.get(this.head.id.token.value);
                     var rt = transformer(this.rest, this.head.id, env);
 
@@ -1346,7 +1417,6 @@
                     this.rest = rt.result.concat(rt.rest);
                     this.enforest(env);
                 }
-
             }
         },
 
@@ -1393,13 +1463,19 @@
             } else if(r[0] && r[0].token.type === parser.Token.Identifier) {
                 this.head = Id.create(r[0]);
                 this.rest = this.rest.slice(1);
+            } else if(r[0] && r[0].token.type === parser.Token.Keyword) {
+                this.head = Keyword.create(r[0]);
+                this.rest = this.rest.slice(1);
+            } else if(r[0] && r[0].token.type === parser.Token.Delimiter) {
+                this.head = Delimiter.create(r[0]);
+                this.rest = this.rest.slice(1);
             // end of file
             } else if(r[0] && r[0].token.type === parser.Token.EOF) {
-                this.head = EOF.create();
+                this.head = EOF.create(r[0]);
                 this.rest = [];
             // oops
             } else {
-                parser.assert(false, "unexpected token");
+                parser.assert(false, "unexpected token in enforest");
             }
         }
     }
@@ -1441,10 +1517,22 @@
                 }
             // pattern has a parse class
             } else {
-                paser.assert(false, "not implemented yet");
                 match = get_expression(stx, env);
-                result = match.result;
-                rest = match.rest;
+                // if(match.result === null) {
+                //     result = null;
+                //     rest = stx;
+                if(patternClass === "lit" && match.result.hasPrototype(Lit)) {
+                    result = match.result.lit;
+                    rest = match.rest;
+                } else if(patternClass === "id" && match.result.hasPrototype(Id)) {
+                    result = match.result.id;
+                    rest = match.rest;
+                } else if(patternClass === "expr") {
+                    parser.assert(false, "the :expr pattern is not implemented yet");
+                } else {
+                    result = null;
+                    rest = stx;
+                }
             }
 
 
@@ -1485,6 +1573,9 @@
             var subMatch;
             var match;
             var result, rest;
+
+            // todo: make sure the assumptions that stx contains something holds
+
             if(pattern.token.type === parser.Token.Delimiter) {
                 if(pattern.class === "pattern_group") { 
                     // pattern groups don't match the delimiters
@@ -1496,7 +1587,7 @@
                     throwError("expecting to match a delimiter");
                 }
                 result = subMatch.result;
-                rest = subMatch.rest;
+                rest = stx.slice(1); //subMatch.rest;
 
                 // merge the subpattern matches with the current pattern environment
                 _.keys(subMatch.patternEnv).forEach(function(patternKey) {
@@ -1532,11 +1623,11 @@
                 } else {
                     match = matchPatternClass(pattern.class, stx, env);
 
-                    result = match.result;
+                    result = [match.result.match];
                     rest = match.rest;
 
                     // only update the pattern environment if we got a result
-                    if(result !== null) {
+                    if(match.result.match !== null) {
                         // push the match onto this value's slot in the environment
                         if(pattern.repeat) {
                             if(patternEnv[pattern.token.value]) {
@@ -1556,6 +1647,7 @@
             }
             return {
                 result: result,
+                // result: result.match,
                 rest: rest,
                 patternEnv: patternEnv
             };
@@ -1575,15 +1667,16 @@
 
             var match;
             var pattern;
+            var tmp_stx = stx;
 
             for(var i = 0; i < patterns.length; i++) {
                 pattern = patterns[i];
                 do {
-                    match = matchPattern(pattern, stx, env, patternEnv); 
+                    match = matchPattern(pattern, tmp_stx, env, patternEnv); 
                     if(match.result !== null) {
                         result = result.concat(match.result);
                     }
-                    stx = match.rest;
+                    tmp_stx = match.rest;
                 } while(pattern.repeat && (match.result !== null) && match.result.length > 0);
 
 
@@ -1609,7 +1702,7 @@
             }
             return {
                 result: result,
-                rest: stx,
+                rest: tmp_stx,
                 patternEnv: patternEnv
             };
         }
@@ -1709,7 +1802,7 @@
                         return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match, bodyStx.separator));
                     } else {
                         if(bodyStx.token.type === parser.Token.Delimiter) {
-                            var newBody = syntaxFromToken(_.clone(bodyStx.token), bodySyntax.context);
+                            var newBody = syntaxFromToken(_.clone(bodyStx.token), bodyPattern.context);
                             newBody.token.inner = transcribe(bodyStx.token.inner, env);
                             return acc.concat(newBody);
                         } 
@@ -1730,8 +1823,6 @@
             for(var i = 0; i < cases.length; i++) {
                 casePattern = cases[i].pattern;
                 caseBody = cases[i].body;
-
-                // parser.assert(false, "not implemented")
 
                 match = matchPatterns(casePattern, stx, env)
                 // transcribe on the first successful match
@@ -1826,16 +1917,36 @@
             var def = loadMacroDef(head);
             env.set(head.name.token.value, def);
             return expandf(rest, env);
+        } else if(head.hasPrototype(Delimiter)) {
+            head.delim.token.inner = expandf(head.delim.token.inner, env)
+            return [head].concat(expandf(rest, env));
+        // } else if(head.hasPrototype(Call)) {
+        //     return [head.fun]
+        //             .concat(expandf(head.args, env))
+        //             .concat(expandf(rest, env));
         } else {
             return [head].concat(expandf(rest, env));
         }
     }
 
+    function flattenf (terms) {
+        return _.reduce(terms, function(acc, term) {
+            return acc.concat(term.destruct());
+        }, []);
+    }
+
     exports.enforest = enforest;
-    exports.expand = expand;
+
+    // exports.expand = expand;
+    exports.expand = expandf;
     exports.expandf = expandf;
+
     exports.resolve = resolve;
-    exports.flatten = flatten;
+
+    // exports.flatten = flatten;
+    exports.flatten = flattenf;
+    exports.flattenf = flattenf;
+
     exports.tokensToSyntax = tokensToSyntax;
     exports.syntaxToTokens = syntaxToTokens;
 }));
