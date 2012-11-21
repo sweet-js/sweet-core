@@ -91,14 +91,14 @@
 
     // var CContext = or(Null, object({
     //     mark: opt(Num),
-    //     // id: opt(CSyntax), 
+    //     // id: opt(CSyntax),
     //     name: opt(Str),
     //     context: or(Null, Self)
     // }));
 
     // var CSyntax = object({
     //     token: CToken,
-    //     context: CContext 
+    //     context: CContext
     // });
 
     // var CVar = object({
@@ -130,7 +130,7 @@
 
     // probably a more javascripty way than faking constructors but screw it
     // (Num) -> CContext
-    function Mark(mark, ctx) { 
+    function Mark(mark, ctx) {
         return {
             mark: mark,
             context: ctx
@@ -157,20 +157,20 @@
         };
     }
 
-    var isRename = function(r) { 
+    var isRename = function(r) {
         return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
-    }
+    };
 
     function DummyRename(name, ctx) {
         return {
             dummy_name: name,
-            context: ctx      
+            context: ctx
         };
     }
 
     var isDummyRename = function(r) {
         return r && (typeof r.dummy_name !== 'undefined');
-    }
+    };
 
 
     var syntaxProto =  {
@@ -230,7 +230,7 @@
                 swappedToken.inner = swappedInner;
             }
 
-            return syntaxFromToken(swappedToken, 
+            return syntaxFromToken(swappedToken,
                                     renameDummyCtx(this.context, ident, name, dummyName));
         }
     };
@@ -238,19 +238,19 @@
     function renameDummyCtx(ctx, ident, name, dummyName) {
         if(ctx === null) {
             return null;
-        } 
+        }
         if(isDummyRename(ctx) && ctx.dummy_name === dummyName) {
             return Rename(ident, name, DummyRename(ctx.dummy_name, ctx.context));
-        } 
+        }
         if(isDummyRename(ctx) && ctx.dummy_name !== dummyName) {
             return DummyRename(ctx.dummy_name, renameDummyCtx(ctx.context, ident, name, dummyName));
-        } 
+        }
         if(isMark(ctx)) {
             return Mark(ctx.mark, renameDummyCtx(ctx.context, ident, name, dummyName));
-        } 
+        }
         if(isRename(ctx)) {
             return Rename(ctx.id, ctx.name, renameDummyCtx(ctx.context, ident, name, dummyName));
-        } 
+        }
         parser.assert(false, "expecting a fixed set of context types");
     }
 
@@ -291,10 +291,10 @@
             mark = stx.context.mark;
             submarks = marksof(syntaxFromToken(stx.token, stx.context.context));
             return remdup(mark, submarks);
-        } 
+        }
         if(isRename(stx.context) || isDummyRename(stx.context)) {
             return marksof(syntaxFromToken(stx.token, stx.context.context));
-        } 
+        }
         return [];
     }
 
@@ -302,7 +302,7 @@
     function resolve(stx) {
         if(isMark(stx.context) || isDummyRename(stx.context)) {
             return resolve(syntaxFromToken(stx.token, stx.context.context));
-        } 
+        }
         if (isRename(stx.context)) {
             var idName = resolve(stx.context.id);
             var subName = resolve(syntaxFromToken(stx.token, stx.context.context));
@@ -312,9 +312,9 @@
 
             if((idName === subName) && (_.difference(idMarks, subMarks).length === 0)) {
                 return stx.token.value + stx.context.name;
-            } 
+            }
             return resolve(syntaxFromToken(stx.token, stx.context.context));
-        } 
+        }
         return stx.token.value;
     }
 
@@ -336,7 +336,7 @@
                 token.inner = tokensToSyntax(token.inner);
             }
             return syntaxFromToken(token);
-        }); 
+        });
     }
 
     // ([...CSyntax]) -> [...CToken]
@@ -352,7 +352,7 @@
 
     // CToken -> Bool
     function isPatternVar(token) {
-        return token.type === parser.Token.Identifier 
+        return token.type === parser.Token.Identifier
             && token.value[0] === "$"   // starts with $
             && token.value !== "$";     // but isn't $
     }
@@ -362,7 +362,7 @@
         return _.any(patterns, function(pat) {
             if(pat.token.type === parser.Token.Delimiter) {
                 return containsPatternVar(pat.token.inner);
-            } 
+            }
             return isPatternVar(pat);
         });
     }
@@ -383,7 +383,7 @@
                     if(last && isPatternVar(last.token)) {
                         return acc;
                     }
-                } 
+                }
                 if(last && last.token.value === ":") {
                     if(lastLast && isPatternVar(lastLast.token)) {
                         return acc;
@@ -427,7 +427,7 @@
                 }
 
                 // skip over ... and (,)
-                if(patStx.token.value === "..." 
+                if(patStx.token.value === "..."
                         || (delimIsSeparator(patStx) && next && next.token.value === "...")) {
                     return acc;
                 }
@@ -466,8 +466,8 @@
             }
         } else {
             try {
-                var parseResult = parser.parse(callStx, 
-                                                pattern.class, 
+                var parseResult = parser.parse(callStx,
+                                                pattern.class,
                                                 {tokens:true});
 
                 consumed = parseResult.tokens.length;
@@ -545,12 +545,12 @@
                         // parser.assert(false, "sub delimiters in a macro pattern not supported right now, to be fixed with: https://github.com/mozilla/sweet.js/issues/28");
                         var subEnv = buildPatternEnv(callStx[callIdx].token.inner, pattern.token.inner);
                         consumed = subEnv.consumed;
-                        if(consumed !== callStx[callIdx].token.inner.length && repeat === false) { 
+                        if(consumed !== callStx[callIdx].token.inner.length && repeat === false) {
                             matchFailed = true;
                             callIdx = 0;
                             break;
                         }
-                        // consumed is the number of tokens inside the delimiter but we just need to 
+                        // consumed is the number of tokens inside the delimiter but we just need to
                         // move forward one token on this level
                         callIdx += (consumed > 0) ? 1 : 0;
                     }
@@ -611,7 +611,7 @@
                     }
                 }
 
-                // if we matched no tokens note that the match failed 
+                // if we matched no tokens note that the match failed
                 // so we don't check the remaining patterns and break out
                 // of the repeat loop
                 if(consumed === 0) {
@@ -697,7 +697,7 @@
 
     // ([...[...CSyntax]], Str) -> [...CSyntax]
     function joinSyntaxArr(tojoin, punc) {
-        if(tojoin.length === 0) { return []; } 
+        if(tojoin.length === 0) { return []; }
         if(punc === " ") {
             return _.flatten(tojoin, true);
         }
@@ -709,7 +709,7 @@
 
     // (CSyntax) -> Bool
     function delimIsSeparator(delim) {
-        return (delim && delim.token.type === parser.Token.Delimiter 
+        return (delim && delim.token.type === parser.Token.Delimiter
                 && delim.token.value === "()"
                 && delim.token.inner.length === 1
                 && delim.token.inner[0].token.type !== parser.Token.Delimiter
@@ -749,11 +749,11 @@
 
         var matches = _.chain(_.zip(callSyntax, patterns))
                         .map(function(ziped) {
-                            var call = ziped[0], 
+                            var call = ziped[0],
                                 pat = ziped[1];
 
                             if (pat.token.type === parser.Token.Delimiter) {
-                                if(!(call.token.type === parser.Token.Delimiter 
+                                if(!(call.token.type === parser.Token.Delimiter
                                     && call.token.value === pat.token.value)) {
                                     numberMatched = 0;
                                     return {};
@@ -797,7 +797,7 @@
     function mkMacroTransformer(macroCases) {
         // grab the patterns from each case and sort them by longest number of patterns
         var sortedCases = _.sortBy(macroCases, function(mcase) {
-                                    return patternLength(mcase.pattern); 
+                                    return patternLength(mcase.pattern);
                                 }).reverse();
 
         return function(callSyntax, macroNameStx) {
@@ -876,7 +876,7 @@
 
                                 var repeatLength = env[nonScalar].match.length;
                                 var sameLength = _.all(fv, function(pat) {
-                                    return (env[pat].level === 0) 
+                                    return (env[pat].level === 0)
                                             || (env[pat].match.length === repeatLength);
                                 });
                                 parser.assert(sameLength, "all non-scalars must have the same length");
@@ -921,12 +921,12 @@
                                 var newBody = syntaxFromToken(_.clone(bodyStx.token), bodySyntax.context);
                                 newBody.token.inner = transcribe(bodyStx.token.inner, env);
                                 return acc.concat(newBody);
-                            } 
+                            }
                             if(env[bodyStx.token.value]) {
                                 parser.assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match");
-                                return acc.concat(takeLineContext(macroNameStx, 
+                                return acc.concat(takeLineContext(macroNameStx,
                                                                   env[bodyStx.token.value].match));
-                            } 
+                            }
                             return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
                         }
                     }, []).value();
@@ -996,7 +996,7 @@
                     lineNumber: stx.token.endLineNumber,
                     lineStart: stx.token.endLineStart
                 }, stx.context));
-            } 
+            }
             return acc.concat(stx);
         }, []);
     }
@@ -1018,7 +1018,7 @@
 
     // (CSyntax) -> [...CSyntax]
     function getArgList(argSyntax) {
-        parser.assert(argSyntax.token.type === parser.Token.Delimiter, 
+        parser.assert(argSyntax.token.type === parser.Token.Delimiter,
             "expecting delimiter for function params");
         return _.filter(argSyntax.token.inner, function(stx) {
             return stx.token.value !== ",";
@@ -1048,19 +1048,19 @@
             var atFunctionDelimiter;
 
             if (curr.token.type === parser.Token.Delimiter) {
-                atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1]) 
+                atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1])
                                                                   || isFunctionStx(body[idx-2]))) ||
                                       (curr.token.value === "{}" && (isFunctionStx(body[idx-2])
                                                                   || isFunctionStx(body[idx-3])))
                 // don't look for var idents inside nested functions
                 if(!atFunctionDelimiter) {
                     return acc.concat(getVarIdentifiers(curr.token.inner));
-                } 
+                }
                 return acc;
-            } 
+            }
             if (isVarStx(body[idx-1])) {
-                var parseResult = parser.parse(flatten(body.slice(idx)), 
-                                            "VariableDeclarationList", 
+                var parseResult = parser.parse(flatten(body.slice(idx)),
+                                            "VariableDeclarationList",
                                             {noresolve: true});
                 return acc.concat(varNamesInAST(parseResult));
             }
@@ -1097,7 +1097,7 @@
         }
 
         // var doneLoadingMacroDefs;
-        // if(stx[0] 
+        // if(stx[0]
         //     && stx[0].token.type === parser.Token.Identifier
         //     && stx[0].token.value === "macro") {
         //     doneLoadingMacroDefs = false;
@@ -1109,8 +1109,8 @@
             var currStx = stx[index++];
             var token = currStx.token;
 
-            if ((token.type === parser.Token.Identifier) 
-                && (token.value === "macro")) { 
+            if ((token.type === parser.Token.Identifier)
+                && (token.value === "macro")) {
                 var macroNameStx = stx[index++];
                 var macroName = macroNameStx.token.value;
                 var macroBody = stx[index++].token;
@@ -1134,7 +1134,7 @@
                     consumeRange = _.range(macroDef.toConsume);
                 }
                 var callArgs = _.map(consumeRange, function() {
-                    parser.assert(!(stx[index].token.type === parser.Token.Punctuator && stx[index].token.value === ","), 
+                    parser.assert(!(stx[index].token.type === parser.Token.Punctuator && stx[index].token.value === ","),
                         "commas are not allowed in macro call");
                     return stx[consumeIdx++];
                 });
@@ -1159,7 +1159,7 @@
                 if(argsDelim.token.type === parser.Token.Identifier) {
                     functionName = argsDelim;
                     argsDelim = stx[index++];
-                } 
+                }
                 var bodyDelim = stx[index++];
 
                 parser.assert(argsDelim.token.type === parser.Token.Delimiter, "expecting delimiter for function params");
@@ -1177,7 +1177,7 @@
                 var renamedArgs = _.map(freshnameArgPairs, function(argPair) {
                     var freshName = argPair[0];
                     var arg = argPair[1];
-                    return arg.rename(arg, freshName); 
+                    return arg.rename(arg, freshName);
                 });
 
                 var newEnv = _.reduce(_.zip(freshNames, renamedArgs), function (accEnv, argPair) {
@@ -1206,7 +1206,7 @@
 
                 var varIdents = getVarIdentifiers(flatBody);
                 varIdents = _.filter(varIdents, function(varId) {
-                    // only pick the var identifiers that are not 
+                    // only pick the var identifiers that are not
                     // resolve equal to a parameter of this function
                     return !(_.any(renamedArgs, function(param) {
                         return resolve(varId) === resolve(param);
@@ -1244,7 +1244,7 @@
                     ident = env[resolvedIdent].id;
                 } else {
                     // todo is this right?
-                    // ident = mkSyntax(resolvedIdent, Token.Identifier, currStx); 
+                    // ident = mkSyntax(resolvedIdent, Token.Identifier, currStx);
                     ident = currStx
                 }
                 expanded = expanded.concat(ident);
@@ -1396,7 +1396,7 @@
                 // if(this.rest[0] && this.rest[0].token.type === parser.Token.Delimiter
                 //         && this.rest[0].token.value === "()") {
 
-                //     var termArgs = _.map(this.rest[0].token.inner, function(p) { 
+                //     var termArgs = _.map(this.rest[0].token.inner, function(p) {
                 //         var pr = ReadTree.create([p])
                 //         pr.enforest();
                 //         parser.assert(pr.rest.length === 0, "expecting enforest of argument to have no remainder");
@@ -1447,7 +1447,7 @@
                 this.head = Fun.create(r[1], r[2].token.inner, r[3].token.inner);
                 this.rest = this.rest.slice(4);
             // literal
-            } else if (r[0] 
+            } else if (r[0]
                     && (r[0].token.type === parser.Token.NumericLiteral
                     || r[0].token.type === parser.Token.StringLiteral
                     || r[0].token.type === parser.Token.BoolLiteral
@@ -1486,7 +1486,7 @@
         r.enforest(env);
 
         return {
-            result: r.head, 
+            result: r.head,
             rest: r.rest
         };
     }
@@ -1507,7 +1507,7 @@
         function matchPatternClass (patternClass, stx, env) {
             var result, rest;
             // pattern has no parse class
-            if(patternClass === "token") { 
+            if(patternClass === "token") {
                 if(stx[0].token.type !== parser.Token.EOF) {
                     result = stx[0];
                     rest = stx.slice(1);
@@ -1518,10 +1518,10 @@
             // pattern has a parse class
             } else {
                 match = get_expression(stx, env);
-                // if(match.result === null) {
-                //     result = null;
-                //     rest = stx;
-                if(patternClass === "lit" && match.result.hasPrototype(Lit)) {
+                if(match.result === null) {
+                    result = null;
+                    rest = stx;
+                } else if(patternClass === "lit" && match.result.hasPrototype(Lit)) {
                     result = match.result.lit;
                     rest = match.rest;
                 } else if(patternClass === "id" && match.result.hasPrototype(Id)) {
@@ -1537,10 +1537,7 @@
 
 
             return {
-                result: {
-                    level: 0,
-                    match: result
-                },
+                result: result,
                 rest: rest
             };
         }
@@ -1571,23 +1568,24 @@
         */
         function matchPattern(pattern, stx, env, patternEnv) {
             var subMatch;
-            var match;
+            var match, matchEnv;
             var result, rest;
 
             // todo: make sure the assumptions that stx contains something holds
 
             if(pattern.token.type === parser.Token.Delimiter) {
-                if(pattern.class === "pattern_group") { 
+                if(pattern.class === "pattern_group") {
                     // pattern groups don't match the delimiters
                     subMatch = matchPatterns(pattern.token.inner, stx, env, patternEnv);
-                } else if (stx[0].token.type === parser.Token.Delimiter 
+                } else if (stx[0].token.type === parser.Token.Delimiter
                             && stx[0].token.value === pattern.token.value) {
                     subMatch = matchPatterns(pattern.token.inner, stx[0].token.inner, env, patternEnv);
                 } else {
                     throwError("expecting to match a delimiter");
                 }
                 result = subMatch.result;
-                rest = stx.slice(1); //subMatch.rest;
+                rest = stx.slice(1);
+                parser.assert(subMatch.rest.length === 0, "expecting no remaining tokens");
 
                 // merge the subpattern matches with the current pattern environment
                 _.keys(subMatch.patternEnv).forEach(function(patternKey) {
@@ -1623,31 +1621,34 @@
                 } else {
                     match = matchPatternClass(pattern.class, stx, env);
 
-                    result = [match.result.match];
+                    result = match.result === null ? [] : [match.result];
                     rest = match.rest;
+                    matchEnv = {
+                        level: 0,
+                        match: match.result
+                    };
 
                     // only update the pattern environment if we got a result
-                    if(match.result.match !== null) {
+                    if(match.result !== null) {
                         // push the match onto this value's slot in the environment
                         if(pattern.repeat) {
                             if(patternEnv[pattern.token.value]) {
-                                patternEnv[pattern.token.value].match.push(match.result);
+                                patternEnv[pattern.token.value].match.push(matchEnv);
                             } else {
                                 // initialize if necessary
                                 patternEnv[pattern.token.value] = {
                                     level: 1,
-                                    match: [match.result]
+                                    match: [matchEnv]
                                 };
                             }
                         } else {
-                            patternEnv[pattern.token.value] = match.result;
+                            patternEnv[pattern.token.value] = matchEnv;
                         }
                     }
                 }
             }
             return {
                 result: result,
-                // result: result.match,
                 rest: rest,
                 patternEnv: patternEnv
             };
@@ -1663,26 +1664,26 @@
             // and the other is the pattern environment that maps
             // patterns in a macro case to syntax.
             var result = [];
-            var patternEnv = patternEnv || {}
+            var patternEnv = patternEnv || {};
 
             var match;
             var pattern;
-            var tmp_stx = stx;
+            var rest = stx;
 
             for(var i = 0; i < patterns.length; i++) {
                 pattern = patterns[i];
                 do {
-                    match = matchPattern(pattern, tmp_stx, env, patternEnv); 
+                    match = matchPattern(pattern, rest, env, patternEnv);
                     if(match.result !== null) {
                         result = result.concat(match.result);
                     }
-                    tmp_stx = match.rest;
+                    rest = match.rest;
                 } while(pattern.repeat && (match.result !== null) && match.result.length > 0);
 
 
             // if(pattern.repeat && pattern.separator === " ") {
             //     // stop repeating if we're at the end of the syntax
-            //     if((callIdx >= callStx.length) 
+            //     if((callIdx >= callStx.length)
             //         || (callStx[callIdx].token.type === parser.Token.EOF)) {
             //         repeat = false;
             //     }
@@ -1694,7 +1695,7 @@
             //     repeat = false;
             // } else if(pattern.repeat) {
             //     // consume the separator
-            //     // todo: this is assuming all separators are single tokens, 
+            //     // todo: this is assuming all separators are single tokens,
             //     // might want to revise at some point
             //     callIdx++;
             // }
@@ -1702,7 +1703,7 @@
             }
             return {
                 result: result,
-                rest: tmp_stx,
+                rest: rest,
                 patternEnv: patternEnv
             };
         }
@@ -1760,7 +1761,7 @@
 
                             var repeatLength = env[nonScalar].match.length;
                             var sameLength = _.all(fv, function(pat) {
-                                return (env[pat].level === 0) 
+                                return (env[pat].level === 0)
                                         || (env[pat].match.length === repeatLength);
                             });
                             parser.assert(sameLength, "all non-scalars must have the same length");
@@ -1803,14 +1804,14 @@
                     } else {
                         if(bodyStx.token.type === parser.Token.Delimiter) {
                             var newBody = syntaxFromToken(_.clone(bodyStx.token), bodyPattern.context);
-                            newBody.token.inner = transcribe(bodyStx.token.inner, env);
+                            newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, env);
                             return acc.concat(newBody);
-                        } 
+                        }
                         if(env[bodyStx.token.value]) {
                             parser.assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match");
-                            return acc.concat(takeLineContext(macroNameStx, 
+                            return acc.concat(takeLineContext(macroNameStx,
                                                               [env[bodyStx.token.value].match]));
-                        } 
+                        }
                         return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
                     }
                 }, []).value();
@@ -1832,7 +1833,7 @@
                         rest: match.rest
                     };
                 }
-            }   
+            }
             throwError("Could not match any cases for macro: " + macroName);
         };
     }
@@ -1879,7 +1880,7 @@
             arrowOffset = findCaseArrow(caseOffset, body);
             if(arrowOffset > 0 && arrowOffset < body.length) {
                 // arrowOffset is at `=` in `=> {body}` so add two to get to the body
-                caseBodyIdx = arrowOffset + 2; 
+                caseBodyIdx = arrowOffset + 2;
                 if(caseBodyIdx >= body.length) {
                     throwError("case body missing in macro definition");
                 }
@@ -1908,8 +1909,8 @@
 
         if(toks.length === 0) {
             return [];
-        } 
-        var f = enforest(toks, env); 
+        }
+        var f = enforest(toks, env);
         var head = f.result;
         var rest = f.rest;
 

@@ -5,6 +5,7 @@ var expect = require("expect.js");
 var enforest = expander.enforest;
 var read = parser.read;
 var expand = expander.expandf;
+var flatten = expander.flattenf;
 
 describe("enforest", function() {
   it("should enforest a single ident", function() {
@@ -28,12 +29,12 @@ describe("enforest", function() {
     expect(res.result.lit.token.value).to.be('2');
   });
 
-  it("should enforest a fcn call", function() {
-    var res = enforest(read("foo(1, 2);"));
+  // it("should enforest a fcn call", function() {
+  //   var res = enforest(read("foo(1, 2);"));
 
-    expect(res.result.fun.id.token.value).to.be("foo");
-    expect(res.result.args[0].lit.token.value).to.be(1);
-  });
+  //   expect(res.result.fun.id.token.value).to.be("foo");
+  //   expect(res.result.args[0].lit.token.value).to.be(1);
+  // });
 
   it("should enforest a macro definition", function() {
     var res = enforest(read("macro id { case $x => { $x } } fun"));
@@ -56,4 +57,17 @@ describe("expand", function() {
         var res = expand(read("macro m { case $x => { $x } }\nm 42"));
         expect(res[0].lit.token.value).to.be(42);
     });
+
+    it("should enforest/flatten a delimiter", function() {
+      var res = flatten(expand(read("(2+2)")));
+
+      expect(res.length).to.be(6);
+      expect(res[0].token.value).to.be("(");
+      expect(res[1].token.value).to.be(2);
+    });
+
+    // it("should enforest/flatten a call with an anonymous fun", function() {
+    //   var res = flatten(expand(read("foo('bar', function(a) { return 2; })")));
+    //   console.log(res)
+    // });
 })

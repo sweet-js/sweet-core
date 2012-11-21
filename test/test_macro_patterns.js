@@ -1,4 +1,4 @@
-var expect = require("expect.js")
+var expect = require("expect.js");
 
 describe("macro expander", function() {
   it("should expand a macro with pattern `$x:lit`", function() {
@@ -16,7 +16,7 @@ describe("macro expander", function() {
       case (=> $x:lit) => {
         $x
       }
-    }    
+    }
     var z = litid(=> 42);
     expect(z).to.equal(42);
   });
@@ -100,28 +100,28 @@ describe("macro expander", function() {
     expect(z[0]).to.be(4);
   });
 
-  // it("should expand literal parens", function() {
-  //   macro paren {
-  //     case (($x:lit)) => {
-  //       [$x]
-  //     }
-  //   }
-  //   var z = paren ((4));
+  it("should expand literal parens", function() {
+    macro paren {
+      case (($x:lit)) => {
+        [$x]
+      }
+    }
+    var z = paren ((4));
 
-  //   expect(z[0]).to.be(4);
-  // });
+    expect(z[0]).to.be(4);
+  });
 
-  // it("should expand with ellipses", function() {
-  //   macro paren {
-  //     case ( $x:lit (,) ...) => {
-  //       [$x (,) ...]
-  //     }
-  //   }
-  //   var z = paren (4, 3);
+  it("should expand with ellipses", function() {
+    macro paren {
+      case ( $x:lit (,) ...) => {
+        [$x (,) ...]
+      }
+    }
+    var z = paren (4, 3);
 
-  //   expect(z[0]).to.be(4);
-  //   expect(z[1]).to.be(3);
-  // });
+    expect(z[0]).to.be(4);
+    expect(z[1]).to.be(3);
+  });
 
   // it("should expand literal parens with ellipses", function() {
   //   macro paren {
@@ -216,7 +216,7 @@ describe("macro expander", function() {
 
 
   // it("should expand an ellipsese no separator", function() {
-  
+
   //   macro semi {
   //     case ($x:ident ...) => {
   //       var $($x = 2) (,) ...
@@ -320,15 +320,15 @@ describe("macro expander", function() {
   //     }
   //   }
   //   var z = b (1, 2);
-  //   expect(z).to.eql([1]) 
+  //   expect(z).to.eql([1])
   // });
 
   // it("should allow macro defining macros", function() {
   //   macro mm {
   //     case ($x:lit) => {
   //       macro m {
-  //         case ($y:lit) => { 
-  //           [$x, $y] 
+  //         case ($y:lit) => {
+  //           [$x, $y]
   //         }
   //       }
   //     }
@@ -346,7 +346,7 @@ describe("macro expander", function() {
   //     }
   //   }
   //   var z = m ([1,2,3]);
-  //   expect(z).to.eql([1,2,3]) 
+  //   expect(z).to.eql([1,2,3])
   // });
 
   // // it("should allow fn calls as an :expr", function() {

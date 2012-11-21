@@ -3,18 +3,18 @@ var expect = require("expect.js")
 // not testing anything specific, just that various
 // example macros work
 describe("macro examples", function() {
-  it("def", function() {
-    macro def {
-      case $name:ident $params $body => {
-        function $name $params $body
-      }
-    }
-    def add (a, b) {
-      return a + b;
-    }
+  // it("def", function() {
+  //   macro def {
+  //     case $name:ident $params $body => {
+  //       function $name $params $body
+  //     }
+  //   }
+  //   def add (a, b) {
+  //     return a + b;
+  //   }
 
-    expect(add(1,2)).to.be(3);
-  });
+  //   expect(add(1,2)).to.be(3);
+  // });
 
   // it("class", function() {
   //   macro class {
