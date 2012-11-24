@@ -1588,6 +1588,7 @@
                 rest = stx.slice(1);
                 parser.assert(subMatch.rest.length === 0, "expecting no remaining tokens");
 
+
                 // merge the subpattern matches with the current pattern environment
                 _.keys(subMatch.patternEnv).forEach(function(patternKey) {
                     if(pattern.repeat) {
@@ -1609,6 +1610,7 @@
                         patternEnv[patternKey] = subMatch.patternEnv[patternKey];
                     }
                 });
+
             } else {
                 if(pattern.class === "pattern_literal") {
                     // match the literal but don't update the pattern environment
@@ -1626,7 +1628,7 @@
                     rest = match.rest;
                     matchEnv = {
                         level: 0,
-                        match: match.result
+                        match: [match.result]
                     };
 
                     // only update the pattern environment if we got a result
@@ -1680,6 +1682,17 @@
                         success = false;
                     }
                     rest = match.rest;
+                    patternEnv = match.patternEnv;
+
+
+                    if(pattern.repeat && success) {
+                        if((rest[0] && rest[0].token.value === pattern.separator)
+                            || (pattern.separator === " ")) {
+                            rest = rest.slice(1);
+                        } else {
+                            break;
+                        }
+                    }
                 } while(pattern.repeat && match.success);
 
 
@@ -1812,7 +1825,7 @@
                         if(env[bodyStx.token.value]) {
                             parser.assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match");
                             return acc.concat(takeLineContext(macroNameStx,
-                                                              [env[bodyStx.token.value].match]));
+                                                              env[bodyStx.token.value].match));
                         }
                         return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
                     }
