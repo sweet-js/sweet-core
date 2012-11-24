@@ -123,17 +123,17 @@ describe("macro expander", function() {
     expect(z[1]).to.be(3);
   });
 
-  // it("should expand literal parens with ellipses", function() {
-  //   macro paren {
-  //     case ( ($x:lit) (,) ...) => {
-  //       [$x (,) ...]
-  //     }
-  //   }
-  //   var z = paren ((4), (3));
+  it("should expand literal parens with ellipses", function() {
+    macro paren {
+      case ( ($x:lit) (,) ...) => {
+        [$x (,) ...]
+      }
+    }
+    var z = paren ((4), (3));
 
-  //   expect(z[0]).to.be(4);
-  //   expect(z[1]).to.be(3);
-  // });
+    expect(z[0]).to.be(4);
+    expect(z[1]).to.be(3);
+  });
 
 
   // it("should expand a simple let macro", function() {
@@ -161,34 +161,36 @@ describe("macro expander", function() {
   //   expect(foo).to.be(8)
   // });
 
-  // it("should handle ellipses in output delimiters", function() {
-  //   macro m {
-  //     case ( $x:lit (,) ...) => {
-  //       [[$x] (,) ...]
-  //     }
-  //   }
-  //   var x = m ( 1, 2, 3 );
-  //   expect(x).to.eql([[1],[2],[3]]);
-  // });
+  it("should handle ellipses in output delimiters", function() {
+    macro m {
+      case ( $x:lit (,) ...) => {
+        [[$x] (,) ...]
+      }
+    }
+    var x = m ( 1, 2, 3 );
+    expect(x).to.eql([[1],[2],[3]]);
+  });
 
-  // it("should work", function() {
-  //   macro m {
-  //     case { $($a $b) ... } => {
-  //       [$([$a, $b]) (,) ...];
-  //     }
-  //   }
+  it("should work", function() {
+    macro m {
+      case { $($a $b) ... } => {
+        [$([$a, $b]) (,) ...];
+      }
+    }
 
-  //   var x = m { 1 2 3 4 }
-  // });
+    var x = m { 1 2 3 4 }
 
-  // it("should expand simple nested ellipses", function() {
-  //   macro nest {
-  //     case ( ($x:lit (,) ...) (,) ... ) => {
-  //       [ [$x (,) ...] (,) ...]
-  //     }
-  //   }
-  //   var x = nest ( (1, 2, 3), (4, 5, 6) );
-  // });
+    expect(x).to.eql([[1, 2], [3, 4]])
+  });
+
+  it("should expand simple nested ellipses", function() {
+    macro nest {
+      case ( ($x:lit (,) ...) (,) ... ) => {
+        [ [$x (,) ...] (,) ...]
+      }
+    }
+    var x = nest ( (1, 2, 3), (4, 5, 6) );
+  });
 
   // // it("should expand a nested ellipses macro", function() {
   // //   macro nest {
@@ -203,31 +205,31 @@ describe("macro expander", function() {
   // //   expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15]);
   // // });
 
-  // it("should expand an ellipses with a ; delimiter", function() {
-  //   macro semi {
-  //     case ( $x:lit (;) ...) => {
-  //       [$x (,) ...]
-  //     }
-  //   }
-  //   var a = semi(1;2;3;4);
-  //   expect(a.length).to.be(4);
-  //   expect(a[1]).to.be(2);
-  // });
+  it("should expand an ellipses with a ; delimiter", function() {
+    macro semi {
+      case ( $x:lit (;) ...) => {
+        [$x (,) ...]
+      }
+    }
+    var a = semi(1;2;3;4);
+    expect(a.length).to.be(4);
+    expect(a[1]).to.be(2);
+  });
 
 
-  // it("should expand an ellipsese no separator", function() {
+  it("should expand an ellipsese no separator", function() {
 
-  //   macro semi {
-  //     case ($x:ident ...) => {
-  //       var $($x = 2) (,) ...
-  //     }
-  //   }
-  //   semi(w x y z);
-  //   expect(w).to.be(2);
-  //   expect(x).to.be(2);
-  //   expect(y).to.be(2);
-  //   expect(z).to.be(2);
-  // });
+    macro semi {
+      case ($x:id ...) => {
+        var $($x = 2) (,) ...
+      }
+    }
+    semi(w x y z);
+    expect(w).to.be(2);
+    expect(x).to.be(2);
+    expect(y).to.be(2);
+    expect(z).to.be(2);
+  });
 
   // it("should handle def macro", function() {
   //   macro def {
@@ -245,20 +247,20 @@ describe("macro expander", function() {
   // });
 
 
-  // it("should handle multiple cases", function() {
-  //   macro m {
-  //     case four => {
-  //       4
-  //     }
-  //     case two => {
-  //       2
-  //     }
-  //   }
-  //   var n = m four;
-  //   expect(n).to.be(4)
-  //   var n = m two;
-  //   expect(n).to.be(2)
-  // });
+  it("should handle multiple cases", function() {
+    macro m {
+      case four => {
+        4
+      }
+      case two => {
+        2
+      }
+    }
+    var n = m four;
+    expect(n).to.be(4)
+    var n = m two;
+    expect(n).to.be(2)
+  });
 
   // it("should handle multiple cases when matching different length patterns", function() {
   //   macro arrid {

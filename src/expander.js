@@ -1508,7 +1508,7 @@
             var result, rest;
             // pattern has no parse class
             if(patternClass === "token") {
-                if(stx[0].token.type !== parser.Token.EOF) {
+                if(stx[0] && stx[0].token.type !== parser.Token.EOF) {
                     result = stx[0];
                     rest = stx.slice(1);
                 } else {
@@ -1578,16 +1578,15 @@
                 if(pattern.class === "pattern_group") {
                     // pattern groups don't match the delimiters
                     subMatch = matchPatterns(pattern.token.inner, stx, env, patternEnv);
+                    rest = subMatch.rest;
                 } else if (stx[0].token.type === parser.Token.Delimiter
                             && stx[0].token.value === pattern.token.value) {
                     subMatch = matchPatterns(pattern.token.inner, stx[0].token.inner, env, patternEnv);
+                    rest = stx.slice(1);
                 } else {
                     throwError("expecting to match a delimiter");
                 }
                 success = subMatch.success;
-                rest = stx.slice(1);
-                parser.assert(subMatch.rest.length === 0, "expecting no remaining tokens");
-
 
                 // merge the subpattern matches with the current pattern environment
                 _.keys(subMatch.patternEnv).forEach(function(patternKey) {
@@ -1661,13 +1660,13 @@
 
         // attempt to match pats against stx
         // ([...Pattern], [...Syntax], Env) -> { result: [...Syntax], rest: [...Syntax], patternEnv: PatternEnv }
-        function matchPatterns(patterns, stx, env, patternEnv) {
+        function matchPatterns(patterns, stx, env) {
             // note that there are two environments floating around,
             // one is the mapping of identifiers to macro definitions
             // and the other is the pattern environment that maps
             // patterns in a macro case to syntax.
             var result = [];
-            var patternEnv = patternEnv || {};
+            var patternEnv = {};
 
             var match;
             var pattern;
@@ -1684,16 +1683,16 @@
                     rest = match.rest;
                     patternEnv = match.patternEnv;
 
-
                     if(pattern.repeat && success) {
-                        if((rest[0] && rest[0].token.value === pattern.separator)
-                            || (pattern.separator === " ")) {
+                        if(rest[0] && rest[0].token.value === pattern.separator) {
                             rest = rest.slice(1);
+                        } else if (pattern.separator === " ") {
+                            continue;
                         } else {
                             break;
                         }
                     }
-                } while(pattern.repeat && match.success);
+                } while(pattern.repeat && match.success && rest.length > 0);
 
 
             // if(pattern.repeat && pattern.separator === " ") {
@@ -1798,10 +1797,10 @@
 
                             var transcribed = _.map(restrictedEnv, function(renv) {
                                 if(bodyStx.group) {
-                                    return transcribe(bodyStx.token.inner, renv);
+                                    return transcribe(bodyStx.token.inner, macroNameStx, renv);
                                 } else {
                                     var newBody = syntaxFromToken(_.clone(bodyStx.token), bodyStx.context);
-                                    newBody.token.inner = transcribe(bodyStx.token.inner, renv);
+                                    newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, renv);
                                     return newBody;
                                 }
                             });
