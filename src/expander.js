@@ -1569,7 +1569,8 @@
         function matchPattern(pattern, stx, env, patternEnv) {
             var subMatch;
             var match, matchEnv;
-            var result, rest;
+            var rest;
+            var success;
 
             // todo: make sure the assumptions that stx contains something holds
 
@@ -1583,7 +1584,7 @@
                 } else {
                     throwError("expecting to match a delimiter");
                 }
-                result = subMatch.result;
+                success = subMatch.success;
                 rest = stx.slice(1);
                 parser.assert(subMatch.rest.length === 0, "expecting no remaining tokens");
 
@@ -1612,16 +1613,16 @@
                 if(pattern.class === "pattern_literal") {
                     // match the literal but don't update the pattern environment
                     if(pattern.token.value === stx[0].token.value) {
-                        result = stx[0];
+                        success = true;
                         rest = stx.slice(1);
                     } else {
-                        result = null;
+                        success = false;
                         rest = stx;
                     }
                 } else {
                     match = matchPatternClass(pattern.class, stx, env);
 
-                    result = match.result === null ? [] : [match.result];
+                    success = match.result !== null;
                     rest = match.rest;
                     matchEnv = {
                         level: 0,
@@ -1648,7 +1649,7 @@
                 }
             }
             return {
-                result: result,
+                success: success,
                 rest: rest,
                 patternEnv: patternEnv
             };
@@ -1669,16 +1670,17 @@
             var match;
             var pattern;
             var rest = stx;
+            var success = true;
 
             for(var i = 0; i < patterns.length; i++) {
                 pattern = patterns[i];
                 do {
                     match = matchPattern(pattern, rest, env, patternEnv);
-                    if(match.result !== null) {
-                        result = result.concat(match.result);
+                    if(!match.success) {
+                        success = false;
                     }
                     rest = match.rest;
-                } while(pattern.repeat && (match.result !== null) && match.result.length > 0);
+                } while(pattern.repeat && match.success);
 
 
             // if(pattern.repeat && pattern.separator === " ") {
@@ -1702,7 +1704,7 @@
 
             }
             return {
-                result: result,
+                success: success,
                 rest: rest,
                 patternEnv: patternEnv
             };
@@ -1827,14 +1829,14 @@
 
                 match = matchPatterns(casePattern, stx, env)
                 // transcribe on the first successful match
-                if(match.result.length > 0) {
+                if(match.success) {
                     return {
                         result: transcribe(caseBody, macroNameStx, match.patternEnv),
                         rest: match.rest
                     };
                 }
             }
-            throwError("Could not match any cases for macro: " + macroName);
+            throwError("Could not match any cases for macro: " + macroNameStx.token.value);
         };
     }
 
