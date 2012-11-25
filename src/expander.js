@@ -1349,6 +1349,27 @@
         }
     });
 
+    // var NamedFun = TermTree.extend({
+    //     properties: ["keyword", "name", "params", "body"],
+
+    //     construct: function(keyword, name, params, body) {
+    //         this.keyword = keyword;
+    //         this.name = name;
+    //         this.params = params;
+    //         this.body = body;
+    //     }
+    // });
+
+    // var AnonFun = TermTree.extend({
+    //     properties: ["keyword", "params", "body"],
+
+    //     construct: function(keyword, params, body) {
+    //         this.keyword = keyword;
+    //         this.params = params;
+    //         this.body = body;
+    //     }
+    // });
+
     var Macro = TermTree.extend({
         properties: ["name", "body"],
 
@@ -1446,6 +1467,25 @@
                     && r[3].token.value === "{}") {
                 this.head = Fun.create(r[1], r[2].token.inner, r[3].token.inner);
                 this.rest = this.rest.slice(4);
+            // } else if (r[0] && r[1] && r[2] && r[3]
+            //         && r[0].token.type === parser.Token.Keyword
+            //         && r[0].token.value === "function"
+            //         && r[1].token.type === parser.Token.Identifier
+            //         && r[2].token.type === parser.Token.Delimiter
+            //         && r[2].token.value === "()"
+            //         && r[3].token.type === parser.Token.Delimiter
+            //         && r[3].token.value === "{}") {
+            //     this.head = NamedFun.create(r[0], r[1], r[2].token.inner, r[3].token.inner);
+            //     this.rest = this.rest.slice(4);
+            // } else if(r[0] && r[1] && r[2]
+            //         && r[0].token.type === parser.Token.Keyword
+            //         && r[0].token.value === "function"
+            //         && r[1].token.type === parser.Token.Delimiter
+            //         && r[1].token.value === "()"
+            //         && r[2].token.type === parser.Token.Delimiter
+            //         && r[2].token.value === "{}") {
+            //     this.head = AnonFun.create(r[0], r[1].token.inner, r[2].token.inner);
+            //     this.rest = this.rest.slice(3);
             // literal
             } else if (r[0]
                     && (r[0].token.type === parser.Token.NumericLiteral
@@ -1843,6 +1883,7 @@
             var match;
             var casePattern, caseBody;
             var newMark;
+            var macroResult;
             // try each case
             for(var i = 0; i < cases.length; i++) {
                 casePattern = cases[i].pattern;
@@ -1854,8 +1895,10 @@
                 if(match.success) {
                     newMark = fresh();
                     applyMarkToPatternEnv(newMark, match.patternEnv)
+                    macroResult = transcribe(caseBody, macroNameStx, match.patternEnv)
+                    macroResult = _.map(macroResult, function(stx) { return stx.mark(newMark); });
                     return {
-                        result: transcribe(caseBody, macroNameStx, match.patternEnv),
+                        result: macroResult,
                         rest: match.rest
                     };
                 }
@@ -1947,6 +1990,7 @@
         } else if(head.hasPrototype(Delimiter)) {
             head.delim.token.inner = expandf(head.delim.token.inner, env)
             return [head].concat(expandf(rest, env));
+        // } else if( head.hasPrototype(Fun))
         // } else if(head.hasPrototype(Call)) {
         //     return [head.fun]
         //             .concat(expandf(head.args, env))
