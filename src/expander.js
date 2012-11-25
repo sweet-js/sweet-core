@@ -1450,7 +1450,7 @@
             } else if (r[0]
                     && (r[0].token.type === parser.Token.NumericLiteral
                     || r[0].token.type === parser.Token.StringLiteral
-                    || r[0].token.type === parser.Token.BoolLiteral
+                    || r[0].token.type === parser.Token.BooleanLiteral
                     || r[0].token.type === parser.Token.RegexLiteral
                     || r[0].token.type === parser.Token.NullLiteral)) {
                 this.head = Lit.create(r[0]);
@@ -1475,7 +1475,7 @@
                 this.rest = [];
             // oops
             } else {
-                parser.assert(false, "unexpected token in enforest");
+                parser.assert(false, "unexpected token in enforest: " + r[0].token.value);
             }
         }
     }
@@ -1571,8 +1571,6 @@
             var match, matchEnv;
             var rest;
             var success;
-
-            // todo: make sure the assumptions that stx contains something holds
 
             if(pattern.token.type === parser.Token.Delimiter) {
                 if(pattern.class === "pattern_group") {
@@ -1693,27 +1691,6 @@
                         }
                     }
                 } while(pattern.repeat && match.success && rest.length > 0);
-
-
-            // if(pattern.repeat && pattern.separator === " ") {
-            //     // stop repeating if we're at the end of the syntax
-            //     if((callIdx >= callStx.length)
-            //         || (callStx[callIdx].token.type === parser.Token.EOF)) {
-            //         repeat = false;
-            //     }
-            // } else if(pattern.repeat && stx[callIdx].token.value !== pattern.separator) {
-            //     // stop repeating if the next token isn't the repeat separator
-            //     repeat = false;
-            // } else if(consumed <= 0) {
-            //     // stop repeating if the pattern did not match
-            //     repeat = false;
-            // } else if(pattern.repeat) {
-            //     // consume the separator
-            //     // todo: this is assuming all separators are single tokens,
-            //     // might want to revise at some point
-            //     callIdx++;
-            // }
-
             }
             return {
                 success: success,
