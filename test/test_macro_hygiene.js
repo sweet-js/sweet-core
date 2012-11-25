@@ -2,22 +2,21 @@ var expect = require("expect.js")
 
 describe("macro hygiene", function() {
 
-  // it("should work for or macro", function() {
+  it("should work for or macro", function() {
+    macro or {
+      case ($x , $y) => {
+        (function($tmp) {
+          return $tmp ? $tmp : $y;
+        })($x);
+      }
+    }
 
-  //   macro or {
-  //     case ($x:expr, $y:expr) => {
-  //       (function($tmp) {
-  //         return $tmp ? $tmp : $y;
-  //       })($x);
-  //     }
-  //   }
+    (function($tmp) {
+      var z = or(false, $tmp)
+      expect(z).to.be("ok");
+    })("ok");
 
-  //   (function($tmp) {
-  //     var z = or(false, $tmp)
-  //     expect(z).to.be("ok");
-  //   })("ok");
-
-  // });
+  });
 
   // it("should work for a binding outside of the macro def", function() {
 
@@ -52,7 +51,7 @@ describe("macro hygiene", function() {
   //   var n = (function (o, x) {
   //     return o.x;
   //   })({x: 42})
-    
+
   //   expect(n).to.be(42)
   // });
 

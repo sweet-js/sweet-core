@@ -1808,9 +1808,41 @@
                 }, []).value();
         }
 
+        // mark each syntax object in the pattern environment,
+        // mutating the environment
+        function applyMarkToPatternEnv (newMark, env) {
+            /*
+            Takes a `match` object:
+
+                {
+                    level: <num>,
+                    match: [<match> or <syntax>]
+                }
+
+            where the match property is an array of syntax objects at the bottom (0) level.
+            Does a depth-first search and applys the mark to each syntax object.
+            */
+            function dfs(match) {
+                if(match.level === 0) {
+                    // replace the match property with the marked syntax
+                    match.match = _.map(match.match, function(stx) {
+                        return stx.mark(newMark);
+                    });
+                } else {
+                    _.each(match.match, function(match) {
+                        dfs(match);
+                    })
+                }
+            }
+            _.keys(env).forEach(function(key) {
+                dfs(env[key]);
+            });
+        }
+
         return function transformer(stx, macroNameStx, env) {
             var match;
             var casePattern, caseBody;
+            var newMark;
             // try each case
             for(var i = 0; i < cases.length; i++) {
                 casePattern = cases[i].pattern;
@@ -1818,7 +1850,10 @@
 
                 match = matchPatterns(casePattern, stx, env)
                 // transcribe on the first successful match
+                // todo: should we be sorting the matches by length?
                 if(match.success) {
+                    newMark = fresh();
+                    applyMarkToPatternEnv(newMark, match.patternEnv)
                     return {
                         result: transcribe(caseBody, macroNameStx, match.patternEnv),
                         rest: match.rest

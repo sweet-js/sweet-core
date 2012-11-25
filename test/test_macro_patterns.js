@@ -192,18 +192,18 @@ describe("macro expander", function() {
     var x = nest ( (1, 2, 3), (4, 5, 6) );
   });
 
-  // // it("should expand a nested ellipses macro", function() {
-  // //   macro nest {
-  // //     case ( ($x:lit ; $y:lit (,) ...) (,) ...) => {
-  // //       [ [$x (,) ...], [$y (,) ...] ... ]
-  // //     }
-  // //   }
+  // it("should expand a nested ellipses macro", function() {
+  //   macro nest {
+  //     case ( ($x:lit ; $y:lit (,) ...) (,) ...) => {
+  //       [ [$x (,) ...], [$y (,) ...] ... ]
+  //     }
+  //   }
 
-  // //   var foo = nest ( (1; 2,3,4,5), (10; 11, 12, 13, 14, 15) );
+  //   var foo = nest ( (1; 2,3,4,5), (10; 11, 12, 13, 14, 15) );
 
-  // //   expect(foo[0]).to.eql([1,10]);
-  // //   expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15]);
-  // // });
+  //   expect(foo[0]).to.eql([1,10]);
+  //   expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15]);
+  // });
 
   it("should expand an ellipses with a ; delimiter", function() {
     macro semi {
@@ -325,31 +325,31 @@ describe("macro expander", function() {
   //   expect(z).to.eql([1])
   // });
 
-  // it("should allow macro defining macros", function() {
-  //   macro mm {
-  //     case ($x:lit) => {
-  //       macro m {
-  //         case ($y:lit) => {
-  //           [$x, $y]
-  //         }
-  //       }
-  //     }
-  //   }
+  it("should allow macro defining macros", function() {
+    macro mm {
+      case ($x:lit) => {
+        macro m {
+          case ($y:lit) => {
+            [$x, $y]
+          }
+        }
+      }
+    }
 
-  //   mm (42)
-  //   var z = m (24);
-  //   expect(z).to.eql([42,24])
-  // });
+    mm (42)
+    var z = m (24);
+    expect(z).to.eql([42,24])
+  });
 
-  // it("should allow matching of unparsed tokens", function() {
-  //   macro m {
-  //     case ($x) => {
-  //       $x
-  //     }
-  //   }
-  //   var z = m ([1,2,3]);
-  //   expect(z).to.eql([1,2,3])
-  // });
+  it("should allow matching of unparsed tokens", function() {
+    macro m {
+      case ($x) => {
+        $x
+      }
+    }
+    var z = m ([1,2,3]);
+    expect(z).to.eql([1,2,3])
+  });
 
   // // it("should allow fn calls as an :expr", function() {
   // //   macro m {

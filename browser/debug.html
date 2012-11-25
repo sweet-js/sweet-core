@@ -5,14 +5,13 @@
   <script data-main="scripts/main" src="scripts/require.js"></script>
   <script id="sweetjs" type="text/sweetjs">
 
-
-    macro paren {
-      case ({$x:lit}) => {
-        [$x]
+    macro m {
+      case { $($a $b) ... } => {
+        [$([$a, $b]) (,) ...];
       }
     }
-    var z = paren ({4});
 
+    var x = m { 1 2 3 4 }
 
 </script>
 </head>
