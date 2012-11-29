@@ -1339,36 +1339,26 @@
         construct: function(id) { this.id = id; }
     });
 
-    var Fun = TermTree.extend({
-        properties: ["name", "params", "body"],
+    var NamedFun = TermTree.extend({
+        properties: ["keyword", "name", "params", "body"],
 
-        construct: function(name, params, body) {
+        construct: function(keyword, name, params, body) {
+            this.keyword = keyword;
             this.name = name;
             this.params = params;
             this.body = body;
         }
     });
 
-    // var NamedFun = TermTree.extend({
-    //     properties: ["keyword", "name", "params", "body"],
+    var AnonFun = TermTree.extend({
+        properties: ["keyword", "params", "body"],
 
-    //     construct: function(keyword, name, params, body) {
-    //         this.keyword = keyword;
-    //         this.name = name;
-    //         this.params = params;
-    //         this.body = body;
-    //     }
-    // });
-
-    // var AnonFun = TermTree.extend({
-    //     properties: ["keyword", "params", "body"],
-
-    //     construct: function(keyword, params, body) {
-    //         this.keyword = keyword;
-    //         this.params = params;
-    //         this.body = body;
-    //     }
-    // });
+        construct: function(keyword, params, body) {
+            this.keyword = keyword;
+            this.params = params;
+            this.body = body;
+        }
+    });
 
     var Macro = TermTree.extend({
         properties: ["name", "body"],
@@ -1465,27 +1455,17 @@
                     && r[2].token.value === "()"
                     && r[3].token.type === parser.Token.Delimiter
                     && r[3].token.value === "{}") {
-                this.head = Fun.create(r[1], r[2].token.inner, r[3].token.inner);
+                this.head = NamedFun.create(r[0], r[1], Delimiter.create(r[2]), Delimiter.create(r[3]));
                 this.rest = this.rest.slice(4);
-            // } else if (r[0] && r[1] && r[2] && r[3]
-            //         && r[0].token.type === parser.Token.Keyword
-            //         && r[0].token.value === "function"
-            //         && r[1].token.type === parser.Token.Identifier
-            //         && r[2].token.type === parser.Token.Delimiter
-            //         && r[2].token.value === "()"
-            //         && r[3].token.type === parser.Token.Delimiter
-            //         && r[3].token.value === "{}") {
-            //     this.head = NamedFun.create(r[0], r[1], r[2].token.inner, r[3].token.inner);
-            //     this.rest = this.rest.slice(4);
-            // } else if(r[0] && r[1] && r[2]
-            //         && r[0].token.type === parser.Token.Keyword
-            //         && r[0].token.value === "function"
-            //         && r[1].token.type === parser.Token.Delimiter
-            //         && r[1].token.value === "()"
-            //         && r[2].token.type === parser.Token.Delimiter
-            //         && r[2].token.value === "{}") {
-            //     this.head = AnonFun.create(r[0], r[1].token.inner, r[2].token.inner);
-            //     this.rest = this.rest.slice(3);
+            } else if(r[0] && r[1] && r[2]
+                    && r[0].token.type === parser.Token.Keyword
+                    && r[0].token.value === "function"
+                    && r[1].token.type === parser.Token.Delimiter
+                    && r[1].token.value === "()"
+                    && r[2].token.type === parser.Token.Delimiter
+                    && r[2].token.value === "{}") {
+                this.head = AnonFun.create(r[0], Delimiter.create(r[1]), Delimiter.create(r[2]));
+                this.rest = this.rest.slice(3);
             // literal
             } else if (r[0]
                     && (r[0].token.type === parser.Token.NumericLiteral
@@ -1976,6 +1956,8 @@
     function expandf(toks, env) {
         var env = env || new Map();
 
+        var stxParams;
+
         if(toks.length === 0) {
             return [];
         }
@@ -1988,13 +1970,14 @@
             env.set(head.name.token.value, def);
             return expandf(rest, env);
         } else if(head.hasPrototype(Delimiter)) {
-            head.delim.token.inner = expandf(head.delim.token.inner, env)
+            head.delim.token.inner = expandf(head.delim.token.inner, env);
             return [head].concat(expandf(rest, env));
-        // } else if( head.hasPrototype(Fun))
-        // } else if(head.hasPrototype(Call)) {
-        //     return [head.fun]
-        //             .concat(expandf(head.args, env))
-        //             .concat(expandf(rest, env));
+        } else if (head.hasPrototype(NamedFun) || head.hasPrototype(AnonFun)) {
+            // todo: somewhat ugly, clean up somehow?
+            stxParams = getArgList(head.params.delim);
+            head.params.delim.token.inner = expandf(head.params.delim.token.inner, env);
+            head.body.delim.token.inner = expandf(head.body.delim.token.inner, env);
+            return [head].concat(expandf(rest, env));
         } else {
             return [head].concat(expandf(rest, env));
         }

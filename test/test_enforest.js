@@ -45,9 +45,8 @@ describe("enforest", function() {
 
   it("should enforest a function declaration", function() {
     var res = enforest(read("function id (x) { return x; }"));
-
     expect(res.result.name.token.value).to.be("id");
-    expect(res.result.params[0].token.value).to.be("x");
+    expect(res.result.params.delim.token.inner[0].token.value).to.be("x");
 
   });
 });
