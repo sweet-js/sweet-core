@@ -18,77 +18,77 @@ describe("macro hygiene", function() {
 
   });
 
-  // it("should work for a binding outside of the macro def", function() {
+  it("should work for a binding outside of the macro def", function() {
 
-  //   var z = (function(x) {
+    var z = (function(x) {
 
-  //     macro m {
-  //       case ($ignore:ident) => {
-  //         x
-  //       }
-  //     }
+      macro m {
+        case ($ignore:id) => {
+          x
+        }
+      }
 
-  //     return (function (x) {
-  //       return m(_) + x;
-  //     })(22)
+      return (function (x) {
+        return m(_) + x;
+      })(22)
 
-  //   })(1);
-  //   expect(z).to.be(23)
-  // });
+    })(1);
+    expect(z).to.be(23)
+  });
 
 
-  // it("should not rename object idents if they are the same as vars", function() {
-  //   var o = (function (x) {
-  //     return {
-  //       x: x
-  //     }
-  //   })(42)
+  it("should not rename object idents if they are the same as vars", function() {
+    var o = (function (x) {
+      return {
+        x: x
+      }
+    })(42)
 
-  //   expect(o.x).to.be(42);
-  // });
+    expect(o.x).to.be(42);
+  });
 
-  // it("should not rename object dot accesses", function() {
-  //   var n = (function (o, x) {
-  //     return o.x;
-  //   })({x: 42})
+  it("should not rename object dot accesses", function() {
+    var n = (function (o, x) {
+      return o.x;
+    })({x: 42})
 
-  //   expect(n).to.be(42)
-  // });
+    expect(n).to.be(42)
+  });
 
-  // it("should do the correct renaming without macros for vars", function() {
-  //   var z = (function() {
-  //     var x = 42;
-  //     return (function() {
-  //       var y = x;
-  //       var x = "foo"
-  //       return y
-  //     })();
-  //   })();
-  //   expect(z).to.be(undefined)
-  // });
+  it("should do the correct renaming without macros for vars", function() {
+    var z = (function() {
+      var x = 42;
+      return (function() {
+        var y = x;
+        var x = "foo"
+        return y
+      })();
+    })();
+    expect(z).to.be(undefined)
+  });
 
-  // it("should do the correct renaming without macros for vars and params", function() {
-  //   var z = (function() {
-  //     return (function(x) {
-  //       var y = x;
-  //       var x = "foo"
-  //       return y
-  //     })(42);
-  //   })();
-  //   expect(z).to.be(42)
-  // });
+  it("should do the correct renaming without macros for vars and params", function() {
+    var z = (function() {
+      return (function(x) {
+        var y = x;
+        var x = "foo"
+        return y
+      })(42);
+    })();
+    expect(z).to.be(42)
+  });
 
-  // it("should do the correct renaming with macros for vars", function() {
-  //   macro m {
-  //     case () => { var x = 5; }
-  //   }
-  //   var z = (function(x) {
-  //     var y = x;
-  //     m();
-  //     return y;
-  //   })("foo")
-  //   expect(z).to.be("foo")
-  // });
+  it("should do the correct renaming with macros for vars", function() {
+    macro m {
+      case () => { var x = 5; }
+    }
+    var z = (function(x) {
+      var y = x;
+      m();
+      return y;
+    })("foo")
+    expect(z).to.be("foo")
+  });
 
   // // it("should work for vars with hoisting", function() {
   // //   macro m {

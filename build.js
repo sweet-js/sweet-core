@@ -5,17 +5,27 @@ var Mocha = require("mocha");
 
 target.all = function() {
   target.build();
+  target.build_test();
   target.build_browser();
   target.test();
 }
 
+target.single = function() {
+  target.build();
+  target.test_single();
+}
+
 target.build = function() {
   // move the compiler over to the lib dir...eventually should self-host
-  cp("-f", "src/*.js", "lib/");
-
   if(!test('-d', 'build/')) {
     mkdir("build/");
   }
+
+  cp("-f", "src/*.js", "lib/");
+  cp("-f", "test/test_single.js", "build/");
+}
+
+target.build_test = function() {
 
   ls("test/*.js").forEach(function(file) {
     echo("compiling: " + path.basename(file));
@@ -38,5 +48,13 @@ target.test = function() {
   }).forEach(function(file) {
     mocha.addFile(path.join("build/", file));
   });
+  mocha.run();
+}
+
+// used when we don't want to run all the tests again, just
+// run test_single.js
+target.test_single = function() {
+  var mocha = new Mocha();
+  mocha.addFile(path.join('build/', 'test_single.js'));
   mocha.run();
 }

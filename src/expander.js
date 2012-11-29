@@ -1953,10 +1953,9 @@
         return makeTransformer(cases);
     }
 
-    function expandf(toks, env) {
+    function expandf(toks, env, ctx) {
         var env = env || new Map();
-
-        var stxParams;
+        var ctx = ctx || {};
 
         if(toks.length === 0) {
             return [];
@@ -1974,9 +1973,68 @@
             return [head].concat(expandf(rest, env));
         } else if (head.hasPrototype(NamedFun) || head.hasPrototype(AnonFun)) {
             // todo: somewhat ugly, clean up somehow?
-            stxParams = getArgList(head.params.delim);
-            head.params.delim.token.inner = expandf(head.params.delim.token.inner, env);
-            head.body.delim.token.inner = expandf(head.body.delim.token.inner, env);
+            var stxParams = getArgList(head.params.delim);
+            var freshNames = _.map(stxParams, function(param) {
+                return "$" + fresh();
+            });
+            var freshnameArgPairs = _.zip(freshNames, stxParams);
+            var renamedArgs = _.map(freshnameArgPairs, function(argPair) {
+                var freshName = argPair[0];
+                var arg = argPair[1];
+                return arg.rename(arg, freshName);
+            });
+            var newCtx = _.reduce(_.zip(freshNames, renamedArgs), function (accEnv, argPair) {
+                var freshName = argPair[0]
+                var renamedArg = argPair[1];
+                var o = {};
+                o[freshName] = Var(renamedArg);
+                return _.extend(o, accEnv);
+            }, ctx);
+
+            var stxBody = head.body.delim;
+            var renamedBody = _.reduce(freshnameArgPairs, function (accBody, argPair) {
+                var freshName = argPair[0];
+                var arg = argPair[1];
+                return accBody.rename(arg, freshName);
+            }, stxBody);
+
+            // push a dummy rename to the body
+            var dummyName = fresh();
+
+            renamedBody = renamedBody.push_dummy_rename(dummyName);
+
+            var flatBody = expandf([renamedBody], env, newCtx);
+            var flatArgs = wrapDelim(joinSyntax(renamedArgs, ","), head.params.delim);
+
+            var varIdents = getVarIdentifiers(flatBody.delim);
+            varIdents = _.filter(varIdents, function(varId) {
+                // only pick the var identifiers that are not
+                // resolve equal to a parameter of this function
+                return !(_.any(renamedArgs, function(param) {
+                    return resolve(varId) === resolve(param);
+                }));
+            });
+
+            var freshVarNames = _.map(varIdents, function() {
+                return "$" + fresh();
+            });
+            var freshnameVarIdents = _.zip(freshVarNames, varIdents);
+
+            var varRenamedFlatBody = _.reduce(freshnameVarIdents, function(accBody, varPair) {
+                var freshName = varPair[0];
+                var ident = varPair[1].rename(varPair[1], freshName);
+                // first find and replace the var declarations
+                var replacedBody = replaceVarIdent(accBody, varPair[1], ident);
+                // var replacedBody = accBody; // replaceVarIdent(accBody, varPair[1], ident);
+                // then swap the dummy renames
+                return replacedBody.swap_dummy_rename(varPair[1], freshName, dummyName);
+            }, flatBody[0].delim);
+
+            // todo: shouldn't really be expander here right?
+            var expandedArgs = expandf([flatArgs], env, ctx);
+            parser.assert(expandedArgs.length === 1, "should only get back one result")
+            head.params = expandedArgs[0];
+            head.body.delim = varRenamedFlatBody;
             return [head].concat(expandf(rest, env));
         } else {
             return [head].concat(expandf(rest, env));
