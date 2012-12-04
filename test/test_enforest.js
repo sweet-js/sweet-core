@@ -4,7 +4,7 @@ var expect = require("expect.js");
 
 var enforest = expander.enforest;
 var read = parser.read;
-var expand = expander.expandf;
+var expand = expander.expand;
 var flatten = expander.flattenf;
 
 describe("enforest", function() {
