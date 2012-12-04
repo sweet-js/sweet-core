@@ -1078,45 +1078,69 @@
 
         return _.chain(macroBody)
             .reduce(function(acc, bodyStx, idx, original) {
-                // first find the ellipses and mark the syntax objects
-                // (note that this step does not eagerly go into delimiter bodies)
-                var last = original[idx-1];
-                var next = original[idx+1];
-                var nextNext = original[idx+2];
+                    // first find the ellipses and mark the syntax objects
+                    // (note that this step does not eagerly go into delimiter bodies)
+                    var last = original[idx-1];
+                    var next = original[idx+1];
+                    var nextNext = original[idx+2];
 
-                // drop `...`
-                if(bodyStx.token.value === "...") {
-                    return acc;
-                }
-                // drop `(<separator)` when followed by an ellipse
-                if(delimIsSeparator(bodyStx) && next && next.token.value === "...") {
-                    return acc;
-                }
+                    // drop `...`
+                    if(bodyStx.token.value === "...") {
+                        return acc;
+                    }
+                    // drop `(<separator)` when followed by an ellipse
+                    if(delimIsSeparator(bodyStx) && next && next.token.value === "...") {
+                        return acc;
+                    }
 
-                // skip the $ in $(...)
-                if (bodyStx.token.value === "$" && next && next.token.type === parser.Token.Delimiter) {
-                    return acc;
-                }
+                    // skip the $ in $(...)
+                    if (bodyStx.token.value === "$"
+                            && next
+                            && next.token.type === parser.Token.Delimiter
+                            && next.token.value === "()") {
+                        return acc;
+                    }
 
-                if (bodyStx.token.type === parser.Token.Delimiter && last && last.token.value === "$") {
-                    bodyStx.group = true;
-                }
+                    // mark $[...] as a literal
+                    if(bodyStx.token.value === "$"
+                            && next
+                            && next.token.type === parser.Token.Delimiter
+                            && next.token.value === "[]") {
+                        next.literal = true;
+                        return acc;
+                    }
 
-                if(next && next.token.value === "...") {
-                    bodyStx.repeat = true;
-                    bodyStx.separator = " "; // default to space separated
-                } else if(delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
-                    bodyStx.repeat = true;
-                    bodyStx.separator = next.token.inner[0].token.value;
-                }
+                    if (bodyStx.token.type === parser.Token.Delimiter
+                        && bodyStx.token.value === "()"
+                        && last && last.token.value === "$") {
+                        bodyStx.group = true;
+                    }
 
-                return acc.concat(bodyStx);
-            }, []).reduce(function(acc, bodyStx, idx) {
+                    // literal [] delimiters have their bodies just directly passed along
+                    if(bodyStx.literal === true) {
+                        parser.assert(bodyStx.token.type === parser.Token.Delimiter, "expecting a literal to be surrounded by []");
+                        return acc.concat(bodyStx.token.inner);
+                    }
+
+                    if(next && next.token.value === "...") {
+                        bodyStx.repeat = true;
+                        bodyStx.separator = " "; // default to space separated
+                    } else if(delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
+                        bodyStx.repeat = true;
+                        bodyStx.separator = next.token.inner[0].token.value;
+                    }
+
+                    return acc.concat(bodyStx);
+                }, []).reduce(function(acc, bodyStx, idx) {
                 // then do the actual transcription
                 if(bodyStx.repeat) {
                     if(bodyStx.token.type === parser.Token.Delimiter) {
 
-                        var fv = freeVarsInPattern(bodyStx.token.inner);
+                        var fv = _.filter(freeVarsInPattern(bodyStx.token.inner), function(pat) {
+                            // ignore "patterns" that aren't in the environment
+                            // (treat them like literals)
+                            return env.hasOwnProperty(pat);
+                        });
                         var restrictedEnv = [];
                         var nonScalar = _.find(fv, function(pat) {
                             return env[pat].level > 0;
@@ -1172,8 +1196,8 @@
                         newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, env);
                         return acc.concat(newBody);
                     }
-                    if(env[bodyStx.token.value]) {
-                        parser.assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match");
+                    if(Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
+                        parser.assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match: " + bodyStx.token.value);
                         return acc.concat(takeLineContext(macroNameStx,
                                                           env[bodyStx.token.value].match));
                     }
