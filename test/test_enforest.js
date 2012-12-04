@@ -5,7 +5,7 @@ var expect = require("expect.js");
 var enforest = expander.enforest;
 var read = parser.read;
 var expand = expander.expand;
-var flatten = expander.flattenf;
+var flatten = expander.flatten;
 
 describe("enforest", function() {
   it("should enforest a single ident", function() {

@@ -976,31 +976,6 @@
         };
     }
 
-    // ([...CSyntax]) -> [...CSyntax]
-    function flatten(stxArr) {
-        return _.reduce(stxArr, function(acc, stx) {
-            if(typeof stx.token === "undefined") {
-                console.log(stx)
-            }
-            if (stx.token.type === parser.Token.Delimiter) {
-                return acc.concat(syntaxFromToken({
-                    type: parser.Token.Punctuator,
-                    value: stx.token.value[0],
-                    range: stx.token.startRange,
-                    lineNumber: stx.token.startLineNumber,
-                    lineStart: stx.token.startLineStart
-                }, stx.context)).concat(flatten(stx.token.inner)).concat(syntaxFromToken({
-                    type: parser.Token.Punctuator,
-                    value: stx.token.value[1],
-                    range: stx.token.endRange,
-                    lineNumber: stx.token.endLineNumber,
-                    lineStart: stx.token.endLineStart
-                }, stx.context));
-            }
-            return acc.concat(stx);
-        }, []);
-    }
-
     // wraps the array of syntax objects in the delimiters given by the second argument
     // ([...CSyntax], CSyntax) -> [...CSyntax]
     function wrapDelim(towrap, delimSyntax) {
@@ -1865,7 +1840,7 @@
         }
     }
 
-    function flattenf (terms) {
+    function flatten (terms) {
         return _.reduce(terms, function(acc, term) {
             return acc.concat(term.destruct());
         }, []);
@@ -1876,9 +1851,7 @@
 
     exports.resolve = resolve;
 
-    // exports.flatten = flatten;
-    exports.flatten = flattenf;
-    exports.flattenf = flattenf;
+    exports.flatten = flatten;
 
     exports.tokensToSyntax = tokensToSyntax;
     exports.syntaxToTokens = syntaxToTokens;
