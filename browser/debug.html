@@ -5,16 +5,12 @@
   <script data-main="scripts/main" src="scripts/require.js"></script>
   <script id="sweetjs" type="text/sweetjs">
 
-    macro arrid {
-      case [$x:lit] => {
-        [$x]
-      }
-      case [$x:lit, $y:lit] => {
-        [$x, $y]
+    macro expr {
+      case ($x:expr) => {
+        $x
       }
     }
-
-    var l = arrid [1]
+    var z = expr(2 + 2);
 
 </script>
 </head>

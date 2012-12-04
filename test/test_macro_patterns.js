@@ -42,51 +42,51 @@ describe("macro expander", function() {
 
   });
 
-  // it("should expand a macro with a pattern `$x:expr`", function() {
-  //   macro expr {
-  //     case ($x:expr) => {
-  //       $x
-  //     }
-  //   }
-  //   var z = expr(2 + 2);
-  //   expect(z).to.be(4);
+  it("should expand a macro with a pattern `$x:expr`", function() {
+    macro expr {
+      case ($x:expr) => {
+        $x
+      }
+    }
+    var z = expr(2 + 2);
+    expect(z).to.be(4);
 
-  // });
+  });
 
-  // it("should expand a macro with a pattern `$x:expr plus! $y:expr`", function() {
-  //   macro expr {
-  //     case ($x:expr plus! $y:expr) => {
-  //       $x + $y
-  //     }
-  //   }
-  //   var z = expr(2 * 4 plus! 2 * 2);
-  //   expect(z).to.be(12);
+  it("should expand a macro with a pattern `$x:expr plus! $y:expr`", function() {
+    macro expr {
+      case ($x:expr plus! $y:expr) => {
+        $x + $y
+      }
+    }
+    var z = expr(2 * 4 plus! 2 * 2);
+    expect(z).to.be(12);
 
-  // });
-
-
-  // it("should expand a thunk macro", function() {
-  //   macro thunk {
-  //     case ($x:expr) => {
-  //       function() { return $x; }
-  //     }
-  //   }
-  //   var z = thunk(2 * 4);
-  //   expect(z()).to.be(8);
-  // });
+  });
 
 
-  // it("should expand multiple macro body types", function() {
-  //   macro assign {
-  //     case ($x:ident) {$y:expr} => {
-  //       var $x = $y;
-  //     }
-  //   }
+  it("should expand a thunk macro", function() {
+    macro thunk {
+      case ($x:expr) => {
+        function() { return $x; }
+      }
+    }
+    var z = thunk(2 * 4);
+    expect(z()).to.be(8);
+  });
 
-  //   assign (z) {2+2}
 
-  //   expect(z).to.be(4);
-  // });
+  it("should expand multiple macro body types", function() {
+    macro assign {
+      case ($x:ident) {$y:expr} => {
+        var $x = $y;
+      }
+    }
+
+    assign (z) {2+2}
+
+    expect(z).to.be(4);
+  });
 
 
   it("should expand literal braces", function() {
@@ -136,30 +136,30 @@ describe("macro expander", function() {
   });
 
 
-  // it("should expand a simple let macro", function() {
-  //   macro lett {
-  //     case ($x:ident = $v:expr) {$y:expr} => {
-  //       (function($x) { return $y; })($v);
-  //     }
-  //   }
+  it("should expand a simple let macro", function() {
+    macro lett {
+      case ($x:ident = $v:expr) {$y:expr} => {
+        (function($x) { return $y; })($v);
+      }
+    }
 
-  //   var foo = lett (z = 1) {z+2}
+    var foo = lett (z = 1) {z+2}
 
-  //   expect(foo).to.be(3)
-  // });
+    expect(foo).to.be(3)
+  });
 
 
-  // it("should expand a complex let macro", function() {
-  //   macro lett {
-  //     case ( $($x:ident = $v:expr) (,) ...) {$y:expr} => {
-  //       (function($x (,) ...) { return $y; })($v (,) ...);
-  //     }
-  //   }
+  it("should expand a complex let macro", function() {
+    macro lett {
+      case ( $($x:ident = $v:expr) (,) ...) {$y:expr} => {
+        (function($x (,) ...) { return $y; })($v (,) ...);
+      }
+    }
 
-  //   var foo = lett (z = 1, t = 5 + 2) {z+t}
+    var foo = lett (z = 1, t = 5 + 2) {z+t}
 
-  //   expect(foo).to.be(8)
-  // });
+    expect(foo).to.be(8)
+  });
 
   it("should handle ellipses in output delimiters", function() {
     macro m {
@@ -231,20 +231,20 @@ describe("macro expander", function() {
     expect(z).to.be(2);
   });
 
-  // it("should handle def macro", function() {
-  //   macro def {
-  //     case $name:ident ($params:ident (,) ...) { $body:SourceElements } => {
-  //       function $name ($params (,) ...) {
-  //         $body
-  //       }
-  //     }
-  //   }
-  //   def add (a, b) {
-  //     return a + b;
-  //   }
+  it("should handle def macro", function() {
+    macro def {
+      case $name:ident ($params:ident (,) ...) $body => {
+        function $name ($params (,) ...) {
+          $body
+        }
+      }
+    }
+    def add (a, b) {
+      return a + b;
+    }
 
-  //   expect(add(2,2)).to.be(4);
-  // });
+    expect(add(2,2)).to.be(4);
+  });
 
 
   it("should handle multiple cases", function() {
