@@ -573,7 +573,13 @@
 
     // (CSyntax) -> CSyntax
 
+    // A TermTree is the core data structure for the macro expansion process.
+    // It acts as a semi-structured representation of the syntax.
     var TermTree = {
+
+        // Go back to the flat syntax representation. Uses the ordered list
+        // of properties that each subclass sets to determine the order that multiple
+        // children are destructed.
         // -> [...Syntax]
         destruct: function() {
             return _.reduce(this.properties, _.bind(function(acc, prop) {
@@ -615,6 +621,8 @@
     var Delimiter = TermTree.extend({
         properties: ["delim"],
 
+        // do a special kind of destruct that creates
+        // the individual begin and end delimiters
         destruct: function() {
             var openParen = syntaxFromToken({
                 type: parser.Token.Punctuator,
@@ -698,6 +706,7 @@
         }
     });
 
+    // a read tree holds onto a TermTree `head` and an uninterpreted `rest` of the syntax
     var ReadTree = {
         head: null,
         rest: null,
@@ -709,10 +718,13 @@
 
         enforest: function(env) {
             if(this.head === null) {
+                // does the simple head loading (just creates the appropriate TermTree) when
+                // the head is empty
                 this._loadHeadTerm();
                 parser.assert(this.head !== null, "expected head term to have been loaded");
                 this.enforest(env);
             } else {
+                // now that the head is a TermTree we can do some processing
                 parser.assert(this.head.hasPrototype(TermTree), "expecting the head to be a term");
 
                 // // function call
@@ -729,13 +741,16 @@
                 //     this.head = Call.create(this.head, termArgs);
                 //     this.rest = this.rest.slice(2);
                 //     this.enforest(env);
-                // macro call
+                // the head contains a macro invocation
                 if (this.head.hasPrototype(Id) && env.has(this.head.id.token.value)) {
+                    // pull the macro transformer out the environment
                     var transformer = env.get(this.head.id.token.value);
+                    // apply the transformer
                     var rt = transformer(this.rest, this.head.id, env);
 
                     // todo: eventually macro calls will only return terms, until then we'll get along with arrays of syntax
                     // parser.assert(rt.result.hasPrototype(TermTree), "expecting a term as the result of the macro call");
+                    // macro result is flat syntax so null the head and continue enforesting
                     this.head = null;
                     this.rest = rt.result.concat(rt.rest);
                     this.enforest(env);
@@ -812,6 +827,8 @@
         }
     }
 
+    // enforest the tokens, returns an object with the `result` TermTree and
+    // the uninterpreted `rest` of the syntax
     function enforest(toks, env) {
         var env = env || new Map();
         var r = ReadTree.create(toks);
@@ -1029,10 +1046,12 @@
         };
     }
 
-    // ([...CSyntax]) -> [...CSyntax]
-    function transcribe(bodyPattern, macroNameStx, env) {
+    // given the given the macroBody (list of Pattern syntax objects) and the
+    // environment (a mapping of patterns to syntax) return the body with the
+    // appropriate patterns replaces with their value in the environment
+    function transcribe(macroBody, macroNameStx, env) {
 
-        return _.chain(bodyPattern)
+        return _.chain(macroBody)
             .reduce(function(acc, bodyStx, idx, original) {
                 // first find the ellipses and mark the syntax objects
                 // (note that this step does not eagerly go into delimiter bodies)
@@ -1124,7 +1143,7 @@
                     return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match, bodyStx.separator));
                 } else {
                     if(bodyStx.token.type === parser.Token.Delimiter) {
-                        var newBody = syntaxFromToken(_.clone(bodyStx.token), bodyPattern.context);
+                        var newBody = syntaxFromToken(_.clone(bodyStx.token), macroBody.context);
                         newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, env);
                         return acc.concat(newBody);
                     }
@@ -1169,8 +1188,9 @@
         });
     }
 
+    // create a macro transformer - a function that given the syntax at the macro call
+    // will do the syntax transformation
     function makeTransformer(cases, macroName) {
-
         return function transformer(stx, macroNameStx, env) {
             var match;
             var casePattern, caseBody;
@@ -1226,6 +1246,7 @@
         return -1;
     }
 
+    // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
     function loadMacroDef(mac) {
         var body = mac.body;
@@ -1265,6 +1286,7 @@
         return makeTransformer(cases);
     }
 
+    // expand all the macros
     function expand(toks, env, ctx) {
         var env = env || new Map();
         var ctx = ctx || {};
@@ -1277,24 +1299,32 @@
         var rest = f.rest;
 
         if(head.hasPrototype(Macro)) {
+            // load the macro definition into the environment and continue expanding
             var def = loadMacroDef(head);
             env.set(head.name.token.value, def);
             return expand(rest, env);
         } else if(head.hasPrototype(Delimiter)) {
+            // expand inside the delimiter and then continue on
             head.delim.token.inner = expand(head.delim.token.inner, env);
             return [head].concat(expand(rest, env));
         } else if (head.hasPrototype(NamedFun) || head.hasPrototype(AnonFun)) {
-            // todo: somewhat ugly, clean up somehow?
+            // function definitions need a bunch of hygiene logic
+
+            // get the parameters
             var stxParams = getArgList(head.params.delim);
+            // create fresh names for each of them
             var freshNames = _.map(stxParams, function(param) {
                 return "$" + fresh();
             });
+            // zip the params and fresh names together
             var freshnameArgPairs = _.zip(freshNames, stxParams);
+            // rename each parameter with the fresh names
             var renamedArgs = _.map(freshnameArgPairs, function(argPair) {
                 var freshName = argPair[0];
                 var arg = argPair[1];
                 return arg.rename(arg, freshName);
             });
+            // update the context with the fresh names
             var newCtx = _.reduce(_.zip(freshNames, renamedArgs), function (accEnv, argPair) {
                 var freshName = argPair[0]
                 var renamedArg = argPair[1];
@@ -1304,6 +1334,7 @@
             }, ctx);
 
             var stxBody = head.body.delim;
+            // rename the function body for each of the parameters
             var renamedBody = _.reduce(freshnameArgPairs, function (accBody, argPair) {
                 var freshName = argPair[0];
                 var arg = argPair[1];
@@ -1312,12 +1343,13 @@
 
             // push a dummy rename to the body
             var dummyName = fresh();
-
             renamedBody = renamedBody.push_dummy_rename(dummyName);
 
+            // expand the renamed body with the updated context
             var flatBody = expand([renamedBody], env, newCtx);
             var flatArgs = wrapDelim(joinSyntax(renamedArgs, ","), head.params.delim);
 
+            // find all the var identifiers (eg x in `var x = 42`)
             var varIdents = getVarIdentifiers(flatBody.delim);
             varIdents = _.filter(varIdents, function(varId) {
                 // only pick the var identifiers that are not
@@ -1327,11 +1359,14 @@
                 }));
             });
 
+            // create fresh names for each of the var idents
             var freshVarNames = _.map(varIdents, function() {
                 return "$" + fresh();
             });
+            // and zip them together
             var freshnameVarIdents = _.zip(freshVarNames, varIdents);
 
+            // rename the var idents in the body
             var varRenamedFlatBody = _.reduce(freshnameVarIdents, function(accBody, varPair) {
                 var freshName = varPair[0];
                 var ident = varPair[1].rename(varPair[1], freshName);
@@ -1345,15 +1380,22 @@
             // todo: shouldn't really be expander here right?
             var expandedArgs = expand([flatArgs], env, ctx);
             parser.assert(expandedArgs.length === 1, "should only get back one result")
+            // stitch up the head with all the renamings
             head.params = expandedArgs[0];
             head.body.delim = varRenamedFlatBody;
+            // and continue expand the rest
             return [head].concat(expand(rest, env));
         } else {
+            // the head is fine as is, just keep expanding
             return [head].concat(expand(rest, env));
         }
     }
 
-    function flatten (terms) {
+    // take our semi-structured TermTree and flatten it back to just
+    // syntax objects to be used by the esprima parser. eventually this will
+    // be replaced with a method of moving directly from a TermTree to an AST but
+    // until then we'll just defer to esprima.
+    function flatten(terms) {
         return _.reduce(terms, function(acc, term) {
             return acc.concat(term.destruct());
         }, []);
