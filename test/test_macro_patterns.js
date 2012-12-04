@@ -1,4 +1,4 @@
-var expect = require("expect.js")
+var expect = require("expect.js");
 
 describe("macro expander", function() {
   it("should expand a macro with pattern `$x:lit`", function() {
@@ -16,7 +16,7 @@ describe("macro expander", function() {
       case (=> $x:lit) => {
         $x
       }
-    }    
+    }
     var z = litid(=> 42);
     expect(z).to.equal(42);
   });
@@ -179,6 +179,8 @@ describe("macro expander", function() {
     }
 
     var x = m { 1 2 3 4 }
+
+    expect(x).to.eql([[1, 2], [3, 4]])
   });
 
   it("should expand simple nested ellipses", function() {
@@ -230,7 +232,7 @@ describe("macro expander", function() {
 
   it("should handle def macro", function() {
     macro def {
-      case $name:ident ($params:ident (,) ...) { $body:SourceElements } => {
+      case $name:ident ($params:ident (,) ...) $body => {
         function $name ($params (,) ...) {
           $body
         }
@@ -319,15 +321,15 @@ describe("macro expander", function() {
       }
     }
     var z = b (1, 2);
-    expect(z).to.eql([1]) 
+    expect(z).to.eql([1])
   });
 
   it("should allow macro defining macros", function() {
     macro mm {
       case ($x:lit) => {
         macro m {
-          case ($y:lit) => { 
-            [$x, $y] 
+          case ($y:lit) => {
+            [$x, $y]
           }
         }
       }
@@ -345,7 +347,7 @@ describe("macro expander", function() {
       }
     }
     var z = m ([1,2,3]);
-    expect(z).to.eql([1,2,3]) 
+    expect(z).to.eql([1,2,3])
   });
 
   it("should allow literal syntax", function() {
