@@ -23,7 +23,7 @@ describe("macro hygiene", function() {
     var z = (function(x) {
 
       macro m {
-        case ($ignore:id) => {
+        case ($ignore:ident) => {
           x
         }
       }

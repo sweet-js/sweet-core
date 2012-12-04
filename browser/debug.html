@@ -5,13 +5,16 @@
   <script data-main="scripts/main" src="scripts/require.js"></script>
   <script id="sweetjs" type="text/sweetjs">
 
-    macro m {
-      case { $($a $b) ... } => {
-        [$([$a, $b]) (,) ...];
+    macro arrid {
+      case [$x:lit] => {
+        [$x]
+      }
+      case [$x:lit, $y:lit] => {
+        [$x, $y]
       }
     }
 
-    var x = m { 1 2 3 4 }
+    var l = arrid [1]
 
 </script>
 </head>

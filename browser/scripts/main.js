@@ -1,7 +1,7 @@
 require(["sweet","./parser", "./expander"], function(sweet, parser, expander) {
     var read = parser.read;
-    var expand = expander.expandf;
-    var flatten = expander.flattenf;
+    var expand = expander.expand;
+    var flatten = expander.flatten;
 
     window.run = function() {
 

@@ -871,7 +871,7 @@
             } else if(patternClass === "lit" && match.result.hasPrototype(Lit)) {
                 result = match.result.lit;
                 rest = match.rest;
-            } else if(patternClass === "id" && match.result.hasPrototype(Id)) {
+            } else if(patternClass === "ident" && match.result.hasPrototype(Id)) {
                 result = match.result.id;
                 rest = match.rest;
             } else if(patternClass === "expr") {
@@ -919,6 +919,17 @@
         var rest;
         var success;
 
+        // exit early if we don't have more syntax to match
+        if(stx.length === 0) {
+            return {
+                success: false,
+                rest: stx,
+                patternEnv: patternEnv
+            };
+        }
+
+        parser.assert(stx.length > 0, "should have had something to match here");
+
         if(pattern.token.type === parser.Token.Delimiter) {
             if(pattern.class === "pattern_group") {
                 // pattern groups don't match the delimiters
@@ -929,7 +940,11 @@
                 subMatch = matchPatterns(pattern.token.inner, stx[0].token.inner, env, patternEnv);
                 rest = stx.slice(1);
             } else {
-                throwError("expecting to match a delimiter");
+                return {
+                    success: false,
+                    rest: stx,
+                    patternEnv: patternEnv
+                };
             }
             success = subMatch.success;
 
@@ -1191,19 +1206,22 @@
     // create a macro transformer - a function that given the syntax at the macro call
     // will do the syntax transformation
     function makeTransformer(cases, macroName) {
+        // grab the patterns from each case and sort them by longest number of patterns
+        var sortedCases = _.sortBy(cases, function(mcase) {
+                            return patternLength(mcase.pattern);
+                        }).reverse();
+
         return function transformer(stx, macroNameStx, env) {
             var match;
             var casePattern, caseBody;
             var newMark;
             var macroResult;
             // try each case
-            for(var i = 0; i < cases.length; i++) {
-                casePattern = cases[i].pattern;
-                caseBody = cases[i].body;
+            for(var i = 0; i < sortedCases.length; i++) {
+                casePattern = sortedCases[i].pattern;
+                caseBody = sortedCases[i].body;
 
                 match = matchPatterns(casePattern, stx, env)
-                // transcribe on the first successful match
-                // todo: should we be sorting the matches by length?
                 if(match.success) {
                     newMark = fresh();
                     applyMarkToPatternEnv(newMark, match.patternEnv)
