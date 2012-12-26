@@ -600,6 +600,16 @@
 
     var Expr = TermTree.extend({ construct: function() {} });
 
+    var BinOp = Expr.extend({
+        properties: ["left", "op", "right"],
+
+        construct: function  (op, left, right) {
+            this.op = op;
+            this.left = left;
+            this.right = right;
+        }
+    });
+
     var Lit = Expr.extend({
         properties: ["lit"],
 
@@ -726,6 +736,7 @@
             } else {
                 // now that the head is a TermTree we can do some processing
                 parser.assert(this.head.hasPrototype(TermTree), "expecting the head to be a term");
+                parser.assert(Array.isArray(this.rest), "expecting rest to be a non-null array");
 
                 // // function call
                 // if(this.rest[0] && this.rest[0].token.type === parser.Token.Delimiter
@@ -753,6 +764,17 @@
                     // macro result is flat syntax so null the head and continue enforesting
                     this.head = null;
                     this.rest = rt.result.concat(rt.rest);
+                    this.enforest(env);
+                } else if(this.rest[0] && this.rest[1]
+                    && this.rest[0].token.type === parser.Token.Punctuator
+                    && this.rest[0].token.value === "+") {
+                    var op = this.rest[0];
+                    var left = this.head;
+                    var res = enforest(this.rest.slice(1), env);
+                    var right = res.result;
+                    var rest = res.rest;
+                    this.head = BinOp.create(op, left, right);
+                    this.rest = rest;
                     this.enforest(env);
                 }
             }
@@ -874,19 +896,11 @@
             } else if(patternClass === "ident" && match.result.hasPrototype(Id)) {
                 result = match.result.id;
                 rest = match.rest;
+            } else if(patternClass === "expr" && match.result.hasPrototype(Expr)) {
+                result = match.result.destruct();
+                rest = match.rest;
             } else {
-                // todo: this is still wrong (doesn't handle nested stuff under delimiters)
-                try {
-                    var parseResult = parser.parse([].concat(stx, tokensToSyntax({type: parser.Token.EOF})),
-                                                    patternClass,
-                                                    {tokens:true});
-
-                    result = stx.slice(0, parseResult.tokens.length);
-                    rest = stx.slice(parseResult.tokens.length);
-                } catch (e) {
-                    result = null;
-                    rest = stx;
-                }
+                throwError("not implemented yet");
             }
         }
 
