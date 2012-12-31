@@ -42,38 +42,56 @@ describe("macro expander", function() {
 
   });
 
-  it("should expand a macro with a pattern `$x:expr`", function() {
+  it("should match primary expressions", function() {
+    macro expr {
+      case ($x:expr) => { $x }
+    }
+    expect(expr(this)).to.be(this);
+
+    var foo = 42;
+    expect(expr(foo)).to.be(42);
+
+    expect(expr(42)).to.be(42);
+
+    expect(expr([1,2,3])).to.eql([1,2,3]);
+  });
+
+  it("should match binary expressions", function() {
     macro expr {
       case ($x:expr) => {
         $x
       }
     }
-    var z = expr(2 + 2);
-    expect(z).to.be(4);
-
-  });
-
-  it("should expand a macro with a pattern `$x:expr plus! $y:expr`", function() {
-    macro expr {
-      case ($x:expr plus! $y:expr) => {
-        $x + $y
-      }
-    }
-    var z = expr(2 * 4 plus! 2 * 2);
-    expect(z).to.be(12);
-
+    var z1 = expr(2 + 2);
+    var z2 = expr(2 * 2);
+    var z3 = expr(2 + 2 * 2);
+    expect(z1).to.be(4);
+    expect(z2).to.be(4);
+    expect(z3).to.be(6);
   });
 
 
-  it("should expand a thunk macro", function() {
-    macro thunk {
-      case ($x:expr) => {
-        function() { return $x; }
-      }
-    }
-    var z = thunk(2 * 4);
-    expect(z()).to.be(8);
-  });
+  // it("should expand a macro with a pattern `$x:expr plus! $y:expr`", function() {
+  //   macro expr {
+  //     case ($x:expr plus! $y:expr) => {
+  //       $x + $y
+  //     }
+  //   }
+  //   var z = expr(2 * 4 plus! 2 * 2);
+  //   expect(z).to.be(12);
+
+  // });
+
+
+  // it("should expand a thunk macro", function() {
+  //   macro thunk {
+  //     case ($x:expr) => {
+  //       function() { return $x; }
+  //     }
+  //   }
+  //   var z = thunk(2 * 4);
+  //   expect(z()).to.be(8);
+  // });
 
 
   it("should expand multiple macro body types", function() {

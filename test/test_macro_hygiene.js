@@ -83,8 +83,8 @@ describe("macro hygiene", function() {
       case () => { var x = 5; }
     }
     var z = (function(x) {
-      var y = x;
       m();
+      var y = x;
       return y;
     })("foo")
     expect(z).to.be("foo")

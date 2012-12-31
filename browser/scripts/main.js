@@ -6,7 +6,8 @@ require(["sweet","./parser", "./expander"], function(sweet, parser, expander) {
     window.run = function() {
 
         var code = document.getElementById("sweetjs").text;
-        var res = flatten(expand(read(code)));
+        // var res = flatten(expand(read(code)));
+        var res = sweet.compile(code);
         // var result = expander.enforest(parser.read(code));
         // var result = expander.expandf(parser.read(code));
         // var result = expander.expandf(parser.read(code));

@@ -600,20 +600,36 @@
 
     var Expr = TermTree.extend({ construct: function() {} });
 
+    var PrimaryExpression = Expr.extend({ construct: function() {} });
+
+    var ThisExpression = PrimaryExpression.extend({
+        properties: ["this"],
+
+        construct: function(that) {
+            this.this = that;
+        }
+    });
+
     var BinOp = Expr.extend({
         properties: ["left", "op", "right"],
 
-        construct: function  (op, left, right) {
+        construct: function(op, left, right) {
             this.op = op;
             this.left = left;
             this.right = right;
         }
     });
 
-    var Lit = Expr.extend({
+    var Lit = PrimaryExpression.extend({
         properties: ["lit"],
 
         construct: function(l) { this.lit = l; }
+    });
+
+    var ArrayLiteral = PrimaryExpression.extend({
+        properties: ["array"],
+
+        construct: function(ar) { this.array = ar; },
     });
 
     var Keyword = TermTree.extend({
@@ -663,7 +679,7 @@
         construct: function(d) { this.delim = d; }
     });
 
-    var Id = Expr.extend({
+    var Id = PrimaryExpression.extend({
         properties: ["id"],
 
         construct: function(id) { this.id = id; }
@@ -716,27 +732,23 @@
         }
     });
 
-    // a read tree holds onto a TermTree `head` and an uninterpreted `rest` of the syntax
-    var ReadTree = {
-        head: null,
-        rest: null,
+    function stxIsBinOp (stx) {
+        var staticOperators = ["+", "*", "/", "%", "||", "&&", "|", "&", "^",
+                                "==", "!=", "===", "!==",
+                                // "<", ">", "<=", ">=", "in", "instanceof",
+                                "<<", ">>", ">>>"];
+        return _.contains(staticOperators, stx.token.value);
+    }
 
-        construct: function(toks) {
-            parser.assert(Array.isArray(toks), "expecting an array of tokens");
-            this.rest = toks;
-        },
+    // enforest the tokens, returns an object with the `result` TermTree and
+    // the uninterpreted `rest` of the syntax
+    function enforest(toks, env) {
+        var env = env || new Map();
 
-        enforest: function(env) {
-            if(this.head === null) {
-                // does the simple head loading (just creates the appropriate TermTree) when
-                // the head is empty
-                this._loadHeadTerm();
-                parser.assert(this.head !== null, "expected head term to have been loaded");
-                this.enforest(env);
-            } else {
-                // now that the head is a TermTree we can do some processing
-                parser.assert(this.head.hasPrototype(TermTree), "expecting the head to be a term");
-                parser.assert(Array.isArray(this.rest), "expecting rest to be a non-null array");
+        parser.assert(toks.length > 0, "enforest assumes there are tokens to work with");
+
+        function step(head, rest) {
+            if(head.hasPrototype(TermTree)) {
 
                 // // function call
                 // if(this.rest[0] && this.rest[0].token.type === parser.Token.Delimiter
@@ -752,114 +764,106 @@
                 //     this.head = Call.create(this.head, termArgs);
                 //     this.rest = this.rest.slice(2);
                 //     this.enforest(env);
-                // the head contains a macro invocation
-                if (this.head.hasPrototype(Id) && env.has(this.head.id.token.value)) {
+                if(rest[0] && rest[1] && stxIsBinOp(rest[0])) {
+                    var op = rest[0];
+                    var left = head;
+                    var res = enforest(rest.slice(1), env);
+                    var right = res.result;
+
+                    return step(BinOp.create(op, left, right), res.rest);
+                } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "[]") {
+                    return step(ArrayLiteral.create(head), rest);
+                }
+
+            } else {
+                parser.assert(head && head.token, "assuming head is a syntax object");
+
+                // macro definition
+                if(head.token.type === parser.Token.Identifier
+                        && head.token.value === "macro"
+                        && rest[0] && rest[1]
+                        && rest[0].token.type === parser.Token.Identifier
+                        && rest[1].token.type === parser.Token.Delimiter
+                        && rest[1].token.value === "{}") {
+                    return step(Macro.create(rest[0], rest[1].token.inner), rest.slice(2));
+                // function definition
+                } else if (head.token.type === parser.Token.Keyword
+                            && head.token.value === "function"
+                            && rest[0] && rest[1] && rest[2]
+                            && rest[0].token.type === parser.Token.Identifier
+                            && rest[1].token.type === parser.Token.Delimiter
+                            && rest[1].token.value === "()"
+                            && rest[2].token.type === parser.Token.Delimiter
+                            && rest[2].token.value === "{}") {
+                    return step(NamedFun.create(head, rest[0],
+                                                Delimiter.create(rest[1]),
+                                                Delimiter.create(rest[2])),
+                                rest.slice(3));
+                // anonymous function definition
+                } else if(head.token.type === parser.Token.Keyword
+                            && head.token.value === "function"
+                            && rest[0] && rest[1]
+                            && rest[0].token.type === parser.Token.Delimiter
+                            && rest[0].token.value === "()"
+                            && rest[1].token.type === parser.Token.Delimiter
+                            && rest[1].token.value === "{}") {
+                    return step(AnonFun.create(head,
+                                                Delimiter.create(rest[0]),
+                                                Delimiter.create(rest[1])),
+                                rest.slice(2));
+                } else if(head.token.type === parser.Token.Keyword
+                            && head.token.value === "this") {
+
+                    return step(ThisExpression.create(head), rest);
+                // literal
+                } else if (head.token.type === parser.Token.NumericLiteral
+                        || head.token.type === parser.Token.StringLiteral
+                        || head.token.type === parser.Token.BooleanLiteral
+                        || head.token.type === parser.Token.RegexLiteral
+                        || head.token.type === parser.Token.NullLiteral) {
+                    return step(Lit.create(head), rest);
+                // punctuator
+                } else if (head.token.type === parser.Token.Identifier
+                            && env.has(head.token.value)) {
                     // pull the macro transformer out the environment
-                    var transformer = env.get(this.head.id.token.value);
+                    var transformer = env.get(head.token.value);
                     // apply the transformer
-                    var rt = transformer(this.rest, this.head.id, env);
+                    var rt = transformer(rest, head, env);
 
                     // todo: eventually macro calls will only return terms, until then we'll get along with arrays of syntax
                     // parser.assert(rt.result.hasPrototype(TermTree), "expecting a term as the result of the macro call");
-                    // macro result is flat syntax so null the head and continue enforesting
-                    this.head = null;
-                    this.rest = rt.result.concat(rt.rest);
-                    this.enforest(env);
-                } else if(this.rest[0] && this.rest[1]
-                    && this.rest[0].token.type === parser.Token.Punctuator
-                    && this.rest[0].token.value === "+") {
-                    var op = this.rest[0];
-                    var left = this.head;
-                    var res = enforest(this.rest.slice(1), env);
-                    var right = res.result;
-                    var rest = res.rest;
-                    this.head = BinOp.create(op, left, right);
-                    this.rest = rest;
-                    this.enforest(env);
+                    return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
+                    // this.head = null;
+                    // this.rest = rt.result.concat(rt.rest);
+                    // this.enforest(env);
+                // identifier
+                } else if(head.token.type === parser.Token.Identifier) {
+                    return step(Id.create(head), rest);
+                } else if (head.token.type === parser.Token.Punctuator) {
+                    return step(Punc.create(head), rest);
+                // keyword
+                } else if(head.token.type === parser.Token.Keyword) {
+                    return step(Keyword.create(head), rest);
+                // Delimiter
+                } else if(head.token.type === parser.Token.Delimiter) {
+                    return step(Delimiter.create(head), rest);
+                // end of file
+                } else if(head.token.type === parser.Token.EOF) {
+                    parser.assert(rest.length === 0, "nothing should be after an EOF");
+                    return step(EOF.create(head), []);
                 }
+
             }
-        },
 
-        // when there is no term in `head` create it from the tokens in `rest`
-        _loadHeadTerm: function() {
-            parser.assert(this.head === null, "expecting head to be null");
+            // we're done stepping
+            return {
+                result: head,
+                rest: rest
+            };
 
-            var r = this.rest;
-
-            // macro definition
-            if(r[0] && r[1] && r[2]
-                    && r[0].token.type === parser.Token.Identifier
-                    && r[0].token.value === "macro"
-                    && r[1].token.type === parser.Token.Identifier
-                    && r[2].token.type === parser.Token.Delimiter
-                    && r[2].token.value === "{}") {
-                this.head = Macro.create(r[1], r[2].token.inner);
-                this.rest = this.rest.slice(3);
-            // function definition
-            } else if (r[0] && r[1] && r[2] && r[3]
-                    && r[0].token.type === parser.Token.Keyword
-                    && r[0].token.value === "function"
-                    && r[1].token.type === parser.Token.Identifier
-                    && r[2].token.type === parser.Token.Delimiter
-                    && r[2].token.value === "()"
-                    && r[3].token.type === parser.Token.Delimiter
-                    && r[3].token.value === "{}") {
-                this.head = NamedFun.create(r[0], r[1], Delimiter.create(r[2]), Delimiter.create(r[3]));
-                this.rest = this.rest.slice(4);
-            } else if(r[0] && r[1] && r[2]
-                    && r[0].token.type === parser.Token.Keyword
-                    && r[0].token.value === "function"
-                    && r[1].token.type === parser.Token.Delimiter
-                    && r[1].token.value === "()"
-                    && r[2].token.type === parser.Token.Delimiter
-                    && r[2].token.value === "{}") {
-                this.head = AnonFun.create(r[0], Delimiter.create(r[1]), Delimiter.create(r[2]));
-                this.rest = this.rest.slice(3);
-            // literal
-            } else if (r[0]
-                    && (r[0].token.type === parser.Token.NumericLiteral
-                    || r[0].token.type === parser.Token.StringLiteral
-                    || r[0].token.type === parser.Token.BooleanLiteral
-                    || r[0].token.type === parser.Token.RegexLiteral
-                    || r[0].token.type === parser.Token.NullLiteral)) {
-                this.head = Lit.create(r[0]);
-                this.rest = this.rest.slice(1);
-            // punctuator
-            } else if (r[0] && r[0].token.type === parser.Token.Punctuator) {
-                this.head = Punc.create(r[0]);
-                this.rest = this.rest.slice(1);
-            // identifier
-            } else if(r[0] && r[0].token.type === parser.Token.Identifier) {
-                this.head = Id.create(r[0]);
-                this.rest = this.rest.slice(1);
-            } else if(r[0] && r[0].token.type === parser.Token.Keyword) {
-                this.head = Keyword.create(r[0]);
-                this.rest = this.rest.slice(1);
-            } else if(r[0] && r[0].token.type === parser.Token.Delimiter) {
-                this.head = Delimiter.create(r[0]);
-                this.rest = this.rest.slice(1);
-            // end of file
-            } else if(r[0] && r[0].token.type === parser.Token.EOF) {
-                this.head = EOF.create(r[0]);
-                this.rest = [];
-            // oops
-            } else {
-                parser.assert(false, "unexpected token in enforest: " + r[0].token.value);
-            }
         }
-    }
 
-    // enforest the tokens, returns an object with the `result` TermTree and
-    // the uninterpreted `rest` of the syntax
-    function enforest(toks, env) {
-        var env = env || new Map();
-        var r = ReadTree.create(toks);
-        r.enforest(env);
-
-        return {
-            result: r.head,
-            rest: r.rest
-        };
+        return step(toks[0], toks.slice(1));
     }
 
     function get_expression(stx, env) {
@@ -897,7 +901,7 @@
                 result = match.result.id;
                 rest = match.rest;
             } else if(patternClass === "expr" && match.result.hasPrototype(Expr)) {
-                result = match.result.destruct();
+                result = match.result;
                 rest = match.rest;
             } else {
                 throwError("not implemented yet");
@@ -1360,6 +1364,8 @@
         if(toks.length === 0) {
             return [];
         }
+        parser.assert(toks[0].token, "expecting a syntax object");
+
         var f = enforest(toks, env);
         var head = f.result;
         var rest = f.rest;
@@ -1369,6 +1375,9 @@
             var def = loadMacroDef(head);
             env.set(head.name.token.value, def);
             return expand(rest, env);
+        } else if(head.hasPrototype(ArrayLiteral)) {
+            head.array.delim.token.inner = expand(head.array.delim.token.inner, env);
+            return [head].concat(expand(rest, env));
         } else if(head.hasPrototype(Delimiter)) {
             // expand inside the delimiter and then continue on
             head.delim.token.inner = expand(head.delim.token.inner, env);
