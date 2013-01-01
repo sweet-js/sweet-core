@@ -15,24 +15,26 @@ function tokValues (stxArray) {
     })
 }
 
+var emptyMacroMap = new Map();
+
 describe("matchPatternClass", function() {
     it("should give null when pattern doesn't match", function() {
         var stx = parser.read("42");
-        var res = matchPatternClass("ident", stx, {}).result;
+        var res = matchPatternClass("ident", stx, emptyMacroMap).result;
 
         expect(res).to.be(null);
     });
 
     it("should match a single token", function() {
         var stx = parser.read("foo bar");
-        var res = matchPatternClass("token", stx, {}).result;
+        var res = matchPatternClass("token", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql(["foo"]);
     });
 
     it("should match a single delimited token", function() {
         var stx = parser.read("(foo) bar");
-        var res = matchPatternClass("token", stx, {}).result;
+        var res = matchPatternClass("token", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql(["()"]);
         expect(tokValues(res[0].token.inner)).to.eql(["foo"]);
@@ -40,29 +42,43 @@ describe("matchPatternClass", function() {
 
     it("should match a lit", function() {
         var stx = parser.read("42");
-        var res = matchPatternClass("lit", stx, {}).result;
+        var res = matchPatternClass("lit", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql([42]);
     });
 
     it("should match an ident", function() {
         var stx = parser.read("foo");
-        var res = matchPatternClass("ident", stx, {}).result;
+        var res = matchPatternClass("ident", stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).ot.eql(["foo"]);
+        expect(tokValues(res)).to.eql(["foo"]);
     });
 
     it("should match a binary expression", function() {
         var stx = parser.read("2+2");
-        var res = matchPatternClass("expr", stx, {}).result;
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql([2, "+", 2]);
     });
 
     it("should match a complex binary expression", function() {
         var stx = parser.read("2+2*10/32");
-        var res = matchPatternClass("expr", stx, {}).result;
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql([2, "+", 2, "*", 10, "/", 32]);
+    });
+
+    it("should match an array literal", function() {
+        var stx = parser.read("[1,2,3]");
+        var res = matchPatternClass("expr", stx, {}).result;
+
+        expect(tokValues(res)).to.eql(["[", 1, ",", 2, ",", 3, "]"]);
+    });
+
+    it("should match a this expression", function() {
+        var stx = parser.read("this.foo");
+        var res = matchPatternClass("expr", stx, {}).result;
+
+        expect(tokValues(res)).to.eql(["this"]);
     });
 });
