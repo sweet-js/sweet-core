@@ -36,6 +36,8 @@
     }
 }(this, function (exports, underscore, parser, es6) {
     _ = underscore || _;
+    // used to export "private" methods for unit testing
+    exports._test = {};
 
     // some convenience monkey patching
     Object.prototype.create = function() {
@@ -667,8 +669,11 @@
 
 
             var innerStx = _.reduce(this.delim.token.inner, function(acc, term) {
-                parser.assert(term && term.hasPrototype(TermTree), "expecting term trees in destruct of Delimiter");
-                return acc.concat(term.destruct());
+                if(term.hasPrototype(TermTree)){
+                    return acc.concat(term.destruct());
+                } else {
+                    return acc.concat(term);
+                }
             }, []);
 
             return [openParen]
@@ -877,12 +882,14 @@
         return res;
     }
 
+    exports._test.matchPatternClass = matchPatternClass;
+    // (Str, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
     function matchPatternClass (patternClass, stx, env) {
         var result, rest;
         // pattern has no parse class
         if(patternClass === "token") {
             if(stx[0] && stx[0].token.type !== parser.Token.EOF) {
-                result = stx[0];
+                result = [stx[0]];
                 rest = stx.slice(1);
             } else {
                 result = null;
@@ -890,24 +897,23 @@
             }
         // pattern has a parse class
         } else {
-            match = get_expression(stx, env);
+            var match = get_expression(stx, env);
             if(match.result === null) {
                 result = null;
                 rest = stx;
             } else if(patternClass === "lit" && match.result.hasPrototype(Lit)) {
-                result = match.result.lit;
+                result = [match.result.lit];
                 rest = match.rest;
             } else if(patternClass === "ident" && match.result.hasPrototype(Id)) {
-                result = match.result.id;
+                result = [match.result.id];
                 rest = match.rest;
             } else if(patternClass === "expr" && match.result.hasPrototype(Expr)) {
-                result = match.result;
+                result = match.result.destruct();
                 rest = match.rest;
             } else {
                 throwError("not implemented yet");
             }
         }
-
 
         return {
             result: result,
@@ -1013,9 +1019,7 @@
                 rest = match.rest;
                 matchEnv = {
                     level: 0,
-                    // ugly: result can be either a token or array of tokens (when using the
-                    // parser to match exprs), to be fixed with full enforest of exprs
-                    match: Array.isArray(match.result) ? match.result : [match.result]
+                    match: match.result
                 };
 
                 // only update the pattern environment if we got a result
