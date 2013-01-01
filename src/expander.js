@@ -612,6 +612,23 @@
         }
     });
 
+    var Lit = PrimaryExpression.extend({
+        properties: ["lit"],
+
+        construct: function(l) { this.lit = l; }
+    });
+
+    var ArrayLiteral = PrimaryExpression.extend({
+        properties: ["array"],
+
+        construct: function(ar) { this.array = ar; }
+    });
+
+    var ParenExpression = PrimaryExpression.extend({
+        properties: ["expr"],
+        construct: function(expr) { this.expr = expr; }
+    });
+
     var BinOp = Expr.extend({
         properties: ["left", "op", "right"],
 
@@ -622,17 +639,6 @@
         }
     });
 
-    var Lit = PrimaryExpression.extend({
-        properties: ["lit"],
-
-        construct: function(l) { this.lit = l; }
-    });
-
-    var ArrayLiteral = PrimaryExpression.extend({
-        properties: ["array"],
-
-        construct: function(ar) { this.array = ar; },
-    });
 
     var Keyword = TermTree.extend({
         properties: ["keyword"],
@@ -778,6 +784,20 @@
                     return step(BinOp.create(op, left, right), res.rest);
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "[]") {
                     return step(ArrayLiteral.create(head), rest);
+                } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "()") {
+                    var innerTokens = head.delim.token.inner;
+                    // empty parens are acceptable but enforest doesn't accept empty arrays
+                    // so short circuit here
+                    if(innerTokens.length == 0) {
+                        return step(ParenExpression.create(head), rest);
+                    } else {
+                        var innerTerm = get_expression(innerTokens, env);
+                        if(innerTerm.result && innerTerm.result.hasPrototype(Expr)) {
+                            return step(ParenExpression.create(head), rest);
+                        }
+                        // if the tokens inside the paren aren't an expression
+                        // we just leave it as a delimiter
+                    }
                 }
 
             } else {
@@ -1396,6 +1416,9 @@
             return expand(rest, env);
         } else if(head.hasPrototype(ArrayLiteral)) {
             head.array.delim.token.inner = expand(head.array.delim.token.inner, env);
+            return [head].concat(expand(rest, env));
+        } else if(head.hasPrototype(ParenExpression)) {
+            head.expr.delim.token.inner = expand(head.expr.delim.token.inner, env);
             return [head].concat(expand(rest, env));
         } else if(head.hasPrototype(Delimiter)) {
             // expand inside the delimiter and then continue on

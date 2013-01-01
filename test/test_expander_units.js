@@ -81,4 +81,18 @@ describe("matchPatternClass", function() {
 
         expect(tokValues(res)).to.eql(["this"]);
     });
+
+    it("should match a literal expression", function() {
+        var stx = parser.read("42");
+        var res = matchPatternClass("expr", stx, {}).result;
+
+        expect(tokValues(res)).to.eql([42]);
+    });
+
+    it("should match a parenthesized expression", function() {
+        var stx = parser.read("(42)");
+        var res = matchPatternClass("expr", stx, {}).result;
+
+        expect(tokValues(res)).to.eql(["(", 42, ")"]);
+    });
 });
