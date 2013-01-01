@@ -901,15 +901,30 @@
             if(match.result === null) {
                 result = null;
                 rest = stx;
-            } else if(patternClass === "lit" && match.result.hasPrototype(Lit)) {
-                result = [match.result.lit];
-                rest = match.rest;
-            } else if(patternClass === "ident" && match.result.hasPrototype(Id)) {
-                result = [match.result.id];
-                rest = match.rest;
-            } else if(patternClass === "expr" && match.result.hasPrototype(Expr)) {
-                result = match.result.destruct();
-                rest = match.rest;
+            } else if(patternClass === "lit") {
+                if(!match.result.hasPrototype(Lit)) {
+                    result = null;
+                    rest = stx;
+                } else {
+                    result = [match.result.lit];
+                    rest = match.rest;
+                }
+            } else if(patternClass === "ident") {
+                if(!match.result.hasPrototype(Id)) {
+                    result = null;
+                    rest = stx;
+                } else {
+                    result = [match.result.id];
+                    rest = match.rest;
+                }
+            } else if(patternClass === "expr") {
+                if(!match.result.hasPrototype(Expr)) {
+                    result = null;
+                    rest = stx;
+                } else {
+                    result = match.result.destruct();
+                    rest = match.rest;
+                }
             } else {
                 throwError("not implemented yet");
             }
