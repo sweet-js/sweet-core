@@ -184,6 +184,9 @@
 
             return syntaxFromToken(swappedToken,
                                     renameDummyCtx(this.context, ident, name, dummyName));
+        },
+        toString: function() {
+            return "[Syntax: " + this.token.value + "]";
         }
     };
 
@@ -585,6 +588,8 @@
         // -> [...Syntax]
         destruct: function() {
             return _.reduce(this.properties, _.bind(function(acc, prop) {
+                // var propVal = Array.isArray(this[prop]) ? this[prop] : [this[prop]];
+                // _.reduce(propVal)
                 if(this[prop].hasPrototype(TermTree)) {
                     return acc.concat(this[prop].destruct());
                 } else {
@@ -597,7 +602,7 @@
     var EOF = TermTree.extend({
         properties: ["eof"],
 
-        construct: function(e) { this.eof = e; }
+        construct: function(e) { this.eof = e }
     });
 
     var Expr = TermTree.extend({ construct: function() {} });
@@ -607,26 +612,39 @@
     var ThisExpression = PrimaryExpression.extend({
         properties: ["this"],
 
-        construct: function(that) {
-            this.this = that;
-        }
+        construct: function(that) { this.this = that }
     });
 
     var Lit = PrimaryExpression.extend({
         properties: ["lit"],
 
-        construct: function(l) { this.lit = l; }
+        construct: function(l) { this.lit = l }
+    });
+
+    exports._test.PropertyAssignment = PropertyAssignment;
+    var PropertyAssignment = TermTree.extend({
+        properties: ["propName", "assignment"],
+
+        construct: function(propName, assignment) {
+            this.propName = propName;
+            this.assignment = assignment;
+        }
+    });
+
+    var ObjectLiteral = PrimaryExpression.extend({
+        properties: ["body"],
+        construct: function(body) { this.body = body }
     });
 
     var ArrayLiteral = PrimaryExpression.extend({
         properties: ["array"],
 
-        construct: function(ar) { this.array = ar; }
+        construct: function(ar) { this.array = ar }
     });
 
     var ParenExpression = PrimaryExpression.extend({
         properties: ["expr"],
-        construct: function(expr) { this.expr = expr; }
+        construct: function(expr) { this.expr = expr }
     });
 
     var BinOp = Expr.extend({
@@ -643,13 +661,13 @@
     var Keyword = TermTree.extend({
         properties: ["keyword"],
 
-        construct: function(k) { this.keyword = k; }
+        construct: function(k) { this.keyword = k }
     });
 
     var Punc = TermTree.extend({
         properties: ["punc"],
 
-        construct: function(p) { this.punc = p; }
+        construct: function(p) { this.punc = p }
     });
 
     var Delimiter = TermTree.extend({
@@ -658,6 +676,7 @@
         // do a special kind of destruct that creates
         // the individual begin and end delimiters
         destruct: function() {
+            parser.assert(this.delim, "expecting delim to be defined")
             var openParen = syntaxFromToken({
                 type: parser.Token.Punctuator,
                 value: this.delim.token.value[0],
@@ -687,13 +706,13 @@
                     .concat(closeParen);
         },
 
-        construct: function(d) { this.delim = d; }
+        construct: function(d) { this.delim = d }
     });
 
     var Id = PrimaryExpression.extend({
         properties: ["id"],
 
-        construct: function(id) { this.id = id; }
+        construct: function(id) { this.id = id }
     });
 
     var NamedFun = TermTree.extend({
@@ -751,6 +770,12 @@
         return _.contains(staticOperators, stx.token.value);
     }
 
+    exports._test.enforestPropertyAssignments = enforestPropertyAssignments;
+    // ([...CSyntax]) -> null or [...PropertyAssignment]
+    function enforestPropertyAssignments(stx) {
+        return null;
+    }
+
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, env) {
@@ -798,8 +823,13 @@
                         // if the tokens inside the paren aren't an expression
                         // we just leave it as a delimiter
                     }
+                } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "{}") {
+                    var innerTokens = head.delim.token.inner;
+                    // var innerTermArray = enforestPropertyAssignments(innerTokens);
+                    // if(innerTermArray !== null) {
+                    // }
+                    // return step(ObjectLiteral.create(head), rest);
                 }
-
             } else {
                 parser.assert(head && head.token, "assuming head is a syntax object");
 
@@ -1419,6 +1449,9 @@
             return [head].concat(expand(rest, env));
         } else if(head.hasPrototype(ParenExpression)) {
             head.expr.delim.token.inner = expand(head.expr.delim.token.inner, env);
+            return [head].concat(expand(rest, env));
+        } else if(head.hasPrototype(ObjectLiteral)) {
+            head.body.delim.token.inner = expand(head.body.delim.token.inner, env);
             return [head].concat(expand(rest, env));
         } else if(head.hasPrototype(Delimiter)) {
             // expand inside the delimiter and then continue on

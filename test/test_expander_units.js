@@ -68,12 +68,6 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql([2, "+", 2, "*", 10, "/", 32]);
     });
 
-    it("should match an array literal", function() {
-        var stx = parser.read("[1,2,3]");
-        var res = matchPatternClass("expr", stx, {}).result;
-
-        expect(tokValues(res)).to.eql(["[", 1, ",", 2, ",", 3, "]"]);
-    });
 
     it("should match a this expression", function() {
         var stx = parser.read("this.foo");
@@ -95,4 +89,42 @@ describe("matchPatternClass", function() {
 
         expect(tokValues(res)).to.eql(["(", 42, ")"]);
     });
+
+
+    it("should match an array literal", function() {
+        var stx = parser.read("[1,2,3]");
+        var res = matchPatternClass("expr", stx, {}).result;
+
+        expect(tokValues(res)).to.eql(["[", 1, ",", 2, ",", 3, "]"]);
+    });
+
+    // it("should match a simple object literal", function() {
+    //     var stx = parser.read("{a: 42}");
+    //     var res = matchPatternClass("expr", stx, {}).result;
+
+    //     expect(tokValues(res)).to.eql(["{", "a", ":", 42, "}"]);
+    // });
 });
+
+// describe("enforestPropertyAssignments", function() {
+//     it("should return null for tokens that don't match a prop assign", function() {
+//         var stx = parser.read("foo");
+//         var res = enforestPropertyAssignments(stx);
+
+//         expect(res).to.be(null);
+//     });
+
+//     it("should return an empty array when given no tokens", function() {
+//         var stx = []; //parser.read("{a: 42}");
+//         var res = enforestPropertyAssignments(stx);
+
+//         expect(res).to.eql([]);
+//     });
+
+//     it("should enforest a single simple prop assign", function() {
+//         var stx = parser.read("a: 42");
+//         var res = enforestPropertyAssignments(stx);
+
+//         expect(res[0].hasPrototype(PropertyAssignment)).to.be(true);
+//     });
+// });

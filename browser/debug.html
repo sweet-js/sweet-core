@@ -5,12 +5,12 @@
   <script data-main="scripts/main" src="scripts/require.js"></script>
   <script id="sweetjs" type="text/sweetjs">
 
-    macro expr {
-      case ($x:expr) => {
-        $x
-      }
-    }
-    var z = expr((42));
+describe("single test", function() {
+  it("should pass", function() {
+    var res = expand(read("function foo(a, b) { return a; }"));
+    // console.log(flatten(res))
+  });
+})
 
 </script>
 </head>
