@@ -98,12 +98,12 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["[", 1, ",", 2, ",", 3, "]"]);
     });
 
-    // it("should match a simple object literal", function() {
-    //     var stx = parser.read("{a: 42}");
-    //     var res = matchPatternClass("expr", stx, {}).result;
+    it("should match a simple object literal", function() {
+        var stx = parser.read("{a: 42}");
+        var res = matchPatternClass("expr", stx, {}).result;
 
-    //     expect(tokValues(res)).to.eql(["{", "a", ":", 42, "}"]);
-    // });
+        expect(tokValues(res)).to.eql(["{", "a", ":", 42, "}"]);
+    });
 });
 
 // describe("enforestPropertyAssignments", function() {
