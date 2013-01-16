@@ -3,6 +3,8 @@
 <head>
 <title>sweet.js</title>
 <link href='http://fonts.googleapis.com/css?family=Lato:100' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="editor/codemirror.css">
+<link rel="stylesheet" href="editor/theme/ambiance.css">
 <link href='prism.css' rel='stylesheet' />
 <style>
 html {
@@ -114,13 +116,21 @@ def sweet(a) {
   Macros let you do this!
 </p>
 
-<pre><code class="language-javascript">
+
+<textarea id="editor">
 macro def {
   case $name:ident $params $body => {
     function $name $params $body
   }
 }
-</code></pre>
+
+def sweet(a) {
+  console.log("Macros are sweet!");
+}
+
+</textarea>
+<button onclick="sweeten();">Sweeten!</button>
+<pre id="output" class="cm-s-default"></pre>
 
 <p class="text">
   Want a better way to make "classy" objects?
@@ -315,5 +325,41 @@ m (1, 2)  // --> [1, 2]
 
 </script>
 <script src="prism.js"></script>
+<script src="editor/codemirror.js"></script>
+<script src="editor/addon/matchbrackets.js"></script>
+<script src="editor/addon/continuecomment.js"></script>
+<script src="editor/mode/javascript/javascript.js"></script>
+<script src="editor/mode/runmode.js"></script>
+
+<script data-main="browser/scripts/main2" src="browser/scripts/require.js"></script>
+<script>
+
+  var editor = document.getElementById("editor");
+  
+
+  //for(var i=0; i<editors.length; i++){
+    var editor = CodeMirror.fromTextArea(editor, {
+      lineNumbers: true,
+      matchBrackets: true,
+      // onChange: sweeten,
+      extraKeys: {"Enter": "newlineAndIndentContinueComment"}
+    });
+    editor.setOption("theme", "ambiance");
+  //}
+
+
+
+  function sweeten() {
+      //try {
+        var result = Sweet.compile(editor.getValue());
+        console.log(editor.value);
+        console.log(result);
+        CodeMirror.runMode(result, "javascript", document.getElementById("output"));
+      //} catch(e) {
+      //  document.getElementById("output").innerHTML = e;
+      //}
+    }
+
+</script>
 </body>
 </html>
