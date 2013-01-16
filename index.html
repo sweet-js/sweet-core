@@ -77,6 +77,14 @@ a.mozilla {
   overflow: hidden;
   margin-left: 20px;
 }
+
+pre {
+  background-color: #eee;
+  -moz-border-radius: 6px;
+  -webkit-border-radius: 6px;
+  border-radius: 6px;
+  padding: 1em;
+}
 </style>
 </head>
 
@@ -117,7 +125,7 @@ def sweet(a) {
 </p>
 
 
-<textarea id="editor">
+<textarea id="editor-1" class="editor">
 macro def {
   case $name:ident $params $body => {
     function $name $params $body
@@ -127,10 +135,9 @@ macro def {
 def sweet(a) {
   console.log("Macros are sweet!");
 }
-
 </textarea>
-<button onclick="sweeten();">Sweeten!</button>
-<pre id="output" class="cm-s-default"></pre>
+<button onclick="sweeten(1);">Try it!</button>
+<pre id="output-1" class="cm-s-default"></pre>
 
 <p class="text">
   Want a better way to make "classy" objects?
@@ -154,7 +161,7 @@ bob.say("Macros are sweet!");
   Macros can do that too!
 </p>
 
-<pre><code class="language-javascript">
+<textarea id="editor-2" class="editor">
 macro class {
   case $className:ident { 
     constructor $constParam $constBody
@@ -167,7 +174,22 @@ macro class {
 
   }
 }  
-</code></pre>
+
+class Person {
+  constructor(name) {
+    this.name = name;
+  }
+
+  say(msg) {
+    console.log(this.name + " says: " + msg);
+  }
+}
+var bob = new Person("Bob");
+bob.say("Macros are sweet!");
+</textarea>
+<button onclick="sweeten(2);">Try it!</button>
+<pre id="output-2" class="cm-s-default"></pre>  
+
 
 <h2>Getting sweet.js</h2>
 
@@ -215,6 +237,16 @@ var x = id ("foo")
 // compiles to -->
 var x = "foo"
 </code></pre>
+
+<textarea id="editor-3" class="editor">
+macro id {
+  case ($x) => { $x }
+}
+
+var x = id ("foo")
+</textarea>
+<button onclick="sweeten(3);">Try it!</button>
+<pre id="output-3" class="cm-s-default"></pre>
 
 <p class="text">
   A pattern name that begin with "<code>$</code>" in the left hand side of the macro definition
@@ -326,38 +358,37 @@ m (1, 2)  // --> [1, 2]
 </script>
 <script src="prism.js"></script>
 <script src="editor/codemirror.js"></script>
+<!--
 <script src="editor/addon/matchbrackets.js"></script>
 <script src="editor/addon/continuecomment.js"></script>
+-->
 <script src="editor/mode/javascript/javascript.js"></script>
 <script src="editor/mode/runmode.js"></script>
 
 <script data-main="browser/scripts/main2" src="browser/scripts/require.js"></script>
 <script>
-
-  var editor = document.getElementById("editor");
   
-
-  //for(var i=0; i<editors.length; i++){
-    var editor = CodeMirror.fromTextArea(editor, {
-      lineNumbers: true,
-      matchBrackets: true,
-      // onChange: sweeten,
-      extraKeys: {"Enter": "newlineAndIndentContinueComment"}
+  var textAreas = document.getElementsByClassName("editor");
+  var editors = []
+  for(var i=0; i < textAreas.length; i++){
+    var editor = CodeMirror.fromTextArea(textAreas[i], {
+      // matchBrackets: true,
+      mode: "javascript"
     });
     editor.setOption("theme", "ambiance");
-  //}
+    editors[i+1] = editor;
+  }
 
-
-
-  function sweeten() {
-      //try {
+  function sweeten(nb) {
+      try {
+        var editor = editors[nb];
         var result = Sweet.compile(editor.getValue());
-        console.log(editor.value);
-        console.log(result);
-        CodeMirror.runMode(result, "javascript", document.getElementById("output"));
-      //} catch(e) {
-      //  document.getElementById("output").innerHTML = e;
-      //}
+        //console.log(editor.value);
+        //console.log(result);
+        CodeMirror.runMode(result, "javascript", document.getElementById("output-" + nb));
+      } catch(e) {
+        document.getElementById("output-" + nb).innerHTML = e;
+      }
     }
 
 </script>
