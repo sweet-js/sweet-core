@@ -3,6 +3,8 @@
 <head>
 <title>sweet.js</title>
 <link href='http://fonts.googleapis.com/css?family=Lato:100' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="editor/codemirror.css">
+<link rel="stylesheet" href="editor/theme/sweetprism.css">
 <link href='prism.css' rel='stylesheet' />
 <style>
 html {
@@ -75,6 +77,26 @@ a.mozilla {
   overflow: hidden;
   margin-left: 20px;
 }
+
+.editor { display : none }
+
+/* to display output of macro expansions */
+.console {
+  -moz-border-radius: 6px;
+  -webkit-border-radius: 6px;
+  border-radius: 6px;
+  padding: 1em;
+  margin-top:1em;
+  white-space: pre;
+  background: #f5f2f0;
+  resize: vertical;
+  max-height: 700px;
+  overflow: auto;
+  font-family: Consolas, Monaco, "Andale Mono", monospace;
+  text-shadow:0 1px white;
+  display:none;
+}
+
 </style>
 </head>
 
@@ -104,28 +126,37 @@ a.mozilla {
   What if you could define functions with <code>def</code> instead?
 </p>
 
+<!--
 <pre><code class="language-javascript">
 def sweet(a) {
   console.log("Macros are sweet!");
 }
 </code></pre>
+-->
 
 <p class="text">
   Macros let you do this!
 </p>
 
-<pre><code class="language-javascript">
+
+<textarea class="editor">
 macro def {
   case $name:ident $params $body => {
     function $name $params $body
   }
 }
-</code></pre>
+
+def sweet(a) {
+  console.log("Macros are sweet!");
+}
+</textarea>
+
 
 <p class="text">
   Want a better way to make "classy" objects?
 </p>
 
+<!--
 <pre><code class="language-javascript">
 class Person {
   constructor(name) {
@@ -139,12 +170,13 @@ class Person {
 var bob = new Person("Bob");
 bob.say("Macros are sweet!");
 </code></pre>
+-->
 
 <p class="text">
   Macros can do that too!
 </p>
 
-<pre><code class="language-javascript">
+<textarea class="editor">
 macro class {
   case $className:ident { 
     constructor $constParam $constBody
@@ -157,7 +189,20 @@ macro class {
 
   }
 }  
-</code></pre>
+
+class Person {
+  constructor(name) {
+    this.name = name;
+  }
+
+  say(msg) {
+    console.log(this.name + " says: " + msg);
+  }
+}
+var bob = new Person("Bob");
+bob.say("Macros are sweet!");
+</textarea>
+
 
 <p class="text">
   For more examples of what macros can do checkout the
@@ -215,17 +260,29 @@ macro id {
   when invoked returns just the matched token".
 </p>
 
+<!--
 <pre><code class="language-javascript">
 var x = id ("foo")
-// compiles to -->
+// compiles to ==>
 var x = "foo"
 </code></pre>
+-->
+
+<textarea class="editor">
+macro id {
+  case ($x) => { $x }
+}
+
+var x = id ("foo")
+</textarea>
+
 
 <p class="text">
   A pattern name that begin with "<code>$</code>" in the left hand side of the macro definition
   matches any token and binds it to that name in macro body while everything else matches literally.
 </p>
 
+<!--
 <pre><code class="language-javascript">
 macro m {
   case ($x becomes $y) => { 
@@ -233,9 +290,21 @@ macro m {
   }
 }
 m (a becomes b)
-// -->
+// ==>
 a = b
 </code></pre>
+-->
+
+<textarea class="editor">
+macro m {
+  case ($x becomes $y) => { 
+    $x = $y;
+  }
+}
+m (a becomes b)
+</textarea>
+
+
 
 <p class="text">
   A pattern name can be restricted to a particular parse class by using 
@@ -255,6 +324,17 @@ macro m {
 }
 m (2 + 5 * 10)
 </code></pre>
+
+<p class="text">For instance:</p>
+
+<textarea class="editor">
+macro m {
+  case ($x:expr) => { 
+    $x 
+  }
+}
+m (2 + 5 * 10)
+</textarea>
 
 <p class="text">
   The commonly used parse classes that have short names are 
@@ -276,26 +356,49 @@ macro m {
 m (1 2 3 4)
 </code></pre>
 
+<!--
+<textarea class="editor">
+macro m {
+  case ($x ...) => { 
+    // ...
+  }
+}
+m (f g)
+</textarea>
+-->
+
+
 <p class="text">
   A repeated pattern with a separator between each item can be matched by
   adding <code>(,)</code> between <code>...</code> and the pattern being repeated.
 </p>
 
-<pre><code class="language-javascript">
+<!-- <pre><code class="language-javascript">
 macro m {
   case ($x (,) ...) => { 
     [$x (,) ...]
   }
 }
 m (1, 2, 3, 4)
-</code></pre>
+</code></pre> -->
+
+<textarea  class="editor">
+macro m {
+  case ($x (,) ...) => { 
+    [$x (,) ...]
+  }
+}
+m (1, 2, 3, 4)
+</textarea>
+
+
 
 
 <p class="text">
   Repeated groups of patterns can be matched using <code>$()</code>.
 </p>
 
-<pre><code class="language-javascript">
+<!-- <pre><code class="language-javascript">
 macro m {
   case ( $($id:ident = $val:expr) (,) ...) => { 
     $(var $id = $val;) ...
@@ -303,19 +406,41 @@ macro m {
 }
 m (x = 10, y = 2+10)
 </code></pre>
+ -->
+<textarea class="editor">
+macro m {
+  case ( $($id:ident = $val:expr) (,) ...) => { 
+    $(var $id = $val;) ...
+  }
+}
+m (x = 10, y = 2+10)
+</textarea>
+
+
 
 <p class="text">
   Macros can match on multiple cases.
 </p>
 
-<pre><code class="language-javascript">
+<!-- <pre><code class="language-javascript">
 macro m {
   case ($x:lit) => { $x }
   case ($x:lit, $y:lit) => { [$x, $y] }
 }
-m (1)     // --> 1
-m (1, 2)  // --> [1, 2]
-</code></pre>
+m (1)     // ==> 1
+m (1, 2)  // ==> [1, 2]
+</code></pre> -->
+
+<textarea class="editor">
+macro m {
+  case ($x:lit) => { $x }
+  case ($x:lit, $y:lit) => { [$x, $y] }
+}
+
+m (1);  
+m (1, 2) 
+</textarea>
+
 
 <p class="text">
 And macros can call themselves.  
@@ -333,7 +458,6 @@ m (1 2 3 4 5)  // --> [1, [2, [3, [4, [5]]]]]
 </div>
 
 <script type="text/javascript">
-
   var _gaq = _gaq || [];
   _gaq.push(['_setAccount', 'UA-34844488-1']);
   _gaq.push(['_trackPageview']);
@@ -345,6 +469,12 @@ m (1 2 3 4 5)  // --> [1, [2, [3, [4, [5]]]]]
   })();
 
 </script>
+
 <script src="prism.js"></script>
+<script src="editor/codemirror.js"></script>
+<script src="editor/mode/javascript/javascript.js"></script>
+<script src="editor/mode/runmode.js"></script>
+<script data-main="browser/scripts/sweeten" src="browser/scripts/require.js"></script>
+
 </body>
 </html>
