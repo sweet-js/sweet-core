@@ -78,6 +78,8 @@ a.mozilla {
   margin-left: 20px;
 }
 
+.editor { display : none }
+
 /* to display output of macro expansions */
 .console {
   -moz-border-radius: 6px;
@@ -137,7 +139,7 @@ def sweet(a) {
 </p>
 
 
-<textarea id="editor-1" class="editor">
+<textarea class="editor">
 macro def {
   case $name:ident $params $body => {
     function $name $params $body
@@ -148,8 +150,7 @@ def sweet(a) {
   console.log("Macros are sweet!");
 }
 </textarea>
-<button onclick="sweeten(1);">Try it!</button>
-<div id="output-1" class="cm-s-sweetprism console"></div>
+
 
 <p class="text">
   Want a better way to make "classy" objects?
@@ -175,7 +176,7 @@ bob.say("Macros are sweet!");
   Macros can do that too!
 </p>
 
-<textarea id="editor-2" class="editor">
+<textarea class="editor">
 macro class {
   case $className:ident { 
     constructor $constParam $constBody
@@ -201,8 +202,6 @@ class Person {
 var bob = new Person("Bob");
 bob.say("Macros are sweet!");
 </textarea>
-<button onclick="sweeten(2);">Try it!</button>
-<div id="output-2" class="cm-s-sweetprism console"></div>  
 
 
 <h2>Getting sweet.js</h2>
@@ -254,15 +253,14 @@ var x = "foo"
 </code></pre>
 -->
 
-<textarea id="editor-3" class="editor">
+<textarea class="editor">
 macro id {
   case ($x) => { $x }
 }
 
 var x = id ("foo")
 </textarea>
-<button onclick="sweeten(3);">Try it!</button>
-<pre id="output-3" class="cm-s-sweetprism console"></pre>
+
 
 <p class="text">
   A pattern name that begin with "<code>$</code>" in the left hand side of the macro definition
@@ -282,7 +280,7 @@ a = b
 </code></pre>
 -->
 
-<textarea id="editor-4" class="editor">
+<textarea class="editor">
 macro m {
   case ($x becomes $y) => { 
     $x = $y;
@@ -290,8 +288,7 @@ macro m {
 }
 m (a becomes b)
 </textarea>
-<button onclick="sweeten(4);">Try it!</button>
-<pre id="output-4" class="cm-s-sweetprism console"></pre>
+
 
 
 <p class="text">
@@ -311,7 +308,7 @@ m (2 + 5 * 10)
 
 <p class="text">For instance:</p>
 
-<textarea id="editor-5" class="editor">
+<textarea class="editor">
 macro m {
   case ($x:expr) => { 
     $x 
@@ -319,9 +316,6 @@ macro m {
 }
 m (2 + 5 * 10)
 </textarea>
-<button onclick="sweeten(5);">Try it!</button>
-<pre id="output-5" class="cm-s-sweetprism console"></pre>
-
 
 <p class="text">
   The commonly used parse classes that have short names are 
@@ -344,7 +338,7 @@ m (1 2 3 4)
 </code></pre>
 
 <!--
-<textarea id="editor-6" class="editor">
+<textarea class="editor">
 macro m {
   case ($x ...) => { 
     // ...
@@ -352,8 +346,6 @@ macro m {
 }
 m (f g)
 </textarea>
-<button onclick="sweeten(6);">Try it!</button>
-<pre id="output-6" class="cm-s-sweetprism console"></pre>
 -->
 
 
@@ -371,7 +363,7 @@ macro m {
 m (1, 2, 3, 4)
 </code></pre> -->
 
-<textarea id="editor-7" class="editor">
+<textarea  class="editor">
 macro m {
   case ($x (,) ...) => { 
     [$x (,) ...]
@@ -379,8 +371,6 @@ macro m {
 }
 m (1, 2, 3, 4)
 </textarea>
-<button onclick="sweeten(7);">Try it!</button>
-<pre id="output-7" class="cm-s-sweetprism console"></pre>
 
 
 
@@ -398,7 +388,7 @@ macro m {
 m (x = 10, y = 2+10)
 </code></pre>
  -->
-<textarea id="editor-8" class="editor">
+<textarea class="editor">
 macro m {
   case ( $($id:ident = $val:expr) (,) ...) => { 
     $(var $id = $val;) ...
@@ -406,8 +396,6 @@ macro m {
 }
 m (x = 10, y = 2+10)
 </textarea>
-<button onclick="sweeten(8);">Try it!</button>
-<pre id="output-8" class="cm-s-sweetprism console"></pre>
 
 
 
@@ -424,7 +412,7 @@ m (1)     // ==> 1
 m (1, 2)  // ==> [1, 2]
 </code></pre> -->
 
-<textarea id="editor-9" class="editor">
+<textarea class="editor">
 macro m {
   case ($x:lit) => { $x }
   case ($x:lit, $y:lit) => { [$x, $y] }
@@ -433,8 +421,6 @@ macro m {
 m (1);  
 m (1, 2) 
 </textarea>
-<button onclick="sweeten(9);">Try it!</button>
-<pre id="output-9" class="cm-s-sweetprism console"></pre>
 
 
 </div>
@@ -452,6 +438,7 @@ m (1, 2)
   })();
 
 </script>
+
 <script src="prism.js"></script>
 <script src="editor/codemirror.js"></script>
 <script src="editor/mode/javascript/javascript.js"></script>

@@ -1,31 +1,39 @@
-require(["sweet"], function(sweet) {
-  window.sweeten = (function(){
-    var textAreas = document.getElementsByClassName("editor");
-    var editors = []
-    for(var i=0; i < textAreas.length; i++){
-      var editor = CodeMirror.fromTextArea(textAreas[i], {
-        lineNumbers:true,
-        // matchBrackets: true,
-        mode: "javascript"
-      });
-      editor.setOption("theme", "sweetprism");
-      editors[i+1] = editor;
-    }
+require(["jquery"], function($) {
+    require(["sweet"], function(sweet) {
+        $(function(){
+            window.sweeten = (function(){
+                // the textareas to turn into CodeMirror editors
+                var $textAreas = $(".editor");
 
+                var editors = {};
+                $textAreas.each(function(nb, textarea){
+                    // replace with a CM editor
+                    var editor = CodeMirror.fromTextArea(this, {
+                        lineNumbers:true,
+                        mode: "javascript"
+                    });
+                    editor.setOption("theme", "sweetprism");
+                    editors[nb] = editor;
 
-    return function (nb) {
-        var console = document.getElementById("output-" + nb);
-        console.style.display = "block";
-        try {
-          var editor = editors[nb];
-          
-          var result = sweet.compile(editor.getValue());
-          //console.log(editor.value);
-          //console.log(result);
-          CodeMirror.runMode(result, "javascript", console);
-        } catch(e) {
-          console.innerHTML = e;
-        }
-      }
-  })();
+                    // add sweeten button and output div
+                    var $editorDiv = $(textarea).next();
+                    $editorDiv.after('<button onclick="sweeten('+ nb +');">' + 
+                                  'Try it!</button><pre id="output-'+ nb +
+                                  '" class="cm-s-sweetprism console"></pre>')
+                });
+                
+                return function (nb) {
+                    var $console = $("#output-" + nb);
+                    $console.css("display", "block");
+                    try {
+                        var editor = editors[nb];
+                        var result = sweet.compile(editor.getValue());
+                        CodeMirror.runMode(result, "javascript", $console[0]);
+                    } catch(e) {
+                        $console.text(e);
+                    }
+                }
+            })();
+        });
+    });
 });
