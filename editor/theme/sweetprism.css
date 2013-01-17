@@ -1,0 +1,91 @@
+/* sweetprism theme for codemirror */
+/** 
+ * Loosely based on:
+ * sweetprism.js default theme for JavaScript, CSS and HTML
+ * Based on dabblet (http://dabblet.com)
+ * @author Lea Verou
+ */
+/* Color scheme */
+
+.cm-s-sweetprism .cm-keyword { color: #07a; }
+.cm-s-sweetprism .cm-atom { color: #07a; }
+.cm-s-sweetprism .cm-number { color: #905; }
+.cm-s-sweetprism .cm-def { color: #000; }
+.cm-s-sweetprism .cm-variable { color: #000; }
+.cm-s-sweetprism .cm-variable-2 { color: #000; }
+.cm-s-sweetprism .cm-variable-3 { color: #000; }
+.cm-s-sweetprism .cm-property { color: #000; }
+.cm-s-sweetprism .cm-operator {color: #a67f59; background: hsla(0,0%,100%,.5);}
+.cm-s-sweetprism .cm-comment { color: slategray; font-style:italic; }
+.cm-s-sweetprism .cm-string { color: #690; }
+.cm-s-sweetprism .cm-string-2 { color: #690; }
+.cm-s-sweetprism .cm-meta { color: #000; }
+.cm-s-sweetprism .cm-error { color: #e90; }
+.cm-s-sweetprism .cm-qualifier { color: 000; }
+.cm-s-sweetprism .cm-builtin { color: #000; }
+.cm-s-sweetprism .cm-bracket { color: #999; }
+.cm-s-sweetprism .cm-tag { color: #000 }
+.cm-s-sweetprism .cm-attribute {  color: #000; }
+.cm-s-sweetprism .cm-header {color: 000;}
+.cm-s-sweetprism .cm-quote { color: #999; }
+.cm-s-sweetprism .cm-hr { color: 000; }
+.cm-s-sweetprism .cm-link { color: #000; }
+.cm-s-sweetprism .cm-special { color: #000; }
+
+.cm-s-sweetprism .CodeMirror-matchingbracket { color: #690; }
+.cm-s-sweetprism .CodeMirror-nonmatchingbracket { color: #e90; }
+
+
+
+
+.cm-s-sweetprism .CodeMirror-selected { background: #999; opacity:.2;}
+.cm-s-sweetprism .CodeMirror-focused .CodeMirror-selected { background: #999; opacity:.2; }
+
+
+/* Editor styling */
+
+.cm-s-sweetprism.CodeMirror {
+  margin: .5em 0;
+  height:auto;
+  color: black;
+  text-shadow: 0 1px white;
+  font-family: Consolas, Monaco, 'Andale Mono', monospace;
+  direction: ltr;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+  
+  -webkit-hyphens: none;
+  -moz-hyphens: none;
+  -ms-hyphens: none;
+  hyphens: none;
+  border: 1px solid #aaa;
+  background-color: #f7f7f7 /*#f5f2f0*/ ;
+
+}
+
+.cm-s-sweetprism .CodeMirror-gutters {
+  background: transparent;
+  border-right: 1px solid rgba(0,0,0, 0.1);
+}
+
+.cm-s-sweetprism .CodeMirror-linenumber {
+  text-shadow: 0px 1px white;
+  color: rgba(0,0,0, 0.3);
+}
+
+.cm-s-sweetprism .CodeMirror-lines .CodeMirror-cursor {
+  border-left: 1px solid black;
+}
+
+.cm-s-sweetprism .activeline {
+  background: none repeat scroll 0% 0% /*rgba(255, 255, 255, 0.031)*/ pink;
+}
+
+.cm-s-sweetprism.CodeMirror,
+.cm-s-sweetprism .CodeMirror-gutters {
+}
