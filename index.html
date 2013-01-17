@@ -4,7 +4,7 @@
 <title>sweet.js</title>
 <link href='http://fonts.googleapis.com/css?family=Lato:100' rel='stylesheet' type='text/css'>
 <link rel="stylesheet" href="editor/codemirror.css">
-<link rel="stylesheet" href="editor/theme/ambiance.css">
+<link rel="stylesheet" href="editor/theme/sweetprism.css">
 <link href='prism.css' rel='stylesheet' />
 <style>
 html {
@@ -78,13 +78,23 @@ a.mozilla {
   margin-left: 20px;
 }
 
-pre {
-  background-color: #eee;
+/* to display output of macro expansions */
+.console {
   -moz-border-radius: 6px;
   -webkit-border-radius: 6px;
   border-radius: 6px;
   padding: 1em;
+  margin-top:1em;
+  white-space: pre;
+  background: #f5f2f0;
+  resize: vertical;
+  max-height: 700px;
+  overflow: auto;
+  font-family: Consolas, Monaco, "Andale Mono", monospace;
+  text-shadow:0 1px white;
+  display:none;
 }
+
 </style>
 </head>
 
@@ -114,11 +124,13 @@ pre {
   What if you could define functions with <code>def</code> instead?
 </p>
 
+<!--
 <pre><code class="language-javascript">
 def sweet(a) {
   console.log("Macros are sweet!");
 }
 </code></pre>
+-->
 
 <p class="text">
   Macros let you do this!
@@ -137,12 +149,13 @@ def sweet(a) {
 }
 </textarea>
 <button onclick="sweeten(1);">Try it!</button>
-<pre id="output-1" class="cm-s-default"></pre>
+<div id="output-1" class="cm-s-sweetprism console"></div>
 
 <p class="text">
   Want a better way to make "classy" objects?
 </p>
 
+<!--
 <pre><code class="language-javascript">
 class Person {
   constructor(name) {
@@ -156,6 +169,7 @@ class Person {
 var bob = new Person("Bob");
 bob.say("Macros are sweet!");
 </code></pre>
+-->
 
 <p class="text">
   Macros can do that too!
@@ -188,7 +202,7 @@ var bob = new Person("Bob");
 bob.say("Macros are sweet!");
 </textarea>
 <button onclick="sweeten(2);">Try it!</button>
-<pre id="output-2" class="cm-s-default"></pre>  
+<div id="output-2" class="cm-s-sweetprism console"></div>  
 
 
 <h2>Getting sweet.js</h2>
@@ -232,11 +246,13 @@ macro id {
   when invoked returns just the matched token".
 </p>
 
+<!--
 <pre><code class="language-javascript">
 var x = id ("foo")
-// compiles to -->
+// compiles to ==>
 var x = "foo"
 </code></pre>
+-->
 
 <textarea id="editor-3" class="editor">
 macro id {
@@ -246,13 +262,14 @@ macro id {
 var x = id ("foo")
 </textarea>
 <button onclick="sweeten(3);">Try it!</button>
-<pre id="output-3" class="cm-s-default"></pre>
+<pre id="output-3" class="cm-s-sweetprism console"></pre>
 
 <p class="text">
   A pattern name that begin with "<code>$</code>" in the left hand side of the macro definition
   matches any token and binds it to that name in macro body while everything else matches literally.
 </p>
 
+<!--
 <pre><code class="language-javascript">
 macro m {
   case ($x becomes $y) => { 
@@ -260,9 +277,22 @@ macro m {
   }
 }
 m (a becomes b)
-// -->
+// ==>
 a = b
 </code></pre>
+-->
+
+<textarea id="editor-4" class="editor">
+macro m {
+  case ($x becomes $y) => { 
+    $x = $y;
+  }
+}
+m (a becomes b)
+</textarea>
+<button onclick="sweeten(4);">Try it!</button>
+<pre id="output-4" class="cm-s-sweetprism console"></pre>
+
 
 <p class="text">
   A pattern name can be restricted to a particular parse class by using 
@@ -278,6 +308,20 @@ macro m {
 }
 m (2 + 5 * 10)
 </code></pre>
+
+<p class="text">For instance:</p>
+
+<textarea id="editor-5" class="editor">
+macro m {
+  case ($x:expr) => { 
+    $x 
+  }
+}
+m (2 + 5 * 10)
+</textarea>
+<button onclick="sweeten(5);">Try it!</button>
+<pre id="output-5" class="cm-s-sweetprism console"></pre>
+
 
 <p class="text">
   The commonly used parse classes that have short names are 
@@ -299,26 +343,53 @@ macro m {
 m (1 2 3 4)
 </code></pre>
 
+<!--
+<textarea id="editor-6" class="editor">
+macro m {
+  case ($x ...) => { 
+    // ...
+  }
+}
+m (f g)
+</textarea>
+<button onclick="sweeten(6);">Try it!</button>
+<pre id="output-6" class="cm-s-sweetprism console"></pre>
+-->
+
+
 <p class="text">
   A repeated pattern with a separator between each item can be matched by
   adding <code>(,)</code> between <code>...</code> and the pattern being repeated.
 </p>
 
-<pre><code class="language-javascript">
+<!-- <pre><code class="language-javascript">
 macro m {
   case ($x (,) ...) => { 
     [$x (,) ...]
   }
 }
 m (1, 2, 3, 4)
-</code></pre>
+</code></pre> -->
+
+<textarea id="editor-7" class="editor">
+macro m {
+  case ($x (,) ...) => { 
+    [$x (,) ...]
+  }
+}
+m (1, 2, 3, 4)
+</textarea>
+<button onclick="sweeten(7);">Try it!</button>
+<pre id="output-7" class="cm-s-sweetprism console"></pre>
+
+
 
 
 <p class="text">
   Repeated groups of patterns can be matched using <code>$()</code>.
 </p>
 
-<pre><code class="language-javascript">
+<!-- <pre><code class="language-javascript">
 macro m {
   case ( $($id:ident = $val:expr) (,) ...) => { 
     $(var $id = $val;) ...
@@ -326,25 +397,50 @@ macro m {
 }
 m (x = 10, y = 2+10)
 </code></pre>
+ -->
+<textarea id="editor-8" class="editor">
+macro m {
+  case ( $($id:ident = $val:expr) (,) ...) => { 
+    $(var $id = $val;) ...
+  }
+}
+m (x = 10, y = 2+10)
+</textarea>
+<button onclick="sweeten(8);">Try it!</button>
+<pre id="output-8" class="cm-s-sweetprism console"></pre>
+
+
 
 <p class="text">
   Macros can match on multiple cases.
 </p>
 
-<pre><code class="language-javascript">
+<!-- <pre><code class="language-javascript">
 macro m {
   case ($x:lit) => { $x }
   case ($x:lit, $y:lit) => { [$x, $y] }
 }
-m (1)     // --> 1
-m (1, 2)  // --> [1, 2]
-</code></pre>
+m (1)     // ==> 1
+m (1, 2)  // ==> [1, 2]
+</code></pre> -->
+
+<textarea id="editor-9" class="editor">
+macro m {
+  case ($x:lit) => { $x }
+  case ($x:lit, $y:lit) => { [$x, $y] }
+}
+
+m (1);  
+m (1, 2) 
+</textarea>
+<button onclick="sweeten(9);">Try it!</button>
+<pre id="output-9" class="cm-s-sweetprism console"></pre>
+
 
 </div>
 </div>
 
 <script type="text/javascript">
-
   var _gaq = _gaq || [];
   _gaq.push(['_setAccount', 'UA-34844488-1']);
   _gaq.push(['_trackPageview']);
@@ -358,39 +454,9 @@ m (1, 2)  // --> [1, 2]
 </script>
 <script src="prism.js"></script>
 <script src="editor/codemirror.js"></script>
-<!--
-<script src="editor/addon/matchbrackets.js"></script>
-<script src="editor/addon/continuecomment.js"></script>
--->
 <script src="editor/mode/javascript/javascript.js"></script>
 <script src="editor/mode/runmode.js"></script>
+<script data-main="browser/scripts/sweeten" src="browser/scripts/require.js"></script>
 
-<script data-main="browser/scripts/main2" src="browser/scripts/require.js"></script>
-<script>
-  
-  var textAreas = document.getElementsByClassName("editor");
-  var editors = []
-  for(var i=0; i < textAreas.length; i++){
-    var editor = CodeMirror.fromTextArea(textAreas[i], {
-      // matchBrackets: true,
-      mode: "javascript"
-    });
-    editor.setOption("theme", "ambiance");
-    editors[i+1] = editor;
-  }
-
-  function sweeten(nb) {
-      try {
-        var editor = editors[nb];
-        var result = Sweet.compile(editor.getValue());
-        //console.log(editor.value);
-        //console.log(result);
-        CodeMirror.runMode(result, "javascript", document.getElementById("output-" + nb));
-      } catch(e) {
-        document.getElementById("output-" + nb).innerHTML = e;
-      }
-    }
-
-</script>
 </body>
 </html>
