@@ -116,13 +116,13 @@ a.mozilla {
 <p id="slogan"><span>Sweeten your JavaScript</span></p>
 
 <p class="text">
- Sweet.js brings hygienic macros from languages like Scheme and Rust to JavaScript. 
+ Sweet.js brings hygienic macros from languages like Scheme and Rust to JavaScript.
  Macros allow you to sweeten the syntax of JavaScript and craft the language you've always wanted.
 </p>
 
 
 <p class="text">
-  Wish the <code class="language-javascript">function</code> keyword in JavaScript wasn't so long? 
+  Wish the <code class="language-javascript">function</code> keyword in JavaScript wasn't so long?
   What if you could define functions with <code>def</code> instead?
 </p>
 
@@ -178,17 +178,17 @@ bob.say("Macros are sweet!");
 
 <textarea class="editor">
 macro class {
-  case $className:ident { 
+  case $className:ident {
     constructor $constParam $constBody
     $($methodName:ident $methodParam $methodBody) ... } => {
 
     function $className $constParam $constBody
 
-    $($className.prototype.$methodName 
+    $($className.prototype.$methodName
       = function $methodName $methodParam $methodBody; ) ...
 
   }
-}  
+}
 
 class Person {
   constructor(name) {
@@ -237,7 +237,7 @@ bob.say("Macros are sweet!");
     Discuss sweet.js on the Google Group
       <a href="https://groups.google.com/forum/#!forum/sweetjs">mailing list</a>
       or the IRC channel #sweet.js on irc.mozilla.org.
-  </li> 
+  </li>
 </ul>
 </p>
 
@@ -285,7 +285,7 @@ var x = id ("foo")
 <!--
 <pre><code class="language-javascript">
 macro m {
-  case ($x becomes $y) => { 
+  case ($x becomes $y) => {
     $x = $y;
   }
 }
@@ -297,7 +297,7 @@ a = b
 
 <textarea class="editor">
 macro m {
-  case ($x becomes $y) => { 
+  case ($x becomes $y) => {
     $x = $y;
   }
 }
@@ -307,18 +307,18 @@ m (a becomes b)
 
 
 <p class="text">
-  A pattern name can be restricted to a particular parse class by using 
+  A pattern name can be restricted to a particular parse class by using
   <code>$name:class</code> in which case rather than matching only
   a single token the pattern matches all the tokens matched by the parse class.
   <b>
-    Note: this is not fully implemented at the moment. 
-    See <a href="https://github.com/mozilla/sweet.js/issues/28">issue 28</a> for details. 
+    Note: this is not fully implemented at the moment.
+    See <a href="https://github.com/mozilla/sweet.js/issues/28">issue 28</a> for details.
   </b>
 </p>
 
 <pre><code class="language-javascript">
 macro m {
-  case ($x:expr) => { 
+  case ($x:expr) => {
     // ...
   }
 }
@@ -329,15 +329,15 @@ m (2 + 5 * 10)
 
 <textarea class="editor">
 macro m {
-  case ($x:expr) => { 
-    $x 
+  case ($x:expr) => {
+    $x
   }
 }
 m (2 + 5 * 10)
 </textarea>
 
 <p class="text">
-  The commonly used parse classes that have short names are 
+  The commonly used parse classes that have short names are
   <code>expr</code> (matches an expression),
   <code>ident</code> (matches an identifier), and
   <code>lit</code> (matches a literal). The full list is described <a href="https://github.com/mozilla/sweet.js/wiki/pattern_class">here</a>.
@@ -349,7 +349,7 @@ m (2 + 5 * 10)
 
 <pre><code class="language-javascript">
 macro m {
-  case ($x ...) => { 
+  case ($x ...) => {
     // ...
   }
 }
@@ -359,7 +359,7 @@ m (1 2 3 4)
 <!--
 <textarea class="editor">
 macro m {
-  case ($x ...) => { 
+  case ($x ...) => {
     // ...
   }
 }
@@ -375,7 +375,7 @@ m (f g)
 
 <!-- <pre><code class="language-javascript">
 macro m {
-  case ($x (,) ...) => { 
+  case ($x (,) ...) => {
     [$x (,) ...]
   }
 }
@@ -384,7 +384,7 @@ m (1, 2, 3, 4)
 
 <textarea  class="editor">
 macro m {
-  case ($x (,) ...) => { 
+  case ($x (,) ...) => {
     [$x (,) ...]
   }
 }
@@ -400,7 +400,7 @@ m (1, 2, 3, 4)
 
 <!-- <pre><code class="language-javascript">
 macro m {
-  case ( $($id:ident = $val:expr) (,) ...) => { 
+  case ( $($id:ident = $val:expr) (,) ...) => {
     $(var $id = $val;) ...
   }
 }
@@ -409,7 +409,7 @@ m (x = 10, y = 2+10)
  -->
 <textarea class="editor">
 macro m {
-  case ( $($id:ident = $val:expr) (,) ...) => { 
+  case ( $($id:ident = $val:expr) (,) ...) => {
     $(var $id = $val;) ...
   }
 }
@@ -437,22 +437,22 @@ macro m {
   case ($x:lit, $y:lit) => { [$x, $y] }
 }
 
-m (1);  
-m (1, 2) 
+m (1);
+m (1, 2)
 </textarea>
 
 
 <p class="text">
-And macros can call themselves.  
+And macros can call themselves.
 </p>
 
-<pre><code class="language-javascript">
+<textarea class="editor">
 macro m {
   case ($base) => { [$base] }
   case ($head $tail ...) => { [$head, m ($tail ...)] }
 }
 m (1 2 3 4 5)  // --> [1, [2, [3, [4, [5]]]]]
-</code></pre>
+</textarea>
 
 </div>
 </div>
