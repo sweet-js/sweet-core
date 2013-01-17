@@ -50,7 +50,7 @@ body {
   margin-top: 2em;
 }
 
-p.text, li {
+p.text {
   font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
   /*font-weight: 400;*/
   font-size: 16px;
@@ -127,7 +127,7 @@ macro def {
 </p>
 
 <pre><code class="language-javascript">
-class Person {
+classy Person {
   constructor(name) {
     this.name = name;
   }
@@ -145,7 +145,7 @@ bob.say("Macros are sweet!");
 </p>
 
 <pre><code class="language-javascript">
-macro class {
+macro classy {
   case $className:ident { 
     constructor $constParam $constBody
     $($methodName:ident $methodParam $methodBody) ... } => {
@@ -158,11 +158,6 @@ macro class {
   }
 }  
 </code></pre>
-
-<p class="text">
-  For more examples of what macros can do checkout the
-  <a href="https://github.com/mozilla/sweet.js/wiki/Example-macros">wiki</a>.
-</p>
 
 <h2>Getting sweet.js</h2>
 
@@ -184,18 +179,8 @@ macro class {
 
 <p class="text">
   Sweet.js is still a young project so expect bugs and missing features.
-<ul>
-  <li>
-    Please report issues on <a href="https://github.com/mozilla/sweet.js/issues">github</a>.
-  </li>
-  <li>
-    Discuss sweet.js on the Google Group
-      <a href="https://groups.google.com/forum/#!forum/sweetjs">mailing list</a>
-      or the IRC channel #sweet.js on irc.mozilla.org.
-  </li> 
-</ul>
+  If you find a bug, please report it on <a href="https://github.com/mozilla/sweet.js/issues">github</a>.
 </p>
-
 
 <h2>Writing macros</h2>
 
@@ -241,10 +226,6 @@ a = b
   A pattern name can be restricted to a particular parse class by using 
   <code>$name:class</code> in which case rather than matching only
   a single token the pattern matches all the tokens matched by the parse class.
-  <b>
-    Note: this is not fully implemented at the moment. 
-    See <a href="https://github.com/mozilla/sweet.js/issues/28">issue 28</a> for details. 
-  </b>
 </p>
 
 <pre><code class="language-javascript">
@@ -315,18 +296,6 @@ macro m {
 }
 m (1)     // --> 1
 m (1, 2)  // --> [1, 2]
-</code></pre>
-
-<p class="text">
-And macros can call themselves.  
-</p>
-
-<pre><code class="language-javascript">
-macro m {
-  case ($base) => { [$base] }
-  case ($head $tail ...) => { [$head, m ($tail ...)] }
-}
-m (1 2 3 4 5)  // --> [1, [2, [3, [4, [5]]]]]
 </code></pre>
 
 </div>
