@@ -14,12 +14,12 @@ describe("enforest", function() {
     expect(res.result.id.token.value).to.be("x");
   });
 
-  it("should enforest an expression", function() {
-    var res = enforest(read("x + 2"));
+  // it("should enforest an expression", function() {
+  //   var res = enforest(read("x + 2"));
 
-    expect(res.result.left.id.token.value).to.be("x");
-    expect(res.result.right.lit.token.value).to.be(2);
-  });
+  //   expect(res.result.left.id.token.value).to.be("x");
+  //   expect(res.result.right.lit.token.value).to.be(2);
+  // });
 
   // it("should enforest a fcn call", function() {
   //   var res = enforest(read("foo(1, 2);"));

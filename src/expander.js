@@ -649,10 +649,10 @@
         construct: function(ar) { this.array = ar; }
     });
 
-    var ParenExpression = PrimaryExpression.extend({
-        properties: ["expr"],
-        construct: function(expr) { this.expr = expr; }
-    });
+    // var ParenExpression = PrimaryExpression.extend({
+    //     properties: ["expr"],
+    //     construct: function(expr) { this.expr = expr; }
+    // });
 
     var BinOp = Expr.extend({
         properties: ["left", "op", "right"],
@@ -701,6 +701,8 @@
 
 
             var innerStx = _.reduce(this.delim.token.inner, function(acc, term) {
+                // parser.assert(term.inner != null, "not expecting a raw delimiter token");
+                // problem, not dealing with a delimiter token
                 if(term.hasPrototype(TermTree)){
                     return acc.concat(term.destruct());
                 } else {
@@ -809,29 +811,29 @@
                 //     this.head = Call.create(this.head, termArgs);
                 //     this.rest = this.rest.slice(2);
                 //     this.enforest(env);
-                if(rest[0] && rest[1] && stxIsBinOp(rest[0])) {
-                    var op = rest[0];
-                    var left = head;
-                    var res = enforest(rest.slice(1), env);
-                    var right = res.result;
+                // if(rest[0] && rest[1] && stxIsBinOp(rest[0])) {
+                //     var op = rest[0];
+                //     var left = head;
+                //     var res = enforest(rest.slice(1), env);
+                //     var right = res.result;
 
-                    return step(BinOp.create(op, left, right), res.rest);
-                } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "[]") {
+                //     return step(BinOp.create(op, left, right), res.rest);
+                if(head.hasPrototype(Delimiter) && head.delim.token.value === "[]") {
                     return step(ArrayLiteral.create(head), rest);
-                } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "()") {
-                    innerTokens = head.delim.token.inner;
-                    // empty parens are acceptable but enforest doesn't accept empty arrays
-                    // so short circuit here
-                    if(innerTokens.length === 0) {
-                        return step(ParenExpression.create(head), rest);
-                    } else {
-                        var innerTerm = get_expression(innerTokens, env);
-                        if(innerTerm.result && innerTerm.result.hasPrototype(Expr)) {
-                            return step(ParenExpression.create(head), rest);
-                        }
-                        // if the tokens inside the paren aren't an expression
-                        // we just leave it as a delimiter
-                    }
+                // } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "()") {
+                //     innerTokens = head.delim.token.inner;
+                //     // empty parens are acceptable but enforest doesn't accept empty arrays
+                //     // so short circuit here
+                //     if(innerTokens.length === 0) {
+                //         return step(ParenExpression.create(head), rest);
+                //     } else {
+                //         var innerTerm = get_expression(innerTokens, env);
+                //         if(innerTerm.result && innerTerm.result.hasPrototype(Expr)) {
+                //             return step(ParenExpression.create(head), rest);
+                //         }
+                //         // if the tokens inside the paren aren't an expression
+                //         // we just leave it as a delimiter
+                //     }
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "{}") {
                     innerTokens = head.delim.token.inner;
                     // var innerTermArray = enforestPropertyAssignments(innerTokens);
@@ -1180,7 +1182,7 @@
                     var next = original[idx+1];
                     var nextNext = original[idx+2];
 
-                    // drop `...`
+                   // drop `...`
                     if(bodyStx.token.value === "...") {
                         return acc;
                     }
@@ -1456,9 +1458,9 @@
         } else if(head.hasPrototype(ArrayLiteral)) {
             head.array.delim.token.inner = expand(head.array.delim.token.inner, env);
             return [head].concat(expand(rest, env));
-        } else if(head.hasPrototype(ParenExpression)) {
-            head.expr.delim.token.inner = expand(head.expr.delim.token.inner, env);
-            return [head].concat(expand(rest, env));
+        // } else if(head.hasPrototype(ParenExpression)) {
+        //     head.expr.delim.token.inner = expand(head.expr.delim.token.inner, env);
+        //     return [head.expr].concat(expand(rest, env));
         } else if(head.hasPrototype(ObjectLiteral)) {
             head.body.delim.token.inner = expand(head.body.delim.token.inner, env);
             return [head].concat(expand(rest, env));
@@ -1466,6 +1468,12 @@
             // expand inside the delimiter and then continue on
             head.delim.token.inner = expand(head.delim.token.inner, env);
             return [head].concat(expand(rest, env));
+        // } else if(head.hasPrototype(BinOp)) {
+        //     // head.left = expand(head.left.destruct(), env);
+        //     var expanded = head.right.destruct();
+        //     console.log(expanded);
+        //     head.right = expand(expanded, env);
+        //     return [head].concat(expand(rest, env));
         } else if (head.hasPrototype(NamedFun) || head.hasPrototype(AnonFun)) {
             // function definitions need a bunch of hygiene logic
 

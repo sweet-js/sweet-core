@@ -1,4 +1,4 @@
-var expect = require("expect.js")
+var expect = require("expect.js");
 var parser = require("../lib/parser");
 var expander = require("../lib/expander");
 
@@ -12,7 +12,7 @@ Object.keys(expander._test).forEach(function(val) {
 function tokValues (stxArray) {
     return stxArray.map(function(el) {
         return el.token.value;
-    })
+    });
 }
 
 var emptyMacroMap = new Map();
@@ -54,56 +54,62 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["foo"]);
     });
 
-    it("should match a binary expression", function() {
-        var stx = parser.read("2+2");
-        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+    // it("should match a binary expression", function() {
+    //     var stx = parser.read("2+2");
+    //     var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql([2, "+", 2]);
-    });
+    //     expect(tokValues(res)).to.eql([2, "+", 2]);
+    // });
 
-    it("should match a complex binary expression", function() {
-        var stx = parser.read("2+2*10/32");
-        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+    // it("should match a complex binary expression", function() {
+    //     var stx = parser.read("2+2*10/32");
+    //     var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql([2, "+", 2, "*", 10, "/", 32]);
-    });
-
-
-    it("should match a this expression", function() {
-        var stx = parser.read("this.foo");
-        var res = matchPatternClass("expr", stx, {}).result;
-
-        expect(tokValues(res)).to.eql(["this"]);
-    });
-
-    it("should match a literal expression", function() {
-        var stx = parser.read("42");
-        var res = matchPatternClass("expr", stx, {}).result;
-
-        expect(tokValues(res)).to.eql([42]);
-    });
-
-    it("should match a parenthesized expression", function() {
-        var stx = parser.read("(42)");
-        var res = matchPatternClass("expr", stx, {}).result;
-
-        expect(tokValues(res)).to.eql(["(", 42, ")"]);
-    });
+    //     expect(tokValues(res)).to.eql([2, "+", 2, "*", 10, "/", 32]);
+    // });
 
 
-    it("should match an array literal", function() {
-        var stx = parser.read("[1,2,3]");
-        var res = matchPatternClass("expr", stx, {}).result;
+    // it("should match a this expression", function() {
+    //     var stx = parser.read("this.foo");
+    //     var res = matchPatternClass("expr", stx, {}).result;
 
-        expect(tokValues(res)).to.eql(["[", 1, ",", 2, ",", 3, "]"]);
-    });
+    //     expect(tokValues(res)).to.eql(["this"]);
+    // });
 
-    it("should match a simple object literal", function() {
-        var stx = parser.read("{a: 42}");
-        var res = matchPatternClass("expr", stx, {}).result;
+    // it("should match a literal expression", function() {
+    //     var stx = parser.read("42");
+    //     var res = matchPatternClass("expr", stx, {}).result;
 
-        expect(tokValues(res)).to.eql(["{", "a", ":", 42, "}"]);
-    });
+    //     expect(tokValues(res)).to.eql([42]);
+    // });
+
+    // it("should match a parenthesized expression", function() {
+    //     var stx = parser.read("((42))");
+    //     var res = matchPatternClass("expr", stx, {}).result;
+
+    //     expect(tokValues(res)).to.eql(["(", 42, ")"]);
+    //     // expect((expander.flatten(expander.expand(stx)))).to.eql("422");
+    // });
+
+    // it("should match an array literal", function() {
+    //     var stx = parser.read("[1,2,3]");
+    //     var res = matchPatternClass("expr", stx, {}).result;
+
+    //     expect(tokValues(res)).to.eql(["[", 1, ",", 2, ",", 3, "]"]);
+    // });
+
+    // it("should match a simple object literal", function() {
+    //     var stx = parser.read("{a: 42}");
+    //     var res = matchPatternClass("expr", stx, {}).result;
+
+    //     expect(tokValues(res)).to.eql(["{", "a", ":", 42, "}"]);
+    // });
+
+    // it("should handle a binop and array", function() {
+    //     var stx = parser.read("42 == (test[0])");
+    //     expect(parser.parse(expander.flatten(expander.expand(stx)))).to.be("42 == (test[0])");
+    // });
+
 });
 
 // describe("enforestPropertyAssignments", function() {

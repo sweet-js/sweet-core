@@ -56,19 +56,19 @@ describe("macro expander", function() {
     expect(expr([1,2,3])).to.eql([1,2,3]);
   });
 
-  it("should match binary expressions", function() {
-    macro expr {
-      case ($x:expr) => {
-        $x
-      }
-    }
-    var z1 = expr(2 + 2);
-    var z2 = expr(2 * 2);
-    var z3 = expr(2 + 2 * 2);
-    expect(z1).to.be(4);
-    expect(z2).to.be(4);
-    expect(z3).to.be(6);
-  });
+  // it("should match binary expressions", function() {
+  //   macro expr {
+  //     case ($x:expr) => {
+  //       $x
+  //     }
+  //   }
+  //   var z1 = expr(2 + 2);
+  //   var z2 = expr(2 * 2);
+  //   var z3 = expr(2 + 2 * 2);
+  //   expect(z1).to.be(4);
+  //   expect(z2).to.be(4);
+  //   expect(z3).to.be(6);
+  // });
 
 
   // it("should expand a macro with a pattern `$x:expr plus! $y:expr`", function() {
@@ -94,17 +94,17 @@ describe("macro expander", function() {
   // });
 
 
-  it("should expand multiple macro body types", function() {
-    macro assign {
-      case ($x:ident) {$y:expr} => {
-        var $x = $y;
-      }
-    }
+  // it("should expand multiple macro body types", function() {
+  //   macro assign {
+  //     case ($x:ident) {$y:expr} => {
+  //       var $x = $y;
+  //     }
+  //   }
 
-    assign (z) {2+2}
+  //   assign (z) {2+2}
 
-    expect(z).to.be(4);
-  });
+  //   expect(z).to.be(4);
+  // });
 
 
   it("should expand literal braces", function() {
@@ -154,30 +154,30 @@ describe("macro expander", function() {
   });
 
 
-  it("should expand a simple let macro", function() {
-    macro lett {
-      case ($x:ident = $v:expr) {$y:expr} => {
-        (function($x) { return $y; })($v);
-      }
-    }
+  // it("should expand a simple let macro", function() {
+  //   macro lett {
+  //     case ($x:ident = $v:expr) {$y:expr} => {
+  //       (function($x) { return $y; })($v);
+  //     }
+  //   }
 
-    var foo = lett (z = 1) {z+2}
+  //   var foo = lett (z = 1) {z+2}
 
-    expect(foo).to.be(3)
-  });
+  //   expect(foo).to.be(3)
+  // });
 
 
-  it("should expand a complex let macro", function() {
-    macro lett {
-      case ( $($x:ident = $v:expr) (,) ...) {$y:expr} => {
-        (function($x (,) ...) { return $y; })($v (,) ...);
-      }
-    }
+  // it("should expand a complex let macro", function() {
+  //   macro lett {
+  //     case ( $($x:ident = $v:expr) (,) ...) {$y:expr} => {
+  //       (function($x (,) ...) { return $y; })($v (,) ...);
+  //     }
+  //   }
 
-    var foo = lett (z = 1, t = 5 + 2) {z+t}
+  //   var foo = lett (z = 1, t = 5 + 2) {z+t}
 
-    expect(foo).to.be(8)
-  });
+  //   expect(foo).to.be(8)
+  // });
 
   it("should handle ellipses in output delimiters", function() {
     macro m {
