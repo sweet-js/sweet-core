@@ -46,7 +46,11 @@ target.build_browser = function() {
 
 target.test = function() {
     echo("\nrunning tests...");
+    if(process.env.NODE_DISABLE_COLORS === "1") {
+        Mocha.reporters.Base.useColors = false;
+    }
     var mocha = new Mocha();
+    mocha.useColors = false;
 
     fs.readdirSync('build/').filter(function(file) {
         return file.substr(-3) === '.js';
