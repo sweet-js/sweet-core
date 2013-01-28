@@ -551,7 +551,7 @@
                 atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1])
                                                                   || isFunctionStx(body[idx-2]))) ||
                                       (curr.token.value === "{}" && (isFunctionStx(body[idx-2])
-                                                                  || isFunctionStx(body[idx-3])))
+                                                                  || isFunctionStx(body[idx-3])));
                 // don't look for var idents inside nested functions
                 if(!atFunctionDelimiter) {
                     return acc.concat(getVarIdentifiers(curr.token.inner));
@@ -1356,7 +1356,6 @@
                     newMark = fresh();
                     applyMarkToPatternEnv(newMark, match.patternEnv);
                     macroResult = transcribe(caseBody, macroNameStx, match.patternEnv);
-                    // todo: BUG!
                     macroResult = _.map(macroResult, function(stx) { return stx.mark(newMark); });
                     return {
                         result: macroResult,
