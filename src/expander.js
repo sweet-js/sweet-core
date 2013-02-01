@@ -702,8 +702,6 @@
 
 
             var innerStx = _.reduce(this.delim.token.inner, function(acc, term) {
-                // parser.assert(term.inner != null, "not expecting a raw delimiter token");
-                // problem, not dealing with a delimiter token
                 if(term.hasPrototype(TermTree)){
                     return acc.concat(term.destruct());
                 } else {
@@ -1438,6 +1436,7 @@
     }
 
     // expand all the macros
+    // ([...Token], Map, {}) -> [...TermTree]
     function expand(toks, env, ctx) {
         var env = env || new Map();
         var ctx = ctx || {};
