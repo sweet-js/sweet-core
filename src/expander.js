@@ -32,10 +32,11 @@
         define(['exports', 'underscore', 'parser', 'es6-collections'], factory);
     } else {
         // Browser globals
-        factory((root.expander = {}), root._, root.parser);
+        factory((root.expander = {}), _, root.parser);
     }
 }(this, function (exports, underscore, parser, es6) {
-    _ = underscore || _;
+    'use strict';
+    var _ = underscore || _;
     // used to export "private" methods for unit testing
     exports._test = {};
 
