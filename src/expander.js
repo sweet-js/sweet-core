@@ -1470,6 +1470,8 @@
             return [head].concat(expand(rest, env));
         } else if(head.hasPrototype(BinOp)) {
             var expanded = expand(head.right.destruct(), env);
+            parser.assert(expanded.length == 1,
+                          "should only be one term tree after expanding the right hand side of a BinOp");
             head.right = expanded[0].destruct();
             return [head].concat(expand(rest, env));
         } else if (head.hasPrototype(NamedFun) || head.hasPrototype(AnonFun)) {
