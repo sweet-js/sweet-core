@@ -92,7 +92,6 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["(", 42, ")"]);
     });
 
-
     it("should match an array literal", function() {
         var stx = parser.read("[1,2,3]");
         var res = matchPatternClass("expr", stx, {}).result;
@@ -107,6 +106,13 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["{", "a", ":", 42, "}"]);
     });
 
+    it("should handle a object bracket get", function() {
+        var stx = parser.read("test[0]");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.be(["test", "[", 0, "]"]);
+    });
+
     // it("should handle a binop and array", function() {
     //     var stx = parser.read("42 == test[0]");
     //     var res = matchPatternClass("expr", stx, emptyMacroMap).result;
@@ -117,10 +123,16 @@ describe("matchPatternClass", function() {
 });
 
 describe("expand", function() {
-    it("expand a binary expression", function() {
+    it("expand a simple binary expression", function() {
         var stx = parser.read("42 + 24");
         var res = expander.flatten(expander.expand(stx));
         expect(tokValues(res)).to.eql([42, "+", 24, '']);
+    });
+
+    it("should expand a complex binary expression", function() {
+        var stx = parser.read("1 + 2 * 3");
+        var res = expander.flatten(expander.expand(stx));
+        expect(tokValues(res)).to.eql([1, "+", 2, "*", 3, '']);
     });
 });
 

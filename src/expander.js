@@ -895,8 +895,10 @@
                     // apply the transformer
                     var rt = transformer(rest, head, env);
 
-                    // todo: eventually macro calls will only return terms, until then we'll get along with arrays of syntax
-                    // parser.assert(rt.result.hasPrototype(TermTree), "expecting a term as the result of the macro call");
+                    // todo: eventually macro calls will only return terms
+                    // until then we'll get along with arrays of syntax
+                    // parser.assert(rt.result.hasPrototype(TermTree),
+                    //               "expecting a term as the result of the macro call");
                     return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
                     // this.head = null;
                     // this.rest = rt.result.concat(rt.rest);

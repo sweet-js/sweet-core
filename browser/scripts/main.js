@@ -12,5 +12,5 @@ require(["sweet","./parser", "./expander"], function(sweet, parser, expander) {
         // var result = expander.expandf(parser.read(code));
         // var result = expander.expandf(parser.read(code));
         console.log(res);
-    }
+    };
 });
