@@ -770,6 +770,15 @@
         }
     });
 
+    var ObjGet = Expr.extend({
+        properties: ["left", "right"],
+
+        construct: function(left, right) {
+            this.left = left;
+            this.right = right;
+        }
+    });
+
     function stxIsBinOp (stx) {
         var staticOperators = ["+", "*", "/", "%", "||", "&&", "|", "&", "^",
                                 "==", "!=", "===", "!==",
@@ -813,10 +822,17 @@
                 if(rest[0] && rest[1] && stxIsBinOp(rest[0])) {
                     var op = rest[0];
                     var left = head;
-                    var res = enforest(rest.slice(1), env);
-                    var right = res.result;
+                    var bopRes = enforest(rest.slice(1), env);
+                    var right = bopRes.result;
 
-                    return step(BinOp.create(op, left, right), res.rest);
+                    return step(BinOp.create(op, left, right), bopRes.rest);
+                } else if(rest[0] && rest[0].token.value === "[]") {
+                    var getRes = enforest(rest[0].token.inner, env);
+                    var resStx = mkSyntax("[]", parser.Token.Delimiter, rest[0]);
+                    resStx.token.inner = [getRes.result];
+                    parser.assert(getRes.rest.length == 0,
+                                  "not yet dealing with case when computed value is not completely enforested");
+                    return step(ObjGet.create(head, Delimiter.create(resStx)), rest.slice(1));
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "[]") {
                     return step(ArrayLiteral.create(head), rest);
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "()") {
