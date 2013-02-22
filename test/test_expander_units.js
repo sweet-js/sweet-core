@@ -106,12 +106,6 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["{", "a", ":", 42, "}"]);
     });
 
-    // it("should handle a binop and array", function() {
-    //     var stx = parser.read("42 == test[0]");
-    //     var res = matchPatternClass("expr", stx, emptyMacroMap).result;
-
-    //     expect(tokValues(res)).to.be(["42", "==", "test", "[", 0, "]"]);
-    // });
 
 });
 
@@ -140,6 +134,14 @@ describe("expand", function() {
         var res = expander.flatten(expander.expand(stx));
 
         expect(tokValues(res)).to.eql(["test", "[", 2, "+", 3, "]", ""]);
+    });
+
+
+    it("should handle a binop and array", function() {
+        var stx = parser.read("42 == test[0]");
+        var res = expander.flatten(expander.expand(stx));
+
+        expect(tokValues(res)).to.eql([42, "==", "test", "[", 0, "]"]);
     });
 });
 
