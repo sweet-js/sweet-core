@@ -789,7 +789,7 @@
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, env) {
-        var env = env || new Map();
+        env = env || new Map();
 
         parser.assert(toks.length > 0, "enforest assumes there are tokens to work with");
 
@@ -1126,12 +1126,12 @@
     }
 
 
-    // attempt to match pats against stx
+    // attempt to match patterns against stx
     // ([...Pattern], [...Syntax], Env) -> { result: [...Syntax], rest: [...Syntax], patternEnv: PatternEnv }
     function matchPatterns(patterns, stx, env) {
         // note that there are two environments floating around,
-        // one is the mapping of identifiers to macro definitions
-        // and the other is the pattern environment that maps
+        // one is the mapping of identifiers to macro definitions (env)
+        // and the other is the pattern environment (patternEnv) that maps
         // patterns in a macro case to syntax.
         var result = [];
         var patternEnv = {};
