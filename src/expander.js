@@ -812,7 +812,8 @@
                 //     var termArgs = _.map(this.rest[0].token.inner, function(p) {
                 //         var pr = ReadTree.create([p])
                 //         pr.enforest();
-                //         parser.assert(pr.rest.length === 0, "expecting enforest of argument to have no remainder");
+                // parser.assert(pr.rest.length === 0,
+                //               "expecting enforest of argument to have no remainder");
                 //         return pr.head;
                 //     });
 
@@ -826,12 +827,13 @@
                     var right = bopRes.result;
 
                     return step(BinOp.create(op, left, right), bopRes.rest);
-                } else if(rest[0] && rest[0].token.value === "[]") {
+                } else if(head.hasPrototype(Expr) && rest[0] && rest[0].token.value === "[]") {
                     var getRes = enforest(rest[0].token.inner, env);
                     var resStx = mkSyntax("[]", parser.Token.Delimiter, rest[0]);
                     resStx.token.inner = [getRes.result];
                     parser.assert(getRes.rest.length == 0,
-                                  "not yet dealing with case when computed value is not completely enforested");
+                                  "not yet dealing with case when computed value is not completely enforested: "
+                                  + getRes.rest);
                     return step(ObjGet.create(head, Delimiter.create(resStx)), rest.slice(1));
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "[]") {
                     return step(ArrayLiteral.create(head), rest);
@@ -903,7 +905,6 @@
                             head.token.type === parser.Token.RegexLiteral ||
                             head.token.type === parser.Token.NullLiteral) {
                     return step(Lit.create(head), rest);
-                // punctuator
                 } else if (head.token.type === parser.Token.Identifier &&
                             env.has(head.token.value)) {
                     // pull the macro transformer out the environment
@@ -922,6 +923,7 @@
                 // identifier
                 } else if(head.token.type === parser.Token.Identifier) {
                     return step(Id.create(head), rest);
+                // punctuator
                 } else if (head.token.type === parser.Token.Punctuator) {
                     return step(Punc.create(head), rest);
                 // keyword
@@ -1487,6 +1489,7 @@
             head.delim.token.inner = expand(head.delim.token.inner, env);
             return [head].concat(expand(rest, env));
         } else if(head.hasPrototype(BinOp)) {
+            // todo: the destruct here feels wrong
             var expanded = expand(head.right.destruct(), env);
             parser.assert(expanded.length == 1,
                           "should only be one term tree after expanding the right hand side of a BinOp");
