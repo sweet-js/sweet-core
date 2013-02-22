@@ -1438,8 +1438,8 @@
 
     // expand all the macros
     function expand(toks, env, ctx) {
-        var env = env || new Map();
-        var ctx = ctx || {};
+        env = env || new Map();
+        ctx = ctx || {};
 
         if(toks.length === 0) {
             return [];
