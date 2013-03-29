@@ -32,11 +32,10 @@
         define(['exports', 'underscore', 'parser', 'es6-collections'], factory);
     } else {
         // Browser globals
-        factory((root.expander = {}), _, root.parser);
+        factory((root.expander = {}), root._, root.parser);
     }
 }(this, function (exports, underscore, parser, es6) {
-    'use strict';
-    var _ = underscore || _;
+    _ = underscore || _;
     // used to export "private" methods for unit testing
     exports._test = {};
 
@@ -1514,13 +1513,12 @@
             // expand inside the delimiter and then continue on
             head.delim.token.inner = expand(head.delim.token.inner, env);
             return [head].concat(expand(rest, env));
-        } else if(head.hasPrototype(BinOp)) {
-            // todo: the destruct here feels wrong
-            var expanded = expand(head.right.destruct(), env);
-            parser.assert(expanded.length == 1,
-                          "should only be one term tree after expanding the right hand side of a BinOp");
-            head.right = expanded[0].destruct();
-            return [head].concat(expand(rest, env));
+        // } else if(head.hasPrototype(BinOp)) {
+            // var expanded = expand(head.right.destruct(), env);
+            // parser.assert(expanded.length == 1,
+            //               "should only be one term tree after expanding the right hand side of a BinOp");
+            // head.right = expanded[0].destruct();
+            // return [head].concat(expand(rest, env));
         } else if (head.hasPrototype(NamedFun) || head.hasPrototype(AnonFun)) {
             // function definitions need a bunch of hygiene logic
 

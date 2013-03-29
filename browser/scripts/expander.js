@@ -32,11 +32,10 @@
         define(['exports', 'underscore', 'parser', 'es6-collections'], factory);
     } else {
         // Browser globals
-        factory((root.expander = {}), _, root.parser);
+        factory((root.expander = {}), root._, root.parser);
     }
 }(this, function (exports, underscore, parser, es6) {
-    'use strict';
-    var _ = underscore || _;
+    _ = underscore || _;
     // used to export "private" methods for unit testing
     exports._test = {};
 
@@ -652,10 +651,10 @@
         construct: function(ar) { this.array = ar; }
     });
 
-    // var ParenExpression = PrimaryExpression.extend({
-    //     properties: ["expr"],
-    //     construct: function(expr) { this.expr = expr; }
-    // });
+    var ParenExpression = PrimaryExpression.extend({
+        properties: ["expr"],
+        construct: function(expr) { this.expr = expr; }
+    });
 
     var BinOp = Expr.extend({
         properties: ["left", "op", "right"],
@@ -704,8 +703,6 @@
 
 
             var innerStx = _.reduce(this.delim.token.inner, function(acc, term) {
-                // parser.assert(term.inner != null, "not expecting a raw delimiter token");
-                // problem, not dealing with a delimiter token
                 if(term.hasPrototype(TermTree)){
                     return acc.concat(term.destruct());
                 } else {
@@ -801,7 +798,7 @@
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, env) {
-        var env = env || new Map();
+        env = env || new Map();
 
         parser.assert(toks.length > 0, "enforest assumes there are tokens to work with");
 
@@ -909,7 +906,6 @@
                             head.token.type === parser.Token.RegexLiteral ||
                             head.token.type === parser.Token.NullLiteral) {
                     return step(Lit.create(head), rest);
-                // punctuator
                 } else if (head.token.type === parser.Token.Identifier &&
                             env.has(head.token.value)) {
                     // pull the macro transformer out the environment
@@ -1065,11 +1061,11 @@
         if(pattern.token.type === parser.Token.Delimiter) {
             if(pattern.class === "pattern_group") {
                 // pattern groups don't match the delimiters
-                subMatch = matchPatterns(pattern.token.inner, stx, env, patternEnv);
+                subMatch = matchPatterns(pattern.token.inner, stx, env, false);
                 rest = subMatch.rest;
             } else if (stx[0].token.type === parser.Token.Delimiter &&
                         stx[0].token.value === pattern.token.value) {
-                subMatch = matchPatterns(pattern.token.inner, stx[0].token.inner, env, patternEnv);
+                subMatch = matchPatterns(pattern.token.inner, stx[0].token.inner, env, false);
                 rest = stx.slice(1);
             } else {
                 return {
@@ -1150,12 +1146,23 @@
     }
 
 
-    // attempt to match pats against stx
+    // attempt to match patterns against stx
     // ([...Pattern], [...Syntax], Env) -> { result: [...Syntax], rest: [...Syntax], patternEnv: PatternEnv }
-    function matchPatterns(patterns, stx, env) {
+    function matchPatterns(patterns, stx, env, topLevel) {
+        // topLevel lets us know if the patterns are on the top level or nested inside
+        // a delimiter:
+        //     case $topLevel (,) ... => { }
+        //     case ($nested (,) ...) => { }
+        // This matters for how we deal with trailing unmatched syntax when the pattern
+        // has an ellipses:
+        //     m 1,2,3 foo
+        // should match 1,2,3 and leave foo alone but:
+        //     m (1,2,3 foo)
+        // should fail to match entirely.
+        topLevel = topLevel || false;
         // note that there are two environments floating around,
-        // one is the mapping of identifiers to macro definitions
-        // and the other is the pattern environment that maps
+        // one is the mapping of identifiers to macro definitions (env)
+        // and the other is the pattern environment (patternEnv) that maps
         // patterns in a macro case to syntax.
         var result = [];
         var patternEnv = {};
@@ -1177,9 +1184,22 @@
 
                 if(pattern.repeat && success) {
                     if(rest[0] && rest[0].token.value === pattern.separator) {
+                        // more tokens and the next token matches the separator
                         rest = rest.slice(1);
                     } else if (pattern.separator === " ") {
+                        // no separator specified (using the empty string for this)
+                        // so keep going
                         continue;
+                    } else if ((pattern.separator !== " ") &&
+                                (rest.length > 0) &&
+                                (i === patterns.length - 1) &&
+                                topLevel === false) {
+                        // separator is specified, there is a next token, the
+                        // next token doesn't match the separator, there are
+                        // no more patterns, and this is a top level pattern
+                        // so the match has failed
+                        success = false;
+                        break;
                     } else {
                         break;
                     }
@@ -1377,7 +1397,7 @@
                 casePattern = sortedCases[i].pattern;
                 caseBody = sortedCases[i].body;
 
-                match = matchPatterns(casePattern, stx, env);
+                match = matchPatterns(casePattern, stx, env, true);
                 if(match.success) {
                     newMark = fresh();
                     applyMarkToPatternEnv(newMark, match.patternEnv);
@@ -1463,8 +1483,8 @@
     // expand all the macros
     // ([...Token], Map, {}) -> [...TermTree]
     function expand(toks, env, ctx) {
-        var env = env || new Map();
-        var ctx = ctx || {};
+        env = env || new Map();
+        ctx = ctx || {};
 
         if(toks.length === 0) {
             return [];
@@ -1493,13 +1513,12 @@
             // expand inside the delimiter and then continue on
             head.delim.token.inner = expand(head.delim.token.inner, env);
             return [head].concat(expand(rest, env));
-        } else if(head.hasPrototype(BinOp)) {
-            // todo: the destruct here feels wrong
-            var expanded = expand(head.right.destruct(), env);
-            parser.assert(expanded.length == 1,
-                          "should only be one term tree after expanding the right hand side of a BinOp");
-            head.right = expanded[0].destruct();
-            return [head].concat(expand(rest, env));
+        // } else if(head.hasPrototype(BinOp)) {
+            // var expanded = expand(head.right.destruct(), env);
+            // parser.assert(expanded.length == 1,
+            //               "should only be one term tree after expanding the right hand side of a BinOp");
+            // head.right = expanded[0].destruct();
+            // return [head].concat(expand(rest, env));
         } else if (head.hasPrototype(NamedFun) || head.hasPrototype(AnonFun)) {
             // function definitions need a bunch of hygiene logic
 

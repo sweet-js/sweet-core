@@ -141,7 +141,7 @@ describe("expand", function() {
         var stx = parser.read("42 == test[0]");
         var res = expander.flatten(expander.expand(stx));
 
-        expect(tokValues(res)).to.eql([42, "==", "test", "[", 0, "]"]);
+        expect(tokValues(res)).to.eql([42, "==", "test", "[", 0, "]", ""]);
     });
 });
 
