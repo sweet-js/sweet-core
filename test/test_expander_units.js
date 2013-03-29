@@ -137,7 +137,7 @@ describe("expand", function() {
     });
 
 
-    it("should handle a binop and array", function() {
+    it("should handle a binop and an object bracket get", function() {
         var stx = parser.read("42 == test[0]");
         var res = expander.flatten(expander.expand(stx));
 

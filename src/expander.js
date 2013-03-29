@@ -538,35 +538,37 @@
     // in the array of syntax objects
     // ([...CSyntax]) -> [...CSyntax]
     function getVarIdentifiers(body) {
+        // TODO: switching off for now, need to reenable at somepoint
+        // since we now aren't handling hygiene at all for var idents
         return [];
 
-        // todo: fix: needs to understand term trees
-        return _.reduce(body.token.inner, function(acc, curr, idx) {
-            var atFunctionDelimiter;
+        // // todo: fix: needs to understand term trees
+        // return _.reduce(body.token.inner, function(acc, curr, idx) {
+        //     var atFunctionDelimiter;
 
-            if(!curr.token) {
-                console.log(curr);
-                parser.assert(false, "bad panda");
-            }
-            if (curr.token.type === parser.Token.Delimiter) {
-                atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1])
-                                                                  || isFunctionStx(body[idx-2]))) ||
-                                      (curr.token.value === "{}" && (isFunctionStx(body[idx-2])
-                                                                  || isFunctionStx(body[idx-3])));
-                // don't look for var idents inside nested functions
-                if(!atFunctionDelimiter) {
-                    return acc.concat(getVarIdentifiers(curr.token.inner));
-                }
-                return acc;
-            }
-            if (isVarStx(body[idx-1])) {
-                var parseResult = parser.parse(flatten(body.slice(idx)),
-                                            "VariableDeclarationList",
-                                            {noresolve: true});
-                return acc.concat(varNamesInAST(parseResult));
-            }
-            return acc;
-        }, []);
+        //     if(!curr.token) {
+        //         console.log(curr);
+        //         parser.assert(false, "bad panda");
+        //     }
+        //     if (curr.token.type === parser.Token.Delimiter) {
+        //         atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1])
+        //                                                           || isFunctionStx(body[idx-2]))) ||
+        //                               (curr.token.value === "{}" && (isFunctionStx(body[idx-2])
+        //                                                           || isFunctionStx(body[idx-3])));
+        //         // don't look for var idents inside nested functions
+        //         if(!atFunctionDelimiter) {
+        //             return acc.concat(getVarIdentifiers(curr.token.inner));
+        //         }
+        //         return acc;
+        //     }
+        //     if (isVarStx(body[idx-1])) {
+        //         var parseResult = parser.parse(flatten(body.slice(idx)),
+        //                                     "VariableDeclarationList",
+        //                                     {noresolve: true});
+        //         return acc.concat(varNamesInAST(parseResult));
+        //     }
+        //     return acc;
+        // }, []);
     }
 
     function replaceVarIdent(stx, orig, renamed) {
