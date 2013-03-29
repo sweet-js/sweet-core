@@ -652,10 +652,10 @@
         construct: function(ar) { this.array = ar; }
     });
 
-    var ParenExpression = PrimaryExpression.extend({
-        properties: ["expr"],
-        construct: function(expr) { this.expr = expr; }
-    });
+    // var ParenExpression = PrimaryExpression.extend({
+    //     properties: ["expr"],
+    //     construct: function(expr) { this.expr = expr; }
+    // });
 
     var BinOp = Expr.extend({
         properties: ["left", "op", "right"],
@@ -704,6 +704,8 @@
 
 
             var innerStx = _.reduce(this.delim.token.inner, function(acc, term) {
+                // parser.assert(term.inner != null, "not expecting a raw delimiter token");
+                // problem, not dealing with a delimiter token
                 if(term.hasPrototype(TermTree)){
                     return acc.concat(term.destruct());
                 } else {
@@ -907,6 +909,7 @@
                             head.token.type === parser.Token.RegexLiteral ||
                             head.token.type === parser.Token.NullLiteral) {
                     return step(Lit.create(head), rest);
+                // punctuator
                 } else if (head.token.type === parser.Token.Identifier &&
                             env.has(head.token.value)) {
                     // pull the macro transformer out the environment

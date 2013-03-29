@@ -129,6 +129,29 @@ describe("macro expander", function() {
     expect(z[0]).to.be(4);
   });
 
+
+  it("should distinguish between commas and no commas in a repeat", function() {
+    macro m {
+      case ($p ...) => {
+        "no commas"
+      }
+      case ($p (,) ...) => {
+        "comma"
+      }
+    }
+    expect(m (a b)).to.be("no commas");
+  });
+
+  it("should match as much of the pattern as possible if not in a delimiter even when more syntax follows", function() {
+      macro m {
+        case $p (,) ... => {
+          [$p (,) ...];
+        }
+      }
+      var res = m 1, 2, 3 "trailing";
+      expect(res).to.eql([1,2,3]);
+  });
+
   it("should expand with ellipses", function() {
     macro paren {
       case ( $x:lit (,) ...) => {

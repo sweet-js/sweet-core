@@ -6,6 +6,7 @@ var Mocha = require("mocha");
 target.all = function() {
     target.clean();
     target.build();
+    target.build_test_file();
     target.build_test();
     target.build_browser();
     target.test();
@@ -34,6 +35,14 @@ target.build = function() {
     cp("-f", "src/*.js", "lib/");
     cp("-f", "test/test_single.js", "build/");
 };
+
+target.build_test_file = function() {
+    // if we have a "test.js" file sitting at the
+    // root of the project go ahead and build it
+    if(test('-f', "test.js")) {
+        exec('bin/sjs  test.js --output test_out.js');
+    }
+}
 
 target.build_test = function() {
 
