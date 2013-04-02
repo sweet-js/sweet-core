@@ -35,7 +35,7 @@
         factory((root.expander = {}), root._, root.parser);
     }
 }(this, function (exports, underscore, parser) {
-    _ = underscore || _;
+    var _ = underscore || _;
 
     // var CToken = object({
     //     type: Num,
