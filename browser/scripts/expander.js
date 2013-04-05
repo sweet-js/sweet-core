@@ -34,8 +34,19 @@
         // Browser globals
         factory((root.expander = {}), root._, root.parser);
     }
-}(this, function (exports, underscore, parser) {
+}(this, function (exports, underscore, parser, es6) {
     var _ = underscore || _;
+    // used to export "private" methods for unit testing
+    exports._test = {};
+
+    // some convenience monkey patching
+    Object.prototype.create = function() {
+        var obj = Object.create(this);
+        if (typeof obj.construct === "function") {
+            obj.construct.apply(obj, arguments);
+        }
+        return obj;
+    };
 
     Object.prototype.extend = function(properties) {
         var result = Object.create(this);
