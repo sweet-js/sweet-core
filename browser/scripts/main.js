@@ -1,3 +1,11 @@
+requirejs.config({
+    shim: {
+        'underscore': {
+            exports: '_'
+        }
+    }
+});
+
 require(["sweet","./parser", "./expander"], function(sweet, parser, expander) {
     var read = parser.read;
     var expand = expander.expand;

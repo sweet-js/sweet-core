@@ -34,8 +34,8 @@
         // Browser globals
         factory((root.expander = {}), root._, root.parser);
     }
-}(this, function (exports, underscore, parser, es6) {
-    var _ = underscore || _;
+}(this, function (exports, _, parser, es6) {
+    'use strict';
     // used to export "private" methods for unit testing
     exports._test = {};
 
