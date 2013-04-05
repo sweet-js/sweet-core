@@ -35,7 +35,7 @@
         factory((root.expander = {}), root._, root.parser);
     }
 }(this, function (exports, underscore, parser, es6) {
-    _ = underscore || _;
+    var _ = underscore || _;
     // used to export "private" methods for unit testing
     exports._test = {};
 
