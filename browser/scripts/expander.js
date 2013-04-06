@@ -836,6 +836,25 @@
                                   "not yet dealing with case when computed value is not completely enforested: "
                                   + getRes.rest);
                     return step(ObjGet.create(head, Delimiter.create(resStx)), rest.slice(1));
+
+                    /* BREADCRUMB:
+                    So the core problem right now is that I'm not being terribly clear when
+                    stuff inside of delimiters should be expanded. Or what types should be 
+                    stored inside of the Term classes, terms? tokens? syntax objects?
+                    Need to be clear and consistent. 
+
+                    Also, unclear how much mutual recursion is needed between enforest and expand.
+                    For that matter what's the actual role of expander?
+                    */
+
+                    // innerTokens = rest[0].token.inner;
+                    // // short circuit 
+                    // if(innerTokens.length === 0) {
+                    //     return step(ObjGet.create(head, Delimiter.create(rest[0])), rest.slice(1));
+                    // } else {
+                    //     var innerTerm = get_expression(innerTokens, env);
+                    //     return step(ObjGet.create(head, Delimiter.create(innerTerm.result)), rest.slice(1));
+                    // }
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "[]") {
                     return step(ArrayLiteral.create(head), rest);
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "()") {
@@ -1480,50 +1499,71 @@
         return makeTransformer(cases);
     }
 
-    // expand all the macros
-    // ([...Token], Map, {}) -> [...TermTree]
-    function expand(toks, env, ctx) {
-        env = env || new Map();
-        ctx = ctx || {};
+    // similar to `parse1` in the honu paper
+    // ([Syntax], Map) -> {terms: [TermTree], env: Map}
+    function expandToTermTree (stx, env) {
+        parser.assert(env, "environment map is required");
 
-        if(toks.length === 0) {
-            return [];
+        // short circuit when syntax array is empty
+        if(stx.length === 0) {
+            return {
+                terms: [], 
+                env: env
+            };
         }
-        parser.assert(toks[0].token, "expecting a syntax object");
 
-        var f = enforest(toks, env);
+        parser.assert(stx[0].token, "expecting a syntax object");
+
+        var f = enforest(stx, env);
+        // head :: TermTree
         var head = f.result;
+        // rest :: [Syntax]
         var rest = f.rest;
 
         if(head.hasPrototype(Macro)) {
             // load the macro definition into the environment and continue expanding
-            var def = loadMacroDef(head);
-            env.set(head.name.token.value, def);
-            return expand(rest, env);
-        } else if(head.hasPrototype(ArrayLiteral)) {
-            head.array.delim.token.inner = expand(head.array.delim.token.inner, env);
-            return [head].concat(expand(rest, env));
-        } else if(head.hasPrototype(ParenExpression)) {
-            head.expr.delim.token.inner = expand(head.expr.delim.token.inner, env);
-            return [head].concat(expand(rest, env));
-        } else if(head.hasPrototype(ObjectLiteral)) {
-            head.body.delim.token.inner = expand(head.body.delim.token.inner, env);
-            return [head].concat(expand(rest, env));
-        } else if(head.hasPrototype(Delimiter)) {
+            var macroDefinition = loadMacroDef(head);
+            env.set(head.name.token.value, macroDefinition);
+            return expandToTermTree(rest, env);
+        } 
+        var trees = expandToTermTree(rest, env);
+        return {
+            terms: [head].concat(trees.terms), 
+            env: trees.env
+        };
+    }
+
+    // similar to `parse2` in the honu paper except here we
+    // don't generate an AST yet
+    // (TermTree, Map, Map) -> TermTree
+    function expandTermTreeToFinal (term, env, ctx) {
+        parser.assert(env, "environment map is required");
+        parser.assert(ctx, "context map is required");
+
+        if(term.hasPrototype(ArrayLiteral)) {
+            term.array.delim.token.inner = expand(term.array.delim.token.inner, env);
+            return term;
+        } else if(term.hasPrototype(ParenExpression)) {
+            term.expr.delim.token.inner = expand(term.expr.delim.token.inner, env);
+            return term;
+        } else if(term.hasPrototype(ObjectLiteral)) {
+            term.body.delim.token.inner = expand(term.body.delim.token.inner, env);
+            return term;
+        } else if(term.hasPrototype(Delimiter)) {
             // expand inside the delimiter and then continue on
-            head.delim.token.inner = expand(head.delim.token.inner, env);
-            return [head].concat(expand(rest, env));
-        // } else if(head.hasPrototype(BinOp)) {
-            // var expanded = expand(head.right.destruct(), env);
+            term.delim.token.inner = expand(term.delim.token.inner, env);
+            return term;
+        // } else if(term.hasPrototype(BinOp)) {
+            // var expanded = expand(term.right.destruct(), env);
             // parser.assert(expanded.length == 1,
             //               "should only be one term tree after expanding the right hand side of a BinOp");
-            // head.right = expanded[0].destruct();
-            // return [head].concat(expand(rest, env));
-        } else if (head.hasPrototype(NamedFun) || head.hasPrototype(AnonFun)) {
+            // term.right = expanded[0].destruct();
+            // return term;
+        } else if (term.hasPrototype(NamedFun) || term.hasPrototype(AnonFun)) {
             // function definitions need a bunch of hygiene logic
 
             // get the parameters
-            var stxParams = getArgList(head.params.delim);
+            var stxParams = getArgList(term.params.delim);
             // create fresh names for each of them
             var freshNames = _.map(stxParams, function(param) {
                 return "$" + fresh();
@@ -1545,7 +1585,7 @@
                 return _.extend(o, accEnv);
             }, ctx);
 
-            var stxBody = head.body.delim;
+            var stxBody = term.body.delim;
             // rename the function body for each of the parameters
             var renamedBody = _.reduce(freshnameArgPairs, function (accBody, argPair) {
                 var freshName = argPair[0];
@@ -1559,7 +1599,7 @@
 
             // expand the renamed body with the updated context
             var flatBody = expand([renamedBody], env, newCtx);
-            var flatArgs = wrapDelim(joinSyntax(renamedArgs, ","), head.params.delim);
+            var flatArgs = wrapDelim(joinSyntax(renamedArgs, ","), term.params.delim);
 
             // find all the var identifiers (eg x in `var x = 42`)
             parser.assert(flatBody[0].body && flatBody[0].body.delim, "expecting a delimiter in the flatBody");
@@ -1594,14 +1634,25 @@
             var expandedArgs = expand([flatArgs], env, ctx);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the head with all the renamings
-            head.params = expandedArgs[0];
-            head.body.delim = varRenamedFlatBody;
+            term.params = expandedArgs[0];
+            term.body.delim = varRenamedFlatBody;
             // and continue expand the rest
-            return [head].concat(expand(rest, env));
-        } else {
-            // the head is fine as is, just keep expanding
-            return [head].concat(expand(rest, env));
-        }
+            return term;
+        } 
+        // the term is fine as is
+        return term;
+    }
+
+    // similar to `parse` in the honu paper
+    // ([Syntax], Map, Map) -> [TermTree]
+    function expand(stx, env, ctx) {
+        var env = env || new Map();
+        var ctx = ctx || new Map();
+
+        var trees = expandToTermTree(stx, env, ctx);
+        return _.map(trees.terms, function(term) {
+            return expandTermTreeToFinal(term, trees.env, ctx);
+        })
     }
 
     // take our semi-structured TermTree and flatten it back to just
