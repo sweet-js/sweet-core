@@ -16,7 +16,10 @@ var flatten = expander.flatten;
 
 describe("single test", function() {
   it("should pass", function() {
-    var res = expand(read("function foo(a, b) { return a; }"));
-    // console.log(flatten(res))
+    // var res = expand(read("foo[0]"));
+    // console.log(res);
+    // var flattened = flatten(res);
+    // console.log(flattened);
+    // var parsed = parser.parse(flattened);
   });
 })

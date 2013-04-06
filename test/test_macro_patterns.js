@@ -31,16 +31,16 @@ describe("macro expander", function() {
     expect(z).to.be(6);
   });
 
-  it("should expand a macro with a pattern `($x:lit) <+> $y:lit`", function() {
-    macro oddadd {
-      case (($x:lit) <+> $y:lit) => {
-        $x + $y
-      }
-    }
-    var z = oddadd((2) <+> 4);
-    expect(z).to.be(6);
+  // it("should expand a macro with a pattern `($x:lit) <+> $y:lit`", function() {
+  //   macro oddadd {
+  //     case (($x:lit) <+> $y:lit) => {
+  //       $x + $y
+  //     }
+  //   }
+  //   var z = oddadd((2) <+> 4);
+  //   expect(z).to.be(6);
 
-  });
+  // });
 
   it("should match primary expressions", function() {
     macro expr {

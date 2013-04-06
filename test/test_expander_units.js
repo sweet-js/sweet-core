@@ -130,10 +130,10 @@ describe("expand", function() {
     });
 
     it("should handle a object bracket get", function() {
-        var stx = parser.read("test[2+3]");
+        var stx = parser.read("test[2+3-1]");
         var res = expander.flatten(expander.expand(stx));
 
-        expect(tokValues(res)).to.eql(["test", "[", 2, "+", 3, "]", ""]);
+        expect(tokValues(res)).to.eql(["test", "[", 2, "+", 3, "-", 1, "]", ""]);
     });
 
 
@@ -142,6 +142,14 @@ describe("expand", function() {
         var res = expander.flatten(expander.expand(stx));
 
         expect(tokValues(res)).to.eql([42, "==", "test", "[", 0, "]", ""]);
+    });
+
+
+    it("should handle function calls", function() {
+        var stx = parser.read("foo(24, 42)");
+        var res = expander.flatten(expander.expand(stx));
+
+        expect(tokValues(res)).to.eql(["foo", "(", "24", ",", "42", ")", ""]);
     });
 });
 
