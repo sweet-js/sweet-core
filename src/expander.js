@@ -836,9 +836,13 @@
                             break;
                         }
                     } 
+                    var argsAreExprs = _.all(enforestedArgs, function(argTerm) { 
+                        return argTerm.hasPrototype(Expr) 
+                    });
 
-                    // only a call if we can completely enforest each argument
-                    if(innerTokens.length === 0) {
+                    // only a call if we can completely enforest each argument and
+                    // each argument is an expression
+                    if(innerTokens.length === 0 && argsAreExprs) {
                         return step(Call.create(head, enforestedArgs, rest[0], commas), 
                                     rest.slice(1));
                     }
