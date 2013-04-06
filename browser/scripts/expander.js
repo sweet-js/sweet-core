@@ -781,9 +781,9 @@
     });
 
     function stxIsBinOp (stx) {
-        var staticOperators = ["+", "*", "/", "%", "||", "&&", "|", "&", "^",
+        var staticOperators = ["+", "-", "*", "/", "%", "||", "&&", "|", "&", "^",
                                 "==", "!=", "===", "!==",
-                                // "<", ">", "<=", ">=", "in", "instanceof",
+                                "<", ">", "<=", ">=", "in", "instanceof",
                                 "<<", ">>", ">>>"];
         return _.contains(staticOperators, stx.token.value);
     }
@@ -836,25 +836,6 @@
                                   "not yet dealing with case when computed value is not completely enforested: "
                                   + getRes.rest);
                     return step(ObjGet.create(head, Delimiter.create(resStx)), rest.slice(1));
-
-                    /* BREADCRUMB:
-                    So the core problem right now is that I'm not being terribly clear when
-                    stuff inside of delimiters should be expanded. Or what types should be 
-                    stored inside of the Term classes, terms? tokens? syntax objects?
-                    Need to be clear and consistent. 
-
-                    Also, unclear how much mutual recursion is needed between enforest and expand.
-                    For that matter what's the actual role of expander?
-                    */
-
-                    // innerTokens = rest[0].token.inner;
-                    // // short circuit 
-                    // if(innerTokens.length === 0) {
-                    //     return step(ObjGet.create(head, Delimiter.create(rest[0])), rest.slice(1));
-                    // } else {
-                    //     var innerTerm = get_expression(innerTokens, env);
-                    //     return step(ObjGet.create(head, Delimiter.create(innerTerm.result)), rest.slice(1));
-                    // }
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "[]") {
                     return step(ArrayLiteral.create(head), rest);
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "()") {
@@ -932,14 +913,7 @@
                     // apply the transformer
                     var rt = transformer(rest, head, env);
 
-                    // todo: eventually macro calls will only return terms
-                    // until then we'll get along with arrays of syntax
-                    // parser.assert(rt.result.hasPrototype(TermTree),
-                    //               "expecting a term as the result of the macro call");
                     return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
-                    // this.head = null;
-                    // this.rest = rt.result.concat(rt.rest);
-                    // this.enforest(env);
                 // identifier
                 } else if(head.token.type === parser.Token.Identifier) {
                     return step(Id.create(head), rest);
@@ -982,52 +956,40 @@
         return res;
     }
 
+    function typeIsLiteral (type) {
+        return type === parser.Token.NullLiteral || 
+               type === parser.Token.NumericLiteral ||
+               type === parser.Token.StringLiteral || 
+               type === parser.Token.RegexLiteral ||
+               type === parser.Token.BooleanLiteral;
+    }
+
     exports._test.matchPatternClass = matchPatternClass;
     // (Str, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
     function matchPatternClass (patternClass, stx, env) {
         var result, rest;
         // pattern has no parse class
-        if(patternClass === "token") {
-            if(stx[0] && stx[0].token.type !== parser.Token.EOF) {
+        if(patternClass === "token" && stx[0] && stx[0].token.type !== parser.Token.EOF) {
                 result = [stx[0]];
                 rest = stx.slice(1);
-            } else {
-                result = null;
-                rest = stx;
-            }
-        // pattern has a parse class
-        } else {
+        } else if (patternClass === "lit" && stx[0] && typeIsLiteral(stx[0].token.type)) {
+            result = [stx[0]];
+            rest = stx.slice(1);
+        } else if (patternClass === "ident" && stx[0] && stx[0].token.type === parser.Token.Identifier) {
+            result = [stx[0]];
+            rest = stx.slice(1);
+        } else if (patternClass === "expr") {
             var match = get_expression(stx, env);
-            if(match.result === null) {
+            if(match.result === null || (!match.result.hasPrototype(Expr))) {
                 result = null;
                 rest = stx;
-            } else if(patternClass === "lit") {
-                if(!match.result.hasPrototype(Lit)) {
-                    result = null;
-                    rest = stx;
-                } else {
-                    result = [match.result.lit];
-                    rest = match.rest;
-                }
-            } else if(patternClass === "ident") {
-                if(!match.result.hasPrototype(Id)) {
-                    result = null;
-                    rest = stx;
-                } else {
-                    result = [match.result.id];
-                    rest = match.rest;
-                }
-            } else if(patternClass === "expr") {
-                if(!match.result.hasPrototype(Expr)) {
-                    result = null;
-                    rest = stx;
-                } else {
-                    result = match.result.destruct();
-                    rest = match.rest;
-                }
             } else {
-                throwError("not implemented yet");
+                result = match.result.destruct();
+                rest = match.rest;
             }
+        } else {
+            result = null;
+            rest = stx;
         }
 
         return {
@@ -1526,6 +1488,7 @@
             env.set(head.name.token.value, macroDefinition);
             return expandToTermTree(rest, env);
         } 
+
         var trees = expandToTermTree(rest, env);
         return {
             terms: [head].concat(trees.terms), 
@@ -1577,6 +1540,7 @@
                 return arg.rename(arg, freshName);
             });
             // update the context with the fresh names
+            // TODO: fix, ctx isn't being used
             var newCtx = _.reduce(_.zip(freshNames, renamedArgs), function (accEnv, argPair) {
                 var freshName = argPair[0];
                 var renamedArg = argPair[1];
