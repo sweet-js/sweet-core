@@ -755,19 +755,25 @@
     });
 
     var Call = Expr.extend({
-        properties: ["fun", "args"],
+        properties: ["fun", "args", "delim"],
 
         destruct: function() {
             parser.assert(this.fun.hasPrototype(TermTree), "expecting a term tree in destruct of call");
-            return this.fun.destruct().concat(_.reduce(this.args, function(acc, term) {
-                parser.assert(term && term.hasPrototype(TermTree), "expecting term trees in destruct of Call");
+
+            this.delim.token.inner = _.reduce(this.args, function(acc, term) {
+                parser.assert(term && term.hasPrototype(TermTree), 
+                    "expecting term trees in destruct of Call");
                 return acc.concat(term.destruct());
-            }, []));
+            }, []);
+
+            return this.fun.destruct().concat(Delimiter.create(this.delim).destruct());
         },
 
-        construct: function(fun, args) {
+        construct: function(fun, args, delim) {
+            parser.assert(Array.isArray(args), "requires an array of arguments terms");
             this.fun = fun;
             this.args = args;
+            this.delim = delim;
         }
     });
 
@@ -806,22 +812,17 @@
             var innerTokens;
             if(head.hasPrototype(TermTree)) {
 
-                // // function call
-                // if(this.rest[0] && this.rest[0].token.type === parser.Token.Delimiter
-                //         && this.rest[0].token.value === "()") {
+                // function call
+                if(rest[0] && rest[0].token.type === parser.Token.Delimiter
+                        && rest[0].token.value === "()") {
 
-                //     var termArgs = _.map(this.rest[0].token.inner, function(p) {
-                //         var pr = ReadTree.create([p])
-                //         pr.enforest();
-                // parser.assert(pr.rest.length === 0,
-                //               "expecting enforest of argument to have no remainder");
-                //         return pr.head;
-                //     });
-
-                //     this.head = Call.create(this.head, termArgs);
-                //     this.rest = this.rest.slice(2);
-                //     this.enforest(env);
-                if(rest[0] && rest[1] && stxIsBinOp(rest[0])) {
+                    if(rest[0].token.inner.length === 1) {
+                        var argRes = enforest(rest[0].token.inner, env);
+                        // todo: deal with argRest.rest.length > 0
+                        return step(Call.create(head, [argRes.result], rest[0]), rest.slice(1));
+                    }
+                // binary operations
+                } else if(rest[0] && rest[1] && stxIsBinOp(rest[0])) {
                     var op = rest[0];
                     var left = head;
                     var bopRes = enforest(rest.slice(1), env);
@@ -831,6 +832,7 @@
                     if(right.hasPrototype(Expr)) {
                         return step(BinOp.create(op, left, right), bopRes.rest);
                     }
+                // object get
                 } else if(head.hasPrototype(Expr) && rest[0] && rest[0].token.value === "[]") {
                     var getRes = enforest(rest[0].token.inner, env);
                     var resStx = mkSyntax("[]", parser.Token.Delimiter, rest[0]);
@@ -839,8 +841,10 @@
                                   "not yet dealing with case when computed value is not completely enforested: "
                                   + getRes.rest);
                     return step(ObjGet.create(head, Delimiter.create(resStx)), rest.slice(1));
+                // array literal
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "[]") {
                     return step(ArrayLiteral.create(head), rest);
+                // parenthesized expression
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "()") {
                     innerTokens = head.delim.token.inner;
                     // empty parens are acceptable but enforest doesn't accept empty arrays
@@ -855,11 +859,9 @@
                         // if the tokens inside the paren aren't an expression
                         // we just leave it as a delimiter
                     }
+                // block
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "{}") {
                     innerTokens = head.delim.token.inner;
-                    // var innerTermArray = enforestPropertyAssignments(innerTokens);
-                    // if(innerTermArray !== null) {
-                    // }
                     return step(ObjectLiteral.create(head), rest);
                 }
             } else {
@@ -1517,6 +1519,12 @@
             return term;
         } else if(term.hasPrototype(ObjectLiteral)) {
             term.body.delim.token.inner = expand(term.body.delim.token.inner, env);
+            return term;
+        } else if(term.hasPrototype(Call)) {
+            term.fun = expandTermTreeToFinal(term.fun, env, ctx);
+            term.args = _.map(term.args, function(arg) {
+                return expandTermTreeToFinal(arg, env, ctx);
+            })
             return term;
         } else if(term.hasPrototype(Delimiter)) {
             // expand inside the delimiter and then continue on
