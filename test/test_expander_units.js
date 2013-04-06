@@ -70,6 +70,13 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["++", 2, "+", 42]);
     });
 
+    it("should match a postfix unary expression", function() {
+        var stx = parser.read("x++");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["x", "++"]);
+    });
+
     it("should match a binary expression", function() {
         var stx = parser.read("2+2");
         var res = matchPatternClass("expr", stx, emptyMacroMap).result;

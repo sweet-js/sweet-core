@@ -665,6 +665,15 @@
         }
     });
 
+    var PostfixOp = Expr.extend({
+        properties: ["expr", "op"],
+
+        construct: function(expr, op) {
+            this.expr = expr;
+            this.op = op;
+        }
+    });
+
     var BinOp = Expr.extend({
         properties: ["left", "op", "right"],
 
@@ -873,12 +882,17 @@
                     if(right.hasPrototype(Expr)) {
                         return step(BinOp.create(op, left, right), bopRes.rest);
                     }
+                // unary prefix
                 } else if(head.hasPrototype(Punc) && stxIsUnaryOp(head.punc)){
                     var unopRes = enforest(rest);
 
                     if(unopRes.result.hasPrototype(Expr)) {
                         return step(UnaryOp.create(head.punc, unopRes.result), unopRes.rest);
                     }
+                // unary postfix
+                } else if(head.hasPrototype(Expr) && rest[0] && 
+                    (rest[0].token.value === "++" || rest[0].token.value === "--")) {
+                    return step(PostfixOp.create(head, rest[0]), rest.slice(1));
                 // object get
                 } else if(head.hasPrototype(Expr) && rest[0] && rest[0].token.value === "[]") {
                     var getRes = enforest(rest[0].token.inner, env);
