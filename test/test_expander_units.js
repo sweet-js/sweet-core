@@ -112,11 +112,25 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["{", "a", ":", 42, "}"]);
     });
 
+    it("should match an empty function call", function() {
+        var stx = parser.read("foo()");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["foo", "(", ")"]);
+    });
+
     it("should match a simple function call", function() {
         var stx = parser.read("foo(24)");
         var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql(["foo", "(", 24, ")"]);
+    });
+
+    it("should match a function call with two simple arguments", function() {
+        var stx = parser.read("foo(24, 42)");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["foo", "(", 24, ",", 42, ")"]);
     });
 
 });

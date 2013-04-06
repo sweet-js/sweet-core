@@ -21,10 +21,10 @@ function tokValues (stxArray) {
 
 describe("single test", function() {
   it("should pass", function() {
-        var stx = parser.read("macro m {case () => { var x = 5; } }\nvar z = (function(x) {m(); var y = x; return y; })('foo')");
+        var stx = parser.read("foo(42, 24)");
         var res = expander.flatten(expander.expand(stx));
 
-        // expect(tokValues(res)).to.eql(["foo", "(", 24, ")", ""]);
+        expect(tokValues(res)).to.eql(["foo", "(", 42, ",",  24, ")", ""]);
 
 
   });
