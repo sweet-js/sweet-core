@@ -755,25 +755,34 @@
     });
 
     var Call = Expr.extend({
-        properties: ["fun", "args", "delim"],
+        properties: ["fun", "args", "delim", "commas"],
 
         destruct: function() {
-            parser.assert(this.fun.hasPrototype(TermTree), "expecting a term tree in destruct of call");
-
+            parser.assert(this.fun.hasPrototype(TermTree), 
+                "expecting a term tree in destruct of call");
+            var that = this;
             this.delim.token.inner = _.reduce(this.args, function(acc, term) {
                 parser.assert(term && term.hasPrototype(TermTree), 
                     "expecting term trees in destruct of Call");
-                return acc.concat(term.destruct());
+                var dst = acc.concat(term.destruct());
+                // add all commas except for the last one
+                if(that.commas.length > 0) {
+                    dst = dst.concat(that.commas.shift());
+                }
+                return dst;
             }, []);
 
             return this.fun.destruct().concat(Delimiter.create(this.delim).destruct());
         },
 
-        construct: function(fun, args, delim) {
+        construct: function(fun, args, delim, commas) {
             parser.assert(Array.isArray(args), "requires an array of arguments terms");
             this.fun = fun;
             this.args = args;
             this.delim = delim;
+            // an ugly little hack to keep the same syntax objects (with associated line numbers
+            // etc.) for all the commas separating the arguments
+            this.commas = commas;
         }
     });
 
@@ -794,13 +803,6 @@
         return _.contains(staticOperators, stx.token.value);
     }
 
-    exports._test.enforestPropertyAssignments = enforestPropertyAssignments;
-    // ([...CSyntax]) -> null or [...PropertyAssignment]
-    function enforestPropertyAssignments(stx) {
-        // todo: implement
-        return null;
-    }
-
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, env) {
@@ -813,13 +815,32 @@
             if(head.hasPrototype(TermTree)) {
 
                 // function call
-                if(rest[0] && rest[0].token.type === parser.Token.Delimiter
-                        && rest[0].token.value === "()") {
+                if(head.hasPrototype(Expr) && 
+                    rest[0] && rest[0].token.type === parser.Token.Delimiter && 
+                    rest[0].token.value === "()") {
+                    var argRes, enforestedArgs = [], commas = [];
 
-                    if(rest[0].token.inner.length === 1) {
-                        var argRes = enforest(rest[0].token.inner, env);
-                        // todo: deal with argRest.rest.length > 0
-                        return step(Call.create(head, [argRes.result], rest[0]), rest.slice(1));
+                    innerTokens = rest[0].token.inner;
+                    while(innerTokens.length > 0) {
+                        argRes = enforest(innerTokens, env);
+                        enforestedArgs.push(argRes.result);
+                        innerTokens = argRes.rest;
+                        if(innerTokens[0] && innerTokens[0].token.value === ",") {
+                            // record the comma for later
+                            commas.push(innerTokens[0]);
+                            // but dump it for the next loop turn
+                            innerTokens = innerTokens.slice(1);
+                        } else {
+                            // either there are no more tokens or they aren't a comma, either 
+                            // way we are done with the loop
+                            break;
+                        }
+                    } 
+
+                    // only a call if we can completely enforest each argument
+                    if(innerTokens.length === 0) {
+                        return step(Call.create(head, enforestedArgs, rest[0], commas), 
+                                    rest.slice(1));
                     }
                 // binary operations
                 } else if(rest[0] && rest[1] && stxIsBinOp(rest[0])) {
@@ -1624,8 +1645,8 @@
     // similar to `parse` in the honu paper
     // ([Syntax], Map, Map) -> [TermTree]
     function expand(stx, env, ctx) {
-        var env = env || new Map();
-        var ctx = ctx || new Map();
+        env = env || new Map();
+        ctx = ctx || new Map();
 
         var trees = expandToTermTree(stx, env, ctx);
         return _.map(trees.terms, function(term) {
