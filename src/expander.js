@@ -804,6 +804,16 @@
         }
     });
 
+    var ObjDotGet = Expr.extend({
+        properties: ["left", "dot", "right"],
+        
+        construct: function (left, dot, right) {
+            this.left = left;
+            this.dot = dot;
+            this.right = right;
+        }
+    });
+
     var ObjGet = Expr.extend({
         properties: ["left", "right"],
 
@@ -891,9 +901,9 @@
                     }
                 // unary postfix
                 } else if(head.hasPrototype(Expr) && rest[0] && 
-                    (rest[0].token.value === "++" || rest[0].token.value === "--")) {
+                            (rest[0].token.value === "++" || rest[0].token.value === "--")) {
                     return step(PostfixOp.create(head, rest[0]), rest.slice(1));
-                // object get
+                // object computed get
                 } else if(head.hasPrototype(Expr) && rest[0] && rest[0].token.value === "[]") {
                     var getRes = enforest(rest[0].token.inner, env);
                     var resStx = mkSyntax("[]", parser.Token.Delimiter, rest[0]);
@@ -902,6 +912,10 @@
                                   "not yet dealing with case when computed value is not completely enforested: "
                                   + getRes.rest);
                     return step(ObjGet.create(head, Delimiter.create(resStx)), rest.slice(1));
+                // object dotted get
+                } else if(head.hasPrototype(Expr) && rest[0] && rest[0].token.value === "." &&
+                            rest[1] && rest[1].token.type === parser.Token.Identifier) {
+                    return step(ObjDotGet.create(head, rest[0], rest[1]), rest.slice(2));
                 // array literal
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "[]") {
                     return step(ArrayLiteral.create(head), rest);

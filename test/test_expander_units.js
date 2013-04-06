@@ -109,7 +109,7 @@ describe("matchPatternClass", function() {
         var stx = parser.read("this.foo");
         var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["this"]);
+        expect(tokValues(res)).to.eql(["this", ".", "foo"]);
     });
 
     it("should match a literal expression", function() {
@@ -180,6 +180,13 @@ describe("matchPatternClass", function() {
         var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql(["foo"]);
+    });
+
+    it("should match a simple dotted get", function() {
+        var stx = parser.read("foo.bar");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["foo", ".", "bar"]);
     });
 });
 
