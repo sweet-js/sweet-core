@@ -79,39 +79,45 @@ describe("matchPatternClass", function() {
 
     it("should match a this expression", function() {
         var stx = parser.read("this.foo");
-        var res = matchPatternClass("expr", stx, {}).result;
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql(["this"]);
     });
 
     it("should match a literal expression", function() {
         var stx = parser.read("42");
-        var res = matchPatternClass("expr", stx, {}).result;
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql([42]);
     });
 
     it("should match a parenthesized expression", function() {
         var stx = parser.read("(42)");
-        var res = matchPatternClass("expr", stx, {}).result;
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql(["(", 42, ")"]);
     });
 
     it("should match an array literal", function() {
         var stx = parser.read("[1,2,3]");
-        var res = matchPatternClass("expr", stx, {}).result;
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql(["[", 1, ",", 2, ",", 3, "]"]);
     });
 
     it("should match a simple object literal", function() {
         var stx = parser.read("{a: 42}");
-        var res = matchPatternClass("expr", stx, {}).result;
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql(["{", "a", ":", 42, "}"]);
     });
 
+    it("should match a simple function call", function() {
+        var stx = parser.read("foo(24)");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["foo", "(", 24, ")"]);
+    });
 
 });
 
@@ -156,28 +162,13 @@ describe("expand", function() {
 
         expect(tokValues(res)).to.eql(["foo", "(", "24", ",", "42", ")", ""]);
     });
+
+    it("should handle complex left side function calls", function() {
+        var stx = parser.read("(function(x) { return x; })(24)");
+        var res = expander.flatten(expander.expand(stx));
+
+        expect(tokValues(res)).to.eql(["(", "function", "(", "x", ")", "{", 
+                                        "return", "x", ";", "}", ")", "(", 24, ")", ""]);
+            
+    });    
 });
-
-
-// describe("enforestPropertyAssignments", function() {
-//     it("should return null for tokens that don't match a prop assign", function() {
-//         var stx = parser.read("foo");
-//         var res = enforestPropertyAssignments(stx);
-
-//         expect(res).to.be(null);
-//     });
-
-//     it("should return an empty array when given no tokens", function() {
-//         var stx = []; //parser.read("{a: 42}");
-//         var res = enforestPropertyAssignments(stx);
-
-//         expect(res).to.eql([]);
-//     });
-
-//     it("should enforest a single simple prop assign", function() {
-//         var stx = parser.read("a: 42");
-//         var res = enforestPropertyAssignments(stx);
-
-//         expect(res[0].hasPrototype(PropertyAssignment)).to.be(true);
-//     });
-// });
