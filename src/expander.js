@@ -656,6 +656,15 @@
         construct: function(expr) { this.expr = expr; }
     });
 
+    var UnaryOp = Expr.extend({
+        properties: ["op", "expr"],
+
+        construct: function(op, expr) {
+            this.op = op;
+            this.expr = expr;
+        }
+    });
+
     var BinOp = Expr.extend({
         properties: ["left", "op", "right"],
 
@@ -795,6 +804,13 @@
         }
     });
 
+    function stxIsUnaryOp (stx) {
+        var staticOperators = ["+", "-", "~", "!", 
+                                "delete", "void", "typeof",
+                                "++", "--"];
+        return _.contains(staticOperators, stx.token.value);
+    }
+
     function stxIsBinOp (stx) {
         var staticOperators = ["+", "-", "*", "/", "%", "||", "&&", "|", "&", "^",
                                 "==", "!=", "===", "!==",
@@ -856,6 +872,12 @@
                     // so 2+2++ will only match 2+2
                     if(right.hasPrototype(Expr)) {
                         return step(BinOp.create(op, left, right), bopRes.rest);
+                    }
+                } else if(head.hasPrototype(Punc) && stxIsUnaryOp(head.punc)){
+                    var unopRes = enforest(rest);
+
+                    if(unopRes.result.hasPrototype(Expr)) {
+                        return step(UnaryOp.create(head.punc, unopRes.result), unopRes.rest);
                     }
                 // object get
                 } else if(head.hasPrototype(Expr) && rest[0] && rest[0].token.value === "[]") {
