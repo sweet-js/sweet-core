@@ -133,6 +133,26 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["foo", "(", 24, ",", 42, ")"]);
     });
 
+    it("should match a function call with two complex arguments", function() {
+        var stx = parser.read("foo(24 + 24, 42)");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["foo", "(", 24, "+", 24, ",", 42, ")"]);
+    });
+
+    it("should not match a function call with a non-expression as one of the args", function() {
+        var stx = parser.read("foo(24 + 24 +, 42)");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["foo"]);
+    });
+
+    it("should not match a function call with a non-expression punctuator", function() {
+        var stx = parser.read("foo(24 + 24, ,)");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["foo"]);
+    });
 });
 
 describe("expand", function() {
