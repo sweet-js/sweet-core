@@ -16,3 +16,4 @@ npm-debug.log
 
 build/
 browser/test_bundled.js
+.DS_Store
