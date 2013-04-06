@@ -70,6 +70,12 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql([2, "+", 2, "*", 10, "/", 32]);
     });
 
+    it("should handle a broken binary expression", function() {
+        var stx = parser.read("2+2 + +");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql([2, "+", 2]);
+    });
 
     it("should match a this expression", function() {
         var stx = parser.read("this.foo");
@@ -143,7 +149,6 @@ describe("expand", function() {
 
         expect(tokValues(res)).to.eql([42, "==", "test", "[", 0, "]", ""]);
     });
-
 
     it("should handle function calls", function() {
         var stx = parser.read("foo(24, 42)");

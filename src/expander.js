@@ -826,8 +826,11 @@
                     var left = head;
                     var bopRes = enforest(rest.slice(1), env);
                     var right = bopRes.result;
-
-                    return step(BinOp.create(op, left, right), bopRes.rest);
+                    // only a binop if the right is a real expression
+                    // so 2+2++ will only match 2+2
+                    if(right.hasPrototype(Expr)) {
+                        return step(BinOp.create(op, left, right), bopRes.rest);
+                    }
                 } else if(head.hasPrototype(Expr) && rest[0] && rest[0].token.value === "[]") {
                     var getRes = enforest(rest[0].token.inner, env);
                     var resStx = mkSyntax("[]", parser.Token.Delimiter, rest[0]);
@@ -930,6 +933,9 @@
                 } else if(head.token.type === parser.Token.EOF) {
                     parser.assert(rest.length === 0, "nothing should be after an EOF");
                     return step(EOF.create(head), []);
+                } else {
+                    // todo: are we missing cases?
+                    parser.assert(false, "not implemented");
                 }
 
             }
