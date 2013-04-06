@@ -56,6 +56,20 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["foo"]);
     });
 
+    it("should match a unary expression", function() {
+        var stx = parser.read("+2");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["+", 2]);
+    });
+
+    it("should match a complex unary expression", function() {
+        var stx = parser.read("++2 + 42");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["++", 2, "+", 42]);
+    });
+
     it("should match a binary expression", function() {
         var stx = parser.read("2+2");
         var res = matchPatternClass("expr", stx, emptyMacroMap).result;
@@ -75,6 +89,13 @@ describe("matchPatternClass", function() {
         var res = matchPatternClass("expr", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql([2, "+", 2]);
+    });
+
+    it("should handle a binary and unary expression", function() {
+        var stx = parser.read("2 + 2 - ++x");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql([2, "+", 2, "-", "++", "x"]);
     });
 
     it("should match a this expression", function() {
