@@ -772,6 +772,14 @@
         }
     });
 
+    var Const = Expr.extend({
+        properties: ["newterm", "call"],
+        construct: function(newterm, call){
+            this.newterm = newterm;
+            this.call = call;
+        }
+    });
+
     var Call = Expr.extend({
         properties: ["fun", "args", "delim", "commas"],
 
@@ -806,7 +814,7 @@
 
     var ObjDotGet = Expr.extend({
         properties: ["left", "dot", "right"],
-        
+
         construct: function (left, dot, right) {
             this.left = left;
             this.dot = dot;
@@ -880,6 +888,11 @@
                     if(innerTokens.length === 0 && argsAreExprs) {
                         return step(Call.create(head, enforestedArgs, rest[0], commas), 
                                     rest.slice(1));
+                    }
+                } else if(head.hasPrototype(Keyword) && head.keyword.token.value === "new" && rest[0]) {
+                    var newCallRes = enforest(rest, env);
+                    if(newCallRes.result.hasPrototype(Call)) {
+                        return step(Const.create(head, newCallRes.result), newCallRes.rest);
                     }
                 // binary operations
                 } else if(rest[0] && rest[1] && stxIsBinOp(rest[0])) {
