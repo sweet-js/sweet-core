@@ -70,12 +70,12 @@ describe("macro hygiene", function() {
   it("should do the correct renaming without macros for vars and params", function() {
     var z = (function() {
       return (function(x) {
-        var y = x;
         var x = "foo"
+        var y = x;
         return y
       })(42);
     })();
-    expect(z).to.be(42)
+    expect(z).to.be("foo")
   });
 
   it("should do the correct renaming with macros for vars", function() {
