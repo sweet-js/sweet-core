@@ -889,7 +889,8 @@
                         return step(Call.create(head, enforestedArgs, rest[0], commas), 
                                     rest.slice(1));
                     }
-                } else if(head.hasPrototype(Keyword) && head.keyword.token.value === "new" && rest[0]) {
+                } else if(head.hasPrototype(Keyword) && 
+                    head.keyword.token.value === "new" && rest[0]) {
                     var newCallRes = enforest(rest, env);
                     if(newCallRes.result.hasPrototype(Call)) {
                         return step(Const.create(head, newCallRes.result), newCallRes.rest);
@@ -999,6 +1000,7 @@
                             head.token.type === parser.Token.RegexLiteral ||
                             head.token.type === parser.Token.NullLiteral) {
                     return step(Lit.create(head), rest);
+                // macro invocation 
                 } else if (head.token.type === parser.Token.Identifier &&
                             env.has(head.token.value)) {
                     // pull the macro transformer out the environment
