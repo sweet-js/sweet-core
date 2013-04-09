@@ -253,7 +253,7 @@
         return [];
     }
 
-    // (CSyntax) -> CToken
+    // (Syntax) -> String 
     function resolve(stx) {
         if(isMark(stx.context) || isDummyRename(stx.context)) {
             return resolve(syntaxFromToken(stx.token, stx.context.context));
@@ -535,47 +535,57 @@
 
     // finds all the identifiers being bound by var statements
     // in the array of syntax objects
-    // ([Syntax]) -> [Syntax]
-    function getVarIdentifiers(body) {
-        // parser.assert(false, "not implemented yet");
-        return _.reduce(body.token.inner, function(acc, curr, idx) {
-            var atFunctionDelimiter;
+    // (TermTree) -> [Syntax]
+    function getVarIdentifiers(term) {
+        // expandToTermTree(term);
+        parser.assert(term.hasPrototype(Block) && term.body.hasPrototype(Delimiter), 
+            "expecting a Block");
 
-            if (curr.token.type === parser.Token.Delimiter) {
-                atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1])
-                                                                  || isFunctionStx(body[idx-2]))) ||
-                                      (curr.token.value === "{}" && (isFunctionStx(body[idx-2])
-                                                                  || isFunctionStx(body[idx-3])));
-                // don't look for var idents inside nested functions
-                if(!atFunctionDelimiter) {
-                    return acc.concat(getVarIdentifiers(curr.token.inner));
-                }
-                return acc;
-            }
-            if (isVarStx(body[idx-1])) {
-                // var rest = body.slice(idx);
-
-                var parseResult = parser.parse(flatten(body.slice(idx)),
-                                            "VariableDeclarationList",
-                                            {noresolve: true});
-                return acc.concat(varNamesInAST(parseResult));
-            }
+        return _.reduce(term.body.delim.token.inner, function(acc, curr) {
+            if (curr.hasPrototype(VariableStatement)) {
+                return acc.concat(curr.decls[0].ident);
+            };
             return acc;
         }, []);
+
+        // return _.reduce(bodyStx, function(acc, curr, idx) {
+        //     var atFunctionDelimiter;
+
+        //     if (curr.token.type === parser.Token.Delimiter) {
+        //         atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1])
+        //                                                           || isFunctionStx(body[idx-2]))) ||
+        //                               (curr.token.value === "{}" && (isFunctionStx(body[idx-2])
+        //                                                           || isFunctionStx(body[idx-3])));
+        //         // don't look for var idents inside nested functions
+        //         if(!atFunctionDelimiter) {
+        //             return acc.concat(getVarIdentifiers(curr.token.inner));
+        //         }
+        //         return acc;
+        //     }
+        //     if (isVarStx(body[idx-1])) {
+        //         // var rest = body.slice(idx);
+
+        //         var parseResult = parser.parse(flatten(body.slice(idx)),
+        //                                     "VariableDeclarationList",
+        //                                     {noresolve: true});
+        //         return acc.concat(varNamesInAST(parseResult));
+        //     }
+        //     return acc;
+        // }, []);
     }
 
     function replaceVarIdent(stx, orig, renamed) {
         if(stx === orig) {
             return renamed;
         }
-        if(stx.token.type === parser.Token.Delimiter) {
-            var replacedToken = _.clone(stx.token);
-            var replacedInner = _.map(replacedToken.inner, function(s) {
-                return replaceVarIdent(s, orig, renamed);
-            });
-            replacedToken.inner = replacedInner;
-            return syntaxFromToken(replacedToken, stx.context);
-        }
+        // if(stx.token.type === parser.Token.Delimiter) {
+        //     var replacedToken = _.clone(stx.token);
+        //     var replacedInner = _.map(replacedToken.inner, function(s) {
+        //         return replaceVarIdent(s, orig, renamed);
+        //     });
+        //     replacedToken.inner = replacedInner;
+        //     return syntaxFromToken(replacedToken, stx.context);
+        // }
         return stx;
     }
 
@@ -633,7 +643,7 @@
         }
     });
 
-    var ObjectLiteral = PrimaryExpression.extend({
+    var Block = PrimaryExpression.extend({
         properties: ["body"],
         construct: function(body) { this.body = body; }
     });
@@ -1017,12 +1027,14 @@
                 // block
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "{}") {
                     innerTokens = head.delim.token.inner;
-                    return step(ObjectLiteral.create(head), rest);
+                    return step(Block.create(head), rest);
                 // VariableDeclaration statement
                 } else if(head.hasPrototype(Keyword) && head.keyword.token.value === "var" &&
                     rest[0] && rest[0].token.type === parser.Token.Identifier) {
                     var vsRes = enforestVarStatement(rest, env);
-                    return step(VariableStatement.create(head, vsRes.result), vsRes.rest);
+                    if(vsRes) {
+                        return step(VariableStatement.create(head, vsRes.result), vsRes.rest);
+                    }
                 }
             } else {
                 parser.assert(head && head.token, "assuming head is a syntax object");
@@ -1045,8 +1057,8 @@
                             rest[2].token.type === parser.Token.Delimiter &&
                             rest[2].token.value === "{}") {
                     return step(NamedFun.create(head, rest[0],
-                                                Delimiter.create(rest[1]),
-                                                Delimiter.create(rest[2])),
+                                                rest[1],
+                                                rest[2]),
                                 rest.slice(3));
                 // anonymous function definition
                 } else if(head.token.type === parser.Token.Keyword &&
@@ -1057,8 +1069,8 @@
                             rest[1].token.type === parser.Token.Delimiter &&
                             rest[1].token.value === "{}") {
                     return step(AnonFun.create(head,
-                                                Delimiter.create(rest[0]),
-                                                Delimiter.create(rest[1])),
+                                                rest[0],
+                                                rest[1]),
                                 rest.slice(2));
                 } else if(head.token.type === parser.Token.Keyword &&
                             head.token.value === "this") {
@@ -1684,7 +1696,7 @@
         if(term.hasPrototype(ArrayLiteral)) {
             term.array.delim.token.inner = expand(term.array.delim.token.inner, env);
             return term;
-        } else if(term.hasPrototype(ObjectLiteral)) {
+        } else if(term.hasPrototype(Block)) {
             term.body.delim.token.inner = expand(term.body.delim.token.inner, env);
             return term;
         } else if(term.hasPrototype(ParenExpression)) {
@@ -1714,7 +1726,7 @@
             // function definitions need a bunch of hygiene logic
 
             // get the parameters
-            var stxParams = getArgList(term.params.delim);
+            var stxParams = getArgList(term.params);
             // create fresh names for each of them
             var freshNames = _.map(stxParams, function(param) {
                 return "$" + fresh();
@@ -1737,7 +1749,7 @@
                 return _.extend(o, accEnv);
             }, ctx);
 
-            var stxBody = term.body.delim;
+            var stxBody = term.body;
             // rename the function body for each of the parameters
             var renamedBody = _.reduce(freshnameArgPairs, function (accBody, argPair) {
                 var freshName = argPair[0];
@@ -1750,15 +1762,13 @@
             renamedBody = renamedBody.push_dummy_rename(dummyName);
 
             // expand the renamed body with the updated context
-            // var bodyTerms = expandToTermTree([renamedBody], env).terms;
-            var bodyTerms = expand([renamedBody], env);
-            var flatArgs = wrapDelim(joinSyntax(renamedArgs, ","), term.params.delim);
+            var bodyTerms = expand([renamedBody], env, newCtx);
+            parser.assert(bodyTerms.length === 1 && bodyTerms[0].body,
+                            "expecting a block in the bodyTerms");
+            var flatArgs = wrapDelim(joinSyntax(renamedArgs, ","), term.params);
 
             // find all the var identifiers (eg x in `var x = 42`)
-            // parser.assert(bodyTerms[0].body && bodyTerms[0].body.delim,
-            //                 "expecting a delimiter in the bodyTerms");
-            // var varIdents = getVarIdentifiers(bodyTerms);
-            var varIdents = [];
+            var varIdents = getVarIdentifiers(bodyTerms[0]);
             varIdents = _.filter(varIdents, function(varId) {
                 // only pick the var identifiers that are not
                 // resolve equal to a parameter of this function
@@ -1775,22 +1785,34 @@
             var freshnameVarIdents = _.zip(freshVarNames, varIdents);
 
             // rename the var idents in the body
-            var varRenamedFlatBody = _.reduce(freshnameVarIdents, function(accBody, varPair) {
-                var freshName = varPair[0];
-                var ident = varPair[1].rename(varPair[1], freshName);
-                // first find and replace the var declarations
-                var replacedBody = replaceVarIdent(accBody, varPair[1], ident);
-                // var replacedBody = accBody; // replaceVarIdent(accBody, varPair[1], ident);
-                // then swap the dummy renames
-                return replacedBody.swap_dummy_rename(varPair[1], freshName, dummyName);
-            }, bodyTerms[0].body.delim);
+            var flattenedBody = flatten(bodyTerms);
+            flattenedBody = _.map(flattenedBody, function(stx) {
+                return _.reduce(freshnameVarIdents, function(accStx, varPair) {
+                    var freshName = varPair[0];
+                    var ident = varPair[1].rename(varPair[1], freshName);
+                    // first find and replace the var declarations
+                    var replacedStx = replaceVarIdent(accStx, varPair[1], ident);
+                    // then swap the dummy renames
+                    return replacedStx.swap_dummy_rename(varPair[1], freshName, dummyName);
+                }, stx);
+            });
+            // var varReanmedFlatBody = _.reduce(freshnameVarIdents, function(accBody, varPair) {
+            //     var freshName = varPair[0];
+            //     var ident = varPair[1].rename(varPair[1], freshName);
+            //     // first find and replace the var declarations
+            //     var replacedBody = replaceVarIdent(accBody, varPair[1], ident);
+            //     // var replacedBody = accBody; // replaceVarIdent(accBody, varPair[1], ident);
+            //     // then swap the dummy renames
+            //     return replacedBody.swap_dummy_rename(varPair[1], freshName, dummyName);
+            // }, flattenedBody);
+            // var varReanmedBodyTerms = bodyTerms;
 
             // todo: shouldn't really be expander here right?
             var expandedArgs = expand([flatArgs], env, ctx);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the head with all the renamings
             term.params = expandedArgs[0];
-            term.body.delim = varRenamedFlatBody;
+            term.body = flattenedBody;
             // and continue expand the rest
             return term;
         } 
