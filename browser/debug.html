@@ -5,11 +5,18 @@
   <script data-main="scripts/main" src="scripts/require.js"></script>
   <script id="sweetjs" type="text/sweetjs">
 
-new Foo(24)
+  function foo() {
+  	var x = 42;
+  }
 
 </script>
 </head>
 <body>
-  Parsing...
+  View my source and then a parsing we will 
+  <input id="go" type="button" value="go" onclick="run();" />!
+
+  <pre id="out">
+  ...
+  </pre>
 </body>
 </html>
