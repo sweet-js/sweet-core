@@ -535,39 +535,33 @@
 
     // finds all the identifiers being bound by var statements
     // in the array of syntax objects
-    // ([...CSyntax]) -> [...CSyntax]
+    // ([Syntax]) -> [Syntax]
     function getVarIdentifiers(body) {
-        // TODO: switching off for now, need to reenable at somepoint
-        // since we now aren't handling hygiene at all for var idents
-        return [];
+        // parser.assert(false, "not implemented yet");
+        return _.reduce(body.token.inner, function(acc, curr, idx) {
+            var atFunctionDelimiter;
 
-        // // todo: fix: needs to understand term trees
-        // return _.reduce(body.token.inner, function(acc, curr, idx) {
-        //     var atFunctionDelimiter;
+            if (curr.token.type === parser.Token.Delimiter) {
+                atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1])
+                                                                  || isFunctionStx(body[idx-2]))) ||
+                                      (curr.token.value === "{}" && (isFunctionStx(body[idx-2])
+                                                                  || isFunctionStx(body[idx-3])));
+                // don't look for var idents inside nested functions
+                if(!atFunctionDelimiter) {
+                    return acc.concat(getVarIdentifiers(curr.token.inner));
+                }
+                return acc;
+            }
+            if (isVarStx(body[idx-1])) {
+                // var rest = body.slice(idx);
 
-        //     if(!curr.token) {
-        //         console.log(curr);
-        //         parser.assert(false, "bad panda");
-        //     }
-        //     if (curr.token.type === parser.Token.Delimiter) {
-        //         atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1])
-        //                                                           || isFunctionStx(body[idx-2]))) ||
-        //                               (curr.token.value === "{}" && (isFunctionStx(body[idx-2])
-        //                                                           || isFunctionStx(body[idx-3])));
-        //         // don't look for var idents inside nested functions
-        //         if(!atFunctionDelimiter) {
-        //             return acc.concat(getVarIdentifiers(curr.token.inner));
-        //         }
-        //         return acc;
-        //     }
-        //     if (isVarStx(body[idx-1])) {
-        //         var parseResult = parser.parse(flatten(body.slice(idx)),
-        //                                     "VariableDeclarationList",
-        //                                     {noresolve: true});
-        //         return acc.concat(varNamesInAST(parseResult));
-        //     }
-        //     return acc;
-        // }, []);
+                var parseResult = parser.parse(flatten(body.slice(idx)),
+                                            "VariableDeclarationList",
+                                            {noresolve: true});
+                return acc.concat(varNamesInAST(parseResult));
+            }
+            return acc;
+        }, []);
     }
 
     function replaceVarIdent(stx, orig, renamed) {
@@ -585,8 +579,6 @@
         return stx;
     }
 
-    // (CSyntax) -> CSyntax
-
     // A TermTree is the core data structure for the macro expansion process.
     // It acts as a semi-structured representation of the syntax.
     var TermTree = {
@@ -597,12 +589,12 @@
         // -> [...Syntax]
         destruct: function() {
             return _.reduce(this.properties, _.bind(function(acc, prop) {
-                // var propVal = Array.isArray(this[prop]) ? this[prop] : [this[prop]];
-                // _.reduce(propVal)
-                if(this[prop].hasPrototype(TermTree)) {
+                if(this[prop] && this[prop].hasPrototype(TermTree)) {
                     return acc.concat(this[prop].destruct());
-                } else {
+                } else if(this[prop]) {
                     return acc.concat(this[prop]);
+                } else {
+                    return acc;
                 }
             }, this), []);
         }
@@ -614,8 +606,9 @@
         construct: function(e) { this.eof = e; }
     });
 
-    var Expr = TermTree.extend({ construct: function() {} });
+    var Statement = TermTree.extend({ construct: function() {} });
 
+    var Expr = TermTree.extend({ construct: function() {} });
     var PrimaryExpression = Expr.extend({ construct: function() {} });
 
     var ThisExpression = PrimaryExpression.extend({
@@ -742,7 +735,7 @@
         construct: function(id) { this.id = id; }
     });
 
-    var NamedFun = TermTree.extend({
+    var NamedFun = Expr.extend({
         properties: ["keyword", "name", "params", "body"],
 
         construct: function(keyword, name, params, body) {
@@ -753,7 +746,7 @@
         }
     });
 
-    var AnonFun = TermTree.extend({
+    var AnonFun = Expr.extend({
         properties: ["keyword", "params", "body"],
 
         construct: function(keyword, params, body) {
@@ -831,6 +824,33 @@
         }
     });
 
+    var VariableDeclaration = TermTree.extend({
+        properties: ["ident", "eqstx", "init", "comma"],
+
+        construct: function(ident, eqstx, init, comma) {
+            this.ident = ident;
+            this.eqstx = eqstx;
+            this.init = init;
+            this.comma = comma;
+        }
+    });
+
+    var VariableStatement = Statement.extend({ 
+        properties: ["varkw", "decls"],
+
+        destruct: function() {
+            return this.varkw.destruct().concat(_.reduce(this.decls, function(acc, decl) {
+                return acc.concat(decl.destruct());
+            }, []));
+        },
+
+        construct: function(varkw, decls) {
+            parser.assert(Array.isArray(decls), "decls must be an array");
+            this.varkw = varkw;
+            this.decls = decls;
+        } 
+    });
+
     function stxIsUnaryOp (stx) {
         var staticOperators = ["+", "-", "~", "!", 
                                 "delete", "void", "typeof",
@@ -844,6 +864,51 @@
                                 "<", ">", "<=", ">=", "in", "instanceof",
                                 "<<", ">>", ">>>"];
         return _.contains(staticOperators, stx.token.value);
+    }
+
+    // ([Syntax], Map) -> {result: [VariableDeclaration], rest: [Syntax]}
+    // assumes stx starts at the identifier. ie:
+    // var x = ...
+    //     ^
+    function enforestVarStatement (stx, env) {
+        parser.assert(stx[0] && stx[0].token.type === parser.Token.Identifier, 
+            "must start at the identifier");
+        var decls = [];
+
+        if(stx[1] && stx[1].token.type === parser.Token.Punctuator &&
+            stx[1].token.value === "=") {
+            var initRes = enforest(stx.slice(2), env);
+            if(initRes.result.hasPrototype(Expr)) {
+                var rest = initRes.rest;
+
+                if(initRes.rest[0].token.type === parser.Token.Punctuator &&
+                    initRes.rest[0].token.value === "," &&
+                    initRes.rest[1] && initRes.rest[1].token.type === parser.Token.Identifier) {
+                    decls.push(VariableDeclaration.create(stx[0], 
+                                                          stx[1], 
+                                                          initRes.result, 
+                                                          initRes.rest[0]));
+
+                    var subRes = enforestVarStatement(initRes.rest.slice(1), env); 
+                    decls = decls.concat(subRes.result);
+                    rest = subRes.rest;
+                } else {
+                    decls.push(VariableDeclaration.create(stx[0], stx[1], initRes.result));
+                }
+
+                return {
+                    result: decls,
+                    rest: rest
+                };
+            }
+            // fall through, this is actually a parsing error to be caught later
+        } else {
+            decls.push(VariableDeclaration.create(stx[0]));
+            return {
+                result: decls,
+                rest: stx.slice(1)
+            };
+        }
     }
 
     // enforest the tokens, returns an object with the `result` TermTree and
@@ -889,6 +954,7 @@
                         return step(Call.create(head, enforestedArgs, rest[0], commas), 
                                     rest.slice(1));
                     }
+                // constructor call
                 } else if(head.hasPrototype(Keyword) && 
                     head.keyword.token.value === "new" && rest[0]) {
                     var newCallRes = enforest(rest, env);
@@ -952,6 +1018,11 @@
                 } else if(head.hasPrototype(Delimiter) && head.delim.token.value === "{}") {
                     innerTokens = head.delim.token.inner;
                     return step(ObjectLiteral.create(head), rest);
+                // VariableDeclaration statement
+                } else if(head.hasPrototype(Keyword) && head.keyword.token.value === "var" &&
+                    rest[0] && rest[0].token.type === parser.Token.Identifier) {
+                    var vsRes = enforestVarStatement(rest, env);
+                    return step(VariableStatement.create(head, vsRes.result), vsRes.rest);
                 }
             } else {
                 parser.assert(head && head.token, "assuming head is a syntax object");
@@ -1076,6 +1147,15 @@
         } else if (patternClass === "ident" && stx[0] && stx[0].token.type === parser.Token.Identifier) {
             result = [stx[0]];
             rest = stx.slice(1);
+        } else if(patternClass === "VariableStatement") {
+            var match = enforest(stx, env);
+            if(match.result && match.result.hasPrototype(VariableStatement)) {
+                result = match.result.destruct();
+                rest = match.rest;
+            } else {
+                result = null;
+                rest = stx;
+            }
         } else if (patternClass === "expr") {
             var match = get_expression(stx, env);
             if(match.result === null || (!match.result.hasPrototype(Expr))) {
@@ -1604,28 +1684,32 @@
         if(term.hasPrototype(ArrayLiteral)) {
             term.array.delim.token.inner = expand(term.array.delim.token.inner, env);
             return term;
-        } else if(term.hasPrototype(ParenExpression)) {
-            term.expr.delim.token.inner = expand(term.expr.delim.token.inner, env);
-            return term;
         } else if(term.hasPrototype(ObjectLiteral)) {
             term.body.delim.token.inner = expand(term.body.delim.token.inner, env);
+            return term;
+        } else if(term.hasPrototype(ParenExpression)) {
+            term.expr = expandTermTreeToFinal(term.expr, env, ctx);
             return term;
         } else if(term.hasPrototype(Call)) {
             term.fun = expandTermTreeToFinal(term.fun, env, ctx);
             term.args = _.map(term.args, function(arg) {
                 return expandTermTreeToFinal(arg, env, ctx);
-            })
+            });
+            return term;
+        } else if(term.hasPrototype(VariableDeclaration)) {
+            if(term.init) {
+                term.init = expandTermTreeToFinal(term.init, env, ctx);
+            } 
+            return term;
+        } else if(term.hasPrototype(VariableStatement)) {
+            term.decls = _.map(term.decls, function(decl) {
+                return expandTermTreeToFinal(decl, env, ctx);
+            });
             return term;
         } else if(term.hasPrototype(Delimiter)) {
             // expand inside the delimiter and then continue on
             term.delim.token.inner = expand(term.delim.token.inner, env);
             return term;
-        // } else if(term.hasPrototype(BinOp)) {
-            // var expanded = expand(term.right.destruct(), env);
-            // parser.assert(expanded.length == 1,
-            //               "should only be one term tree after expanding the right hand side of a BinOp");
-            // term.right = expanded[0].destruct();
-            // return term;
         } else if (term.hasPrototype(NamedFun) || term.hasPrototype(AnonFun)) {
             // function definitions need a bunch of hygiene logic
 
@@ -1666,12 +1750,15 @@
             renamedBody = renamedBody.push_dummy_rename(dummyName);
 
             // expand the renamed body with the updated context
-            var flatBody = expand([renamedBody], env, newCtx);
+            // var bodyTerms = expandToTermTree([renamedBody], env).terms;
+            var bodyTerms = expand([renamedBody], env);
             var flatArgs = wrapDelim(joinSyntax(renamedArgs, ","), term.params.delim);
 
             // find all the var identifiers (eg x in `var x = 42`)
-            parser.assert(flatBody[0].body && flatBody[0].body.delim, "expecting a delimiter in the flatBody");
-            var varIdents = getVarIdentifiers(flatBody[0].body.delim);
+            // parser.assert(bodyTerms[0].body && bodyTerms[0].body.delim,
+            //                 "expecting a delimiter in the bodyTerms");
+            // var varIdents = getVarIdentifiers(bodyTerms);
+            var varIdents = [];
             varIdents = _.filter(varIdents, function(varId) {
                 // only pick the var identifiers that are not
                 // resolve equal to a parameter of this function
@@ -1696,7 +1783,7 @@
                 // var replacedBody = accBody; // replaceVarIdent(accBody, varPair[1], ident);
                 // then swap the dummy renames
                 return replacedBody.swap_dummy_rename(varPair[1], freshName, dummyName);
-            }, flatBody[0].body.delim);
+            }, bodyTerms[0].body.delim);
 
             // todo: shouldn't really be expander here right?
             var expandedArgs = expand([flatArgs], env, ctx);

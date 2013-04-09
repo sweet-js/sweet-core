@@ -90,18 +90,18 @@ describe("macro hygiene", function() {
     expect(z).to.be("foo")
   });
 
-  // // it("should work for vars with hoisting", function() {
-  // //   macro m {
-  // //     case $x:lit => {
-  // //       var tmp = $x;
-  // //     }
-  // //   }
+  // it("should work for vars with hoisting", function() {
+  //   macro m {
+  //     case $x:lit => {
+  //       var tmp = $x;
+  //     }
+  //   }
 
-  // //   var tmp = "outer"
-  // //   m "inner"
-  // //   expect(tmp).to.be("outer");
+  //   var tmp = "outer"
+  //   m "inner"
+  //   expect(tmp).to.be("outer");
 
-  // // });
+  // });
 
   // // it("should work for vars with hoisting and params", function() {
   // //   function f(tmp) {

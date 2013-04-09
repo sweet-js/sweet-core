@@ -10,6 +10,9 @@ Object.keys(expander._test).forEach(function(val) {
 
 // extract the token values from a token array
 function tokValues (stxArray) {
+    if(!Array.isArray(stxArray)) {
+        return [];
+    }
     return stxArray.map(function(el) {
         return el.token.value;
     });
@@ -195,6 +198,28 @@ describe("matchPatternClass", function() {
 
         expect(tokValues(res)).to.eql(["new", "Foo", "(", 42, ")"]);
     });
+
+    it("should match a simple var declaration statement", function() {
+        var stx = parser.read("var x");
+        var res = matchPatternClass("VariableStatement", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["var", "x"]);
+    });
+
+    it("should match a var decl with simple init expr", function() {
+        var stx = parser.read("var x = 42");
+        var res = matchPatternClass("VariableStatement", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["var", "x", "=", 42]);
+    });
+
+    it("should match a var statement with multiple simple decls", function() {
+        var stx = parser.read("var x = 42, y = 24");
+        var res = matchPatternClass("VariableStatement", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["var", "x", "=", 42, ",", "y", "=", 24]);
+    });
+
 });
 
 describe("expand", function() {
@@ -247,4 +272,14 @@ describe("expand", function() {
                                         "return", "x", ";", "}", ")", "(", 24, ")", ""]);
             
     });    
+
+
+    it("should match a var statement with multiple complex decls", function() {
+        var stx = parser.read("var x = (function(x) { return x; })(24), y = 2 + 4");
+        var res = expander.flatten(expander.expand(stx));
+
+        expect(tokValues(res)).to.eql(["var", "x", "=", "(", "function", "(", "x", ")",
+            "{", "return", "x", ";", "}", ")", "(", 24, ")",
+            ",", "y", "=", 2, "+", 4, ""]);
+    });
 });
