@@ -1769,6 +1769,7 @@
 
             // find all the var identifiers (eg x in `var x = 42`)
             var varIdents = getVarIdentifiers(bodyTerms[0]);
+            // varIdents = [];
             varIdents = _.filter(varIdents, function(varId) {
                 // only pick the var identifiers that are not
                 // resolve equal to a parameter of this function
@@ -1777,23 +1778,31 @@
                 }));
             });
 
-            // create fresh names for each of the var idents
-            var freshVarNames = _.map(varIdents, function() {
-                return "$" + fresh();
+            var freshnameVarIdents = _.map(varIdents, function(ident) {
+                var freshName = "$" + fresh();
+                var renamedIdent = ident.rename(ident, freshName);
+                return [freshName, ident, renamedIdent];
             });
-            // and zip them together
-            var freshnameVarIdents = _.zip(freshVarNames, varIdents);
 
+            // // create fresh names for each of the var idents
+            // var freshVarNames = _.map(varIdents, function() {
+            //     return "$" + fresh();
+            // });
+            // // and zip them together
+            // var freshnameVarIdents = _.zip(freshVarNames, varIdents);
+
+            
             // rename the var idents in the body
             var flattenedBody = flatten(bodyTerms);
             flattenedBody = _.map(flattenedBody, function(stx) {
-                return _.reduce(freshnameVarIdents, function(accStx, varPair) {
-                    var freshName = varPair[0];
-                    var ident = varPair[1].rename(varPair[1], freshName);
+                return _.reduce(freshnameVarIdents, function(accStx, varTriple) {
+                    var freshName = varTriple[0];
+                    var ident = varTriple[1];
+                    var renamedIdent = varTriple[2];
                     // first find and replace the var declarations
-                    var replacedStx = replaceVarIdent(accStx, varPair[1], ident);
+                    var replacedStx = replaceVarIdent(accStx, ident, renamedIdent);
                     // then swap the dummy renames
-                    return replacedStx.swap_dummy_rename(varPair[1], freshName, dummyName);
+                    return replacedStx.swap_dummy_rename(ident, freshName, dummyName);
                 }, stx);
             });
             // var varReanmedFlatBody = _.reduce(freshnameVarIdents, function(accBody, varPair) {
