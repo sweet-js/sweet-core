@@ -204,7 +204,7 @@
             return Mark(ctx.mark, renameDummyCtx(ctx.context, ident, name, dummyName));
         }
         if(isRename(ctx)) {
-            return Rename(ctx.id, ctx.name, renameDummyCtx(ctx.context, ident, name, dummyName));
+            return Rename(ctx.id.swap_dummy_rename(ident,name,dummyName), ctx.name, renameDummyCtx(ctx.context, ident, name, dummyName));
         }
         parser.assert(false, "expecting a fixed set of context types");
     }

@@ -90,27 +90,27 @@ describe("macro hygiene", function() {
     expect(z).to.be("foo")
   });
 
-  // it("should work with a nested macro", function() {
-  //   macro main {
-  //     case ($a) => {
-  //       (function(foo) {
-  //         var bar = 1 + foo;
-  //         return sub($a);
-  //       })(2);
-  //     }
-  //   }
-  //   var foo = 100;
-  //   var bar = 200;
-  //   macro sub {
-  //     case ($a) => {
-  //       foo + bar + $a
-  //     }
-  //   }
+  it("should work with a nested macro", function() {
+    macro main {
+      case ($a) => {
+        (function(foo) {
+          var bar = 1 + foo;
+          return sub($a);
+        })(2);
+      }
+    }
+    var foo = 100;
+    var bar = 200;
+    macro sub {
+      case ($a) => {
+        foo + bar + $a
+      }
+    }
 
-  //   var z = main(3);
+    var z = main(3);
 
-  //   expect(z).to.be(24);
-  // });
+    expect(z).to.be(303);
+  });
 
   // it("should work for vars with hoisting", function() {
   //   macro m {
