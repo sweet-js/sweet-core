@@ -1832,6 +1832,31 @@
         })
     }
 
+    // a hack to make the top level hygiene work out
+    function expandTopLevel (stx) {
+        var fun = syntaxFromToken({
+            value: "function",
+            type: parser.Token.Keyword
+        });
+        var name = syntaxFromToken({
+            value: "$topLevel$",
+            type: parser.Token.Identifier
+        });
+        var params = syntaxFromToken({
+            value: "()",
+            type: parser.Token.Delimiter,
+            inner: []
+        });
+        var body = syntaxFromToken({
+            value:  "{}",
+            type: parser.Token.Delimiter,
+            inner: stx
+        });
+        var res = expand([fun, name, params, body]);         
+        // drop the { and }
+        return res[0].body.slice(1, res[0].body.length - 1);
+    }
+
     // take our semi-structured TermTree and flatten it back to just
     // syntax objects to be used by the esprima parser. eventually this will
     // be replaced with a method of moving directly from a TermTree to an AST but
@@ -1843,7 +1868,7 @@
     }
 
     exports.enforest = enforest;
-    exports.expand = expand;
+    exports.expand = expandTopLevel;
 
     exports.resolve = resolve;
 

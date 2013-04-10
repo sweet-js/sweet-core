@@ -225,26 +225,26 @@ describe("matchPatternClass", function() {
 describe("expand", function() {
     it("handle a simple binary expression", function() {
         var stx = parser.read("42 + 24");
-        var res = expander.flatten(expander.expand(stx));
+        var res = (expander.expand(stx));
         expect(tokValues(res)).to.eql([42, "+", 24, '']);
     });
 
     it("should expand a complex binary expression", function() {
         var stx = parser.read("1 + 2 * 3");
-        var res = expander.flatten(expander.expand(stx));
+        var res = (expander.expand(stx));
         expect(tokValues(res)).to.eql([1, "+", 2, "*", 3, '']);
     });
 
     it("should handle a simple object bracket get", function() {
         var stx = parser.read("test[0]");
-        var res = expander.flatten(expander.expand(stx));
+        var res = (expander.expand(stx));
 
         expect(tokValues(res)).to.eql(["test", "[", 0, "]", ""]);
     });
 
     it("should handle a object bracket get", function() {
         var stx = parser.read("test[2+3-1]");
-        var res = expander.flatten(expander.expand(stx));
+        var res = (expander.expand(stx));
 
         expect(tokValues(res)).to.eql(["test", "[", 2, "+", 3, "-", 1, "]", ""]);
     });
@@ -252,21 +252,21 @@ describe("expand", function() {
 
     it("should handle a binop and an object bracket get", function() {
         var stx = parser.read("42 == test[0]");
-        var res = expander.flatten(expander.expand(stx));
+        var res = (expander.expand(stx));
 
         expect(tokValues(res)).to.eql([42, "==", "test", "[", 0, "]", ""]);
     });
 
     it("should handle function calls", function() {
         var stx = parser.read("foo(24, 42)");
-        var res = expander.flatten(expander.expand(stx));
+        var res = (expander.expand(stx));
 
         expect(tokValues(res)).to.eql(["foo", "(", "24", ",", "42", ")", ""]);
     });
 
     it("should handle complex left side function calls", function() {
         var stx = parser.read("(function(x) { return x; })(24)");
-        var res = expander.flatten(expander.expand(stx));
+        var res = (expander.expand(stx));
 
         expect(tokValues(res)).to.eql(["(", "function", "(", "x", ")", "{", 
                                         "return", "x", ";", "}", ")", "(", 24, ")", ""]);
@@ -276,7 +276,7 @@ describe("expand", function() {
 
     it("should match a var statement with multiple complex decls", function() {
         var stx = parser.read("var x = (function(x) { return x; })(24), y = 2 + 4");
-        var res = expander.flatten(expander.expand(stx));
+        var res = (expander.expand(stx));
 
         expect(tokValues(res)).to.eql(["var", "x", "=", "(", "function", "(", "x", ")",
             "{", "return", "x", ";", "}", ")", "(", 24, ")",
