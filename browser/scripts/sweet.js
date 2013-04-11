@@ -75,8 +75,8 @@
 
         var readTree = parser.read(source);
         var expanded = expander.expand(readTree); 
-        var flattened = expander.flatten(expanded);
-        var ast = parser.parse(flattened);
+        // var flattened = expander.flatten(expanded);
+        var ast = parser.parse(expanded);
         return ast;
     };
     
