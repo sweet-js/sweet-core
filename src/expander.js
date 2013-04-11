@@ -173,38 +173,39 @@
             return syntaxFromToken(renamedToken, DummyRename(name, this.context));
         },
 
-        swap_dummy_rename: function(ident, name, dummyName) {
-            var swappedToken = _.clone(this.token);
-            if(this.token.inner) {
-                var swappedInner = _.map(this.token.inner, function(stx) {
-                    return stx.swap_dummy_rename(ident, name, dummyName);
-                });
-                swappedToken.inner = swappedInner;
-            }
+        swap_dummy_rename: function(identNamePairList, dummyName) {
 
+            // todo: do we need to clone the token?
+            var swappedToken = _.clone(this.token);
+            parser.assert(this.token.type !== parser.Token.Delimiter,
+             "expecting everything to be flattened");
             return syntaxFromToken(swappedToken,
-                                    renameDummyCtx(this.context, ident, name, dummyName));
+                                    renameDummyCtx(this.context, identNamePairList, dummyName));
         },
         toString: function() {
             return "[Syntax: " + this.token.value + "]";
         }
     };
 
-    function renameDummyCtx(ctx, ident, name, dummyName) {
+    function renameDummyCtx(ctx, identNamePairList, dummyName) {
         if(ctx === null) {
             return null;
         }
         if(isDummyRename(ctx) && ctx.dummy_name === dummyName) {
-            return Rename(ident, name, DummyRename(ctx.dummy_name, ctx.context));
+            return _.reduce(identNamePairList, function(accCtx, identNamePair) {
+                var name = identNamePair[0];
+                var ident = identNamePair[1];
+                return Rename(ident, name, accCtx);
+            }, ctx);
         }
         if(isDummyRename(ctx) && ctx.dummy_name !== dummyName) {
-            return DummyRename(ctx.dummy_name, renameDummyCtx(ctx.context, ident, name, dummyName));
+            return DummyRename(ctx.dummy_name, renameDummyCtx(ctx.context, identNamePairList, dummyName));
         }
         if(isMark(ctx)) {
-            return Mark(ctx.mark, renameDummyCtx(ctx.context, ident, name, dummyName));
+            return Mark(ctx.mark, renameDummyCtx(ctx.context, identNamePairList, dummyName));
         }
         if(isRename(ctx)) {
-            return Rename(ctx.id.swap_dummy_rename(ident,name,dummyName), ctx.name, renameDummyCtx(ctx.context, ident, name, dummyName));
+            return Rename(ctx.id.swap_dummy_rename(identNamePairList, dummyName), ctx.name, renameDummyCtx(ctx.context, identNamePairList, dummyName));
         }
         parser.assert(false, "expecting a fixed set of context types");
     }
@@ -1784,39 +1785,15 @@
                 return [freshName, ident, renamedIdent];
             });
 
-            // // create fresh names for each of the var idents
-            // var freshVarNames = _.map(varIdents, function() {
-            //     return "$" + fresh();
-            // });
-            // // and zip them together
-            // var freshnameVarIdents = _.zip(freshVarNames, varIdents);
-
-            
             // rename the var idents in the body
             var flattenedBody = flatten(bodyTerms);
             flattenedBody = _.map(flattenedBody, function(stx) {
-                return _.reduce(freshnameVarIdents, function(accStx, varTriple) {
-                    var freshName = varTriple[0];
-                    var ident = varTriple[1];
-                    var renamedIdent = varTriple[2];
-                    // first find and replace the var declarations
-                    var replacedStx = replaceVarIdent(accStx, ident, renamedIdent);
-                    // then swap the dummy renames
-                    return replacedStx.swap_dummy_rename(ident, freshName, dummyName);
-                }, stx);
+                if(stx.token.type === parser.Token.Identifier) {
+                    return stx.swap_dummy_rename(freshnameVarIdents, dummyName);
+                }
+                return stx;
             });
-            // var varReanmedFlatBody = _.reduce(freshnameVarIdents, function(accBody, varPair) {
-            //     var freshName = varPair[0];
-            //     var ident = varPair[1].rename(varPair[1], freshName);
-            //     // first find and replace the var declarations
-            //     var replacedBody = replaceVarIdent(accBody, varPair[1], ident);
-            //     // var replacedBody = accBody; // replaceVarIdent(accBody, varPair[1], ident);
-            //     // then swap the dummy renames
-            //     return replacedBody.swap_dummy_rename(varPair[1], freshName, dummyName);
-            // }, flattenedBody);
-            // var varReanmedBodyTerms = bodyTerms;
 
-            // todo: shouldn't really be expander here right?
             var expandedArgs = expand([flatArgs], env, ctx);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the head with all the renamings
