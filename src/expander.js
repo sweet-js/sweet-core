@@ -544,7 +544,9 @@
 
         return _.reduce(term.body.delim.token.inner, function(acc, curr) {
             if (curr.hasPrototype(VariableStatement)) {
-                return acc.concat(curr.decls[0].ident);
+                return _.reduce(curr.decls, function(acc, decl) {
+                    return acc.concat(decl.ident);
+                }, acc);
             };
             return acc;
         }, []);

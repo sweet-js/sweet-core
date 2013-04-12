@@ -112,6 +112,28 @@ describe("macro hygiene", function() {
     expect(z).to.be(303);
   });
 
+  it("should work with a multiple declarations", function() {
+    var a = 10;
+    var b = 20;
+    macro main {
+      case () => {
+        (function() {
+          var a = 100, b = 200;
+          return sub();
+        })();
+      }
+    }
+    macro sub {
+      case () => {
+        a + b
+      }
+    }
+
+    var z = main();
+
+    expect(z).to.be(30);
+  });
+
   // it("should work for vars with hoisting", function() {
   //   macro m {
   //     case $x:lit => {
