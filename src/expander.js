@@ -547,7 +547,9 @@
                 return _.reduce(curr.decls, function(acc, decl) {
                     return acc.concat(decl.ident);
                 }, acc);
-            };
+            } else if (curr.hasPrototype(Block)) {
+                return acc.concat(getVarIdentifiers(curr));
+            }
             return acc;
         }, []);
 

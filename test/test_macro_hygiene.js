@@ -112,7 +112,7 @@ describe("macro hygiene", function() {
     expect(z).to.be(303);
   });
 
-  it("should work with a multiple declarations", function() {
+  it("should work with multiple declarations", function() {
     var a = 10;
     var b = 20;
     macro main {
@@ -132,6 +132,21 @@ describe("macro hygiene", function() {
     var z = main();
 
     expect(z).to.be(30);
+  });
+
+  it("var declarations in nested blocks should be distinct", function() {
+    var foo = 100;
+    macro sub {
+      case () => { foo }
+    }
+    function bar() {
+      if(false) {
+        var foo = 10;
+      }
+      return sub();
+    }
+
+    expect(bar()).to.be(100);
   });
 
   // it("should work for vars with hoisting", function() {
