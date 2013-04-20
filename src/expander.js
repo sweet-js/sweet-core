@@ -174,8 +174,6 @@
         },
 
         swap_dummy_rename: function(identNamePairList, dummyName) {
-
-            // todo: do we need to clone the token?
             var swappedToken = _.clone(this.token);
             parser.assert(this.token.type !== parser.Token.Delimiter,
              "expecting everything to be flattened");
@@ -183,7 +181,8 @@
                                     renameDummyCtx(this.context, identNamePairList, dummyName));
         },
         toString: function() {
-            return "[Syntax: " + this.token.value + "]";
+            var val = this.token.type === parser.Token.EOF ? "EOF" : this.token.value;
+            return "[Syntax: " + val + "]";
         }
     };
 
@@ -1044,11 +1043,22 @@
             } else {
                 parser.assert(head && head.token, "assuming head is a syntax object");
 
+                // macro invocation 
+                if ( (head.token.type === parser.Token.Identifier ||
+                             head.token.type === parser.Token.Keyword) &&
+                            env.has(head.token.value)) {
+                    // pull the macro transformer out the environment
+                    var transformer = env.get(head.token.value);
+                    // apply the transformer
+                    var rt = transformer(rest, head, env);
+
+                    return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
                 // macro definition
-                if(head.token.type === parser.Token.Identifier &&
+                } else if(head.token.type === parser.Token.Identifier &&
                         head.token.value === "macro" &&
                         rest[0] && rest[1] &&
-                        rest[0].token.type === parser.Token.Identifier &&
+                        (rest[0].token.type === parser.Token.Identifier ||
+                         rest[0].token.type === parser.Token.Keyword) &&
                         rest[1].token.type === parser.Token.Delimiter &&
                         rest[1].token.value === "{}") {
                     return step(Macro.create(rest[0], rest[1].token.inner), rest.slice(2));
@@ -1088,15 +1098,6 @@
                             head.token.type === parser.Token.RegexLiteral ||
                             head.token.type === parser.Token.NullLiteral) {
                     return step(Lit.create(head), rest);
-                // macro invocation 
-                } else if (head.token.type === parser.Token.Identifier &&
-                            env.has(head.token.value)) {
-                    // pull the macro transformer out the environment
-                    var transformer = env.get(head.token.value);
-                    // apply the transformer
-                    var rt = transformer(rest, head, env);
-
-                    return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
                 // identifier
                 } else if(head.token.type === parser.Token.Identifier) {
                     return step(Id.create(head), rest);
