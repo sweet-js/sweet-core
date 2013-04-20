@@ -13,6 +13,13 @@ describe("reader", function() {
         expect(read("foo")[0].value)
             .to.equal("foo");
     });
+
+    it("should throw an error for an unmatched elimiter", function() {
+        function baddelim() {
+            read("{");
+        }
+        expect(baddelim).to.throwError();
+    });
     
     it("should tokenize a string", function() {
         expect(read("'foo'")[0].value)
