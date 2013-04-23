@@ -75,10 +75,15 @@
 
         var readTree = parser.read(source);
         var expanded = expander.expand(readTree); 
-        // var flattened = expander.flatten(expanded);
         var ast = parser.parse(expanded);
         return ast;
     };
+
+    exports.expand = function expand(code, options) {
+        var readTree = parser.read(code);
+        var expanded = expander.expand(readTree); 
+        return expanded;
+      };
     
     exports.compile = function compile(code, options) {
       return codegen.generate(exports.parse(code, options));
