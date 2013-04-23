@@ -273,7 +273,6 @@ describe("expand", function() {
             
     });    
 
-
     it("should match a var statement with multiple complex decls", function() {
         var stx = parser.read("var x = (function(x) { return x; })(24), y = 2 + 4");
         var res = (expander.expand(stx));
@@ -281,5 +280,12 @@ describe("expand", function() {
         expect(tokValues(res)).to.eql(["var", "x", "=", "(", "function", "(", "x", ")",
             "{", "return", "x", ";", "}", ")", "(", 24, ")",
             ",", "y", "=", 2, "+", 4, ""]);
+    });
+
+
+    it("should throw an error for with statements", function() {
+        var stx = parser.read("with ({}) {}");
+
+        expect(function() { expander.expand(stx);}).to.throwError();
     });
 });
