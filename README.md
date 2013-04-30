@@ -103,6 +103,11 @@ And run the [tests](https://github.com/mozilla/sweet.js/tree/master/test):
 
 ## Changelog
 
+* [0.1.2](https://github.com/mozilla/sweet.js/tree/v0.1.2)
+    * `:expr` parse class working #28
+    * hygiene fixes #15 #17
+    * allowing macros to override keywords #33
+    * major refactoring of expander
 * [0.1.1](https://github.com/mozilla/sweet.js/tree/v0.1.1)
     * node autoloading, AMD support
     * fixes to issues #18, #24, #26, #40
