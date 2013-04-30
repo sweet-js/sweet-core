@@ -996,10 +996,9 @@
                     var getRes = enforest(rest[0].token.inner, env);
                     var resStx = mkSyntax("[]", parser.Token.Delimiter, rest[0]);
                     resStx.token.inner = [getRes.result];
-                    parser.assert(getRes.rest.length == 0,
-                                  "not yet dealing with case when computed value is not completely enforested: "
-                                  + getRes.rest);
-                    return step(ObjGet.create(head, Delimiter.create(resStx)), rest.slice(1));
+                    if(getRes.rest.length > 0) {
+                        return step(ObjGet.create(head, Delimiter.create(resStx)), rest.slice(1));
+                    }
                 // object dotted get
                 } else if (head.hasPrototype(Expr) && rest[0] && rest[0].token.value === "." &&
                             rest[1] && rest[1].token.type === parser.Token.Identifier) {

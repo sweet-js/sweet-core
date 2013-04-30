@@ -252,18 +252,19 @@ describe("macro expander", function() {
     var x = nest ( (1, 2, 3), (4, 5, 6) );
   });
 
-  // it("should expand a nested ellipses macro", function() {
-  //   macro nest {
-  //     case ( ($x:lit ; $y:lit (,) ...) (,) ...) => {
-  //       [ [$x (,) ...], [$y (,) ...] ... ]
-  //     }
-  //   }
+  it("should expand a nested ellipses macro", function() {
+    macro nest {
+      case ( ($x:lit ; $y:lit (,) ...) (,) ...) => {
+        [ [$x (,) ...], [$y (,) ...] (,) ... ]
+      }
+    }
 
-  //   var foo = nest ( (1; 2,3,4,5), (10; 11, 12, 13, 14, 15) );
+    var foo = nest ( (1; 2,3,4,5), (10; 11, 12, 13, 14, 15) );
 
-  //   expect(foo[0]).to.eql([1,10]);
-  //   expect(foo[1]).to.eql([2,3,4,5, 11, 12, 13, 14, 15]);
-  // });
+    expect(foo[0]).to.eql([1,10]);
+    expect(foo[1]).to.eql([2,3,4,5]);
+    expect(foo[2]).to.eql([11, 12, 13, 14, 15]);
+  });
 
   it("should expand an ellipsis with a ; delimiter", function() {
     macro semi {
