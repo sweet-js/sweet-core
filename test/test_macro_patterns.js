@@ -56,6 +56,25 @@ describe("macro expander", function() {
     expect(expr([1,2,3])).to.eql([1,2,3]);
   });
 
+  it("should match simple ternary expression", function() {
+    macro m {
+      case ($x:expr) => {$x}
+    }
+
+    var x = m (true ? 42 : "foo") 
+    expect(x).to.be(42);
+  }); 
+
+  it("should match a complex ternary expression", function() {
+    macro m {
+      case ($x:expr) => {$x}
+    }
+
+    var x = m (2+4 > 0 ? 20 + 22 : "foo" + "bar") 
+    expect(x).to.be(42);
+    
+  });
+
   // it("should match binary expressions", function() {
   //   macro expr {
   //     case ($x:expr) => {

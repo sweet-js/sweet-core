@@ -657,6 +657,17 @@
         }
     });
 
+    var ConditionalExpression = Expr.extend({
+        properties: ["cond", "question", "tru", "colon", "fls"],
+        construct: function(cond, question, tru, colon, fls) {
+            this.cond = cond;
+            this.question = question;
+            this.tru = tru;
+            this.colon = colon;
+            this.fls = fls;
+        }
+    });
+
 
     var Keyword = TermTree.extend({
         properties: ["keyword"],
@@ -900,6 +911,7 @@
 
         function step(head, rest) {
             var innerTokens;
+            parser.assert(Array.isArray(rest), "result must at least be an empty array");
             if (head.hasPrototype(TermTree)) {
 
                 // function call
@@ -940,6 +952,22 @@
                     var newCallRes = enforest(rest, env);
                     if(newCallRes.result.hasPrototype(Call)) {
                         return step(Const.create(head, newCallRes.result), newCallRes.rest);
+                    }
+                // conditional expression (ternary)
+                } else if(head.hasPrototype(Expr) &&
+                    rest[0] && rest[0].token.value === "?") {
+                    var question = rest[0];
+                    var condRes = enforest(rest.slice(1), env);
+                    var truExpr = condRes.result;
+                    var right = condRes.rest;
+                    if(truExpr.hasPrototype(Expr) && right[0] && right[0].token.value === ":") {
+                        var colon = right[0];
+                        var flsRes = enforest(right.slice(1), env);
+                        var flsExpr = flsRes.result;
+                        if(flsExpr.hasPrototype(Expr)) {
+                            return step(ConditionalExpression.create(head, question, truExpr, colon, flsExpr),
+                                        flsRes.rest);
+                        }
                     }
                 // binary operations
                 } else if (rest[0] && rest[1] && stxIsBinOp(rest[0])) {
