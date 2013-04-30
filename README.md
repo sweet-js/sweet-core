@@ -9,8 +9,6 @@ Hygienic Macros for JavaScript!
 * [Mailing list](https://groups.google.com/forum/#!forum/sweetjs) for discussion
 * IRC channel #sweet.js on irc.mozilla.org
 
-Early stage at the moment. Lots of bugs so be warned!
-
 ## Use
 
 ### Using Node
@@ -67,29 +65,6 @@ An AMD loader is provided at [require-sweet](https://github.com/iammerrick/requi
     define(['sweeten!a/javascript/dep-with-macros'], function(dep) {
       // dep is compiled to JS at this point.
     });
-
-### Using ruby
-
-To compile sweet.js source files from within Ruby, use the [SweetJS gem](https://github.com/magnetised/sweetjs):
-
-    gem install sweetjs
-
-or in your Gemfile:
-
-    gem "sweetjs"
-
-then call the `SweetJS.compile` (or `SweetJS#compile`) method to compile a sweet.js source file to
-plain JavaScript:
-
-    require "sweetjs"
-
-    SweetJS.compile(File.read("macros.js.sjs"))
-    # => Resulting JS source
-
-    # Alternatively:
-    sweet  = SweetJS.new
-    source = File.open("macros.js", "r:UTF-8").read
-    js     = sweet.compile(source)
 
 ## Hacking
 
