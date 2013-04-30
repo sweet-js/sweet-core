@@ -417,7 +417,7 @@
                     type: stx.token.type,
                     lineNumber: from.token.lineNumber,
                     lineStart: from.token.lineStart,
-                    range: from.token.range // this is a lie
+                    range: null // need to figure out range after expansion 
                 }, stx.context);
         });
     }
@@ -551,31 +551,6 @@
             }
             return acc;
         }, []);
-
-        // return _.reduce(bodyStx, function(acc, curr, idx) {
-        //     var atFunctionDelimiter;
-
-        //     if (curr.token.type === parser.Token.Delimiter) {
-        //         atFunctionDelimiter = (curr.token.value === "()" && (isFunctionStx(body[idx-1])
-        //                                                           || isFunctionStx(body[idx-2]))) ||
-        //                               (curr.token.value === "{}" && (isFunctionStx(body[idx-2])
-        //                                                           || isFunctionStx(body[idx-3])));
-        //         // don't look for var idents inside nested functions
-        //         if(!atFunctionDelimiter) {
-        //             return acc.concat(getVarIdentifiers(curr.token.inner));
-        //         }
-        //         return acc;
-        //     }
-        //     if (isVarStx(body[idx-1])) {
-        //         // var rest = body.slice(idx);
-
-        //         var parseResult = parser.parse(flatten(body.slice(idx)),
-        //                                     "VariableDeclarationList",
-        //                                     {noresolve: true});
-        //         return acc.concat(varNamesInAST(parseResult));
-        //     }
-        //     return acc;
-        // }, []);
     }
 
     function replaceVarIdent(stx, orig, renamed) {
