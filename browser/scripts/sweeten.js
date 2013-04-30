@@ -1,3 +1,11 @@
+requirejs.config({
+    shim: {
+        'underscore': {
+            exports: '_'
+        }
+    }
+});
+
 require(["jquery"], function($) {
     require(["sweet"], function(sweet) {
         $(function(){
