@@ -192,6 +192,13 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["foo", ".", "bar"]);
     });
 
+    it("should match a dotted get method call", function() {
+        var stx = parser.read("foo.bar(f())");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["foo", ".", "bar", "(", "f", "(", ")", ")"]);
+    });
+
     it("should match a new expression", function() {
         var stx = parser.read("new Foo(42)");
         var res = matchPatternClass("expr", stx, emptyMacroMap).result;
