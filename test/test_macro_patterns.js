@@ -442,6 +442,26 @@ describe("macro expander", function() {
     rel(1 < 2 < 3)
   });
 
+  it("should do the right thing", function() {
+    macro m {
+        case { $y:expr DONTMATCH } => {
+          $y
+        }
+        case { $y:expr } => {
+            $y
+        }
+    }
+
+    function c() {
+      return 42;
+    }
+
+    var myobj = { baz: function(param) { return param; }};
+
+    var x = m { myobj.baz(c()) }
+    expect(x).to.be(42);
+  });
+
   it("should not fail with tokens that are on an object's prototype chain", function() {
     // (had been using an object naively as a dictionary so make sure we don't regress)
     macro m {
