@@ -768,11 +768,12 @@
         properties: ["fun", "args", "delim", "commas"],
 
         destruct: function() {
-            parser.assert(this.fun.hasPrototype(TermTree), 
+            parser.assert(this.fun.hasPrototype(TermTree),
                 "expecting a term tree in destruct of call");
             var that = this;
+            this.delim = syntaxFromToken(_.clone(this.delim.token), this.delim.context);
             this.delim.token.inner = _.reduce(this.args, function(acc, term) {
-                parser.assert(term && term.hasPrototype(TermTree), 
+                parser.assert(term && term.hasPrototype(TermTree),
                     "expecting term trees in destruct of Call");
                 var dst = acc.concat(term.destruct());
                 // add all commas except for the last one
