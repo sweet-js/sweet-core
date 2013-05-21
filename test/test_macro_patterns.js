@@ -442,7 +442,7 @@ describe("macro expander", function() {
     rel(1 < 2 < 3)
   });
 
-  it("should do the right thing", function() {
+  it("should allow a case to fail while not purtubing the remaining cases", function() {
     macro m {
         case { $y:expr DONTMATCH } => {
           $y
@@ -457,7 +457,6 @@ describe("macro expander", function() {
     }
 
     var myobj = { baz: function(param) { return param; }};
-
     var x = m { myobj.baz(c()) }
     expect(x).to.be(42);
   });
