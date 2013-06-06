@@ -4,11 +4,11 @@ describe("macro hygiene", function() {
 
     it("should work for or macro", function() {
         macro or {
-        case ($x , $y) => {
-            (function($tmp) {
-                return $tmp ? $tmp : $y;
-            })($x);
-        }
+            case ($x , $y) => {
+                (function($tmp) {
+                    return $tmp ? $tmp : $y;
+                })($x);
+            }
         }
 
         (function($tmp) {
@@ -26,9 +26,9 @@ describe("macro hygiene", function() {
         var z = (function(x) {
 
             macro m {
-            case ($ignore:ident) => {
-                x
-            }
+                case ($ignore:ident) => {
+                    x
+                }
             }
 
             return (function (x) {
@@ -83,7 +83,7 @@ describe("macro hygiene", function() {
 
     it("should do the correct renaming with macros for vars", function() {
         macro m {
-        case () => { var x = 5; }
+            case () => { var x = 5; }
         }
         var z = (function(x) {
             m();
@@ -95,12 +95,12 @@ describe("macro hygiene", function() {
 
     it("should work with a nested macro", function() {
         macro main {
-        case ($a) => {
-            (function(foo) {
-                var bar = 1 + foo;
-                return sub($a);
-            })(2);
-        }
+            case ($a) => {
+                (function(foo) {
+                    var bar = 1 + foo;
+                    return sub($a);
+                })(2);
+            }
         }
         var foo = 100;
         var bar = 200;
@@ -119,17 +119,17 @@ describe("macro hygiene", function() {
         var a = 10;
         var b = 20;
         macro main {
-        case () => {
-            (function() {
-                var a = 100, b = 200;
-                return sub();
-            })();
-        }
+            case () => {
+                (function() {
+                    var a = 100, b = 200;
+                    return sub();
+                })();
+            }
         }
         macro sub {
-        case () => {
-            a + b
-        }
+            case () => {
+                a + b
+            }
         }
 
         var z = main();
@@ -140,7 +140,7 @@ describe("macro hygiene", function() {
     it("var declarations in nested blocks should be distinct", function() {
         var foo = 100;
         macro sub {
-        case () => { foo }
+            case () => { foo }
         }
         function bar() {
             if(false) {
