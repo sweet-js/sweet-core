@@ -2,228 +2,231 @@ var expect = require("expect.js")
 
 describe("macro hygiene", function() {
 
-  it("should work for or macro", function() {
-    macro or {
-      case ($x , $y) => {
-        (function($tmp) {
-          return $tmp ? $tmp : $y;
-        })($x);
-      }
-    }
-
-    (function($tmp) {
-      var z = or(false, $tmp)
-      expect(z).to.be("ok");
-    })("ok");
-
-  });
-
-  it("should work for a binding outside of the macro def", function() {
-
-    var z = (function(x) {
-
-      macro m {
-        case ($ignore:ident) => {
-          x
+    it("should work for or macro", function() {
+        macro or {
+        case ($x , $y) => {
+            (function($tmp) {
+                return $tmp ? $tmp : $y;
+            })($x);
         }
-      }
+        }
 
-      return (function (x) {
-        return m(_) + x;
-      })(22)
+        (function($tmp) {
+            var z = or(false, $tmp)
+            expect(z).to.be("ok");
+        })("ok");
 
-    })(1);
-    expect(z).to.be(23)
-  });
+    });
+    
 
 
-  it("should not rename object idents if they are the same as vars", function() {
-    var o = (function (x) {
-      return {
-        x: x
-      }
-    })(42)
+    it("should work for a binding outside of the macro def", function() {
 
-    expect(o.x).to.be(42);
-  });
 
-  it("should not rename object dot accesses", function() {
-    var n = (function (o, x) {
-      return o.x;
-    })({x: 42})
+        var z = (function(x) {
 
-    expect(n).to.be(42)
-  });
+            macro m {
+            case ($ignore:ident) => {
+                x
+            }
+            }
 
-  it("should do the correct renaming without macros for vars", function() {
-    var z = (function() {
-      var x = 42;
-      return (function() {
-        var y = x;
-        var x = "foo"
-        return y
-      })();
-    })();
-    expect(z).to.be(undefined)
-  });
+            return (function (x) {
+                return m(_) + x;
+            })(22)
 
-  it("should do the correct renaming without macros for vars and params", function() {
-    var z = (function() {
-      return (function(x) {
-        var x = "foo"
-        var y = x;
-        return y
-      })(42);
-    })();
-    expect(z).to.be("foo")
-  });
+        })(1);
+        expect(z).to.be(23)
+    });
 
-  it("should do the correct renaming with macros for vars", function() {
-    macro m {
-      case () => { var x = 5; }
-    }
-    var z = (function(x) {
-      m();
-      var y = x;
-      return y;
-    })("foo")
-    expect(z).to.be("foo")
-  });
 
-  it("should work with a nested macro", function() {
-    macro main {
-      case ($a) => {
-        (function(foo) {
-          var bar = 1 + foo;
-          return sub($a);
-        })(2);
-      }
-    }
-    var foo = 100;
-    var bar = 200;
-    macro sub {
-      case ($a) => {
-        foo + bar + $a
-      }
-    }
+    it("should not rename object idents if they are the same as vars", function() {
+        var o = (function (x) {
+            return {
+                x: x
+            }
+        })(42)
 
-    var z = main(3);
+        expect(o.x).to.be(42);
+    });
 
-    expect(z).to.be(303);
-  });
+    it("should not rename object dot accesses", function() {
+        var n = (function (o, x) {
+            return o.x;
+        })({x: 42})
 
-  it("should work with multiple declarations", function() {
-    var a = 10;
-    var b = 20;
-    macro main {
-      case () => {
-        (function() {
-          var a = 100, b = 200;
-          return sub();
+        expect(n).to.be(42)
+    });
+
+    it("should do the correct renaming without macros for vars", function() {
+        var z = (function() {
+            var x = 42;
+            return (function() {
+                var y = x;
+                var x = "foo"
+                return y
+            })();
         })();
-      }
-    }
-    macro sub {
-      case () => {
-        a + b
-      }
-    }
+        expect(z).to.be(undefined)
+    });
 
-    var z = main();
+    it("should do the correct renaming without macros for vars and params", function() {
+        var z = (function() {
+            return (function(x) {
+                var x = "foo"
+                var y = x;
+                return y
+            })(42);
+        })();
+        expect(z).to.be("foo")
+    });
 
-    expect(z).to.be(30);
-  });
+    it("should do the correct renaming with macros for vars", function() {
+        macro m {
+        case () => { var x = 5; }
+        }
+        var z = (function(x) {
+            m();
+            var y = x;
+            return y;
+        })("foo")
+        expect(z).to.be("foo")
+    });
 
-  it("var declarations in nested blocks should be distinct", function() {
-    var foo = 100;
-    macro sub {
-      case () => { foo }
-    }
-    function bar() {
-      if(false) {
-        var foo = 10;
-      }
-      return sub();
-    }
+    it("should work with a nested macro", function() {
+        macro main {
+        case ($a) => {
+            (function(foo) {
+                var bar = 1 + foo;
+                return sub($a);
+            })(2);
+        }
+        }
+        var foo = 100;
+        var bar = 200;
+        macro sub {
+        case ($a) => {
+            foo + bar + $a
+        }
+        }
 
-    expect(bar()).to.be(100);
-  });
+        var z = main(3);
 
-  // it("should work for vars with hoisting", function() {
-  //   macro m {
-  //     case $x:lit => {
-  //       var tmp = $x;
-  //     }
-  //   }
+        expect(z).to.be(303);
+    });
 
-  //   var tmp = "outer"
-  //   m "inner"
-  //   expect(tmp).to.be("outer");
+    it("should work with multiple declarations", function() {
+        var a = 10;
+        var b = 20;
+        macro main {
+        case () => {
+            (function() {
+                var a = 100, b = 200;
+                return sub();
+            })();
+        }
+        }
+        macro sub {
+        case () => {
+            a + b
+        }
+        }
 
-  // });
+        var z = main();
 
-  // // it("should work for vars with hoisting and params", function() {
-  // //   function f(tmp) {
-  // //     macro m {
-  // //       case $x:lit => {
-  // //         var tmp = $x;
-  // //       }
-  // //     }
+        expect(z).to.be(30);
+    });
 
-  // //     var tmp = "outer"
-  // //     m "inner"
-  // //     expect(tmp).to.be("outer");
-  // //   }
+    it("var declarations in nested blocks should be distinct", function() {
+        var foo = 100;
+        macro sub {
+        case () => { foo }
+        }
+        function bar() {
+            if(false) {
+                var foo = 10;
+            }
+            return sub();
+        }
 
-  // //   f("call")
+        expect(bar()).to.be(100);
+    });
 
-  // // });
+    // it("should work for vars with hoisting", function() {
+    //   macro m {
+    //     case $x:lit => {
+    //       var tmp = $x;
+    //     }
+    //   }
 
-  // it("should work for var with nested function", function() {
-  //   macro m {
-  //     case $x:lit => {
-  //       var tmp = $x;
-  //     }
-  //   }
-  //   function f() {
-  //     var tmp = "outer"
-  //     m "inner"
-  //     expect(tmp).to.be("outer");
-  //   }
-  //   f();
-  // });
+    //   var tmp = "outer"
+    //   m "inner"
+    //   expect(tmp).to.be("outer");
+
+    // });
+
+    // // it("should work for vars with hoisting and params", function() {
+    // //   function f(tmp) {
+    // //     macro m {
+    // //       case $x:lit => {
+    // //         var tmp = $x;
+    // //       }
+    // //     }
+
+    // //     var tmp = "outer"
+    // //     m "inner"
+    // //     expect(tmp).to.be("outer");
+    // //   }
+
+    // //   f("call")
+
+    // // });
+
+    // it("should work for var with nested function", function() {
+    //   macro m {
+    //     case $x:lit => {
+    //       var tmp = $x;
+    //     }
+    //   }
+    //   function f() {
+    //     var tmp = "outer"
+    //     m "inner"
+    //     expect(tmp).to.be("outer");
+    //   }
+    //   f();
+    // });
 
 
-  // // todo this test needs a better api (syntax-case?)
+    // // todo this test needs a better api (syntax-case?)
 
-  // // it("should work for another variant of hygiene", function() {
-  // //   (function(x) {
+    // // it("should work for another variant of hygiene", function() {
+    // //   (function(x) {
 
-  // //     macro n {
-  // //       case ($stx:lit) => {
-  // //         function(x) {
-  // //           // want a way to distinguish between the two versions of x
-  // //           return x + x
-  // //         }
-  // //       }
-  // //     }
+    // //     macro n {
+    // //       case ($stx:lit) => {
+    // //         function(x) {
+    // //           // want a way to distinguish between the two versions of x
+    // //           return x + x
+    // //         }
+    // //       }
+    // //     }
 
-  // //   })(42);
-  // // });
+    // //   })(42);
+    // // });
 
-  // // it("should work for the or macro with var", function() {
-  // //   macro or {
-  // //     case ($x:expr, $y:expr) => {
-  // //       (function() {
-  // //         var $tmp = $x;
-  // //         return $tmp ? $tmp : $y;
-  // //       })();
-  // //     }
-  // //   }
+    // // it("should work for the or macro with var", function() {
+    // //   macro or {
+    // //     case ($x:expr, $y:expr) => {
+    // //       (function() {
+    // //         var $tmp = $x;
+    // //         return $tmp ? $tmp : $y;
+    // //       })();
+    // //     }
+    // //   }
 
-  // //   var $tmp = "ok"
-  // //   var z = or(false, $tmp);
-  // //   expect(z).to.be("ok");
-  // // });
+    // //   var $tmp = "ok"
+    // //   var z = or(false, $tmp);
+    // //   expect(z).to.be("ok");
+    // // });
 
 });
