@@ -1789,8 +1789,7 @@
 
             var freshnameVarIdents = _.map(varIdents, function(ident) {
                 var freshName = "$" + fresh();
-                var renamedIdent = ident.rename(ident, freshName);
-                return [freshName, ident, renamedIdent];
+                return [freshName, ident];
             });
 
             // rename the var idents in the body
