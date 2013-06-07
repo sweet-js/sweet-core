@@ -156,7 +156,7 @@
             var ids = _.isArray(idents) ? idents : [idents];
 
             var newRename = _.reduce(ids, function(ctx, id) {
-                return Rename(id, name, ctx);
+                return Rename(id, renamedToken.value + name, ctx);
             }, this.context);
             return syntaxFromToken(renamedToken, newRename);
         },
@@ -240,15 +240,21 @@
     }
 
     // (CSyntax) -> [...Num]
-    function marksof(ctx) {
+    function marksof(ctx, stopName) {
         var mark, submarks;
         if (isMark(ctx)) {
             mark = ctx.mark;
-            submarks = marksof(ctx.context);
+            submarks = marksof(ctx.context, stopName);
             return remdup(mark, submarks);
         }
-        if (isRename(ctx) || isDummyRename(ctx)) {
+        if(isDummyRename(ctx)) {
             return marksof(ctx.context);
+        }
+        if (isRename(ctx)) {
+            if(stopName === ctx.name) {
+                return [];
+            }
+            return marksof(ctx.context, stopName);
         }
         return [];
     }
@@ -279,12 +285,12 @@
             var idName = resolveCtx(ctx.id.token.value, ctx.id);
             var subName = resolveCtx(originalName, ctx.context);
 
-            var idMarks = marksof(ctx.id.context);
-            var subMarks = marksof(ctx.context);
-
-            if((idName === subName) && (arraysEqual(idMarks, subMarks))) {
-            // if((idName === subName) && (_.difference(idMarks, subMarks).length === 0)) {
-                return originalName + ctx.name;
+            if(idName === subName) {
+                var idMarks = marksof(ctx.id.context, idName);
+                var subMarks = marksof(ctx.context, idName);
+                if(arraysEqual(idMarks, subMarks)) {
+                    return ctx.name;
+                }
             }
             return resolveCtx(originalName, ctx.context);
         }
