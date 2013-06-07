@@ -283,7 +283,6 @@
             var subMarks = marksof(ctx.context);
 
             if((idName === subName) && (arraysEqual(idMarks, subMarks))) {
-            // if((idName === subName) && (_.difference(idMarks, subMarks).length === 0)) {
                 return originalName + ctx.name;
             }
             return resolveCtx(originalName, ctx.context);
