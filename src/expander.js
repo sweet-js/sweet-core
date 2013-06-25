@@ -144,21 +144,15 @@
 
         // (CSyntax or [...CSyntax], Str) -> CSyntax
         // non mutating
-        rename: function(idents, name) {
-            var tok = this.token;
+        rename: function(id, name) {
+            // rename inside of delimiters
             if (this.token.inner) {
                 var renamedInner = _.map(this.token.inner, function(stx) {
-                    return stx.rename(idents, name);
+                    return stx.rename(id, name);
                 });
                 this.token.inner = renamedInner;
             }
-            // wrap idents in a list if given a single
-            var ids = _.isArray(idents) ? idents : [idents];
-
-            var newRename = _.reduce(ids, function(ctx, id) {
-                return Rename(id, tok.value + name, ctx);
-            }, this.context);
-            return syntaxFromToken(this.token, newRename);
+            return syntaxFromToken(this.token, Rename(id, name, this.context));
         },
 
         push_dummy_rename: function(name) {
@@ -172,11 +166,12 @@
             return syntaxFromToken(this.token, DummyRename(name, this.context));
         },
 
-        swap_dummy_rename: function(identNamePairList, dummyName) {
+        // ([...{freshName: Name, originalVar: Syntax}], Name) -> Syntax
+        swap_dummy_rename: function(varNames, dummyName) {
             parser.assert(this.token.type !== parser.Token.Delimiter,
              "expecting everything to be flattened");
-            var newStx = syntaxFromToken(this.token,
-                                    renameDummyCtx(this.context, identNamePairList, dummyName));
+            var newStx = syntaxFromToken(this.token, 
+                                        renameDummyCtx(this.context, varNames, dummyName));
             return newStx;
         },
         toString: function() {
@@ -185,55 +180,24 @@
         }
     };
 
-    // function renameDummyCtx(ctx, identNamePairList, dummyName) {
-    //     var curr = ctx;
-
-    //     while(curr !== null) {
-
-    //         if (isDummyRename(curr.context) && curr.context.dummy_name === dummyName) {
-    //             var renames = _.reduce(identNamePairList, function(accCtx, identNamePair) {
-    //                 var name = identNamePair[0];
-    //                 var ident = identNamePair[1];
-    //                 return Rename(ident, name, accCtx);
-    //             }, DummyRename(curr.context.dummy_name, curr.context.context));
-    //             // curr.context = renames;
-    //             return ctx;
-    //         } else if (isDummyRename(curr) && curr.dummy_name !== dummyName) {
-    //             curr = curr.context;
-    //         } else if (isMark(curr)) {
-    //             curr = curr.context;
-    //         } else if (isRename(curr)) {
-    //             curr.id = curr.id.swap_dummy_rename(identNamePairList, dummyName);
-    //             curr = curr.context;
-    //         } else {
-    //             curr = curr.context;
-    //         }
-    //     }
-
-    //     return ctx;
-    // }
-
-    function renameDummyCtx(ctx, identNamePairList, dummyName) {
+    function renameDummyCtx(ctx, varNames, dummyName) {
         if (ctx === null) {
             return null;
         }
         if (isDummyRename(ctx) && ctx.dummy_name === dummyName) {
-            return _.reduce(identNamePairList, function(accCtx, identNamePair) {
-                var name = identNamePair[0];
-                var ident = identNamePair[1];
-                return Rename(ident, name, accCtx);
-            }, ctx);
+            return _.reduce(varNames, function(accCtx, v) {
+                return Rename(v.originalVar, v.freshName, accCtx);
+            }, ctx.context);
         }
         if (isDummyRename(ctx) && ctx.dummy_name !== dummyName) {
-            return DummyRename(ctx.dummy_name, renameDummyCtx(ctx.context, identNamePairList, dummyName));
+            return DummyRename(ctx.dummy_name, renameDummyCtx(ctx.context, varNames, dummyName));
         }
         if (isMark(ctx)) {
-            return Mark(ctx.mark, renameDummyCtx(ctx.context, identNamePairList, dummyName));
+            return Mark(ctx.mark, renameDummyCtx(ctx.context, varNames, dummyName));
         }
         if (isRename(ctx)) {
-            return Rename(ctx.id.swap_dummy_rename(identNamePairList, dummyName),
-                          ctx.name,
-                          renameDummyCtx(ctx.context, identNamePairList, dummyName));
+            return Rename(ctx.id.swap_dummy_rename(varNames, dummyName), ctx.name,
+                          renameDummyCtx(ctx.context, varNames, dummyName));
         }
         parser.assert(false, "expecting a fixed set of context types");
     }
@@ -311,14 +275,14 @@
             return resolveCtx(originalName, ctx.context);
         }
         if (isRename(ctx)) {
-            var idName = resolveCtx(ctx.id.token.value, ctx.id);
+            var idName = resolveCtx(ctx.id.token.value, ctx.id.context);
             var subName = resolveCtx(originalName, ctx.context);
 
             if(idName === subName) {
                 var idMarks = marksof(ctx.id.context, idName);
                 var subMarks = marksof(ctx.context, idName);
                 if(arraysEqual(idMarks, subMarks)) {
-                    return ctx.name;
+                    return originalName + "$" + ctx.name;
                 }
             }
             return resolveCtx(originalName, ctx.context);
@@ -327,12 +291,7 @@
     }
 
     var nextFresh = 0;
-    var fresh = function() {
-        // todo: something more globally unique
-        return nextFresh++;
-    };
-
-
+    function fresh() { return nextFresh++; };
 
     // (CToken or [...CToken]) -> [...CSyntax]
     function tokensToSyntax(tokens) {
@@ -562,7 +521,7 @@
     }
 
     // (CSyntax) -> [...CSyntax]
-    function getArgList(argSyntax) {
+    function getParamIdentifiers(argSyntax) {
         parser.assert(argSyntax.token.type === parser.Token.Delimiter,
             "expecting delimiter for function params");
         return _.filter(argSyntax.token.inner, function(stx) {
@@ -588,7 +547,7 @@
     // finds all the identifiers being bound by var statements
     // in the array of syntax objects
     // (TermTree) -> [Syntax]
-    function getVarIdentifiers(term) {
+    function getVarDeclIdentifiers(term) {
         // expandToTermTree(term);
         parser.assert(term.hasPrototype(Block) && term.body.hasPrototype(Delimiter),
             "expecting a Block");
@@ -599,7 +558,7 @@
                     return acc.concat(decl.ident);
                 }, acc);
             } else if (curr.hasPrototype(Block)) {
-                return acc.concat(getVarIdentifiers(curr));
+                return acc.concat(getVarDeclIdentifiers(curr));
             }
             return acc;
         }, []);
@@ -918,13 +877,13 @@
     function enforestVarStatement (stx, env) {
         parser.assert(stx[0] && stx[0].token.type === parser.Token.Identifier,
             "must start at the identifier");
-        var decls = [];
+        var decls = [], rest, initRes, subRes;
 
         if (stx[1] && stx[1].token.type === parser.Token.Punctuator &&
             stx[1].token.value === "=") {
-            var initRes = enforest(stx.slice(2), env);
+            initRes = enforest(stx.slice(2), env);
             if (initRes.result.hasPrototype(Expr)) {
-                var rest = initRes.rest;
+                rest = initRes.rest;
 
                 if (initRes.rest[0].token.type === parser.Token.Punctuator &&
                     initRes.rest[0].token.value === "," &&
@@ -934,26 +893,31 @@
                                                           initRes.result,
                                                           initRes.rest[0]));
 
-                    var subRes = enforestVarStatement(initRes.rest.slice(1), env);
+                    subRes = enforestVarStatement(initRes.rest.slice(1), env);
+
                     decls = decls.concat(subRes.result);
                     rest = subRes.rest;
                 } else {
                     decls.push(VariableDeclaration.create(stx[0], stx[1], initRes.result));
                 }
-
-                return {
-                    result: decls,
-                    rest: rest
-                };
             }
-            // fall through, this is actually a parsing error to be caught later
+            // fall through if not expr, this is actually a parsing error to be caught later
+        } else if (stx[1] && stx[1].token.type === parser.Token.Punctuator &&
+                    stx[1].token.value === ",") {
+            decls.push(VariableDeclaration.create(stx[0]));
+            subRes = enforestVarStatement(stx.slice(2), env);
+
+            decls = decls.concat(subRes.result);
+            rest = subRes.rest;
         } else {
             decls.push(VariableDeclaration.create(stx[0]));
-            return {
-                result: decls,
-                rest: stx.slice(1)
-            };
+            rest = stx.slice(1)
         }
+        
+        return {
+            result: decls,
+            rest: rest
+        };
     }
 
     // enforest the tokens, returns an object with the `result` TermTree and
@@ -1788,77 +1752,76 @@
         } else if (term.hasPrototype(NamedFun) || term.hasPrototype(AnonFun)) {
             // function definitions need a bunch of hygiene logic
 
-            // get the parameters
-            var stxParams = getArgList(term.params);
-            // create fresh names for each of them
-            var freshNames = _.map(stxParams, function(param) {
-                return "$" + fresh();
+            var paramNames = _.map(getParamIdentifiers(term.params), function(param) {
+                var freshName = fresh();
+                return {
+                    freshName: freshName,
+                    originalParam: param,
+                    renamedParam: param.rename(param, freshName)
+                };
             });
-            // zip the params and fresh names together
-            var freshnameArgPairs = _.zip(freshNames, stxParams);
-            // rename each parameter with the fresh names
-            var renamedArgs = _.map(freshnameArgPairs, function(argPair) {
-                var freshName = argPair[0];
-                var arg = argPair[1];
-                return arg.rename(arg, freshName);
-            });
-            // update the context with the fresh names
+
             // TODO: fix, ctx isn't being used
-            // var newCtx = _.reduce(_.zip(freshNames, renamedArgs), function (accEnv, argPair) {
-            //     var freshName = argPair[0];
-            //     var renamedArg = argPair[1];
-            //     var o = {};
-            //     o[freshName] = Var(renamedArg);
-            //     return _.extend(o, accEnv);
-            // }, ctx);
             var newCtx = ctx;
 
             var stxBody = term.body;
             // rename the function body for each of the parameters
-            var renamedBody = _.reduce(freshnameArgPairs, function (accBody, argPair) {
-                var freshName = argPair[0];
-                var arg = argPair[1];
-                return accBody.rename(arg, freshName);
+            var renamedBody = _.reduce(paramNames, function (accBody, p) {
+                return accBody.rename(p.originalParam, p.freshName);
             }, stxBody);
 
             // push a dummy rename to the body
             var dummyName = fresh();
             renamedBody = renamedBody.push_dummy_rename(dummyName);
 
-            // expand the renamed body with the updated context
             var bodyTerms = expand([renamedBody], env, newCtx);
             parser.assert(bodyTerms.length === 1 && bodyTerms[0].body,
                             "expecting a block in the bodyTerms");
-            var flatArgs = wrapDelim(joinSyntax(renamedArgs, ","), term.params);
 
-            // find all the var identifiers (eg x in `var x = 42`)
-            var varIdents = getVarIdentifiers(bodyTerms[0]);
+            // eg: `x` and `y` in `var x = 42, y = 24`
+            var varIdents = getVarDeclIdentifiers(bodyTerms[0]);
             varIdents = _.filter(varIdents, function(varId) {
-                // only pick the var identifiers that are not
-                // resolve equal to a parameter of this function
-                return !(_.any(renamedArgs, function(param) {
-                    return resolve(varId) === resolve(param);
+                // filter out the declarations that are identical (via resolve) to
+                // one of the parameters in this function
+                return !(_.any(paramNames, function(p) {
+                    return resolve(varId) === resolve(p.renamedParam);
                 }));
             });
 
-            var freshnameVarIdents = _.map(varIdents, function(ident) {
-                var freshName = "$" + fresh();
-                return [freshName, ident];
+            // filter out redeclarations
+            varIdents = _.uniq(varIdents, false, function(v) { return resolve(v); });
+
+            var varNames = _.map(varIdents, function(ident) {
+                var freshName = fresh();
+                return {
+                    freshName: freshName,
+                    dummyName: dummyName,
+                    originalVar: ident,
+                    renamedVar: ident.swap_dummy_rename(
+                        [{freshName:freshName, originalVar: ident}], 
+                        dummyName)
+                }
             });
 
             // rename the var idents in the body
-            var flattenedBody = flatten(bodyTerms);
-            flattenedBody = _.map(flattenedBody, function(stx) {
-                var newStx;
+            var flattenedBody = _.map(flatten(bodyTerms), function(stx) {
+                var isDecl;
                 if (stx.token.type === parser.Token.Identifier) {
-                    // console.profile("swap_dummy");
-                    newStx = stx.swap_dummy_rename(freshnameVarIdents, dummyName);
-                    // console.profileEnd();
-                    return newStx
+                    isDecl = _.find(varNames, function(v) {
+                        return v.originalVar === stx;
+                    });
+                    if(isDecl) {
+                        // if syntax is one of the var declaration identifiers,
+                        // we replaces it with the renamed version
+                        return isDecl.renamedVar;
+                    }
+                    return stx.swap_dummy_rename(varNames, dummyName);
                 }
                 return stx;
             });
 
+            var renamedParams = _.map(paramNames, function(p) { return p.renamedParam; });
+            var flatArgs = wrapDelim(joinSyntax(renamedParams, ","), term.params);
             var expandedArgs = expand([flatArgs], env, ctx);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the head with all the renamings

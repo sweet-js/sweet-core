@@ -5,18 +5,14 @@
   <script data-main="scripts/main" src="scripts/require.js"></script>
   <script id="sweetjs" type="text/sweetjs">
 
-var x;
-var x;
-var x;
-var x;
-var x;
-var x;
-var x;
-var x;
-var x;
-var x;
 
-
+var foo;
+macro sub {
+    case () => { foo }
+}
+function bar(foo) {
+    sub();
+}
 
 
 

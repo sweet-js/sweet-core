@@ -105,9 +105,9 @@ describe("macro hygiene", function() {
         var foo = 100;
         var bar = 200;
         macro sub {
-        case ($a) => {
-            foo + bar + $a
-        }
+            case ($a) => {
+                foo + bar + $a
+            }
         }
 
         var z = main(3);
