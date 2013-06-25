@@ -145,46 +145,73 @@
         // (CSyntax or [...CSyntax], Str) -> CSyntax
         // non mutating
         rename: function(idents, name) {
-            var renamedToken = _.clone(this.token);
+            var tok = this.token;
             if (this.token.inner) {
                 var renamedInner = _.map(this.token.inner, function(stx) {
                     return stx.rename(idents, name);
                 });
-                renamedToken.inner = renamedInner;
+                this.token.inner = renamedInner;
             }
             // wrap idents in a list if given a single
             var ids = _.isArray(idents) ? idents : [idents];
 
             var newRename = _.reduce(ids, function(ctx, id) {
-                return Rename(id, renamedToken.value + name, ctx);
+                return Rename(id, tok.value + name, ctx);
             }, this.context);
-            return syntaxFromToken(renamedToken, newRename);
+            return syntaxFromToken(this.token, newRename);
         },
 
         push_dummy_rename: function(name) {
-            var renamedToken = _.clone(this.token);
             if (this.token.inner) {
                 var renamedInner = _.map(this.token.inner, function(stx) {
                     return stx.push_dummy_rename(name);
                 });
-                renamedToken.inner = renamedInner;
+                this.token.inner = renamedInner;
             }
 
-            return syntaxFromToken(renamedToken, DummyRename(name, this.context));
+            return syntaxFromToken(this.token, DummyRename(name, this.context));
         },
 
         swap_dummy_rename: function(identNamePairList, dummyName) {
-            var swappedToken = _.clone(this.token);
             parser.assert(this.token.type !== parser.Token.Delimiter,
              "expecting everything to be flattened");
-            return syntaxFromToken(swappedToken,
+            var newStx = syntaxFromToken(this.token,
                                     renameDummyCtx(this.context, identNamePairList, dummyName));
+            return newStx;
         },
         toString: function() {
             var val = this.token.type === parser.Token.EOF ? "EOF" : this.token.value;
             return "[Syntax: " + val + "]";
         }
     };
+
+    // function renameDummyCtx(ctx, identNamePairList, dummyName) {
+    //     var curr = ctx;
+
+    //     while(curr !== null) {
+
+    //         if (isDummyRename(curr.context) && curr.context.dummy_name === dummyName) {
+    //             var renames = _.reduce(identNamePairList, function(accCtx, identNamePair) {
+    //                 var name = identNamePair[0];
+    //                 var ident = identNamePair[1];
+    //                 return Rename(ident, name, accCtx);
+    //             }, DummyRename(curr.context.dummy_name, curr.context.context));
+    //             // curr.context = renames;
+    //             return ctx;
+    //         } else if (isDummyRename(curr) && curr.dummy_name !== dummyName) {
+    //             curr = curr.context;
+    //         } else if (isMark(curr)) {
+    //             curr = curr.context;
+    //         } else if (isRename(curr)) {
+    //             curr.id = curr.id.swap_dummy_rename(identNamePairList, dummyName);
+    //             curr = curr.context;
+    //         } else {
+    //             curr = curr.context;
+    //         }
+    //     }
+
+    //     return ctx;
+    // }
 
     function renameDummyCtx(ctx, identNamePairList, dummyName) {
         if (ctx === null) {
@@ -204,7 +231,9 @@
             return Mark(ctx.mark, renameDummyCtx(ctx.context, identNamePairList, dummyName));
         }
         if (isRename(ctx)) {
-            return Rename(ctx.id.swap_dummy_rename(identNamePairList, dummyName), ctx.name, renameDummyCtx(ctx.context, identNamePairList, dummyName));
+            return Rename(ctx.id.swap_dummy_rename(identNamePairList, dummyName),
+                          ctx.name,
+                          renameDummyCtx(ctx.context, identNamePairList, dummyName));
         }
         parser.assert(false, "expecting a fixed set of context types");
     }
@@ -1775,13 +1804,14 @@
             });
             // update the context with the fresh names
             // TODO: fix, ctx isn't being used
-            var newCtx = _.reduce(_.zip(freshNames, renamedArgs), function (accEnv, argPair) {
-                var freshName = argPair[0];
-                var renamedArg = argPair[1];
-                var o = {};
-                o[freshName] = Var(renamedArg);
-                return _.extend(o, accEnv);
-            }, ctx);
+            // var newCtx = _.reduce(_.zip(freshNames, renamedArgs), function (accEnv, argPair) {
+            //     var freshName = argPair[0];
+            //     var renamedArg = argPair[1];
+            //     var o = {};
+            //     o[freshName] = Var(renamedArg);
+            //     return _.extend(o, accEnv);
+            // }, ctx);
+            var newCtx = ctx;
 
             var stxBody = term.body;
             // rename the function body for each of the parameters
@@ -1819,8 +1849,12 @@
             // rename the var idents in the body
             var flattenedBody = flatten(bodyTerms);
             flattenedBody = _.map(flattenedBody, function(stx) {
+                var newStx;
                 if (stx.token.type === parser.Token.Identifier) {
-                    return stx.swap_dummy_rename(freshnameVarIdents, dummyName);
+                    // console.profile("swap_dummy");
+                    newStx = stx.swap_dummy_rename(freshnameVarIdents, dummyName);
+                    // console.profileEnd();
+                    return newStx
                 }
                 return stx;
             });
