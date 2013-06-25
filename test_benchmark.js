@@ -1,5 +1,5 @@
-var parser = require("../lib/parser");
-var expander = require("../lib/expander");
+var parser = require("./lib/parser");
+var expander = require("./lib/expander");
 var Benchmark = require("benchmark");
 
 var suite = new Benchmark.Suite;

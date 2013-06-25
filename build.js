@@ -22,7 +22,7 @@ target.benchmark = function() {
 
 target.run_bench = function() {
     echo("\nrunning benchmarks...")
-    exec("node test/test_benchmark.js");
+    exec("node test_benchmark.js");
 }
 
 target.clean = function() {
