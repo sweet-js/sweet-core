@@ -2,17 +2,33 @@ require("shelljs/make");
 var path = require("path");
 var fs = require("fs");
 var Mocha = require("mocha");
+var Benchmark = require("benchmark");
+
+var suite = new Benchmark.Suite;
 
 target.all = function() {
     target.clean();
     target.build();
-    target.build_test();
     target.build_browser();
+    target.build_test();
     target.test();
 };
 
+target.benchmark = function() {
+    target.clean();
+    target.build();
+    target.run_bench();
+}
+
+target.run_bench = function() {
+    echo("\nrunning benchmarks...")
+    exec("node test/test_benchmark.js");
+}
+
 target.clean = function() {
-    rm("build/*");
+    if(test('-d', 'build/')) {
+        rm("build/*");
+    }
 };
 
 target.single = function() {
@@ -40,7 +56,7 @@ target.build_test_file = function() {
     // if we have a "test.js" file sitting at the
     // root of the project go ahead and build it
     if(test('-f', "test.js")) {
-        exec('bin/sjs  test.js test_out.js');
+        exec('bin/sjs test.js test_out.js');
     }
 }
 
