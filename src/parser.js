@@ -1566,7 +1566,7 @@ to decide on the correct name for identifiers.
             }
             var res = createLiteral(lex().token);
             if (type === Token.QuotedLiteral) {
-                res['noEscape'] = true;
+                res['verbatim'] = res['value'];
             }
             return res;
         }

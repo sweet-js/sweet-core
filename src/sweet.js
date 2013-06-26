@@ -84,8 +84,8 @@
         var expanded = expander.expand(readTree); 
         return expanded;
       };
-    
+
     exports.compile = function compile(code, options) {
-      return codegen.generate(exports.parse(code, options));
+      return codegen.generate(exports.parse(code, options), {verbatim: 'verbatim'});
     }
 }));
