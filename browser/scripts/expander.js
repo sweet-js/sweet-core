@@ -877,7 +877,7 @@
     function enforestVarStatement (stx, env) {
         parser.assert(stx[0] && stx[0].token.type === parser.Token.Identifier,
             "must start at the identifier");
-        var decls = [], rest, initRes, subRes;
+        var decls = [], rest = stx, initRes, subRes;
 
         if (stx[1] && stx[1].token.type === parser.Token.Punctuator &&
             stx[1].token.value === "=") {
@@ -900,8 +900,9 @@
                 } else {
                     decls.push(VariableDeclaration.create(stx[0], stx[1], initRes.result));
                 }
+            } else {
+                parser.assert(false, "parse error, expecting an expr in variable initialization");
             }
-            // fall through if not expr, this is actually a parsing error to be caught later
         } else if (stx[1] && stx[1].token.type === parser.Token.Punctuator &&
                     stx[1].token.value === ",") {
             decls.push(VariableDeclaration.create(stx[0], null, null, stx[1]));
@@ -1014,7 +1015,8 @@
                         return step(BinOp.create(op, left, right), bopRes.rest);
                     }
                 // unary prefix
-                } else if (head.hasPrototype(Punc) && stxIsUnaryOp(head.punc)){
+                } else if ( (head.hasPrototype(Punc) && stxIsUnaryOp(head.punc)) ||
+                            (head.hasPrototype(Keyword) && stxIsUnaryOp(head.keyword))) {
                     var unopRes = enforest(rest);
 
                     if (unopRes.result.hasPrototype(Expr)) {
