@@ -96,7 +96,8 @@ to decide on the correct name for identifiers.
         StringLiteral: 8,
         Delimiter: 9,
         Pattern: 10,
-        RegexLiteral: 11
+        RegexLiteral: 11,
+        QuotedLiteral: 12
     };
 
     TokenName = {};
@@ -109,6 +110,7 @@ to decide on the correct name for identifiers.
     TokenName[Token.Punctuator] = 'Punctuator';
     TokenName[Token.StringLiteral] = 'String';
     TokenName[Token.Delimiter] = 'Delimiter';
+    TokenName[Token.QuotedLiteral] = 'Quote';
 
     Syntax = {
         AssignmentExpression: 'AssignmentExpression',
@@ -900,12 +902,17 @@ to decide on the correct name for identifiers.
 
     // 7.8.4 String Literals
 
-    function scanStringLiteral() {
+    function scanStringLiteral(sought, type) {
         var str = '', quote, start, ch, code, unescaped, restore, octal = false;
 
+        if (type == null) {
+            assert(sought == null, "sought must not be supplied unless type is");
+            type = Token.StringLiteral;
+        }
+
         quote = source[index];
-        assert((quote === '\'' || quote === '"'),
-            'String literal must starts with a quote');
+        assert((quote === '\'' || quote === '"' || (sought != null && quote == sought)),
+            'String literal must start with a quote');
 
         start = index;
         ++index;
@@ -995,13 +1002,17 @@ to decide on the correct name for identifiers.
         }
 
         return {
-            type: Token.StringLiteral,
+            type: type,
             value: str,
             octal: octal,
             lineNumber: lineNumber,
             lineStart: lineStart,
             range: [start, index]
         };
+    }
+
+    function scanQuotedLiteral() {
+        return scanStringLiteral('\u2018', Token.QuotedLiteral);
     }
 
     function scanRegExp() {
@@ -1103,9 +1114,7 @@ to decide on the correct name for identifiers.
             token.type === Token.BooleanLiteral ||
             token.type === Token.NullLiteral;
     }
-    
 
-    
     // only used by the reader
     function advance() {
         var ch, token;
@@ -1128,6 +1137,9 @@ to decide on the correct name for identifiers.
             return token;
         }
 
+        if (ch === '\u2018') {
+            return scanQuotedLiteral();
+        }
 
         if (ch === '\'' || ch === '"') {
             return scanStringLiteral();
@@ -1548,11 +1560,15 @@ to decide on the correct name for identifiers.
             };
         }
 
-        if (type === Token.StringLiteral || type === Token.NumericLiteral) {
+        if (type === Token.StringLiteral || type === Token.NumericLiteral || type === Token.QuotedLiteral) {
             if (strict && token.octal) {
                 throwErrorTolerant(token, Messages.StrictOctalLiteral);
             }
-            return createLiteral(lex().token);
+            var res = createLiteral(lex().token);
+            if (type === Token.QuotedLiteral) {
+                res['verbatim'] = res['value'];
+            }
+            return res;
         }
 
         if (type === Token.Keyword) {
@@ -3906,7 +3922,6 @@ to decide on the correct name for identifiers.
 
         return program;
     }
-    
 
     // Sync with package.json.
     // exports.version = '1.0.0-dev';
@@ -3915,7 +3930,6 @@ to decide on the correct name for identifiers.
     exports.read = read;
     exports.Token = Token;
     exports.assert = assert;
-
 
     // Deep copy.
     exports.Syntax = (function () {
@@ -3936,8 +3950,6 @@ to decide on the correct name for identifiers.
         }
 
         return types;
-
-
     }());
 
 }));
