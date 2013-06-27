@@ -1109,7 +1109,8 @@
                     head.token.type === parser.Token.StringLiteral ||
                     head.token.type === parser.Token.BooleanLiteral ||
                     head.token.type === parser.Token.RegexLiteral ||
-                    head.token.type === parser.Token.NullLiteral) {
+                    head.token.type === parser.Token.NullLiteral ||
+                    head.token.type === parser.Token.QuotedLiteral) {
 
                     return step(Lit.create(head), rest);
                 // identifier
@@ -1605,6 +1606,7 @@
                     };
                 }
             }
+
             throwError("Could not match any cases for macro: " + macroNameStx.token.value);
         };
     }

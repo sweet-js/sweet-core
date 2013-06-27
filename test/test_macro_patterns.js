@@ -442,6 +442,15 @@ describe("macro expander", function() {
         rel(1 < 2 < 3)
     });
 
+    it("should allow quoted literal syntax in macro expansion", function() {
+        macro $test {
+          case 1 => { ‘2‘ }
+        }
+
+        var two = $test 1
+        expect(two).to.be(2);
+    });
+
     it("should allow a case to fail while not purtubing the remaining cases", function() {
         macro m {
             case { $y:expr DONTMATCH } => {
