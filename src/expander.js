@@ -1030,9 +1030,9 @@
                 } else if ( (head.hasPrototype(Punc) && stxIsUnaryOp(head.punc)) ||
                             (head.hasPrototype(Keyword) && stxIsUnaryOp(head.keyword))) {
                     var unopRes = enforest(rest);
-
+                    var op = head.hasPrototype(Punc) ? head.punc : head.keyword;
                     if (unopRes.result.hasPrototype(Expr)) {
-                        return step(UnaryOp.create(head.punc, unopRes.result), unopRes.rest);
+                        return step(UnaryOp.create(op, unopRes.result), unopRes.rest);
                     }
                 // unary postfix
                 } else if (head.hasPrototype(Expr) && rest[0] &&
