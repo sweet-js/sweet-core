@@ -271,6 +271,14 @@ describe("expand", function() {
         expect(tokValues(res)).to.eql(["foo", "(", "24", ",", "42", ")", ""]);
     });
 
+    it("should handle get/call/binop/parens", function() {
+        var stx = parser.read("(x.foo(0) >= 42) || (x === 42)");
+        var res = (expander.expand(stx));
+
+        expect(tokValues(res)).to.eql(["(", "x", ".", "foo", "(", 0, ")", 
+                                        ">=", 42, ")", "||", "(", "x", "===", 42, ")", ""]);
+    });
+
     it("should handle complex left side function calls", function() {
         var stx = parser.read("(function(x) { return x; })(24)");
         var res = (expander.expand(stx));
