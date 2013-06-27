@@ -152,7 +152,15 @@
                 });
                 this.token.inner = renamedInner;
             }
-            return syntaxFromToken(this.token, Rename(id, name, this.context));
+
+            // Only need to put in a rename if the token and the source ident both
+            // have the same base name. Speculative optimization, the extra renames
+            // might be useful for later extensions.
+            if(this.token.value === id.token.value) {
+                return syntaxFromToken(this.token, Rename(id, name, this.context));
+            } else {
+                return this;
+            }
         },
 
         push_dummy_rename: function(name) {
@@ -170,8 +178,12 @@
         swap_dummy_rename: function(varNames, dummyName) {
             parser.assert(this.token.type !== parser.Token.Delimiter,
              "expecting everything to be flattened");
+            var that = this;
+            var matchingVarNames = _.filter(varNames, function(v) {
+                return v.originalVar.token.value === that.token.value;
+            });
             var newStx = syntaxFromToken(this.token, 
-                                        renameDummyCtx(this.context, varNames, dummyName));
+                                        renameDummyCtx(this.context, matchingVarNames, dummyName));
             return newStx;
         },
         toString: function() {
