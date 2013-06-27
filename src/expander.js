@@ -1733,6 +1733,9 @@
                 return expandTermTreeToFinal(arg, env, ctx);
             });
             return term;
+        } else if (term.hasPrototype(UnaryOp)) {
+            term.expr = expandTermTreeToFinal(term.expr, env, ctx);            
+            return term;
         } else if (term.hasPrototype(BinOp)) {
             term.left = expandTermTreeToFinal(term.left, env, ctx);
             term.right = expandTermTreeToFinal(term.right, env, ctx);
