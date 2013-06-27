@@ -48,8 +48,11 @@ target.build = function() {
     }
 
     echo("\nbuilding sweet.js...");
-    cp("-f", "src/*.js", "lib/");
-    cp("-f", "test/test_single.js", "build/");
+
+    ls("src/*.js").forEach(function(file) {
+        echo("compiling: " + path.basename(file));
+        exec("bin/sjs --output lib/" + path.basename(file) + " " + file);
+    });
 };
 
 target.build_test_file = function() {
