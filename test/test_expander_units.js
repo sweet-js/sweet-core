@@ -213,6 +213,13 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["var", "x"]);
     });
 
+    it("should match a var declaration statement with multiple decls", function() {
+        var stx = parser.read("var x, y, z");
+        var res = matchPatternClass("VariableStatement", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["var", "x", ",", "y", ",", "z"]);
+    });
+
     it("should match a var decl with simple init expr", function() {
         var stx = parser.read("var x = 42");
         var res = matchPatternClass("VariableStatement", stx, emptyMacroMap).result;
