@@ -93,6 +93,25 @@ describe("macro hygiene", function() {
         expect(z).to.be("foo")
     });
 
+    it("should work with vars and catch statements", function() {
+        var r;
+        var e = 'not error';
+
+        try {
+            a();
+        } catch(e) {
+            sub();
+        }
+
+        macro sub {
+            case () => {
+                r = e
+            }
+        }
+
+        expect(r === e).to.be(true);
+    });
+
     it("should work with a nested macro", function() {
         macro main {
             case ($a) => {

@@ -883,6 +883,16 @@
         }
     });
 
+    var CatchClause = TermTree.extend({
+        properties: ["catchkw", "params", "body"],
+
+        construct: function(catchkw, params, body) {
+            this.catchkw = catchkw;
+            this.params = params;
+            this.body = body;
+        }
+    });
+
     function stxIsUnaryOp (stx) {
         var staticOperators = ["+", "-", "~", "!",
                                 "delete", "void", "typeof",
@@ -1128,6 +1138,14 @@
                                                 rest[0],
                                                 rest[1]),
                                 rest.slice(2));
+                } else if (head.token.type === parser.Token.Keyword &&
+                           head.token.value === "catch" &&
+                           rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                           rest[0].token.value === "()" &&
+                           rest[1] && rest[1].token.type === parser.Token.Delimiter &&
+                           rest[1].token.value === "{}") {
+                    return step(CatchClause.create(head, rest[0], rest[1]),
+                               rest.slice(2));
                 } else if (head.token.type === parser.Token.Keyword &&
                     head.token.value === "this") {
 
@@ -1786,7 +1804,7 @@
             // expand inside the delimiter and then continue on
             term.delim.token.inner = expand(term.delim.token.inner, env);
             return term;
-        } else if (term.hasPrototype(NamedFun) || term.hasPrototype(AnonFun)) {
+        } else if (term.hasPrototype(NamedFun) || term.hasPrototype(AnonFun) || term.hasPrototype(CatchClause)) {
             // function definitions need a bunch of hygiene logic
 
             var paramNames = _.map(getParamIdentifiers(term.params), function(param) {
