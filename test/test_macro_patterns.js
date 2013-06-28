@@ -480,4 +480,20 @@ describe("macro expander", function() {
         var x = m( id(4) );
     });
 
+    it("should match nested obj macros", function() {
+        macro m {
+            case $o:expr => {
+                $o
+            }
+        }
+        macro n {
+            case $o:expr => {
+                m $o
+            }
+        }
+        var z = n {zed: 4};
+
+        expect(z).to.eql({zed:4});
+    });
+
 });

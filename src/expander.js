@@ -590,11 +590,14 @@
         // Go back to the flat syntax representation. Uses the ordered list
         // of properties that each subclass sets to determine the order that multiple
         // children are destructed.
-        // -> [...Syntax]
-        destruct: function() {
+        // The breakDelim param is used to determine if we just want to
+        // unwrap to the ReadTree level or actually flatten the
+        // delimiters too.
+        // (Bool?) -> [...Syntax]
+        destruct: function(breakDelim) {
             return _.reduce(this.properties, _.bind(function(acc, prop) {
                 if (this[prop] && this[prop].hasPrototype(TermTree)) {
-                    return acc.concat(this[prop].destruct());
+                    return acc.concat(this[prop].destruct(breakDelim));
                 } else if (this[prop]) {
                     return acc.concat(this[prop]);
                 } else {
@@ -710,35 +713,39 @@
 
         // do a special kind of destruct that creates
         // the individual begin and end delimiters
-        destruct: function() {
+        destruct: function(breakDelim) {
             parser.assert(this.delim, "expecting delim to be defined");
-            var openParen = syntaxFromToken({
-                type: parser.Token.Punctuator,
-                value: this.delim.token.value[0],
-                range: this.delim.token.startRange,
-                lineNumber: this.delim.token.startLineNumber,
-                lineStart: this.delim.token.startLineStart
-            });
-            var closeParen = syntaxFromToken({
-                type: parser.Token.Punctuator,
-                value: this.delim.token.value[1],
-                range: this.delim.token.endRange,
-                lineNumber: this.delim.token.endLineNumber,
-                lineStart: this.delim.token.endLineStart
-            });
-
 
             var innerStx = _.reduce(this.delim.token.inner, function(acc, term) {
                 if (term.hasPrototype(TermTree)){
-                    return acc.concat(term.destruct());
+                    return acc.concat(term.destruct(breakDelim));
                 } else {
                     return acc.concat(term);
                 }
             }, []);
 
-            return [openParen]
+            if(breakDelim) {
+                var openParen = syntaxFromToken({
+                    type: parser.Token.Punctuator,
+                    value: this.delim.token.value[0],
+                    range: this.delim.token.startRange,
+                    lineNumber: this.delim.token.startLineNumber,
+                    lineStart: this.delim.token.startLineStart
+                });
+                var closeParen = syntaxFromToken({
+                    type: parser.Token.Punctuator,
+                    value: this.delim.token.value[1],
+                    range: this.delim.token.endRange,
+                    lineNumber: this.delim.token.endLineNumber,
+                    lineStart: this.delim.token.endLineStart
+                });
+
+                return [openParen]
                     .concat(innerStx)
                     .concat(closeParen);
+            } else {
+                return this.delim;
+            }
         },
 
         construct: function(d) { this.delim = d; }
@@ -791,7 +798,7 @@
     var Call = Expr.extend({
         properties: ["fun", "args", "delim", "commas"],
 
-        destruct: function() {
+        destruct: function(breakDelim) {
             parser.assert(this.fun.hasPrototype(TermTree),
                 "expecting a term tree in destruct of call");
             var that = this;
@@ -799,7 +806,7 @@
             this.delim.token.inner = _.reduce(this.args, function(acc, term) {
                 parser.assert(term && term.hasPrototype(TermTree),
                     "expecting term trees in destruct of Call");
-                var dst = acc.concat(term.destruct());
+                var dst = acc.concat(term.destruct(breakDelim));
                 // add all commas except for the last one
                 if (that.commas.length > 0) {
                     dst = dst.concat(that.commas.shift());
@@ -807,7 +814,7 @@
                 return dst;
             }, []);
 
-            return this.fun.destruct().concat(Delimiter.create(this.delim).destruct());
+            return this.fun.destruct(breakDelim).concat(Delimiter.create(this.delim).destruct(breakDelim));
         },
 
         construct: function(fun, args, delim, commas) {
@@ -854,9 +861,9 @@
     var VariableStatement = Statement.extend({
         properties: ["varkw", "decls"],
 
-        destruct: function() {
-            return this.varkw.destruct().concat(_.reduce(this.decls, function(acc, decl) {
-                return acc.concat(decl.destruct());
+        destruct: function(breakDelim) {
+            return this.varkw.destruct(breakDelim).concat(_.reduce(this.decls, function(acc, decl) {
+                return acc.concat(decl.destruct(breakDelim));
             }, []));
         },
 
@@ -1197,7 +1204,7 @@
         } else if (patternClass === "VariableStatement") {
             var match = enforest(stx, env);
             if (match.result && match.result.hasPrototype(VariableStatement)) {
-                result = match.result.destruct();
+                result = match.result.destruct(false);
                 rest = match.rest;
             } else {
                 result = null;
@@ -1209,7 +1216,7 @@
                 result = null;
                 rest = stx;
             } else {
-                result = match.result.destruct();
+                result = match.result.destruct(false);
                 rest = match.rest;
             }
         } else {
@@ -1898,7 +1905,7 @@
     // until then we'll just defer to esprima.
     function flatten(terms) {
         return _.reduce(terms, function(acc, term) {
-            return acc.concat(term.destruct());
+            return acc.concat(term.destruct(true));
         }, []);
     }
 
