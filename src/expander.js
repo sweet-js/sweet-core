@@ -560,15 +560,24 @@
     // in the array of syntax objects
     // (TermTree) -> [Syntax]
     function getVarDeclIdentifiers(term) {
-        // expandToTermTree(term);
-        parser.assert(term.hasPrototype(Block) && term.body.hasPrototype(Delimiter),
-            "expecting a Block");
+        var toCheck;
+        if(term.hasPrototype(Block) && term.body.hasPrototype(Delimiter)) {
+            toCheck = term.body.delim.token.inner;
+        } else if(term.hasPrototype(Delimiter)) {
+            toCheck = term.delim.token.inner;
+        } else {
+            parser.assert(false, "expecting a Block or a Delimiter");
+        }
 
-        return _.reduce(term.body.delim.token.inner, function(acc, curr) {
+        return _.reduce(toCheck, function(acc, curr, idx, list) {
+            var prev = list[idx-1];
             if (curr.hasPrototype(VariableStatement)) {
                 return _.reduce(curr.decls, function(acc, decl) {
                     return acc.concat(decl.ident);
                 }, acc);
+            } else if (prev && prev.hasPrototype(Keyword) && prev.keyword.token.value === "for" &&
+                      curr.hasPrototype(Delimiter)) {
+                return acc.concat(getVarDeclIdentifiers(curr));
             } else if (curr.hasPrototype(Block)) {
                 return acc.concat(getVarDeclIdentifiers(curr));
             }
