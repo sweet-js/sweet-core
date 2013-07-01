@@ -20,11 +20,12 @@ exports.run = function() {
     var outfile = argv.output;
     var watch = argv.watch;
     var tokens = argv.tokens;
+
     var file;
     if (infile) {
         file = fs.readFileSync(infile, "utf8");
     } else {
-        fs.readFileSync('/dev/stdin').toString();
+        file = fs.readFileSync('/dev/stdin').toString();
     }
 
     var module = argv.module;
@@ -34,7 +35,7 @@ exports.run = function() {
         modulefile = fs.readFileSync(module, "utf8");
         file = modulefile + "\n" + file;
     }
-    
+
 	if (watch && outfile){
 		fs.watch(infile, function(){
 			file = fs.readFileSync(infile, "utf8");

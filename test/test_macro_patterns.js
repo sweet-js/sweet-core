@@ -444,7 +444,7 @@ describe("macro expander", function() {
 
     it("should allow quoted literal syntax in macro expansion", function() {
         macro $test {
-          case 1 => { ‘2‘ }
+          case 1 => { `2` }
         }
 
         var two = $test 1
