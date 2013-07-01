@@ -893,6 +893,11 @@
         }
     });
 
+    var Empty = TermTree.extend({
+        properties: [],
+        construct: function() {}
+    });
+
     function stxIsUnaryOp (stx) {
         var staticOperators = ["+", "-", "~", "!",
                                 "delete", "void", "typeof",
@@ -1103,7 +1108,11 @@
                     var transformer = env.get(head.token.value);
                     // apply the transformer
                     var rt = transformer(rest, head, env);
-                    return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
+                    if(rt.result.length > 0) {
+                        return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
+                    } else {
+                        return step(Empty.create(), rt.rest);
+                    } 
                 // macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
                     head.token.value === "macro" && rest[0] &&

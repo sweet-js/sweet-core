@@ -1,6 +1,15 @@
 var expect = require("expect.js");
 
 describe("macro expander", function() {
+    it("should expand a macro with an empty body", function() {
+        macro m {
+            case () => {}
+        }
+
+        m()
+    })
+
+    
     it("should expand a macro with pattern `$x:lit`", function() {
         macro id {
             case ($x:lit) => {
