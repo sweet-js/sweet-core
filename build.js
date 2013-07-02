@@ -83,7 +83,7 @@ target.build_browser = function() {
     echo("\nbuilding browser tests...");
 
     cp("-f", "lib/*.js", "browser/scripts");
-    cp("-f", contracts_lib, "browser/scripts");
+    cp("-f", "node_modules/contracts-js/lib/contracts.js", "browser/scripts/contracts-js.js");
 };
 
 target.test = function() {
