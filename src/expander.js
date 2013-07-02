@@ -1867,16 +1867,23 @@
 
             // eg: `x` and `y` in `var x = 42, y = 24`
             var varIdents = getVarDeclIdentifiers(bodyTerms[0]);
-            varIdents = _.filter(varIdents, function(varId) {
-                // filter out the declarations that are identical (via resolve) to
-                // one of the parameters in this function
-                return !(_.any(paramNames, function(p) {
-                    return resolve(varId) === resolve(p.renamedParam);
-                }));
-            });
 
             // filter out redeclarations
-            varIdents = _.uniq(varIdents, false, function(v) { return resolve(v); });
+            // varIdents = _.uniq(varIdents, false, function(v) { return resolve(v); });
+            var acc = [];
+            for (var i = 0; i < varIdents.length; i++) {
+                var isUnique = !_.find(varIdents.slice(i+1), function(id) {
+                    // resolve by itself isn't enough because the var identifiers might
+                    // have been introduced by a macro so need to check the marks as well
+                    return resolve(varIdents[i]) === resolve(id) &&
+                            arraysEqual(marksof(varIdents[i].context), marksof(id.context));
+                });
+
+                if (isUnique) {
+                    acc.push(varIdents[i]);
+                }
+            }
+            varIdents = acc;
 
             var varNames = _.map(varIdents, function(ident) {
                 var freshName = fresh();
@@ -1884,9 +1891,7 @@
                     freshName: freshName,
                     dummyName: dummyName,
                     originalVar: ident,
-                    renamedVar: ident.swap_dummy_rename(
-                        [{freshName:freshName, originalVar: ident}], 
-                        dummyName)
+                    renamedVar: ident.rename(ident, freshName)
                 }
             });
 
