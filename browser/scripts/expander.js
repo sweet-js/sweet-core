@@ -1,3 +1,4 @@
+var C$631;
 (function (root$1, factory$2) {
     if (typeof exports === 'object') {
         factory$2(exports, require('underscore'), require('./parser'), require('es6-collections'), require('contracts-js'));
@@ -14,7 +15,7 @@
     }
 }(this, function (exports$4, _$5, parser$6, es6$7, contracts$8) {
     'use strict';
-    var C = contracts$8;
+    C$631 = contracts$8;
     exports$4._test = {};
     Object.prototype.create = function () {
         var o$22 = Object.create(this);
@@ -58,7 +59,7 @@
     function Var(id$38) {
         return {id: id$38};
     }
-    var isMark$595 = function isMark$595(m$40) {
+    var isMark$593 = function isMark$593(m$40) {
         return m$40 && typeof m$40.mark !== 'undefined';
     };
     function Rename(id$42, name$43, ctx$44) {
@@ -68,7 +69,7 @@
             context: ctx$44
         };
     }
-    var isRename$596 = function (r$46) {
+    var isRename$594 = function (r$46) {
         return r$46 && typeof r$46.id !== 'undefined' && typeof r$46.name !== 'undefined';
     };
     function DummyRename(name$48, ctx$49) {
@@ -77,23 +78,23 @@
             context: ctx$49
         };
     }
-    var isDummyRename$597 = function (r$51) {
+    var isDummyRename$595 = function (r$51) {
         return r$51 && typeof r$51.dummy_name !== 'undefined';
     };
-    C.CToken = C.object({
-        type: C.opt(C.Num),
-        value: C.opt(C.or(C.Num, C.Str))
+    C$631.CToken = C$631.object({
+        type: C$631.opt(C$631.Num),
+        value: C$631.opt(C$631.or(C$631.Num, C$631.Str))
     });
-    C.CContext = C.object({
-        name: C.opt(C.Num),
-        dummy_name: C.opt(C.Num),
-        context: C.Self
+    C$631.CContext = C$631.object({
+        name: C$631.opt(C$631.Num),
+        dummy_name: C$631.opt(C$631.Num),
+        context: C$631.Self
     });
-    C.CSyntax = C.object({
-        token: C.CToken,
-        context: C.CContext
+    C$631.CSyntax = C$631.object({
+        token: C$631.CToken,
+        context: C$631.CContext
     });
-    var syntaxProto$598 = {
+    var syntaxProto$596 = {
             mark: function mark(newMark$82) {
                 var markedToken$86 = _$5.clone(this.token);
                 if (this.token.inner) {
@@ -146,18 +147,18 @@
         if (ctx$111 === null) {
             return null;
         }
-        if (isDummyRename$597(ctx$111) && ctx$111.dummy_name === dummyName$113) {
+        if (isDummyRename$595(ctx$111) && ctx$111.dummy_name === dummyName$113) {
             return _$5.reduce(varNames$112, function (accCtx$115, v$116) {
                 return Rename(v$116.originalVar, v$116.freshName, accCtx$115);
             }, ctx$111.context);
         }
-        if (isDummyRename$597(ctx$111) && ctx$111.dummy_name !== dummyName$113) {
+        if (isDummyRename$595(ctx$111) && ctx$111.dummy_name !== dummyName$113) {
             return DummyRename(ctx$111.dummy_name, renameDummyCtx(ctx$111.context, varNames$112, dummyName$113));
         }
-        if (isMark$595(ctx$111)) {
+        if (isMark$593(ctx$111)) {
             return Mark(ctx$111.mark, renameDummyCtx(ctx$111.context, varNames$112, dummyName$113));
         }
-        if (isRename$596(ctx$111)) {
+        if (isRename$594(ctx$111)) {
             return Rename(ctx$111.id.swap_dummy_rename(varNames$112, dummyName$113), ctx$111.name, renameDummyCtx(ctx$111.context, varNames$112, dummyName$113));
         }
         parser$6.assert(false, 'expecting a fixed set of context types');
@@ -166,14 +167,14 @@
         if (ctx$118 === null || ctx$118.context === null) {
             return null;
         }
-        if (isDummyRename$597(ctx$118.context) && ctx$118.context.dummy_name === dummyName$119) {
+        if (isDummyRename$595(ctx$118.context) && ctx$118.context.dummy_name === dummyName$119) {
             return ctx$118;
         }
         return findDummyParent(ctx$118.context);
     }
     function syntaxFromToken(token$121, oldctx$122) {
         var ctx$124 = typeof oldctx$122 !== 'undefined' ? oldctx$122 : null;
-        return Object.create(syntaxProto$598, {
+        return Object.create(syntaxProto$596, {
             token: {
                 value: token$121,
                 enumerable: true,
@@ -195,15 +196,15 @@
     }
     function marksof(ctx$128, stopName$129) {
         var mark$131, submarks$132;
-        if (isMark$595(ctx$128)) {
+        if (isMark$593(ctx$128)) {
             mark$131 = ctx$128.mark;
             submarks$132 = marksof(ctx$128.context, stopName$129);
             return remdup(mark$131, submarks$132);
         }
-        if (isDummyRename$597(ctx$128)) {
+        if (isDummyRename$595(ctx$128)) {
             return marksof(ctx$128.context);
         }
-        if (isRename$596(ctx$128)) {
+        if (isRename$594(ctx$128)) {
             if (stopName$129 === ctx$128.name) {
                 return [];
             }
@@ -226,10 +227,10 @@
         return true;
     }
     function resolveCtx(originalName$139, ctx$140) {
-        if (isMark$595(ctx$140) || isDummyRename$597(ctx$140)) {
+        if (isMark$593(ctx$140) || isDummyRename$595(ctx$140)) {
             return resolveCtx(originalName$139, ctx$140.context);
         }
-        if (isRename$596(ctx$140)) {
+        if (isRename$594(ctx$140)) {
             var idName$142 = resolveCtx(ctx$140.id.token.value, ctx$140.id.context);
             var subName$143 = resolveCtx(originalName$139, ctx$140.context);
             if (idName$142 === subName$143) {
@@ -243,9 +244,9 @@
         }
         return originalName$139;
     }
-    var nextFresh$599 = 0;
-    var fresh$600 = C.guard(C.fun([], C.Num), function () {
-            return nextFresh$599++;
+    var nextFresh$597 = 0;
+    var fresh$598 = C$631.guard(C$631.fun([], C$631.Num), function () {
+            return nextFresh$597++;
         });
     ;
     function tokensToSyntax(tokens$148) {
@@ -267,15 +268,15 @@
             return stx$154.token;
         });
     }
-    var isPatternVar$601 = C.guard(C.fun([C.CToken], C.Bool), function (token$158) {
+    var isPatternVar$599 = C$631.guard(C$631.fun([C$631.CToken], C$631.Bool), function (token$158) {
             return token$158.type === parser$6.Token.Identifier && token$158.value[0] === '$' && token$158.value !== '$';
         });
-    var containsPatternVar$602 = function (patterns$160) {
+    var containsPatternVar$600 = function (patterns$160) {
         return _$5.any(patterns$160, function (pat$162) {
             if (pat$162.token.type === parser$6.Token.Delimiter) {
-                return containsPatternVar$602(pat$162.token.inner);
+                return containsPatternVar$600(pat$162.token.inner);
             }
-            return isPatternVar$601(pat$162);
+            return isPatternVar$599(pat$162);
         });
     };
     function loadPattern(patterns$164) {
@@ -285,19 +286,19 @@
             var next$172 = patterns$164[idx$168 + 1];
             var nextNext$173 = patterns$164[idx$168 + 2];
             if (patStx$167.token.value === ':') {
-                if (last$170 && isPatternVar$601(last$170.token)) {
+                if (last$170 && isPatternVar$599(last$170.token)) {
                     return acc$166;
                 }
             }
             if (last$170 && last$170.token.value === ':') {
-                if (lastLast$171 && isPatternVar$601(lastLast$171.token)) {
+                if (lastLast$171 && isPatternVar$599(lastLast$171.token)) {
                     return acc$166;
                 }
             }
             if (patStx$167.token.value === '$' && next$172 && next$172.token.type === parser$6.Token.Delimiter) {
                 return acc$166;
             }
-            if (isPatternVar$601(patStx$167.token)) {
+            if (isPatternVar$599(patStx$167.token)) {
                 if (next$172 && next$172.token.value === ':') {
                     parser$6.assert(typeof nextNext$173 !== 'undefined', 'expecting a pattern class');
                     patStx$167.class = nextNext$173.token.value;
@@ -389,12 +390,12 @@
         }, _$5.first(tojoin$200));
     }
     function delimIsSeparator(delim$206) {
-        return delim$206 && delim$206.token.type === parser$6.Token.Delimiter && delim$206.token.value === '()' && delim$206.token.inner.length === 1 && delim$206.token.inner[0].token.type !== parser$6.Token.Delimiter && !containsPatternVar$602(delim$206.token.inner);
+        return delim$206 && delim$206.token.type === parser$6.Token.Delimiter && delim$206.token.value === '()' && delim$206.token.inner.length === 1 && delim$206.token.inner[0].token.type !== parser$6.Token.Delimiter && !containsPatternVar$600(delim$206.token.inner);
     }
     function freeVarsInPattern(pattern$208) {
         var fv$212 = [];
         _$5.each(pattern$208, function (pat$210) {
-            if (isPatternVar$601(pat$210.token)) {
+            if (isPatternVar$599(pat$210.token)) {
                 fv$212.push(pat$210.token.value);
             } else if (pat$210.token.type === parser$6.Token.Delimiter) {
                 fv$212 = fv$212.concat(freeVarsInPattern(pat$210.token.inner));
@@ -443,22 +444,22 @@
     }
     function getVarDeclIdentifiers(term$236) {
         var toCheck$247;
-        if (term$236.hasPrototype(Block$611) && term$236.body.hasPrototype(Delimiter$620)) {
+        if (term$236.hasPrototype(Block$609) && term$236.body.hasPrototype(Delimiter$618)) {
             toCheck$247 = term$236.body.delim.token.inner;
-        } else if (term$236.hasPrototype(Delimiter$620)) {
+        } else if (term$236.hasPrototype(Delimiter$618)) {
             toCheck$247 = term$236.delim.token.inner;
         } else {
             parser$6.assert(false, 'expecting a Block or a Delimiter');
         }
         return _$5.reduce(toCheck$247, function (acc$238, curr$239, idx$240, list$241) {
             var prev$246 = list$241[idx$240 - 1];
-            if (curr$239.hasPrototype(VariableStatement$630)) {
+            if (curr$239.hasPrototype(VariableStatement$628)) {
                 return _$5.reduce(curr$239.decls, function (acc$243, decl$244) {
                     return acc$243.concat(decl$244.ident);
                 }, acc$238);
-            } else if (prev$246 && prev$246.hasPrototype(Keyword$618) && prev$246.keyword.token.value === 'for' && curr$239.hasPrototype(Delimiter$620)) {
+            } else if (prev$246 && prev$246.hasPrototype(Keyword$616) && prev$246.keyword.token.value === 'for' && curr$239.hasPrototype(Delimiter$618)) {
                 return acc$238.concat(getVarDeclIdentifiers(curr$239));
-            } else if (curr$239.hasPrototype(Block$611)) {
+            } else if (curr$239.hasPrototype(Block$609)) {
                 return acc$238.concat(getVarDeclIdentifiers(curr$239));
             }
             return acc$238;
@@ -470,9 +471,9 @@
         }
         return stx$248;
     }
-    var TermTree$603 = {destruct: function (breakDelim$252) {
+    var TermTree$601 = {destruct: function (breakDelim$252) {
                 return _$5.reduce(this.properties, _$5.bind(function (acc$254, prop$255) {
-                    if (this[prop$255] && this[prop$255].hasPrototype(TermTree$603)) {
+                    if (this[prop$255] && this[prop$255].hasPrototype(TermTree$601)) {
                         return acc$254.concat(this[prop$255].destruct(breakDelim$252));
                     } else if (this[prop$255]) {
                         return acc$254.concat(this[prop$255]);
@@ -481,32 +482,32 @@
                     }
                 }, this), []);
             }};
-    var EOF$604 = TermTree$603.extend({
+    var EOF$602 = TermTree$601.extend({
             properties: ['eof'],
             construct: function (e$257) {
                 this.eof = e$257;
             }
         });
-    var Statement$605 = TermTree$603.extend({construct: function () {
+    var Statement$603 = TermTree$601.extend({construct: function () {
             }});
-    var Expr$606 = TermTree$603.extend({construct: function () {
+    var Expr$604 = TermTree$601.extend({construct: function () {
             }});
-    var PrimaryExpression$607 = Expr$606.extend({construct: function () {
+    var PrimaryExpression$605 = Expr$604.extend({construct: function () {
             }});
-    var ThisExpression$608 = PrimaryExpression$607.extend({
+    var ThisExpression$606 = PrimaryExpression$605.extend({
             properties: ['this'],
             construct: function (that$262) {
                 this.this = that$262;
             }
         });
-    var Lit$609 = PrimaryExpression$607.extend({
+    var Lit$607 = PrimaryExpression$605.extend({
             properties: ['lit'],
             construct: function (l$264) {
                 this.lit = l$264;
             }
         });
-    exports$4._test.PropertyAssignment = PropertyAssignment$610;
-    var PropertyAssignment$610 = TermTree$603.extend({
+    exports$4._test.PropertyAssignment = PropertyAssignment$608;
+    var PropertyAssignment$608 = TermTree$601.extend({
             properties: [
                 'propName',
                 'assignment'
@@ -516,25 +517,25 @@
                 this.assignment = assignment$267;
             }
         });
-    var Block$611 = PrimaryExpression$607.extend({
+    var Block$609 = PrimaryExpression$605.extend({
             properties: ['body'],
             construct: function (body$269) {
                 this.body = body$269;
             }
         });
-    var ArrayLiteral$612 = PrimaryExpression$607.extend({
+    var ArrayLiteral$610 = PrimaryExpression$605.extend({
             properties: ['array'],
             construct: function (ar$271) {
                 this.array = ar$271;
             }
         });
-    var ParenExpression$613 = PrimaryExpression$607.extend({
+    var ParenExpression$611 = PrimaryExpression$605.extend({
             properties: ['expr'],
             construct: function (expr$273) {
                 this.expr = expr$273;
             }
         });
-    var UnaryOp$614 = Expr$606.extend({
+    var UnaryOp$612 = Expr$604.extend({
             properties: [
                 'op',
                 'expr'
@@ -544,7 +545,7 @@
                 this.expr = expr$276;
             }
         });
-    var PostfixOp$615 = Expr$606.extend({
+    var PostfixOp$613 = Expr$604.extend({
             properties: [
                 'expr',
                 'op'
@@ -554,7 +555,7 @@
                 this.op = op$279;
             }
         });
-    var BinOp$616 = Expr$606.extend({
+    var BinOp$614 = Expr$604.extend({
             properties: [
                 'left',
                 'op',
@@ -566,7 +567,7 @@
                 this.right = right$283;
             }
         });
-    var ConditionalExpression$617 = Expr$606.extend({
+    var ConditionalExpression$615 = Expr$604.extend({
             properties: [
                 'cond',
                 'question',
@@ -582,24 +583,24 @@
                 this.fls = fls$289;
             }
         });
-    var Keyword$618 = TermTree$603.extend({
+    var Keyword$616 = TermTree$601.extend({
             properties: ['keyword'],
             construct: function (k$291) {
                 this.keyword = k$291;
             }
         });
-    var Punc$619 = TermTree$603.extend({
+    var Punc$617 = TermTree$601.extend({
             properties: ['punc'],
             construct: function (p$293) {
                 this.punc = p$293;
             }
         });
-    var Delimiter$620 = TermTree$603.extend({
+    var Delimiter$618 = TermTree$601.extend({
             properties: ['delim'],
             destruct: function (breakDelim$295) {
                 parser$6.assert(this.delim, 'expecting delim to be defined');
                 var innerStx$300 = _$5.reduce(this.delim.token.inner, function (acc$297, term$298) {
-                        if (term$298.hasPrototype(TermTree$603)) {
+                        if (term$298.hasPrototype(TermTree$601)) {
                             return acc$297.concat(term$298.destruct(breakDelim$295));
                         } else {
                             return acc$297.concat(term$298);
@@ -629,13 +630,13 @@
                 this.delim = d$303;
             }
         });
-    var Id$621 = PrimaryExpression$607.extend({
+    var Id$619 = PrimaryExpression$605.extend({
             properties: ['id'],
             construct: function (id$305) {
                 this.id = id$305;
             }
         });
-    var NamedFun$622 = Expr$606.extend({
+    var NamedFun$620 = Expr$604.extend({
             properties: [
                 'keyword',
                 'name',
@@ -649,7 +650,7 @@
                 this.body = body$310;
             }
         });
-    var AnonFun$623 = Expr$606.extend({
+    var AnonFun$621 = Expr$604.extend({
             properties: [
                 'keyword',
                 'params',
@@ -661,7 +662,7 @@
                 this.body = body$314;
             }
         });
-    var Macro$624 = TermTree$603.extend({
+    var Macro$622 = TermTree$601.extend({
             properties: [
                 'name',
                 'body'
@@ -671,7 +672,7 @@
                 this.body = body$317;
             }
         });
-    var Const$625 = Expr$606.extend({
+    var Const$623 = Expr$604.extend({
             properties: [
                 'newterm',
                 'call'
@@ -681,7 +682,7 @@
                 this.call = call$320;
             }
         });
-    var Call$626 = Expr$606.extend({
+    var Call$624 = Expr$604.extend({
             properties: [
                 'fun',
                 'args',
@@ -689,18 +690,18 @@
                 'commas'
             ],
             destruct: function (breakDelim$322) {
-                parser$6.assert(this.fun.hasPrototype(TermTree$603), 'expecting a term tree in destruct of call');
+                parser$6.assert(this.fun.hasPrototype(TermTree$601), 'expecting a term tree in destruct of call');
                 var that$328 = this;
                 this.delim = syntaxFromToken(_$5.clone(this.delim.token), this.delim.context);
                 this.delim.token.inner = _$5.reduce(this.args, function (acc$324, term$325) {
-                    parser$6.assert(term$325 && term$325.hasPrototype(TermTree$603), 'expecting term trees in destruct of Call');
+                    parser$6.assert(term$325 && term$325.hasPrototype(TermTree$601), 'expecting term trees in destruct of Call');
                     var dst$327 = acc$324.concat(term$325.destruct(breakDelim$322));
                     if (that$328.commas.length > 0) {
                         dst$327 = dst$327.concat(that$328.commas.shift());
                     }
                     return dst$327;
                 }, []);
-                return this.fun.destruct(breakDelim$322).concat(Delimiter$620.create(this.delim).destruct(breakDelim$322));
+                return this.fun.destruct(breakDelim$322).concat(Delimiter$618.create(this.delim).destruct(breakDelim$322));
             },
             construct: function (funn$329, args$330, delim$331, commas$332) {
                 parser$6.assert(Array.isArray(args$330), 'requires an array of arguments terms');
@@ -710,7 +711,7 @@
                 this.commas = commas$332;
             }
         });
-    var ObjDotGet$627 = Expr$606.extend({
+    var ObjDotGet$625 = Expr$604.extend({
             properties: [
                 'left',
                 'dot',
@@ -722,7 +723,7 @@
                 this.right = right$336;
             }
         });
-    var ObjGet$628 = Expr$606.extend({
+    var ObjGet$626 = Expr$604.extend({
             properties: [
                 'left',
                 'right'
@@ -732,7 +733,7 @@
                 this.right = right$339;
             }
         });
-    var VariableDeclaration$629 = TermTree$603.extend({
+    var VariableDeclaration$627 = TermTree$601.extend({
             properties: [
                 'ident',
                 'eqstx',
@@ -746,7 +747,7 @@
                 this.comma = comma$344;
             }
         });
-    var VariableStatement$630 = Statement$605.extend({
+    var VariableStatement$628 = Statement$603.extend({
             properties: [
                 'varkw',
                 'decls'
@@ -762,7 +763,7 @@
                 this.decls = decls$352;
             }
         });
-    var CatchClause$631 = TermTree$603.extend({
+    var CatchClause$629 = TermTree$601.extend({
             properties: [
                 'catchkw',
                 'params',
@@ -774,7 +775,7 @@
                 this.body = body$356;
             }
         });
-    var Empty$632 = TermTree$603.extend({
+    var Empty$630 = TermTree$601.extend({
             properties: [],
             construct: function () {
             }
@@ -826,26 +827,26 @@
         var decls$368 = [], rest$369 = stx$365, initRes$370, subRes$371;
         if (stx$365[1] && stx$365[1].token.type === parser$6.Token.Punctuator && stx$365[1].token.value === '=') {
             initRes$370 = enforest(stx$365.slice(2), env$366);
-            if (initRes$370.result.hasPrototype(Expr$606)) {
+            if (initRes$370.result.hasPrototype(Expr$604)) {
                 rest$369 = initRes$370.rest;
                 if (initRes$370.rest[0].token.type === parser$6.Token.Punctuator && initRes$370.rest[0].token.value === ',' && initRes$370.rest[1] && initRes$370.rest[1].token.type === parser$6.Token.Identifier) {
-                    decls$368.push(VariableDeclaration$629.create(stx$365[0], stx$365[1], initRes$370.result, initRes$370.rest[0]));
+                    decls$368.push(VariableDeclaration$627.create(stx$365[0], stx$365[1], initRes$370.result, initRes$370.rest[0]));
                     subRes$371 = enforestVarStatement(initRes$370.rest.slice(1), env$366);
                     decls$368 = decls$368.concat(subRes$371.result);
                     rest$369 = subRes$371.rest;
                 } else {
-                    decls$368.push(VariableDeclaration$629.create(stx$365[0], stx$365[1], initRes$370.result));
+                    decls$368.push(VariableDeclaration$627.create(stx$365[0], stx$365[1], initRes$370.result));
                 }
             } else {
                 parser$6.assert(false, 'parse error, expecting an expr in variable initialization');
             }
         } else if (stx$365[1] && stx$365[1].token.type === parser$6.Token.Punctuator && stx$365[1].token.value === ',') {
-            decls$368.push(VariableDeclaration$629.create(stx$365[0], null, null, stx$365[1]));
+            decls$368.push(VariableDeclaration$627.create(stx$365[0], null, null, stx$365[1]));
             subRes$371 = enforestVarStatement(stx$365.slice(2), env$366);
             decls$368 = decls$368.concat(subRes$371.result);
             rest$369 = subRes$371.rest;
         } else {
-            decls$368.push(VariableDeclaration$629.create(stx$365[0]));
+            decls$368.push(VariableDeclaration$627.create(stx$365[0]));
             rest$369 = stx$365.slice(1);
         }
         return {
@@ -859,8 +860,8 @@
         function step(head$375, rest$376) {
             var innerTokens$380;
             parser$6.assert(Array.isArray(rest$376), 'result must at least be an empty array');
-            if (head$375.hasPrototype(TermTree$603)) {
-                if (head$375.hasPrototype(Expr$606) && rest$376[0] && rest$376[0].token.type === parser$6.Token.Delimiter && rest$376[0].token.value === '()') {
+            if (head$375.hasPrototype(TermTree$601)) {
+                if (head$375.hasPrototype(Expr$604) && rest$376[0] && rest$376[0].token.type === parser$6.Token.Delimiter && rest$376[0].token.value === '()') {
                     var argRes$381, enforestedArgs$382 = [], commas$383 = [];
                     innerTokens$380 = rest$376[0].token.inner;
                     while (innerTokens$380.length > 0) {
@@ -875,73 +876,73 @@
                         }
                     }
                     var argsAreExprs$384 = _$5.all(enforestedArgs$382, function (argTerm$378) {
-                            return argTerm$378.hasPrototype(Expr$606);
+                            return argTerm$378.hasPrototype(Expr$604);
                         });
                     if (innerTokens$380.length === 0 && argsAreExprs$384) {
-                        return step(Call$626.create(head$375, enforestedArgs$382, rest$376[0], commas$383), rest$376.slice(1));
+                        return step(Call$624.create(head$375, enforestedArgs$382, rest$376[0], commas$383), rest$376.slice(1));
                     }
-                } else if (head$375.hasPrototype(Keyword$618) && head$375.keyword.token.value === 'new' && rest$376[0]) {
+                } else if (head$375.hasPrototype(Keyword$616) && head$375.keyword.token.value === 'new' && rest$376[0]) {
                     var newCallRes$385 = enforest(rest$376, env$373);
-                    if (newCallRes$385.result.hasPrototype(Call$626)) {
-                        return step(Const$625.create(head$375, newCallRes$385.result), newCallRes$385.rest);
+                    if (newCallRes$385.result.hasPrototype(Call$624)) {
+                        return step(Const$623.create(head$375, newCallRes$385.result), newCallRes$385.rest);
                     }
-                } else if (head$375.hasPrototype(Expr$606) && rest$376[0] && rest$376[0].token.value === '?') {
+                } else if (head$375.hasPrototype(Expr$604) && rest$376[0] && rest$376[0].token.value === '?') {
                     var question$386 = rest$376[0];
                     var condRes$387 = enforest(rest$376.slice(1), env$373);
                     var truExpr$388 = condRes$387.result;
-                    var right$389 = condRes$387.rest;
-                    if (truExpr$388.hasPrototype(Expr$606) && right$389[0] && right$389[0].token.value === ':') {
-                        var colon$390 = right$389[0];
-                        var flsRes$391 = enforest(right$389.slice(1), env$373);
-                        var flsExpr$392 = flsRes$391.result;
-                        if (flsExpr$392.hasPrototype(Expr$606)) {
-                            return step(ConditionalExpression$617.create(head$375, question$386, truExpr$388, colon$390, flsExpr$392), flsRes$391.rest);
+                    var right$395 = condRes$387.rest;
+                    if (truExpr$388.hasPrototype(Expr$604) && right$395[0] && right$395[0].token.value === ':') {
+                        var colon$389 = right$395[0];
+                        var flsRes$390 = enforest(right$395.slice(1), env$373);
+                        var flsExpr$391 = flsRes$390.result;
+                        if (flsExpr$391.hasPrototype(Expr$604)) {
+                            return step(ConditionalExpression$615.create(head$375, question$386, truExpr$388, colon$389, flsExpr$391), flsRes$390.rest);
                         }
                     }
-                } else if (head$375.hasPrototype(Delimiter$620) && head$375.delim.token.value === '()') {
+                } else if (head$375.hasPrototype(Delimiter$618) && head$375.delim.token.value === '()') {
                     innerTokens$380 = head$375.delim.token.inner;
                     if (innerTokens$380.length === 0) {
-                        return step(ParenExpression$613.create(head$375), rest$376);
+                        return step(ParenExpression$611.create(head$375), rest$376);
                     } else {
-                        var innerTerm$393 = get_expression(innerTokens$380, env$373);
-                        if (innerTerm$393.result && innerTerm$393.result.hasPrototype(Expr$606)) {
-                            return step(ParenExpression$613.create(head$375), rest$376);
+                        var innerTerm$392 = get_expression(innerTokens$380, env$373);
+                        if (innerTerm$392.result && innerTerm$392.result.hasPrototype(Expr$604)) {
+                            return step(ParenExpression$611.create(head$375), rest$376);
                         }
                     }
                 } else if (rest$376[0] && rest$376[1] && stxIsBinOp(rest$376[0])) {
-                    var op$394 = rest$376[0];
-                    var left$395 = head$375;
-                    var bopRes$396 = enforest(rest$376.slice(1), env$373);
-                    var right$389 = bopRes$396.result;
-                    if (right$389.hasPrototype(Expr$606)) {
-                        return step(BinOp$616.create(op$394, left$395, right$389), bopRes$396.rest);
+                    var op$397 = rest$376[0];
+                    var left$393 = head$375;
+                    var bopRes$394 = enforest(rest$376.slice(1), env$373);
+                    var right$395 = bopRes$394.result;
+                    if (right$395.hasPrototype(Expr$604)) {
+                        return step(BinOp$614.create(op$397, left$393, right$395), bopRes$394.rest);
                     }
-                } else if (head$375.hasPrototype(Punc$619) && stxIsUnaryOp(head$375.punc) || head$375.hasPrototype(Keyword$618) && stxIsUnaryOp(head$375.keyword)) {
-                    var unopRes$397 = enforest(rest$376);
-                    var op$394 = head$375.hasPrototype(Punc$619) ? head$375.punc : head$375.keyword;
-                    if (unopRes$397.result.hasPrototype(Expr$606)) {
-                        return step(UnaryOp$614.create(op$394, unopRes$397.result), unopRes$397.rest);
+                } else if (head$375.hasPrototype(Punc$617) && stxIsUnaryOp(head$375.punc) || head$375.hasPrototype(Keyword$616) && stxIsUnaryOp(head$375.keyword)) {
+                    var unopRes$396 = enforest(rest$376);
+                    var op$397 = head$375.hasPrototype(Punc$617) ? head$375.punc : head$375.keyword;
+                    if (unopRes$396.result.hasPrototype(Expr$604)) {
+                        return step(UnaryOp$612.create(op$397, unopRes$396.result), unopRes$396.rest);
                     }
-                } else if (head$375.hasPrototype(Expr$606) && rest$376[0] && (rest$376[0].token.value === '++' || rest$376[0].token.value === '--')) {
-                    return step(PostfixOp$615.create(head$375, rest$376[0]), rest$376.slice(1));
-                } else if (head$375.hasPrototype(Expr$606) && rest$376[0] && rest$376[0].token.value === '[]') {
+                } else if (head$375.hasPrototype(Expr$604) && rest$376[0] && (rest$376[0].token.value === '++' || rest$376[0].token.value === '--')) {
+                    return step(PostfixOp$613.create(head$375, rest$376[0]), rest$376.slice(1));
+                } else if (head$375.hasPrototype(Expr$604) && rest$376[0] && rest$376[0].token.value === '[]') {
                     var getRes$398 = enforest(rest$376[0].token.inner, env$373);
                     var resStx$399 = mkSyntax('[]', parser$6.Token.Delimiter, rest$376[0]);
                     resStx$399.token.inner = [getRes$398.result];
                     if (getRes$398.rest.length > 0) {
-                        return step(ObjGet$628.create(head$375, Delimiter$620.create(resStx$399)), rest$376.slice(1));
+                        return step(ObjGet$626.create(head$375, Delimiter$618.create(resStx$399)), rest$376.slice(1));
                     }
-                } else if (head$375.hasPrototype(Expr$606) && rest$376[0] && rest$376[0].token.value === '.' && rest$376[1] && rest$376[1].token.type === parser$6.Token.Identifier) {
-                    return step(ObjDotGet$627.create(head$375, rest$376[0], rest$376[1]), rest$376.slice(2));
-                } else if (head$375.hasPrototype(Delimiter$620) && head$375.delim.token.value === '[]') {
-                    return step(ArrayLiteral$612.create(head$375), rest$376);
-                } else if (head$375.hasPrototype(Delimiter$620) && head$375.delim.token.value === '{}') {
+                } else if (head$375.hasPrototype(Expr$604) && rest$376[0] && rest$376[0].token.value === '.' && rest$376[1] && rest$376[1].token.type === parser$6.Token.Identifier) {
+                    return step(ObjDotGet$625.create(head$375, rest$376[0], rest$376[1]), rest$376.slice(2));
+                } else if (head$375.hasPrototype(Delimiter$618) && head$375.delim.token.value === '[]') {
+                    return step(ArrayLiteral$610.create(head$375), rest$376);
+                } else if (head$375.hasPrototype(Delimiter$618) && head$375.delim.token.value === '{}') {
                     innerTokens$380 = head$375.delim.token.inner;
-                    return step(Block$611.create(head$375), rest$376);
-                } else if (head$375.hasPrototype(Keyword$618) && head$375.keyword.token.value === 'var' && rest$376[0] && rest$376[0].token.type === parser$6.Token.Identifier) {
+                    return step(Block$609.create(head$375), rest$376);
+                } else if (head$375.hasPrototype(Keyword$616) && head$375.keyword.token.value === 'var' && rest$376[0] && rest$376[0].token.type === parser$6.Token.Identifier) {
                     var vsRes$400 = enforestVarStatement(rest$376, env$373);
                     if (vsRes$400) {
-                        return step(VariableStatement$630.create(head$375, vsRes$400.result), vsRes$400.rest);
+                        return step(VariableStatement$628.create(head$375, vsRes$400.result), vsRes$400.rest);
                     }
                 }
             } else {
@@ -952,33 +953,33 @@
                     if (rt$402.result.length > 0) {
                         return step(rt$402.result[0], rt$402.result.slice(1).concat(rt$402.rest));
                     } else {
-                        return step(Empty$632.create(), rt$402.rest);
+                        return step(Empty$630.create(), rt$402.rest);
                     }
                 } else if (head$375.token.type === parser$6.Token.Identifier && head$375.token.value === 'macro' && rest$376[0] && (rest$376[0].token.type === parser$6.Token.Identifier || rest$376[0].token.type === parser$6.Token.Keyword) && rest$376[1] && rest$376[1].token.type === parser$6.Token.Delimiter && rest$376[1].token.value === '{}') {
-                    return step(Macro$624.create(rest$376[0], rest$376[1].token.inner), rest$376.slice(2));
+                    return step(Macro$622.create(rest$376[0], rest$376[1].token.inner), rest$376.slice(2));
                 } else if (head$375.token.type === parser$6.Token.Keyword && head$375.token.value === 'function' && rest$376[0] && rest$376[0].token.type === parser$6.Token.Identifier && rest$376[1] && rest$376[1].token.type === parser$6.Token.Delimiter && rest$376[1].token.value === '()' && rest$376[2] && rest$376[2].token.type === parser$6.Token.Delimiter && rest$376[2].token.value === '{}') {
-                    return step(NamedFun$622.create(head$375, rest$376[0], rest$376[1], rest$376[2]), rest$376.slice(3));
+                    return step(NamedFun$620.create(head$375, rest$376[0], rest$376[1], rest$376[2]), rest$376.slice(3));
                 } else if (head$375.token.type === parser$6.Token.Keyword && head$375.token.value === 'function' && rest$376[0] && rest$376[0].token.type === parser$6.Token.Delimiter && rest$376[0].token.value === '()' && rest$376[1] && rest$376[1].token.type === parser$6.Token.Delimiter && rest$376[1].token.value === '{}') {
-                    return step(AnonFun$623.create(head$375, rest$376[0], rest$376[1]), rest$376.slice(2));
+                    return step(AnonFun$621.create(head$375, rest$376[0], rest$376[1]), rest$376.slice(2));
                 } else if (head$375.token.type === parser$6.Token.Keyword && head$375.token.value === 'catch' && rest$376[0] && rest$376[0].token.type === parser$6.Token.Delimiter && rest$376[0].token.value === '()' && rest$376[1] && rest$376[1].token.type === parser$6.Token.Delimiter && rest$376[1].token.value === '{}') {
-                    return step(CatchClause$631.create(head$375, rest$376[0], rest$376[1]), rest$376.slice(2));
+                    return step(CatchClause$629.create(head$375, rest$376[0], rest$376[1]), rest$376.slice(2));
                 } else if (head$375.token.type === parser$6.Token.Keyword && head$375.token.value === 'this') {
-                    return step(ThisExpression$608.create(head$375), rest$376);
+                    return step(ThisExpression$606.create(head$375), rest$376);
                 } else if (head$375.token.type === parser$6.Token.NumericLiteral || head$375.token.type === parser$6.Token.StringLiteral || head$375.token.type === parser$6.Token.BooleanLiteral || head$375.token.type === parser$6.Token.RegexLiteral || head$375.token.type === parser$6.Token.NullLiteral) {
-                    return step(Lit$609.create(head$375), rest$376);
+                    return step(Lit$607.create(head$375), rest$376);
                 } else if (head$375.token.type === parser$6.Token.Identifier) {
-                    return step(Id$621.create(head$375), rest$376);
+                    return step(Id$619.create(head$375), rest$376);
                 } else if (head$375.token.type === parser$6.Token.Punctuator) {
-                    return step(Punc$619.create(head$375), rest$376);
+                    return step(Punc$617.create(head$375), rest$376);
                 } else if (head$375.token.type === parser$6.Token.Keyword && head$375.token.value === 'with') {
                     throwError('with is not supported in sweet.js');
                 } else if (head$375.token.type === parser$6.Token.Keyword) {
-                    return step(Keyword$618.create(head$375), rest$376);
+                    return step(Keyword$616.create(head$375), rest$376);
                 } else if (head$375.token.type === parser$6.Token.Delimiter) {
-                    return step(Delimiter$620.create(head$375), rest$376);
+                    return step(Delimiter$618.create(head$375), rest$376);
                 } else if (head$375.token.type === parser$6.Token.EOF) {
                     parser$6.assert(rest$376.length === 0, 'nothing should be after an EOF');
-                    return step(EOF$604.create(head$375), []);
+                    return step(EOF$602.create(head$375), []);
                 } else {
                     parser$6.assert(false, 'not implemented');
                 }
@@ -992,7 +993,7 @@
     }
     function get_expression(stx$403, env$404) {
         var res$406 = enforest(stx$403, env$404);
-        if (!res$406.result.hasPrototype(Expr$606)) {
+        if (!res$406.result.hasPrototype(Expr$604)) {
             return {
                 result: null,
                 rest: stx$403
@@ -1017,7 +1018,7 @@
             rest$414 = stx$410.slice(1);
         } else if (patternClass$409 === 'VariableStatement') {
             var match$415 = enforest(stx$410, env$411);
-            if (match$415.result && match$415.result.hasPrototype(VariableStatement$630)) {
+            if (match$415.result && match$415.result.hasPrototype(VariableStatement$628)) {
                 result$413 = match$415.result.destruct(false);
                 rest$414 = match$415.rest;
             } else {
@@ -1026,7 +1027,7 @@
             }
         } else if (patternClass$409 === 'expr') {
             var match$415 = get_expression(stx$410, env$411);
-            if (match$415.result === null || !match$415.result.hasPrototype(Expr$606)) {
+            if (match$415.result === null || !match$415.result.hasPrototype(Expr$604)) {
                 result$413 = null;
                 rest$414 = stx$410;
             } else {
@@ -1285,7 +1286,7 @@
                 caseBody$503 = sortedCases$507[i$506].body;
                 match$501 = matchPatterns(casePattern$502, stx$495, env$497, true);
                 if (match$501.success) {
-                    newMark$504 = fresh$600();
+                    newMark$504 = fresh$598();
                     applyMarkToPatternEnv(newMark$504, match$501.patternEnv);
                     macroResult$505 = transcribe(caseBody$503, macroNameStx$496, match$501.patternEnv);
                     macroResult$505 = _$5.map(macroResult$505, function (stx$499) {
@@ -1365,7 +1366,7 @@
         var f$528 = enforest(stx$525, env$526);
         var head$529 = f$528.result;
         var rest$530 = f$528.rest;
-        if (head$529.hasPrototype(Macro$624)) {
+        if (head$529.hasPrototype(Macro$622)) {
             var macroDefinition$531 = loadMacroDef(head$529);
             env$526.set(head$529.name.token.value, macroDefinition$531);
             return expandToTermTree(rest$530, env$526);
@@ -1379,147 +1380,146 @@
     function expandTermTreeToFinal(term$533, env$534, ctx$535) {
         parser$6.assert(env$534, 'environment map is required');
         parser$6.assert(ctx$535, 'context map is required');
-        if (term$533.hasPrototype(ArrayLiteral$612)) {
+        if (term$533.hasPrototype(ArrayLiteral$610)) {
             term$533.array.delim.token.inner = expand(term$533.array.delim.token.inner, env$534);
             return term$533;
-        } else if (term$533.hasPrototype(Block$611)) {
+        } else if (term$533.hasPrototype(Block$609)) {
             term$533.body.delim.token.inner = expand(term$533.body.delim.token.inner, env$534);
             return term$533;
-        } else if (term$533.hasPrototype(ParenExpression$613)) {
+        } else if (term$533.hasPrototype(ParenExpression$611)) {
             term$533.expr.delim.token.inner = expand(term$533.expr.delim.token.inner, env$534, ctx$535);
             return term$533;
-        } else if (term$533.hasPrototype(Call$626)) {
+        } else if (term$533.hasPrototype(Call$624)) {
             term$533.fun = expandTermTreeToFinal(term$533.fun, env$534, ctx$535);
             term$533.args = _$5.map(term$533.args, function (arg$537) {
                 return expandTermTreeToFinal(arg$537, env$534, ctx$535);
             });
             return term$533;
-        } else if (term$533.hasPrototype(UnaryOp$614)) {
+        } else if (term$533.hasPrototype(UnaryOp$612)) {
             term$533.expr = expandTermTreeToFinal(term$533.expr, env$534, ctx$535);
             return term$533;
-        } else if (term$533.hasPrototype(BinOp$616)) {
+        } else if (term$533.hasPrototype(BinOp$614)) {
             term$533.left = expandTermTreeToFinal(term$533.left, env$534, ctx$535);
             term$533.right = expandTermTreeToFinal(term$533.right, env$534, ctx$535);
             return term$533;
-        } else if (term$533.hasPrototype(ObjDotGet$627)) {
+        } else if (term$533.hasPrototype(ObjDotGet$625)) {
             term$533.left = expandTermTreeToFinal(term$533.left, env$534, ctx$535);
             term$533.right = expandTermTreeToFinal(term$533.right, env$534, ctx$535);
             return term$533;
-        } else if (term$533.hasPrototype(VariableDeclaration$629)) {
+        } else if (term$533.hasPrototype(VariableDeclaration$627)) {
             if (term$533.init) {
                 term$533.init = expandTermTreeToFinal(term$533.init, env$534, ctx$535);
             }
             return term$533;
-        } else if (term$533.hasPrototype(VariableStatement$630)) {
+        } else if (term$533.hasPrototype(VariableStatement$628)) {
             term$533.decls = _$5.map(term$533.decls, function (decl$539) {
                 return expandTermTreeToFinal(decl$539, env$534, ctx$535);
             });
             return term$533;
-        } else if (term$533.hasPrototype(Delimiter$620)) {
+        } else if (term$533.hasPrototype(Delimiter$618)) {
             term$533.delim.token.inner = expand(term$533.delim.token.inner, env$534);
             return term$533;
-        } else if (term$533.hasPrototype(NamedFun$622) || term$533.hasPrototype(AnonFun$623) || term$533.hasPrototype(CatchClause$631)) {
-            var paramNames$563 = _$5.map(getParamIdentifiers(term$533.params), function (param$541) {
-                    var freshName$543 = fresh$600();
+        } else if (term$533.hasPrototype(NamedFun$620) || term$533.hasPrototype(AnonFun$621) || term$533.hasPrototype(CatchClause$629)) {
+            var paramNames$559 = _$5.map(getParamIdentifiers(term$533.params), function (param$541) {
+                    var freshName$543 = fresh$598();
                     return {
                         freshName: freshName$543,
                         originalParam: param$541,
                         renamedParam: param$541.rename(param$541, freshName$543)
                     };
                 });
-            var newCtx$564 = ctx$535;
-            var stxBody$565 = term$533.body;
-            var renamedBody$566 = _$5.reduce(paramNames$563, function (accBody$544, p$545) {
+            var newCtx$560 = ctx$535;
+            var stxBody$561 = term$533.body;
+            var renamedBody$562 = _$5.reduce(paramNames$559, function (accBody$544, p$545) {
                     return accBody$544.rename(p$545.originalParam, p$545.freshName);
-                }, stxBody$565);
-            var dummyName$567 = fresh$600();
-            renamedBody$566 = renamedBody$566.push_dummy_rename(dummyName$567);
-            var bodyTerms$568 = expand([renamedBody$566], env$534, newCtx$564);
-            parser$6.assert(bodyTerms$568.length === 1 && bodyTerms$568[0].body, 'expecting a block in the bodyTerms');
-            var varIdents$569 = getVarDeclIdentifiers(bodyTerms$568[0]);
-            varIdents$569 = _$5.filter(varIdents$569, function (varId$547) {
-                return !_$5.any(paramNames$563, function (p$549) {
-                    return resolve(varId$547) === resolve(p$549.renamedParam);
-                });
-            });
-            varIdents$569 = _$5.uniq(varIdents$569, false, function (v$551) {
-                return resolve(v$551);
-            });
-            var varNames$570 = _$5.map(varIdents$569, function (ident$553) {
-                    var freshName$555 = fresh$600();
+                }, stxBody$561);
+            var dummyName$563 = fresh$598();
+            renamedBody$562 = renamedBody$562.push_dummy_rename(dummyName$563);
+            var bodyTerms$564 = expand([renamedBody$562], env$534, newCtx$560);
+            parser$6.assert(bodyTerms$564.length === 1 && bodyTerms$564[0].body, 'expecting a block in the bodyTerms');
+            var varIdents$565 = getVarDeclIdentifiers(bodyTerms$564[0]);
+            var acc$566 = [];
+            for (var i$567 = 0; i$567 < varIdents$565.length; i$567++) {
+                var isUnique$568 = !_$5.find(varIdents$565.slice(i$567 + 1), function (id$547) {
+                        return resolve(varIdents$565[i$567]) === resolve(id$547) && arraysEqual(marksof(varIdents$565[i$567].context), marksof(id$547.context));
+                    });
+                if (isUnique$568) {
+                    acc$566.push(varIdents$565[i$567]);
+                }
+            }
+            varIdents$565 = acc$566;
+            var varNames$569 = _$5.map(varIdents$565, function (ident$549) {
+                    var freshName$551 = fresh$598();
                     return {
-                        freshName: freshName$555,
-                        dummyName: dummyName$567,
-                        originalVar: ident$553,
-                        renamedVar: ident$553.swap_dummy_rename([{
-                                freshName: freshName$555,
-                                originalVar: ident$553
-                            }], dummyName$567)
+                        freshName: freshName$551,
+                        dummyName: dummyName$563,
+                        originalVar: ident$549,
+                        renamedVar: ident$549.rename(ident$549, freshName$551)
                     };
                 });
-            var flattenedBody$571 = _$5.map(flatten(bodyTerms$568), function (stx$556) {
-                    var isDecl$560;
-                    if (stx$556.token.type === parser$6.Token.Identifier) {
-                        isDecl$560 = _$5.find(varNames$570, function (v$558) {
-                            return v$558.originalVar === stx$556;
+            var flattenedBody$570 = _$5.map(flatten(bodyTerms$564), function (stx$552) {
+                    var isDecl$556;
+                    if (stx$552.token.type === parser$6.Token.Identifier) {
+                        isDecl$556 = _$5.find(varNames$569, function (v$554) {
+                            return v$554.originalVar === stx$552;
                         });
-                        if (isDecl$560) {
-                            return isDecl$560.renamedVar;
+                        if (isDecl$556) {
+                            return isDecl$556.renamedVar;
                         }
-                        return stx$556.swap_dummy_rename(varNames$570, dummyName$567);
+                        return stx$552.swap_dummy_rename(varNames$569, dummyName$563);
                     }
-                    return stx$556;
+                    return stx$552;
                 });
-            var renamedParams$572 = _$5.map(paramNames$563, function (p$561) {
-                    return p$561.renamedParam;
+            var renamedParams$571 = _$5.map(paramNames$559, function (p$557) {
+                    return p$557.renamedParam;
                 });
-            var flatArgs$573 = wrapDelim(joinSyntax(renamedParams$572, ','), term$533.params);
-            var expandedArgs$574 = expand([flatArgs$573], env$534, ctx$535);
-            parser$6.assert(expandedArgs$574.length === 1, 'should only get back one result');
-            term$533.params = expandedArgs$574[0];
-            term$533.body = flattenedBody$571;
+            var flatArgs$572 = wrapDelim(joinSyntax(renamedParams$571, ','), term$533.params);
+            var expandedArgs$573 = expand([flatArgs$572], env$534, ctx$535);
+            parser$6.assert(expandedArgs$573.length === 1, 'should only get back one result');
+            term$533.params = expandedArgs$573[0];
+            term$533.body = flattenedBody$570;
             return term$533;
         }
         return term$533;
     }
-    function expand(stx$575, env$576, ctx$577) {
-        env$576 = env$576 || new Map();
-        ctx$577 = ctx$577 || new Map();
-        var trees$581 = expandToTermTree(stx$575, env$576, ctx$577);
-        return _$5.map(trees$581.terms, function (term$579) {
-            return expandTermTreeToFinal(term$579, trees$581.env, ctx$577);
+    function expand(stx$574, env$575, ctx$576) {
+        env$575 = env$575 || new Map();
+        ctx$576 = ctx$576 || new Map();
+        var trees$580 = expandToTermTree(stx$574, env$575, ctx$576);
+        return _$5.map(trees$580.terms, function (term$578) {
+            return expandTermTreeToFinal(term$578, trees$580.env, ctx$576);
         });
     }
-    function expandTopLevel(stx$582) {
-        var funn$584 = syntaxFromToken({
+    function expandTopLevel(stx$581) {
+        var funn$583 = syntaxFromToken({
                 value: 'function',
                 type: parser$6.Token.Keyword
             });
-        var name$585 = syntaxFromToken({
+        var name$584 = syntaxFromToken({
                 value: '$topLevel$',
                 type: parser$6.Token.Identifier
             });
-        var params$586 = syntaxFromToken({
+        var params$585 = syntaxFromToken({
                 value: '()',
                 type: parser$6.Token.Delimiter,
                 inner: []
             });
-        var body$587 = syntaxFromToken({
+        var body$586 = syntaxFromToken({
                 value: '{}',
                 type: parser$6.Token.Delimiter,
-                inner: stx$582
+                inner: stx$581
             });
-        var res$588 = expand([
-                funn$584,
-                name$585,
-                params$586,
-                body$587
+        var res$587 = expand([
+                funn$583,
+                name$584,
+                params$585,
+                body$586
             ]);
-        return res$588[0].body.slice(1, res$588[0].body.length - 1);
+        return res$587[0].body.slice(1, res$587[0].body.length - 1);
     }
-    function flatten(terms$589) {
-        return _$5.reduce(terms$589, function (acc$591, term$592) {
-            return acc$591.concat(term$592.destruct(true));
+    function flatten(terms$588) {
+        return _$5.reduce(terms$588, function (acc$590, term$591) {
+            return acc$590.concat(term$591.destruct(true));
         }, []);
     }
     exports$4.enforest = enforest;
