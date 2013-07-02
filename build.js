@@ -6,6 +6,9 @@ var Benchmark = require("benchmark");
 
 var suite = new Benchmark.Suite;
 
+var contracts_lib = "node_modules/sweet-contracts/lib/sweet-contracts.js";
+var contracts_bin = "node_modules/sweet-contracts/bin/sweet-contracts";
+
 target.all = function() {
     target.clean();
     target.build();
@@ -51,7 +54,12 @@ target.build = function() {
 
     ls("src/*.js").forEach(function(file) {
         echo("compiling: " + path.basename(file));
-        exec("bin/sjs --output lib/" + path.basename(file) + " " + file);
+        // compile the expander only with support for contract macros
+        if(file === "src/expander.js") {
+            exec("bin/sjs --output lib/" + path.basename(file) + " --module " + contracts_lib + " " + file);
+        } else {
+            exec("bin/sjs --output lib/" + path.basename(file) + " " + file);
+        }
     });
 };
 

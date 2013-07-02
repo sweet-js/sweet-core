@@ -23,29 +23,32 @@
 */
 
 
+
+
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require('./parser'), require("es6-collections"));
+        factory(exports, require('underscore'), require('./parser'), require("es6-collections"), require("contracts-js"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'parser', 'es6-collections'], factory);
+        define(['exports', 'underscore', 'parser', 'es6-collections', 'contracts-js'], factory);
     } else {
         // Browser globals
-        factory((root.expander = {}), root._, root.parser);
+        factory((root.expander = {}), root._, root.parser, root.es6, root.contracts);
     }
-}(this, function(exports, _, parser, es6) {
+}(this, function(exports, _, parser, es6, contracts) {
     'use strict';
+    setupContracts(contracts);
     // used to export "private" methods for unit testing
     exports._test = {};
 
     // some convenience monkey patching
     Object.prototype.create = function() {
-        var obj = Object.create(this);
-        if (typeof obj.construct === "function") {
-            obj.construct.apply(obj, arguments);
+        var o = Object.create(this);
+        if (typeof o.construct === "function") {
+            o.construct.apply(o, arguments);
         }
-        return obj;
+        return o;
     };
 
     Object.prototype.extend = function(properties) {
@@ -124,6 +127,21 @@
         return r && (typeof r.dummy_name !== 'undefined');
     };
 
+    mkContract (CToken, {
+        type: ?Num,
+        value: ?(Num or Str)
+    });
+
+    mkContract (CContext, {
+        name: ?Num,
+        dummy_name: ?Num,
+        context: Self
+    });
+
+    mkContract (CSyntax, {
+        token: CToken,
+        context: CContext
+    });
 
     var syntaxProto =  {
         // (?) -> CSyntax
@@ -256,6 +274,8 @@
             return marksof(ctx.context);
         }
         if (isRename(ctx)) {
+            // TODO: this shortcut will never fire because we're using
+            // the wrong name vs stopName
             if(stopName === ctx.name) {
                 return [];
             }
@@ -303,6 +323,8 @@
     }
 
     var nextFresh = 0;
+
+    fun () -> Num
     function fresh() { return nextFresh++; };
 
     // (CToken or [...CToken]) -> [...CSyntax]
@@ -330,6 +352,7 @@
 
 
     // CToken -> Bool
+    fun (CToken) -> Bool
     function isPatternVar(token) {
         return token.type === parser.Token.Identifier &&
                 token.value[0] === "$" &&   // starts with $
@@ -441,7 +464,7 @@
                     type: stx.token.type,
                     lineNumber: from.token.lineNumber,
                     lineStart: from.token.lineStart,
-                    range: null // need to figure out range after expansion
+                    range: from.token.range
                 }, stx.context);
         });
     }
@@ -826,9 +849,9 @@
             return this.fun.destruct(breakDelim).concat(Delimiter.create(this.delim).destruct(breakDelim));
         },
 
-        construct: function(fun, args, delim, commas) {
+        construct: function(funn, args, delim, commas) {
             parser.assert(Array.isArray(args), "requires an array of arguments terms");
-            this.fun = fun;
+            this.fun = funn;
             this.args = args;
             this.delim = delim;
             // an ugly little hack to keep the same syntax objects (with associated line numbers
@@ -1876,7 +1899,7 @@
                     });
                     if(isDecl) {
                         // if syntax is one of the var declaration identifiers,
-                        // we replaces it with the renamed version
+                        // we replace it with the renamed version
                         return isDecl.renamedVar;
                     }
                     return stx.swap_dummy_rename(varNames, dummyName);
@@ -1912,7 +1935,7 @@
 
     // a hack to make the top level hygiene work out
     function expandTopLevel (stx) {
-        var fun = syntaxFromToken({
+        var funn = syntaxFromToken({
             value: "function",
             type: parser.Token.Keyword
         });
@@ -1930,7 +1953,7 @@
             type: parser.Token.Delimiter,
             inner: stx
         });
-        var res = expand([fun, name, params, body]);
+        var res = expand([funn, name, params, body]);
         // drop the { and }
         return res[0].body.slice(1, res[0].body.length - 1);
     }
