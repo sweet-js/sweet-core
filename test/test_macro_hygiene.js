@@ -171,49 +171,49 @@ describe("macro hygiene", function() {
         expect(bar()).to.be(100);
     });
 
-    // it("should work for vars with hoisting", function() {
-    //   macro m {
-    //     case $x:lit => {
-    //       var tmp = $x;
-    //     }
-    //   }
+    it("should work for vars with hoisting", function() {
+      macro m {
+        case $x:lit => {
+          var tmp = $x;
+        }
+      }
 
-    //   var tmp = "outer"
-    //   m "inner"
-    //   expect(tmp).to.be("outer");
+      var tmp = "outer"
+      m "inner"
+      expect(tmp).to.be("outer");
 
-    // });
+    });
 
-    // // it("should work for vars with hoisting and params", function() {
-    // //   function f(tmp) {
-    // //     macro m {
-    // //       case $x:lit => {
-    // //         var tmp = $x;
-    // //       }
-    // //     }
+    it("should work for vars with hoisting and params", function() {
+      function f(tmp) {
+        macro m {
+          case $x:lit => {
+            var tmp = $x;
+          }
+        }
 
-    // //     var tmp = "outer"
-    // //     m "inner"
-    // //     expect(tmp).to.be("outer");
-    // //   }
+        var tmp = "outer"
+        m "inner"
+        expect(tmp).to.be("outer");
+      }
 
-    // //   f("call")
+      f("call")
 
-    // // });
+    });
 
-    // it("should work for var with nested function", function() {
-    //   macro m {
-    //     case $x:lit => {
-    //       var tmp = $x;
-    //     }
-    //   }
-    //   function f() {
-    //     var tmp = "outer"
-    //     m "inner"
-    //     expect(tmp).to.be("outer");
-    //   }
-    //   f();
-    // });
+    it("should work for var with nested function", function() {
+      macro m {
+        case $x:lit => {
+          var tmp = $x;
+        }
+      }
+      function f() {
+        var tmp = "outer"
+        m "inner"
+        expect(tmp).to.be("outer");
+      }
+      f();
+    });
 
 
     // // todo this test needs a better api (syntax-case?)
@@ -233,19 +233,19 @@ describe("macro hygiene", function() {
     // //   })(42);
     // // });
 
-    // // it("should work for the or macro with var", function() {
-    // //   macro or {
-    // //     case ($x:expr, $y:expr) => {
-    // //       (function() {
-    // //         var $tmp = $x;
-    // //         return $tmp ? $tmp : $y;
-    // //       })();
-    // //     }
-    // //   }
+    it("should work for the or macro with var", function() {
+      macro or {
+        case ($x:expr, $y:expr) => {
+          (function() {
+            var $tmp = $x;
+            return $tmp ? $tmp : $y;
+          })();
+        }
+      }
 
-    // //   var $tmp = "ok"
-    // //   var z = or(false, $tmp);
-    // //   expect(z).to.be("ok");
-    // // });
+      var $tmp = "ok"
+      var z = or(false, $tmp);
+      expect(z).to.be("ok");
+    });
 
 });
