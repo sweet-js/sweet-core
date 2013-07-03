@@ -1,8 +1,24 @@
 var expect = require("expect.js")
 
-describe("macro hygiene", function() {
+macro $describe {
+    case $description:lit { $body ... } => {
+        describe($description, function() {
+            $body ...
+        });
+    }
+}
 
-    it("should work for or macro", function() {
+macro $it {
+    case $description:lit { $body ... } => {
+        it($description, function() {
+            $body ...
+        });
+    }
+}
+
+$describe "macro hygiene" {
+
+    $it "should work for or macro" {
         macro or {
             case ($x , $y) => {
                 (function($tmp) {
@@ -16,12 +32,11 @@ describe("macro hygiene", function() {
             expect(z).to.be("ok");
         })("ok");
 
-    });
+    }
     
 
 
-    it("should work for a binding outside of the macro def", function() {
-
+    $it "should work for a binding outside of the macro def" {
 
         var z = (function(x) {
 
@@ -37,10 +52,10 @@ describe("macro hygiene", function() {
 
         })(1);
         expect(z).to.be(23)
-    });
+    }
 
 
-    it("should not rename object idents if they are the same as vars", function() {
+    $it "should not rename object idents if they are the same as vars" {
         var o = (function (x) {
             return {
                 x: x
@@ -48,17 +63,17 @@ describe("macro hygiene", function() {
         })(42)
 
         expect(o.x).to.be(42);
-    });
+    }
 
-    it("should not rename object dot accesses", function() {
+    $it "should not rename object dot accesses" {
         var n = (function (o, x) {
             return o.x;
         })({x: 42})
 
         expect(n).to.be(42)
-    });
+    }
 
-    it("should do the correct renaming without macros for vars", function() {
+    $it "should do the correct renaming without macros for vars" {
         var z = (function() {
             var x = 42;
             return (function() {
@@ -68,9 +83,9 @@ describe("macro hygiene", function() {
             })();
         })();
         expect(z).to.be(undefined)
-    });
+    }
 
-    it("should do the correct renaming without macros for vars and params", function() {
+    $it "should do the correct renaming without macros for vars and params" {
         var z = (function() {
             return (function(x) {
                 var x = "foo"
@@ -79,9 +94,9 @@ describe("macro hygiene", function() {
             })(42);
         })();
         expect(z).to.be("foo")
-    });
+    }
 
-    it("should do the correct renaming with macros for vars", function() {
+    $it "should do the correct renaming with macros for vars" {
         macro m {
             case () => { var x = 5; }
         }
@@ -91,9 +106,9 @@ describe("macro hygiene", function() {
             return y;
         })("foo")
         expect(z).to.be("foo")
-    });
+    }
 
-    it("should work with vars and catch statements", function() {
+    $it "should work with vars and catch statements" {
         var r;
         var e = 'not error';
 
@@ -110,9 +125,9 @@ describe("macro hygiene", function() {
         }
 
         expect(r === e).to.be(true);
-    });
+    }
 
-    it("should work with a nested macro", function() {
+    $it "should work with a nested macro" {
         macro main {
             case ($a) => {
                 (function(foo) {
@@ -132,9 +147,9 @@ describe("macro hygiene", function() {
         var z = main(3);
 
         expect(z).to.be(303);
-    });
+    }
 
-    it("should work with multiple declarations", function() {
+    $it "should work with multiple declarations" {
         var a = 10;
         var b = 20;
         macro main {
@@ -154,9 +169,9 @@ describe("macro hygiene", function() {
         var z = main();
 
         expect(z).to.be(30);
-    });
+    }
 
-    it("var declarations in nested blocks should be distinct", function() {
+    $it "var declarations in nested blocks should be distinct" {
         var foo = 100;
         macro sub {
             case () => { foo }
@@ -169,9 +184,9 @@ describe("macro hygiene", function() {
         }
 
         expect(bar()).to.be(100);
-    });
+    }
 
-    it("should work for vars with hoisting", function() {
+    $it "should work for vars with hoisting" {
       macro m {
         case $x:lit => {
           var tmp = $x;
@@ -182,9 +197,9 @@ describe("macro hygiene", function() {
       m "inner"
       expect(tmp).to.be("outer");
 
-    });
+    }
 
-    it("should work for vars with hoisting and params", function() {
+    $it "should work for vars with hoisting and params" {
       function f(tmp) {
         macro m {
           case $x:lit => {
@@ -199,9 +214,9 @@ describe("macro hygiene", function() {
 
       f("call")
 
-    });
+    }
 
-    it("should work for var with nested function", function() {
+    $it "should work for var with nested function" {
       macro m {
         case $x:lit => {
           var tmp = $x;
@@ -213,9 +228,9 @@ describe("macro hygiene", function() {
         expect(tmp).to.be("outer");
       }
       f();
-    });
+    }
 
-    it("should handle vars decls introduced by a macro expansion where macro definition is in the same scope level", function() {
+    $it "should handle vars decls introduced by a macro expansion where macro definition is in the same scope level" {
         var res = "default";
         var x = undefined;
         macro m {
@@ -228,9 +243,9 @@ describe("macro hygiene", function() {
         m()
         expect(res).to.be("set");
         expect(x).to.be(undefined);
-    });
+    }
 
-    it("should handle vars decls introduced by a macro expansion where macro definition is NOT in the same scope level", function() {
+    $it "should handle vars decls introduced by a macro expansion where macro definition is NOT in the same scope level" {
         macro m {
             case ($res) => {
                 var x;
@@ -246,9 +261,9 @@ describe("macro hygiene", function() {
             expect(res).to.be("set");
             expect(x).to.be(undefined);
         })();
-    });
+    }
 
-    it("should handle var delcs passed to a macro expansion", function() {
+    $it "should handle var decls passed to a macro expansion" {
         var res = "default";
         var x = undefined;
         macro m {
@@ -263,27 +278,9 @@ describe("macro hygiene", function() {
         }
         expect(res).to.be("set");
         expect(x).to.be("set");
-    });
+    }
 
-
-    // // todo this test needs a better api (syntax-case?)
-
-    // // it("should work for another variant of hygiene", function() {
-    // //   (function(x) {
-
-    // //     macro n {
-    // //       case ($stx:lit) => {
-    // //         function(x) {
-    // //           // want a way to distinguish between the two versions of x
-    // //           return x + x
-    // //         }
-    // //       }
-    // //     }
-
-    // //   })(42);
-    // // });
-
-    it("should work for the or macro with var", function() {
+    $it "should work for the or macro with var" {
       macro or {
         case ($x:expr, $y:expr) => {
           (function() {
@@ -296,6 +293,5 @@ describe("macro hygiene", function() {
       var $tmp = "ok"
       var z = or(false, $tmp);
       expect(z).to.be("ok");
-    });
-
-});
+    }
+}
