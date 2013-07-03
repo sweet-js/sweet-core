@@ -1869,7 +1869,6 @@
             var varIdents = getVarDeclIdentifiers(bodyTerms[0]);
 
             // filter out redeclarations
-            // varIdents = _.uniq(varIdents, false, function(v) { return resolve(v); });
             var acc = [];
             for (var i = 0; i < varIdents.length; i++) {
                 var isUnique = !_.find(varIdents.slice(i+1), function(id) {

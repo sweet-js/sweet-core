@@ -45,7 +45,6 @@ target.unit = function() {
 };
 
 target.build = function() {
-    // move the compiler over to the lib dir...eventually should self-host
     if(!test('-d', 'build/')) {
         mkdir("build/");
     }
