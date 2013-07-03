@@ -215,6 +215,56 @@ describe("macro hygiene", function() {
       f();
     });
 
+    it("should handle vars decls introduced by a macro expansion where macro definition is in the same scope level", function() {
+        var res = "default";
+        var x = undefined;
+        macro m {
+            case () => {
+                var x;
+                x = "set";
+                res = x;
+            }
+        }
+        m()
+        expect(res).to.be("set");
+        expect(x).to.be(undefined);
+    });
+
+    it("should handle vars decls introduced by a macro expansion where macro definition is NOT in the same scope level", function() {
+        macro m {
+            case ($res) => {
+                var x;
+                x = "set";
+                $res = x;
+            }
+        }
+
+        (function() {
+            var res = "default";
+            var x = undefined;
+            m(res)
+            expect(res).to.be("set");
+            expect(x).to.be(undefined);
+        })();
+    });
+
+    it("should handle var delcs passed to a macro expansion", function() {
+        var res = "default";
+        var x = undefined;
+        macro m {
+            case { $body ... } => {
+                $body ...
+            }
+        }
+        m {
+            var x;
+            x = "set";
+            res = x;
+        }
+        expect(res).to.be("set");
+        expect(x).to.be("set");
+    });
+
 
     // // todo this test needs a better api (syntax-case?)
 
