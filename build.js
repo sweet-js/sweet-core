@@ -75,6 +75,7 @@ target.build_test_file = function() {
     // if we have a "test.js" file sitting at the
     // root of the project go ahead and build it
     if(test('-f', "test.js")) {
+        echo("compiling: test.js" )
         exec('build/bin/sjs test.js test_out.js');
     }
 }
@@ -90,7 +91,7 @@ target.build_test = function() {
 target.build_browser = function() {
     echo("\nbuilding browser tests...");
 
-    cp("-f", "lib/*.js", "browser/scripts");
+    cp("-f", "build/lib/*.js", "browser/scripts");
     cp("-f", "node_modules/contracts-js/lib/contracts.js", "browser/scripts/contracts-js.js");
 };
 

@@ -99,32 +99,34 @@
         };
     }
 
+    function isDef(ctx) {
+        return ctx && (typeof ctx.defctx !== 'undefined');
+    }
+
     var isMark = function isMark(m) {
         return m && (typeof m.mark !== 'undefined');
     };
 
     // (CSyntax, Str) -> CContext
-    function Rename(id, name, ctx) {
+    function Rename(id, name, ctx, defctx) {
+        defctx = defctx || null;
         return {
             id: id,
             name: name,
+            context: ctx,
+            def: defctx
+        };
+    }
+
+    function Def(defctx, ctx) {
+        return {
+            defctx: defctx,
             context: ctx
         };
     }
 
     var isRename = function(r) {
         return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
-    };
-
-    function DummyRename(name, ctx) {
-        return {
-            dummy_name: name,
-            context: ctx
-        };
-    }
-
-    var isDummyRename = function(r) {
-        return r && (typeof r.dummy_name !== 'undefined');
     };
 
     mkContract (CToken, {
@@ -181,68 +183,33 @@
             }
         },
 
-        push_dummy_rename: function(name) {
+        addDefCtx: function(defctx) {
             if (this.token.inner) {
                 var renamedInner = _.map(this.token.inner, function(stx) {
-                    return stx.push_dummy_rename(name);
+                    return stx.addDefCtx(defctx);
                 });
                 this.token.inner = renamedInner;
             }
 
-            return syntaxFromToken(this.token, DummyRename(name, this.context));
+            return syntaxFromToken(this.token, Def(defctx, this.context));
         },
 
-        // ([...{freshName: Name, originalVar: Syntax}], Name) -> Syntax
-        swap_dummy_rename: function(varNames, dummyName) {
-            parser.assert(this.token.type !== parser.Token.Delimiter,
-             "expecting everything to be flattened");
-            var that = this;
-            var matchingVarNames = _.filter(varNames, function(v) {
-                return v.originalVar.token.value === that.token.value;
-            });
-            var newStx = syntaxFromToken(this.token, 
-                                        renameDummyCtx(this.context, matchingVarNames, dummyName));
-            return newStx;
+        getDefCtx: function() {
+            var ctx = this.context;
+            while(ctx !== null) {
+                if (isDef(ctx)) {
+                    return ctx.defctx;
+                }
+                ctx = ctx.context;
+            }
+            return null;
         },
+
         toString: function() {
             var val = this.token.type === parser.Token.EOF ? "EOF" : this.token.value;
             return "[Syntax: " + val + "]";
         }
     };
-
-    function renameDummyCtx(ctx, varNames, dummyName) {
-        if (ctx === null) {
-            return null;
-        }
-        if (isDummyRename(ctx) && ctx.dummy_name === dummyName) {
-            return _.reduce(varNames, function(accCtx, v) {
-                return Rename(v.originalVar, v.freshName, accCtx);
-            }, ctx.context);
-        }
-        if (isDummyRename(ctx) && ctx.dummy_name !== dummyName) {
-            return DummyRename(ctx.dummy_name, renameDummyCtx(ctx.context, varNames, dummyName));
-        }
-        if (isMark(ctx)) {
-            return Mark(ctx.mark, renameDummyCtx(ctx.context, varNames, dummyName));
-        }
-        if (isRename(ctx)) {
-            return Rename(ctx.id.swap_dummy_rename(varNames, dummyName), ctx.name,
-                          renameDummyCtx(ctx.context, varNames, dummyName));
-        }
-        parser.assert(false, "expecting a fixed set of context types");
-    }
-
-    function findDummyParent(ctx, dummyName) {
-        if (ctx === null || ctx.context === null) {
-            return null;
-        }
-
-        if (isDummyRename(ctx.context) && ctx.context.dummy_name === dummyName) {
-            return ctx;
-        }
-        return findDummyParent(ctx.context);
-    }
-
 
     // (CToken, CContext?) -> CSyntax
     function syntaxFromToken(token, oldctx) {
@@ -263,29 +230,28 @@
     }
 
     // (CSyntax) -> [...Num]
-    function marksof(ctx, stopName) {
+    function marksof(ctx, stopName, originalName) {
         var mark, submarks;
+
         if (isMark(ctx)) {
             mark = ctx.mark;
-            submarks = marksof(ctx.context, stopName);
+            submarks = marksof(ctx.context, stopName, originalName);
             return remdup(mark, submarks);
         }
-        if(isDummyRename(ctx)) {
-            return marksof(ctx.context);
+        if(isDef(ctx)) {
+            return marksof(ctx.context, stopName, originalName);
         }
         if (isRename(ctx)) {
-            // TODO: this shortcut will never fire because we're using
-            // the wrong name vs stopName
-            if(stopName === ctx.name) {
+            if(stopName === originalName + "$" + ctx.name) {
                 return [];
             }
-            return marksof(ctx.context, stopName);
+            return marksof(ctx.context, stopName, originalName);
         }
         return [];
     }
 
     function resolve(stx) {
-        return resolveCtx(stx.token.value, stx.context);
+        return resolveCtx(stx.token.value, stx.context, [], []);
     }
 
 
@@ -301,23 +267,47 @@
         return true;
     }
 
+    function renames(defctx, oldctx) {
+        var acc = oldctx;
+        defctx.forEach(function(def) {
+            acc = Rename(def.id, def.name, acc, defctx);
+        });
+        return acc;
+    }
+
     // (Syntax) -> String
-    function resolveCtx(originalName, ctx) {
-        if (isMark(ctx) || isDummyRename(ctx)) {
-            return resolveCtx(originalName, ctx.context);
+    function resolveCtx(originalName, ctx, stop_spine, stop_branch) {
+        if (isMark(ctx)) {
+            return resolveCtx(originalName, ctx.context, stop_spine, stop_branch);
+        }
+        if (isDef(ctx)) {
+            if (_.contains(stop_spine, ctx.defctx)) {
+                return resolveCtx(originalName, ctx.context, stop_spine, stop_branch);   
+            } else {
+                return resolveCtx(originalName, 
+                    renames(ctx.defctx, ctx.context), 
+                    stop_spine,
+                    _.union(stop_branch, [ctx.defctx]));
+            }
         }
         if (isRename(ctx)) {
-            var idName = resolveCtx(ctx.id.token.value, ctx.id.context);
-            var subName = resolveCtx(originalName, ctx.context);
+            var idName = resolveCtx(ctx.id.token.value, 
+                ctx.id.context, 
+                stop_branch,
+                stop_branch);
+            var subName = resolveCtx(originalName, 
+                ctx.context,
+                _.union(stop_spine,[ctx.def]),
+                stop_branch);
 
             if(idName === subName) {
-                var idMarks = marksof(ctx.id.context, idName);
-                var subMarks = marksof(ctx.context, idName);
+                var idMarks = marksof(ctx.id.context, originalName + "$" + ctx.name, originalName);
+                var subMarks = marksof(ctx.context, originalName + "$" + ctx.name, originalName);
                 if(arraysEqual(idMarks, subMarks)) {
                     return originalName + "$" + ctx.name;
                 }
             }
-            return resolveCtx(originalName, ctx.context);
+            return resolveCtx(originalName, ctx.context, _.union(stop_spine,[ctx.def]), stop_branch);
         }
         return originalName;
     }
@@ -579,41 +569,6 @@
         });
     }
 
-    // finds all the identifiers being bound by var statements
-    // in the array of syntax objects
-    // (TermTree) -> [Syntax]
-    function getVarDeclIdentifiers(term) {
-        var toCheck;
-        if(term.hasPrototype(Block) && term.body.hasPrototype(Delimiter)) {
-            toCheck = term.body.delim.token.inner;
-        } else if(term.hasPrototype(Delimiter)) {
-            toCheck = term.delim.token.inner;
-        } else {
-            parser.assert(false, "expecting a Block or a Delimiter");
-        }
-
-        return _.reduce(toCheck, function(acc, curr, idx, list) {
-            var prev = list[idx-1];
-            if (curr.hasPrototype(VariableStatement)) {
-                return _.reduce(curr.decls, function(acc, decl) {
-                    return acc.concat(decl.ident);
-                }, acc);
-            } else if (prev && prev.hasPrototype(Keyword) && prev.keyword.token.value === "for" &&
-                      curr.hasPrototype(Delimiter)) {
-                return acc.concat(getVarDeclIdentifiers(curr));
-            } else if (curr.hasPrototype(Block)) {
-                return acc.concat(getVarDeclIdentifiers(curr));
-            }
-            return acc;
-        }, []);
-    }
-
-    function replaceVarIdent(stx, orig, renamed) {
-        if (stx === orig) {
-            return renamed;
-        }
-        return stx;
-    }
 
     // A TermTree is the core data structure for the macro expansion process.
     // It acts as a semi-structured representation of the syntax.
@@ -1756,7 +1711,7 @@
 
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
-    function expandToTermTree (stx, env) {
+    function expandToTermTree (stx, env, defscope) {
         parser.assert(env, "environment map is required");
 
         // short circuit when syntax array is empty
@@ -1779,67 +1734,155 @@
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head);
             env.set(head.name.token.value, macroDefinition);
-            return expandToTermTree(rest, env);
+            return expandToTermTree(rest, env, defscope);
         }
 
-        var trees = expandToTermTree(rest, env);
+        if (head.hasPrototype(VariableStatement)) {
+            addVarsToDefinitionCtx(head, defscope);
+        }
+
+        if(head.hasPrototype(Block) && head.body.hasPrototype(Delimiter)) {
+            head.body.delim.token.inner.forEach(function(term) {
+                addVarsToDefinitionCtx(term, defscope);
+            });
+
+        } 
+
+        if(head.hasPrototype(Delimiter)) {
+            head.delim.token.inner.forEach(function(term) {
+                addVarsToDefinitionCtx(term, defscope);
+            });
+        }
+
+        var trees = expandToTermTree(rest, env, defscope);
         return {
             terms: [head].concat(trees.terms),
             env: trees.env
         };
     }
 
+    function addVarsToDefinitionCtx(term, defscope) {
+        if(term.hasPrototype(VariableStatement)) {
+            term.decls.forEach(function(decl) {
+                var defctx = defscope;
+                parser.assert(defctx, "no definition context found but there should always be one");
+
+                var declRepeat = _.find(defctx, function(def) {
+                    return def.id.token.value === decl.ident.token.value &&
+                        arraysEqual(marksof(def.id.context), marksof(decl.ident.context));
+                });
+                /* 
+                When var declarations repeat in the same function scope:
+                    
+                    var x = 24;
+                    ...
+                    var x = 42;
+
+                we just need to use the first renaming and leave the definition context as is.
+                */
+                if (declRepeat !== null) {
+                    var name = fresh();
+                    defctx.push({
+                        id: decl.ident,
+                        name: name
+                    });
+                }
+            });
+        }
+    }
+
+    // finds all the identifiers being bound by var statements
+    // in the array of syntax objects
+    // (TermTree) -> [Syntax]
+    function getVarDeclIdentifiers(term) {
+        var toCheck;
+        if(term.hasPrototype(Block) && term.body.hasPrototype(Delimiter)) {
+            toCheck = term.body.delim.token.inner;
+        } else if(term.hasPrototype(Delimiter)) {
+            toCheck = term.delim.token.inner;
+        } else {
+            parser.assert(false, "expecting a Block or a Delimiter");
+        }
+
+        return _.reduce(toCheck, function(acc, curr, idx, list) {
+            var prev = list[idx-1];
+            if (curr.hasPrototype(VariableStatement)) {
+                return _.reduce(curr.decls, function(acc, decl) {
+                    return acc.concat(decl.ident);
+                }, acc);
+            } else if (prev && prev.hasPrototype(Keyword) && prev.keyword.token.value === "for" &&
+                      curr.hasPrototype(Delimiter)) {
+                return acc.concat(getVarDeclIdentifiers(curr));
+            } else if (curr.hasPrototype(Block)) {
+                return acc.concat(getVarDeclIdentifiers(curr));
+            }
+            return acc;
+        }, []);
+    }
+
+    function replaceVarIdent(stx, orig, renamed) {
+        if (stx === orig) {
+            return renamed;
+        }
+        return stx;
+    }
+
     // similar to `parse2` in the honu paper except here we
     // don't generate an AST yet
     // (TermTree, Map, Map) -> TermTree
-    function expandTermTreeToFinal (term, env, ctx) {
+    function expandTermTreeToFinal (term, env, ctx, defscope) {
         parser.assert(env, "environment map is required");
         parser.assert(ctx, "context map is required");
 
         if (term.hasPrototype(ArrayLiteral)) {
-            term.array.delim.token.inner = expand(term.array.delim.token.inner, env);
+            term.array.delim.token.inner = expand(term.array.delim.token.inner, env, ctx, defscope);
             return term;
         } else if (term.hasPrototype(Block)) {
-            term.body.delim.token.inner = expand(term.body.delim.token.inner, env);
+            term.body.delim.token.inner = expand(term.body.delim.token.inner, env, ctx, defscope);
             return term;
         } else if (term.hasPrototype(ParenExpression)) {
-            term.expr.delim.token.inner = expand(term.expr.delim.token.inner, env, ctx);
+            term.expr.delim.token.inner = expand(term.expr.delim.token.inner, env, ctx, defscope);
             return term;
         } else if (term.hasPrototype(Call)) {
-            term.fun = expandTermTreeToFinal(term.fun, env, ctx);
+            term.fun = expandTermTreeToFinal(term.fun, env, ctx, defscope);
             term.args = _.map(term.args, function(arg) {
-                return expandTermTreeToFinal(arg, env, ctx);
+                return expandTermTreeToFinal(arg, env, ctx, defscope);
             });
             return term;
         } else if (term.hasPrototype(UnaryOp)) {
-            term.expr = expandTermTreeToFinal(term.expr, env, ctx);            
+            term.expr = expandTermTreeToFinal(term.expr, env, ctx, defscope);            
             return term;
         } else if (term.hasPrototype(BinOp)) {
-            term.left = expandTermTreeToFinal(term.left, env, ctx);
-            term.right = expandTermTreeToFinal(term.right, env, ctx);
+            term.left = expandTermTreeToFinal(term.left, env, ctx, defscope);
+            term.right = expandTermTreeToFinal(term.right, env, ctx, defscope);
             return term;
         } else if (term.hasPrototype(ObjDotGet)) {
-            term.left = expandTermTreeToFinal(term.left, env, ctx);
-            term.right = expandTermTreeToFinal(term.right, env, ctx);
+            term.left = expandTermTreeToFinal(term.left, env, ctx, defscope);
+            term.right = expandTermTreeToFinal(term.right, env, ctx, defscope);
             return term;
         } else if (term.hasPrototype(VariableDeclaration)) {
             if (term.init) {
-                term.init = expandTermTreeToFinal(term.init, env, ctx);
+                term.init = expandTermTreeToFinal(term.init, env, ctx, defscope);
             }
             return term;
         } else if (term.hasPrototype(VariableStatement)) {
             term.decls = _.map(term.decls, function(decl) {
-                return expandTermTreeToFinal(decl, env, ctx);
+                return expandTermTreeToFinal(decl, env, ctx, defscope);
             });
             return term;
         } else if (term.hasPrototype(Delimiter)) {
             // expand inside the delimiter and then continue on
-            term.delim.token.inner = expand(term.delim.token.inner, env);
+            term.delim.token.inner = expand(term.delim.token.inner, env, ctx, defscope);
             return term;
         } else if (term.hasPrototype(NamedFun) || term.hasPrototype(AnonFun) || term.hasPrototype(CatchClause)) {
             // function definitions need a bunch of hygiene logic
+            // push down a fresh definition context
+            var newDef = [];
 
-            var paramNames = _.map(getParamIdentifiers(term.params), function(param) {
+            var params = term.params.addDefCtx(newDef);
+            var bodies = term.body.addDefCtx(newDef);
+
+            var paramNames = _.map(getParamIdentifiers(params), function(param) {
                 var freshName = fresh();
                 return {
                     freshName: freshName,
@@ -1851,73 +1894,32 @@
             // TODO: fix, ctx isn't being used
             var newCtx = ctx;
 
-            var stxBody = term.body;
+            var stxBody = bodies;
+
             // rename the function body for each of the parameters
             var renamedBody = _.reduce(paramNames, function (accBody, p) {
-                return accBody.rename(p.originalParam, p.freshName);
+                return accBody.rename(p.originalParam, p.freshName)
             }, stxBody);
 
-            // push a dummy rename to the body
-            var dummyName = fresh();
-            renamedBody = renamedBody.push_dummy_rename(dummyName);
-
-            var bodyTerms = expand([renamedBody], env, newCtx);
+            var bodyTerms = expand([renamedBody], env, newCtx, newDef);
             parser.assert(bodyTerms.length === 1 && bodyTerms[0].body,
                             "expecting a block in the bodyTerms");
 
-            // eg: `x` and `y` in `var x = 42, y = 24`
-            var varIdents = getVarDeclIdentifiers(bodyTerms[0]);
-
-            // filter out redeclarations
-            var acc = [];
-            for (var i = 0; i < varIdents.length; i++) {
-                var isUnique = !_.find(varIdents.slice(i+1), function(id) {
-                    // resolve by itself isn't enough because the var identifiers might
-                    // have been introduced by a macro so need to check the marks as well
-                    return resolve(varIdents[i]) === resolve(id) &&
-                            arraysEqual(marksof(varIdents[i].context), marksof(id.context));
-                });
-
-                if (isUnique) {
-                    acc.push(varIdents[i]);
-                }
-            }
-            varIdents = acc;
-
-            var varNames = _.map(varIdents, function(ident) {
-                var freshName = fresh();
-                return {
-                    freshName: freshName,
-                    dummyName: dummyName,
-                    originalVar: ident,
-                    renamedVar: ident.rename(ident, freshName)
-                }
-            });
-
-            // rename the var idents in the body
-            var flattenedBody = _.map(flatten(bodyTerms), function(stx) {
-                var isDecl;
-                if (stx.token.type === parser.Token.Identifier) {
-                    isDecl = _.find(varNames, function(v) {
-                        return v.originalVar === stx;
-                    });
-                    if(isDecl) {
-                        // if syntax is one of the var declaration identifiers,
-                        // we replace it with the renamed version
-                        return isDecl.renamedVar;
-                    }
-                    return stx.swap_dummy_rename(varNames, dummyName);
-                }
-                return stx;
-            });
+            var flattenedBody = flatten(bodyTerms);
 
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam; });
             var flatArgs = wrapDelim(joinSyntax(renamedParams, ","), term.params);
-            var expandedArgs = expand([flatArgs], env, ctx);
+            var expandedArgs = expand([flatArgs.addDefCtx(newDef)], env, ctx, newDef);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
-            // stitch up the head with all the renamings
+            // stitch up the function with all the renamings
             term.params = expandedArgs[0];
-            term.body = flattenedBody;
+
+            term.body = _.map(flattenedBody, function(stx) { 
+                return _.reduce(newDef, function(acc, def) {
+                    return acc.rename(def.id, def.name);
+                }, stx)
+            });
+
             // and continue expand the rest
             return term;
         }
@@ -1927,13 +1929,13 @@
 
     // similar to `parse` in the honu paper
     // ([Syntax], Map, Map) -> [TermTree]
-    function expand(stx, env, ctx) {
+    function expand(stx, env, ctx, defscope) {
         env = env || new Map();
         ctx = ctx || new Map();
 
-        var trees = expandToTermTree(stx, env, ctx);
+        var trees = expandToTermTree(stx, env, defscope);
         return _.map(trees.terms, function(term) {
-            return expandTermTreeToFinal(term, trees.env, ctx);
+            return expandTermTreeToFinal(term, trees.env, ctx, defscope);
         })
     }
 
@@ -1959,7 +1961,9 @@
         });
         var res = expand([funn, name, params, body]);
         // drop the { and }
-        return res[0].body.slice(1, res[0].body.length - 1);
+        return _.map(res[0].body.slice(1, res[0].body.length - 1), function(stx) {
+            return stx;
+        });
     }
 
     // take our semi-structured TermTree and flatten it back to just
