@@ -28,17 +28,17 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require('./parser'), require("es6-collections"), require("contracts-js"));
+        factory(exports, require('underscore'), require('./parser'), require("es6-collections"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'parser', 'es6-collections', 'contracts-js'], factory);
+        define(['exports', 'underscore', 'parser', 'es6-collections'], factory);
     } else {
         // Browser globals
-        factory((root.expander = {}), root._, root.parser, root.es6, root.contracts);
+        factory((root.expander = {}), root._, root.parser, root.es6);
     }
-}(this, function(exports, _, parser, es6, contracts) {
+}(this, function(exports, _, parser, es6) {
     'use strict';
-    setupContracts(contracts);
+    // setupContracts(contracts);
     // used to export "private" methods for unit testing
     exports._test = {};
 
@@ -127,21 +127,21 @@
         return r && (typeof r.dummy_name !== 'undefined');
     };
 
-    mkContract (CToken, {
-        type: ?Num,
-        value: ?(Num or Str)
-    });
+    // mkContract (CToken, {
+    //     type: ?Num,
+    //     value: ?(Num or Str)
+    // });
 
-    mkContract (CContext, {
-        name: ?Num,
-        dummy_name: ?Num,
-        context: Self
-    });
+    // mkContract (CContext, {
+    //     name: ?Num,
+    //     dummy_name: ?Num,
+    //     context: Self
+    // });
 
-    mkContract (CSyntax, {
-        token: CToken,
-        context: CContext
-    });
+    // mkContract (CSyntax, {
+    //     token: CToken,
+    //     context: CContext
+    // });
 
     var syntaxProto =  {
         // (?) -> CSyntax
@@ -324,7 +324,7 @@
 
     var nextFresh = 0;
 
-    fun () -> Num
+    // fun () -> Num
     function fresh() { return nextFresh++; };
 
     // (CToken or [...CToken]) -> [...CSyntax]
@@ -352,7 +352,7 @@
 
 
     // CToken -> Bool
-    fun (CToken) -> Bool
+    // fun (CToken) -> Bool
     function isPatternVar(token) {
         return token.type === parser.Token.Identifier &&
                 token.value[0] === "$" &&   // starts with $
