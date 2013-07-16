@@ -70,11 +70,12 @@ An AMD loader is provided at [require-sweet](https://github.com/iammerrick/requi
 
 Install the dev dependencies:
 
-    $ npm install --dev
+    $ npm install
 
-And run the [tests](https://github.com/mozilla/sweet.js/tree/master/test):
+Build and run the tests:
 
-    $ npm test
+    $ node build
+
 
 ## Changelog
 
