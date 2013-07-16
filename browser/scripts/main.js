@@ -18,7 +18,7 @@ require(["sweet","./parser", "./expander", "./escodegen"], function(sweet, parse
         autofocus: true,
         theme: 'solarized dark'
     });
-    editor.setValue(localStorage['code']);
+    editor.setValue(localStorage['code'] ? localStorage['code'] : "");
 
     var output = CodeMirror.fromTextArea($('#output')[0], {
         lineNumbers: true,
