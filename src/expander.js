@@ -267,10 +267,12 @@
         return true;
     }
 
-    function renames(defctx, oldctx) {
+    function renames(defctx, oldctx, originalName) {
         var acc = oldctx;
         defctx.forEach(function(def) {
-            acc = Rename(def.id, def.name, acc, defctx);
+            if(def.id.token.value === originalName) {
+                acc = Rename(def.id, def.name, acc, defctx);
+            }
         });
         return acc;
     }
@@ -285,7 +287,7 @@
                 return resolveCtx(originalName, ctx.context, stop_spine, stop_branch);   
             } else {
                 return resolveCtx(originalName, 
-                    renames(ctx.defctx, ctx.context), 
+                    renames(ctx.defctx, ctx.context, originalName), 
                     stop_spine,
                     _.union(stop_branch, [ctx.defctx]));
             }
