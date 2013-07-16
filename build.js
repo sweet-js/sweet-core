@@ -25,7 +25,8 @@ target.benchmark = function() {
 
 target.run_bench = function() {
     echo("\nrunning benchmarks...")
-    exec("node test_benchmark.js");
+    cp("-f", "test_benchmark.js", "build/")
+    exec("node build/test_benchmark.js");
 }
 
 target.clean = function() {
