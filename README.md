@@ -75,3 +75,18 @@ Install the dev dependencies:
 Build and run the tests:
 
     $ node build
+    
+Sweet.js is self hosted so the files in `src/` are compiled with the files in `lib/` and then copied into `build/lib/`. Then the tests in `test/` are compiled with `build/lib/`. Once you are happy with your changes run `node build build_sweetjs` to compile sweet.js into `lib/` which can then be checked into git.
+
+Slightly confusing but the process goes like this:
+
+    <hack hack hack>
+    $ node build
+    <tests fail!>
+    <hack hack hack>
+    $ node build
+    <tests pass!>
+    $ node build build_sweetjs
+    $ git add lib/
+    $ git commit -m "sweet!"
+    
