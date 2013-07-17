@@ -18,6 +18,7 @@ require(["./parser", "./expander", "./escodegen"], function(parser, expander, es
     var editor = CodeMirror.fromTextArea($('#editor')[0], {
         lineNumbers: true,
         smartIndent: false,
+        indentWithTabs: true,
         tabSize: 2,
         autofocus: true,
         theme: 'solarized dark'
