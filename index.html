@@ -121,75 +121,27 @@ a.mozilla {
 </p>
 
 
-<p class="text">
-  Wish the <code class="language-javascript">function</code> keyword in JavaScript wasn't so long?
-  What if you could define functions with <code>def</code> instead?
-</p>
-
-<!--
-<pre><code class="language-javascript">
-def sweet(a) {
-  console.log("Macros are sweet!");
-}
-</code></pre>
--->
 
 <p class="text">
-  Macros let you do this!
-</p>
-
-
-<textarea class="editor">
-macro def {
-  case $name:ident $params $body => {
-    function $name $params $body
-  }
-}
-
-def sweet(a) {
-  console.log("Macros are sweet!");
-}
-</textarea>
-
-
-<p class="text">
-  Want a better way to make "classy" objects?
-</p>
-
-<!--
-<pre><code class="language-javascript">
-class Person {
-  constructor(name) {
-    this.name = name;
-  }
-
-  say(msg) {
-    console.log(this.name + " says: " + msg);
-  }
-}
-var bob = new Person("Bob");
-bob.say("Macros are sweet!");
-</code></pre>
--->
-
-<p class="text">
-  Macros can do that too!
+  Do you want to use class syntax but don't want to wait for ES6? Add classes yourself with macros!
 </p>
 
 <textarea class="editor">
+// Define the class macro here...
 macro class {
-  case $className:ident {
-    constructor $constParam $constBody
-    $($methodName:ident $methodParam $methodBody) ... } => {
+  case $className {
+    constructor $cparams $cbody
+    $($mname $mparams $mbody) ... 
+  } => {
 
-    function $className $constParam $constBody
+    function $className $cparams $cbody
 
-    $($className.prototype.$methodName
-      = function $methodName $methodParam $methodBody; ) ...
-
+    $($className.prototype.$mname
+      = function $mname $mparams $mbody; ) ...
   }
 }
 
+// An now classes are a part of JavaScript!
 class Person {
   constructor(name) {
     this.name = name;
@@ -203,10 +155,52 @@ var bob = new Person("Bob");
 bob.say("Macros are sweet!");
 </textarea>
 
+<p class="text">
+How about a better switch?
+</p>
+
+<textarea class="editor">
+macro _arms {
+  case (default => $value:expr) => {
+    else {
+      return $value;
+    }
+  }
+  case (case $cond:expr => $value:expr) => {
+    if($cond) {
+      return $value;
+    }
+  }
+  case (
+    $(case $cond:expr => $value:expr) $rest ...
+  ) => {
+    _arms (case $cond => $value)
+    _arms ($rest ...)
+  }
+}
+macro cond {
+  case { $arms ... } => {
+    (function() {
+      _arms($arms ...)
+    })();
+  }
+}
+
+var x = [];
+var type = cond {
+  case (x === null) => "null"
+  case Array.isArray(x) => "array"
+  case (typeof x === "object") => "object"
+  default => typeof x
+}
+
+</textarea>
+
 
 <p class="text">
-  For more examples of what macros can do checkout the
-  <a href="https://github.com/mozilla/sweet.js/wiki/Example-macros">wiki</a>.
+  To get a better sense of what macros can do, check out some
+  <a href="https://github.com/mozilla/sweet.js/wiki/Example-macros">example macros</a>
+  or play around with macros in the <a href="browser/editor.html">editor</a>.
 </p>
 
 <h2>Getting sweet.js</h2>
@@ -228,16 +222,18 @@ bob.say("Macros are sweet!");
 </code></pre>
 
 <p class="text">
-  Sweet.js is still a young project so expect bugs and missing features.
+  Sweet.js is still a work in progress so expect bugs and missing features.
 <ul>
   <li>
-    Please report issues on <a href="https://github.com/mozilla/sweet.js/issues">github</a>.
+    Report issues on <a href="https://github.com/mozilla/sweet.js/issues">github</a>.
   </li>
   <li>
-    Discuss sweet.js on the Google Group
+    Discuss sweet.js on the 
       <a href="https://groups.google.com/forum/#!forum/sweetjs">mailing list</a>
       or the IRC channel #sweet.js on irc.mozilla.org.
   </li>
+  <li>
+    Ping <a href="https://twitter.com/disnet">@disnet</a> on Twitter.
 </ul>
 </p>
 
