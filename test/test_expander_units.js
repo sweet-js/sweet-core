@@ -13,9 +13,15 @@ function tokValues (stxArray) {
     if(!Array.isArray(stxArray)) {
         return [];
     }
-    return stxArray.map(function(el) {
-        return el.token.value;
-    });
+    return stxArray.reduce(function(acc, el) {
+        if(el.token.inner) {
+            return acc.concat(el.token.value[0])
+                .concat(tokValues(el.token.inner))
+                .concat(el.token.value[1]);
+        } else {
+            return acc.concat(el.token.value);
+        }
+    }, []);
 }
 
 
@@ -41,7 +47,7 @@ describe("matchPatternClass", function() {
         var stx = parser.read("(foo) bar");
         var res = matchPatternClass("token", stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["()"]);
+        expect(tokValues(res)).to.eql(["(", "foo", ")"]);
         expect(tokValues(res[0].token.inner)).to.eql(["foo"]);
     });
 
@@ -192,6 +198,13 @@ describe("matchPatternClass", function() {
         expect(tokValues(res)).to.eql(["foo", ".", "bar"]);
     });
 
+    it("should match a dotted get method call", function() {
+        var stx = parser.read("foo.bar(f())");
+        var res = matchPatternClass("expr", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["foo", ".", "bar", "(", "f", "(", ")", ")"]);
+    });
+
     it("should match a new expression", function() {
         var stx = parser.read("new Foo(42)");
         var res = matchPatternClass("expr", stx, emptyMacroMap).result;
@@ -204,6 +217,13 @@ describe("matchPatternClass", function() {
         var res = matchPatternClass("VariableStatement", stx, emptyMacroMap).result;
 
         expect(tokValues(res)).to.eql(["var", "x"]);
+    });
+
+    it("should match a var declaration statement with multiple decls", function() {
+        var stx = parser.read("var x, y, z");
+        var res = matchPatternClass("VariableStatement", stx, emptyMacroMap).result;
+
+        expect(tokValues(res)).to.eql(["var", "x", ",", "y", ",", "z"]);
     });
 
     it("should match a var decl with simple init expr", function() {
@@ -262,6 +282,14 @@ describe("expand", function() {
         var res = (expander.expand(stx));
 
         expect(tokValues(res)).to.eql(["foo", "(", "24", ",", "42", ")", ""]);
+    });
+
+    it("should handle get/call/binop/parens", function() {
+        var stx = parser.read("(x.foo(0) >= 42) || (x === 42)");
+        var res = (expander.expand(stx));
+
+        expect(tokValues(res)).to.eql(["(", "x", ".", "foo", "(", 0, ")", 
+                                        ">=", 42, ")", "||", "(", "x", "===", 42, ")", ""]);
     });
 
     it("should handle complex left side function calls", function() {

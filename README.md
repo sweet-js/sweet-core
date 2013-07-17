@@ -9,8 +9,6 @@ Hygienic Macros for JavaScript!
 * [Mailing list](https://groups.google.com/forum/#!forum/sweetjs) for discussion
 * IRC channel #sweet.js on irc.mozilla.org
 
-Early stage at the moment. Lots of bugs so be warned!
-
 ## Use
 
 ### Using Node
@@ -68,41 +66,24 @@ An AMD loader is provided at [require-sweet](https://github.com/iammerrick/requi
       // dep is compiled to JS at this point.
     });
 
-### Using ruby
-
-To compile sweet.js source files from within Ruby, use the [SweetJS gem](https://github.com/magnetised/sweetjs):
-
-    gem install sweetjs
-
-or in your Gemfile:
-
-    gem "sweetjs"
-
-then call the `SweetJS.compile` (or `SweetJS#compile`) method to compile a sweet.js source file to
-plain JavaScript:
-
-    require "sweetjs"
-
-    SweetJS.compile(File.read("macros.js.sjs"))
-    # => Resulting JS source
-
-    # Alternatively:
-    sweet  = SweetJS.new
-    source = File.open("macros.js", "r:UTF-8").read
-    js     = sweet.compile(source)
-
 ## Hacking
 
 Install the dev dependencies:
 
-    $ npm install --dev
+    $ npm install
 
-And run the [tests](https://github.com/mozilla/sweet.js/tree/master/test):
+Build and run the tests:
 
-    $ npm test
+    $ node build
+
 
 ## Changelog
 
+* [0.1.2](https://github.com/mozilla/sweet.js/tree/v0.1.2)
+    * `:expr` parse class working #28
+    * hygiene fixes #15 #17
+    * allowing macros to override keywords #33
+    * major refactoring of expander
 * [0.1.1](https://github.com/mozilla/sweet.js/tree/v0.1.1)
     * node autoloading, AMD support
     * fixes to issues #18, #24, #26, #40

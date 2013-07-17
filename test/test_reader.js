@@ -14,6 +14,11 @@ describe("reader", function() {
             .to.equal("foo");
     });
 
+    it("should accept a #", function() {
+        expect(read("#")[0].value)
+            .to.equal("#") 
+    });
+
     it("should throw an error for an unmatched elimiter", function() {
         function baddelim() {
             read("{");
