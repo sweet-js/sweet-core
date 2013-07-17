@@ -15,7 +15,7 @@ Hygienic Macros for JavaScript!
 
 Install with npm:
 
-    $ npm install sweet.js
+    $ npm install -g sweet.js
 
 To try it out make a file `test_macros.sjs`:
 
@@ -75,16 +75,18 @@ Install the dev dependencies:
 Build and run the tests:
 
     $ node build
+    
+Sweet.js is self hosted so the files in `src/` are compiled with the files in `lib/` and then copied into `build/lib/`. Then the tests in `test/` are compiled with `build/lib/`. Once you are happy with your changes run `node build build_sweetjs` to compile sweet.js into `lib/` which can then be checked into git.
 
+Slightly confusing but the process goes like this:
 
-## Changelog
-
-* [0.1.2](https://github.com/mozilla/sweet.js/tree/v0.1.2)
-    * `:expr` parse class working #28
-    * hygiene fixes #15 #17
-    * allowing macros to override keywords #33
-    * major refactoring of expander
-* [0.1.1](https://github.com/mozilla/sweet.js/tree/v0.1.1)
-    * node autoloading, AMD support
-    * fixes to issues #18, #24, #26, #40
-* 0.1.0 (initial release)
+    <hack hack hack>
+    $ node build
+    <tests fail!>
+    <hack hack hack>
+    $ node build
+    <tests pass!>
+    $ node build build_sweetjs
+    $ git add lib/
+    $ git commit -m "sweet!"
+    
