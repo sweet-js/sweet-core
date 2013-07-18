@@ -1649,7 +1649,7 @@
         var idx = start;
         while (idx < stx.length) {
             // todo: handle literal escape
-            if (stx[idx].token.value === "case") {
+            if (stx[idx].token.value === "rule") {
                 return idx;
             }
             idx++;
@@ -1683,7 +1683,7 @@
         var cases = [];
 
         // load each of the macro cases
-        while (caseOffset < body.length && body[caseOffset].token.value === "case") {
+        while (caseOffset < body.length && body[caseOffset].token.value === "rule") {
             arrowOffset = findCaseArrow(caseOffset, body);
             if (arrowOffset > 0 && arrowOffset < body.length) {
                 // arrowOffset is at `=` in `=> {body}` so add two to get to the body
