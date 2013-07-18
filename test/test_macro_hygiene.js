@@ -1,7 +1,7 @@
 var expect = require("expect.js")
 
 macro $describe {
-    rule $description:lit { $body ... } => {
+    rule {$description:lit { $body ... }} => {
         describe($description, function() {
             $body ...
         });
@@ -9,7 +9,7 @@ macro $describe {
 }
 
 macro $it {
-    rule $description:lit { $body ... } => {
+    rule {$description:lit { $body ... }} => {
         it($description, function() {
             $body ...
         });
@@ -20,7 +20,7 @@ $describe "macro hygiene" {
 
     $it "should work for or macro" {
         macro or {
-            rule ($x , $y) => {
+            rule {($x , $y)} => {
                 (function($tmp) {
                     return $tmp ? $tmp : $y;
                 })($x);
@@ -41,7 +41,7 @@ $describe "macro hygiene" {
         var z = (function(x) {
 
             macro m {
-                rule ($ignore:ident) => {
+                rule {($ignore:ident)} => {
                     x
                 }
             }
@@ -98,7 +98,7 @@ $describe "macro hygiene" {
 
     $it "should do the correct renaming with macros for vars" {
         macro m {
-            rule () => { var x = 5; }
+            rule {()} => { var x = 5; }
         }
         var z = (function(x) {
             m();
@@ -119,7 +119,7 @@ $describe "macro hygiene" {
         }
 
         macro sub {
-            rule () => {
+            rule {()} => {
                 r = e
             }
         }
@@ -129,7 +129,7 @@ $describe "macro hygiene" {
 
     $it "should work with a nested macro" {
         macro main {
-            rule ($a) => {
+            rule {($a)} => {
                 (function(foo) {
                     var bar = 1 + foo;
                     return sub($a);
@@ -139,7 +139,7 @@ $describe "macro hygiene" {
         var foo = 100;
         var bar = 200;
         macro sub {
-            rule ($a) => {
+            rule {($a)} => {
                 foo + bar + $a
             }
         }
@@ -153,7 +153,7 @@ $describe "macro hygiene" {
         var a = 10;
         var b = 20;
         macro main {
-            rule () => {
+            rule {()} => {
                 (function() {
                     var a = 100, b = 200;
                     return sub();
@@ -161,7 +161,7 @@ $describe "macro hygiene" {
             }
         }
         macro sub {
-            rule () => {
+            rule {()} => {
                 a + b
             }
         }
@@ -174,7 +174,7 @@ $describe "macro hygiene" {
     $it "var declarations in nested blocks should be distinct" {
         var foo = 100;
         macro sub {
-            rule () => { foo }
+            rule {()} => { foo }
         }
         function bar() {
             if(false) {
@@ -188,7 +188,7 @@ $describe "macro hygiene" {
 
     $it "should work for vars with hoisting" {
       macro m {
-        rule $x:lit => {
+        rule {$x:lit} => {
           var tmp = $x;
         }
       }
@@ -202,7 +202,7 @@ $describe "macro hygiene" {
     $it "should work for vars with hoisting and params" {
       function f(tmp) {
         macro m {
-          rule $x:lit => {
+          rule {$x:lit} => {
             var tmp = $x;
           }
         }
@@ -218,7 +218,7 @@ $describe "macro hygiene" {
 
     $it "should work for var with nested function" {
       macro m {
-        rule $x:lit => {
+        rule {$x:lit} => {
           var tmp = $x;
         }
       }
@@ -234,7 +234,7 @@ $describe "macro hygiene" {
         var res = "default";
         var x = undefined;
         macro m {
-            rule () => {
+            rule {()} => {
                 var x;
                 x = "set";
                 res = x;
@@ -247,7 +247,7 @@ $describe "macro hygiene" {
 
     $it "should handle vars decls introduced by a macro expansion where macro definition is NOT in the same scope level" {
         macro m {
-            rule ($res) => {
+            rule {($res)} => {
                 var x;
                 x = "set";
                 $res = x;
@@ -267,7 +267,7 @@ $describe "macro hygiene" {
         var res = "default";
         var x = undefined;
         macro m {
-            rule { $body ... } => {
+            rule {{ $body ... }} => {
                 $body ...
             }
         }
@@ -282,7 +282,7 @@ $describe "macro hygiene" {
 
     $it "should work for the or macro with var" {
       macro or {
-        rule ($x:expr, $y:expr) => {
+        rule {($x:expr, $y:expr)} => {
           (function() {
             var $tmp = $x;
             return $tmp ? $tmp : $y;

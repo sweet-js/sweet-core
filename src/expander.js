@@ -1681,32 +1681,36 @@
         var caseBody;
         var caseBodyIdx;
         var cases = [];
+        var i = 0;
+
+        var patOffset = 1;
+        var bodyOffset = 4;
 
         // load each of the macro cases
-        while (caseOffset < body.length && body[caseOffset].token.value === "rule") {
-            arrowOffset = findCaseArrow(caseOffset, body);
-            if (arrowOffset > 0 && arrowOffset < body.length) {
-                // arrowOffset is at `=` in `=> {body}` so add two to get to the body
-                caseBodyIdx = arrowOffset + 2;
-                if (caseBodyIdx >= body.length) {
-                    throwError("case body missing in macro definition");
-                }
-
-                casePattern = body.slice(caseOffset+1, arrowOffset);
-                caseBody = body[caseBodyIdx].token.inner;
-
-                cases.push({
-                    pattern: loadPattern(casePattern, mac.name),
-                    body: caseBody
-                });
-            } else {
-                throwError("case body missing in macro definition");
+        while (i < body.length && body[i].token.value === "rule") {
+            if(!body[i + patOffset] ||
+                body[i + patOffset].token.type !== parser.Token.Delimiter || 
+                body[i + patOffset].token.value !== "{}") {
+                throwError("Expecting a {} to surround the pattern in a macro definition");
+            }
+            if(!body[i + 2] || body[i + 2].token.value !== "=" ||
+                !body[i + 3] || body[i + 3].token.value !== ">") {
+                throwError("expecting a => following the pattern in a macro definition");
+            }
+            if(!body[i + bodyOffset] ||
+                body[i + bodyOffset].token.type !== parser.Token.Delimiter || 
+                body[i + bodyOffset].token.value !== "{}") {
+                throwError("Expecting a {} to surround the body in a macro definition");
             }
 
-            caseOffset = findCase(arrowOffset, body);
-            if (caseOffset < 0) {
-                break;
-            }
+            casePattern = body[i + patOffset].token.inner;
+            caseBody = body[i + bodyOffset].token.inner;
+
+            cases.push({
+                pattern: loadPattern(casePattern, mac.name),
+                body: caseBody
+            });
+            i += bodyOffset + 1;
         }
         return makeTransformer(cases);
     }
