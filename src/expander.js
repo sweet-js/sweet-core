@@ -22,73 +22,110 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-macro _match {
-    rule {
-        $val { $proto($field (,) ...) => { $body ... } }
-    } => {
-        if($val.hasPrototype($proto)) {
-            $(var $field = $val.$field;) ...
-            $body ...
-        }
-    }
-    
-    rule { 
-        $val { $proto($field (,) ...) | $guard:expr => { $body ... }  }
-    } => {
-        if($val.hasPrototype($proto)) {
-            $(var $field = $val.$field;) ...
-            if($guard) {
-                $body ...
-            }
-        }
-    }
+macro _get_vars {
+	rule { $val { } } => { }
+	rule {
+		$val {
+			$proto($field (,) ...) => { $body ... }
+			$rest ...
+		}
+	} => {
+		$(var $field = $val.$field;) ...
+		_get_vars $val { $rest ... }
+	}
+	rule {
+		$val {
+			$proto($field (,) ...) | $guard:expr => { $body ... }
+			$rest ...
+		}
+	} => {
+		$(var $field = $val.$field;) ...
+		_get_vars $val { $rest ... }
+	}
+}
+
+macro _case {
+	rule { $val else {} } => {}
+	
+	rule {
+		$val else {
+			default => { $body ... }
+		}
+	} => {
+		else {
+			$body ...
+		}
+	}
+	
+	rule {
+		$val else {
+			$proto($field (,) ...) => { $body ... }
+			$rest ...
+		}
+	} => {
+		else if($val.hasPrototype($proto)) {
+			$body ...
+		}
+		_case $val else { $rest ... }
+	}
+	
+	rule {
+		$val else {
+			$proto($field (,) ...) | $guard:expr => { $body ... }
+			$rest ...
+		}
+	} => {
+		else if($val.hasPrototype($proto) && $guard) {
+			$body ...
+		}
+		_case $val else { $rest ... }
+	}
+	
+	rule {
+		$val {
+			$proto($field ...) => { $body ... }
+			$rest ...
+		}
+	} => {
+		if ($val.hasPrototype($proto)) {
+			$body ...
+		}
+		_case $val else { $rest ... }
+	}
+	
+	rule {
+		$val {
+			$proto($field ...) | $guard:expr => { $body ... }
+			$rest ...
+		}
+	} => {
+		if($val.hasPrototype($proto) && $guard) {
+			$body ...
+		}
+		_case $val else { $rest ... }
+	}
 }
 
 macro case {
-    rule {
-      $val { default => { $body ...} }
-    } => {
-        else {
-            $body ...
-        }
-    }
-    rule {
-        $val { $proto($field (,) ...) => { $body ... } }
-    } => {
-        _match $val { $proto($field (,) ...) => {$body ...} }
-    }
-    rule { 
-        $val { $proto($field (,) ...) => { $body ... } default $rest ... }
-    } => {
-        _match $val { $proto($field (,) ...) => {$body ...} )}
-        case $val { default $rest ...}
-    }
-    rule { 
-        $val { $proto($field (,) ...) => { $body ... } $rest ... }
-    } => {
-        _match $val { $proto($field (,) ...) => {$body ...} )}
-        else
-        case $val { $rest ...}
-    }
-    
-    rule { 
-        $val { $proto($field (,) ...) | $guard:expr => { $body ... }  }
-    } => {
-        _match $val { $proto($field (,) ...) | $guard => {$body ...} }
-    }
-    // rule { 
-    //     $val { $proto($field (,) ...) | $guard:expr => { $body ... } $rest ... }
-    // } => {
-    //     _match $val { $proto($field (,) ...) | $guard => {$body ...} }
-    //     else
-    //     case $val { $rest ...}
-    // }
-    rule { 
-        $val { $proto($field (,) ...) | $guard:expr => { $body ... } $rest ... }
-    } => {
-        _match $val { $proto($field (,) ...) | $guard => {$body ...} }
-        case $val { $rest ...}
-    }
+	rule {
+		$val {
+			$proto($field (,) ...) => { $body ... }
+			$rest ...
+		}
+	} => {
+		_get_vars $val { $proto($field ...) => { $body ... } $rest ... }
+		_case $val { $proto($field (,) ...) => { $body ... } $rest ... }
+	}
+	
+	rule {
+		$val {
+			$proto($field (,) ...) | $guard:expr => { $body ... }
+			$rest ...
+		}
+	} => {
+		_get_vars $val { $proto($field ...) | $guard => { $body ... } $rest ... }
+		_case $val { $proto($field (,) ...) | $guard => { $body ... } $rest ... }
+	}
 }
 
 (function (root, factory) {
