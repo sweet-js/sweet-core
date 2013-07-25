@@ -158,6 +158,21 @@ describe("macro expander", function() {
     });
 
 
+    it("should allow ... to match zero or more tokens", function() {
+        macro m {
+            rule {
+                ($x ...)
+            } => {
+                42
+            }
+        }
+        expect(m(1 1)).to.be(42);
+        expect(m(1)).to.be(42);
+        expect(m()).to.be(42);
+    });
+
+
+
     it("should distinguish between commas and no commas in a repeat", function() {
         macro m {
             rule {($p ...)} => {

@@ -1551,6 +1551,12 @@ macro case {
             pattern = patterns[i];
             do {
                 match = matchPattern(pattern, rest, env, patternEnv, stxStore);
+                if ((!match.success) && pattern.repeat) {
+                    // a repeat can match zero tokens and still be a
+                    // "success" so break out of the inner loop and
+                    // try the next pattern
+                    break;
+                }
                 if (!match.success) {
                     success = false;
                 }
