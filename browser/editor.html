@@ -102,11 +102,13 @@ compile so feel free to close the page and come back later!
 
 // The `macro` keyword is used to create and name new macros.
 macro id { 
-  // after the macro name, match:
-   // (1) a open paren 
-   // (2) a single token and bind it to `$x`
-   // (3) a close paren
-  case ($x) => {
+  rule {
+    // after the macro name, match:
+    // (1) a open paren 
+    // (2) a single token and bind it to `$x`
+    // (3) a close paren
+    ($x)
+  } => {
     // just return the token we bound to `$x`
     $x
   }
@@ -128,7 +130,9 @@ var x; // note the different name on the right --->
 // For example, let's look at the swap macro that uses a temporary 
 // variable to swap the contents of two other vars:
 macro swap {
-  case ($x, $y) => {
+  rule {
+    ($x, $y)
+  } => {
     var tmp = $x;
     $y = $x;
     $x = tmp;
