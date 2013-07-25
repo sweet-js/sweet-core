@@ -178,24 +178,24 @@ macro case {
     }
 
 
-    mkContract (CToken, {
-        type: ?Num,
-        value: ?(Num or Str)
-    });
+    // mkContract (CToken, {
+    //     type: ?Num,
+    //     value: ?(Num or Str)
+    // });
 
-    mkContract (CContext, {
-        name: ?Num,
-        dummy_name: ?Num,
-        context: Self
-    });
+    // mkContract (CContext, {
+    //     name: ?Num,
+    //     dummy_name: ?Num,
+    //     context: Self
+    // });
 
-    mkContract (CSyntax, {
-        token: CToken,
-        context: Null or CContext
-    });
+    // mkContract (CSyntax, {
+    //     token: CToken,
+    //     context: Null or CContext
+    // });
 
 
-    fun (Num or Str, Num, CSyntax) -> CSyntax
+    // fun (Num or Str, Num, CSyntax) -> CSyntax
     function mkSyntax(value, type, stx) {
         return syntaxFromToken({
             type: type,
