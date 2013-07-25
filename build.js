@@ -60,8 +60,8 @@ target.build = function() {
         echo("compiling: " + path.basename(file));
         // compile the expander only with support for contract macros
         if(file === "src/expander.js") {
-            exec("bin/sjs --output " + "build/lib/" + path.basename(file) + " " + file);
-            // exec("bin/sjs --output " + "build/lib/" + path.basename(file) + " --module " + contracts_lib + " " + file);
+            // exec("bin/sjs --output " + "build/lib/" + path.basename(file) + " " + file);
+            exec("bin/sjs --output " + "build/lib/" + path.basename(file) + " --module " + contracts_lib + " " + file);
         } else {
             exec("bin/sjs --output " + "build/lib/" + path.basename(file) + " " + file);
         }

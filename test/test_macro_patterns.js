@@ -171,6 +171,24 @@ describe("macro expander", function() {
         expect(m()).to.eql([]);
     });
 
+    it("should allow an empty ... to recursively call a macro", function() {
+        macro m {
+            rule {
+                ()
+            } => {
+                
+            }
+
+            rule {
+                ($head $rest ...)
+            } => {
+                [$head m($rest ...)]
+            }
+        }
+        expect(m (1)).to.eql([1])
+        
+    });
+
 
 
     it("should distinguish between commas and no commas in a repeat", function() {
