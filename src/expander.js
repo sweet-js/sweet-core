@@ -1363,7 +1363,7 @@ macro case {
         } else if (patternClass === "ident" && stx[0] && stx[0].token.type === parser.Token.Identifier) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (patternClass === "VariableStatement") {
+        } else if (stx.length > 0 && patternClass === "VariableStatement") {
             var match = enforest(stx, env, stxStore);
             if (match.result && match.result.hasPrototype(VariableStatement)) {
                 result = match.result.destruct(false);
@@ -1372,7 +1372,7 @@ macro case {
                 result = null;
                 rest = stx;
             }
-        } else if (patternClass === "expr") {
+        } else if (stx.length > 0 && patternClass === "expr") {
             var match = get_expression(stx, env, stxStore);
             if (match.result === null || (!match.result.hasPrototype(Expr))) {
                 result = null;
