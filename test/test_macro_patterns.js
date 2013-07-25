@@ -163,12 +163,12 @@ describe("macro expander", function() {
             rule {
                 ($x ...)
             } => {
-                42
+                [$x (,) ...]
             }
         }
-        expect(m(1 1)).to.be(42);
-        expect(m(1)).to.be(42);
-        expect(m()).to.be(42);
+        expect(m(1 2)).to.eql([1,2]);
+        expect(m(1)).to.eql([1]);
+        expect(m()).to.eql([]);
     });
 
 

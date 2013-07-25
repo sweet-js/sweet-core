@@ -1422,24 +1422,13 @@ macro case {
         var rest;
         var success;
 
-        // exit early if we don't have more syntax to match
-        if (stx.length === 0) {
-            return {
-                success: false,
-                rest: stx,
-                patternEnv: patternEnv
-            };
-        }
-
-        parser.assert(stx.length > 0, "should have had something to match here");
-
         if (pattern.token.type === parser.Token.Delimiter) {
             if (pattern.class === "pattern_group") {
                 // pattern groups don't match the delimiters
                 subMatch = matchPatterns(pattern.token.inner, stx, env, false, stxStore);
                 rest = subMatch.rest;
-            } else if (stx[0].token.type === parser.Token.Delimiter &&
-                        stx[0].token.value === pattern.token.value) {
+            } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter &&
+                       stx[0].token.value === pattern.token.value) {
                 subMatch = matchPatterns(pattern.token.inner, stx[0].token.inner, env, false, stxStore);
                 rest = stx.slice(1);
             } else {
@@ -1476,7 +1465,7 @@ macro case {
         } else {
             if (pattern.class === "pattern_literal") {
                 // match the literal but don't update the pattern environment
-                if (pattern.token.value === stx[0].token.value) {
+                if (stx[0] && pattern.token.value === stx[0].token.value) {
                     success = true;
                     rest = stx.slice(1);
                 } else {
@@ -1493,22 +1482,19 @@ macro case {
                     match: match.result
                 };
 
-                // only update the pattern environment if we got a result
-                if (match.result !== null) {
-                    // push the match onto this value's slot in the environment
-                    if (pattern.repeat) {
-                        if (patternEnv[pattern.token.value]) {
-                            patternEnv[pattern.token.value].match.push(matchEnv);
-                        } else {
-                            // initialize if necessary
-                            patternEnv[pattern.token.value] = {
-                                level: 1,
-                                match: [matchEnv]
-                            };
-                        }
+                // push the match onto this value's slot in the environment
+                if (pattern.repeat) {
+                    if (patternEnv[pattern.token.value]) {
+                        patternEnv[pattern.token.value].match.push(matchEnv);
                     } else {
-                        patternEnv[pattern.token.value] = matchEnv;
+                        // initialize if necessary
+                        patternEnv[pattern.token.value] = {
+                            level: 1,
+                            match: [matchEnv]
+                        };
                     }
+                } else {
+                    patternEnv[pattern.token.value] = matchEnv;
                 }
             }
         }
@@ -1555,10 +1541,13 @@ macro case {
                     // a repeat can match zero tokens and still be a
                     // "success" so break out of the inner loop and
                     // try the next pattern
+                    rest = match.rest;
+                    patternEnv = match.patternEnv;
                     break;
                 }
                 if (!match.success) {
                     success = false;
+                    break;
                 }
                 rest = match.rest;
                 patternEnv = match.patternEnv;
