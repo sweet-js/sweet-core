@@ -154,7 +154,7 @@ macro case {
 
     mkContract (CSyntax, {
         token: CToken,
-        context: CContext
+        context: Null or CContext
     });
 
 
