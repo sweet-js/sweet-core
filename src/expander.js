@@ -1744,7 +1744,7 @@ macro case {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
                         var newBody = syntaxFromToken(_.clone(bodyStx.token), macroBody.context);
                         newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, env);
-                        return acc.concat(newBody);
+                        return acc.concat(takeLineContext(macroNameStx, [newBody]));
                     }
                     if (Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
                         parser.assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match: " + bodyStx.token.value);
