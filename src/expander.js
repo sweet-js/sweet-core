@@ -709,14 +709,6 @@ macro case {
         construct: function(e) { this.eof = e; }
     });
 
-    var MakeSyntax = TermTree.extend({
-        properties: ["kw", "arg"],
-
-        construct: function(kw, arg) {
-            this.kw = kw;
-            this.arg = arg;
-        }
-    });
 
     var Statement = TermTree.extend({ construct: function() {} });
 
@@ -910,7 +902,7 @@ macro case {
             this.delim = syntaxFromToken(_.clone(this.delim.token), this.delim.context);
             this.delim.token.inner = _.reduce(this.args, function(acc, term) {
                 parser.assert(term && term.hasPrototype(TermTree),
-                    "expecting term trees in destruct of Call");
+                              "expecting term trees in destruct of Call");
                 var dst = acc.concat(term.destruct(breakDelim));
                 // add all commas except for the last one
                 if (that.commas.length > 0) {
@@ -932,6 +924,8 @@ macro case {
             this.commas = commas;
         }
     });
+
+    var MakeSyntax = Call.extend({});
 
     var ObjDotGet = Expr.extend({
         properties: ["left", "dot", "right"],
@@ -1089,6 +1083,17 @@ macro case {
         }
     }
 
+    function stxToToken(stx){
+        var tok = _.clone(stx.token);
+        if (stx.token.type === parser.Token.Delimiter) {
+            tok.inner = _.map(tok.inner, function(stx) {
+                return stxToToken(stx);
+            });
+        }
+        return tok;
+    }
+
+
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, env, stxStore) {
@@ -1134,14 +1139,13 @@ macro case {
                         // each argument is an expression
                         if (innerTokens.length === 0 && argsAreExprs) {
                             if (head.hasPrototype(Id) && head.id.token.value === "makeSyntax") {
-                                var stxId = fresh();
-                                var stxForStore = getStxForMakeSyntax(enforestedArgs[1]);
-                                stxStore.set(stxId, stxForStore);
-                                setStxForMakeSyntax(mkSyntax(stxId, parser.Token.NumericLiteral, stxForStore),
-                                                      enforestedArgs[1]);
+                                return step(MakeSyntax.create(head, enforestedArgs, rest[0], commas),
+                                            rest.slice(1));
+                            } else {
+                                
+                                return step(Call.create(head, enforestedArgs, rest[0], commas),
+                                            rest.slice(1));
                             }
-                            return step(Call.create(head, enforestedArgs, rest[0], commas),
-                                        rest.slice(1));
                         }
                     }
 
@@ -1796,8 +1800,10 @@ macro case {
         var bodyCode = codegen.generate(parser.parse(expanded));
 
         var macroFn = eval(bodyCode);
-        return macroFn(function(val, ctx) {
-            return mkSyntax(val, parser.Token.NumericLiteral, stxStore.get(ctx));
+        return macroFn(function(valId, ctxId) {
+            var stxValue = stxStore.get(valId);
+            var stxContext = stxStore.get(ctxId);
+            return syntaxFromToken(stxValue.token, stxContext.context);
         });
     }
 
@@ -2017,6 +2023,39 @@ macro case {
         return stx;
     }
 
+    // Takes a term tree and returns the syntax object that it wrapps.
+    // Assumes that there is only a single token so throws error if
+    // the term wrapps more than a single syntax object (eg: a
+    // function definition isn't allowed)
+    function getWrappedSyntax(term){
+        case term {
+            ArrayLiteral(array) => {
+                return array.delim;
+            }
+            Block(body) => {
+                return body.delim;
+            }
+            ParenExpression(expr) => {
+                return expr.delim;
+            }
+            Delimiter(delim) => {
+                return delim;
+            }
+            ThisExpression(emp) => {
+                return term.this;
+            }
+            Lit(lit) => {
+                return lit;
+            }
+            Id(id) => {
+                return id;
+            }
+            default: => {
+                throwError("make syntax only understands single tokens")
+            }
+        }
+    }
+
     // similar to `parse2` in the honu paper except here we
     // don't generate an AST yet
     // (TermTree, Map, Map) -> TermTree
@@ -2033,6 +2072,21 @@ macro case {
             return term;
         } else if (term.hasPrototype(ParenExpression)) {
             term.expr.delim.token.inner = expand(term.expr.delim.token.inner, env, ctx, defscope, stxStore);
+            return term;
+        } else if (term.hasPrototype(MakeSyntax)) {
+            var stxToken = getWrappedSyntax(term.args[0]);
+            var stxContext = getWrappedSyntax(term.args[1]);
+            var tokenId = fresh();
+            var contextId = fresh();
+            stxStore.set(tokenId, stxToken);
+            stxStore.set(contextId, stxContext);
+            term.args[0] = Lit.create(mkSyntax(tokenId, parser.Token.NumericLiteral, stxToken))
+            term.args[1] = Lit.create(mkSyntax(contextId, parser.Token.NumericLiteral, stxContext));
+
+            term.fun = expandTermTreeToFinal(term.fun, env, ctx, defscope, stxStore);
+            term.args = _.map(term.args, function(arg) {
+                return expandTermTreeToFinal(arg, env, ctx, defscope, stxStore);
+            });
             return term;
         } else if (term.hasPrototype(Call)) {
             term.fun = expandTermTreeToFinal(term.fun, env, ctx, defscope, stxStore);
