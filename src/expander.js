@@ -22,130 +22,131 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-macro _get_vars {
-	rule { $val { } } => { }
-	rule {
-		$val {
-			$proto($field (,) ...) => { $body ... }
-			$rest ...
-		}
-	} => {
-		$(var $field = $val.$field;) ...
-		_get_vars $val { $rest ... }
-	}
-	rule {
-		$val {
-			$proto($field (,) ...) | $guard:expr => { $body ... }
-			$rest ...
-		}
-	} => {
-		$(var $field = $val.$field;) ...
-		_get_vars $val { $rest ... }
-	}
-}
-
-macro _case {
-	rule { $val else {} } => {}
-	
-	rule {
-		$val else {
-			default => { $body ... }
-		}
-	} => {
-		else {
-			$body ...
-		}
-	}
-	
-	rule {
-		$val else {
-			$proto($field (,) ...) => { $body ... }
-			$rest ...
-		}
-	} => {
-		else if($val.hasPrototype($proto)) {
-			$body ...
-		}
-		_case $val else { $rest ... }
-	}
-	
-	rule {
-		$val else {
-			$proto($field (,) ...) | $guard:expr => { $body ... }
-			$rest ...
-		}
-	} => {
-		else if($val.hasPrototype($proto) && $guard) {
-			$body ...
-		}
-		_case $val else { $rest ... }
-	}
-	
-	rule {
-		$val {
-			$proto($field ...) => { $body ... }
-			$rest ...
-		}
-	} => {
-		if ($val.hasPrototype($proto)) {
-			$body ...
-		}
-		_case $val else { $rest ... }
-	}
-	
-	rule {
-		$val {
-			$proto($field ...) | $guard:expr => { $body ... }
-			$rest ...
-		}
-	} => {
-		if($val.hasPrototype($proto) && $guard) {
-			$body ...
-		}
-		_case $val else { $rest ... }
-	}
-}
-
-macro case {
-	rule {
-		$val {
-			$proto($field (,) ...) => { $body ... }
-			$rest ...
-		}
-	} => {
-		_get_vars $val { $proto($field ...) => { $body ... } $rest ... }
-		_case $val { $proto($field (,) ...) => { $body ... } $rest ... }
-	}
-	
-	rule {
-		$val {
-			$proto($field (,) ...) | $guard:expr => { $body ... }
-			$rest ...
-		}
-	} => {
-		_get_vars $val { $proto($field ...) | $guard => { $body ... } $rest ... }
-		_case $val { $proto($field (,) ...) | $guard => { $body ... } $rest ... }
-	}
-}
 
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require('./parser'), require("es6-collections"), require('escodegen'), require('contracts-js'));
+        factory(exports, require('underscore'), require('./parser'), require('./syntax'), require("es6-collections"), require('escodegen'), require('contracts-js'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'parser', 'es6-collections', 'escodegen', 'contracts-js'], factory);
+        define(['exports', 'underscore', 'parser', 'syntax', 'es6-collections', 'escodegen', 'contracts-js'], factory);
     } else {
         // Browser globals
-        factory((root.expander = {}), root._, root.parser, root.es6, root.escodegen, root.contracts);
+        factory((root.expander = {}), root._, root.parser, root.syntax, root.es6, root.escodegen, root.contracts);
     }
-}(this, function(exports, _, parser, es6, codegen, contracts) {
+}(this, function(exports, _, parser, syntax, es6, codegen, contracts) {
     'use strict';
+
+    macro _get_vars {
+	    rule { $val { } } => { }
+	    rule {
+		    $val {
+			    $proto($field (,) ...) => { $body ... }
+			    $rest ...
+		    }
+	    } => {
+		    $(var $field = $val.$field;) ...
+		        _get_vars $val { $rest ... }
+	    }
+	    rule {
+		    $val {
+			    $proto($field (,) ...) | $guard:expr => { $body ... }
+			    $rest ...
+		    }
+	    } => {
+		    $(var $field = $val.$field;) ...
+		        _get_vars $val { $rest ... }
+	    }
+    }
+
+    macro _case {
+	    rule { $val else {} } => {}
+	    
+	    rule {
+		    $val else {
+			default => { $body ... }
+		    }
+	    } => {
+		    else {
+			    $body ...
+		    }
+	    }
+	    
+	    rule {
+		    $val else {
+			    $proto($field (,) ...) => { $body ... }
+			    $rest ...
+		    }
+	    } => {
+		    else if($val.hasPrototype($proto)) {
+			    $body ...
+		    }
+		    _case $val else { $rest ... }
+	    }
+	    
+	    rule {
+		    $val else {
+			    $proto($field (,) ...) | $guard:expr => { $body ... }
+			    $rest ...
+		    }
+	    } => {
+		    else if($val.hasPrototype($proto) && $guard) {
+			    $body ...
+		    }
+		    _case $val else { $rest ... }
+	    }
+	    
+	    rule {
+		    $val {
+			    $proto($field ...) => { $body ... }
+			    $rest ...
+		    }
+	    } => {
+		    if ($val.hasPrototype($proto)) {
+			    $body ...
+		    }
+		    _case $val else { $rest ... }
+	    }
+	    
+	    rule {
+		    $val {
+			    $proto($field ...) | $guard:expr => { $body ... }
+			    $rest ...
+		    }
+	    } => {
+		    if($val.hasPrototype($proto) && $guard) {
+			    $body ...
+		    }
+		    _case $val else { $rest ... }
+	    }
+    }
+
+    macro case {
+	    rule {
+		    $val {
+			    $proto($field (,) ...) => { $body ... }
+			    $rest ...
+		    }
+	    } => {
+		    _get_vars $val { $proto($field ...) => { $body ... } $rest ... }
+		    _case $val { $proto($field (,) ...) => { $body ... } $rest ... }
+	    }
+	    
+	    rule {
+		    $val {
+			    $proto($field (,) ...) | $guard:expr => { $body ... }
+			    $rest ...
+		    }
+	    } => {
+		    _get_vars $val { $proto($field ...) | $guard => { $body ... } $rest ... }
+		    _case $val { $proto($field (,) ...) | $guard => { $body ... } $rest ... }
+	    }
+    }
+
+    
     setupContracts(contracts);
     // used to export "private" methods for unit testing
     exports._test = {};
-
-
 
     // some convenience monkey patching
     Object.prototype.create = function() {
@@ -195,139 +196,18 @@ macro case {
     });
 
 
-    fun (Num or Str, Num, CSyntax) -> CSyntax
-    function mkSyntax(value, type, stx) {
-        return syntaxFromToken({
-            type: type,
-            value: value,
-            lineStart: stx.token.lineStart,
-            lineNumber: stx.token.lineNumber
-        }, stx.context);
-    }
 
-    // probably a more javascripty way than faking constructors but screw it
-    // (Num) -> CContext
-    function Mark(mark, ctx) {
-        return {
-            mark: mark,
-            context: ctx
-        };
-    }
+    var Rename = syntax.Rename;
+    var Mark = syntax.Mark;
+    var Var = syntax.Var;
+    var Def = syntax.Def;
+    var isDef = syntax.isDef;
+    var isMark = syntax.isMark;
+    var isRename = syntax.isRename;
 
+    var syntaxFromToken = syntax.syntaxFromToken;
+    var mkSyntax = syntax.mkSyntax;
 
-    function Var(id) {
-        return {
-            id: id
-        };
-    }
-
-    function isDef(ctx) {
-        return ctx && (typeof ctx.defctx !== 'undefined');
-    }
-
-    var isMark = function isMark(m) {
-        return m && (typeof m.mark !== 'undefined');
-    };
-
-    // (CSyntax, Str) -> CContext
-    function Rename(id, name, ctx, defctx) {
-        defctx = defctx || null;
-        return {
-            id: id,
-            name: name,
-            context: ctx,
-            def: defctx
-        };
-    }
-
-    function Def(defctx, ctx) {
-        return {
-            defctx: defctx,
-            context: ctx
-        };
-    }
-
-    var isRename = function(r) {
-        return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
-    };
-
-
-    var syntaxProto =  {
-        // (?) -> CSyntax
-        // non mutating
-        mark: function mark(newMark) {
-            // clone the token so we don't mutate the original inner property
-            var markedToken = _.clone(this.token);
-            if (this.token.inner) {
-                var markedInner = _.map(this.token.inner, function(stx) {
-                    return stx.mark(newMark);
-                });
-                markedToken.inner = markedInner;
-            }
-            var newMarkObj = Mark(newMark, this.context);
-            var stmp = syntaxFromToken(markedToken, newMarkObj);
-            return stmp;
-        },
-
-        // (CSyntax or [...CSyntax], Str) -> CSyntax
-        // non mutating
-        rename: function(id, name) {
-            // rename inside of delimiters
-            if (this.token.inner) {
-                var renamedInner = _.map(this.token.inner, function(stx) {
-                    return stx.rename(id, name);
-                });
-                this.token.inner = renamedInner;
-            }
-
-            // Only need to put in a rename if the token and the source ident both
-            // have the same base name. Speculative optimization, the extra renames
-            // might be useful for later extensions.
-            if(this.token.value === id.token.value) {
-                return syntaxFromToken(this.token, Rename(id, name, this.context));
-            } else {
-                return this;
-            }
-        },
-
-        addDefCtx: function(defctx) {
-            if (this.token.inner) {
-                var renamedInner = _.map(this.token.inner, function(stx) {
-                    return stx.addDefCtx(defctx);
-                });
-                this.token.inner = renamedInner;
-            }
-
-            return syntaxFromToken(this.token, Def(defctx, this.context));
-        },
-
-        getDefCtx: function() {
-            var ctx = this.context;
-            while(ctx !== null) {
-                if (isDef(ctx)) {
-                    return ctx.defctx;
-                }
-                ctx = ctx.context;
-            }
-            return null;
-        },
-
-        toString: function() {
-            var val = this.token.type === parser.Token.EOF ? "EOF" : this.token.value;
-            return "[Syntax: " + val + "]";
-        }
-    };
-
-    // (CToken, CContext?) -> CSyntax
-    function syntaxFromToken(token, oldctx) {
-        // if given old syntax object steal its context otherwise create one fresh
-        var ctx = (typeof oldctx !== 'undefined') ? oldctx : null;
-
-        return Object.create(syntaxProto, {
-            token: { value: token, enumerable: true, configurable: true},
-            context: { value: ctx, writable: true, enumerable: true, configurable: true}
-        });
-    }
 
     function remdup(mark, mlist) {
         if (mark === _.first(mlist)) {
@@ -426,18 +306,6 @@ macro case {
     // fun () -> Num
     function fresh() { return nextFresh++; };
 
-    // (CToken or [...CToken]) -> [...CSyntax]
-    function tokensToSyntax(tokens) {
-        if (!_.isArray(tokens)) {
-            tokens = [tokens];
-        }
-        return _.map(tokens, function(token) {
-            if (token.inner) {
-                token.inner = tokensToSyntax(token.inner);
-            }
-            return syntaxFromToken(token);
-        });
-    }
 
     // ([...CSyntax]) -> [...CToken]
     function syntaxToTokens(syntax) {
@@ -634,11 +502,6 @@ macro case {
         }, 0);
     }
 
-    // (Any, CSyntax) -> Bool
-    function matchStx(value, stx) {
-        return stx && stx.token && stx.token.value === value;
-    }
-
     // wraps the array of syntax objects in the delimiters given by the second argument
     // ([...CSyntax], CSyntax) -> [...CSyntax]
     function wrapDelim(towrap, delimSyntax) {
@@ -663,20 +526,6 @@ macro case {
         });
     }
 
-    function isFunctionStx(stx) {
-        return stx && stx.token.type === parser.Token.Keyword &&
-                    stx.token.value === "function";
-    }
-    function isVarStx(stx) {
-        return stx && stx.token.type === parser.Token.Keyword &&
-                    stx.token.value === "var";
-    }
-
-    function varNamesInAST(ast) {
-        return _.map(ast, function(item) {
-            return item.id.name;
-        });
-    }
 
 
     // A TermTree is the core data structure for the macro expansion process.
@@ -2229,6 +2078,6 @@ macro case {
 
     exports.flatten = flatten;
 
-    exports.tokensToSyntax = tokensToSyntax;
+    exports.tokensToSyntax = syntax.tokensToSyntax;
     exports.syntaxToTokens = syntaxToTokens;
 }));
