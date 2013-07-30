@@ -26,7 +26,6 @@
     "underscore": "~1.3.3",
     "escodegen": "0.0.9",
     "contracts-js": "0.3.x",
-    "sweet-contracts": "0.1.x",
     "es6-collections": "0.2.x"
   },
   "devDependencies": {
