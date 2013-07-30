@@ -6,8 +6,8 @@ var Benchmark = require("benchmark");
 
 var suite = new Benchmark.Suite;
 
-var contracts_lib = "node_modules/sweet-contracts/lib/sweet-contracts.js";
-var contracts_bin = "node_modules/sweet-contracts/bin/sweet-contracts";
+var contracts_lib = "macros/sweet-contracts.js";
+var contracts_lib_off = "macros/sweet-contracts-id.js";
 
 target.all = function() {
     target.clean();
@@ -35,17 +35,9 @@ target.clean = function() {
     }
 };
 
-target.single = function() {
-    target.build();
-    target.test_single();
-};
+function build(useContracts) {
+    var contract = useContracts ? contracts_lib : contracts_lib_off;
 
-target.unit = function() {
-    target.build();
-    target.test_unit();
-};
-
-target.build = function() {
     if(!test('-d', "build/lib/")) {
         mkdir("-p", "build/lib/");
         mkdir("-p", "build/bin/");
@@ -58,18 +50,31 @@ target.build = function() {
 
     ls("src/*.js").forEach(function(file) {
         echo("compiling: " + path.basename(file));
-        // compile the expander only with support for contract macros
+
+        // only compile some of the files with contract support for now
         if(file === "src/expander.js" || file === "src/syntax.js") {
-            // exec("bin/sjs --output " + "build/lib/" + path.basename(file) + " " + file);
-            exec("bin/sjs --output " + "build/lib/" + path.basename(file) + " --module " + contracts_lib + " " + file);
+            exec("bin/sjs " +
+                 "--output " + "build/lib/" + path.basename(file) +
+                 " --module " + contract +
+                 " " + file);
         } else {
-            exec("bin/sjs --output " + "build/lib/" + path.basename(file) + " " + file);
+            exec("bin/sjs " +
+                 "--output " + "build/lib/" + path.basename(file) +
+                 " " + file);
         }
     });
+}
+
+target.build = function() {
+    build(true);
 };
 
-target.build_sweetjs = function() {
-    target.build();
+target.build_no_contracts = function() {
+    build(false);
+}
+
+target.build_dist = function() {
+    target.build_no_contracts();
     cp("-f", "build/lib/*.js", "lib/");
 }
 
@@ -79,11 +84,12 @@ target.build_test_file = function() {
     if(test('-f', "test.js")) {
         echo("compiling: test.js" )
         exec('build/bin/sjs test.js test_out.js');
+    } else {
+        echo("no file: test.js");
     }
 }
 
 target.build_test = function() {
-
     ls("test/*.js").forEach(function(file) {
         echo("compiling: " + path.basename(file));
         exec("build/bin/sjs --output build/" + path.basename(file) + " " + file);
@@ -113,21 +119,3 @@ target.test = function() {
     mocha.run();
 };
 
-// used when we don't want to run all the tests again, just
-// run test_single.js
-target.test_single = function() {
-    var mocha = new Mocha();
-    mocha.addFile(path.join('build/', 'test_single.js'));
-    mocha.run();
-};
-
-target.test_unit = function() {
-    cp('-f', 'test/test_expander_units.js', 'build/');
-    if(process.env.NODE_DISABLE_COLORS === "1") {
-        Mocha.reporters.Base.useColors = false;
-    }
-    var mocha = new Mocha();
-    mocha.useColors = false;
-    mocha.addFile(path.join('build/', 'test_expander_units.js'));
-    mocha.run();
-};
