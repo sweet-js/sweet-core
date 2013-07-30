@@ -774,7 +774,6 @@
         }
     });
 
-    var MakeSyntax = Call.extend({});
 
     var ObjDotGet = Expr.extend({
         properties: ["left", "dot", "right"],
@@ -903,34 +902,6 @@
         };
     }
 
-    function getStxForMakeSyntax(term) {
-        case term {
-            Lit(lit) => {
-                return lit;
-            }
-            Delimiter(delim) => {
-                return delim;
-            }
-            default => {
-                throwError("not implemented yet: ");
-            }
-        }
-    }
-
-    function setStxForMakeSyntax(stx, term) {
-        case term {
-            Lit(lit) => {
-                term.lit = stx;
-            }
-            Delimiter(delim) => {
-                term.delim = stx;
-            }
-            default => {
-                throwError("not implemented yet: " + term);
-            }
-            
-        }
-    }
 
     function stxToToken(stx){
         var tok = _.clone(stx.token);
@@ -987,14 +958,8 @@
                         // only a call if we can completely enforest each argument and
                         // each argument is an expression
                         if (innerTokens.length === 0 && argsAreExprs) {
-                            if (head.hasPrototype(Id) && head.id.token.value === "makeSyntax") {
-                                return step(MakeSyntax.create(head, enforestedArgs, rest[0], commas),
-                                            rest.slice(1));
-                            } else {
-                                
-                                return step(Call.create(head, enforestedArgs, rest[0], commas),
-                                            rest.slice(1));
-                            }
+                            return step(Call.create(head, enforestedArgs, rest[0], commas),
+                                        rest.slice(1));
                         }
                     }
 
@@ -1476,7 +1441,7 @@
     // given the given the macroBody (list of Pattern syntax objects) and the
     // environment (a mapping of patterns to syntax) return the body with the
     // appropriate patterns replaces with their value in the environment
-    function transcribe(macroBody, macroNameStx, env) {
+    function transcribe(macroBody, macroNameStx, env, macroType, stxStore) {
 
         return _.chain(macroBody)
             .reduce(function(acc, bodyStx, idx, original) {
@@ -1575,10 +1540,10 @@
 
                         var transcribed = _.map(restrictedEnv, function(renv) {
                             if (bodyStx.group) {
-                                return transcribe(bodyStx.token.inner, macroNameStx, renv);
+                                return transcribe(bodyStx.token.inner, macroNameStx, renv, macroType, stxStore);
                             } else {
                                 var newBody = syntaxFromToken(_.clone(bodyStx.token), bodyStx.context);
-                                newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, renv);
+                                newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, renv, macroType, stxStore);
                                 return newBody;
                             }
                         });
@@ -1596,18 +1561,47 @@
                 } else {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
                         var newBody = syntaxFromToken(_.clone(bodyStx.token), macroBody.context);
-                        newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, env);
+                        newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, env, macroType, stxStore);
                         return acc.concat(takeLineContext(macroNameStx, [newBody]));
                     }
                     if (Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
-                        parser.assert(env[bodyStx.token.value].level === 0, "match ellipses level does not match: " + bodyStx.token.value);
-                        return acc.concat(takeLineContext(macroNameStx,
-                                                          env[bodyStx.token.value].match));
+                        parser.assert(env[bodyStx.token.value].level === 0,
+                                      "match ellipses level does not match: " + bodyStx.token.value);
+                        if(macroType === "case") {
+                            return acc.concat(makeGetSyntax(env[bodyStx.token.value].match,
+                                                            stxStore,
+                                                            macroNameStx));
+                        } else {
+                            return acc.concat(takeLineContext(macroNameStx,
+                                                              env[bodyStx.token.value].match));
+                        }
                     }
                     return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
                 }
             }, []).value();
     }
+
+    function makeGetSyntax(stx, stxStore, lineContext){
+        var stxId = fresh();
+        stxStore.set(stxId, stx);
+
+        var fn = syntaxFromToken({
+            value: "getSyntax",
+            type: parser.Token.Identifier
+        });
+        var args = syntaxFromToken({
+            value: "()",
+            type: parser.Token.Delimiter,
+            inner: [
+                syntaxFromToken({
+                    value: stxId,
+                    type: parser.Token.NumericLiteral
+                })
+            ]
+        });
+        return takeLineContext(lineContext, [fn, args]);
+    }
+
 
     // mark each syntax object in the pattern environment,
     // mutating the environment
@@ -1643,16 +1637,45 @@
     // fun ([...Syntax]) -> [...Syntax]
     // fun ([CSyntax...]) -> [CSyntax ...]
     function evalMacroBody(body, stxStore) {
-        var functionStub = parser.read("(function(makeSyntax) { })");
+        var functionStub = parser.read("(function(makeSyntax, getSyntax, unwrapSyntax) { })");
         functionStub[0].token.inner[2].token.inner = body;
         var expanded = expandTopLevel(functionStub, stxStore);
         var bodyCode = codegen.generate(parser.parse(expanded));
 
         var macroFn = eval(bodyCode);
-        return macroFn(function(valId, ctxId) {
-            var stxValue = stxStore.get(valId);
-            var stxContext = stxStore.get(ctxId);
-            return syntaxFromToken(stxValue.token, stxContext.context);
+
+        function mSyntax(val, ctx) {
+            if(Array.isArray(val)) {
+                return syntaxFromToken({
+                    value: "[]",
+                    type: parser.Token.Delimiter,
+                    inner: _.reduce(_.tail(val), function(acc, v) {
+                        return acc.concat([syntaxFromToken({
+                            value: ",",
+                            type: parser.Token.Punctuator
+                        }, null), mSyntax(v, ctx)]);
+                    }, [mSyntax(_.head(val), ctx)])
+                }, ctx);
+            } else if (typeof val === "number") {
+                return syntaxFromToken({
+                    value: val,
+                    type: parser.Token.NumericLiteral
+                }, ctx)
+            } else if (typeof val === "string") {
+                return syntaxFromToken({
+                    value: val,
+                    type: parser.Token.StringLiteral
+                }, ctx)
+            } else {
+                throwError("not implemented yet");
+            }
+            return syntaxFromToken(token, stxContext.context);
+        }
+        
+        return macroFn(mSyntax, function(stxId) {
+            return stxStore.get(stxId);
+        }, function(stx) {
+            return stx[0].token.value;
         });
     }
 
@@ -1679,7 +1702,7 @@
                 if (match.success) {
                     newMark = fresh();
                     applyMarkToPatternEnv(newMark, match.patternEnv);
-                    macroResult = transcribe(caseBody, macroNameStx, match.patternEnv);
+                    macroResult = transcribe(caseBody, macroNameStx, match.patternEnv, macroType, stxStore);
                     if(macroType === "case") {
                         macroResult = evalMacroBody(macroResult, stxStore);
                     }
@@ -1921,21 +1944,6 @@
             return term;
         } else if (term.hasPrototype(ParenExpression)) {
             term.expr.delim.token.inner = expand(term.expr.delim.token.inner, env, ctx, defscope, stxStore);
-            return term;
-        } else if (term.hasPrototype(MakeSyntax)) {
-            var stxToken = getWrappedSyntax(term.args[0]);
-            var stxContext = getWrappedSyntax(term.args[1]);
-            var tokenId = fresh();
-            var contextId = fresh();
-            stxStore.set(tokenId, stxToken);
-            stxStore.set(contextId, stxContext);
-            term.args[0] = Lit.create(mkSyntax(tokenId, parser.Token.NumericLiteral, stxToken))
-            term.args[1] = Lit.create(mkSyntax(contextId, parser.Token.NumericLiteral, stxContext));
-
-            term.fun = expandTermTreeToFinal(term.fun, env, ctx, defscope, stxStore);
-            term.args = _.map(term.args, function(arg) {
-                return expandTermTreeToFinal(arg, env, ctx, defscope, stxStore);
-            });
             return term;
         } else if (term.hasPrototype(Call)) {
             term.fun = expandTermTreeToFinal(term.fun, env, ctx, defscope, stxStore);
