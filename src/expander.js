@@ -1084,6 +1084,9 @@
                     var transformer = env.get(head.token.value);
                     // apply the transformer
                     var rt = transformer(rest, head, env, stxStore);
+                    if(!Array.isArray(rt.result)) {
+                        throwError("Macro transformer must return a result array, not: " + rt.result);
+                    }
                     if(rt.result.length > 0) {
                         return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
                     } else {
@@ -1207,8 +1210,8 @@
         var result, rest;
         // pattern has no parse class
         if (patternClass === "token" && stx[0] && stx[0].token.type !== parser.Token.EOF) {
-                result = [stx[0]];
-                rest = stx.slice(1);
+            result = [stx[0]];
+            rest = stx.slice(1);
         } else if (patternClass === "lit" && stx[0] && typeIsLiteral(stx[0].token.type)) {
             result = [stx[0]];
             rest = stx.slice(1);
@@ -1716,7 +1719,7 @@
 
     // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
-    function loadMacroDef(mac) {
+    function loadMacroDef(mac, env, ctx, defscope, stxStore) {
         var body = mac.body;
         var caseOffset = 0;
         var arrowOffset = 0;
@@ -1730,6 +1733,19 @@
         var bodyOffset = 4;
 
         var macroType;
+
+        // raw function primitive form
+        if(body[0] && body[0].token.type === parser.Token.Keyword &&
+           body[0].token.value === "function") {
+            // put the function into parens to force expression form
+            var stub = parser.read("()");
+            stub[0].token.inner = body;
+            var expanded = flatten(expand(stub, env, ctx, defscope, stxStore));
+            var bodyCode = codegen.generate(parser.parse(expanded));
+            return eval(bodyCode);
+        }
+
+        
         if(body[0] && body[0].token.value === "rule" || body[0].token.value === "case") {
             macroType = body[0].token.value;
         } else {
@@ -1767,7 +1783,7 @@
 
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
-    function expandToTermTree (stx, env, defscope, stxStore) {
+    function expandToTermTree (stx, env, ctx, defscope, stxStore) {
         parser.assert(env, "environment map is required");
 
         // short circuit when syntax array is empty
@@ -1788,9 +1804,9 @@
 
         if (head.hasPrototype(Macro)) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition = loadMacroDef(head);
+            var macroDefinition = loadMacroDef(head, env, ctx, defscope, stxStore);
             env.set(head.name.token.value, macroDefinition);
-            return expandToTermTree(rest, env, defscope, stxStore);
+            return expandToTermTree(rest, env, ctx, defscope, stxStore);
         }
 
         if (head.hasPrototype(VariableStatement)) {
@@ -1810,7 +1826,7 @@
             });
         }
 
-        var trees = expandToTermTree(rest, env, defscope, stxStore);
+        var trees = expandToTermTree(rest, env, ctx, defscope, stxStore);
         return {
             terms: [head].concat(trees.terms),
             env: trees.env
@@ -2033,7 +2049,7 @@
         ctx = ctx || new Map();
         stxStore = stxStore || new Map();
 
-        var trees = expandToTermTree(stx, env, defscope, stxStore);
+        var trees = expandToTermTree(stx, env, ctx, defscope, stxStore);
         return _.map(trees.terms, function(term) {
             return expandTermTreeToFinal(term, trees.env, ctx, defscope, stxStore);
         })
