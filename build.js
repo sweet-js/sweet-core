@@ -41,11 +41,13 @@ function build(useContracts) {
     if(!test('-d', "build/lib/")) {
         mkdir("-p", "build/lib/");
         mkdir("-p", "build/bin/");
+        mkdir("-p", "build/macros/");
     }
 
     echo("\nbuilding sweet.js...");
 
     cp("-f", "bin/sjs", "build/bin/");
+    cp("-f", "macros/*", "build/macros/");
     chmod("+x", "build/bin/sjs");
 
     ls("src/*.js").forEach(function(file) {
@@ -100,6 +102,7 @@ target.build_browser = function() {
     echo("\nbuilding browser tests...");
 
     cp("-f", "build/lib/*.js", "browser/scripts");
+    cp("-f", "macros/*", "browser/scripts");
     cp("-f", "node_modules/contracts-js/lib/contracts.js", "browser/scripts/contracts-js.js");
 };
 

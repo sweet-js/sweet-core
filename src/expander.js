@@ -30,9 +30,6 @@
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports', 'underscore', 'parser', 'syntax', 'es6-collections', 'escodegen', 'contracts-js'], factory);
-    } else {
-        // Browser globals
-        factory((root.expander = {}), root._, root.parser, root.syntax, root.es6, root.escodegen, root.contracts);
     }
 }(this, function(exports, _, parser, syntax, es6, codegen, contracts) {
     'use strict';

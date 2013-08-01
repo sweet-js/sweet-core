@@ -61,9 +61,6 @@ to decide on the correct name for identifiers.
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports', 'expander'], factory);
-    } else {
-        // Browser globals
-        factory((root.parser = {}), root.expander);
     }
 }(this, function (exports, expander) {
     'use strict';

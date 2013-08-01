@@ -1,15 +1,12 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require("es6-collections"), require('contracts-js'));
+        factory(exports, require('underscore'), require("es6-collections"), require('contracts-js'), require("./parser"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'es6-collections', 'contracts-js'], factory);
-    } else {
-        // Browser globals
-        factory((root.expander = {}), root._,  root.es6, root.contracts);
+        define(['exports', 'underscore', 'es6-collections', 'contracts-js', 'parser'], factory);
     }
-}(this, function(exports, _, es6, contracts) {
+}(this, function(exports, _, es6, contracts, parser) {
 
     setupContracts(contracts);
 

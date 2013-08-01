@@ -30,7 +30,13 @@
         var expander = require("./expander");
         var codegen = require("escodegen");
 
-        factory(exports, parser, expander, codegen);
+        var path = require('path');
+        var fs   = require('fs');
+        var lib  = path.join(path.dirname(fs.realpathSync(__filename)), "../macros");
+
+        var stxcaseModule = fs.readFileSync(lib + "/stxcase.js", 'utf8');
+
+        factory(exports, parser, expander, codegen, stxcaseModule);
 
         // Alow require('./example') for an example.sjs file.
         require.extensions['.sjs'] = function(module, filename) {
@@ -39,15 +45,12 @@
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', './parser', './expander', './escodegen'], factory);
-    } else {
-        // Browser globals
-        factory((root.sweet = {}), root.parser, root.expander, root.codegen);
+        define(['exports', './parser', './expander', './escodegen', 'text!./stxcase.js'], factory);
     }
-}(this, function (exports, parser, expander, codegen) {
+}(this, function (exports, parser, expander, codegen, stxcaseModule) {
 
-    // (Str, {}) -> AST
-    exports.parse = function parse(code, options) {
+    // fun (Str, {}) -> [...CSyntax]
+    function expand(code, options) {
         var program, toString;
 
         toString = String;
@@ -73,19 +76,20 @@
             }
         }
 
-        var readTree = parser.read(source);
-        var expanded = expander.expand(readTree); 
-        var ast = parser.parse(expanded);
-        return ast;
-    };
+        source = stxcaseModule + "\n\n" + source;
 
-    exports.expand = function expand(code, options) {
-        var readTree = parser.read(code);
-        var expanded = expander.expand(readTree); 
-        return expanded;
-      };
-    
+        var readTree = parser.read(source);
+        return expander.expand(readTree);
+    }
+
+    // fun (Str, {}) -> AST
+    function parse(code, options) {
+        return parser.parse(expand(code, options));
+    }
+
+    exports.expand = expand;
+    exports.parse = parse;
     exports.compile = function compile(code, options) {
-      return codegen.generate(exports.parse(code, options));
+      return codegen.generate(parse(code, options));
     }
 }));
