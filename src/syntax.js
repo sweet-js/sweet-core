@@ -17,8 +17,7 @@
 
     mkContract (CContext, {
         name: ?Num,
-        dummy_name: ?Num,
-        context: Self
+        dummy_name: ?Num
     });
 
     mkContract (CSyntax, {
@@ -71,6 +70,8 @@
     function isDef(ctx) {
         return ctx && (typeof ctx.defctx !== 'undefined');
     }
+
+    var templateMap = new Map();
 
 
     // (CToken, CContext?) -> CSyntax
@@ -144,18 +145,36 @@
             }
         }, {
             token: { value: token, enumerable: true, configurable: true},
-            context: { value: ctx, writable: true, enumerable: true, configurable: true}
+            context: { value: ctx, writable: true, enumerable: true, configurable: true},
+            // single global map to a template inside `syntax` referenced by all syntax objects
+            templateMap: {
+                value: templateMap,
+                writable: false,
+                enumerable: false,
+                configurable: false
+            }
         });
     }
 
     fun (Num or Str, Num, CSyntax) -> CSyntax
     function mkSyntax(value, type, stx) {
+        var ctx, lineStart, lineNumber, range;
+        if(stx && stx.token) {
+            ctx = stx.context;
+            lineStart = stx.token.lineStart;
+            lineNumber = stx.token.lineNumber;
+            range = stx.token.range;
+        } else {
+            ctx = null;
+            // the others can stay undefined
+        }
         return syntaxFromToken({
             type: type,
             value: value,
-            lineStart: stx.token.lineStart,
-            lineNumber: stx.token.lineNumber
-        }, stx.context);
+            lineStart: lineStart,
+            lineNumber: lineNumber,
+            range: range
+        }, ctx);
     }
     
 
@@ -171,6 +190,101 @@
             return syntaxFromToken(token);
         });
     }
+
+    function makeValue(val, stx) {
+        if(typeof val === 'boolean') {
+            return mkSyntax(val, parser.Token.BooleanLiteral, stx);
+        } else if (typeof val === 'number') {
+            return mkSyntax(val, parser.Token.NumericLiteral, stx);
+        } else if (typeof val === 'string') {
+            return mkSyntax(val, parser.Token.StringLiteral, stx);
+        } else if (val === null) {
+            return mkSyntax('null', parser.Token.NullLiteral, stx);
+        } else {
+            throwError("Cannot make value syntax object from: " + val);
+        }
+    }
+
+    function makeRegex(val, flags, stx) {
+        var ctx, lineStart, lineNumber, range;
+        if(stx && stx.token) {
+            ctx = stx.context;
+            lineStart = stx.token.lineStart;
+            lineNumber = stx.token.lineNumber;
+            range = stx.token.range;
+        } else {
+            ctx = null;
+            // the others can stay undefined
+        }
+        return syntaxFromToken({
+            type: parser.Token.RegexLiteral,
+            literal: val,
+            value: new RegExp(val, flags),
+            lineStart: lineStart,
+            lineNumber: lineNumber,
+            range: range
+        }, ctx);
+    }
+
+    function makeIdent(val, stx) {
+        return mkSyntax(val, parser.Token.Identifier, stx);
+    }
+
+    function makeKeyword(val, stx) {
+        return mkSyntax(val, parser.Token.Keyword, stx);
+    }
+
+    function makePunc(val, stx) {
+        return mkSyntax(val, parser.Token.Punctuator, stx);
+    }
+
+    function makeDelim(val, inner, stx) {
+        var ctx, startLineNumber, startLineStart, endLineNumber, endLineStart, startRange, endRange;
+        if(stx && stx.token) {
+            ctx = stx.context;
+            startLineNumber = stx.token.startLineNumber;
+            startLineStart = stx.token.startLineStart
+            endLineNumber = stx.token.endLineNumber;
+            endLineStart = stx.token.endLineStart;
+            startRange = stx.token.startRange;
+            endRange = stx.token.endRange;
+        } else {
+            ctx = null;
+            // the others can stay undefined
+        }
+
+        return syntaxFromToken({
+            type: parser.Token.Delimiter,
+            value: val,
+            inner: inner,
+            startLineStart: startLineStart,
+            startLineNumber: startLineNumber,
+            endLineStart: endLineStart,
+            endLineNumber: endLineNumber,
+            startRange: startRange,
+            endRange: endRange
+        }, ctx);
+    }
+
+    function unwrapSyntax(stx) {
+        if (stx.token) {
+            if(stx.token.type === parser.Token.Delimiter) {
+                return stx.token;
+            } else {
+                return stx.token.value;
+            }
+        } else {
+            throwError("Not a syntax object: " + stx);
+        }
+    }
+
+    exports.unwrapSyntax = unwrapSyntax;
+    exports.makeDelim = makeDelim;
+    exports.makePunc = makePunc;
+    exports.makeKeyword = makeKeyword;
+    exports.makeIdent = makeIdent;
+    exports.makeRegex = makeRegex;
+    exports.makeValue = makeValue;
 
     exports.Rename = Rename;
     exports.Mark = Mark;
