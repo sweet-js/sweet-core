@@ -26,10 +26,13 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require('./parser'), require('./syntax'), require("es6-collections"), require('escodegen'), require('contracts-js'));
+        factory(exports, require('underscore'), require('./parser'),
+                require('./syntax'), require("es6-collections"),
+                require('escodegen'), require('contracts-js'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'parser', 'syntax', 'es6-collections', 'escodegen', 'contracts-js'], factory);
+        define(['exports', 'underscore', 'parser', 'syntax',
+                'es6-collections', 'escodegen', 'contracts-js'], factory);
     }
 }(this, function(exports, _, parser, syntax, es6, codegen, contracts) {
     'use strict';
@@ -287,13 +290,20 @@
                 stop_branch);
 
             if(idName === subName) {
-                var idMarks = marksof(ctx.id.context, originalName + "$" + ctx.name, originalName);
-                var subMarks = marksof(ctx.context, originalName + "$" + ctx.name, originalName);
+                var idMarks = marksof(ctx.id.context,
+                                      originalName + "$" + ctx.name,
+                                      originalName);
+                var subMarks = marksof(ctx.context,
+                                       originalName + "$" + ctx.name,
+                                       originalName);
                 if(arraysEqual(idMarks, subMarks)) {
                     return originalName + "$" + ctx.name;
                 }
             }
-            return resolveCtx(originalName, ctx.context, _.union(stop_spine,[ctx.def]), stop_branch);
+            return resolveCtx(originalName,
+                              ctx.context,
+                              _.union(stop_spine,[ctx.def]),
+                              stop_branch);
         }
         return originalName;
     }
@@ -356,13 +366,15 @@
                     }
                 }
                 // skip over $
-                if (patStx.token.value === "$" && next && next.token.type === parser.Token.Delimiter) {
+                if (patStx.token.value === "$" &&
+                    next && next.token.type === parser.Token.Delimiter) {
                     return acc;
                 }
 
                 if (isPatternVar(patStx.token)) {
                     if (next && next.token.value === ":" ) {
-                        parser.assert(typeof nextNext !== 'undefined', "expecting a pattern class");
+                        parser.assert(typeof nextNext !== 'undefined',
+                                      "expecting a pattern class");
                         patStx.class = nextNext.token.value;
                     } else {
                         patStx.class = "token";
@@ -386,15 +398,18 @@
                 if (next && next.token.value === "...") {
                     repeat = true;
                     separator = " ";
-                } else if (delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
+                } else if (delimIsSeparator(next) &&
+                           nextNext && nextNext.token.value === "...") {
                     repeat = true;
-                    parser.assert(next.token.inner.length === 1, "currently assuming all separators are a single token");
+                    parser.assert(next.token.inner.length === 1,
+                                  "currently assuming all separators are a single token");
                     separator = next.token.inner[0].token.value;
                 }
 
                 // skip over ... and (,)
                 if (patStx.token.value === "..."||
-                        (delimIsSeparator(patStx) && next && next.token.value === "...")) {
+                        (delimIsSeparator(patStx) &&
+                         next && next.token.value === "...")) {
                     return acc;
                 }
                 patStx.repeat = repeat;
@@ -439,7 +454,10 @@
             if (punc === " ") {
                 return acc.concat(join.match);
             }
-            return acc.concat(mkSyntax(punc, parser.Token.Punctuator, _.first(join.match)), join.match);
+            return acc.concat(mkSyntax(punc,
+                                       parser.Token.Punctuator,
+                                       _.first(join.match)),
+                              join.match);
         }, _.first(tojoin).match);
     }
     // ([...CSyntax], Str) -> [...CSyntax])
@@ -460,7 +478,10 @@
         }
 
         return _.reduce(_.rest(tojoin, 1), function (acc, join){
-            return acc.concat(mkSyntax(punc, parser.Token.Punctuator, _.first(join)), join);
+            return acc.concat(mkSyntax(punc,
+                                       parser.Token.Punctuator,
+                                       _.first(join)),
+                              join);
         }, _.first(tojoin));
     }
 
@@ -502,7 +523,8 @@
     // wraps the array of syntax objects in the delimiters given by the second argument
     // ([...CSyntax], CSyntax) -> [...CSyntax]
     function wrapDelim(towrap, delimSyntax) {
-        parser.assert(delimSyntax.token.type === parser.Token.Delimiter, "expecting a delimiter token");
+        parser.assert(delimSyntax.token.type === parser.Token.Delimiter,
+                      "expecting a delimiter token");
 
         return syntaxFromToken({
             type: parser.Token.Delimiter,
@@ -757,7 +779,9 @@
                 return dst;
             }, []);
 
-            return this.fun.destruct(breakDelim).concat(Delimiter.create(this.delim).destruct(breakDelim));
+            return this.fun.destruct(breakDelim).concat(Delimiter
+                                                        .create(this.delim)
+                                                        .destruct(breakDelim));
         },
 
         construct: function(funn, args, delim, commas) {
@@ -765,8 +789,9 @@
             this.fun = funn;
             this.args = args;
             this.delim = delim;
-            // an ugly little hack to keep the same syntax objects (with associated line numbers
-            // etc.) for all the commas separating the arguments
+            // an ugly little hack to keep the same syntax objects
+            // (with associated line numbers etc.) for all the commas
+            // separating the arguments
             this.commas = commas;
         }
     });
@@ -806,9 +831,11 @@
         properties: ["varkw", "decls"],
 
         destruct: function(breakDelim) {
-            return this.varkw.destruct(breakDelim).concat(_.reduce(this.decls, function(acc, decl) {
-                return acc.concat(decl.destruct(breakDelim));
-            }, []));
+            return this.varkw
+                .destruct(breakDelim)
+                .concat(_.reduce(this.decls, function(acc, decl) {
+                    return acc.concat(decl.destruct(breakDelim));
+                }, []));
         },
 
         construct: function(varkw, decls) {
@@ -865,7 +892,8 @@
 
                 if (initRes.rest[0].token.type === parser.Token.Punctuator &&
                     initRes.rest[0].token.value === "," &&
-                    initRes.rest[1] && initRes.rest[1].token.type === parser.Token.Identifier) {
+                    initRes.rest[1] &&
+                    initRes.rest[1].token.type === parser.Token.Identifier) {
                     decls.push(VariableDeclaration.create(stx[0],
                                                           stx[1],
                                                           initRes.result,
@@ -876,10 +904,13 @@
                     decls = decls.concat(subRes.result);
                     rest = subRes.rest;
                 } else {
-                    decls.push(VariableDeclaration.create(stx[0], stx[1], initRes.result));
+                    decls.push(VariableDeclaration.create(stx[0],
+                                                          stx[1],
+                                                          initRes.result));
                 }
             } else {
-                parser.assert(false, "parse error, expecting an expr in variable initialization");
+                parser.assert(false,
+                              "parse error, expecting an expr in variable initialization");
             }
         } else if (stx[1] && stx[1].token.type === parser.Token.Punctuator &&
                     stx[1].token.value === ",") {
@@ -943,8 +974,9 @@
                                 // but dump it for the next loop turn
                                 innerTokens = innerTokens.slice(1);
                             } else {
-                                // either there are no more tokens or they aren't a comma, either
-                                // way we are done with the loop
+                                // either there are no more tokens or
+                                // they aren't a comma, either way we
+                                // are done with the loop
                                 break;
                             }
                         }
@@ -955,7 +987,10 @@
                         // only a call if we can completely enforest each argument and
                         // each argument is an expression
                         if (innerTokens.length === 0 && argsAreExprs) {
-                            return step(Call.create(head, enforestedArgs, rest[0], commas),
+                            return step(Call.create(head,
+                                                    enforestedArgs,
+                                                    rest[0],
+                                                    commas),
                                         rest.slice(1));
                         }
                     }
@@ -966,12 +1001,17 @@
                         var condRes = enforest(rest.slice(1), env);
                         var truExpr = condRes.result;
                         var right = condRes.rest;
-                        if(truExpr.hasPrototype(Expr) && right[0] && right[0].token.value === ":") {
+                        if(truExpr.hasPrototype(Expr) &&
+                           right[0] && right[0].token.value === ":") {
                             var colon = right[0];
                             var flsRes = enforest(right.slice(1), env);
                             var flsExpr = flsRes.result;
                             if(flsExpr.hasPrototype(Expr)) {
-                                return step(ConditionalExpression.create(head, question, truExpr, colon, flsExpr),
+                                return step(ConditionalExpression.create(head,
+                                                                         question,
+                                                                         truExpr,
+                                                                         colon,
+                                                                         flsExpr),
                                             flsRes.rest);
                             }
                         }
@@ -981,20 +1021,23 @@
                     Keyword(keyword) | (keyword.token.value === "new" && rest[0]) => {
                         var newCallRes = enforest(rest, env);
                         if(newCallRes.result.hasPrototype(Call)) {
-                            return step(Const.create(head, newCallRes.result), newCallRes.rest);
+                            return step(Const.create(head, newCallRes.result),
+                                        newCallRes.rest);
                         }
                     }
 
                     // ParenExpr
                     Delimiter(delim) | delim.token.value === "()" => {
                         innerTokens = delim.token.inner;
-                        // empty parens are acceptable but enforest doesn't accept empty arrays
-                        // so short circuit here
+                        // empty parens are acceptable but enforest
+                        // doesn't accept empty arrays so short
+                        // circuit here
                         if (innerTokens.length === 0) {
                             return step(ParenExpression.create(head), rest);
                         } else {
                             var innerTerm = get_expression(innerTokens, env);
-                            if (innerTerm.result && innerTerm.result.hasPrototype(Expr)) {
+                            if (innerTerm.result &&
+                                innerTerm.result.hasPrototype(Expr)) {
                                 return step(ParenExpression.create(head), rest);
                             }
                             // if the tokens inside the paren aren't an expression
@@ -1019,7 +1062,8 @@
                     Punc(punc) | stxIsUnaryOp(punc) => {
                         var unopRes = enforest(rest, env);
                         if (unopRes.result.hasPrototype(Expr)) {
-                            return step(UnaryOp.create(punc, unopRes.result), unopRes.rest);
+                            return step(UnaryOp.create(punc, unopRes.result),
+                                        unopRes.rest);
                         }
                     }
 
@@ -1027,7 +1071,8 @@
                     Keyword(keyword) | stxIsUnaryOp(keyword) => {
                         var unopRes = enforest(rest, env);
                         if (unopRes.result.hasPrototype(Expr)) {
-                            return step(UnaryOp.create(keyword, unopRes.result), unopRes.rest);
+                            return step(UnaryOp.create(keyword, unopRes.result),
+                                        unopRes.rest);
                         }
                     }
 
@@ -1043,14 +1088,17 @@
                         var resStx = mkSyntax("[]", parser.Token.Delimiter, rest[0]);
                         resStx.token.inner = [getRes.result];
                         if(getRes.rest.length > 0) {
-                            return step(ObjGet.create(head, Delimiter.create(resStx)), rest.slice(1));
+                            return step(ObjGet.create(head, Delimiter.create(resStx)),
+                                        rest.slice(1));
                         }
                     }
 
                     // ObjectGet
                     Expr(emp) | (rest[0] && rest[0].token.value === "." &&
-                                rest[1] && rest[1].token.type === parser.Token.Identifier) => {
-                        return step(ObjDotGet.create(head, rest[0], rest[1]), rest.slice(2));
+                                 rest[1] &&
+                                 rest[1].token.type === parser.Token.Identifier) => {
+                        return step(ObjDotGet.create(head, rest[0], rest[1]),
+                                    rest.slice(2));
                     }
 
                     // ArrayLiteral
@@ -1065,10 +1113,12 @@
 
                     // VariableStatement
                     Keyword(keyword) | (keyword.token.value === "var" &&
-                                        rest[0] && rest[0].token.type === parser.Token.Identifier) => {
+                                        rest[0] &&
+                                        rest[0].token.type === parser.Token.Identifier) => {
                         var vsRes = enforestVarStatement(rest, env);
                         if (vsRes) {
-                            return step(VariableStatement.create(head, vsRes.result), vsRes.rest);
+                            return step(VariableStatement.create(head, vsRes.result),
+                                        vsRes.rest);
                         }
                     }
                 }
@@ -1085,7 +1135,8 @@
                     // apply the transformer
                     var rt = transformer(rest, head, env);
                     if(!Array.isArray(rt.result)) {
-                        throwError("Macro transformer must return a result array, not: " + rt.result);
+                        throwError("Macro transformer must return a result array, not: "
+                                   + rt.result);
                     }
                     if(rt.result.length > 0) {
                         return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
@@ -1100,7 +1151,8 @@
                     rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                     rest[1].token.value === "{}") {
 
-                    return step(Macro.create(rest[0], rest[1].token.inner), rest.slice(2));
+                    return step(Macro.create(rest[0], rest[1].token.inner),
+                                rest.slice(2));
                 // function definition
                 } else if (head.token.type === parser.Token.Keyword &&
                     head.token.value === "function" &&
@@ -1209,13 +1261,16 @@
     function matchPatternClass (patternClass, stx, env) {
         var result, rest;
         // pattern has no parse class
-        if (patternClass === "token" && stx[0] && stx[0].token.type !== parser.Token.EOF) {
+        if (patternClass === "token" &&
+            stx[0] && stx[0].token.type !== parser.Token.EOF) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (patternClass === "lit" && stx[0] && typeIsLiteral(stx[0].token.type)) {
+        } else if (patternClass === "lit" &&
+                   stx[0] && typeIsLiteral(stx[0].token.type)) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (patternClass === "ident" && stx[0] && stx[0].token.type === parser.Token.Identifier) {
+        } else if (patternClass === "ident" &&
+                   stx[0] && stx[0].token.type === parser.Token.Identifier) {
             result = [stx[0]];
             rest = stx.slice(1);
         } else if (stx.length > 0 && patternClass === "VariableStatement") {
@@ -1284,7 +1339,10 @@
                 rest = subMatch.rest;
             } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter &&
                        stx[0].token.value === pattern.token.value) {
-                subMatch = matchPatterns(pattern.token.inner, stx[0].token.inner, env, false);
+                subMatch = matchPatterns(pattern.token.inner,
+                                         stx[0].token.inner,
+                                         env,
+                                         false);
                 rest = stx.slice(1);
             } else {
                 return {
@@ -1456,7 +1514,8 @@
                         return acc;
                     }
                     // drop `(<separator)` when followed by an ellipse
-                    if (delimIsSeparator(bodyStx) && next && next.token.value === "...") {
+                    if (delimIsSeparator(bodyStx) &&
+                        next && next.token.value === "...") {
                         return acc;
                     }
 
@@ -1484,7 +1543,8 @@
                         bodyStx.group = true;
                     }
 
-                    // literal [] delimiters have their bodies just directly passed along
+                    // literal [] delimiters have their bodies just
+                    // directly passed along
                     if (bodyStx.literal === true) {
                         parser.assert(bodyStx.token.type === parser.Token.Delimiter,
                                         "expecting a literal to be surrounded by []");
@@ -1494,7 +1554,8 @@
                     if (next && next.token.value === "...") {
                         bodyStx.repeat = true;
                         bodyStx.separator = " "; // default to space separated
-                    } else if (delimIsSeparator(next) && nextNext && nextNext.token.value === "...") {
+                    } else if (delimIsSeparator(next) &&
+                               nextNext && nextNext.token.value === "...") {
                         bodyStx.repeat = true;
                         bodyStx.separator = next.token.inner[0].token.value;
                     }
@@ -1505,23 +1566,29 @@
                 if (bodyStx.repeat) {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
 
-                        var fv = _.filter(freeVarsInPattern(bodyStx.token.inner), function(pat) {
-                            // ignore "patterns" that aren't in the environment
-                            // (treat them like literals)
-                            return env.hasOwnProperty(pat);
-                        });
+                        var fv = _.filter(freeVarsInPattern(bodyStx.token.inner),
+                                          function(pat) {
+                                              // ignore "patterns"
+                                              // that aren't in the
+                                              // environment (treat
+                                              // them like literals)
+                                              return env.hasOwnProperty(pat);
+                                          });
                         var restrictedEnv = [];
                         var nonScalar = _.find(fv, function(pat) {
                             return env[pat].level > 0;
                         });
 
-                        parser.assert(typeof nonScalar !== 'undefined', "must have a least one non-scalar in repeat");
+                        parser.assert(typeof nonScalar !== 'undefined',
+                                      "must have a least one non-scalar in repeat");
 
                         var repeatLength = env[nonScalar].match.length;
                         var sameLength = _.all(fv, function(pat) {
-                            return (env[pat].level === 0) || (env[pat].match.length === repeatLength);
+                            return (env[pat].level === 0) ||
+                                (env[pat].match.length === repeatLength);
                         });
-                        parser.assert(sameLength, "all non-scalars must have the same length");
+                        parser.assert(sameLength,
+                                      "all non-scalars must have the same length");
 
                         // create a list of envs restricted to the free vars
                         restrictedEnv = _.map(_.range(repeatLength), function(idx) {
@@ -1540,10 +1607,15 @@
 
                         var transcribed = _.map(restrictedEnv, function(renv) {
                             if (bodyStx.group) {
-                                return transcribe(bodyStx.token.inner, macroNameStx, renv);
+                                return transcribe(bodyStx.token.inner,
+                                                  macroNameStx,
+                                                  renv);
                             } else {
-                                var newBody = syntaxFromToken(_.clone(bodyStx.token), bodyStx.context);
-                                newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, renv);
+                                var newBody = syntaxFromToken(_.clone(bodyStx.token),
+                                                              bodyStx.context);
+                                newBody.token.inner = transcribe(bodyStx.token.inner,
+                                                                 macroNameStx,
+                                                                 renv);
                                 return newBody;
                             }
                         });
@@ -1556,17 +1628,22 @@
 
                         return acc.concat(joined);
                     }
-                    parser.assert(env[bodyStx.token.value].level === 1, "ellipses level does not match");
-                    return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match, bodyStx.separator));
+                    parser.assert(env[bodyStx.token.value].level === 1,
+                                  "ellipses level does not match");
+                    return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match,
+                                                        bodyStx.separator));
                 } else {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
-                        var newBody = syntaxFromToken(_.clone(bodyStx.token), macroBody.context);
-                        newBody.token.inner = transcribe(bodyStx.token.inner, macroNameStx, env);
+                        var newBody = syntaxFromToken(_.clone(bodyStx.token),
+                                                      macroBody.context);
+                        newBody.token.inner = transcribe(bodyStx.token.inner,
+                                                         macroNameStx, env);
                         return acc.concat(takeLineContext(macroNameStx, [newBody]));
                     }
                     if (Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
                         parser.assert(env[bodyStx.token.value].level === 0,
-                                      "match ellipses level does not match: " + bodyStx.token.value);
+                                      "match ellipses level does not match: "
+                                      + bodyStx.token.value);
                         return acc.concat(takeLineContext(macroNameStx,
                                                           env[bodyStx.token.value].match));
                     }
@@ -1657,18 +1734,26 @@
                     newMark = fresh();
                     applyMarkToPatternEnv(newMark, match.patternEnv);
                     if(macroType === "case") {
-                        macroResult = evalMacroBody(caseBody, env, match.patternEnv, macroNameStx);
+                        macroResult = evalMacroBody(caseBody,
+                                                    env,
+                                                    match.patternEnv,
+                                                    macroNameStx);
                     } else {
-                        macroResult = transcribe(caseBody, macroNameStx, match.patternEnv);
+                        macroResult = transcribe(caseBody,
+                                                 macroNameStx,
+                                                 match.patternEnv);
                     }
-                    macroResult = _.map(macroResult, function(stx) { return stx.mark(newMark); });
+                    macroResult = _.map(macroResult, function(stx) {
+                        return stx.mark(newMark);
+                    });
                     return {
                         result: macroResult,
                         rest: match.rest
                     };
                 }
             }
-            throwError("Could not match any cases for macro: " + macroNameStx.token.value);
+            throwError("Could not match any cases for macro: "
+                       + macroNameStx.token.value);
         };
     }
 
@@ -1815,7 +1900,8 @@
                     ...
                     var x = 42;
 
-                we just need to use the first renaming and leave the definition context as is.
+                we just need to use the first renaming and leave the
+                definition context as is.
                 */
                 if (declRepeat !== null) {
                     var name = fresh();
@@ -1856,8 +1942,9 @@
                 return _.reduce(curr.decls, function(acc, decl) {
                     return acc.concat(decl.ident);
                 }, acc);
-            } else if (prev && prev.hasPrototype(Keyword) && prev.keyword.token.value === "for" &&
-                      curr.hasPrototype(Delimiter)) {
+            } else if (prev && prev.hasPrototype(Keyword) &&
+                       prev.keyword.token.value === "for" &&
+                       curr.hasPrototype(Delimiter)) {
                 return acc.concat(getVarDeclIdentifiers(curr));
             } else if (curr.hasPrototype(Block)) {
                 return acc.concat(getVarDeclIdentifiers(curr));
@@ -1915,16 +2002,28 @@
 
 
         if (term.hasPrototype(ArrayLiteral)) {
-            term.array.delim.token.inner = expand(term.array.delim.token.inner, env, ctx, defscope);
+            term.array.delim.token.inner = expand(term.array.delim.token.inner,
+                                                  env,
+                                                  ctx,
+                                                  defscope);
             return term;
         } else if (term.hasPrototype(Block)) {
-            term.body.delim.token.inner = expand(term.body.delim.token.inner, env, ctx, defscope);
+            term.body.delim.token.inner = expand(term.body.delim.token.inner,
+                                                 env,
+                                                 ctx,
+                                                 defscope);
             return term;
         } else if (term.hasPrototype(ParenExpression)) {
-            term.expr.delim.token.inner = expand(term.expr.delim.token.inner, env, ctx, defscope);
+            term.expr.delim.token.inner = expand(term.expr.delim.token.inner,
+                                                 env,
+                                                 ctx,
+                                                 defscope);
             return term;
         } else if (term.hasPrototype(Call)) {
-            term.fun = expandTermTreeToFinal(term.fun, env, ctx, defscope);
+            term.fun = expandTermTreeToFinal(term.fun,
+                                             env,
+                                             ctx,
+                                             defscope);
             term.args = _.map(term.args, function(arg) {
                 return expandTermTreeToFinal(arg, env, ctx, defscope);
             });
@@ -1954,7 +2053,9 @@
             // expand inside the delimiter and then continue on
             term.delim.token.inner = expand(term.delim.token.inner, env, ctx, defscope);
             return term;
-        } else if (term.hasPrototype(NamedFun) || term.hasPrototype(AnonFun) || term.hasPrototype(CatchClause)) {
+        } else if (term.hasPrototype(NamedFun) ||
+                   term.hasPrototype(AnonFun) ||
+                   term.hasPrototype(CatchClause)) {
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
             var newDef = [];
