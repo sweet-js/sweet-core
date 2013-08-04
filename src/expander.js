@@ -34,7 +34,7 @@
         define(['exports', 'underscore', 'parser', 'syntax',
                 'es6-collections', 'escodegen', 'contracts-js'], factory);
     }
-}(this, function(exports, _, parser, syntax, es6, codegen, contracts) {
+}(this, function(exports, _, parser, syn, es6, codegen, contracts) {
     'use strict';
 
     macro _get_vars {
@@ -197,16 +197,16 @@
 
 
 
-    var Rename = syntax.Rename;
-    var Mark = syntax.Mark;
-    var Var = syntax.Var;
-    var Def = syntax.Def;
-    var isDef = syntax.isDef;
-    var isMark = syntax.isMark;
-    var isRename = syntax.isRename;
+    var Rename = syn.Rename;
+    var Mark = syn.Mark;
+    var Var = syn.Var;
+    var Def = syn.Def;
+    var isDef = syn.isDef;
+    var isMark = syn.isMark;
+    var isRename = syn.isRename;
 
-    var syntaxFromToken = syntax.syntaxFromToken;
-    var mkSyntax = syntax.mkSyntax;
+    var syntaxFromToken = syn.syntaxFromToken;
+    var mkSyntax = syn.mkSyntax;
 
 
     function remdup(mark, mlist) {
@@ -1699,13 +1699,13 @@
             return transcribe(template, macroName, patternEnv);
         }
         
-        return macroFn(syntax.makeValue,
-                       syntax.makeRegex,
-                       syntax.makeIdent,
-                       syntax.makeKeyword,
-                       syntax.makePunc,
-                       syntax.makeDelim,
-                       syntax.unwrapSyntax,
+        return macroFn(syn.makeValue,
+                       syn.makeRegex,
+                       syn.makeIdent,
+                       syn.makeKeyword,
+                       syn.makePunc,
+                       syn.makeDelim,
+                       syn.unwrapSyntax,
                        fresh,
                        genTemplate);
     }
@@ -1785,13 +1785,13 @@
 
             var macroFn = eval(bodyCode); 
 
-            return macroFn(syntax.makeValue,
-                           syntax.makeRegex,
-                           syntax.makeIdent,
-                           syntax.makeKeyword,
-                           syntax.makePunc,
-                           syntax.makeDelim,
-                           syntax.unwrapSyntax,
+            return macroFn(syn.makeValue,
+                           syn.makeRegex,
+                           syn.makeIdent,
+                           syn.makeKeyword,
+                           syn.makePunc,
+                           syn.makeDelim,
+                           syn.unwrapSyntax,
                            fresh);
         }
 
@@ -2164,6 +2164,6 @@
 
     exports.flatten = flatten;
 
-    exports.tokensToSyntax = syntax.tokensToSyntax;
+    exports.tokensToSyntax = syn.tokensToSyntax;
     exports.syntaxToTokens = syntaxToTokens;
 }));
