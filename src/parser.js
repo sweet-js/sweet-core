@@ -3628,13 +3628,70 @@ to decide on the correct name for identifiers.
         return result;
     }
 
-    function readLoop(toks, inExprDelim) {
+    // Determines if the {} delimiter is a block or an expression.
+    function isBlock(toks, inExprDelim, parentIsBlock) {
+        assert(back(1).value === "{}", "expecting a {} token at the end of toks");
+
+        var assignOps =  ["=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=",
+                          "&=", "|=", "^=", ","];
+
+        var binaryOps = ["+", "-", "*", "/", "%","<<", ">>", ">>>", "&", "|", "^",
+                         "&&", "||", "?", ":",
+                         "===", "==", ">=", "<=", "<", ">", "!=", "!==", "instanceof"];
+
+        var unaryOps = ["++", "--", "~", "!", "delete", "void", "typeof", "yield", "throw", "new"];
+
+        function back(n) {
+            var idx = (toks.length - n > 0) ? (toks.length - n) : 0;
+            return toks[idx];
+        }
+
+
+        if (inExprDelim && (toks.length - 2 <= 0)) {
+            // ... ({...} ...)
+            return false;
+        }
+        else if (back(2).value === ":" && parentIsBlock) {
+            // ...{a:{b:{...}}}
+            return true;
+        }
+        else if (isIn(back(2).value, unaryOps.concat(binaryOps).concat(assignOps))) {
+            // ... + {...}
+            return false;
+        }
+        else if (back(2).value === "return") {
+            // ASI makes `{}` a block in:
+            //
+            //    return
+            //    { ... }
+            //
+            // otherwise an object literal, so it's an
+            // expression and thus / is divide
+            if (back(2).lineNumber !== back(1).startLineNumber) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        else if (isIn(back(2).value, ["void", "typeof", "in", "case", "delete"])) {
+            // ... in {}
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+
+    // Read the next token. Takes the previously read tokens, a
+    // boolean indicating if the parent delimiter is () or [], and a
+    // boolean indicating if the parent delimiter is {} a block
+    function readToken(toks, inExprDelim, parentIsBlock) {
         var delimiters = ['(', '{', '['];
         var parenIdents = ["if", "while", "for", "with"];
         var last = toks.length - 1;
-        
 
-        var fnExprTokens = ["(", "{", "[", "in", "typeof", "instanceof", "new", "return",
+        
+        var fnExprTokens = ["(", "[", "in", "typeof", "instanceof", "new", "return",
                             "case", "delete", "throw", "void", 
                             // assignment operators
                             "=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=", "&=", "|=", "^=",
@@ -3643,64 +3700,73 @@ to decide on the correct name for identifiers.
                             "+", "-", "*", "/", "%", "++", "--", "<<", ">>", ">>>", "&", "|", "^", "!", "~",
                             "&&", "||", "?", ":",
                             "===", "==", ">=", "<=", "<", ">", "!=", "!=="];
-        // var fnDeclTokens = [";", "}", ")", "]", ident, literal, "debugger", "break", "continue", "else"];
-        // don't need since these are all implicit in the else branch
         
         function back(n) {
             var idx = (toks.length - n > 0) ? (toks.length - n) : 0;
             return toks[idx];
         }
-        
+
         
         skipComment();
         
         if(isIn(getChar(), delimiters)) {
-            return readDelim();
-        // } else if(getChar() === "#") {
-        //     // todo: some hard coded assumptions here, will probably change everything anyway so no biggie
-        //     nextChar();
-        //     var syntaxTok = readDelim();
-        //     syntaxTok.value = "#{}";
-            
-        //     return syntaxTok;
+            return readDelim(toks, inExprDelim, parentIsBlock);
         } 
 
-        if(getChar() === "/") {
+        if (getChar() === "/") {
             var prev = back(1);
             if (prev) {
                 if (prev.value === "()") {
-                    if(isIn(back(2).value, parenIdents)) {
+                    if (isIn(back(2).value, parenIdents)) {
+                        // ... if (...) / ...
                         return scanRegExp();
                     } 
+                    // ... (...) / ...
                     return advance();
                 } 
-                if(prev.value === "{}") {
-                    // named function
-                    if(back(4).value === "function") {
-                        if(isIn(back(5).value, fnExprTokens)) {
-                            return advance();
+                if (prev.value === "{}") {
+                    if(isBlock(toks, inExprDelim, parentIsBlock)) {
+                        if (back(2).value === "()") {
+                            // named function
+                            if (back(4).value === "function") {
+                                if (isIn(back(5).value, fnExprTokens)) {
+                                    // new function foo (...) {...} / ...
+                                    return advance();
+                                }
+                                if ((toks.length - 5 <= 0) && inExprDelim) {
+                                    // (function foo (...) {...} /...)
+                                    // [function foo (...) {...} /...]
+                                    return advance();
+                                }
+                            }
+                            // unnamed function
+                            if (back(3).value === "function") {
+                                if (isIn(back(4).value, fnExprTokens)) {
+                                    // new function (...) {...} / ...
+                                    return advance();
+                                }
+                                if ((toks.length - 4 <= 0) && inExprDelim) {
+                                    // (function (...) {...} /...)
+                                    // [function (...) {...} /...]
+                                    return advance();
+                                }
+                            }
                         }
-                        if ((toks.length - 5 <= 0) && inExprDelim) {
-                            // case where: (function foo() {} /asdf/) or [function foo() {} /asdf]
-                            return advance();
-                        }
+                        // ...; {...} /...
+                        return scanRegExp();
+                        
+                    } else {
+                        // ... + {...} / ...
+                        return advance();
                     }
-                    // unnamed function
-                    if(back(3).value === "function") {
-                        if(isIn(back(4).value, fnExprTokens)) {
-                            return advance();
-                        }
-                        if ((toks.length - 4 <= 0) && inExprDelim) {
-                            // case where: (function foo() {} /asdf/) or [function foo() {} /asdf]
-                            return advance();
-                        }
-                    }
+                } 
+
+                if (prev.type === Token.Punctuator) {
+                    // ... + /...
                     return scanRegExp();
                 } 
-                if(prev.type === Token.Punctuator) {
-                    return scanRegExp();
-                } 
-                if(isKeyword(toks[toks.length - 1].value)) {
+                if (isKeyword(prev.value)) {
+                    // typeof /...
                     return scanRegExp();
                 } 
                 return advance();
@@ -3710,7 +3776,7 @@ to decide on the correct name for identifiers.
         return advance();
     }
     
-    function readDelim() {
+    function readDelim(toks, inExprDelim, parentIsBlock) {
         var startDelim = advance(),
             matchDelim = {
                 '(': ')',
@@ -3720,15 +3786,29 @@ to decide on the correct name for identifiers.
             inner = [];
         
         var delimiters = ['(', '{', '['];
-        var token = startDelim;
-        
         assert(delimiters.indexOf(startDelim.value) !== -1, "Need to begin at the delimiter");
-        
+
+        var token = startDelim;
         var startLineNumber = token.lineNumber;
         var startLineStart = token.lineStart;
         var startRange = token.range;
+
+        var delimToken = {};
+        delimToken.type = Token.Delimiter;
+        delimToken.value = startDelim.value + matchDelim[startDelim.value];
+        delimToken.startLineNumber = startLineNumber;
+        delimToken.startLineStart = startLineStart;
+        delimToken.startRange = startRange;
+
+        var delimIsBlock = false;
+        if(startDelim.value === "{") {
+            delimIsBlock = isBlock(toks.concat(delimToken), inExprDelim, parentIsBlock);
+        }
+        
         while(index <= length) {
-            token = readLoop(inner, (startDelim.value === "(" || startDelim.value === "["));
+            token = readToken(inner,
+                              (startDelim.value === "(" || startDelim.value === "["),
+                              delimIsBlock);
             if((token.type === Token.Punctuator) && (token.value === matchDelim[startDelim.value])) {
                 break;
             } else if(token.type === Token.EOF) {
@@ -3746,17 +3826,12 @@ to decide on the correct name for identifiers.
         var endLineNumber = token.lineNumber;
         var endLineStart = token.lineStart;
         var endRange = token.range;
-        return {
-            type: Token.Delimiter,
-            value: startDelim.value + matchDelim[startDelim.value], 
-            inner: inner,
-            startLineNumber: startLineNumber,
-            startLineStart: startLineStart,
-            startRange: startRange,
-            endLineNumber: endLineNumber,
-            endLineStart: endLineStart,
-            endRange: endRange
-        };
+
+        delimToken.inner = inner;
+        delimToken.endLineNumber = endLineNumber;
+        delimToken.endLineStart = endLineStart;
+        delimToken.endRange = endRange;
+        return delimToken;
     };
     
     
@@ -3782,7 +3857,7 @@ to decide on the correct name for identifiers.
         
         
         while(index < length) {
-            tokenTree.push(readLoop(tokenTree));
+            tokenTree.push(readToken(tokenTree, false, false));
         }
         var last = tokenTree[tokenTree.length-1];
         if(last && last.type !== Token.EOF) {

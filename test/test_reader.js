@@ -1,8 +1,10 @@
 var expect = require("expect.js");
-var parser = require("../lib/parser");
-var expander = require("../lib/expander");
+var parser = require("../build/lib/parser");
+var expander = require("../build/lib/expander");
 var gen = require("escodegen");
 var _ = require("underscore");
+
+var Token = parser.Token;
 
 var read = _.wrap(parser.read, function(read_func, read_arg) {
     return expander.syntaxToTokens(read_func(read_arg));
@@ -282,7 +284,9 @@ describe("reader", function() {
         
         expect(read("[42][0]\nfunction foo() {} /42/i")[6].literal)
             .to.equal("/42/i");
-        
+
+        expect(read("{function foo() {} /42/i}")[0].inner[4].type)
+            .to.be(Token.RegexLiteral);
     });
     
     
@@ -338,6 +342,56 @@ describe("reader", function() {
         expect(read("switch (\"foo\") {case \"foo\": {true;}\ncase function foo() {} /42/i: {true;}}")[2]
             .inner[9].value)
             .to.equal("/");
+    });
+
+    it('should read / following {x=4}/b/i; as a regex', function() {
+        expect(read("{x=4}/b/i;")[1].type)
+            .to.be(Token.RegexLiteral);
+    });
+
+    it('should read / following {x:4}/b/i; as a regex', function() {
+        expect(read("{x:4}/b/i;")[1].type)
+            .to.be(Token.RegexLiteral);
+    });
+      
+    it('should read / following {y:5}{x:4}/b/i; as a regex', function() {
+        expect(read("{y:5}{x:4}/b/i;")[2].type)
+            .to.be(Token.RegexLiteral);
+    });
+
+    it('should read / following {y:{x:4}/b/i}; as a regex', function() {
+        expect(read("{y:{x:4}/b/i};")[0].inner[3].type)
+            .to.be(Token.RegexLiteral);
+    });
+
+    it('should read / following return\n{x:4}/b/i; as a regex', function() {
+        expect(read("return\n{x:4}/b/i;")[2].type)
+            .to.be(Token.RegexLiteral);
+    });
+
+    it('should read / following a a={x:4}/b/i; as a divide', function() {
+        expect(read("a={x:4}/b/i;")[3].type)
+            .to.be(Token.Punctuator);
+    });
+
+    it('should read / following a foo({x:4}/b/i); as a divide', function() {
+        expect(read("foo({x:4}/b/i);")[1].inner[1].type)
+            .to.be(Token.Punctuator);
+    });
+
+    it('should read / following a a={y:{x:4}/b/i}; as a divide', function() {
+        expect(read("a={y:{x:4}/b/i};")[2].inner[3].type)
+            .to.be(Token.Punctuator);
+    });
+
+    it('should read / following a return{x:4}/b/i; as a divide', function() {
+        expect(read("return{x:4}/b/i;")[2].type)
+            .to.be(Token.Punctuator);
+    });
+
+    it('should read / following a throw{x:4}/b/i; as a divide', function() {
+        expect(read("throw{x:4}/b/i;")[2].type)
+            .to.be(Token.Punctuator);
     });
 
 });
