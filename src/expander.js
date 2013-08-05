@@ -1686,7 +1686,7 @@
     // fun ([...Syntax]) -> [...Syntax]
     // fun ([CSyntax...]) -> [CSyntax ...]
     function evalMacroBody(body, env, patternEnv, macroName) {
-        var functionStub = parser.read("(function(makeValue, makeRegex, makeIdent, makeKeyword, makePunc, makeDelim, unwrapSyntax, fresh, genTemplate) { })");
+        var functionStub = parser.read("(function(makeValue, makeRegex, makeIdent, makeKeyword, makePunc, makeDelim, unwrapSyntax, genTemplate) { })");
         functionStub[0].token.inner[2].token.inner = body;
         var expanded = flatten(expand(functionStub, env));
         var bodyCode = codegen.generate(parser.parse(expanded));
@@ -1706,7 +1706,6 @@
                        syn.makePunc,
                        syn.makeDelim,
                        syn.unwrapSyntax,
-                       fresh,
                        genTemplate);
     }
 
