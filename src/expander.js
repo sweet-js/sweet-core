@@ -1630,8 +1630,15 @@
 
                         return acc.concat(joined);
                     }
-                    parser.assert(env[bodyStx.token.value].level === 1,
-                                  "ellipses level does not match");
+
+                    if (!env[bodyStx.token.value]) {
+                        throwError("The pattern variable " + bodyStx.token.value +
+                                   " is not bound for the template");
+                    } else if (env[bodyStx.token.value].level !== 1) {
+                        throwError("Ellipses level for " + bodyStx.token.value +
+                                   " does not match in the template");
+                    } 
+
                     return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match,
                                                         bodyStx.separator));
                 } else {
@@ -1643,9 +1650,13 @@
                         return acc.concat(takeLineContext(macroNameStx, [newBody]));
                     }
                     if (Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
-                        parser.assert(env[bodyStx.token.value].level === 0,
-                                      "match ellipses level does not match: "
-                                      + bodyStx.token.value);
+                        if (!env[bodyStx.token.value]) {
+                            throwError("The pattern variable " + bodyStx.token.value +
+                                       " is not bound for the template");
+                        } else if (env[bodyStx.token.value].level !== 0) {
+                            throwError("Ellipses level for " + bodyStx.token.value +
+                                       " does not match in the template");
+                        } 
                         return acc.concat(takeLineContext(macroNameStx,
                                                           env[bodyStx.token.value].match));
                     }
