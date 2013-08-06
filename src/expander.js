@@ -1127,7 +1127,8 @@
 
                 // macro invocation
                 if ((head.token.type === parser.Token.Identifier ||
-                    head.token.type === parser.Token.Keyword) &&
+                     head.token.type === parser.Token.Keyword ||
+                     head.token.type === parser.Token.Punctuator) &&
                     env.has(head.token.value)) {
 
                     // pull the macro transformer out the environment
@@ -1145,11 +1146,12 @@
                     } 
                 // macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
-                    head.token.value === "macro" && rest[0] &&
-                    (rest[0].token.type === parser.Token.Identifier ||
-                        rest[0].token.type === parser.Token.Keyword) &&
-                    rest[1] && rest[1].token.type === parser.Token.Delimiter &&
-                    rest[1].token.value === "{}") {
+                           head.token.value === "macro" && rest[0] &&
+                           (rest[0].token.type === parser.Token.Identifier ||
+                            rest[0].token.type === parser.Token.Keyword ||
+                            rest[0].token.type === parser.Token.Punctuator) &&
+                           rest[1] && rest[1].token.type === parser.Token.Delimiter &&
+                           rest[1].token.value === "{}") {
 
                     return step(Macro.create(rest[0], rest[1].token.inner),
                                 rest.slice(2));
