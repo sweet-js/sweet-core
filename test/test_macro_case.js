@@ -35,11 +35,20 @@ $describe "procedural (syntax-case) macros" {
         expect(m()).to.be(42);
     }
 
+    $it "should work with #" {
+        macro m {
+            case { () } => {
+                return #{ 42 }
+            }
+        }
+        expect(m()).to.be(42);
+    }
+
 
     $it "should handle returning a single pattern variable" {
         macro m {
             case { ($x:expr) } => {
-                return syntax { $x }
+                return #{ $x }
             }
         }
         expect(m(42)).to.be(42);
@@ -49,7 +58,7 @@ $describe "procedural (syntax-case) macros" {
     $it "should handle a repeated pattern in the template" {
         macro m {
             case { ($x ...) } => {
-                return syntax { [$x (,) ...] }
+                return #{ [$x (,) ...] }
             }
         }
         expect(m(1 2 3)).to.eql([1,2,3]);

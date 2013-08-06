@@ -20,6 +20,14 @@ macro syntax {
         };
     }
 }
+
+macro # {
+    case { { $template ... } } => {
+        return syntax {
+            syntax { $template ... }
+        }
+    }
+}
 /*
   syntax { var x = 42 }
   -->
