@@ -369,6 +369,25 @@ describe("reader", function() {
             .to.be(Token.RegexLiteral);
     });
 
+    
+    it('should read / following a foo\n{} /b/i as a regex', function() {
+        expect(read("foo\n{} /b/i")[2].type)
+            .to.be(Token.RegexLiteral);
+        
+    });
+
+    it('should read / following a foo = 2\n{} /b/i as a regex', function() {
+        expect(read("foo = 2\n{} /b/i")[4].type)
+            .to.be(Token.RegexLiteral);
+        
+    });
+
+    it('should read / following a {a:function foo() {}/b/i} as a regex', function() {
+        expect(read("{a:function foo() {}/b/i}")[0].inner[6].type)
+            .to.be(Token.RegexLiteral);
+        
+    });
+
     it('should read / following a a={x:4}/b/i; as a divide', function() {
         expect(read("a={x:4}/b/i;")[3].type)
             .to.be(Token.Punctuator);
@@ -393,5 +412,7 @@ describe("reader", function() {
         expect(read("throw{x:4}/b/i;")[2].type)
             .to.be(Token.Punctuator);
     });
+
+
 
 });

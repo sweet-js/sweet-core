@@ -3629,8 +3629,7 @@ to decide on the correct name for identifiers.
     }
 
     // Determines if the {} delimiter is a block or an expression.
-    function isBlock(toks, inExprDelim, parentIsBlock) {
-        assert(back(1).value === "{}", "expecting a {} token at the end of toks");
+    function blockAllowed(toks, start, inExprDelim, parentIsBlock) {
 
         var assignOps =  ["=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=",
                           "&=", "|=", "^=", ","];
@@ -3647,19 +3646,19 @@ to decide on the correct name for identifiers.
         }
 
 
-        if (inExprDelim && (toks.length - 2 <= 0)) {
+        if (inExprDelim && (toks.length - (start + 2) <= 0)) {
             // ... ({...} ...)
             return false;
         }
-        else if (back(2).value === ":" && parentIsBlock) {
+        else if (back(start + 2).value === ":" && parentIsBlock) {
             // ...{a:{b:{...}}}
             return true;
         }
-        else if (isIn(back(2).value, unaryOps.concat(binaryOps).concat(assignOps))) {
+        else if (isIn(back(start + 2).value, unaryOps.concat(binaryOps).concat(assignOps))) {
             // ... + {...}
             return false;
         }
-        else if (back(2).value === "return") {
+        else if (back(start + 2).value === "return") {
             // ASI makes `{}` a block in:
             //
             //    return
@@ -3667,13 +3666,16 @@ to decide on the correct name for identifiers.
             //
             // otherwise an object literal, so it's an
             // expression and thus / is divide
-            if (back(2).lineNumber !== back(1).startLineNumber) {
+            var currLineNumber = typeof back(start + 1).startLineNumber !== 'undefined' ?
+                back(start + 1).startLineNumber :
+                back(start + 1).lineNumber;
+            if (back(start + 2).lineNumber !== currLineNumber) {
                 return true;
             } else {
                 return false;
             }
         }
-        else if (isIn(back(2).value, ["void", "typeof", "in", "case", "delete"])) {
+        else if (isIn(back(start + 2).value, ["void", "typeof", "in", "case", "delete"])) {
             // ... in {}
             return false;
         } else {
@@ -3690,17 +3692,6 @@ to decide on the correct name for identifiers.
         var parenIdents = ["if", "while", "for", "with"];
         var last = toks.length - 1;
 
-        
-        var fnExprTokens = ["(", "[", "in", "typeof", "instanceof", "new", "return",
-                            "case", "delete", "throw", "void", 
-                            // assignment operators
-                            "=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=", "&=", "|=", "^=",
-                            ",",
-                            // binary/unary operators
-                            "+", "-", "*", "/", "%", "++", "--", "<<", ">>", ">>>", "&", "|", "^", "!", "~",
-                            "&&", "||", "?", ":",
-                            "===", "==", ">=", "<=", "<", ">", "!=", "!=="];
-        
         function back(n) {
             var idx = (toks.length - n > 0) ? (toks.length - n) : 0;
             return toks[idx];
@@ -3725,11 +3716,11 @@ to decide on the correct name for identifiers.
                     return advance();
                 } 
                 if (prev.value === "{}") {
-                    if(isBlock(toks, inExprDelim, parentIsBlock)) {
+                    if(blockAllowed(toks, 0, inExprDelim, parentIsBlock)) {
                         if (back(2).value === "()") {
                             // named function
                             if (back(4).value === "function") {
-                                if (isIn(back(5).value, fnExprTokens)) {
+                                if (!blockAllowed(toks, 3, inExprDelim, parentIsBlock)) {
                                     // new function foo (...) {...} / ...
                                     return advance();
                                 }
@@ -3741,7 +3732,7 @@ to decide on the correct name for identifiers.
                             }
                             // unnamed function
                             if (back(3).value === "function") {
-                                if (isIn(back(4).value, fnExprTokens)) {
+                                if (!blockAllowed(toks, 2, inExprDelim, parentIsBlock)) {
                                     // new function (...) {...} / ...
                                     return advance();
                                 }
@@ -3802,7 +3793,7 @@ to decide on the correct name for identifiers.
 
         var delimIsBlock = false;
         if(startDelim.value === "{") {
-            delimIsBlock = isBlock(toks.concat(delimToken), inExprDelim, parentIsBlock);
+            delimIsBlock = blockAllowed(toks.concat(delimToken), 0, inExprDelim, parentIsBlock);
         }
         
         while(index <= length) {
