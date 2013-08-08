@@ -1,6 +1,7 @@
 /*
   Copyright (C) 2012 Tim Disney <tim@disnet.me>
 
+  
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
 
@@ -28,13 +29,13 @@
         // CommonJS
         factory(exports, require('underscore'), require('./parser'),
                 require('./syntax'), require("es6-collections"),
-                require('escodegen'), require('contracts-js'));
+                require('escodegen'), require('contracts-js'), require('./es6-module-loader'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports', 'underscore', 'parser', 'syntax',
-                'es6-collections', 'escodegen', 'contracts-js'], factory);
+                'es6-collections', 'escodegen', 'contracts-js', 'es6-module-loader'], factory);
     }
-}(this, function(exports, _, parser, syn, es6, codegen, contracts) {
+}(this, function(exports, _, parser, syn, es6, codegen, contracts, modules) {
     'use strict';
 
     macro _get_vars {
@@ -195,6 +196,8 @@
         context: Null or CContext
     });
 
+    var Loader = modules.Loader;
+    var Module = modules.Module;
 
 
     var Rename = syn.Rename;

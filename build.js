@@ -47,8 +47,13 @@ function build(useContracts) {
     echo("\nbuilding sweet.js...");
 
     cp("-f", "bin/sjs", "build/bin/");
-    cp("-f", "macros/*", "build/macros/");
     chmod("+x", "build/bin/sjs");
+    cp("-f", "macros/*", "build/macros/");
+
+    // TODO: these should be in src at some point so they are part of
+    // the normal build process
+    cp("-f", "lib/es6-module-loader.js", "build/lib/");
+    cp("-f", "lib/esprima-es6.js", "build/lib/");
 
     ls("src/*.js").forEach(function(file) {
         echo("compiling: " + path.basename(file));
