@@ -29,13 +29,13 @@
         // CommonJS
         factory(exports, require('underscore'), require('./parser'),
                 require('./syntax'), require("es6-collections"),
-                require('escodegen'), require('contracts-js'), require('./es6-module-loader'));
+                require('escodegen'), require('contracts-js'), require('./es6-module-loader'), require('./scopedEval'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports', 'underscore', 'parser', 'syntax',
-                'es6-collections', 'escodegen', 'contracts-js', 'es6-module-loader'], factory);
+                'es6-collections', 'escodegen', 'contracts-js', 'es6-module-loader', 'scopedEval'], factory);
     }
-}(this, function(exports, _, parser, syn, es6, codegen, contracts, modules) {
+}(this, function(exports, _, parser, syn, es6, codegen, contracts, modules, se) {
     'use strict';
 
     macro _get_vars {
@@ -180,24 +180,26 @@
     }
 
 
-    mkContract (CToken, {
-        type: ?Num
-        value: ?(Num or Str)
-    });
+    // mkContract (CToken, {
+    //     type: ?Num
+    //     value: ?(Num or Str)
+    // });
 
-    mkContract (CContext, {
-        name: ?Num,
-        dummy_name: ?Num,
-        context: Self
-    });
+    // mkContract (CContext, {
+    //     name: ?Num,
+    //     dummy_name: ?Num,
+    //     context: Self
+    // });
 
-    mkContract (CSyntax, {
-        token: CToken,
-        context: Null or CContext
-    });
+    // mkContract (CSyntax, {
+    //     token: CToken,
+    //     context: Null or CContext
+    // });
 
     var Loader = modules.Loader;
     var Module = modules.Module;
+
+    var scopedEval = se.scopedEval;
 
 
     var Rename = syn.Rename;
@@ -318,8 +320,8 @@
 
 
     // ([...CSyntax]) -> [...CToken]
-    function syntaxToTokens(syntax) {
-        return _.map(syntax, function(stx) {
+    function syntaxToTokens(stx) {
+        return _.map(stx, function(stx) {
             if (stx.token.inner) {
                 stx.token.inner = syntaxToTokens(stx.token.inner);
             }
@@ -1792,22 +1794,23 @@
         // raw function primitive form
         if(body[0] && body[0].token.type === parser.Token.Keyword &&
            body[0].token.value === "function") {
-            // close over the function with "primitive" syntax operators
-            var stub = parser.read("(function (makeValue, makeRegex, makeIdent, makeKeyword, makePunc, makeDelim, unwrapSyntax, fresh) { return (); })");
-            stub[0].token.inner[2].token.inner[1].token.inner = body;
+            var stub = parser.read("()");
+            stub[0].token.inner = body;
             var expanded = flatten(expand(stub, env, ctx, defscope));
             var bodyCode = codegen.generate(parser.parse(expanded));
 
-            var macroFn = eval(bodyCode); 
+            var macroFn = scopedEval(bodyCode, {
+                makeValue: syn.makeValue,
+                makeRegex: syn.makeRegex,
+                makeIdent: syn.makeIdent,
+                makeKeyword: syn.makeKeyword,
+                makePunc: syn.makePunc,
+                makeDelim: syn.makeDelim,
+                unwrapSyntax: syn.unwrapSyntax,
+                fresh: fresh
+            }); 
 
-            return macroFn(syn.makeValue,
-                           syn.makeRegex,
-                           syn.makeIdent,
-                           syn.makeKeyword,
-                           syn.makePunc,
-                           syn.makeDelim,
-                           syn.unwrapSyntax,
-                           fresh);
+            return macroFn;
         }
 
         

@@ -54,6 +54,7 @@ function build(useContracts) {
     // the normal build process
     cp("-f", "lib/es6-module-loader.js", "build/lib/");
     cp("-f", "lib/esprima-es6.js", "build/lib/");
+    cp("-f", "lib/scopedEval.js", "build/lib/");
 
     ls("src/*.js").forEach(function(file) {
         echo("compiling: " + path.basename(file));
