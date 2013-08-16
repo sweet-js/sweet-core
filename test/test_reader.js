@@ -413,6 +413,19 @@ describe("reader", function() {
             .to.be(Token.Punctuator);
     });
 
+    it('should read / following a for( ; {a:2}/a/g ; ){} as a divide', function() {
+        expect(read("for( ; {a:2}/a/g ; ){}")[1].inner[2].type)
+            .to.be(Token.Punctuator);
+    });
 
+    it('should read / following a for( ; {a:/a/g} ; ){} as a divide', function() {
+        expect(read("for( ; {a:/a/g} ; ){}")[1].inner[1].inner[2].type)
+            .to.be(Token.RegexLiteral);
+    });
+
+    it('should read / following a for( ; function(){ /a/g; } /a/g; ){} as a divide', function() {
+        expect(read("for( ; function(){ /a/g; } /a/g; ){}")[1].inner[4].type)
+            .to.be(Token.Punctuator);
+    });
 
 });
