@@ -1139,7 +1139,7 @@
                     // pull the macro transformer out the environment
                     var transformer = env.get(head.token.value);
                     // apply the transformer
-                    var rt = transformer(rest, head, env);
+                    var rt = transformer([head].concat(rest), env);
                     if(!Array.isArray(rt.result)) {
                         throwError("Macro transformer must return a result array, not: "
                                    + rt.result);
@@ -2185,3 +2185,4 @@
     exports.tokensToSyntax = syn.tokensToSyntax;
     exports.syntaxToTokens = syntaxToTokens;
 }));
+

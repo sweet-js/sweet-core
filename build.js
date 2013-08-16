@@ -99,8 +99,11 @@ target.build_test_file = function() {
 
 target.build_test = function() {
     ls("test/*.js").forEach(function(file) {
-        echo("compiling: " + path.basename(file));
-        exec("build/bin/sjs --output build/" + path.basename(file) + " " + file);
+        // TODO: for testing purposes only do this one
+        if(file === "test/test_primitive_macros.js") {
+            echo("compiling: " + path.basename(file));
+            exec("build/bin/sjs --output build/" + path.basename(file) + " " + file);
+        }
     });
 };
 

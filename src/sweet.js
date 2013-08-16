@@ -91,6 +91,10 @@
         return parser.parse(expand(code, options));
     }
 
+    exports.module = function(file) {
+        System.import(file);
+    }
+
     exports.expand = expand;
     exports.parse = parse;
     exports.compile = function compile(code, options) {

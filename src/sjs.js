@@ -14,6 +14,9 @@ var argv = require("optimist")
             .boolean('watch')
             .alias('t', 'tokens')
             .describe('t', 'just emit the expanded tokens without parsing an AST')
+            .alias('i', 'import')
+            .describe('i', 'uses the module loading path')
+            .boolean('import')
             .argv;
 
 exports.run = function() {
@@ -23,7 +26,12 @@ exports.run = function() {
     var tokens = argv.tokens;
     var file = fs.readFileSync(infile, "utf8");
     var module = argv.module;
+    var imp = argv.import;
     var modulefile;
+
+    if(imp) {
+        sweet.module(infile);
+    }
 
     if(module) {
         modulefile = fs.readFileSync(module, "utf8");
