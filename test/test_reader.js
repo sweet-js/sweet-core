@@ -418,7 +418,7 @@ describe("reader", function() {
             .to.be(Token.Punctuator);
     });
 
-    it('should read / following a for( ; {a:/a/g} ; ){} as a divide', function() {
+    it('should read / following a for( ; {a:/a/g} ; ){} as a regex', function() {
         expect(read("for( ; {a:/a/g} ; ){}")[1].inner[1].inner[2].type)
             .to.be(Token.RegexLiteral);
     });
