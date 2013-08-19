@@ -2533,20 +2533,6 @@ to decide on the correct name for identifiers.
 
         expectKeyword('break');
 
-        // Optimize the most common form: 'break;'.
-        if (source[index] === ';') {
-            lex();
-
-            if (!(state.inIteration || state.inSwitch)) {
-                throwError({}, Messages.IllegalBreak);
-            }
-
-            return {
-                type: Syntax.BreakStatement,
-                label: null
-            };
-        }
-
         if (peekLineTerminator()) {
             if (!(state.inIteration || state.inSwitch)) {
                 throwError({}, Messages.IllegalBreak);
@@ -2588,18 +2574,6 @@ to decide on the correct name for identifiers.
 
         if (!state.inFunctionBody) {
             throwErrorTolerant({}, Messages.IllegalReturn);
-        }
-
-        // 'return' followed by a space and an identifier is very common.
-        if (source[index] === ' ') {
-            if (isIdentifierStart(source[index + 1])) {
-                argument = parseExpression();
-                consumeSemicolon();
-                return {
-                    type: Syntax.ReturnStatement,
-                    argument: argument
-                };
-            }
         }
 
         if (peekLineTerminator()) {
