@@ -6,10 +6,7 @@ requirejs.config({
     }
 });
 
-require(["./parser", "./expander", "./escodegen"], function(parser, expander, escodegen) {
-    var read = parser.read;
-    var expand = expander.expand;
-    var flatten = expander.flatten;
+require(["./sweet"], function(sweet) {
     var storage_code = 'editor_code';
     var storage_mode = 'editor_mode';
 
@@ -55,8 +52,7 @@ require(["./parser", "./expander", "./escodegen"], function(parser, expander, es
         var code = editor.getValue();
         var expanded, compiled;
         try {
-            expanded = expand(read(code));
-            compiled = escodegen.generate(parser.parse(expanded));
+            compiled = sweet.compile(code);
             output.setValue(compiled);
             localStorage[storage_code] = code;
 
