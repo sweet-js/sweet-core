@@ -193,7 +193,7 @@
 
     function makeValue(val, stx) {
         if(typeof val === 'boolean') {
-            return mkSyntax(val, parser.Token.BooleanLiteral, stx);
+            return mkSyntax(val ? "true" : "false", parser.Token.BooleanLiteral, stx);
         } else if (typeof val === 'number') {
             return mkSyntax(val, parser.Token.NumericLiteral, stx);
         } else if (typeof val === 'string') {
@@ -201,7 +201,7 @@
         } else if (val === null) {
             return mkSyntax('null', parser.Token.NullLiteral, stx);
         } else {
-            throwError("Cannot make value syntax object from: " + val);
+            throw new Error("Cannot make value syntax object from: " + val);
         }
     }
 
@@ -240,7 +240,7 @@
 
     function makeDelim(val, inner, stx) {
         var ctx, startLineNumber, startLineStart, endLineNumber, endLineStart, startRange, endRange;
-        if(stx && stx.token) {
+        if(stx && stx.token.type === parser.Token.Delimiter) {
             ctx = stx.context;
             startLineNumber = stx.token.startLineNumber;
             startLineStart = stx.token.startLineStart
@@ -248,6 +248,14 @@
             endLineStart = stx.token.endLineStart;
             startRange = stx.token.startRange;
             endRange = stx.token.endRange;
+        } else if (stx && stx.token){
+            ctx = stx.context;
+            startLineNumber = stx.token.lineNumber;
+            startLineStart = stx.token.lineStart;
+            endLineNumber = stx.token.lineNumber;
+            endLineStart = stx.token.lineStart;
+            startRange = stx.token.range;
+            endRange = stx.token.range
         } else {
             ctx = null;
             // the others can stay undefined
@@ -274,7 +282,7 @@
                 return stx.token.value;
             }
         } else {
-            throwError("Not a syntax object: " + stx);
+            throw new Error ("Not a syntax object: " + stx);
         }
     }
 

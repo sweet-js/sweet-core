@@ -29,13 +29,16 @@
         // CommonJS
         factory(exports, require('underscore'), require('./parser'),
                 require('./syntax'), require("es6-collections"),
-                require('escodegen'), require('contracts-js'), require('./es6-module-loader'), require('./scopedEval'));
+                require('escodegen'), require('contracts-js'),
+                require('./es6-module-loader'), require('./scopedEval'),
+                require("./patterns"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports', 'underscore', 'parser', 'syntax',
-                'es6-collections', 'escodegen', 'contracts-js', 'es6-module-loader', 'scopedEval'], factory);
+                'es6-collections', 'escodegen', 'contracts-js',
+                'es6-module-loader', 'scopedEval', 'patterns'], factory);
     }
-}(this, function(exports, _, parser, syn, es6, codegen, contracts, modules, se) {
+}(this, function(exports, _, parser, syn, es6, codegen, contracts, modules, se, patternModule) {
     'use strict';
 
     macro _get_vars {
@@ -1807,7 +1810,10 @@
                 makePunc: syn.makePunc,
                 makeDelim: syn.makeDelim,
                 unwrapSyntax: syn.unwrapSyntax,
-                fresh: fresh
+                fresh: fresh,
+                _: _,
+                parser: parser,
+                patternModule: patternModule,
             }); 
 
             return macroFn;
