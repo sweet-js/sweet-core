@@ -863,7 +863,7 @@
                         return step(BinOp$24.create(op$262, left$258, right$260), bopRes$259.rest);
                     }
                 } else if (head$240.hasPrototype(Punc$27) && stxIsUnaryOp(head$240.punc) || head$240.hasPrototype(Keyword$26) && stxIsUnaryOp(head$240.keyword)) {
-                    var unopRes$261 = enforest(rest$241);
+                    var unopRes$261 = enforest(rest$241, env$239);
                     var op$262 = head$240.hasPrototype(Punc$27) ? head$240.punc : head$240.keyword;
                     if (unopRes$261.result.hasPrototype(Expr$14)) {
                         return step(UnaryOp$22.create(op$262, unopRes$261.result), unopRes$261.rest);
