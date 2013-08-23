@@ -1,12 +1,14 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require("es6-collections"), require('contracts-js'), require("./parser"));
+        factory(exports, require('underscore'), require("es6-collections"), require('contracts-js'), require("./parser"), require("./expander"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'es6-collections', 'contracts-js', 'parser'], factory);
+        define(['exports', 'underscore', 'es6-collections', 'contracts-js', 'parser', 'expander'], factory);
     }
-}(this, function(exports, _, es6, contracts, parser) {
+}(this, function(exports, _, es6, contracts, parser, expander) {
+
+    var get_expression = expander.get_expression;
 
     function containsPatternVar(patterns) {
         return _.any(patterns, function(pat) {
@@ -102,6 +104,53 @@
                 return acc.concat(patStx);
             }, []).value();
     }
+
+
+    // (Str, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
+    function matchPatternClass (patternClass, stx, env) {
+        var result, rest;
+        // pattern has no parse class
+        if (patternClass === "token" &&
+            stx[0] && stx[0].token.type !== parser.Token.EOF) {
+            result = [stx[0]];
+            rest = stx.slice(1);
+        } else if (patternClass === "lit" &&
+                   stx[0] && typeIsLiteral(stx[0].token.type)) {
+            result = [stx[0]];
+            rest = stx.slice(1);
+        } else if (patternClass === "ident" &&
+                   stx[0] && stx[0].token.type === parser.Token.Identifier) {
+            result = [stx[0]];
+            rest = stx.slice(1);
+        } else if (stx.length > 0 && patternClass === "VariableStatement") {
+            var match = enforest(stx, env);
+            if (match.result && match.result.hasPrototype(VariableStatement)) {
+                result = match.result.destruct(false);
+                rest = match.rest;
+            } else {
+                result = null;
+                rest = stx;
+            }
+        } else if (stx.length > 0 && patternClass === "expr") {
+            var match = get_expression(stx, env);
+            if (match.result === null || (!match.result.hasPrototype(Expr))) {
+                result = null;
+                rest = stx;
+            } else {
+                result = match.result.destruct(false);
+                rest = match.rest;
+            }
+        } else {
+            result = null;
+            rest = stx;
+        }
+
+        return {
+            result: result,
+            rest: rest
+        };
+    }
+    
 
     
     // attempt to match patterns against stx
@@ -211,14 +260,14 @@
         var rest;
         var success;
 
-        if (pattern.token.type === parser.Token.Delimiter) {
+        if (typeof pattern.inner !== 'undefined') {
             if (pattern.class === "pattern_group") {
                 // pattern groups don't match the delimiters
-                subMatch = matchPatterns(pattern.token.inner, stx, env, false);
+                subMatch = matchPatterns(pattern.inner, stx, env, false);
                 rest = subMatch.rest;
             } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter &&
-                       stx[0].token.value === pattern.token.value) {
-                subMatch = matchPatterns(pattern.token.inner,
+                       stx[0].token.value === pattern.value) {
+                subMatch = matchPatterns(pattern.inner,
                                          stx[0].token.inner,
                                          env,
                                          false);
@@ -256,8 +305,12 @@
 
         } else {
             if (pattern.class === "pattern_literal") {
+                // wildcard
+                if(stx[0] && pattern.value === "_") {
+                    success = true;
+                    rest = stx.slice(1);
                 // match the literal but don't update the pattern environment
-                if (stx[0] && pattern.token.value === stx[0].token.value) {
+                } else if (stx[0] && pattern.value === stx[0].token.value) {
                     success = true;
                     rest = stx.slice(1);
                 } else {
@@ -276,17 +329,17 @@
 
                 // push the match onto this value's slot in the environment
                 if (pattern.repeat) {
-                    if (patternEnv[pattern.token.value]) {
-                        patternEnv[pattern.token.value].match.push(matchEnv);
+                    if (patternEnv[pattern.value]) {
+                        patternEnv[pattern.value].match.push(matchEnv);
                     } else {
                         // initialize if necessary
-                        patternEnv[pattern.token.value] = {
+                        patternEnv[pattern.value] = {
                             level: 1,
                             match: [matchEnv]
                         };
                     }
                 } else {
-                    patternEnv[pattern.token.value] = matchEnv;
+                    patternEnv[pattern.value] = matchEnv;
                 }
             }
         }

@@ -11,7 +11,7 @@ var contracts_lib_off = "macros/sweet-contracts-id.js";
 
 target.all = function() {
     target.clean();
-    target.build();
+    target.build_no_contracts();
     target.build_browser();
     target.build_test();
     target.test();
@@ -41,14 +41,12 @@ function build(useContracts) {
     if(!test('-d', "build/lib/")) {
         mkdir("-p", "build/lib/");
         mkdir("-p", "build/bin/");
-        mkdir("-p", "build/macros/");
     }
 
     echo("\nbuilding sweet.js...");
 
     cp("-f", "bin/sjs", "build/bin/");
     chmod("+x", "build/bin/sjs");
-    cp("-f", "macros/*", "build/macros/");
 
     // TODO: these should be in src at some point so they are part of
     // the normal build process
@@ -74,12 +72,22 @@ function build(useContracts) {
 }
 
 target.build = function() {
+    target.build_macros();
     build(true);
 };
 
 target.build_no_contracts = function() {
+    target.build_macros();
     build(false);
-}
+};
+
+target.build_macros = function() {
+    if(!test('-d', "build/lib/")) {
+        mkdir("-p", "build/macros/");
+    }
+    echo("moving builtin macros to build dir...");
+    cp("-f", "macros/*", "build/macros/");
+};
 
 target.build_dist = function() {
     target.build_no_contracts();

@@ -115,7 +115,7 @@ macro syntaxCase {
         }
 
         // setup a reference to the syntax argument
-        var arg_def = makeVarDef("arg", [makeIdent("stx", name_stx), makePunc(";", name_stx)]);
+        var arg_def = makeVarDef("arg", [makeIdent("stx", name_stx)]);
 
         var pat = makeVarDef("pat", [patternsToObject(cases[0].pattern)]);
         var match = makeVarDef("match", [makeIdent("patternModule", name_stx),
@@ -131,20 +131,44 @@ macro syntaxCase {
             .concat(pat)
             .concat(match)
             .concat([
+                makeKeyword("if", name_stx),
+                makeDelim("()", [
+                    makeIdent("match", name_stx),
+                    makePunc(".", name_stx),
+                    makeIdent("success", name_stx)
+                ], name_stx),
+                makeDelim("{}", makeVarDef("res", [
+                        makeDelim("()", makeFunc([], cases[0].body), name_stx),
+                        makeDelim("()", [], name_stx)
+                    ]).concat([
+                    makeKeyword("return", name_stx),
+                    makeDelim("{}", [
+                        makeIdent("result", name_stx),
+                        makePunc(":", name_stx),
+                        makeIdent("res", name_stx),
+
+                        makePunc(",", name_stx),
+
+                        makeIdent("rest", name_stx),
+                        makePunc(":", name_stx),
+                        makeIdent("match", name_stx),
+                        makePunc(".", name_stx),
+                        makeIdent("rest", name_stx)
+                    ], name_stx)
+                ])),
                 makeKeyword("return", name_stx),
                 makeDelim("{}", [
                     makeIdent("result", name_stx),
                     makePunc(":", name_stx),
-                    makeIdent("arg", name_stx),
+                    makeDelim("[]", [], name_stx),
 
                     makePunc(",", name_stx),
 
                     makeIdent("rest", name_stx),
                     makePunc(":", name_stx),
-                    makeIdent("stx", name_stx),
+                    makeIdent("match", name_stx),
                     makePunc(".", name_stx),
-                    makeIdent("slice", name_stx),
-                    makeDelim("()", [makeValue(2, name_stx)], name_stx)
+                    makeIdent("rest", name_stx)
                 ], name_stx)
             ]);
 
@@ -162,18 +186,36 @@ macro syntaxCase {
     }
 }
 
-macro syntax {
-    // syntax { $toks ... }
+macro quoteSyntax {
     function(stx) {
+        var name_stx = stx[0];
         var temp = stx[1].token.inner;
         var res;
         
         if(temp.length > 0) {
-            res = [temp[0]];
+            res = [makeDelim("[]", [
+                makeIdent("makeValue", name_stx),
+                makeDelim("()", [makeValue(2, name_stx)], name_stx)
+            ], stx[0])]
         } else {
             throw "Not implemented yet";
         }
 
+        return {
+            result: res,
+            rest: stx.slice(2)
+        };
+    }
+}
+
+macro syntax {
+    // syntax { $toks ... }
+    function(stx) {
+        var name_stx = stx[0];
+
+        var res = [makeIdent("quoteSyntax", name_stx),
+                   stx[1]];
+        
         return {
             result: res,
             rest: stx.slice(2)

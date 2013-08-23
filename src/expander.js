@@ -2188,6 +2188,8 @@
 
     exports.flatten = flatten;
 
+    exports.get_expression = get_expression;
+
     exports.tokensToSyntax = syn.tokensToSyntax;
     exports.syntaxToTokens = syntaxToTokens;
 }));
