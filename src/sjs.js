@@ -4,7 +4,6 @@ var sweet = require("./sweet.js");
 
 var argv = require("optimist")
             .usage("Usage: sjs [options] path/to/file.js")
-            .demand(1)
             .alias('o', 'output')
             .describe('o', 'Output file path')
             .alias('m', 'module')
@@ -24,7 +23,15 @@ exports.run = function() {
     var outfile = argv.output;
     var watch = argv.watch;
     var tokens = argv.tokens;
-    var file = fs.readFileSync(infile, "utf8");
+
+    var file;
+    if(infile) {
+        file = fs.readFileSync(infile, "utf8");
+    } else {
+        file = fs.readFileSync("/dev/stdin", "utf8");
+    }
+
+
     var module = argv.module;
     var imp = argv.import;
     var modulefile;
