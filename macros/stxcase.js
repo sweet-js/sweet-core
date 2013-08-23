@@ -114,26 +114,21 @@ macro syntaxCase {
             return makeDelim("[]", res, name_stx);
         }
 
-        // setup a reference to the syntax argument
-        var arg_def = makeVarDef("arg", [makeIdent("stx", name_stx)]);
+        function makeMatch(i) {
+            var pat = makeVarDef("pat", [patternsToObject(cases[i].pattern)]);
+            var match = makeVarDef("match", [makeIdent("patternModule", name_stx),
+                                             makePunc(".", name_stx),
+                                             makeIdent("matchPatterns", name_stx),
+                                             makeDelim("()", [
+                                                 makeIdent("pat", name_stx),
+                                                 makePunc(",", name_stx),
+                                                 makeIdent("arg", name_stx)
+                                             ], name_stx)]);
+            return pat.concat(match);
+        }
 
-
-        var pat = makeVarDef("pat", [patternsToObject(cases[0].pattern)]);
-        var match = makeVarDef("match", [makeIdent("patternModule", name_stx),
-                                         makePunc(".", name_stx),
-                                         makeIdent("matchPatterns", name_stx),
-                                         makeDelim("()", [
-                                             makeIdent("pat", name_stx),
-                                             makePunc(",", name_stx),
-                                             makeIdent("arg", name_stx)
-                                         ], name_stx)])
-
-        var body = makeVarDef("name_stx", [makeIdent("stx", name_stx),
-                                           makeDelim("[]", [makeValue(0, name_stx)], name_stx)])
-            .concat(arg_def)
-            .concat(pat)
-            .concat(match)
-            .concat([
+        function makeTranscribe(i) {
+            return [
                 makeKeyword("if", name_stx),
                 makeDelim("()", [
                     makeIdent("match", name_stx),
@@ -154,8 +149,8 @@ macro syntaxCase {
                     ], name_stx),
                     makePunc(";", name_stx)
                 ]).concat(makeVarDef("res", [
-                        makeDelim("()", makeFunc([], cases[0].body), name_stx),
-                        makeDelim("()", [], name_stx)
+                    makeDelim("()", makeFunc([], cases[i].body), name_stx),
+                    makeDelim("()", [], name_stx)
                 ])).concat([
                     makeIdent("res", name_stx),
                     makePunc("=", name_stx),
@@ -188,22 +183,35 @@ macro syntaxCase {
                         makePunc(".", name_stx),
                         makeIdent("rest", name_stx)
                     ], name_stx)
-                ])),
-                makeKeyword("return", name_stx),
-                makeDelim("{}", [
-                    makeIdent("result", name_stx),
-                    makePunc(":", name_stx),
-                    makeDelim("[]", [], name_stx),
+                ]))];
+            
+        }
 
-                    makePunc(",", name_stx),
+        // setup a reference to the syntax argument
+        var arg_def = makeVarDef("arg", [makeIdent("stx", name_stx)]);
+        var name_def = makeVarDef("name_stx", [makeIdent("arg", name_stx),
+                                               makeDelim("[]", [makeValue(0, name_stx)], name_stx)]);
 
-                    makeIdent("rest", name_stx),
-                    makePunc(":", name_stx),
-                    makeIdent("match", name_stx),
-                    makePunc(".", name_stx),
-                    makeIdent("rest", name_stx)
-                ], name_stx)
-            ]);
+
+        var body = arg_def.concat(name_def);
+
+        for(var i = 0; i < cases.length; i++) {
+            body = body.concat(makeMatch(i)).concat(makeTranscribe(i));
+        }
+        body = body.concat([
+            makeKeyword("throw", name_stx),
+            makeKeyword("new", name_stx),
+            makeIdent("Error", name_stx),
+            makeDelim("()", [
+                makeValue("Could not match any cases for macro: "),
+                makePunc("+", name_stx),
+                makeIdent("name_stx", name_stx),
+                makePunc(".", name_stx),
+                makeIdent("token", name_stx),
+                makePunc(".", name_stx),
+                makeIdent("value", name_stx)
+            ], name_stx)
+        ]);
 
         var res = [
             makeIdent("macro", name_stx),
