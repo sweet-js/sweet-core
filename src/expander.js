@@ -1814,7 +1814,8 @@
                 _: _,
                 parser: parser,
                 patternModule: patternModule,
-                getTemplate: function(id) {return templateMap.get(id);}
+                getTemplate: function(id) {return templateMap.get(id);},
+                applyMarkToPatternEnv: applyMarkToPatternEnv
             }); 
 
             return macroFn;

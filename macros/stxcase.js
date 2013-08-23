@@ -117,6 +117,7 @@ macro syntaxCase {
         // setup a reference to the syntax argument
         var arg_def = makeVarDef("arg", [makeIdent("stx", name_stx)]);
 
+
         var pat = makeVarDef("pat", [patternsToObject(cases[0].pattern)]);
         var match = makeVarDef("match", [makeIdent("patternModule", name_stx),
                                          makePunc(".", name_stx),
@@ -139,10 +140,40 @@ macro syntaxCase {
                     makePunc(".", name_stx),
                     makeIdent("success", name_stx)
                 ], name_stx),
-                makeDelim("{}", makeVarDef("res", [
+                makeDelim("{}", makeVarDef("newMark", [
+                    makeIdent("fresh", name_stx),
+                    makeDelim("()", [], name_stx)
+                ]).concat([
+                    makeIdent("applyMarkToPatternEnv", name_stx),
+                    makeDelim("()", [
+                        makeIdent("newMark", name_stx),
+                        makePunc(",", name_stx),
+                        makeIdent("match", name_stx),
+                        makePunc(".", name_stx),
+                        makeIdent("patternEnv", name_stx)
+                    ], name_stx),
+                    makePunc(";", name_stx)
+                ]).concat(makeVarDef("res", [
                         makeDelim("()", makeFunc([], cases[0].body), name_stx),
                         makeDelim("()", [], name_stx)
-                    ]).concat([
+                ])).concat([
+                    makeIdent("res", name_stx),
+                    makePunc("=", name_stx),
+                    makeIdent("_", name_stx),
+                    makePunc(".", name_stx),
+                    makeIdent("map", name_stx),
+                    makeDelim("()", [
+                        makeIdent("res", name_stx),
+                        makePunc(",", name_stx)
+                    ].concat(makeFunc([makeIdent("stx", name_stx)], [
+                        makeKeyword("return", name_stx),
+                        makeIdent("stx", name_stx),
+                        makePunc(".", name_stx),
+                        makeIdent("mark", name_stx),
+                        makeDelim("()", [makeIdent("newMark", name_stx)])
+                    ])), name_stx),
+                    makePunc(";", name_stx)
+                ]).concat([
                     makeKeyword("return", name_stx),
                     makeDelim("{}", [
                         makeIdent("result", name_stx),
@@ -188,27 +219,21 @@ macro syntaxCase {
     }
 }
 
-// macro quoteSyntax {
-//     function(stx) {
-//         var name_stx = stx[0];
-//         var temp = stx[1].token.inner;
-//         var res;
-        
-//         if(temp.length > 0) {
-//             res = [makeDelim("[]", [
-//                 makeIdent("makeValue", name_stx),
-//                 makeDelim("()", [makeValue(2, name_stx)], name_stx)
-//             ], stx[0])]
-//         } else {
-//             throw "Not implemented yet";
-//         }
+macro quoteSyntax {
+    function(stx) {
+        var name_stx = stx[0];
 
-//         return {
-//             result: res,
-//             rest: stx.slice(2)
-//         };
-//     }
-// }
+        var res = [
+            makeIdent("#quoteSyntax", name_stx),
+            stx[1]
+        ];
+
+        return {
+            result: res,
+            rest: stx.slice(2)
+        };
+    }
+}
 
 macro syntax {
     function(stx) {
