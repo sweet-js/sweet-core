@@ -127,7 +127,9 @@ macro syntaxCase {
                                              makeIdent("arg", name_stx)
                                          ], name_stx)])
 
-        var body = arg_def
+        var body = makeVarDef("name_stx", [makeIdent("stx", name_stx),
+                                           makeDelim("[]", [makeValue(0, name_stx)], name_stx)])
+            .concat(arg_def)
             .concat(pat)
             .concat(match)
             .concat([
@@ -186,35 +188,46 @@ macro syntaxCase {
     }
 }
 
-macro quoteSyntax {
-    function(stx) {
-        var name_stx = stx[0];
-        var temp = stx[1].token.inner;
-        var res;
+// macro quoteSyntax {
+//     function(stx) {
+//         var name_stx = stx[0];
+//         var temp = stx[1].token.inner;
+//         var res;
         
-        if(temp.length > 0) {
-            res = [makeDelim("[]", [
-                makeIdent("makeValue", name_stx),
-                makeDelim("()", [makeValue(2, name_stx)], name_stx)
-            ], stx[0])]
-        } else {
-            throw "Not implemented yet";
-        }
+//         if(temp.length > 0) {
+//             res = [makeDelim("[]", [
+//                 makeIdent("makeValue", name_stx),
+//                 makeDelim("()", [makeValue(2, name_stx)], name_stx)
+//             ], stx[0])]
+//         } else {
+//             throw "Not implemented yet";
+//         }
 
-        return {
-            result: res,
-            rest: stx.slice(2)
-        };
-    }
-}
+//         return {
+//             result: res,
+//             rest: stx.slice(2)
+//         };
+//     }
+// }
 
 macro syntax {
-    // syntax { $toks ... }
     function(stx) {
         var name_stx = stx[0];
 
-        var res = [makeIdent("quoteSyntax", name_stx),
-                   stx[1]];
+        var res = [makeIdent("patternModule", name_stx),
+                   makePunc(".", name_stx),
+                   makeIdent("transcribe", name_stx),
+                   makeDelim("()", [
+                       makeIdent("#quoteSyntax", name_stx),
+                       stx[1],
+                       makePunc(",", name_stx),
+                       makeIdent("name_stx", name_stx),
+                       makePunc(",", name_stx),
+                       makeIdent("match", name_stx),
+                       makePunc(".", name_stx),
+                       makeIdent("patternEnv")
+                   ], name_stx)];
+                   
         
         return {
             result: res,
