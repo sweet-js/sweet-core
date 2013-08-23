@@ -1040,7 +1040,7 @@
                 // unary prefix
                 } else if ( (head.hasPrototype(Punc) && stxIsUnaryOp(head.punc)) ||
                             (head.hasPrototype(Keyword) && stxIsUnaryOp(head.keyword))) {
-                    var unopRes = enforest(rest);
+                    var unopRes = enforest(rest, env);
                     var op = head.hasPrototype(Punc) ? head.punc : head.keyword;
                     if (unopRes.result.hasPrototype(Expr)) {
                         return step(UnaryOp.create(op, unopRes.result), unopRes.rest);
