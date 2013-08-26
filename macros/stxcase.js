@@ -137,7 +137,11 @@ macro macro {
                                              makeDelim("()", [
                                                  makeIdent("pat", name_stx),
                                                  makePunc(",", name_stx),
-                                                 makeIdent("arg", name_stx)
+                                                 makeIdent("arg", name_stx),
+                                                 makePunc(",", name_stx),
+                                                 makeIdent("env", name_stx),
+                                                 makePunc(",", name_stx),
+                                                 makeValue(true, name_stx)
                                              ], name_stx)]);
             return pat.concat(match);
         }
@@ -232,7 +236,8 @@ macro macro {
             makeIdent("macro", null),
             macro_name_stx,
             makeDelim("{}",
-                      makeFunc([makeIdent("stx", name_stx)], body), name_stx)
+                      makeFunc([makeIdent("stx", name_stx),
+                                makeIdent("env", name_stx)], body), name_stx)
         ];
 
         return {

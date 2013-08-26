@@ -1,25 +1,29 @@
 var expect = require("expect.js")
 
 macro $describe {
-    rule {$description:lit { $body ... }} => {
-        describe($description, function() {
-            $body ...
-        });
+    case {_ $description:lit { $body ... } } => {
+        return syntax {
+            describe($description, function() {
+                $body ...
+            });
+        }
     }
 }
 
 macro $it {
-    rule {$description:lit { $body ... }} => {
-        it($description, function() {
-            $body ...
-        });
+    case {_ $description:lit { $body ... }} => {
+        return syntax {
+            it($description, function() {
+                $body ...
+            });
+        }
     }
 }
 
 $describe "procedural (syntax-case) macros" {
 	$it "should make a literal syntax object" {
 		macro m {
-			case { () } => {
+			case { _ () } => {
                 return [makeValue (42, null)];
 			}
 		}
@@ -28,7 +32,7 @@ $describe "procedural (syntax-case) macros" {
 
     $it "should work with syntax" {
         macro m {
-            case { () } => {
+            case { _ () } => {
                 return syntax { 42 }
             }
         }
@@ -37,7 +41,7 @@ $describe "procedural (syntax-case) macros" {
 
     $it "should work with #" {
         macro m {
-            case { () } => {
+            case { _ () } => {
                 return #{ 42 }
             }
         }
@@ -47,7 +51,7 @@ $describe "procedural (syntax-case) macros" {
 
     $it "should handle returning a single pattern variable" {
         macro m {
-            case { ($x:expr) } => {
+            case { _ ($x:expr) } => {
                 return #{ $x }
             }
         }
@@ -57,7 +61,7 @@ $describe "procedural (syntax-case) macros" {
 
     $it "should handle a repeated pattern in the template" {
         macro m {
-            case { ($x ...) } => {
+            case { _ ($x ...) } => {
                 return #{ [$x (,) ...] }
             }
         }

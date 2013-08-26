@@ -12,6 +12,56 @@
     var syntaxFromToken = syntax.syntaxFromToken;
     var mkSyntax = syntax.mkSyntax;
 
+    
+    // ([...CSyntax], Str) -> [...CSyntax])
+    function joinSyntax(tojoin, punc) {
+        if (tojoin.length === 0) { return []; }
+        if (punc === " ") { return tojoin; }
+
+        return _.reduce(_.rest(tojoin, 1), function (acc, join) {
+            return acc.concat(mkSyntax(punc, parser.Token.Punctuator, join), join);
+        }, [_.first(tojoin)]);
+    }
+
+    // ([...[...CSyntax]], Str) -> [...CSyntax]
+    function joinSyntaxArr(tojoin, punc) {
+        if (tojoin.length === 0) { return []; }
+        if (punc === " ") {
+            return _.flatten(tojoin, true);
+        }
+
+        return _.reduce(_.rest(tojoin, 1), function (acc, join){
+            return acc.concat(mkSyntax(punc,
+                                       parser.Token.Punctuator,
+                                       _.first(join)),
+                              join);
+        }, _.first(tojoin));
+    }
+
+    // ([...CSyntax]) -> [...Str]
+    function freeVarsInPattern(pattern) {
+        var fv = [];
+
+        _.each(pattern, function (pat) {
+            if (isPatternVar(pat)) {
+                fv.push(pat.token.value);
+            } else if (pat.token.type === parser.Token.Delimiter) {
+                fv = fv.concat(freeVarsInPattern(pat.token.inner));
+            }
+        });
+
+        return fv;
+    }
+
+    
+    function typeIsLiteral (type) {
+        return type === parser.Token.NullLiteral ||
+               type === parser.Token.NumericLiteral ||
+               type === parser.Token.StringLiteral ||
+               type === parser.Token.RegexLiteral ||
+               type === parser.Token.BooleanLiteral;
+    }
+
     function containsPatternVar(patterns) {
         return _.any(patterns, function(pat) {
             if (pat.token.type === parser.Token.Delimiter) {
@@ -177,8 +227,8 @@
                 rest = stx;
             }
         } else if (stx.length > 0 && patternClass === "expr") {
-            var match = get_expression(stx, env);
-            if (match.result === null || (!match.result.hasPrototype(Expr))) {
+            var match = expander.get_expression(stx, env);
+            if (match.result === null || (!match.result.hasPrototype(expander.Expr))) {
                 result = null;
                 rest = stx;
             } else {
@@ -312,6 +362,14 @@
                 rest = subMatch.rest;
             } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter &&
                        stx[0].token.value === pattern.value) {
+
+                if (pattern.inner.length === 0 && stx[0].token.inner.length !== 0) {
+                    return {
+                        success: false,
+                        rest: stx,
+                        patternEnv: patternEnv
+                    }
+                }
                 subMatch = matchPatterns(pattern.inner,
                                          stx[0].token.inner,
                                          env,

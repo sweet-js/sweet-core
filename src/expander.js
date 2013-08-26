@@ -2237,6 +2237,8 @@
 
     exports.get_expression = get_expression;
 
+    exports.Expr = Expr;
+
     exports.tokensToSyntax = syn.tokensToSyntax;
     exports.syntaxToTokens = syntaxToTokens;
 }));

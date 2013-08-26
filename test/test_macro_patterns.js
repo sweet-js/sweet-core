@@ -3,7 +3,9 @@ var expect = require("expect.js");
 describe("macro expander", function() {
     it("should expand a macro with an empty body", function() {
         macro m {
-            rule { () } => {}
+            case { _ () } => {
+                return #{}
+            }
         }
 
         m()
@@ -12,8 +14,8 @@ describe("macro expander", function() {
     
     it("should expand a macro with pattern `$x:lit`", function() {
         macro id {
-            rule { ($x:lit) }  => {
-                $x
+            case { _ ($x:lit) }  => {
+                return #{ $x }
             }
         }
         var z = id(4);
@@ -22,8 +24,8 @@ describe("macro expander", function() {
 
     it("should expand a macro with pattern `=> $x:lit`", function() {
         macro litid {
-            rule {(=> $x:lit)}  => {
-                $x
+            case {_ (=> $x:lit)}  => {
+                return #{$x}
             }
         }
         var z = litid(=> 42);
@@ -32,8 +34,8 @@ describe("macro expander", function() {
 
     it("should expand a macro with a pattern `$x:lit <+> $y:lit`", function() {
         macro oddadd {
-            rule {($x:lit <+> $y:lit)} => {
-                $x + $y
+            case {_ ($x:lit <+> $y:lit)} => {
+                return #{$x + $y}
             }
         }
         var z = oddadd(2 <+> 4);
@@ -42,8 +44,8 @@ describe("macro expander", function() {
 
     it("should expand a macro with a pattern `($x:lit) <+> $y:lit`", function() {
         macro oddadd {
-            rule {(($x:lit) <+> $y:lit)} => {
-                $x + $y
+            case {_ (($x:lit) <+> $y:lit)} => {
+                return #{$x + $y}
             }
         }
         var z = oddadd((2) <+> 4);
@@ -53,7 +55,7 @@ describe("macro expander", function() {
 
     it("should match primary expressions", function() {
         macro expr {
-            rule {($x:expr)} => { $x }
+            case {_ ($x:expr)} => { return #{$x} }
         }
         expect(expr(this)).to.be(this);
 
@@ -67,7 +69,7 @@ describe("macro expander", function() {
 
     it("should match simple ternary expression", function() {
         macro m {
-            rule {($x:expr)} => {$x}
+            case {_ ($x:expr)} => {return #{$x}}
         }
 
         var x = m (true ? 42 : "foo") 
@@ -76,7 +78,7 @@ describe("macro expander", function() {
 
     it("should match a complex ternary expression", function() {
         macro m {
-            rule {($x:expr)} => {$x}
+            case {_ ($x:expr)} => { return #{$x}}
         }
 
         var x = m (2+4 > 0 ? 20 + 22 : "foo" + "bar") 
@@ -86,8 +88,8 @@ describe("macro expander", function() {
 
     it("should match binary expressions", function() {
         macro expr {
-            rule {($x:expr)} => {
-                $x
+            case {_ ($x:expr)} => {
+                return #{$x}
             }
         }
         var z1 = expr(2 + 2);
@@ -101,8 +103,10 @@ describe("macro expander", function() {
 
     it("should expand a macro with a pattern `$x:expr plus! $y:expr`", function() {
         macro expr {
-            rule {($x:expr plus! $y:expr)} => {
-                $x + $y
+            case {_ ($x:expr plus! $y:expr)} => {
+                return #{
+                 $x + $y   
+                }
             }
         }
         var z = expr(2 * 4 plus! 2 * 2);
@@ -113,8 +117,8 @@ describe("macro expander", function() {
 
     it("should expand a thunk macro", function() {
         macro thunk {
-            rule {($x:expr)} => {
-                function() { return $x; }
+            case {_ ($x:expr)} => {
+                return #{function() { return $x; }}
             }
         }
         var z = thunk(2 * 4);
@@ -124,8 +128,8 @@ describe("macro expander", function() {
 
     it("should expand multiple macro body types", function() {
         macro assign {
-            rule {($x:ident) {$y:expr}} => {
-                var $x = $y;
+            case {_ ($x:ident) {$y:expr}} => {
+                return #{var $x = $y; }
             }
         }
 
@@ -137,8 +141,8 @@ describe("macro expander", function() {
 
     it("should expand literal braces", function() {
         macro paren {
-            rule {({$x:lit})} => {
-                [$x]
+            case {_ ({$x:lit})} => {
+                return #{[$x]}
             }
         }
         var z = paren ({4});
@@ -148,8 +152,8 @@ describe("macro expander", function() {
 
     it("should expand literal parens", function() {
         macro paren {
-            rule {(($x:lit))} => {
-                [$x]
+            case {_ (($x:lit))} => {
+                return #{[$x]}
             }
         }
         var z = paren ((4));
@@ -160,10 +164,10 @@ describe("macro expander", function() {
 
     it("should allow ... to match zero or more tokens", function() {
         macro m {
-            rule {
-                ($x ...)
-            } => {
-                [$x (,) ...]
+            case {_ ($x ...)} => {
+                return #{
+                    [$x (,) ...]   
+                }
             }
         }
         expect(m(1 2)).to.eql([1,2]);
@@ -173,16 +177,12 @@ describe("macro expander", function() {
 
     it("should allow an empty ... to recursively call a macro", function() {
         macro m {
-            rule {
-                ()
-            } => {
-                
-            }
+            case {_ ()} => { return #{} }
 
-            rule {
-                ($head $rest ...)
-            } => {
-                [$head m($rest ...)]
+            case { _ ($head $rest ...)} => {
+                return #{
+                    [$head m($rest ...)]
+                }
             }
         }
         expect(m (1)).to.eql([1])
@@ -193,11 +193,11 @@ describe("macro expander", function() {
 
     it("should distinguish between commas and no commas in a repeat", function() {
         macro m {
-            rule {($p ...)} => {
-                "no commas"
+            case {_ ($p ...)} => {
+                return #{ "no commas" }
             }
-            rule {($p (,) ...)} => {
-                "comma"
+            case {_ ($p (,) ...)} => {
+                return #{"comma"}
             }
         }
         expect(m (a b)).to.be("no commas");
@@ -205,8 +205,8 @@ describe("macro expander", function() {
 
     it("should match as much of the pattern as possible if not in a delimiter even when more syntax follows", function() {
         macro m {
-            rule {$p (,) ...} => {
-                [$p (,) ...];
+            case {_ $p (,) ...} => {
+                return #{[$p (,) ...]; }
             }
         }
         var res = m 1, 2, 3 "trailing";
@@ -215,8 +215,10 @@ describe("macro expander", function() {
 
     it("should expand with ellipses", function() {
         macro paren {
-            rule {( $x:lit (,) ...)} => {
-                [$x (,) ...]
+            case {_ ( $x:lit (,) ...)} => {
+                return #{
+                    [$x (,) ...]   
+                }
             }
         }
         var z = paren (4, 3);
@@ -227,8 +229,10 @@ describe("macro expander", function() {
 
     it("should expand literal parens with ellipses", function() {
         macro paren {
-            rule {( ($x:lit) (,) ...)} => {
-                [$x (,) ...]
+            case {_ ( ($x:lit) (,) ...)} => {
+                return #{
+                    [$x (,) ...]   
+                }
             }
         }
         var z = paren ((4), (3));
@@ -240,8 +244,10 @@ describe("macro expander", function() {
 
     it("should expand a simple let macro", function() {
         macro let {
-            rule {($x:ident = $v:expr) {$y:expr}} => {
-                (function($x) { return $y; })($v);
+            case {_ ($x:ident = $v:expr) {$y:expr}} => {
+                return #{
+                    (function($x) { return $y; })($v);   
+                }
             }
         }
 
@@ -253,8 +259,10 @@ describe("macro expander", function() {
 
     it("should expand a complex let macro", function() {
         macro let {
-            rule {( $($x:ident = $v:expr) (,) ...) {$y:expr} } => {
-                (function($x (,) ...) { return $y; })($v (,) ...);
+            case {_ ( $($x:ident = $v:expr) (,) ...) {$y:expr} } => {
+                return #{
+                    (function($x (,) ...) { return $y; })($v (,) ...);    
+                }
             }
         }
 
@@ -265,8 +273,10 @@ describe("macro expander", function() {
 
     it("should handle ellipses in output delimiters", function() {
         macro m {
-            rule {( $x:lit (,) ...)} => {
-                [[$x] (,) ...]
+            case {_ ( $x:lit (,) ...)} => {
+                return #{
+                    [[$x] (,) ...]   
+                }
             }
         }
         var x = m ( 1, 2, 3 );
@@ -275,8 +285,10 @@ describe("macro expander", function() {
 
     it("should work", function() {
         macro m {
-            rule {{ $($a $b) ... }} => {
-                [$([$a, $b]) (,) ...];
+            case {_ { $($a $b) ... }} => {
+                return #{
+                    [$([$a, $b]) (,) ...];    
+                }
             }
         }
 
@@ -287,8 +299,10 @@ describe("macro expander", function() {
 
     it("should expand simple nested ellipses", function() {
         macro nest {
-            rule {( ($x:lit (,) ...) (,) ... )} => {
-                [ [$x (,) ...] (,) ...]
+            case {_ ( ($x:lit (,) ...) (,) ... )} => {
+                return #{
+                    [ [$x (,) ...] (,) ...]   
+                }
             }
         }
         var x = nest ( (1, 2, 3), (4, 5, 6) );
@@ -296,8 +310,10 @@ describe("macro expander", function() {
 
     it("should expand a nested ellipses macro", function() {
         macro nest {
-            rule {( ($x:lit ; $y:lit (,) ...) (,) ...)} => {
-                [ [$x (,) ...], [$y (,) ...] (,) ... ]
+            case {_ ( ($x:lit ; $y:lit (,) ...) (,) ...)} => {
+                return #{
+                    [ [$x (,) ...], [$y (,) ...] (,) ... ]   
+                }
             }
         }
 
@@ -310,8 +326,11 @@ describe("macro expander", function() {
 
     it("should expand an ellipsis with a ; delimiter", function() {
         macro semi {
-            rule {( $x:lit (;) ...)} => {
-                [$x (,) ...]
+            case {_ ( $x:lit (;) ...)} => {
+                return #{
+                    [$x (,) ...]        
+                }
+            
             }
         }
         var a = semi(1;2;3;4);
@@ -322,8 +341,10 @@ describe("macro expander", function() {
 
     it("should expand an ellipsis with no separator", function() {
         macro semi {
-            rule {($x:ident ...)} => {
-                var $($x = 2) (,) ...
+            case {_ ($x:ident ...)} => {
+                return #{
+                    var $($x = 2) (,) ...   
+                }
             }
         }
         semi(w x y z);
@@ -335,9 +356,11 @@ describe("macro expander", function() {
 
     it("should handle def macro", function() {
         macro def {
-            rule {$name:ident ($params:ident (,) ...) $body} => {
-                function $name ($params (,) ...) {
-                    $body
+            case {_ $name:ident ($params:ident (,) ...) $body} => {
+                return #{
+                    function $name ($params (,) ...) {
+                        $body
+                    }
                 }
             }
         }
@@ -351,11 +374,11 @@ describe("macro expander", function() {
 
     it("should handle multiple cases", function() {
         macro m {
-            rule {four }=> {
-                4
+            case {_ four }=> {
+                return #{4}
             }
-            rule {two} => {
-                2
+            case {_ two} => {
+                return #{2}
             }
         }
         var n = m four;
@@ -364,27 +387,10 @@ describe("macro expander", function() {
         expect(n).to.be(2)
     });
 
-    it("should handle multiple cases when matching different length patterns", function() {
-        macro arrid {
-            rule {[$x:lit]} => {
-                [$x]
-            }
-            rule {[$x:lit, $y:lit]} => {
-                [$x, $y]
-            }
-        }
-
-        var l = arrid [1]
-        expect(l).to.eql([1])
-
-        var ll = arrid [1,2]
-        expect(ll).to.eql([1, 2])
-    });
-
     it("should handle more multiple cases", function() {
         macro m {
-            rule {$n:ident} => {42}
-            rule {$n:ident < $m:ident {}} => {42}
+            case {_ $n:ident < $m:ident {}} => { return #{42}}
+            case {_ $n:ident} => { return #{42}}
         }
         var z = m foo;
         var zz = m foo < foo {};
@@ -394,11 +400,15 @@ describe("macro expander", function() {
 
     it("should handle recursive macros", function() {
         macro rot {
-            rule {[$x:lit]} => {
-                    [$x]
+            case {_ [$x:lit, $y:lit]} => {
+                return #{
+                    [rot [$y], $x]   
+                }
             }
-            rule {[$x:lit, $y:lit]} => {
-                [rot [$y], $x]
+            case {_ [$x:lit]} => {
+                   return #{
+                     [$x]  
+                   } 
             }
         }
 
@@ -411,16 +421,22 @@ describe("macro expander", function() {
 
     it("should handle mutually recursive macros", function() {
         macro a {
-            rule {[$x:lit]} => {
-                b ($x)
+            case {_ [$x:lit]} => {
+                return #{
+                    b ($x)   
+                }
             }
         }
         macro b {
-            rule {($x:lit)} => {
-                [$x]
+            case {_ ($x:lit)} => {
+                return #{
+                    [$x]   
+                }
             }
-            rule {($x:lit, $y:lit)} => {
-                a [$x]
+            case {_ ($x:lit, $y:lit)} => {
+                return #{
+                    a [$x]   
+                }
             }
         }
         var z = b (1, 2);
@@ -429,10 +445,12 @@ describe("macro expander", function() {
 
     it("should allow macro defining macros", function() {
         macro mm {
-            rule {($x:lit) }=> {
-                macro m {
-                    rule {($y:lit)} => {
-                        [$x, $y]
+            case {_ ($x:lit) }=> {
+                return #{
+                    macro m {
+                        case {_ ($y:lit)} => {
+                            return #{[$x, $y]}
+                        }
                     }
                 }
             }
@@ -445,8 +463,10 @@ describe("macro expander", function() {
 
     it("should allow matching of unparsed tokens", function() {
         macro m {
-            rule {($x)} => {
-                $x
+            case {_ ($x)} => {
+                return #{
+                    $x   
+                }
             }
         }
         var z = m ([1,2,3]);
@@ -455,10 +475,14 @@ describe("macro expander", function() {
 
     it("should allow literal syntax", function() {
         macro m {
-            rule {$x} => {
-                macro $x {
-                    rule {($y $[...]) }=> {
-                        [$y (,) $[...]];
+            case {_ $x} => {
+                return #{
+                    macro $x {
+                        case {_ ($y $[...]) }=> {
+                            return #{
+                                [$y (,) $[...]];   
+                            }
+                        }
                     }
                 }
             }
@@ -472,10 +496,12 @@ describe("macro expander", function() {
 
     it("should allow literal syntax with pattern var literals", function() {
         macro $test {
-            rule {($op (|) ...) }=> {
-                macro rel {
-                    rule {$x} => { $x }
-                    $(rule {($x $op $y)} => { 1 }) ...
+            case {_ ($op (|) ...) }=> {
+                return #{
+                    macro rel {
+                        case {_ $x} => {return #{$x} }
+                        $(case {_ ($x $op $y)} => { return #{1} }) ...
+                    }
                 }
             }
         }
@@ -486,11 +512,11 @@ describe("macro expander", function() {
 
     it("should allow a rule to fail while not purtubing the remaining cases", function() {
         macro m {
-            rule {{ $y:expr DONTMATCH }} => {
-                $y
+            case {_ { $y:expr DONTMATCH }} => {
+                return #{$y}
             }
-            rule {{ $y:expr }} => {
-                $y
+            case {_ { $y:expr }} => {
+                return #{$y}
             }
         }
 
@@ -506,8 +532,8 @@ describe("macro expander", function() {
     it("should not fail with tokens that are on an object's prototype chain", function() {
         // (had been using an object naively as a dictionary so make sure we don't regress)
         macro m {
-            rule {()} => {
-                this.constructor
+            case {_ ()} => {
+                return #{this.constructor}
             }
         }
 
@@ -516,7 +542,7 @@ describe("macro expander", function() {
 
     it("should allow fn calls as an :expr", function() {
         macro m {
-            rule {($x:expr)} => {$x}
+            case {_ ($x:expr)} => {return #{$x}}
         }
         function id (x) { return x; }
         var x = m( id(4) );
@@ -524,13 +550,13 @@ describe("macro expander", function() {
 
     it("should match nested obj macros", function() {
         macro m {
-            rule {$o:expr} => {
-                $o
+            case {_ $o:expr} => {
+                return #{$o}
             }
         }
         macro n {
-            rule {$o:expr} => {
-                m $o
+            case {_ $o:expr} => {
+                return #{m $o}
             }
         }
         var z = n {zed: 4};
