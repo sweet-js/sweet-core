@@ -29,16 +29,16 @@
         // CommonJS
         factory(exports, require('underscore'), require('./parser'),
                 require('./syntax'), require("es6-collections"),
-                require('escodegen'), require('contracts-js'),
+                require('escodegen'), 
                 require('./es6-module-loader'), require('./scopedEval'),
                 require("./patterns"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports', 'underscore', 'parser', 'syntax',
-                'es6-collections', 'escodegen', 'contracts-js',
+                'es6-collections', 'escodegen', 
                 'es6-module-loader', 'scopedEval', 'patterns'], factory);
     }
-}(this, function(exports, _, parser, syn, es6, codegen, contracts, modules, se, patternModule) {
+}(this, function(exports, _, parser, syn, es6, codegen, modules, se, patternModule) {
     'use strict';
 
     macro _get_vars {
@@ -148,7 +148,6 @@
     }
 
     
-    setupContracts(contracts);
     // used to export "private" methods for unit testing
     exports._test = {};
 
@@ -182,28 +181,10 @@
         throw new Error(msg);
     }
 
-
-    // mkContract (CToken, {
-    //     type: ?Num
-    //     value: ?(Num or Str)
-    // });
-
-    // mkContract (CContext, {
-    //     name: ?Num,
-    //     dummy_name: ?Num,
-    //     context: Self
-    // });
-
-    // mkContract (CSyntax, {
-    //     token: CToken,
-    //     context: Null or CContext
-    // });
-
     var Loader = modules.Loader;
     var Module = modules.Module;
 
     var scopedEval = se.scopedEval;
-
 
     var Rename = syn.Rename;
     var Mark = syn.Mark;
@@ -322,152 +303,7 @@
     function fresh() { return nextFresh++; };
 
 
-    // ([...CSyntax]) -> [...CToken]
-    function syntaxToTokens(stx) {
-        return _.map(stx, function(stx) {
-            if (stx.token.inner) {
-                stx.token.inner = syntaxToTokens(stx.token.inner);
-            }
-            return stx.token;
-        });
-    }
 
-
-    // CToken -> Bool
-    // fun (CToken) -> Bool
-    function isPatternVar(token) {
-        return token.type === parser.Token.Identifier &&
-                token.value[0] === "$" &&   // starts with $
-                token.value !== "$";        // but isn't $
-    }
-
-
-    var containsPatternVar = function(patterns) {
-        return _.any(patterns, function(pat) {
-            if (pat.token.type === parser.Token.Delimiter) {
-                return containsPatternVar(pat.token.inner);
-            }
-            return isPatternVar(pat);
-        });
-    };
-
-    // ([...CSyntax]) -> [...CPattern]
-    function loadPattern(patterns) {
-
-        return _.chain(patterns)
-            // first pass to merge the pattern variables together
-            .reduce(function(acc, patStx, idx) {
-                var last = patterns[idx-1];
-                var lastLast = patterns[idx-2];
-                var next = patterns[idx+1];
-                var nextNext = patterns[idx+2];
-
-                // skip over the `:lit` part of `$x:lit`
-                if (patStx.token.value === ":") {
-                    if(last && isPatternVar(last.token)) {
-                        return acc;
-                    }
-                }
-                if (last && last.token.value === ":") {
-                    if (lastLast && isPatternVar(lastLast.token)) {
-                        return acc;
-                    }
-                }
-                // skip over $
-                if (patStx.token.value === "$" &&
-                    next && next.token.type === parser.Token.Delimiter) {
-                    return acc;
-                }
-
-                if (isPatternVar(patStx.token)) {
-                    if (next && next.token.value === ":" ) {
-                        parser.assert(typeof nextNext !== 'undefined',
-                                      "expecting a pattern class");
-                        patStx.class = nextNext.token.value;
-                    } else {
-                        patStx.class = "token";
-                    }
-                } else if (patStx.token.type === parser.Token.Delimiter) {
-                    if (last && last.token.value === "$") {
-                        patStx.class = "pattern_group";
-                    }
-                    patStx.token.inner = loadPattern(patStx.token.inner);
-                } else {
-                    patStx.class = "pattern_literal";
-                }
-                return acc.concat(patStx);
-            // then second pass to mark repeat and separator
-            }, []).reduce(function(acc, patStx, idx, patterns) {
-                var separator = " ";
-                var repeat = false;
-                var next = patterns[idx+1];
-                var nextNext = patterns[idx+2];
-
-                if (next && next.token.value === "...") {
-                    repeat = true;
-                    separator = " ";
-                } else if (delimIsSeparator(next) &&
-                           nextNext && nextNext.token.value === "...") {
-                    repeat = true;
-                    parser.assert(next.token.inner.length === 1,
-                                  "currently assuming all separators are a single token");
-                    separator = next.token.inner[0].token.value;
-                }
-
-                // skip over ... and (,)
-                if (patStx.token.value === "..."||
-                        (delimIsSeparator(patStx) &&
-                         next && next.token.value === "...")) {
-                    return acc;
-                }
-                patStx.repeat = repeat;
-                patStx.separator = separator;
-                return acc.concat(patStx);
-            }, []).value();
-    }
-
-
-    // take the line context (not lexical...um should clarify this a bit)
-    // (CSyntax, [...CSyntax]) -> [...CSyntax]
-    function takeLineContext(from, to) {
-        // todo could be nicer about the line numbers...currently just
-        // taking from the macro name but could also do offset
-        return _.map(to, function(stx) {
-            if (stx.token.type === parser.Token.Delimiter) {
-                return syntaxFromToken({
-                    type: parser.Token.Delimiter,
-                    value: stx.token.value,
-                    inner: stx.token.inner,
-                    startRange: from.range,
-                    endRange: from.range,
-                    startLineNumber: from.token.lineNumber,
-                    startLineStart: from.token.lineStart,
-                    endLineNumber: from.token.lineNumber,
-                    endLineStart: from.token.lineStart
-                }, stx.context);
-            }
-            return syntaxFromToken({
-                    value: stx.token.value,
-                    type: stx.token.type,
-                    lineNumber: from.token.lineNumber,
-                    lineStart: from.token.lineStart,
-                    range: from.token.range
-                }, stx.context);
-        });
-    }
-
-    // ([...{level: Num, match: [...CSyntax]}], Str) -> [...CSyntax]
-    function joinRepeatedMatch(tojoin, punc) {
-        return _.reduce(_.rest(tojoin, 1), function(acc, join) {
-            if (punc === " ") {
-                return acc.concat(join.match);
-            }
-            return acc.concat(mkSyntax(punc,
-                                       parser.Token.Punctuator,
-                                       _.first(join.match)),
-                              join.match);
-        }, _.first(tojoin).match);
-    }
     // ([...CSyntax], Str) -> [...CSyntax])
     function joinSyntax(tojoin, punc) {
         if (tojoin.length === 0) { return []; }
@@ -478,55 +314,7 @@
         }, [_.first(tojoin)]);
     }
 
-    // ([...[...CSyntax]], Str) -> [...CSyntax]
-    function joinSyntaxArr(tojoin, punc) {
-        if (tojoin.length === 0) { return []; }
-        if (punc === " ") {
-            return _.flatten(tojoin, true);
-        }
 
-        return _.reduce(_.rest(tojoin, 1), function (acc, join){
-            return acc.concat(mkSyntax(punc,
-                                       parser.Token.Punctuator,
-                                       _.first(join)),
-                              join);
-        }, _.first(tojoin));
-    }
-
-    // (CSyntax) -> Bool
-    function delimIsSeparator(delim) {
-        return (delim && delim.token.type === parser.Token.Delimiter &&
-                delim.token.value === "()"&&
-                delim.token.inner.length === 1 &&
-                delim.token.inner[0].token.type !== parser.Token.Delimiter &&
-                !containsPatternVar(delim.token.inner));
-    }
-
-    // ([...CSyntax]) -> [...Str]
-    function freeVarsInPattern(pattern) {
-        var fv = [];
-
-        _.each(pattern, function (pat) {
-            if (isPatternVar(pat.token)) {
-                fv.push(pat.token.value);
-            } else if (pat.token.type === parser.Token.Delimiter) {
-                fv = fv.concat(freeVarsInPattern(pat.token.inner));
-            }
-        });
-
-        return fv;
-    }
-
-    // ([...CSyntax]) -> Num
-    function patternLength (patterns) {
-        return _.reduce(patterns, function(acc, pat) {
-            if (pat.token.type === parser.Token.Delimiter) {
-                // the one is to include the delimiter itself in the count
-                return acc + 1 + patternLength(pat.token.inner);
-            }
-            return acc + 1;
-        }, 0);
-    }
 
     // wraps the array of syntax objects in the delimiters given by the second argument
     // ([...CSyntax], CSyntax) -> [...CSyntax]
@@ -947,18 +735,6 @@
         };
     }
 
-
-    function stxToToken(stx){
-        var tok = _.clone(stx.token);
-        if (stx.token.type === parser.Token.Delimiter) {
-            tok.inner = _.map(tok.inner, function(stx) {
-                return stxToToken(stx);
-            });
-        }
-        return tok;
-    }
-
-
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, env) {
@@ -1273,420 +1049,6 @@
         return res;
     }
 
-    function typeIsLiteral (type) {
-        return type === parser.Token.NullLiteral ||
-               type === parser.Token.NumericLiteral ||
-               type === parser.Token.StringLiteral ||
-               type === parser.Token.RegexLiteral ||
-               type === parser.Token.BooleanLiteral;
-    }
-
-    exports._test.matchPatternClass = matchPatternClass;
-    // (Str, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
-    function matchPatternClass (patternClass, stx, env) {
-        var result, rest;
-        // pattern has no parse class
-        if (patternClass === "token" &&
-            stx[0] && stx[0].token.type !== parser.Token.EOF) {
-            result = [stx[0]];
-            rest = stx.slice(1);
-        } else if (patternClass === "lit" &&
-                   stx[0] && typeIsLiteral(stx[0].token.type)) {
-            result = [stx[0]];
-            rest = stx.slice(1);
-        } else if (patternClass === "ident" &&
-                   stx[0] && stx[0].token.type === parser.Token.Identifier) {
-            result = [stx[0]];
-            rest = stx.slice(1);
-        } else if (stx.length > 0 && patternClass === "VariableStatement") {
-            var match = enforest(stx, env);
-            if (match.result && match.result.hasPrototype(VariableStatement)) {
-                result = match.result.destruct(false);
-                rest = match.rest;
-            } else {
-                result = null;
-                rest = stx;
-            }
-        } else if (stx.length > 0 && patternClass === "expr") {
-            var match = get_expression(stx, env);
-            if (match.result === null || (!match.result.hasPrototype(Expr))) {
-                result = null;
-                rest = stx;
-            } else {
-                result = match.result.destruct(false);
-                rest = match.rest;
-            }
-        } else {
-            result = null;
-            rest = stx;
-        }
-
-        return {
-            result: result,
-            rest: rest
-        };
-    }
-
-    /* the pattern environment will look something like:
-    {
-        "$x": {
-            level: 2,
-            match: [{
-                level: 1,
-                match: [{
-                    level: 0,
-                    match: [tok1, tok2, ...]
-                }, {
-                    level: 0,
-                    match: [tok1, tok2, ...]
-                }]
-            }, {
-                level: 1,
-                match: [{
-                    level: 0,
-                    match: [tok1, tok2, ...]
-                }]
-            }]
-        },
-        "$y" : ...
-    }
-    */
-    function matchPattern(pattern, stx, env, patternEnv) {
-        var subMatch;
-        var match, matchEnv;
-        var rest;
-        var success;
-
-        if (pattern.token.type === parser.Token.Delimiter) {
-            if (pattern.class === "pattern_group") {
-                // pattern groups don't match the delimiters
-                subMatch = matchPatterns(pattern.token.inner, stx, env, false);
-                rest = subMatch.rest;
-            } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter &&
-                       stx[0].token.value === pattern.token.value) {
-                subMatch = matchPatterns(pattern.token.inner,
-                                         stx[0].token.inner,
-                                         env,
-                                         false);
-                rest = stx.slice(1);
-            } else {
-                return {
-                    success: false,
-                    rest: stx,
-                    patternEnv: patternEnv
-                };
-            }
-            success = subMatch.success;
-
-            // merge the subpattern matches with the current pattern environment
-            _.keys(subMatch.patternEnv).forEach(function(patternKey) {
-                if (pattern.repeat) {
-                    // if this is a repeat pattern we need to bump the level
-                    var nextLevel = subMatch.patternEnv[patternKey].level + 1;
-
-                    if (patternEnv[patternKey]) {
-                        patternEnv[patternKey].level = nextLevel;
-                        patternEnv[patternKey].match.push(subMatch.patternEnv[patternKey]);
-                    } else {
-                        // initialize if we haven't done so already
-                        patternEnv[patternKey] = {
-                            level: nextLevel,
-                            match: [subMatch.patternEnv[patternKey]]
-                        };
-                    }
-                } else {
-                    // otherwise accept the environment as-is
-                    patternEnv[patternKey] = subMatch.patternEnv[patternKey];
-                }
-            });
-
-        } else {
-            if (pattern.class === "pattern_literal") {
-                // match the literal but don't update the pattern environment
-                if (stx[0] && pattern.token.value === stx[0].token.value) {
-                    success = true;
-                    rest = stx.slice(1);
-                } else {
-                    success = false;
-                    rest = stx;
-                }
-            } else {
-                match = matchPatternClass(pattern.class, stx, env);
-
-                success = match.result !== null;
-                rest = match.rest;
-                matchEnv = {
-                    level: 0,
-                    match: match.result
-                };
-
-                // push the match onto this value's slot in the environment
-                if (pattern.repeat) {
-                    if (patternEnv[pattern.token.value]) {
-                        patternEnv[pattern.token.value].match.push(matchEnv);
-                    } else {
-                        // initialize if necessary
-                        patternEnv[pattern.token.value] = {
-                            level: 1,
-                            match: [matchEnv]
-                        };
-                    }
-                } else {
-                    patternEnv[pattern.token.value] = matchEnv;
-                }
-            }
-        }
-        return {
-            success: success,
-            rest: rest,
-            patternEnv: patternEnv
-        };
-
-    }
-
-
-    // attempt to match patterns against stx
-    // ([...Pattern], [...Syntax], Env) -> { result: [...Syntax], rest: [...Syntax], patternEnv: PatternEnv }
-    function matchPatterns(patterns, stx, env, topLevel) {
-        // topLevel lets us know if the patterns are on the top level or nested inside
-        // a delimiter:
-        //     case $topLevel (,) ... => { }
-        //     case ($nested (,) ...) => { }
-        // This matters for how we deal with trailing unmatched syntax when the pattern
-        // has an ellipses:
-        //     m 1,2,3 foo
-        // should match 1,2,3 and leave foo alone but:
-        //     m (1,2,3 foo)
-        // should fail to match entirely.
-        topLevel = topLevel || false;
-        // note that there are two environments floating around,
-        // one is the mapping of identifiers to macro definitions (env)
-        // and the other is the pattern environment (patternEnv) that maps
-        // patterns in a macro case to syntax.
-        var result = [];
-        var patternEnv = {};
-
-        var match;
-        var pattern;
-        var rest = stx;
-        var success = true;
-
-        for (var i = 0; i < patterns.length; i++) {
-            pattern = patterns[i];
-            do {
-                match = matchPattern(pattern, rest, env, patternEnv);
-                if ((!match.success) && pattern.repeat) {
-                    // a repeat can match zero tokens and still be a
-                    // "success" so break out of the inner loop and
-                    // try the next pattern
-                    rest = match.rest;
-                    patternEnv = match.patternEnv;
-                    break;
-                }
-                if (!match.success) {
-                    success = false;
-                    break;
-                }
-                rest = match.rest;
-                patternEnv = match.patternEnv;
-
-                if (pattern.repeat && success) {
-                    if (rest[0] && rest[0].token.value === pattern.separator) {
-                        // more tokens and the next token matches the separator
-                        rest = rest.slice(1);
-                    } else if (pattern.separator === " ") {
-                        // no separator specified (using the empty string for this)
-                        // so keep going
-                        continue;
-                    } else if ((pattern.separator !== " ") &&
-                                (rest.length > 0) &&
-                                (i === patterns.length - 1) &&
-                                topLevel === false) {
-                        // separator is specified, there is a next token, the
-                        // next token doesn't match the separator, there are
-                        // no more patterns, and this is a top level pattern
-                        // so the match has failed
-                        success = false;
-                        break;
-                    } else {
-                        break;
-                    }
-                }
-            } while (pattern.repeat && match.success && rest.length > 0);
-        }
-        return {
-            success: success,
-            rest: rest,
-            patternEnv: patternEnv
-        };
-    }
-
-    // given the given the macroBody (list of Pattern syntax objects) and the
-    // environment (a mapping of patterns to syntax) return the body with the
-    // appropriate patterns replaces with their value in the environment
-    function transcribe(macroBody, macroNameStx, env) {
-
-        return _.chain(macroBody)
-            .reduce(function(acc, bodyStx, idx, original) {
-                    // first find the ellipses and mark the syntax objects
-                    // (note that this step does not eagerly go into delimiter bodies)
-                    var last = original[idx-1];
-                    var next = original[idx+1];
-                    var nextNext = original[idx+2];
-
-                   // drop `...`
-                    if (bodyStx.token.value === "...") {
-                        return acc;
-                    }
-                    // drop `(<separator)` when followed by an ellipse
-                    if (delimIsSeparator(bodyStx) &&
-                        next && next.token.value === "...") {
-                        return acc;
-                    }
-
-                    // skip the $ in $(...)
-                    if (bodyStx.token.value === "$" &&
-                        next && next.token.type === parser.Token.Delimiter &&
-                        next.token.value === "()") {
-
-                        return acc;
-                    }
-
-                    // mark $[...] as a literal
-                    if (bodyStx.token.value === "$" &&
-                        next && next.token.type === parser.Token.Delimiter &&
-                        next.token.value === "[]") {
-
-                        next.literal = true;
-                        return acc;
-                    }
-
-                    if (bodyStx.token.type === parser.Token.Delimiter &&
-                        bodyStx.token.value === "()" &&
-                        last && last.token.value === "$") {
-
-                        bodyStx.group = true;
-                    }
-
-                    // literal [] delimiters have their bodies just
-                    // directly passed along
-                    if (bodyStx.literal === true) {
-                        parser.assert(bodyStx.token.type === parser.Token.Delimiter,
-                                        "expecting a literal to be surrounded by []");
-                        return acc.concat(bodyStx.token.inner);
-                    }
-
-                    if (next && next.token.value === "...") {
-                        bodyStx.repeat = true;
-                        bodyStx.separator = " "; // default to space separated
-                    } else if (delimIsSeparator(next) &&
-                               nextNext && nextNext.token.value === "...") {
-                        bodyStx.repeat = true;
-                        bodyStx.separator = next.token.inner[0].token.value;
-                    }
-
-                    return acc.concat(bodyStx);
-                }, []).reduce(function(acc, bodyStx, idx) {
-                // then do the actual transcription
-                if (bodyStx.repeat) {
-                    if (bodyStx.token.type === parser.Token.Delimiter) {
-
-                        var fv = _.filter(freeVarsInPattern(bodyStx.token.inner),
-                                          function(pat) {
-                                              // ignore "patterns"
-                                              // that aren't in the
-                                              // environment (treat
-                                              // them like literals)
-                                              return env.hasOwnProperty(pat);
-                                          });
-                        var restrictedEnv = [];
-                        var nonScalar = _.find(fv, function(pat) {
-                            return env[pat].level > 0;
-                        });
-
-                        parser.assert(typeof nonScalar !== 'undefined',
-                                      "must have a least one non-scalar in repeat");
-
-                        var repeatLength = env[nonScalar].match.length;
-                        var sameLength = _.all(fv, function(pat) {
-                            return (env[pat].level === 0) ||
-                                (env[pat].match.length === repeatLength);
-                        });
-                        parser.assert(sameLength,
-                                      "all non-scalars must have the same length");
-
-                        // create a list of envs restricted to the free vars
-                        restrictedEnv = _.map(_.range(repeatLength), function(idx) {
-                            var renv = {};
-                            _.each(fv, function(pat) {
-                                if (env[pat].level === 0) {
-                                    // copy scalars over
-                                    renv[pat] = env[pat];
-                                } else {
-                                    // grab the match at this index
-                                    renv[pat] = env[pat].match[idx];
-                                }
-                            });
-                            return renv;
-                        });
-
-                        var transcribed = _.map(restrictedEnv, function(renv) {
-                            if (bodyStx.group) {
-                                return transcribe(bodyStx.token.inner,
-                                                  macroNameStx,
-                                                  renv);
-                            } else {
-                                var newBody = syntaxFromToken(_.clone(bodyStx.token),
-                                                              bodyStx.context);
-                                newBody.token.inner = transcribe(bodyStx.token.inner,
-                                                                 macroNameStx,
-                                                                 renv);
-                                return newBody;
-                            }
-                        });
-                        var joined;
-                        if (bodyStx.group) {
-                            joined = joinSyntaxArr(transcribed, bodyStx.separator);
-                        } else {
-                            joined = joinSyntax(transcribed, bodyStx.separator);
-                        }
-
-                        return acc.concat(joined);
-                    }
-
-                    if (!env[bodyStx.token.value]) {
-                        throwError("The pattern variable " + bodyStx.token.value +
-                                   " is not bound for the template");
-                    } else if (env[bodyStx.token.value].level !== 1) {
-                        throwError("Ellipses level for " + bodyStx.token.value +
-                                   " does not match in the template");
-                    } 
-
-                    return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match,
-                                                        bodyStx.separator));
-                } else {
-                    if (bodyStx.token.type === parser.Token.Delimiter) {
-                        var newBody = syntaxFromToken(_.clone(bodyStx.token),
-                                                      macroBody.context);
-                        newBody.token.inner = transcribe(bodyStx.token.inner,
-                                                         macroNameStx, env);
-                        return acc.concat(takeLineContext(macroNameStx, [newBody]));
-                    }
-                    if (Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
-                        if (!env[bodyStx.token.value]) {
-                            throwError("The pattern variable " + bodyStx.token.value +
-                                       " is not bound for the template");
-                        } else if (env[bodyStx.token.value].level !== 0) {
-                            throwError("Ellipses level for " + bodyStx.token.value +
-                                       " does not match in the template");
-                        } 
-                        return acc.concat(takeLineContext(macroNameStx,
-                                                          env[bodyStx.token.value].match));
-                    }
-                    return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
-                }
-            }, []).value();
-    }
 
     // mark each syntax object in the pattern environment,
     // mutating the environment
@@ -1719,157 +1081,40 @@
         });
     }
 
-    // fun ([...Syntax]) -> [...Syntax]
-    // fun ([CSyntax...]) -> [CSyntax ...]
-    function evalMacroBody(body, env, patternEnv, macroName) {
-        var functionStub = parser.read("(function(makeValue, makeRegex, makeIdent, makeKeyword, makePunc, makeDelim, unwrapSyntax, genTemplate) { })");
-        functionStub[0].token.inner[2].token.inner = body;
-        var expanded = flatten(expand(functionStub, env));
-        var bodyCode = codegen.generate(parser.parse(expanded));
-
-        var macroFn = eval(bodyCode);
-
-        function genTemplate(id) {
-            var map = functionStub[0].templateMap;
-            var template = map.get(id);
-            return transcribe(template, macroName, patternEnv);
-        }
-        
-        return macroFn(syn.makeValue,
-                       syn.makeRegex,
-                       syn.makeIdent,
-                       syn.makeKeyword,
-                       syn.makePunc,
-                       syn.makeDelim,
-                       syn.unwrapSyntax,
-                       genTemplate);
-    }
-
-    // create a macro transformer - a function that given the syntax at the macro call
-    // will do the syntax transformation
-    function makeTransformer(cases, macroType) {
-        // grab the patterns from each case and sort them by longest number of patterns
-        var sortedCases = _.sortBy(cases, function(mcase) {
-                            return patternLength(mcase.pattern);
-                        }).reverse();
-
-
-        return function transformer(stx, macroNameStx, env) {
-            var match;
-            var casePattern, caseBody;
-            var newMark;
-            var macroResult;
-            // try each case
-            for (var i = 0; i < sortedCases.length; i++) {
-                casePattern = sortedCases[i].pattern;
-                caseBody = sortedCases[i].body;
-
-                match = matchPatterns(casePattern, stx, env, true);
-                if (match.success) {
-                    newMark = fresh();
-                    applyMarkToPatternEnv(newMark, match.patternEnv);
-                    if(macroType === "case") {
-                        macroResult = evalMacroBody(caseBody,
-                                                    env,
-                                                    match.patternEnv,
-                                                    macroNameStx);
-                    } else {
-                        macroResult = transcribe(caseBody,
-                                                 macroNameStx,
-                                                 match.patternEnv);
-                    }
-                    macroResult = _.map(macroResult, function(stx) {
-                        return stx.mark(newMark);
-                    });
-                    return {
-                        result: macroResult,
-                        rest: match.rest
-                    };
-                }
-            }
-            throwError("Could not match any cases for macro: "
-                       + macroNameStx.token.value);
-        };
-    }
 
     // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
     function loadMacroDef(mac, env, ctx, defscope, templateMap) {
         var body = mac.body;
-        var caseOffset = 0;
-        var arrowOffset = 0;
-        var casePattern;
-        var caseBody;
-        var caseBodyIdx;
-        var cases = [];
-        var i = 0;
-
-        var patOffset = 1;
-        var bodyOffset = 4;
-
-        var macroType;
 
         // raw function primitive form
-        if(body[0] && body[0].token.type === parser.Token.Keyword &&
-           body[0].token.value === "function") {
-            var stub = parser.read("()");
-            stub[0].token.inner = body;
-            var expanded = flatten(expand(stub, env, ctx, defscope, templateMap));
-            var bodyCode = codegen.generate(parser.parse(expanded));
-
-            var macroFn = scopedEval(bodyCode, {
-                makeValue: syn.makeValue,
-                makeRegex: syn.makeRegex,
-                makeIdent: syn.makeIdent,
-                makeKeyword: syn.makeKeyword,
-                makePunc: syn.makePunc,
-                makeDelim: syn.makeDelim,
-                unwrapSyntax: syn.unwrapSyntax,
-                fresh: fresh,
-                _: _,
-                parser: parser,
-                patternModule: patternModule,
-                getTemplate: function(id) {return templateMap.get(id);},
-                applyMarkToPatternEnv: applyMarkToPatternEnv
-            }); 
-
-            return macroFn;
+        if(!(body[0] && body[0].token.type === parser.Token.Keyword &&
+             body[0].token.value === "function")) {
+            throwError("Primitive macro form must contain a function for the macro body");
         }
 
-        
-        if(body[0] && body[0].token.value === "rule" || body[0].token.value === "case") {
-            macroType = body[0].token.value;
-        } else {
-            throwError("Macro definition must start with either 'rule' or 'case'");
-        }
+        var stub = parser.read("()");
+        stub[0].token.inner = body;
+        var expanded = flatten(expand(stub, env, ctx, defscope, templateMap));
+        var bodyCode = codegen.generate(parser.parse(expanded));
 
-        // load each of the macro cases
-        while (i < body.length && body[i].token.value === macroType) {
-            if(!body[i + patOffset] ||
-                body[i + patOffset].token.type !== parser.Token.Delimiter || 
-                body[i + patOffset].token.value !== "{}") {
-                throwError("Expecting a {} to surround the pattern in a macro definition");
-            }
-            if(!body[i + 2] || body[i + 2].token.value !== "=" ||
-                !body[i + 3] || body[i + 3].token.value !== ">") {
-                throwError("expecting a => following the pattern in a macro definition");
-            }
-            if(!body[i + bodyOffset] ||
-                body[i + bodyOffset].token.type !== parser.Token.Delimiter || 
-                body[i + bodyOffset].token.value !== "{}") {
-                throwError("Expecting a {} to surround the body in a macro definition");
-            }
+        var macroFn = scopedEval(bodyCode, {
+            makeValue: syn.makeValue,
+            makeRegex: syn.makeRegex,
+            makeIdent: syn.makeIdent,
+            makeKeyword: syn.makeKeyword,
+            makePunc: syn.makePunc,
+            makeDelim: syn.makeDelim,
+            unwrapSyntax: syn.unwrapSyntax,
+            fresh: fresh,
+            _: _,
+            parser: parser,
+            patternModule: patternModule,
+            getTemplate: function(id) {return templateMap.get(id);},
+            applyMarkToPatternEnv: applyMarkToPatternEnv
+        }); 
 
-            casePattern = body[i + patOffset].token.inner;
-            caseBody = body[i + bodyOffset].token.inner;
-
-            cases.push({
-                pattern: loadPattern(casePattern, mac.name),
-                body: caseBody
-            });
-            i += bodyOffset + 1;
-        }
-        return makeTransformer(cases, macroType);
+        return macroFn;
     }
 
     // similar to `parse1` in the honu paper
@@ -2240,6 +1485,5 @@
     exports.Expr = Expr;
 
     exports.tokensToSyntax = syn.tokensToSyntax;
-    exports.syntaxToTokens = syntaxToTokens;
 }));
 

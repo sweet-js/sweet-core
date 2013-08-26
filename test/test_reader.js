@@ -1,13 +1,14 @@
 var expect = require("expect.js");
 var parser = require("../build/lib/parser");
 var expander = require("../build/lib/expander");
+var syn = require("../build/lib/syntax");
 var gen = require("escodegen");
 var _ = require("underscore");
 
 var Token = parser.Token;
 
 var read = _.wrap(parser.read, function(read_func, read_arg) {
-    return expander.syntaxToTokens(read_func(read_arg));
+    return syn.syntaxToTokens(read_func(read_arg));
 });
 
 describe("reader", function() {

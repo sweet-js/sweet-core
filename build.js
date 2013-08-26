@@ -6,12 +6,10 @@ var Benchmark = require("benchmark");
 
 var suite = new Benchmark.Suite;
 
-var contracts_lib = "macros/sweet-contracts.js";
-var contracts_lib_off = "macros/sweet-contracts-id.js";
 
 target.all = function() {
     target.clean();
-    target.build_no_contracts();
+    target.build();
     target.build_browser();
     target.build_test();
     target.test();
@@ -35,8 +33,7 @@ target.clean = function() {
     }
 };
 
-function build(useContracts) {
-    var contract = useContracts ? contracts_lib : contracts_lib_off;
+function build() {
 
     if(!test('-d', "build/lib/")) {
         mkdir("-p", "build/lib/");
@@ -57,29 +54,17 @@ function build(useContracts) {
     ls("src/*.js").forEach(function(file) {
         echo("compiling: " + path.basename(file));
 
-        // only compile some of the files with contract support for now
-        if(file === "src/expander.js" || file === "src/syntax.js") {
-            exec("bin/sjs " +
-                 "--output " + "build/lib/" + path.basename(file) +
-                 " --module " + contract +
-                 " " + file);
-        } else {
-            exec("bin/sjs " +
-                 "--output " + "build/lib/" + path.basename(file) +
-                 " " + file);
-        }
+        exec("bin/sjs " +
+             "--output " + "build/lib/" + path.basename(file) +
+             " " + file);
     });
 }
 
 target.build = function() {
     target.build_macros();
-    build(true);
+    build();
 };
 
-target.build_no_contracts = function() {
-    target.build_macros();
-    build(false);
-};
 
 target.build_macros = function() {
     if(!test('-d', "build/lib/")) {
@@ -90,7 +75,7 @@ target.build_macros = function() {
 };
 
 target.build_dist = function() {
-    target.build_no_contracts();
+    target.build();
     cp("-f", "build/lib/*.js", "lib/");
 }
 
@@ -117,7 +102,6 @@ target.build_browser = function() {
 
     cp("-f", "build/lib/*.js", "browser/scripts");
     cp("-f", "macros/*", "browser/scripts");
-    cp("-f", "node_modules/contracts-js/lib/contracts.js", "browser/scripts/contracts-js.js");
 };
 
 target.test = function() {

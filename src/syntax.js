@@ -1,29 +1,12 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require("es6-collections"), require('contracts-js'), require("./parser"));
+        factory(exports, require('underscore'), require("es6-collections"),  require("./parser"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'es6-collections', 'contracts-js', 'parser'], factory);
+        define(['exports', 'underscore', 'es6-collections', 'parser'], factory);
     }
-}(this, function(exports, _, es6, contracts, parser) {
-
-    setupContracts(contracts);
-
-    mkContract (CToken, {
-        type: ?Num
-        value: ?(Num or Str)
-    });
-
-    mkContract (CContext, {
-        name: ?Num,
-        dummy_name: ?Num
-    });
-
-    mkContract (CSyntax, {
-        token: CToken,
-        context: Null or CContext
-    });
+}(this, function(exports, _, es6, parser) {
 
 
     // (CSyntax, Str) -> CContext
@@ -156,7 +139,6 @@
         });
     }
 
-    fun (Num or Str, Num, CSyntax) -> CSyntax
     function mkSyntax(value, type, stx) {
         var ctx, lineStart, lineNumber, range;
         if(stx && stx.token) {
@@ -177,6 +159,15 @@
         }, ctx);
     }
     
+    // ([...CSyntax]) -> [...CToken]
+    function syntaxToTokens(stx) {
+        return _.map(stx, function(stx) {
+            if (stx.token.inner) {
+                stx.token.inner = syntaxToTokens(stx.token.inner);
+            }
+            return stx.token;
+        });
+    }
 
     // (CToken or [...CToken]) -> [...CSyntax]
     function tokensToSyntax(tokens) {
@@ -305,4 +296,5 @@
     exports.syntaxFromToken = syntaxFromToken;
     exports.mkSyntax = mkSyntax;
     exports.tokensToSyntax = tokensToSyntax;
+    exports.syntaxToTokens = syntaxToTokens;
 }));
