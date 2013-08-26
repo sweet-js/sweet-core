@@ -751,6 +751,15 @@
         }
     });
 
+    var LetMacro = TermTree.extend({
+        properties: ["name", "body"],
+
+        construct: function(name, body) {
+            this.name = name;
+            this.body = body;
+        }
+    })
+
     var Macro = TermTree.extend({
         properties: ["name", "body"],
 
@@ -1137,10 +1146,10 @@
                 if ((head.token.type === parser.Token.Identifier ||
                      head.token.type === parser.Token.Keyword ||
                      head.token.type === parser.Token.Punctuator) &&
-                    env.has(head.token.value)) {
+                    env.has(resolve(head))) {
 
                     // pull the macro transformer out the environment
-                    var transformer = env.get(head.token.value);
+                    var transformer = env.get(resolve(head));
                     // apply the transformer
                     var rt = transformer([head].concat(rest), env);
                     if(!Array.isArray(rt.result)) {
@@ -1152,6 +1161,12 @@
                     } else {
                         return step(Empty.create(), rt.rest);
                     } 
+                // let macro
+                } else if(head.token.value === "let" && rest[0] && rest[0].token.type === parser.Token.Identifier &&
+                         rest[1] && rest[1].token.value === "=" &&
+                         rest[2] && rest[2].token.value === "macro" &&
+                         rest[3] && rest[3].token.value === "{}") {
+                    return step(LetMacro.create(rest[0], rest[3].token.inner), rest.slice(4));
                 // macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
                            head.token.value === "macro" && rest[0] &&
@@ -1881,7 +1896,20 @@
         if (head.hasPrototype(Macro)) {
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head, env, ctx, defscope, templateMap);
-            env.set(head.name.token.value, macroDefinition);
+
+            addToDefinitionCtx([head.name], defscope);
+            env.set(resolve(head.name), macroDefinition);
+
+            return expandToTermTree(rest, env, ctx, defscope, templateMap);
+        }
+
+        if (head.hasPrototype(LetMacro)) {
+            // load the macro definition into the environment and continue expanding
+            var macroDefinition = loadMacroDef(head, env, ctx, defscope, templateMap);
+
+            addToDefinitionCtx([head.name], defscope);
+            env.set(resolve(head.name), macroDefinition);
+
             return expandToTermTree(rest, env, ctx, defscope, templateMap);
         }
 
@@ -1895,19 +1923,26 @@
         }
 
         if (head.hasPrototype(VariableStatement)) {
-            addVarsToDefinitionCtx(head, defscope);
+            addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
+                               defscope)
         }
 
         if(head.hasPrototype(Block) && head.body.hasPrototype(Delimiter)) {
             head.body.delim.token.inner.forEach(function(term) {
-                addVarsToDefinitionCtx(term, defscope);
+                if (term.hasPrototype(VariableStatement)) {
+                    addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
+                                       defscope);
+                }
             });
 
         } 
 
         if(head.hasPrototype(Delimiter)) {
             head.delim.token.inner.forEach(function(term) {
-                addVarsToDefinitionCtx(term, defscope);
+                if (term.hasPrototype(VariableStatement)) {
+                    addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
+                                       defscope);
+                }
             });
         }
 
@@ -1918,35 +1953,31 @@
         };
     }
 
-    function addVarsToDefinitionCtx(term, defscope) {
-        if(term.hasPrototype(VariableStatement)) {
-            term.decls.forEach(function(decl) {
-                var defctx = defscope;
-                parser.assert(defctx, "no definition context found but there should always be one");
-
-                var declRepeat = _.find(defctx, function(def) {
-                    return def.id.token.value === decl.ident.token.value &&
-                        arraysEqual(marksof(def.id.context), marksof(decl.ident.context));
-                });
-                /* 
-                When var declarations repeat in the same function scope:
-                    
-                    var x = 24;
-                    ...
-                    var x = 42;
-
-                we just need to use the first renaming and leave the
-                definition context as is.
-                */
-                if (declRepeat !== null) {
-                    var name = fresh();
-                    defctx.push({
-                        id: decl.ident,
-                        name: name
-                    });
-                }
+    function addToDefinitionCtx(idents, defscope) {
+        _.each(idents, function(id) {
+            var declRepeat = _.find(defscope, function(def) {
+                return def.id.token.value === id.token.value &&
+                    arraysEqual(marksof(def.id.context), marksof(id.context));
             });
-        }
+            /* 
+               When var declarations repeat in the same function scope:
+               
+               var x = 24;
+               ...
+               var x = 42;
+
+               we just need to use the first renaming and leave the
+               definition context as is.
+            */
+            if (declRepeat !== null) {
+                var name = fresh();
+                defscope.push({
+                    id: id,
+                    name: name
+                });
+                
+            }
+        });
     }
 
     // finds all the identifiers being bound by var statements

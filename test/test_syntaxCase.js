@@ -2,7 +2,7 @@ var expect = require("expect.js")
 
 describe("syntaxCase", function() {
     it("return its argument", function() {
-        syntaxCase m {
+        macro m {
             case { _ $x ... } => {
                 return #{ [$x (,) ...] }
             }

@@ -1,4 +1,4 @@
-macro syntaxCase {
+macro macro {
     function(stx) {
         var name_stx = stx[0];
         var macro_name_stx = stx[1];
@@ -24,6 +24,21 @@ macro syntaxCase {
                 makeIdent(id, name_stx),
                 makePunc("=", name_stx)
             ].concat(expr).concat(makePunc(";", name_stx));
+        }
+
+        // handle primitive macro form
+        if (cases_stx[0] && cases_stx[0].token.value === "function") {
+
+            var res = [
+                makeIdent("macro", null),
+                macro_name_stx,
+                stx[2]
+            ];
+
+            return {
+                result: res,
+                rest: stx.slice(3)
+            };
         }
 
         if (cases_stx.length == 0) {
@@ -214,7 +229,7 @@ macro syntaxCase {
         ]);
 
         var res = [
-            makeIdent("macro", name_stx),
+            makeIdent("macro", null),
             macro_name_stx,
             makeDelim("{}",
                       makeFunc([makeIdent("stx", name_stx)], body), name_stx)
