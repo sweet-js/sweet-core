@@ -1,18 +1,22 @@
 var expect = require("expect.js")
 
 macro $describe {
-    rule {$description:lit { $body ... }} => {
-        describe($description, function() {
-            $body ...
-        });
+    case {_ $description:lit { $body ... }} => {
+        return #{
+            describe($description, function() {
+                $body ...
+            });
+        }
     }
 }
 
 macro $it {
-    rule {$description:lit { $body ... }} => {
-        it($description, function() {
-            $body ...
-        });
+    case {_ $description:lit { $body ... }} => {
+        return #{
+            it($description, function() {
+                $body ...
+            });
+        }
     }
 }
 
@@ -20,10 +24,12 @@ $describe "macro hygiene" {
 
     $it "should work for or macro" {
         macro or {
-            rule {($x , $y)} => {
-                (function($tmp) {
-                    return $tmp ? $tmp : $y;
-                })($x);
+            case {_ ($x , $y)} => {
+                return #{
+                    (function($tmp) {
+                        return $tmp ? $tmp : $y;
+                    })($x);
+                }
             }
         }
 
@@ -41,8 +47,8 @@ $describe "macro hygiene" {
         var z = (function(x) {
 
             macro m {
-                rule {($ignore:ident)} => {
-                    x
+                case {_ ($ignore:ident)} => {
+                    return #{x}
                 }
             }
 
@@ -98,7 +104,7 @@ $describe "macro hygiene" {
 
     $it "should do the correct renaming with macros for vars" {
         macro m {
-            rule {()} => { var x = 5; }
+            case {_ ()} => { return #{var x = 5;}  }
         }
         var z = (function(x) {
             m();
@@ -119,8 +125,10 @@ $describe "macro hygiene" {
         }
 
         macro sub {
-            rule {()} => {
-                r = e
+            case {_ ()} => {
+                return #{
+                    r = e
+                }
             }
         }
 
@@ -129,18 +137,22 @@ $describe "macro hygiene" {
 
     $it "should work with a nested macro" {
         macro main {
-            rule {($a)} => {
-                (function(foo) {
-                    var bar = 1 + foo;
-                    return sub($a);
-                })(2);
+            case {_ ($a)} => {
+                return #{
+                    (function(foo) {
+                        var bar = 1 + foo;
+                        return sub($a);
+                    })(2);
+                }
             }
         }
         var foo = 100;
         var bar = 200;
         macro sub {
-            rule {($a)} => {
-                foo + bar + $a
+            case {_ ($a)} => {
+                return #{
+                    foo + bar + $a
+                }
             }
         }
 
@@ -153,16 +165,20 @@ $describe "macro hygiene" {
         var a = 10;
         var b = 20;
         macro main {
-            rule {()} => {
-                (function() {
-                    var a = 100, b = 200;
-                    return sub();
-                })();
+            case {_ ()} => {
+                return #{
+                    (function() {
+                        var a = 100, b = 200;
+                        return sub();
+                    })();
+                }
             }
         }
         macro sub {
-            rule {()} => {
-                a + b
+            case {_ ()} => {
+                return #{
+                    a + b
+                }
             }
         }
 
@@ -174,7 +190,7 @@ $describe "macro hygiene" {
     $it "var declarations in nested blocks should be distinct" {
         var foo = 100;
         macro sub {
-            rule {()} => { foo }
+            case {_ ()} => { return #{foo }}
         }
         function bar() {
             if(false) {
@@ -187,70 +203,80 @@ $describe "macro hygiene" {
     }
 
     $it "should work for vars with hoisting" {
-      macro m {
-        rule {$x:lit} => {
-          var tmp = $x;
+        macro m {
+            case {_ $x:lit} => {
+                return #{
+                    var tmp = $x;
+                }
+            }
         }
-      }
 
-      var tmp = "outer"
-      m "inner"
-      expect(tmp).to.be("outer");
+        var tmp = "outer"
+        m "inner"
+        expect(tmp).to.be("outer");
 
     }
 
     $it "should work for vars with hoisting and params" {
-      function f(tmp) {
-        macro m {
-          rule {$x:lit} => {
-            var tmp = $x;
-          }
+        function f(tmp) {
+            macro m {
+                case {_ $x:lit} => {
+                    return #{
+                        var tmp = $x;
+                    }
+                }
+            }
+
+            var tmp = "outer"
+            m "inner"
+            expect(tmp).to.be("outer");
         }
 
-        var tmp = "outer"
-        m "inner"
-        expect(tmp).to.be("outer");
-      }
-
-      f("call")
+        f("call")
 
     }
 
     $it "should work for var with nested function" {
-      macro m {
-        rule {$x:lit} => {
-          var tmp = $x;
-        }
-      }
-      function f() {
-        var tmp = "outer"
-        m "inner"
-        expect(tmp).to.be("outer");
-      }
-      f();
-    }
-
-    $it "should handle vars decls introduced by a macro expansion where macro definition is in the same scope level" {
-        var res = "default";
-        var x = undefined;
         macro m {
-            rule {()} => {
-                var x;
-                x = "set";
-                res = x;
+            case {_ $x:lit} => {
+                return #{
+                    var tmp = $x;
+                }
             }
         }
-        m()
-        expect(res).to.be("set");
-        expect(x).to.be(undefined);
+        function f() {
+            var tmp = "outer"
+            m "inner"
+            expect(tmp).to.be("outer");
+        }
+        f();
     }
+
+    // $it "should handle vars decls introduced by a macro expansion where macro definition is in the same scope level" {
+    //     var res = "default";
+    //     var x = undefined;
+    //     macro m {
+    //         case {_ ()} => {
+    //             return #{
+    //                 var x;
+    //                 x = "set";
+    //                 res = x;
+    //             }
+    //         }
+    //     }
+    //     m()
+    //     expect(res).to.be("set");
+    //     expect(x).to.be(undefined);
+    // }
 
     $it "should handle vars decls introduced by a macro expansion where macro definition is NOT in the same scope level" {
         macro m {
-            rule {($res)} => {
-                var x;
-                x = "set";
-                $res = x;
+            case {_ ($res)} => {
+                return #{
+                    var x;
+                    x = "set";
+                    $res = x;
+                }
             }
         }
 
@@ -267,8 +293,10 @@ $describe "macro hygiene" {
         var res = "default";
         var x = undefined;
         macro m {
-            rule {{ $body ... }} => {
-                $body ...
+            case {_ { $body ... }} => {
+                return #{
+                    $body ...
+                }
             }
         }
         m {
@@ -282,11 +310,13 @@ $describe "macro hygiene" {
 
     $it "should work for the or macro with var" {
       macro or {
-        rule {($x:expr, $y:expr)} => {
-          (function() {
-            var $tmp = $x;
-            return $tmp ? $tmp : $y;
-          })();
+        case {_ ($x:expr, $y:expr)} => {
+            return #{
+                (function() {
+                    var $tmp = $x;
+                    return $tmp ? $tmp : $y;
+                })();
+            }
         }
       }
 

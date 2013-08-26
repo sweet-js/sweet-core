@@ -107,14 +107,8 @@ target.build_test_file = function() {
 
 target.build_test = function() {
     ls("test/*.js").forEach(function(file) {
-        // TODO: for testing purposes only do these
-        if(file === "test/test_prim_macros.js" ||
-           file === "test/test_syntaxCase.js" ||
-           file === "test/test_macro_case.js" ||
-           file === "test/test_macro_patterns.js") {
-            echo("compiling: " + path.basename(file));
-            exec("build/bin/sjs --output build/" + path.basename(file) + " " + file);
-        }
+        echo("compiling: " + path.basename(file));
+        exec("build/bin/sjs --output build/" + path.basename(file) + " " + file);
     });
 };
 
