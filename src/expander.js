@@ -42,108 +42,135 @@
     'use strict';
 
     macro _get_vars {
-	    rule { $val { } } => { }
-	    rule {
+	    case {_ $val { } } => { return #{} }
+	    case {
+            _
 		    $val {
 			    $proto($field (,) ...) => { $body ... }
 			    $rest ...
 		    }
 	    } => {
-		    $(var $field = $val.$field;) ...
-		        _get_vars $val { $rest ... }
+            return #{
+		        $(var $field = $val.$field;) ...
+		            _get_vars $val { $rest ... }
+            }
 	    }
-	    rule {
+	    case {
+            _
 		    $val {
 			    $proto($field (,) ...) | $guard:expr => { $body ... }
 			    $rest ...
 		    }
 	    } => {
-		    $(var $field = $val.$field;) ...
-		        _get_vars $val { $rest ... }
+            return #{
+		        $(var $field = $val.$field;) ...
+		            _get_vars $val { $rest ... }
+            }
 	    }
     }
 
     macro _case {
-	    rule { $val else {} } => {}
+	    case {_ $val else {} } => { return #{} }
 	    
-	    rule {
+	    case {
+            _
 		    $val else {
 			default => { $body ... }
 		    }
 	    } => {
-		    else {
-			    $body ...
-		    }
+            return #{
+		        else {
+			        $body ...
+		        }
+            }
 	    }
 	    
-	    rule {
+	    case {
+            _
 		    $val else {
 			    $proto($field (,) ...) => { $body ... }
 			    $rest ...
 		    }
 	    } => {
-		    else if($val.hasPrototype($proto)) {
-			    $body ...
-		    }
-		    _case $val else { $rest ... }
+            return #{
+		        else if($val.hasPrototype($proto)) {
+			        $body ...
+		        }
+		        _case $val else { $rest ... }
+            }
 	    }
 	    
-	    rule {
+	    case {
+            _
 		    $val else {
 			    $proto($field (,) ...) | $guard:expr => { $body ... }
 			    $rest ...
 		    }
 	    } => {
-		    else if($val.hasPrototype($proto) && $guard) {
-			    $body ...
-		    }
-		    _case $val else { $rest ... }
+            return #{
+		        else if($val.hasPrototype($proto) && $guard) {
+			        $body ...
+		        }
+		        _case $val else { $rest ... }
+            }
 	    }
 	    
-	    rule {
+	    case {
+            _
 		    $val {
 			    $proto($field ...) => { $body ... }
 			    $rest ...
 		    }
 	    } => {
-		    if ($val.hasPrototype($proto)) {
-			    $body ...
-		    }
-		    _case $val else { $rest ... }
+            return #{
+		        if ($val.hasPrototype($proto)) {
+			        $body ...
+		        }
+		        _case $val else { $rest ... }
+            }
 	    }
 	    
-	    rule {
+	    case {
+            _
 		    $val {
 			    $proto($field ...) | $guard:expr => { $body ... }
 			    $rest ...
 		    }
 	    } => {
-		    if($val.hasPrototype($proto) && $guard) {
-			    $body ...
-		    }
-		    _case $val else { $rest ... }
+            return #{
+		        if($val.hasPrototype($proto) && $guard) {
+			        $body ...
+		        }
+		        _case $val else { $rest ... }
+            }
 	    }
     }
 
     macro case {
-	    rule {
+	    case {
+            _
 		    $val {
 			    $proto($field (,) ...) => { $body ... }
 			    $rest ...
 		    }
 	    } => {
-		    _get_vars $val { $proto($field ...) => { $body ... } $rest ... }
-		    _case $val { $proto($field (,) ...) => { $body ... } $rest ... }
+            return #{
+		        _get_vars $val { $proto($field ...) => { $body ... } $rest ... }
+		        _case $val { $proto($field (,) ...) => { $body ... } $rest ... }
+            }
 	    }
 	    
-	    rule {
+	    case {
+            _
 		    $val {
 			    $proto($field (,) ...) | $guard:expr => { $body ... }
 			    $rest ...
 		    }
 	    } => {
-		    _get_vars $val { $proto($field ...) | $guard => { $body ... } $rest ... }
-		    _case $val { $proto($field (,) ...) | $guard => { $body ... } $rest ... }
+            return #{
+		        _get_vars $val { $proto($field ...) | $guard => { $body ... } $rest ... }
+		        _case $val { $proto($field (,) ...) | $guard => { $body ... } $rest ... }
+            }
 	    }
     }
 
@@ -1406,6 +1433,7 @@
     exports.get_expression = get_expression;
 
     exports.Expr = Expr;
+    exports.VariableStatement = VariableStatement;
 
     exports.tokensToSyntax = syn.tokensToSyntax;
 }));

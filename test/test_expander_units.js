@@ -1,12 +1,9 @@
 var expect = require("expect.js");
-var parser = require("../lib/parser");
-var expander = require("../lib/expander");
+var parser = require("../build/lib/parser");
+var expander = require("../build/lib/expander");
+var patterns = require("../build/lib/patterns");
 
-// load all the "private" expander names (stored in _test)
-// into the global scope for cleaner testing
-Object.keys(expander._test).forEach(function(val) {
-    global[val] = expander._test[val];
-});
+var matchPatternClass = patterns.matchPatternClass;
 
 // extract the token values from a token array
 function tokValues (stxArray) {

@@ -220,8 +220,8 @@
             result = [stx[0]];
             rest = stx.slice(1);
         } else if (stx.length > 0 && patternClass === "VariableStatement") {
-            var match = enforest(stx, env);
-            if (match.result && match.result.hasPrototype(VariableStatement)) {
+            var match = expander.enforest(stx, env);
+            if (match.result && match.result.hasPrototype(expander.VariableStatement)) {
                 result = match.result.destruct(false);
                 rest = match.rest;
             } else {
@@ -627,5 +627,6 @@
     exports.loadPattern = loadPattern;
     exports.matchPatterns = matchPatterns;
     exports.transcribe = transcribe;
+    exports.matchPatternClass = matchPatternClass;
 
 }))
