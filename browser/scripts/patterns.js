@@ -397,9 +397,9 @@
                     return acc$151.concat(joined$160);
                 }
                 if (!env$143[bodyStx$152.token.value]) {
-                    throwError('The pattern variable ' + bodyStx$152.token.value + ' is not bound for the template');
+                    throw new Error('The pattern variable ' + bodyStx$152.token.value + ' is not bound for the template');
                 } else if (env$143[bodyStx$152.token.value].level !== 1) {
-                    throwError('Ellipses level for ' + bodyStx$152.token.value + ' does not match in the template');
+                    throw new Error('Ellipses level for ' + bodyStx$152.token.value + ' does not match in the template');
                 }
                 return acc$151.concat(joinRepeatedMatch$83(env$143[bodyStx$152.token.value].match, bodyStx$152.separator));
             } else {
