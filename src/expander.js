@@ -1303,6 +1303,9 @@
                    term.hasPrototype(AnonFun) ||
                    term.hasPrototype(CatchClause)) {
             // function definitions need a bunch of hygiene logic
+            if (term.hasPrototype(NamedFun)) {
+                addToDefinitionCtx([term.name], defscope, false);
+            }
             // push down a fresh definition context
             var newDef = [];
 
@@ -1373,10 +1376,6 @@
             value: "function",
             type: parser.Token.Keyword
         });
-        var name = syntaxFromToken({
-            value: "$topLevel$",
-            type: parser.Token.Identifier
-        });
         var params = syntaxFromToken({
             value: "()",
             type: parser.Token.Delimiter,
@@ -1387,7 +1386,8 @@
             type: parser.Token.Delimiter,
             inner: stx
         });
-        var res = expand([funn, name, params, body]);
+
+        var res = expand([funn, params, body]);
         // drop the { and }
         return _.map(res[0].body.slice(1, res[0].body.length - 1), function(stx) {
             return stx;
