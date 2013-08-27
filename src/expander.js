@@ -1142,7 +1142,7 @@
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head, env, ctx, defscope, templateMap);
 
-            addToDefinitionCtx([head.name], defscope);
+            addToDefinitionCtx([head.name], defscope, false);
             env.set(resolve(head.name), macroDefinition);
 
             return expandToTermTree(rest, env, ctx, defscope, templateMap);
@@ -1152,7 +1152,7 @@
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head, env, ctx, defscope, templateMap);
 
-            addToDefinitionCtx([head.name], defscope);
+            addToDefinitionCtx([head.name], defscope, false);
             env.set(resolve(head.name), macroDefinition);
 
             return expandToTermTree(rest, env, ctx, defscope, templateMap);
@@ -1169,14 +1169,16 @@
 
         if (head.hasPrototype(VariableStatement)) {
             addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
-                               defscope)
+                               defscope,
+                               true)
         }
 
         if(head.hasPrototype(Block) && head.body.hasPrototype(Delimiter)) {
             head.body.delim.token.inner.forEach(function(term) {
                 if (term.hasPrototype(VariableStatement)) {
                     addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
-                                       defscope);
+                                       defscope,
+                                       true);
                 }
             });
 
@@ -1186,7 +1188,9 @@
             head.delim.token.inner.forEach(function(term) {
                 if (term.hasPrototype(VariableStatement)) {
                     addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
-                                       defscope);
+                                       defscope,
+                                       true);
+                                      
                 }
             });
         }
@@ -1198,12 +1202,17 @@
         };
     }
 
-    function addToDefinitionCtx(idents, defscope) {
+    function addToDefinitionCtx(idents, defscope, skipRep) {
+        skipRep = skipRep || false;
         _.each(idents, function(id) {
-            var declRepeat = _.find(defscope, function(def) {
-                return def.id.token.value === id.token.value &&
-                    arraysEqual(marksof(def.id.context), marksof(id.context));
-            });
+            var skip = false;
+            if (skipRep) {
+                var declRepeat = _.find(defscope, function(def) {
+                    return def.id.token.value === id.token.value &&
+                        arraysEqual(marksof(def.id.context), marksof(id.context));
+                });
+                skip = typeof declRepeat !== 'undefined';
+            }
             /* 
                When var declarations repeat in the same function scope:
                
@@ -1214,7 +1223,7 @@
                we just need to use the first renaming and leave the
                definition context as is.
             */
-            if (declRepeat !== null) {
+            if (!skip) {
                 var name = fresh();
                 defscope.push({
                     id: id,
@@ -1225,84 +1234,6 @@
         });
     }
 
-    // finds all the identifiers being bound by var statements
-    // in the array of syntax objects
-    // (TermTree) -> [Syntax]
-    function getVarDeclIdentifiers(term) {
-        var toCheck;
-
-        case term {
-            Block(body) => {
-                case body {
-                    Delimiter(delim) => {
-                        toCheck = body.delim.token.inner;
-                    }
-                }
-            }
-            Delimiter(delim) => {
-                toCheck = delim.token.inner;
-            }
-            default => {
-                parser.assert(false, "expecting a Block or a Delimiter");
-            }
-        }
-
-        return _.reduce(toCheck, function(acc, curr, idx, list) {
-            var prev = list[idx-1];
-            if (curr.hasPrototype(VariableStatement)) {
-                return _.reduce(curr.decls, function(acc, decl) {
-                    return acc.concat(decl.ident);
-                }, acc);
-            } else if (prev && prev.hasPrototype(Keyword) &&
-                       prev.keyword.token.value === "for" &&
-                       curr.hasPrototype(Delimiter)) {
-                return acc.concat(getVarDeclIdentifiers(curr));
-            } else if (curr.hasPrototype(Block)) {
-                return acc.concat(getVarDeclIdentifiers(curr));
-            }
-            return acc;
-        }, []);
-    }
-
-    function replaceVarIdent(stx, orig, renamed) {
-        if (stx === orig) {
-            return renamed;
-        }
-        return stx;
-    }
-
-    // Takes a term tree and returns the syntax object that it wrapps.
-    // Assumes that there is only a single token so throws error if
-    // the term wrapps more than a single syntax object (eg: a
-    // function definition isn't allowed)
-    function getWrappedSyntax(term){
-        case term {
-            ArrayLiteral(array) => {
-                return array.delim;
-            }
-            Block(body) => {
-                return body.delim;
-            }
-            ParenExpression(expr) => {
-                return expr.delim;
-            }
-            Delimiter(delim) => {
-                return delim;
-            }
-            ThisExpression(emp) => {
-                return term.this;
-            }
-            Lit(lit) => {
-                return lit;
-            }
-            Id(id) => {
-                return id;
-            }
-            default: => {
-                throwError("make syntax only understands single tokens")
-            }
-        }
-    }
 
     // similar to `parse2` in the honu paper except here we
     // don't generate an AST yet
