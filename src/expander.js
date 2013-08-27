@@ -759,11 +759,23 @@
                 decls = decls.concat(subRes.result);
                 rest = subRes.rest;
             } else {
-                decls.push(VariableDeclaration.create(result.id));
+                if (result.hasPrototype(Id)) {
+                    decls.push(VariableDeclaration.create(result.id));
+                } else {
+                    throwError("Expecting an identifier in variable declaration");
+                }
             }
         // x EOF
         } else {
-            decls.push(VariableDeclaration.create(result.id));
+            if (result.hasPrototype(Id)) {
+                decls.push(VariableDeclaration.create(result.id));
+            } else if (result.hasPrototype(BinOp) && result.op.token.value === "in") {
+                decls.push(VariableDeclaration.create(result.left.id,
+                                                      result.op,
+                                                      result.right));
+            } else {
+                throwError("Expecting an identifier in variable declaration");
+            }
         }
         
         return {
@@ -1236,6 +1248,7 @@
     }
 
     function addToDefinitionCtx(idents, defscope, skipRep) {
+        parser.assert(idents && idents.length > 0, "expecting some variable identifiers");
         skipRep = skipRep || false;
         _.each(idents, function(id) {
             var skip = false;
