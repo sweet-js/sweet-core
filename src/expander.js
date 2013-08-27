@@ -1084,7 +1084,7 @@
 
     // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
-    function loadMacroDef(mac, env, ctx, defscope, templateMap) {
+    function loadMacroDef(mac, env, defscope, templateMap) {
         var body = mac.body;
 
         // raw function primitive form
@@ -1095,7 +1095,7 @@
 
         var stub = parser.read("()");
         stub[0].token.inner = body;
-        var expanded = flatten(expand(stub, env, ctx, defscope, templateMap));
+        var expanded = flatten(expand(stub, env, defscope, templateMap));
         var bodyCode = codegen.generate(parser.parse(expanded));
 
         var macroFn = scopedEval(bodyCode, {
@@ -1119,7 +1119,7 @@
 
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
-    function expandToTermTree (stx, env, ctx, defscope, templateMap) {
+    function expandToTermTree (stx, env, defscope, templateMap) {
         parser.assert(env, "environment map is required");
 
         // short circuit when syntax array is empty
@@ -1140,22 +1140,22 @@
 
         if (head.hasPrototype(Macro)) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition = loadMacroDef(head, env, ctx, defscope, templateMap);
+            var macroDefinition = loadMacroDef(head, env, defscope, templateMap);
 
             addToDefinitionCtx([head.name], defscope, false);
             env.set(resolve(head.name), macroDefinition);
 
-            return expandToTermTree(rest, env, ctx, defscope, templateMap);
+            return expandToTermTree(rest, env, defscope, templateMap);
         }
 
         if (head.hasPrototype(LetMacro)) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition = loadMacroDef(head, env, ctx, defscope, templateMap);
+            var macroDefinition = loadMacroDef(head, env, defscope, templateMap);
 
             addToDefinitionCtx([head.name], defscope, false);
             env.set(resolve(head.name), macroDefinition);
 
-            return expandToTermTree(rest, env, ctx, defscope, templateMap);
+            return expandToTermTree(rest, env, defscope, templateMap);
         }
 
         if(head.hasPrototype(Id) && head.id.token.value === "#quoteSyntax" &&
@@ -1164,7 +1164,7 @@
             templateMap.set(tempId, rest[0].token.inner);
             return expandToTermTree([syn.makeIdent("getTemplate", head.id),
                                      syn.makeDelim("()", [syn.makeValue(tempId, head.id)])].concat(rest.slice(1)),
-                                    env, ctx, defscope, templateMap);
+                                    env, defscope, templateMap);
         }
 
         if (head.hasPrototype(VariableStatement)) {
@@ -1195,7 +1195,7 @@
             });
         }
 
-        var trees = expandToTermTree(rest, env, ctx, defscope, templateMap);
+        var trees = expandToTermTree(rest, env, defscope, templateMap);
         return {
             terms: [head].concat(trees.terms),
             env: trees.env
@@ -1238,66 +1238,61 @@
     // similar to `parse2` in the honu paper except here we
     // don't generate an AST yet
     // (TermTree, Map, Map) -> TermTree
-    function expandTermTreeToFinal (term, env, ctx, defscope, templateMap) {
+    function expandTermTreeToFinal (term, env, defscope, templateMap) {
         parser.assert(env, "environment map is required");
-        parser.assert(ctx, "context map is required");
 
 
         if (term.hasPrototype(ArrayLiteral)) {
             term.array.delim.token.inner = expand(term.array.delim.token.inner,
                                                   env,
-                                                  ctx,
                                                   defscope,
                                                   templateMap);
             return term;
         } else if (term.hasPrototype(Block)) {
             term.body.delim.token.inner = expand(term.body.delim.token.inner,
                                                  env,
-                                                 ctx,
                                                  defscope,
                                                  templateMap);
             return term;
         } else if (term.hasPrototype(ParenExpression)) {
             term.expr.delim.token.inner = expand(term.expr.delim.token.inner,
                                                  env,
-                                                 ctx,
                                                  defscope,
                                                  templateMap);
             return term;
         } else if (term.hasPrototype(Call)) {
             term.fun = expandTermTreeToFinal(term.fun,
                                              env,
-                                             ctx,
                                              defscope,
                                              templateMap);
             term.args = _.map(term.args, function(arg) {
-                return expandTermTreeToFinal(arg, env, ctx, defscope, templateMap);
+                return expandTermTreeToFinal(arg, env, defscope, templateMap);
             });
             return term;
         } else if (term.hasPrototype(UnaryOp)) {
-            term.expr = expandTermTreeToFinal(term.expr, env, ctx, defscope, templateMap);
+            term.expr = expandTermTreeToFinal(term.expr, env, defscope, templateMap);
             return term;
         } else if (term.hasPrototype(BinOp)) {
-            term.left = expandTermTreeToFinal(term.left, env, ctx, defscope, templateMap);
-            term.right = expandTermTreeToFinal(term.right, env, ctx, defscope);
+            term.left = expandTermTreeToFinal(term.left, env, defscope, templateMap);
+            term.right = expandTermTreeToFinal(term.right, env, defscope);
             return term;
         } else if (term.hasPrototype(ObjDotGet)) {
-            term.left = expandTermTreeToFinal(term.left, env, ctx, defscope, templateMap);
-            term.right = expandTermTreeToFinal(term.right, env, ctx, defscope, templateMap);
+            term.left = expandTermTreeToFinal(term.left, env, defscope, templateMap);
+            term.right = expandTermTreeToFinal(term.right, env, defscope, templateMap);
             return term;
         } else if (term.hasPrototype(VariableDeclaration)) {
             if (term.init) {
-                term.init = expandTermTreeToFinal(term.init, env, ctx, defscope, templateMap);
+                term.init = expandTermTreeToFinal(term.init, env, defscope, templateMap);
             }
             return term;
         } else if (term.hasPrototype(VariableStatement)) {
             term.decls = _.map(term.decls, function(decl) {
-                return expandTermTreeToFinal(decl, env, ctx, defscope, templateMap);
+                return expandTermTreeToFinal(decl, env, defscope, templateMap);
             });
             return term;
         } else if (term.hasPrototype(Delimiter)) {
             // expand inside the delimiter and then continue on
-            term.delim.token.inner = expand(term.delim.token.inner, env, ctx, defscope, templateMap);
+            term.delim.token.inner = expand(term.delim.token.inner, env,defscope, templateMap);
             return term;
         } else if (term.hasPrototype(NamedFun) ||
                    term.hasPrototype(AnonFun) ||
@@ -1321,8 +1316,6 @@
                 };
             });
 
-            // TODO: fix, ctx isn't being used
-            var newCtx = ctx;
 
             var stxBody = bodies;
 
@@ -1331,7 +1324,7 @@
                 return accBody.rename(p.originalParam, p.freshName)
             }, stxBody);
 
-            var bodyTerms = expand([renamedBody], env, newCtx, newDef, templateMap);
+            var bodyTerms = expand([renamedBody], env, newDef, templateMap);
             parser.assert(bodyTerms.length === 1 && bodyTerms[0].body,
                             "expecting a block in the bodyTerms");
 
@@ -1339,7 +1332,7 @@
 
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam; });
             var flatArgs = wrapDelim(joinSyntax(renamedParams, ","), term.params);
-            var expandedArgs = expand([flatArgs], env, ctx, newDef, templateMap);
+            var expandedArgs = expand([flatArgs], env, newDef, templateMap);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the function with all the renamings
             term.params = expandedArgs[0];
@@ -1359,14 +1352,13 @@
 
     // similar to `parse` in the honu paper
     // ([Syntax], Map, Map) -> [TermTree]
-    function expand(stx, env, ctx, defscope, templateMap) {
+    function expand(stx, env, defscope, templateMap) {
         env = env || new Map();
-        ctx = ctx || new Map();
         templateMap = templateMap || new Map();
 
-        var trees = expandToTermTree(stx, env, ctx, defscope, templateMap);
+        var trees = expandToTermTree(stx, env, defscope, templateMap);
         return _.map(trees.terms, function(term) {
-            return expandTermTreeToFinal(term, trees.env, ctx, defscope, templateMap);
+            return expandTermTreeToFinal(term, trees.env, defscope, templateMap);
         })
     }
 
