@@ -701,7 +701,7 @@
 
     function stxIsBinOp (stx) {
         var staticOperators = ["+", "-", "*", "/", "%", "||", "&&", "|", "&", "^",
-                                "==", "!=", "===", "!==",
+                                "==", "!=", "===", "!==", 
                                 "<", ">", "<=", ">=", "in", "instanceof",
                                 "<<", ">>", ">>>"];
         return _.contains(staticOperators, stx.token.value);
@@ -712,48 +712,58 @@
     // var x = ...
     //     ^
     function enforestVarStatement (stx, env) {
-        parser.assert(stx[0] && stx[0].token.type === parser.Token.Identifier,
-            "must start at the identifier");
-        var decls = [], rest = stx, initRes, subRes;
+        var decls = [];
 
-        if (stx[1] && stx[1].token.type === parser.Token.Punctuator &&
-            stx[1].token.value === "=") {
-            initRes = enforest(stx.slice(2), env);
-            if (initRes.result.hasPrototype(Expr)) {
-                rest = initRes.rest;
+        var res = enforest(stx, env);
+        var result = res.result;
+        var rest = res.rest;
 
-                if (initRes.rest[0].token.type === parser.Token.Punctuator &&
-                    initRes.rest[0].token.value === "," &&
-                    initRes.rest[1] &&
-                    initRes.rest[1].token.type === parser.Token.Identifier) {
-                    decls.push(VariableDeclaration.create(stx[0],
-                                                          stx[1],
-                                                          initRes.result,
-                                                          initRes.rest[0]));
+        if (rest[0]) {
+            var nextRes = enforest(rest, env);
 
-                    subRes = enforestVarStatement(initRes.rest.slice(1), env);
+            // x = ...
+            if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === "=") {
+                var initializerRes = enforest(nextRes.rest, env);
 
-                    decls = decls.concat(subRes.result);
-                    rest = subRes.rest;
+                if (initializerRes.rest[0]) {
+                    var restRes = enforest(initializerRes.rest, env);
+
+                    // x = y + z, ...
+                    if (restRes.result.hasPrototype(Punc) &&
+                        restRes.result.punc.token.value === ",") {
+
+                        decls.push(VariableDeclaration.create(result.id,
+                                                              nextRes.result.punc,
+                                                              initializerRes.result,
+                                                              restRes.result.punc));
+                        var subRes = enforestVarStatement(restRes.rest, env);
+                        decls = decls.concat(subRes.result);
+                        rest = subRes.rest;
+                    // x = y ...
+                    } else {
+                        decls.push(VariableDeclaration.create(result.id,
+                                                              nextRes.result.punc,
+                                                              initializerRes.result));
+                        rest = initializerRes.rest;
+                    }
+                // x = y EOF
                 } else {
-                    decls.push(VariableDeclaration.create(stx[0],
-                                                          stx[1],
-                                                          initRes.result));
+                    decls.push(VariableDeclaration.create(result.id,
+                                                          nextRes.result.punc,
+                                                          initializerRes.result));
                 }
+            // x ,...;
+            } else if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === ",") {
+                decls.push(VariableDeclaration.create(result.id, null, null, nextRes.result.punc));
+                var subRes = enforestVarStatement(nextRes.rest, env);
+                decls = decls.concat(subRes.result);
+                rest = subRes.rest;
             } else {
-                parser.assert(false,
-                              "parse error, expecting an expr in variable initialization");
+                decls.push(VariableDeclaration.create(result.id));
             }
-        } else if (stx[1] && stx[1].token.type === parser.Token.Punctuator &&
-                    stx[1].token.value === ",") {
-            decls.push(VariableDeclaration.create(stx[0], null, null, stx[1]));
-            subRes = enforestVarStatement(stx.slice(2), env);
-
-            decls = decls.concat(subRes.result);
-            rest = subRes.rest;
+        // x EOF
         } else {
-            decls.push(VariableDeclaration.create(stx[0]));
-            rest = stx.slice(1)
+            decls.push(VariableDeclaration.create(result.id));
         }
         
         return {
@@ -907,10 +917,8 @@
                         var getRes = enforest(rest[0].token.inner, env);
                         var resStx = mkSyntax("[]", parser.Token.Delimiter, rest[0]);
                         resStx.token.inner = [getRes.result];
-                        if(getRes.rest.length > 0) {
-                            return step(ObjGet.create(head, Delimiter.create(resStx)),
-                                        rest.slice(1));
-                        }
+                        return step(ObjGet.create(head, Delimiter.create(resStx)),
+                                    rest.slice(1));
                     }
 
                     // ObjectGet
@@ -932,9 +940,7 @@
                     }
 
                     // VariableStatement
-                    Keyword(keyword) | (keyword.token.value === "var" &&
-                                        rest[0] &&
-                                        rest[0].token.type === parser.Token.Identifier) => {
+                    Keyword(keyword) | (keyword.token.value === "var" && rest[0]) => {
                         var vsRes = enforestVarStatement(rest, env);
                         if (vsRes) {
                             return step(VariableStatement.create(head, vsRes.result),

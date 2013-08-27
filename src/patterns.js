@@ -591,11 +591,11 @@
                     }
 
                     if (!env[bodyStx.token.value]) {
-                        throwError("The pattern variable " + bodyStx.token.value +
-                                   " is not bound for the template");
+                        throw new Error("The pattern variable " + bodyStx.token.value +
+                                        " is not bound for the template");
                     } else if (env[bodyStx.token.value].level !== 1) {
-                        throwError("Ellipses level for " + bodyStx.token.value +
-                                   " does not match in the template");
+                        throw new Error("Ellipses level for " + bodyStx.token.value +
+                                        " does not match in the template");
                     } 
 
                     return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match,

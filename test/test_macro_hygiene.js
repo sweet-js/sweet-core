@@ -1,4 +1,4 @@
-var expect = require("expect.js")
+var expect = require("expect.js");
 
 macro $describe {
     case {_ $description:lit { $body ... }} => {
