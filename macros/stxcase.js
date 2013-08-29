@@ -1,7 +1,60 @@
-macro macro {
+macro quoteSyntax {
     function(stx) {
         var name_stx = stx[0];
-        var macro_name_stx = stx[1];
+
+        var res = [
+            makeIdent("#quoteSyntax", name_stx),
+            stx[1]
+        ];
+
+        return {
+            result: res,
+            rest: stx.slice(2)
+        };
+    }
+}
+
+macro syntax {
+    function(stx) {
+        var name_stx = stx[0];
+
+        var res = [makeIdent("patternModule", name_stx),
+                   makePunc(".", name_stx),
+                   makeIdent("transcribe", name_stx),
+                   makeDelim("()", [
+                       makeIdent("#quoteSyntax", name_stx),
+                       stx[1],
+                       makePunc(",", name_stx),
+                       makeIdent("name_stx", name_stx),
+                       makePunc(",", name_stx),
+                       makeIdent("match", name_stx),
+                       makePunc(".", name_stx),
+                       makeIdent("patternEnv")
+                   ], name_stx)];
+                   
+        
+        return {
+            result: res,
+            rest: stx.slice(2)
+        };
+    }
+}
+
+macro # {
+    function (stx) {
+        return {
+            result: [makeIdent("syntax", stx[0]),
+                     stx[1]],
+            rest: stx.slice(2)
+        }
+    }
+}
+
+
+macro syntaxCase {
+    function(stx) {
+        var name_stx = stx[0];
+        var arg_stx = stx[1].token.inner;
         var cases_stx = stx[2].token.inner;
 
         // "import"
@@ -24,21 +77,6 @@ macro macro {
                 makeIdent(id, name_stx),
                 makePunc("=", name_stx)
             ].concat(expr).concat(makePunc(";", name_stx));
-        }
-
-        // handle primitive macro form
-        if (cases_stx[0] && cases_stx[0].token.value === "function") {
-
-            var res = [
-                makeIdent("macro", null),
-                macro_name_stx,
-                stx[2]
-            ];
-
-            return {
-                result: res,
-                rest: stx.slice(3)
-            };
         }
 
         if (cases_stx.length == 0) {
@@ -233,11 +271,10 @@ macro macro {
         ]);
 
         var res = [
-            makeIdent("macro", null),
-            macro_name_stx,
-            makeDelim("{}",
-                      makeFunc([makeIdent("stx", name_stx),
-                                makeIdent("env", name_stx)], body), name_stx)
+            makeDelim("()", makeFunc([makeIdent("stx", name_stx),
+                                      makeIdent("env", name_stx)], body),
+                      name_stx),
+            makeDelim("()", arg_stx, name_stx)
         ];
 
         return {
@@ -247,54 +284,62 @@ macro macro {
     }
 }
 
-macro quoteSyntax {
+macro macro {
     function(stx) {
         var name_stx = stx[0];
+        var mac_name_stx = stx[1];
+        var body_stx = stx[2].token.inner;
 
-        var res = [
-            makeIdent("#quoteSyntax", name_stx),
-            stx[1]
-        ];
+        function makeFunc(params, body) {
+            return [
+                makeKeyword("function", name_stx),
+                makeDelim("()", params, name_stx),
+                makeDelim("{}", body, name_stx)
+            ];
+        }
 
-        return {
-            result: res,
-            rest: stx.slice(2)
-        };
-    }
-}
+        // handle primitive macro form
+        if (body_stx[0] && body_stx[0].token.value === "function") {
 
-macro syntax {
-    function(stx) {
-        var name_stx = stx[0];
+            var res = [
+                makeIdent("macro", null),
+                mac_name_stx,
+                stx[2]
+            ];
 
-        var res = [makeIdent("patternModule", name_stx),
-                   makePunc(".", name_stx),
-                   makeIdent("transcribe", name_stx),
-                   makeDelim("()", [
-                       makeIdent("#quoteSyntax", name_stx),
-                       stx[1],
-                       makePunc(",", name_stx),
-                       makeIdent("name_stx", name_stx),
-                       makePunc(",", name_stx),
-                       makeIdent("match", name_stx),
-                       makePunc(".", name_stx),
-                       makeIdent("patternEnv")
-                   ], name_stx)];
+            return {
+                result: res,
+                rest: stx.slice(3)
+            };
+        }
+
+        var res = [makeIdent("macro", null),
+                   mac_name_stx,
+                   makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
+                                             makeIdent("env", name_stx)],
+                                            [makeIdent("return", name_stx),
+                                             makeIdent("syntaxCase", name_stx),
+                                             makeDelim("()", [makeIdent("stx", name_stx),
+                                                              makePunc(",", name_stx),
+                                                              makeIdent("env", name_stx)], name_stx),
+                                             stx[2]]),
+                             name_stx)];
                    
-        
+
         return {
             result: res,
-            rest: stx.slice(2)
-        };
-    }
-}
-
-macro # {
-    function (stx) {
-        return {
-            result: [makeIdent("syntax", stx[0]),
-                     stx[1]],
-            rest: stx.slice(2)
+            rest: stx.slice(3)
         }
     }
 }
+
+
+/*
+syntaxCase (makeValue(42, null)) {
+  case {_ $x } => {
+    return #{$x}
+  }
+}
+
+*/
+
