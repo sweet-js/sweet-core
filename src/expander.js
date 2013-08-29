@@ -967,10 +967,10 @@
                 if ((head.token.type === parser.Token.Identifier ||
                      head.token.type === parser.Token.Keyword ||
                      head.token.type === parser.Token.Punctuator) &&
-                    env.has(resolve(head))) {
+                    env.has(head.token.value) && env.get(head.token.value).name === resolve(head)) {
 
                     // pull the macro transformer out the environment
-                    var transformer = env.get(resolve(head));
+                    var transformer = env.get(head.token.value).fn;
                     // apply the transformer
                     var rt = transformer([head].concat(rest), env);
                     if(!Array.isArray(rt.result)) {
@@ -1188,7 +1188,10 @@
             var macroDefinition = loadMacroDef(head, env, defscope, templateMap);
 
             addToDefinitionCtx([head.name], defscope, false);
-            env.set(resolve(head.name), macroDefinition);
+            env.set(head.name.token.value, {
+                name: resolve(head.name),
+                fn: macroDefinition
+            });
 
             return expandToTermTree(rest, env, defscope, templateMap);
         }
