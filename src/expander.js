@@ -1165,7 +1165,10 @@
             parser: parser,
             patternModule: patternModule,
             getTemplate: function(id) {return templateMap.get(id);},
-            applyMarkToPatternEnv: applyMarkToPatternEnv
+            applyMarkToPatternEnv: applyMarkToPatternEnv,
+            mergeMatches: function(newMatch, oldMatch) {
+                return _.extend({}, oldMatch, newMatch);
+            }
         }); 
 
         return macroFn;
@@ -1213,6 +1216,10 @@
             env.set(resolve(head.name), macroDefinition);
 
             return expandToTermTree(rest, env, defscope, templateMap);
+        }
+
+        if (head.hasPrototype(NamedFun)) {
+            addToDefinitionCtx([head.name], defscope, true);
         }
 
         if(head.hasPrototype(Id) && head.id.token.value === "#quoteSyntax" &&
@@ -1356,9 +1363,6 @@
                    term.hasPrototype(AnonFun) ||
                    term.hasPrototype(CatchClause)) {
             // function definitions need a bunch of hygiene logic
-            if (term.hasPrototype(NamedFun)) {
-                addToDefinitionCtx([term.name], defscope, false);
-            }
             // push down a fresh definition context
             var newDef = [];
 

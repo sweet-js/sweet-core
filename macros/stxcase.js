@@ -181,7 +181,18 @@ macro syntaxCase {
                                                  makePunc(",", name_stx),
                                                  makeValue(true, name_stx)
                                              ], name_stx)]);
-            return pat.concat(match);
+            var mergeMatch = [
+                makeIdent("match", name_stx),
+                makePunc("=", name_stx),
+                makeIdent("mergeMatches", name_stx),
+                makeDelim("()", [
+                    makeIdent("match", name_stx),
+                    makePunc(",", name_stx),
+                    makeIdent("parentMatch", name_stx)
+                ], name_stx),
+                makePunc(";", name_stx)
+            ];
+            return pat.concat(match).concat(mergeMatch);
         }
 
         function makeTranscribe(i) {
@@ -272,9 +283,20 @@ macro syntaxCase {
 
         var res = [
             makeDelim("()", makeFunc([makeIdent("stx", name_stx),
-                                      makeIdent("env", name_stx)], body),
+                                      makeIdent("env", name_stx),
+                                      makeIdent("parentMatch", name_stx)], body),
                       name_stx),
-            makeDelim("()", arg_stx, name_stx)
+            makeDelim("()", arg_stx.concat([
+                makePunc(",", name_stx),
+                makeKeyword("typeof", name_stx),
+                makeIdent("parentMatch", name_stx),
+                makePunc("!==", name_stx),
+                makeValue("undefined", name_stx),
+                makePunc("?", name_stx),
+                makeIdent("parentMatch", name_stx),
+                makePunc(":", name_stx),
+                makeDelim("{}", [], name_stx)
+            ]), name_stx)
         ];
 
         return {
@@ -332,6 +354,39 @@ macro macro {
         }
     }
 }
+
+macro withSyntax {
+    case {$name
+          ($p = $e:expr)
+          {$body ...}} => {
+        var name = #{$name}
+        var here = #{here};
+        here = here[0];
+
+        var res = #{syntaxCase};
+        var args = #{$e,};
+
+        // take the lexical context from the surrounding scope so `env` is correctly captured
+        args = args.concat(makeIdent("env", name[0]));
+        res = res.concat(makeDelim("()", args, here));
+
+        var arm = #{case {$p} =>};
+        res = res.concat(makeDelim("{}", arm.concat(#{{ $body ... }}), here));
+
+        return [makeDelim("()", res, here), makePunc(".", here), makeIdent("result", here), makePunc(";", here)]
+    }
+}
+
+/*
+macro withSyntax {
+    case { $name ($p = $e:expr) { $body ... } } => {
+        var res = [
+            makeIdent("syntaxCase", #{$name}),
+            
+        ]
+    }
+}
+*/
 
 
 /*
