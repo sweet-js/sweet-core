@@ -272,12 +272,21 @@
 
     function renames(defctx, oldctx, originalName) {
         var acc = oldctx;
-        defctx.forEach(function(def) {
-            if(def.id.token.value === originalName) {
-                acc = Rename(def.id, def.name, acc, defctx);
+        for (var i = 0; i < defctx.length; i++) {
+            if (defctx[i].id.token.value === originalName) {
+                acc = Rename(defctx[i].id, defctx[i].name, acc, defctx);
             }
-        });
+        }
         return acc;
+    }
+
+    function unionEl(arr, el) {
+        if (arr.indexOf(el) === -1) {
+            var res = arr.slice(0);
+            res.push(el);
+            return res;
+        }
+        return arr;
     }
 
     // (Syntax) -> String
@@ -286,24 +295,24 @@
             return resolveCtx(originalName, ctx.context, stop_spine, stop_branch);
         }
         if (isDef(ctx)) {
-            if (_.contains(stop_spine, ctx.defctx)) {
+            if (stop_spine.indexOf(ctx.defctx) !== -1) {
                 return resolveCtx(originalName, ctx.context, stop_spine, stop_branch);   
             } else {
-                return resolveCtx(originalName, 
-                    renames(ctx.defctx, ctx.context, originalName), 
-                    stop_spine,
-                    _.union(stop_branch, [ctx.defctx]));
+                return resolveCtx(originalName,
+                                  renames(ctx.defctx, ctx.context, originalName),
+                                  stop_spine,
+                                  unionEl(stop_branch, ctx.defctx));
             }
         }
         if (isRename(ctx)) {
             var idName = resolveCtx(ctx.id.token.value, 
-                ctx.id.context, 
-                stop_branch,
-                stop_branch);
-            var subName = resolveCtx(originalName, 
-                ctx.context,
-                _.union(stop_spine,[ctx.def]),
-                stop_branch);
+                                    ctx.id.context, 
+                                    stop_branch,
+                                    stop_branch);
+            var subName = resolveCtx(originalName,
+                                     ctx.context,
+                                     unionEl(stop_spine, ctx.def),
+                                     stop_branch);
 
             if(idName === subName) {
                 var idMarks = marksof(ctx.id.context,
@@ -318,7 +327,7 @@
             }
             return resolveCtx(originalName,
                               ctx.context,
-                              _.union(stop_spine,[ctx.def]),
+                              unionEl(stop_spine, ctx.def),
                               stop_branch);
         }
         return originalName;
