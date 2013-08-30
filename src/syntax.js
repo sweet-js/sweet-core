@@ -90,14 +90,7 @@
                     this.token.inner = renamedInner;
                 }
 
-                // Only need to put in a rename if the token and the source ident both
-                // have the same base name. Speculative optimization, the extra renames
-                // might be useful for later extensions.
-                if(this.token.value === id.token.value) {
-                    return syntaxFromToken(this.token, Rename(id, name, this.context));
-                } else {
-                    return this;
-                }
+                return syntaxFromToken(this.token, Rename(id, name, this.context));
             },
 
             addDefCtx: function(defctx) {
@@ -146,9 +139,11 @@
             lineStart = stx.token.lineStart;
             lineNumber = stx.token.lineNumber;
             range = stx.token.range;
-        } else {
+        } else if (stx == null) {
             ctx = null;
             // the others can stay undefined
+        } else {
+            throw new Error("Expecting a syntax object, not: " + stx);
         }
         return syntaxFromToken({
             type: type,

@@ -305,24 +305,25 @@
             }
         }
         if (isRename(ctx)) {
-            var idName = resolveCtx(ctx.id.token.value, 
-                                    ctx.id.context, 
-                                    stop_branch,
-                                    stop_branch);
-            var subName = resolveCtx(originalName,
-                                     ctx.context,
-                                     unionEl(stop_spine, ctx.def),
-                                     stop_branch);
-
-            if(idName === subName) {
-                var idMarks = marksof(ctx.id.context,
-                                      originalName + "$" + ctx.name,
-                                      originalName);
-                var subMarks = marksof(ctx.context,
-                                       originalName + "$" + ctx.name,
-                                       originalName);
-                if(arraysEqual(idMarks, subMarks)) {
-                    return originalName + "$" + ctx.name;
+            if (originalName === ctx.id.token.value) {
+                var idName = resolveCtx(ctx.id.token.value, 
+                                        ctx.id.context, 
+                                        stop_branch,
+                                        stop_branch);
+                var subName = resolveCtx(originalName,
+                                         ctx.context,
+                                         unionEl(stop_spine, ctx.def),
+                                         stop_branch);
+                if(idName === subName) {
+                    var idMarks = marksof(ctx.id.context,
+                                          originalName + "$" + ctx.name,
+                                          originalName);
+                    var subMarks = marksof(ctx.context,
+                                           originalName + "$" + ctx.name,
+                                           originalName);
+                    if(arraysEqual(idMarks, subMarks)) {
+                        return originalName + "$" + ctx.name;
+                    }
                 }
             }
             return resolveCtx(originalName,
@@ -1167,7 +1168,8 @@
             getTemplate: function(id) {return templateMap.get(id);},
             applyMarkToPatternEnv: applyMarkToPatternEnv,
             mergeMatches: function(newMatch, oldMatch) {
-                return _.extend({}, oldMatch, newMatch);
+                newMatch.patternEnv = _.extend({}, oldMatch.patternEnv, newMatch.patternEnv);
+                return newMatch;
             }
         }); 
 

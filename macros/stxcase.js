@@ -289,11 +289,11 @@ macro syntaxCase {
             makeDelim("()", arg_stx.concat([
                 makePunc(",", name_stx),
                 makeKeyword("typeof", name_stx),
-                makeIdent("parentMatch", name_stx),
+                makeIdent("match", name_stx),
                 makePunc("!==", name_stx),
                 makeValue("undefined", name_stx),
                 makePunc("?", name_stx),
-                makeIdent("parentMatch", name_stx),
+                makeIdent("match", name_stx),
                 makePunc(":", name_stx),
                 makeDelim("{}", [], name_stx)
             ]), name_stx)
@@ -363,7 +363,7 @@ macro withSyntax {
         var here = #{here};
         here = here[0];
 
-        var res = #{syntaxCase};
+        var res = [makeIdent("syntaxCase", name[0])]
         var args = #{$e,};
 
         // take the lexical context from the surrounding scope so `env` is correctly captured
@@ -376,25 +376,3 @@ macro withSyntax {
         return [makeDelim("()", res, here), makePunc(".", here), makeIdent("result", here), makePunc(";", here)]
     }
 }
-
-/*
-macro withSyntax {
-    case { $name ($p = $e:expr) { $body ... } } => {
-        var res = [
-            makeIdent("syntaxCase", #{$name}),
-            
-        ]
-    }
-}
-*/
-
-
-/*
-syntaxCase (makeValue(42, null)) {
-  case {_ $x } => {
-    return #{$x}
-  }
-}
-
-*/
-
