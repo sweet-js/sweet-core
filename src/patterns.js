@@ -610,10 +610,10 @@
                     }
                     if (Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
                         if (!env[bodyStx.token.value]) {
-                            throwError("The pattern variable " + bodyStx.token.value +
+                            throw new Error("The pattern variable " + bodyStx.token.value +
                                        " is not bound for the template");
                         } else if (env[bodyStx.token.value].level !== 0) {
-                            throwError("Ellipses level for " + bodyStx.token.value +
+                            throw new Error("Ellipses level for " + bodyStx.token.value +
                                        " does not match in the template");
                         } 
                         return acc.concat(takeLineContext(macroNameStx,
@@ -628,5 +628,5 @@
     exports.matchPatterns = matchPatterns;
     exports.transcribe = transcribe;
     exports.matchPatternClass = matchPatternClass;
-
+    exports.takeLineContext = takeLineContext;
 }))

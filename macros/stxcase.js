@@ -17,8 +17,12 @@ macro quoteSyntax {
 macro syntax {
     function(stx) {
         var name_stx = stx[0];
+        var takeLineContext = patternModule.takeLineContext;
+        var mod = makeIdent("patternModule", null);
+        mod = takeLineContext(name_stx, [mod]);
+        mod = mod[0];
 
-        var res = [makeIdent("patternModule", name_stx),
+        var res = [mod,
                    makePunc(".", name_stx),
                    makeIdent("transcribe", name_stx),
                    makeDelim("()", [
@@ -169,7 +173,7 @@ macro syntaxCase {
 
         function makeMatch(i) {
             var pat = makeVarDef("pat", [patternsToObject(cases[i].pattern)]);
-            var match = makeVarDef("match", [makeIdent("patternModule", name_stx),
+            var match = makeVarDef("match", [makeIdent("patternModule", null),
                                              makePunc(".", name_stx),
                                              makeIdent("matchPatterns", name_stx),
                                              makeDelim("()", [
@@ -204,10 +208,10 @@ macro syntaxCase {
                     makeIdent("success", name_stx)
                 ], name_stx),
                 makeDelim("{}", makeVarDef("newMark", [
-                    makeIdent("fresh", name_stx),
+                    makeIdent("fresh", null),
                     makeDelim("()", [], name_stx)
                 ]).concat([
-                    makeIdent("applyMarkToPatternEnv", name_stx),
+                    makeIdent("applyMarkToPatternEnv", null),
                     makeDelim("()", [
                         makeIdent("newMark", name_stx),
                         makePunc(",", name_stx),
@@ -222,7 +226,7 @@ macro syntaxCase {
                 ])).concat([
                     makeIdent("res", name_stx),
                     makePunc("=", name_stx),
-                    makeIdent("_", name_stx),
+                    makeIdent("_", null),
                     makePunc(".", name_stx),
                     makeIdent("map", name_stx),
                     makeDelim("()", [
