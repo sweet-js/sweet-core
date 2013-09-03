@@ -608,7 +608,8 @@
                                                          macroNameStx, env);
                         return acc.concat(takeLineContext(macroNameStx, [newBody]));
                     }
-                    if (Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
+                    if (isPatternVar(bodyStx) &&
+                        Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
                         if (!env[bodyStx.token.value]) {
                             throw new Error("The pattern variable " + bodyStx.token.value +
                                        " is not bound for the template");
