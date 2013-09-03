@@ -1,16 +1,16 @@
-(function (root$82, factory$83) {
+(function (root$84, factory$85) {
     if (typeof exports === 'object') {
-        var parser$84 = require('./parser');
-        var expander$85 = require('./expander');
-        var codegen$86 = require('escodegen');
-        var path$87 = require('path');
-        var fs$88 = require('fs');
-        var lib$89 = path$87.join(path$87.dirname(fs$88.realpathSync(__filename)), '../macros');
-        var stxcaseModule$90 = fs$88.readFileSync(lib$89 + '/stxcase.js', 'utf8');
-        factory$83(exports, parser$84, expander$85, codegen$86, stxcaseModule$90, require('./es6-module-loader'));
-        require.extensions['.sjs'] = function (module$91, filename$92) {
-            var content$93 = require('fs').readFileSync(filename$92, 'utf8');
-            module$91._compile(codegen$86.generate(exports.parse(content$93)), filename$92);
+        var parser$86 = require('./parser');
+        var expander$87 = require('./expander');
+        var codegen$88 = require('escodegen');
+        var path$89 = require('path');
+        var fs$90 = require('fs');
+        var lib$91 = path$89.join(path$89.dirname(fs$90.realpathSync(__filename)), '../macros');
+        var stxcaseModule$92 = fs$90.readFileSync(lib$91 + '/stxcase.js', 'utf8');
+        factory$85(exports, parser$86, expander$87, codegen$88, stxcaseModule$92, require('./es6-module-loader'));
+        require.extensions['.sjs'] = function (module$93, filename$94) {
+            var content$95 = require('fs').readFileSync(filename$94, 'utf8');
+            module$93._compile(codegen$88.generate(exports.parse(content$95)), filename$94);
         };
     } else if (typeof define === 'function' && define.amd) {
         define([
@@ -20,42 +20,42 @@
             './escodegen',
             'text!./stxcase.js',
             'es6-module-loader'
-        ], factory$83);
+        ], factory$85);
     }
-}(this, function (exports$94, parser$95, expander$96, codegen$97, stxcaseModule$98, moduleLoader$99) {
-    var Loader$100 = moduleLoader$99.Loader;
-    var Module$101 = moduleLoader$99.Module;
-    var System$102 = moduleLoader$99.System;
-    function expand$103(code$104, options$105) {
-        var program$106, toString$107;
-        toString$107 = String;
-        if (typeof code$104 !== 'string' && !(code$104 instanceof String)) {
-            code$104 = toString$107(code$104);
+}(this, function (exports$96, parser$97, expander$98, codegen$99, stxcaseModule$100, moduleLoader$101) {
+    var Loader$102 = moduleLoader$101.Loader;
+    var Module$103 = moduleLoader$101.Module;
+    var System$104 = moduleLoader$101.System;
+    function expand$105(code$108, options$109) {
+        var program$110, toString$111;
+        toString$111 = String;
+        if (typeof code$108 !== 'string' && !(code$108 instanceof String)) {
+            code$108 = toString$111(code$108);
         }
-        var source$108 = code$104;
-        if (source$108.length > 0) {
-            if (typeof source$108[0] === 'undefined') {
-                if (code$104 instanceof String) {
-                    source$108 = code$104.valueOf();
+        var source$112 = code$108;
+        if (source$112.length > 0) {
+            if (typeof source$112[0] === 'undefined') {
+                if (code$108 instanceof String) {
+                    source$112 = code$108.valueOf();
                 }
-                if (typeof source$108[0] === 'undefined') {
-                    source$108 = stringToArray(code$104);
+                if (typeof source$112[0] === 'undefined') {
+                    source$112 = stringToArray(code$108);
                 }
             }
         }
-        source$108 = stxcaseModule$98 + '\n\n' + source$108;
-        var readTree$109 = parser$95.read(source$108);
-        return expander$96.expand(readTree$109);
+        source$112 = stxcaseModule$100 + '\n\n' + source$112;
+        var readTree$113 = parser$97.read(source$112);
+        return expander$98.expand(readTree$113);
     }
-    function parse$110(code$111, options$112) {
-        return parser$95.parse(expand$103(code$111, options$112));
+    function parse$106(code$114, options$115) {
+        return parser$97.parse(expand$105(code$114, options$115));
     }
-    exports$94.module = function (file$113) {
-        System$102.import(file$113);
+    exports$96.module = function (file$116) {
+        System$104.import(file$116);
     };
-    exports$94.expand = expand$103;
-    exports$94.parse = parse$110;
-    exports$94.compile = function compile$114(code$115, options$116) {
-        return codegen$97.generate(parse$110(code$115, options$116));
+    exports$96.expand = expand$105;
+    exports$96.parse = parse$106;
+    exports$96.compile = function compile$107(code$117, options$118) {
+        return codegen$99.generate(parse$106(code$117, options$118));
     };
 }));
