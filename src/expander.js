@@ -975,8 +975,7 @@
 
                 // macro invocation
                 if ((head.token.type === parser.Token.Identifier ||
-                     head.token.type === parser.Token.Keyword ||
-                     head.token.type === parser.Token.Punctuator) &&
+                     head.token.type === parser.Token.Keyword) &&
                     env.has(head.token.value) && env.get(head.token.value).name === resolve(head)) {
 
                     // pull the macro transformer out the environment

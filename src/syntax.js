@@ -90,7 +90,12 @@
                     this.token.inner = renamedInner;
                 }
 
-                return syntaxFromToken(this.token, Rename(id, name, this.context));
+                if (this.token.type === parser.Token.Identifier ||
+                    this.token.type === parser.Token.Keyword) {
+                    return syntaxFromToken(this.token, Rename(id, name, this.context));
+                } else {
+                    return this;
+                }
             },
 
             addDefCtx: function(defctx) {
