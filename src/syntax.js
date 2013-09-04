@@ -66,13 +66,11 @@
             // (Int) -> CSyntax
             // non mutating
             mark: function mark(newMark) {
-                // if (this.token.inner) {
-                //     // var markedInner = _.map(this.token.inner, function(stx) {
-                //     //     return stx.mark(newMark);
-                //     // });
-                //     // this.token.inner = markedInner;
-                //     return syntaxFromToken(this.token, Mark(newMark, this.context));
-                // }
+                if (this.token.inner) {
+                    var next = syntaxFromToken(this.token, this.context);
+                    next.deferredContext = Mark(newMark, this.deferredContext);
+                    return next;
+                }
                 return syntaxFromToken(this.token, Mark(newMark, this.context));
             },
 
@@ -80,14 +78,11 @@
             // non mutating
             rename: function(id, name) {
 
-                // rename inside of delimiters
+                // deferr renaming of delimiters
                 if (this.token.inner) {
-                    // var renamedInner = _.map(this.token.inner, function(stx) {
-                    //     return stx.rename(id, name);
-                    // });
-                    // this.token.inner = renamedInner;
-
-                    return syntaxFromToken(this.token, Rename(id, name, this.context));
+                    var next = syntaxFromToken(this.token, this.context);
+                    next.deferredContext = Rename(id, name, this.deferredContext);
+                    return next;
                 }
 
                 if (this.token.type === parser.Token.Identifier ||
@@ -103,29 +98,32 @@
                 parser.assert(this.token.type === parser.Token.Delimiter,
                               "Only delimiters can be exposed");
 
-                function applyContext(stx, ctx) {
+                function applyContext(stxCtx, ctx) {
                     if (ctx == null) {
-                        return stx.context;
+                        return stxCtx;
                     } else if (isRename(ctx)) {
-                        return Rename(ctx.id, ctx.name, applyContext(stx, ctx.context))
+                        return Rename(ctx.id, ctx.name, applyContext(stxCtx, ctx.context))
                     } else if (isMark(ctx)) {
-                        return Mark(ctx.mark, applyContext(stx, ctx.context));
+                        return Mark(ctx.mark, applyContext(stxCtx, ctx.context));
                     } else if (isDef(ctx)) {
-                        return Def(ctx.defctx, applyContext(stx, ctx.context));
+                        return Def(ctx.defctx, applyContext(stxCtx, ctx.context));
                     } else {
                         parser.assert(false, "unknown context type");
                     }
                 }
 
-                return _.map(this.token.inner, _.bind(function(stx) {
-                    var exposedStx = syntaxFromToken(stx.token,
-                                                     applyContext(stx, this.context));
-
-                    // if (stx.token.type === parser.Token.Delimiter) {
-                    //     exposedStx.token.inner = stx.expose();
-                    // }
-                    return exposedStx;
+                this.token.inner = _.map(this.token.inner, _.bind(function(stx) {
+                    if (stx.token.inner) {
+                        var next = syntaxFromToken(stx.token, stx.context);
+                        next.deferredContext = applyContext(stx.deferredContext, this.deferredContext);
+                        return next;
+                    } else {
+                        return syntaxFromToken(stx.token,
+                                               applyContext(stx.context, this.deferredContext));
+                    }
                 }, this));
+                this.deferredContext = null;
+                return this;
             },
 
             addDefCtx: function(defctx) {
@@ -157,6 +155,7 @@
         }, {
             token: { value: token, enumerable: true, configurable: true},
             context: { value: ctx, writable: true, enumerable: true, configurable: true},
+            deferredContext: { value: null, writable: true, enumerable: true, configurable: true},
             // single global map to a template inside `syntax` referenced by all syntax objects
             templateMap: {
                 value: templateMap,
