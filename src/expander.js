@@ -1368,7 +1368,6 @@
             // stitch up the function with all the renamings
             term.params = expandedArgs[0];
 
-            // don't break delimiters
             var flattenedBody = bodyTerms[0].destruct();
             flattenedBody = _.reduce(newDef, function(acc, def) {
                 return acc.rename(def.id, def.name);
@@ -1438,9 +1437,11 @@
                     lineStart: stx.token.endLineStart
                 });
 
+                var inner = stx.expose();
+
                 return acc
                     .concat(openParen)
-                    .concat(flatten(stx.token.inner))
+                    .concat(flatten(inner))
                     .concat(closeParen);
             }
             return acc.concat(stx);

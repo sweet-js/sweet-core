@@ -63,39 +63,69 @@
         var ctx = (typeof oldctx !== 'undefined') ? oldctx : null;
 
         return Object.create({
-            // (?) -> CSyntax
+            // (Int) -> CSyntax
             // non mutating
             mark: function mark(newMark) {
-                // clone the token so we don't mutate the original inner property
-                var markedToken = _.clone(this.token);
-                if (this.token.inner) {
-                    var markedInner = _.map(this.token.inner, function(stx) {
-                        return stx.mark(newMark);
-                    });
-                    markedToken.inner = markedInner;
-                }
-                var newMarkObj = Mark(newMark, this.context);
-                var stmp = syntaxFromToken(markedToken, newMarkObj);
-                return stmp;
+                // if (this.token.inner) {
+                //     // var markedInner = _.map(this.token.inner, function(stx) {
+                //     //     return stx.mark(newMark);
+                //     // });
+                //     // this.token.inner = markedInner;
+                //     return syntaxFromToken(this.token, Mark(newMark, this.context));
+                // }
+                return syntaxFromToken(this.token, Mark(newMark, this.context));
             },
 
             // (CSyntax or [...CSyntax], Str) -> CSyntax
             // non mutating
             rename: function(id, name) {
+
                 // rename inside of delimiters
                 if (this.token.inner) {
-                    var renamedInner = _.map(this.token.inner, function(stx) {
-                        return stx.rename(id, name);
-                    });
-                    this.token.inner = renamedInner;
+                    // var renamedInner = _.map(this.token.inner, function(stx) {
+                    //     return stx.rename(id, name);
+                    // });
+                    // this.token.inner = renamedInner;
+
+                    return syntaxFromToken(this.token, Rename(id, name, this.context));
                 }
 
                 if (this.token.type === parser.Token.Identifier ||
                     this.token.type === parser.Token.Keyword) {
                     return syntaxFromToken(this.token, Rename(id, name, this.context));
+
                 } else {
                     return this;
                 }
+            },
+
+            expose: function() {
+                parser.assert(this.token.type === parser.Token.Delimiter,
+                              "Only delimiters can be exposed");
+
+                function applyContext(stx, ctx) {
+                    if (ctx == null) {
+                        return stx.context;
+                    } else if (isRename(ctx)) {
+                        return Rename(ctx.id, ctx.name, applyContext(stx, ctx.context))
+                    } else if (isMark(ctx)) {
+                        return Mark(ctx.mark, applyContext(stx, ctx.context));
+                    } else if (isDef(ctx)) {
+                        return Def(ctx.defctx, applyContext(stx, ctx.context));
+                    } else {
+                        parser.assert(false, "unknown context type");
+                    }
+                }
+
+                return _.map(this.token.inner, _.bind(function(stx) {
+                    var exposedStx = syntaxFromToken(stx.token,
+                                                     applyContext(stx, this.context));
+
+                    // if (stx.token.type === parser.Token.Delimiter) {
+                    //     exposedStx.token.inner = stx.expose();
+                    // }
+                    return exposedStx;
+                }, this));
             },
 
             addDefCtx: function(defctx) {
