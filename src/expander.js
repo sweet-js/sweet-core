@@ -384,18 +384,24 @@
     // It acts as a semi-structured representation of the syntax.
     var TermTree = {
 
-        // Go back to the flat syntax representation. Uses the ordered list
-        // of properties that each subclass sets to determine the order that multiple
-        // children are destructed.
-        // The breakDelim param is used to determine if we just want to
-        // unwrap to the ReadTree level or actually flatten the
-        // delimiters too.
-        // (Bool?) -> [...Syntax]
-        destruct: function(breakDelim) {
+        // Go back to the syntax object representation. Uses the
+        // ordered list of properties that each subclass sets to
+        // determine the order in which multiple children are
+        // destructed.
+        // () -> [...Syntax]
+        destruct: function() {
             return _.reduce(this.properties, _.bind(function(acc, prop) {
                 if (this[prop] && this[prop].hasPrototype(TermTree)) {
-                    return acc.concat(this[prop].destruct(breakDelim));
-                } else if (this[prop]) {
+                    return acc.concat(this[prop].destruct());
+                } else if (this[prop] && this[prop].token && this[prop].token.inner) {
+                    this[prop].token.inner = _.reduce(this[prop].token.inner, function(acc, t) {
+                        if (t.hasPrototype(TermTree)) {
+                            return acc.concat(t.destruct());
+                        }
+                        return acc.concat(t);
+                    }, []);
+                    return acc.concat(this[prop]);
+                } else if(this[prop]) {
                     return acc.concat(this[prop]);
                 } else {
                     return acc;
@@ -509,43 +515,6 @@
     var Delimiter = TermTree.extend({
         properties: ["delim"],
 
-        // do a special kind of destruct that creates
-        // the individual begin and end delimiters
-        destruct: function(breakDelim) {
-            parser.assert(this.delim, "expecting delim to be defined");
-
-            var innerStx = _.reduce(this.delim.token.inner, function(acc, term) {
-                if (term.hasPrototype(TermTree)){
-                    return acc.concat(term.destruct(breakDelim));
-                } else {
-                    return acc.concat(term);
-                }
-            }, []);
-
-            if(breakDelim) {
-                var openParen = syntaxFromToken({
-                    type: parser.Token.Punctuator,
-                    value: this.delim.token.value[0],
-                    range: this.delim.token.startRange,
-                    lineNumber: this.delim.token.startLineNumber,
-                    lineStart: this.delim.token.startLineStart
-                });
-                var closeParen = syntaxFromToken({
-                    type: parser.Token.Punctuator,
-                    value: this.delim.token.value[1],
-                    range: this.delim.token.endRange,
-                    lineNumber: this.delim.token.endLineNumber,
-                    lineStart: this.delim.token.endLineStart
-                });
-
-                return [openParen]
-                    .concat(innerStx)
-                    .concat(closeParen);
-            } else {
-                return this.delim;
-            }
-        },
-
         construct: function(d) { this.delim = d; }
     });
 
@@ -605,7 +574,7 @@
     var Call = Expr.extend({
         properties: ["fun", "args", "delim", "commas"],
 
-        destruct: function(breakDelim) {
+        destruct: function() {
             parser.assert(this.fun.hasPrototype(TermTree),
                 "expecting a term tree in destruct of call");
             var that = this;
@@ -613,7 +582,7 @@
             this.delim.token.inner = _.reduce(this.args, function(acc, term) {
                 parser.assert(term && term.hasPrototype(TermTree),
                               "expecting term trees in destruct of Call");
-                var dst = acc.concat(term.destruct(breakDelim));
+                var dst = acc.concat(term.destruct());
                 // add all commas except for the last one
                 if (that.commas.length > 0) {
                     dst = dst.concat(that.commas.shift());
@@ -621,9 +590,9 @@
                 return dst;
             }, []);
 
-            return this.fun.destruct(breakDelim).concat(Delimiter
-                                                        .create(this.delim)
-                                                        .destruct(breakDelim));
+            return this.fun.destruct().concat(Delimiter
+                                              .create(this.delim)
+                                              .destruct());
         },
 
         construct: function(funn, args, delim, commas) {
@@ -672,11 +641,11 @@
     var VariableStatement = Statement.extend({
         properties: ["varkw", "decls"],
 
-        destruct: function(breakDelim) {
+        destruct: function() {
             return this.varkw
-                .destruct(breakDelim)
+                .destruct()
                 .concat(_.reduce(this.decls, function(acc, decl) {
-                    return acc.concat(decl.destruct(breakDelim));
+                    return acc.concat(decl.destruct());
                 }, []));
         },
 
@@ -1149,8 +1118,10 @@
 
         var stub = parser.read("()");
         stub[0].token.inner = body;
-        var expanded = flatten(expand(stub, env, defscope, templateMap));
-        var bodyCode = codegen.generate(parser.parse(expanded));
+        var expanded = expand(stub, env, defscope, templateMap);
+        expanded = expanded[0].destruct().concat(expanded[1].eof);
+        var flattend = flatten(expanded);
+        var bodyCode = codegen.generate(parser.parse(flattend));
 
         var macroFn = scopedEval(bodyCode, {
             makeValue: syn.makeValue,
@@ -1380,18 +1351,15 @@
             });
 
 
-            var stxBody = bodies;
-
             // rename the function body for each of the parameters
             var renamedBody = _.reduce(paramNames, function (accBody, p) {
                 return accBody.rename(p.originalParam, p.freshName)
-            }, stxBody);
+            }, bodies);
 
             var bodyTerms = expand([renamedBody], env, newDef, templateMap);
             parser.assert(bodyTerms.length === 1 && bodyTerms[0].body,
                             "expecting a block in the bodyTerms");
 
-            var flattenedBody = flatten(bodyTerms);
 
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam; });
             var flatArgs = wrapDelim(joinSyntax(renamedParams, ","), term.params);
@@ -1400,11 +1368,12 @@
             // stitch up the function with all the renamings
             term.params = expandedArgs[0];
 
-            term.body = _.map(flattenedBody, function(stx) { 
-                return _.reduce(newDef, function(acc, def) {
-                    return acc.rename(def.id, def.name);
-                }, stx)
-            });
+            // don't break delimiters
+            var flattenedBody = bodyTerms[0].destruct();
+            flattenedBody = _.reduce(newDef, function(acc, def) {
+                return acc.rename(def.id, def.name);
+            }, flattenedBody[0]);
+            term.body = flattenedBody;
 
             // and continue expand the rest
             return term;
@@ -1444,18 +1413,37 @@
 
         var res = expand([funn, params, body]);
         // drop the { and }
-        return _.map(res[0].body.slice(1, res[0].body.length - 1), function(stx) {
+        res = flatten([res[0].body]);
+        return _.map(res.slice(1, res.length - 1), function(stx) {
             return stx;
         });
     }
 
-    // take our semi-structured TermTree and flatten it back to just
-    // syntax objects to be used by the esprima parser. eventually this will
-    // be replaced with a method of moving directly from a TermTree to an AST but
-    // until then we'll just defer to esprima.
-    function flatten(terms) {
-        return _.reduce(terms, function(acc, term) {
-            return acc.concat(term.destruct(true));
+    // break delimiter tree structure down to flat array of syntax objects
+    function flatten(stx) {
+        return _.reduce(stx, function(acc, stx) {
+            if (stx.token.type === parser.Token.Delimiter) {
+                var openParen = syntaxFromToken({
+                    type: parser.Token.Punctuator,
+                    value: stx.token.value[0],
+                    range: stx.token.startRange,
+                    lineNumber: stx.token.startLineNumber,
+                    lineStart: stx.token.startLineStart
+                });
+                var closeParen = syntaxFromToken({
+                    type: parser.Token.Punctuator,
+                    value: stx.token.value[1],
+                    range: stx.token.endRange,
+                    lineNumber: stx.token.endLineNumber,
+                    lineStart: stx.token.endLineStart
+                });
+
+                return acc
+                    .concat(openParen)
+                    .concat(flatten(stx.token.inner))
+                    .concat(closeParen);
+            }
+            return acc.concat(stx);
         }, []);
     }
 
@@ -1463,9 +1451,6 @@
     exports.expand = expandTopLevel;
 
     exports.resolve = resolve;
-
-    exports.flatten = flatten;
-
     exports.get_expression = get_expression;
 
     exports.Expr = Expr;
