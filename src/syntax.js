@@ -155,14 +155,7 @@
         }, {
             token: { value: token, enumerable: true, configurable: true},
             context: { value: ctx, writable: true, enumerable: true, configurable: true},
-            deferredContext: { value: null, writable: true, enumerable: true, configurable: true},
-            // single global map to a template inside `syntax` referenced by all syntax objects
-            templateMap: {
-                value: templateMap,
-                writable: false,
-                enumerable: false,
-                configurable: false
-            }
+            deferredContext: { value: null, writable: true, enumerable: true, configurable: true}
         });
     }
 
