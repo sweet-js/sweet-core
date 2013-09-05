@@ -68,31 +68,30 @@ $describe "procedural (syntax-case) macros" {
         expect(m(1 2 3)).to.eql([1,2,3]);
     }
 
-    // $it "should support with-syntax" {
-    //     macro withSyntax {
-    //         case { ($p = $e:expr) { $body ... } } => {
-    //             return #{
-    //                 macro _with {
-    //                     case { ($p) } => {
-    //                         return syntax { $body ... }
-    //                     }
-    //                 }
-    //                 var x = $e;
-    //                 _with(x)
-    //             }
-    //         }
-    //     }
-    //     macro m {
-    //         case { () } => {
-    //             var foo = makeValue("foo", null);
+    $it "should support with-syntax" {
+        macro m {
+            case {_ $x } => {
+                return withSyntax($y = [makeValue(42, null)]) {
+                    return #{
+                        $x + $y
+                    }
+                }
+            }
+        }
+        expect(m 100).to.be(142);
+    }
+    
+    $it "should support withSyntax with multiple patterns" {
+        macro m {
+            case {_ $x } => {
+                return withSyntax($y = [makeValue(10, null)], 
+                                  $z = [makeValue(20, null)]) {
+                    return #{$x + $y + $z}
+                }
+            }
+        }
+        expect(m 5).to.be(35);
+    }
+    
 
-    //             withSyntax($x = makeValue(42, null)) {
-    //                 return #{
-    //                     $x
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     expect(m()).to.be("42");
-    // }
 }

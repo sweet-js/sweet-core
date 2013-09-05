@@ -363,20 +363,21 @@ macro macro {
 
 macro withSyntax {
     case {$name
-          ($p = $e:expr)
+          ($($p = $e:expr) (,) ...)
           {$body ...}} => {
         var name = #{$name}
         var here = #{here};
         here = here[0];
 
         var res = [makeIdent("syntaxCase", name[0])]
-        var args = #{$e,};
+        var args = #{[$(makeDelim("()", $e)) (,) ...],};
 
-        // take the lexical context from the surrounding scope so `env` is correctly captured
+        // take the lexical context from the surrounding scope so
+        // `env` is correctly captured
         args = args.concat(makeIdent("env", name[0]));
         res = res.concat(makeDelim("()", args, here));
 
-        var arm = #{case {$p} =>};
+        var arm = #{case { ($p) ... } =>};
         res = res.concat(makeDelim("{}", arm.concat(#{{ $body ... }}), here));
 
         return [makeDelim("()", res, here), makePunc(".", here), makeIdent("result", here), makePunc(";", here)]
