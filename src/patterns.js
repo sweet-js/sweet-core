@@ -364,7 +364,7 @@
                 rest = subMatch.rest;
             } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter &&
                        stx[0].token.value === pattern.value) {
-
+                stx[0].expose();
                 if (pattern.inner.length === 0 && stx[0].token.inner.length !== 0) {
                     return {
                         success: false,
