@@ -4,7 +4,7 @@ macro quoteSyntax {
 
         var res = [
             makeIdent("#quoteSyntax", name_stx),
-            stx[1]
+            stx[1].expose()
         ];
 
         return {
@@ -27,7 +27,7 @@ macro syntax {
                    makeIdent("transcribe", name_stx),
                    makeDelim("()", [
                        makeIdent("#quoteSyntax", name_stx),
-                       stx[1],
+                       stx[1].expose(),
                        makePunc(",", name_stx),
                        makeIdent("name_stx", name_stx),
                        makePunc(",", name_stx),
@@ -58,8 +58,10 @@ macro # {
 macro syntaxCase {
     function(stx) {
         var name_stx = stx[0];
-        var arg_stx = stx[1].token.inner;
-        var cases_stx = stx[2].token.inner;
+        var arg_stx = stx[1].expose().token.inner;
+        // var arg_stx = stx[1].expose();
+        var cases_stx = stx[2].expose().token.inner;
+        // var cases_stx = stx[2].expose();
 
         // "import"
         var Token = parser.Token;
@@ -114,7 +116,7 @@ macro syntaxCase {
             
             cases.push({
                 pattern: loadPattern(casePattern.token.inner),
-                body: caseBody.token.inner
+                body: caseBody.expose().token.inner
             });
         }
 
@@ -314,7 +316,7 @@ macro macro {
     function(stx) {
         var name_stx = stx[0];
         var mac_name_stx = stx[1];
-        var body_stx = stx[2].token.inner;
+        var body_stx = stx[2].expose().token.inner;
 
         function makeFunc(params, body) {
             return [
@@ -330,7 +332,7 @@ macro macro {
             var res = [
                 makeIdent("macro", null),
                 mac_name_stx,
-                stx[2]
+                stx[2].expose()
             ];
 
             return {
