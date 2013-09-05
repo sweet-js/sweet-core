@@ -358,9 +358,7 @@ describe("macro expander", function() {
         macro def {
             case {_ $name:ident ($params:ident (,) ...) $body} => {
                 return #{
-                    function $name ($params (,) ...) {
-                        $body
-                    }
+                    function $name ($params (,) ...) $body
                 }
             }
         }

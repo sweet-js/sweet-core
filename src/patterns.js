@@ -106,7 +106,7 @@
         // taking from the macro name but could also do offset
         return _.map(to, function(stx) {
             if (stx.token.type === parser.Token.Delimiter) {
-                return syntaxFromToken({
+                var next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: stx.token.value,
                     inner: stx.token.inner,
@@ -117,6 +117,8 @@
                     endLineNumber: from.token.lineNumber,
                     endLineStart: from.token.lineStart
                 }, stx.context);
+                next.deferredContext = stx.deferredContext;
+                return next;
             }
             return syntaxFromToken({
                     value: stx.token.value,
