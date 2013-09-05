@@ -905,10 +905,7 @@
 
                     // ObjectGet (computed)
                     Expr(emp) | (rest[0] && rest[0].token.value === "[]") => {
-                        var getRes = enforest(rest[0].expose().token.inner, env);
-                        var resStx = mkSyntax("[]", parser.Token.Delimiter, rest[0]);
-                        resStx.token.inner = [getRes.result];
-                        return step(ObjGet.create(head, Delimiter.create(resStx)),
+                        return step(ObjGet.create(head, Delimiter.create(rest[0].expose())),
                                     rest.slice(1));
                     }
 
@@ -1318,6 +1315,12 @@
         } else if (term.hasPrototype(BinOp)) {
             term.left = expandTermTreeToFinal(term.left, env, defscope, templateMap);
             term.right = expandTermTreeToFinal(term.right, env, defscope);
+            return term;
+        } else if (term.hasPrototype(ObjGet)) {
+            term.right.delim.token.inner = expand(term.right.delim.token.inner,
+                                                  env,
+                                                  defscope,
+                                                  templateMap);
             return term;
         } else if (term.hasPrototype(ObjDotGet)) {
             term.left = expandTermTreeToFinal(term.left, env, defscope, templateMap);

@@ -562,4 +562,24 @@ describe("macro expander", function() {
         expect(z).to.eql({zed:4});
     });
 
+    it('should expand macros inside computted gets', function() {
+        macro m {
+            case {_ $x } => {
+                return #{$x}
+            }
+        }
+
+        var foo = ["bar"];
+        expect(foo[m 0]).to.be("bar")
+    });
+
+    it('should allow assign operations in computed gets', function() {
+        var foo = ["bar"];
+        var x;
+
+        expect(foo[x = 0]).to.be("bar");
+    });
+
+
+
 });
