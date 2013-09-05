@@ -905,7 +905,7 @@
 
                     // ObjectGet (computed)
                     Expr(emp) | (rest[0] && rest[0].token.value === "[]") => {
-                        var getRes = enforest(rest[0].token.inner, env);
+                        var getRes = enforest(rest[0].expose().token.inner, env);
                         var resStx = mkSyntax("[]", parser.Token.Delimiter, rest[0]);
                         resStx.token.inner = [getRes.result];
                         return step(ObjGet.create(head, Delimiter.create(resStx)),
