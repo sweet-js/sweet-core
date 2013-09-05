@@ -68,7 +68,7 @@ $describe "procedural (syntax-case) macros" {
         expect(m(1 2 3)).to.eql([1,2,3]);
     }
 
-    $it "should support with-syntax" {
+    $it "should support withSyntax" {
         macro m {
             case {_ $x } => {
                 return withSyntax($y = [makeValue(42, null)]) {
