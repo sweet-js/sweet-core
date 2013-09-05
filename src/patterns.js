@@ -526,6 +526,7 @@
                 // then do the actual transcription
                 if (bodyStx.repeat) {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
+                        bodyStx.expose();
 
                         var fv = _.filter(freeVarsInPattern(bodyStx.token.inner),
                                           function(pat) {
@@ -602,6 +603,7 @@
                                                         bodyStx.separator));
                 } else {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
+                        bodyStx.expose();
                         var newBody = syntaxFromToken(_.clone(bodyStx.token),
                                                       macroBody.context);
                         newBody.token.inner = transcribe(bodyStx.token.inner,
