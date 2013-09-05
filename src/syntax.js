@@ -94,6 +94,27 @@
                 }
             },
 
+            addDefCtx: function(defctx) {
+                if (this.token.inner) {
+                    var next = syntaxFromToken(this.token, this.context);
+                    next.deferredContext = Def(defctx, this.deferredContext);
+                    return next;
+                }
+
+                return syntaxFromToken(this.token, Def(defctx, this.context));
+            },
+
+            getDefCtx: function() {
+                var ctx = this.context;
+                while(ctx !== null) {
+                    if (isDef(ctx)) {
+                        return ctx.defctx;
+                    }
+                    ctx = ctx.context;
+                }
+                return null;
+            },
+
             expose: function() {
                 parser.assert(this.token.type === parser.Token.Delimiter,
                               "Only delimiters can be exposed");
@@ -126,27 +147,6 @@
                 return this;
             },
 
-            addDefCtx: function(defctx) {
-                if (this.token.inner) {
-                    var renamedInner = _.map(this.token.inner, function(stx) {
-                        return stx.addDefCtx(defctx);
-                    });
-                    this.token.inner = renamedInner;
-                }
-
-                return syntaxFromToken(this.token, Def(defctx, this.context));
-            },
-
-            getDefCtx: function() {
-                var ctx = this.context;
-                while(ctx !== null) {
-                    if (isDef(ctx)) {
-                        return ctx.defctx;
-                    }
-                    ctx = ctx.context;
-                }
-                return null;
-            },
 
             toString: function() {
                 var val = this.token.type === parser.Token.EOF ? "EOF" : this.token.value;
