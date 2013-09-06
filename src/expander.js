@@ -936,7 +936,8 @@
                     }
                     
                     Keyword(keyword) | (keyword.token.value === "let" && 
-                                        rest[0] && rest[0].token.type === parser.Token.Identifier &&
+                                        (rest[0] && rest[0].token.type === parser.Token.Identifier || 
+                                         rest[0] && rest[0].token.type === parser.Token.Keyword) &&
                                         rest[1] && rest[1].token.value === "=" &&
                                         rest[2] && rest[2].token.value === "macro") => {
                         var mac = enforest(rest.slice(2), env)
@@ -1206,8 +1207,13 @@
         if (head.hasPrototype(LetMacro)) {
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head, env, defscope, templateMap);
+            var freshName = fresh();
+            var renamedName = head.name.rename(head.name, freshName);
+            rest = _.map(rest, function(stx) {
+                return stx.rename(head.name, freshName);
+            });
+            head.name = renamedName;
 
-            addToDefinitionCtx([head.name], defscope, false);
             env.set(head.name.token.value, {
                 name: resolve(head.name),
                 fn: macroDefinition
