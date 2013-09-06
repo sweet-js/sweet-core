@@ -315,8 +315,18 @@ macro syntaxCase {
 macro macro {
     function(stx) {
         var name_stx = stx[0];
-        var mac_name_stx = stx[1];
-        var body_stx = stx[2].expose().token.inner;
+        var mac_name_stx;
+        var body_stx;
+        
+        if (stx[1].token.inner) {
+            // annon macro, will be let bound
+            mac_name_stx = null;
+            body_stx = stx[1].expose().token.inner;
+        } else {
+            // named macro
+            mac_name_stx = stx[1];
+            body_stx = stx[2].expose().token.inner;
+        }
 
         function makeFunc(params, body) {
             return [
@@ -329,35 +339,63 @@ macro macro {
         // handle primitive macro form
         if (body_stx[0] && body_stx[0].token.value === "function") {
 
-            var res = [
-                makeIdent("macro", null),
-                mac_name_stx,
-                stx[2].expose()
-            ];
+            if (mac_name_stx) {
+                var res = [
+                    makeIdent("macro", null),
+                    mac_name_stx,
+                    stx[2]
+                ];
+                return {
+                    result: res,
+                    rest: stx.slice(3)
+                };
+            } else {
+                var res = [
+                    makeIdent("macro", null),
+                    stx[2]
+                ];
+                return {
+                    result: res,
+                    rest: stx.slice(2)
+                };
+            }
 
+        }
+
+        if (mac_name_stx) {
+            var res = [makeIdent("macro", null),
+                       mac_name_stx,
+                       makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
+                                                 makeIdent("env", name_stx)],
+                                                [makeIdent("return", name_stx),
+                                                 makeIdent("syntaxCase", name_stx),
+                                                 makeDelim("()", [makeIdent("stx", name_stx),
+                                                                  makePunc(",", name_stx),
+                                                                  makeIdent("env", name_stx)], name_stx),
+                                                 stx[2]]),
+                                 name_stx)];
             return {
                 result: res,
                 rest: stx.slice(3)
-            };
+            }
+        } else {
+            var res = [makeIdent("macro", null),
+                       makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
+                                                 makeIdent("env", name_stx)],
+                                                [makeIdent("return", name_stx),
+                                                 makeIdent("syntaxCase", name_stx),
+                                                 makeDelim("()", [makeIdent("stx", name_stx),
+                                                                  makePunc(",", name_stx),
+                                                                  makeIdent("env", name_stx)], name_stx),
+                                                 stx[1]]),
+                                 name_stx)];
+            return {
+                result: res,
+                rest: stx.slice(2)
+            }
         }
-
-        var res = [makeIdent("macro", null),
-                   mac_name_stx,
-                   makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
-                                             makeIdent("env", name_stx)],
-                                            [makeIdent("return", name_stx),
-                                             makeIdent("syntaxCase", name_stx),
-                                             makeDelim("()", [makeIdent("stx", name_stx),
-                                                              makePunc(",", name_stx),
-                                                              makeIdent("env", name_stx)], name_stx),
-                                             stx[2]]),
-                             name_stx)];
                    
 
-        return {
-            result: res,
-            rest: stx.slice(3)
-        }
     }
 }
 
@@ -383,3 +421,14 @@ macro withSyntax {
         return [makeDelim("()", res, here), makePunc(".", here), makeIdent("result", here), makePunc(";", here)]
     }
 }
+
+// macro macRules {
+// 	case {_ $name { $(rule { $pats ... } => { $body ... }) ...} } => {
+// 		return #{
+// 			macro $name {
+// 				$(case {_ $pats ...} => { return #{$body ...} }) ...
+// 			}
+// 		}
+// 	}
+// }
+
