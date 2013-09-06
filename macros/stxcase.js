@@ -312,7 +312,8 @@ macro syntaxCase {
     }
 }
 
-macro macro {
+
+let macro = macro {
     function(stx) {
         var name_stx = stx[0];
         var mac_name_stx;
@@ -362,40 +363,44 @@ macro macro {
 
         }
 
-        if (mac_name_stx) {
-            var res = [makeIdent("macro", null),
-                       mac_name_stx,
-                       makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
-                                                 makeIdent("env", name_stx)],
-                                                [makeIdent("return", name_stx),
-                                                 makeIdent("syntaxCase", name_stx),
-                                                 makeDelim("()", [makeIdent("stx", name_stx),
-                                                                  makePunc(",", name_stx),
-                                                                  makeIdent("env", name_stx)], name_stx),
-                                                 stx[2]]),
-                                 name_stx)];
-            return {
-                result: res,
-                rest: stx.slice(3)
+        var rules = [];
+        // syntaxRules form
+        if (body_stx[0] && body_stx[0].token.value === "rule") {
+            var rule_body = mac_name_stx ? stx[2].token.inner : stx[1].token.inner;
+            var rules = [];
+            for (var i = 0; i < rule_body.length; i++) {
+                var rule_pattern = rule_body[1].token.inner;
+                var rule_def = rule_body[4].token.inner;
+                rules = rules.concat([makeIdent("case", name_stx),
+                                      makeDelim("{}", [makeIdent("_", name_stx)].concat(rule_pattern), name_stx),
+                                      makePunc("=", name_stx), makePunc(">", name_stx),
+                                      makeDelim("{}", [makeKeyword("return", name_stx),
+                                                       makeIdent("#", name_stx),
+                                                       makeDelim("{}", rule_def, name_stx)], name_stx)])
             }
-        } else {
-            var res = [makeIdent("macro", null),
-                       makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
-                                                 makeIdent("env", name_stx)],
-                                                [makeIdent("return", name_stx),
-                                                 makeIdent("syntaxCase", name_stx),
-                                                 makeDelim("()", [makeIdent("stx", name_stx),
-                                                                  makePunc(",", name_stx),
-                                                                  makeIdent("env", name_stx)], name_stx),
-                                                 stx[1]]),
-                                 name_stx)];
-            return {
-                result: res,
-                rest: stx.slice(2)
-            }
-        }
-                   
+            rules = makeDelim("{}", rules, name_stx);
 
+        } else {
+            rules = mac_name_stx ? stx[2] : stx[1]; 
+        }
+        
+        var rest = mac_name_stx ? stx.slice(3) : stx.slice(2);
+        var res = mac_name_stx ? [makeIdent("macro", null), mac_name_stx] : [makeIdent("macro", null)];
+        res = res.concat(makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
+                                                    makeIdent("env", name_stx)],
+                                                   [makeIdent("return", name_stx),
+                                                    makeIdent("syntaxCase", name_stx),
+                                                    makeDelim("()", [makeIdent("stx", name_stx),
+                                                                     makePunc(",", name_stx),
+                                                                     makeIdent("env", name_stx)], name_stx),
+                                                    rules]),
+                                    name_stx));
+
+
+        return {
+            result: res,
+            rest: rest
+        }
     }
 }
 
@@ -422,13 +427,4 @@ macro withSyntax {
     }
 }
 
-// macro macRules {
-// 	case {_ $name { $(rule { $pats ... } => { $body ... }) ...} } => {
-// 		return #{
-// 			macro $name {
-// 				$(case {_ $pats ...} => { return #{$body ...} }) ...
-// 			}
-// 		}
-// 	}
-// }
 
