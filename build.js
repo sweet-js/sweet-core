@@ -91,6 +91,7 @@ target.build_test_file = function() {
 }
 
 target.build_test = function() {
+    echo("building node tests...");
     ls("test/*.js").forEach(function(file) {
         echo("compiling: " + path.basename(file));
         exec("build/bin/sjs --output build/" + path.basename(file) + " " + file);
