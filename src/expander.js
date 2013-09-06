@@ -962,11 +962,11 @@
 
                 // macro invocation
                 if ((head.token.type === parser.Token.Identifier ||
-                     head.token.type === parser.Token.Keyword) &&
-                    env.has(head.token.value) && env.get(head.token.value).name === resolve(head)) {
+                     head.token.type === parser.Token.Keyword) && 
+                    env.has(resolve(head))) {
 
                     // pull the macro transformer out the environment
-                    var transformer = env.get(head.token.value).fn;
+                    var transformer = env.get(resolve(head)).fn;
                     // apply the transformer
                     var rt = transformer([head].concat(rest), env);
                     if(!Array.isArray(rt.result)) {
@@ -1196,8 +1196,7 @@
             var macroDefinition = loadMacroDef(head, env, defscope, templateMap);
 
             addToDefinitionCtx([head.name], defscope, false);
-            env.set(head.name.token.value, {
-                name: resolve(head.name),
+            env.set(resolve(head.name), {
                 fn: macroDefinition
             });
 
@@ -1214,8 +1213,7 @@
             });
             head.name = renamedName;
 
-            env.set(head.name.token.value, {
-                name: resolve(head.name),
+            env.set(resolve(head.name), {
                 fn: macroDefinition
             });
 
