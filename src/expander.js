@@ -563,6 +563,14 @@
         }
     });
 
+    var AnonMacro = TermTree.extend({
+        properties: ["body"],
+
+        construct: function(body) {
+            this.body = body;
+        }
+    });
+
     var Const = Expr.extend({
         properties: ["newterm", "call"],
         construct: function(newterm, call){
@@ -926,6 +934,18 @@
                     Delimiter(delim) | head.delim.token.value === "{}" => {
                         return step(Block.create(head), rest);
                     }
+                    
+                    Keyword(keyword) | (keyword.token.value === "let" && 
+                                        rest[0] && rest[0].token.type === parser.Token.Identifier &&
+                                        rest[1] && rest[1].token.value === "=" &&
+                                        rest[2] && rest[2].token.value === "macro") => {
+                        var mac = enforest(rest.slice(2), env)
+                        if (!mac.result.hasPrototype(AnonMacro)) {
+                            throw new Error("expecting an anonymous macro definition in syntax let binding");
+                        }
+                        return step(LetMacro.create(rest[0], mac.result.body), mac.rest);
+                                  
+                    }
 
                     // VariableStatement
                     Keyword(keyword) | (keyword.token.value === "var" && rest[0]) => {
@@ -957,18 +977,18 @@
                     } else {
                         return step(Empty.create(), rt.rest);
                     } 
-                // let macro
-                } else if(head.token.value === "let" && rest[0] && rest[0].token.type === parser.Token.Identifier &&
-                         rest[1] && rest[1].token.value === "=" &&
-                         rest[2] && rest[2].token.value === "macro" &&
-                         rest[3] && rest[3].token.value === "{}") {
-                    return step(LetMacro.create(rest[0], rest[3].expose().token.inner), rest.slice(4));
+                // anon macro definition
+                } else if (head.token.type === parser.Token.Identifier &&
+                           head.token.value === "macro" && 
+                           rest[0] && rest[0].token.value === "{}") {
+
+                    return step(AnonMacro.create(rest[0].expose().token.inner), 
+                                rest.slice(1));
                 // macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
                            head.token.value === "macro" && rest[0] &&
                            (rest[0].token.type === parser.Token.Identifier ||
-                            rest[0].token.type === parser.Token.Keyword ||
-                            rest[0].token.type === parser.Token.Punctuator) &&
+                            rest[0].token.type === parser.Token.Keyword) &&
                            rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                            rest[1].token.value === "{}") {
 
@@ -1188,7 +1208,10 @@
             var macroDefinition = loadMacroDef(head, env, defscope, templateMap);
 
             addToDefinitionCtx([head.name], defscope, false);
-            env.set(resolve(head.name), macroDefinition);
+            env.set(head.name.token.value, {
+                name: resolve(head.name),
+                fn: macroDefinition
+            });
 
             return expandToTermTree(rest, env, defscope, templateMap);
         }

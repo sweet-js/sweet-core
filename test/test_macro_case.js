@@ -93,5 +93,25 @@ $describe "procedural (syntax-case) macros" {
         expect(m 5).to.be(35);
     }
     
+    $it "should support let bound macros" {
+        let m = macro {
+            case {_ $x} => { 
+                return #{$x} 
+            }
+        }
+
+        expect(m 42).to.be(42);
+    }
+
+    // $it "should support let bound macros" {
+    //     let function = macro {
+    //         case {_ $x} => { 
+    //             return #{function foo() { return $x; } } 
+    //         }
+    //     }
+
+    //     expect((function 42)()).to.be(42);
+    // }
+    
 
 }
