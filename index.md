@@ -7,25 +7,30 @@ JavaScript. Macros allow you to sweeten the syntax of JavaScript and
 craft the language you've always wanted.
 
 Do you want to use class syntax but don't want to wait for ES6? Add
-them yourself with just a few lines of code!
+them yourself with just a couple lines of code!
 
     // Define the class macro here...
     macro class {
+
       rule {
+
         $className {
             constructor $cparams $cbody
-
             $($mname $mparams $mbody) ...
         }
+
       } => {
+
         function $className $cparams $cbody
 
         $($className.prototype.$mname
           = function $mname $mparams $mbody; ) ...
+
       }
+
     }
 
-    // An now classes are a part of JavaScript!
+    // An now classes are in JavaScript!
     class Person {
       constructor(name) {
         this.name = name;
@@ -38,48 +43,9 @@ them yourself with just a few lines of code!
     var bob = new Person("Bob");
     bob.say("Macros are sweet!");
 
-How about a better switch?
-
-    macro _arms {
-      rule { (default => $value:expr) } => {
-        else {
-          return $value;
-        }
-      }
-
-      rule { (case $cond:expr => $value:expr) } => {
-        if($cond) {
-          return $value;
-        }
-      }
-
-      rule { 
-        ($(case $cond:expr => $value:expr) $rest ...)
-      } => {
-        _arms (case $cond => $value)
-        _arms ($rest ...)
-      }
-    }
-
-    macro cond {
-      rule { { $arms ... } } => {
-        (function() {
-          _arms($arms ...)
-        })();
-      }
-    }
-
-    var x = [];
-    var type = cond {
-      case (x === null) => "null"
-      case Array.isArray(x) => "array"
-      case (typeof x === "object") => "object"
-      default => typeof x
-    }
-
 To get a better sense of what macros can do, check out some
 [example macros](https://github.com/mozilla/sweet.js/wiki/Example-macros)
-or play around with macros in the [editor](browser/editor.html).
+or play around with macros in the online [editor](browser/editor.html).
 
 ## Getting sweet.js
 
@@ -92,67 +58,144 @@ Use the `sjs` binary to compile your sweet.js code:
 
     $ sjs -o output.js my_sweet_code.js
 
+* Write macros in the online [editor](browser/editor.html)
 * Report issues on
   [github](https://github.com/mozilla/sweet.js/issues).
-* Discuss sweet.js on the
-  [mailing list](https://groups.google.com/forum/#!forum/sweetjs) or
-  the IRC channel #sweet.js on irc.mozilla.org.
+* As for help at #sweet.js on irc.mozilla.org.
+* Join the [mailing list](https://groups.google.com/forum/#!forum/sweetjs).
 * Ping [@disnet](https://twitter.com/disnet) on Twitter.
 
+## Getting Started Tutorial
 
-## Macro Rules
+You can think of macros as functions that work on syntax. Much like
+a normal function you write a macro *definition* and then later
+*invoke* the macro with a syntax argument to produce new syntax.
+Running sweet.js code through the compiler will *expand* all macros
+and produce pure JavaScript that can be run in any JS environment.
 
-You can think of macros as functions that take little bits of syntax
-and convert it to new bits of syntax at compile-time. To define macros
-sweet.js provides a new `macro` keyword to JavaScript. It looks
+Sweet.js provides two ways to define a macro: the simpler
+pattern-based *rule* macros and the more powerful procedural *case*
+macros (if you are familiar with Scheme or Racket these correspond to
+`syntax-rules` and `syntax-case`). 
+
+### Pattern-Based Macros -- Macros Rule!
+
+Rule macros work by matching a syntax *pattern* and generating new
+syntax based on a *template*.
+
+To define a macro sweet.js provides a new `macro` keyword that looks
 something like this:
 
     macro <name> {
-      rule { <patterns> } => { <body> }
-      ...
+      rule { <pattern> } => { <template> }
     }
 
-Macros work by matching a syntax pattern and producing a resulting
-syntax body. 
+For example, here's a really simple identity macro that just expands
+to its syntax argument:
 
     macro id {
-      rule { ($x) } => { $x }
-    }
-
-This can be read as "define a macro named `id` that matches a single
-token surrounded by parenthesis and when invoked returns just the
-matched token".
-
-    macro id {
-      rule { ($x) } => { $x }
-    }
-
-    var x = id ("foo")
-    x === "foo"   // true
-
-A pattern name that begin with `$` in the left hand side of the macro
-definition matches any token and binds it to that name in macro body
-while everything else matches literally.
-
-    macro m {
-      rule { ($x becomes $y) } => {
-        $x = $y;
+      rule {
+        // after the macro name, match:
+        // (1) a open paren 
+        // (2) a single token and bind it to `$x`
+        // (3) a close paren
+        ($x)
+      } => {
+        // just return the token that is bound to `$x`
+        $x
       }
     }
-    m (a becomes b)
+
+We can then invoke `id` with:
+
+    id (42)
+    // --> expands to
+    42
+
+A pattern that begin with `$` matches any token and binds it to that
+name in the template while everything else matches literally.
+
+Note that a single token includes matched delimiters not just numbers
+and identifiers. For example, an array with all of its elements counts
+as one token:
+
+    id ([1, 2, 3])
+    // --> expands to
+    [1, 2, 3]
+
+#### Hygiene -- Keeping it clean
+
+To make things slightly more interesting, let's say we want to write a
+macro that swaps the values stored in two variables.
+
+    macro swap {
+      rule { ($a, $b) } => {
+        var tmp;
+        $a = $b;
+        $b = tmp;
+      }
+    }
+
+    var a = 10;
+    var b = 20;
+
+    swap (a, b)
+
+After running this through sweet.js we get the expanded code:
+
+    var a$1 = 10;
+    var b$2 = 20;
+
+    var tmp$3;
+    a$1 = b$2;
+    b$2 = tmp$3;
+
+As you can see the variables names have been changed with a `$n`
+postfix. This is hygiene at work. One of the critical features of
+sweet.js is protecting macros from unintentionally binding or
+capturing variables they wasn't supposed to. This is called hygiene
+and to enforce hygiene sweet.js must carefully rename all variables.
+
+If sweet.js did not protect hygiene a naive expansion would do the
+wrong thing:
+
+    var tmp = 10;
+    var b = 20;
+
+    swap (tmp, b)
+
+    // --> naive expansion
+    var tmp$1 = 10;
+    var b$2 = 20;
+    
+    var tmp$1;
+    tmp$1 = b$2;
+    b$2 = tmp$1;
+
+But since sweet.js protects hygiene, all variable names are correctly
+renamed:
+
+    var tmp = 10;
+    var b = 20;
+
+    swap (tmp, b)
+
+    // --> hygienic expansion
+    var tmp$1 = 10;
+    var b$2 = 20;
+    
+    var tmp$3;
+    tmp$3 = b$2;
+    b$2 = tmp$1;
+
+In the cases where you want to intentionally break hygiene you can use
+the procedural case macros described in the next section.
+
+#### Patterns
 
 A pattern name can be restricted to a particular parse class by using
-`$name:class` in which case rather than matching only a single token
-the pattern matches all the tokens matched by the parse class.
-
-    macro m {
-      rule { ($x:expr) } => {
-        // ...
-      }
-    }
-    m (2 + 5 * 10)
-
-For instance:
+`$name:class` in which case rather than matching a token
+the pattern matches all the tokens matched by the class.
 
     macro m {
       rule { ($x:expr) } => {
@@ -161,7 +204,10 @@ For instance:
     }
     m (2 + 5 * 10)
 
-The commonly used parse classes that have short names are `expr` (matches an expression), `ident` (matches an identifier), and `lit` (matches a literal).
+The parse classes currently supported are:
+* `expr` -- matches an expression
+* `ident` -- matches an identifier
+* `lit` -- matches a literal
 
 Repeated patterns can be matched with the `...` syntax.
 
@@ -172,7 +218,8 @@ Repeated patterns can be matched with the `...` syntax.
     }
     m (1 2 3 4)
 
-A repeated pattern with a separator between each item can be matched by adding `(,)` between `...` and the pattern being repeated.
+A repeated pattern with a separator between each item can be matched
+by adding `(,)` between `...` and the pattern being repeated.
 
     macro m {
       rule { ($x (,) ...) } => {
@@ -190,7 +237,7 @@ Repeated groups of patterns can be matched using `$()`.
     }
     m (x = 10, y = 2+10)
 
-Macros can match on multiple cases.
+Macros can have multiple rules.
 
     macro m {
       rule { ($x:lit) } => { $x }
@@ -200,8 +247,10 @@ Macros can match on multiple cases.
     m (1);
     m (1, 2);
 
+Rules are matched in-order and the first one to match the pattern will
+be used.
 
-And macros can call themselves.
+And macros can be recursively defined:
 
     macro m {
       rule { ($base) } => { [$base] }
@@ -210,13 +259,97 @@ And macros can call themselves.
     m (1 2 3 4 5)  // --> [1, [2, [3, [4, [5]]]]]
 
 
-## Macro Cases
+### Procedural Macros -- Just in Case
 
 Sweet.js also provides a more powerful way to define macros: case
-macros. Case macros allow you to write actual JavaScript code in a
-macro definition. Case macros look like this:
+macros. Case macros allow you to manipulate syntax using the full
+power of JavaScript. Case macros look like this:
 
-    macro id {
-      case {_ $x } => { return #{$x} }
+    macro <name> {
+      case { <pattern> } => { <body> }
     }
 
+Case macros look similar to rule macros with a few important
+differences. First, the patterns also match the macro name instead of
+just the syntax that comes after it:
+
+    macro m {
+      case { $name $x } => { ... }
+    }
+    m 42  // `$name` will be bound to this `m` token
+          // in the macro body
+
+Most of the time you won't need to match the name and can use the
+wildcard `_` pattern (which matches any token but doesn't bind it to a
+name) to ignore it:
+
+    macro m {
+      case { _ $x } => { ... }
+    }
+
+The other difference from rule macros is that the body of a macro 
+contains a mixture of templates and normal JavaScript that can create
+and manipulate syntax. For example, here's the identity macro defined
+with a case macro:
+
+    macro id {
+      case {_ $x } => {
+        return #{ $x }
+      }
+    }
+
+Templates are now created with the `#{...}` form (this is technically
+shorthand for `syntax {...}`). The `#{...}` form creates an array of
+*syntax objects* using any pattern bindings that are in scope (i.e.
+were matched by the pattern).
+
+*Syntax objects* are the representation of tokens that sweet.js uses
+to keep track of lexical context (which is used to maintain hygiene).
+They can be created with templates `#{}` but you can also create
+individual syntax objects using the lexical context of an existing
+syntax object:
+
+    macro m {
+      case {_ $x } => {
+        var y = makeValue(42, #{x});
+        return [y]
+      }
+    }
+
+
+
+### Extra Bits
+
+Sometimes you don't want a macro to be able to recursively call
+itself. For example, say you want to override `function` to add some
+logging information before the rest of the function executes:
+
+    macro function {
+      case {_ $name ($params ...) { $body ...} } => {
+        return #{
+          function $name ($params ...) {
+            console.log("Imma let you finish...");
+            $body ...
+          }
+        }
+      }
+    }
+
+If you tried to run this through the compiler it will loop forever
+since the `function` identifier in the macro expansion is bound to the
+`function` macro. To prevent this you can use the `let` macro binding
+form:
+
+    let function = macro {
+      case {_ $name ($params ...) { $body ...} } => {
+        return #{
+          function $name ($params ...) {
+            console.log("Imma let you finish...");
+            $body ...
+          }
+        }
+      }
+    }
+
+This binds `function` to the macro in the rest of the code but not in
+the body of the `function` macro. 
