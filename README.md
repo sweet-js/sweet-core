@@ -22,7 +22,7 @@ To try it out make a file `test_macros.sjs`:
 ```js
 // functions can now be spelled def!
 macro def {
-  case $name:ident $params $body => {
+  rule { $name $params $body } => {
     function $name $params $body
   }
 }
