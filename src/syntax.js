@@ -161,6 +161,12 @@
 
     function mkSyntax(value, type, stx) {
         var ctx, lineStart, lineNumber, range;
+        if (stx && Array.isArray(stx) && stx.length === 1) {
+            stx = stx[0];
+        } else if (stx && Array.isArray(stx)) {
+            throw new Error("Expecting a syntax object, not: " + stx);
+        }
+
         if(stx && stx.token) {
             ctx = stx.context;
             lineStart = stx.token.lineStart;

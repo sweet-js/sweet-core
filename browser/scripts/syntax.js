@@ -138,6 +138,11 @@
     }
     function mkSyntax$105(value$145, type$146, stx$147) {
         var ctx$148, lineStart$149, lineNumber$150, range$151;
+        if (stx$147 && Array.isArray(stx$147) && stx$147.length === 1) {
+            stx$147 = stx$147[0];
+        } else if (stx$147 && Array.isArray(stx$147)) {
+            throw new Error('Expecting a syntax object, not: ' + stx$147);
+        }
         if (stx$147 && stx$147.token) {
             ctx$148 = stx$147.context;
             lineStart$149 = stx$147.token.lineStart;
