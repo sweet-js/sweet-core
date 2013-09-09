@@ -311,12 +311,103 @@ syntax object:
 
     macro m {
       case {_ $x } => {
-        var y = makeValue(42, #{x});
+        var y = makeValue(42, #{$x});
         return [y]
       }
     }
+    m foo
+    // --> expands to
+    42
+
+Sweet.js provides the following functions to create syntax objects:
+
+* `makeValue(val, stx)` -- `val` can be a `boolean`, `number`,
+  `string`, or `null`/`undefined`
+* `makeRegex(pattern, flags, stx)` -- `pattern` is the string
+  representaiton of the regex pattern and `flags` is the string
+  representation of the regex flags
+* `makeIdent(val, stx)` -- `val` is a string representing an
+  identifier
+* `makePunc(val, stx)` -- `val` is a string representing a punctuation
+  (e.g. `=`, `,`, `>`, etc.)
+* `makeDelim(val, inner, stx)` -- `val` represents which
+  delimiter to make and can be either `"()"`, `"[]"`, or `"{}"` and
+  `inner` is an array of syntax objects for all of the tokens inside
+  the delimiter.
+
+(These functions broadly correspond to the Scheme/Racket function `datum->syntax`)
+
+If you want strip a syntax object of its lexical context and get
+directly at the token you can use `unwrapSyntax(stx)` (corresponding
+to Scheme's `syntax-e`). 
+
+When using these functions to create new syntax objects it is
+convenient to refer to them in `#{}` templates. To do this sweet.js
+provides the `withSyntax` macro that binds syntax objects to pattern
+variables:
+
+    macro m {
+      case {_ $x } => {
+        var y = makeValue(42, #{$x});
+        return withSyntax($y = [y], $z = [makeValue(100, #{$x})]) {
+          return #{$x + $y - $z}
+        }
+      }
+    }
+    m 1
+    // --> expands to
+    1 + 42 - 100
 
 
+#### Getting Dirty -- Breaking Hygiene
+
+Sometimes you really do need to break the wonderful protections
+provided by hygiene. Breaking hygiene is usually a bad idea but
+sweet.js won't judge.
+
+Breaking hygiene is done by stealing the lexical context from syntax
+objects in the "right place". To make sense of this consider the
+[anaphoric](http://en.wikipedia.org/wiki/Anaphoric_macro) if macro
+`aif` that binds its condition to the identifier `it` in the body.
+
+    var it = "foo";
+    long.obj.path = [1, 2, 3];
+    aif (long.obj.path) {
+	  console.log(it);
+    }
+    // logs: [1, 2, 3]
+
+This is a violation of hygiene because normally `it` should be bound
+to the normal environment (`"foo"` in the example above) but `aif`
+wants to capture it. To do this we can create an `it` binding in the
+macro that has the lexical context associated with the surrounding
+environment. The lexical context we want is actually found on the
+`aif` macro name itself. So we just need to create a new `it` binding
+using the lexical context of `aif`:
+
+    macro aif {
+	  case {
+        // bind the macro name to `$aif_name`
+        $aif_name 
+        ($cond ...) {$body ...}
+      } => {
+        // make a new `it` identifier using the lexical context
+        // from `$aif_name`
+		var it = makeIdent("it", #{$aif_name});
+		return withSyntax($it = [it]) {
+		  return #{ 
+            // create an IIFE that binds `$cond` to `$it`
+            (function ($it) {
+			  if ($cond ...) {
+                // all `it` identifiers in `$body` will now
+                // be bound to `$it` 
+                $body ...
+              }
+            })($cond ...);
+		  }
+		}
+	  }
+    }
 
 ### Extra Bits
 
