@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+<title>sweet.js</title>
+<link href='http://fonts.googleapis.com/css?family=Lato:100' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="editor/theme/sweetprism.css">
+<link href='prism.css' rel='stylesheet' />
+<style>
+html {
+    border-top: solid 1px red;
+}
+body {
+  margin: 0;
+  padding: 0;
+  /*border-top: 2px solid #676767;*/
+}
+
+#body {
+  width: 600px;
+  margin: 0 auto;
+  position: relative;
+  top: 75px;
+}
+
+#logo {
+  float: left;
+  width: 275px;
+}
+
+#content {
+  float: left;
+  width: 650px;
+  padding-bottom:50px;
+}
+
+h1,h2,h3 {
+  font-family: Helvetica Neue;
+  font-weight: 100;
+  color: #222;
+  position: relative;
+  text-transform: uppercase;
+  color: #444;
+  font-family: 'Lato', Helvetica Neue, Helvetica, Arial, sans-serif;
+  font-weight: 100;
+  border-bottom: solid 1px #eee;
+}
+h1 {
+  font-size: 300%;
+}
+h2 {
+  font-size: 180%;
+}
+h3 {
+  font-size: 150%;
+}
+
+p, li {
+  font-family: 'Source Sans Pro', sans-serif;
+  /*font-weight: 400;*/
+  font-size: large;
+}
+
+
+p code {
+  font-size: 14px;
+}
+li code {
+  font-size: 14px;
+}
+
+#content p#slogan {
+  margin-top: 1em;
+}
+
+#content p#placeholder {
+  margin-top: 8em;
+}
+
+a.mozilla {
+  position: relative;
+  float: left;
+  display: block;
+  height: 49px;
+  width: 118px;
+  background: url(mozilla-tab.png) 100% 0 no-repeat;
+  text-indent: -200px;
+  overflow: hidden;
+  margin-left: 20px;
+}
+
+.editor { display : none }
+
+/* to display output of macro expansions */
+.console {
+  -moz-border-radius: 6px;
+  -webkit-border-radius: 6px;
+  border-radius: 6px;
+  padding: 1em;
+  margin-top:1em;
+  white-space: pre;
+  background: #f5f2f0;
+  resize: vertical;
+  max-height: 700px;
+  overflow: auto;
+  font-family: Consolas, Monaco, "Andale Mono", monospace;
+  text-shadow:0 1px white;
+  display:none;
+}
+
+</style>
+</head>
+
+<body class="language-javascript">
+
+  <div id="header">
+    <a class="mozilla" href="http://www.mozilla.org/">visit <span>mozilla</span></a>
+  </div>
+
+  <a href="http://github.com/mozilla/sweet.js">
+    <img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" />
+  </a>
+
+  <div id="body">
+    <div id="logo"><img src="sweetjs.png"></div>
+    <div id="content">
+
+      {{content}}
+
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-34844488-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+
+  </script>
+
+  <script src="prism.js"></script>
+</body>
+</html>

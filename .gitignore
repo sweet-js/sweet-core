@@ -21,3 +21,4 @@ browser/test_bundled.js
 *.sublime-*
 
 test.js
+_site
