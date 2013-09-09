@@ -33,8 +33,8 @@ body {
   width: 650px;
   padding-bottom:50px;
 }
-#slogan {
-  font-size: 300%;
+
+h1,h2,h3 {
   font-family: Helvetica Neue;
   font-weight: 100;
   color: #222;
@@ -43,13 +43,16 @@ body {
   color: #444;
   font-family: 'Lato', Helvetica Neue, Helvetica, Arial, sans-serif;
   font-weight: 100;
-}
-#slogan span {
   border-bottom: solid 1px #eee;
 }
-
-#content p {
-  margin-top: 2em;
+h1 {
+  font-size: 300%;
+}
+h2 {
+  font-size: 180%;
+}
+h3 {
+  font-size: 150%;
 }
 
 p, li {
@@ -57,6 +60,7 @@ p, li {
   /*font-weight: 400;*/
   font-size: large;
 }
+
 
 p code {
   font-size: 14px;
@@ -120,7 +124,6 @@ a.mozilla {
   <div id="body">
     <div id="logo"><img src="sweetjs.png"></div>
     <div id="content">
-      <p id="slogan"><span>Sweeten your JavaScript</span></p>
 
       {{content}}
 

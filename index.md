@@ -2,6 +2,8 @@
 layout: default
 ---
 
+# Sweeten Your JavaScript
+
 Sweet.js brings the hygienic macros of languages like Scheme and Rust to
 JavaScript. Macros allow you to sweeten the syntax of JavaScript and
 craft the language you've always wanted.
@@ -47,7 +49,7 @@ To get a better sense of what macros can do, check out some
 [example macros](https://github.com/mozilla/sweet.js/wiki/Example-macros)
 or play around with macros in the online [editor](browser/editor.html).
 
-## Getting sweet.js
+# Getting sweet.js
 
 Install the sweet.js compiler via npm:
 
@@ -65,7 +67,7 @@ Use the `sjs` binary to compile your sweet.js code:
 * Join the [mailing list](https://groups.google.com/forum/#!forum/sweetjs).
 * Ping [@disnet](https://twitter.com/disnet) on Twitter.
 
-## Getting Started Tutorial
+# Getting Started 
 
 You can think of macros as functions that work on syntax. Much like
 a normal function you write a macro *definition* and then later
@@ -78,7 +80,7 @@ pattern-based *rule* macros and the more powerful procedural *case*
 macros (if you are familiar with Scheme or Racket these correspond to
 `syntax-rules` and `syntax-case`). 
 
-### Pattern-Based Macros -- Macros Rule!
+## Pattern-Based Macros -- Macros Rule!
 
 Rule macros work by matching a syntax *pattern* and generating new
 syntax based on a *template*.
@@ -112,7 +114,7 @@ We can then invoke `id` with:
     // --> expands to
     42
 
-A pattern that begin with `$` matches any token and binds it to that
+A pattern that begins with `$` matches any token and binds it to that
 name in the template while everything else matches literally.
 
 Note that a single token includes matched delimiters not just numbers
@@ -123,7 +125,7 @@ as one token:
     // --> expands to
     [1, 2, 3]
 
-#### Hygiene -- Keeping it clean
+### Hygiene -- Keeping it clean
 
 To make things slightly more interesting, let's say we want to write a
 macro that swaps the values stored in two variables.
@@ -150,10 +152,10 @@ After running this through sweet.js we get the expanded code:
     a$1 = b$2;
     b$2 = tmp$3;
 
-As you can see the variables names have been changed with a `$n`
+As you can see, the variables names have been changed with a `$n`
 postfix. This is hygiene at work. One of the critical features of
 sweet.js is protecting macros from unintentionally binding or
-capturing variables they wasn't supposed to. This is called hygiene
+capturing variables they weren't supposed to. This is called hygiene
 and to enforce hygiene sweet.js must carefully rename all variables.
 
 If sweet.js did not protect hygiene a naive expansion would do the
@@ -165,12 +167,12 @@ wrong thing:
     swap (tmp, b)
 
     // --> naive expansion
-    var tmp$1 = 10;
-    var b$2 = 20;
+    var tmp = 10;
+    var b = 20;
     
-    var tmp$1;
-    tmp$1 = b$2;
-    b$2 = tmp$1;
+    var tmp;
+    tmp = b;
+    b = tmp;
 
 But since sweet.js protects hygiene, all variable names are correctly
 renamed:
@@ -191,7 +193,7 @@ renamed:
 In the cases where you want to intentionally break hygiene you can use
 the procedural case macros described in the next section.
 
-#### Patterns
+### Patterns and Macros - A match made in heaven
 
 A pattern name can be restricted to a particular parse class by using
 `$name:class` in which case rather than matching a token
@@ -203,6 +205,8 @@ the pattern matches all the tokens matched by the class.
       }
     }
     m (2 + 5 * 10)
+    // --> expands to
+    2 + 5 * 10
 
 The parse classes currently supported are:
 * `expr` -- matches an expression
@@ -259,7 +263,7 @@ And macros can be recursively defined:
     m (1 2 3 4 5)  // --> [1, [2, [3, [4, [5]]]]]
 
 
-### Procedural Macros -- Just in Case
+## Procedural Macros -- Just in Case
 
 Sweet.js also provides a more powerful way to define macros: case
 macros. Case macros allow you to manipulate syntax using the full
@@ -276,7 +280,7 @@ just the syntax that comes after it:
     macro m {
       case { $name $x } => { ... }
     }
-    m 42  // `$name` will be bound to this `m` token
+    m 42  // `$name` will be bound to the `m` token
           // in the macro body
 
 Most of the time you won't need to match the name and can use the
@@ -298,14 +302,14 @@ with a case macro:
       }
     }
 
-Templates are now created with the `#{...}` form (this is technically
+Templates are now created with the `#{...}` form (which is technically
 shorthand for `syntax {...}`). The `#{...}` form creates an array of
 *syntax objects* using any pattern bindings that are in scope (i.e.
 were matched by the pattern).
 
 *Syntax objects* are the representation of tokens that sweet.js uses
 to keep track of lexical context (which is used to maintain hygiene).
-They can be created with templates `#{}` but you can also create
+They can be created with templates (`#{}`) but you can also create
 individual syntax objects using the lexical context of an existing
 syntax object:
 
@@ -349,26 +353,26 @@ variables:
     macro m {
       case {_ $x } => {
         var y = makeValue(42, #{$x});
-        return withSyntax($y = [y], $z = [makeValue(100, #{$x})]) {
+        return withSyntax($y = [y], $z = [makeValue(2, #{$x})]) {
           return #{$x + $y - $z}
         }
       }
     }
     m 1
     // --> expands to
-    1 + 42 - 100
+    1 + 42 - 2
 
 
-#### Getting Dirty -- Breaking Hygiene
+### Getting Dirty -- Breaking Hygiene
 
 Sometimes you really do need to break the wonderful protections
 provided by hygiene. Breaking hygiene is usually a bad idea but
 sweet.js won't judge.
 
 Breaking hygiene is done by stealing the lexical context from syntax
-objects in the "right place". To make sense of this consider the
+objects in the "right place". To clarify, consider `aif` the
 [anaphoric](http://en.wikipedia.org/wiki/Anaphoric_macro) if macro
-`aif` that binds its condition to the identifier `it` in the body.
+that binds its condition to the identifier `it` in the body.
 
     var it = "foo";
     long.obj.path = [1, 2, 3];
@@ -378,12 +382,12 @@ objects in the "right place". To make sense of this consider the
     // logs: [1, 2, 3]
 
 This is a violation of hygiene because normally `it` should be bound
-to the normal environment (`"foo"` in the example above) but `aif`
-wants to capture it. To do this we can create an `it` binding in the
-macro that has the lexical context associated with the surrounding
+to the surrounding environment (`"foo"` in the example above) but
+`aif` wants to capture `it`. To do this we can create an `it` binding in
+the macro that has the lexical context associated with the surrounding
 environment. The lexical context we want is actually found on the
-`aif` macro name itself. So we just need to create a new `it` binding
-using the lexical context of `aif`:
+`aif` macro name itself. So we just need to create a
+new `it` binding using the lexical context of `aif`:
 
     macro aif {
 	  case {
@@ -409,9 +413,9 @@ using the lexical context of `aif`:
 	  }
     }
 
-### Extra Bits
+## Let it be...less recursive
 
-Sometimes you don't want a macro to be able to recursively call
+Sometimes you don't want a macro to recursively call
 itself. For example, say you want to override `function` to add some
 logging information before the rest of the function executes:
 
