@@ -3,20 +3,23 @@ var fs = require("fs");
 var sweet = require("./sweet.js");
 
 var argv = require("optimist")
-            .usage("Usage: sjs [options] path/to/file.js")
-            .alias('o', 'output')
-            .describe('o', 'Output file path')
-            .alias('m', 'module')
-            .describe('m', 'use a module file for loading macro definitions')
-            .alias('w', 'watch')
-            .describe('w', 'watch a file')
-            .boolean('watch')
-            .alias('t', 'tokens')
-            .describe('t', 'just emit the expanded tokens without parsing an AST')
-            .alias('i', 'import')
-            .describe('i', 'uses the module loading path')
-            .boolean('import')
-            .argv;
+    .usage("Usage: sjs [options] path/to/file.js")
+    .alias('o', 'output')
+    .describe('o', 'Output file path')
+    .alias('m', 'module')
+    .describe('m', 'use a module file for loading macro definitions')
+    .alias('w', 'watch')
+    .describe('w', 'watch a file')
+    .boolean('watch')
+    .alias('t', 'tokens')
+    .describe('t', 'just emit the expanded tokens without parsing an AST')
+    .alias('i', 'import')
+    .describe('i', 'uses the module loading path')
+    .boolean('import')
+    .alias('s', 'stdin')
+    .describe('s', 'read from stdin')
+    .boolean('stdin')
+    .argv;
 
 exports.run = function() {
     var infile = argv._[0];
@@ -27,8 +30,11 @@ exports.run = function() {
     var file;
     if(infile) {
         file = fs.readFileSync(infile, "utf8");
-    } else {
+    } else if (argv.stdin) {
         file = fs.readFileSync("/dev/stdin", "utf8");
+    } else if (argv._.length === 0) {
+        console.log(require("optimist").help());
+        return;
     }
 
 
