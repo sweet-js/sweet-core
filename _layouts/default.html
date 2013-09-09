@@ -3,7 +3,7 @@
 <head>
 <title>sweet.js</title>
 <link href='http://fonts.googleapis.com/css?family=Lato:100' rel='stylesheet' type='text/css'>
-<link rel="stylesheet" href="editor/codemirror.css">
+<link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro' rel='stylesheet' type='text/css'>
 <link rel="stylesheet" href="editor/theme/sweetprism.css">
 <link href='prism.css' rel='stylesheet' />
 <style>
@@ -53,9 +53,9 @@ body {
 }
 
 p, li {
-  font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
+  font-family: 'Source Sans Pro', sans-serif;
   /*font-weight: 400;*/
-  font-size: 16px;
+  font-size: large;
 }
 
 #content p#slogan {
@@ -100,7 +100,7 @@ a.mozilla {
 </style>
 </head>
 
-<body>
+<body class="language-javascript">
 
   <div id="header">
     <a class="mozilla" href="http://www.mozilla.org/">visit <span>mozilla</span></a>
@@ -134,10 +134,5 @@ a.mozilla {
   </script>
 
   <script src="prism.js"></script>
-  <script src="editor/codemirror.js"></script>
-  <script src="editor/mode/javascript/javascript.js"></script>
-  <script src="editor/mode/runmode.js"></script>
-  <script data-main="browser/scripts/sweeten" src="browser/scripts/require.js"></script>
-
 </body>
 </html>

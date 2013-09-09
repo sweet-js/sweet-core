@@ -19,3 +19,6 @@ dist:
 
 clean:
 	node build clean
+
+docs:
+	jekyll build

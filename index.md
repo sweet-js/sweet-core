@@ -2,18 +2,22 @@
 layout: default
 ---
 
-Sweet.js brings hygienic macros from languages like Scheme and Rust to JavaScript. Macros allow you to sweeten the syntax of JavaScript and craft the language you've always wanted.
+Sweet.js brings the hygienic macros of languages like Scheme and Rust to
+JavaScript. Macros allow you to sweeten the syntax of JavaScript and
+craft the language you've always wanted.
 
-
-Do you want to use class syntax but don't want to wait for ES6? Add classes yourself with macros!
+Do you want to use class syntax but don't want to wait for ES6? Add
+them yourself with just a few lines of code!
 
     // Define the class macro here...
     macro class {
-      case $className {
-        constructor $cparams $cbody
-        $($mname $mparams $mbody) ... 
-      } => {
+      rule {
+        $className {
+            constructor $cparams $cbody
 
+            $($mname $mparams $mbody) ...
+        }
+      } => {
         function $className $cparams $cbody
 
         $($className.prototype.$mname
@@ -37,25 +41,28 @@ Do you want to use class syntax but don't want to wait for ES6? Add classes your
 How about a better switch?
 
     macro _arms {
-      case (default => $value:expr) => {
+      rule { (default => $value:expr) } => {
         else {
           return $value;
         }
       }
-      case (case $cond:expr => $value:expr) => {
+
+      rule { (case $cond:expr => $value:expr) } => {
         if($cond) {
           return $value;
         }
       }
-      case (
-        $(case $cond:expr => $value:expr) $rest ...
-      ) => {
+
+      rule { 
+        ($(case $cond:expr => $value:expr) $rest ...)
+      } => {
         _arms (case $cond => $value)
         _arms ($rest ...)
       }
     }
+
     macro cond {
-      case { $arms ... } => {
+      rule { { $arms ... } } => {
         (function() {
           _arms($arms ...)
         })();
@@ -70,7 +77,9 @@ How about a better switch?
       default => typeof x
     }
 
-To get a better sense of what macros can do, check out some [example macros](https://github.com/mozilla/sweet.js/wiki/Example-macros) or play around with macros in the [editor](browser/editor.html).
+To get a better sense of what macros can do, check out some
+[example macros](https://github.com/mozilla/sweet.js/wiki/Example-macros)
+or play around with macros in the [editor](browser/editor.html).
 
 ## Getting sweet.js
 
@@ -83,49 +92,61 @@ Use the `sjs` binary to compile your sweet.js code:
 
     $ sjs -o output.js my_sweet_code.js
 
-Sweet.js is still a work in progress so expect bugs and missing features.
-
-* Report issues on [github](https://github.com/mozilla/sweet.js/issues).
-* Discuss sweet.js on the [mailing list](https://groups.google.com/forum/#!forum/sweetjs) or the IRC channel #sweet.js on irc.mozilla.org.
+* Report issues on
+  [github](https://github.com/mozilla/sweet.js/issues).
+* Discuss sweet.js on the
+  [mailing list](https://groups.google.com/forum/#!forum/sweetjs) or
+  the IRC channel #sweet.js on irc.mozilla.org.
 * Ping [@disnet](https://twitter.com/disnet) on Twitter.
 
 
-## Writing macros
+## Macro Rules
 
 You can think of macros as functions that take little bits of syntax
-and convert it to new bits of syntax at compile-time. Macros are
-created with the <code>macro</code> keyword:
+and convert it to new bits of syntax at compile-time. To define macros
+sweet.js provides a new `macro` keyword to JavaScript. It looks
+something like this:
 
-    macro id {
-      case ($x) => { $x }
+    macro <name> {
+      rule { <patterns> } => { <body> }
+      ...
     }
 
-This can be read as "define a macro named `id` that matches a single token surrounded by parenthesis and when invoked returns just the matched token".
-
+Macros work by matching a syntax pattern and producing a resulting
+syntax body. 
 
     macro id {
-      case ($x) => { $x }
+      rule { ($x) } => { $x }
+    }
+
+This can be read as "define a macro named `id` that matches a single
+token surrounded by parenthesis and when invoked returns just the
+matched token".
+
+    macro id {
+      rule { ($x) } => { $x }
     }
 
     var x = id ("foo")
+    x === "foo"   // true
 
-A pattern name that begin with `$` in the left hand side of the macro definition matches any token and binds it to that name in
-macro body while everything else matches literally.
-
+A pattern name that begin with `$` in the left hand side of the macro
+definition matches any token and binds it to that name in macro body
+while everything else matches literally.
 
     macro m {
-      case ($x becomes $y) => {
+      rule { ($x becomes $y) } => {
         $x = $y;
       }
     }
     m (a becomes b)
 
-
-
-A pattern name can be restricted to a particular parse class by using `$name:class` in which case rather than matching only a single token the pattern matches all the tokens matched by the parse class.
+A pattern name can be restricted to a particular parse class by using
+`$name:class` in which case rather than matching only a single token
+the pattern matches all the tokens matched by the parse class.
 
     macro m {
-      case ($x:expr) => {
+      rule { ($x:expr) } => {
         // ...
       }
     }
@@ -134,7 +155,7 @@ A pattern name can be restricted to a particular parse class by using `$name:cla
 For instance:
 
     macro m {
-      case ($x:expr) => {
+      rule { ($x:expr) } => {
         $x
       }
     }
@@ -145,7 +166,7 @@ The commonly used parse classes that have short names are `expr` (matches an exp
 Repeated patterns can be matched with the `...` syntax.
 
     macro m {
-      case ($x ...) => {
+      rule { ($x ...) } => {
         // ...
       }
     }
@@ -154,7 +175,7 @@ Repeated patterns can be matched with the `...` syntax.
 A repeated pattern with a separator between each item can be matched by adding `(,)` between `...` and the pattern being repeated.
 
     macro m {
-      case ($x (,) ...) => {
+      rule { ($x (,) ...) } => {
         [$x (,) ...]
       }
     }
@@ -163,7 +184,7 @@ A repeated pattern with a separator between each item can be matched by adding `
 Repeated groups of patterns can be matched using `$()`.
 
     macro m {
-      case ( $($id:ident = $val:expr) (,) ...) => {
+      rule { ( $($id:ident = $val:expr) (,) ...) } => {
         $(var $id = $val;) ...
       }
     }
@@ -172,8 +193,8 @@ Repeated groups of patterns can be matched using `$()`.
 Macros can match on multiple cases.
 
     macro m {
-      case ($x:lit) => { $x }
-      case ($x:lit, $y:lit) => { [$x, $y] }
+      rule { ($x:lit) } => { $x }
+      rule { ($x:lit, $y:lit) } => { [$x, $y] }
     }
 
     m (1);
@@ -183,7 +204,19 @@ Macros can match on multiple cases.
 And macros can call themselves.
 
     macro m {
-      case ($base) => { [$base] }
-      case ($head $tail ...) => { [$head, m ($tail ...)] }
+      rule { ($base) } => { [$base] }
+      rule { ($head $tail ...) } => { [$head, m ($tail ...)] }
     }
     m (1 2 3 4 5)  // --> [1, [2, [3, [4, [5]]]]]
+
+
+## Macro Cases
+
+Sweet.js also provides a more powerful way to define macros: case
+macros. Case macros allow you to write actual JavaScript code in a
+macro definition. Case macros look like this:
+
+    macro id {
+      case {_ $x } => { return #{$x} }
+    }
+
