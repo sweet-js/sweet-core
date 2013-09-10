@@ -18,7 +18,9 @@ macro syntax {
     function(stx) {
         var name_stx = stx[0];
         var takeLineContext = patternModule.takeLineContext;
+        var takeLine = patternModule.takeLine;
         var mod = makeIdent("patternModule", null);
+        // var mod = takeLine(makeIdent("patternModule", null), name_stx);
         mod = takeLineContext(name_stx, [mod]);
         mod = mod[0];
 

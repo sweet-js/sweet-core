@@ -1,44 +1,44 @@
-var fs$91 = require('fs');
-var sweet$92 = require('./sweet.js');
-var argv$93 = require('optimist').usage('Usage: sjs [options] path/to/file.js').alias('o', 'output').describe('o', 'Output file path').alias('m', 'module').describe('m', 'use a module file for loading macro definitions').alias('w', 'watch').describe('w', 'watch a file').boolean('watch').alias('t', 'tokens').describe('t', 'just emit the expanded tokens without parsing an AST').alias('i', 'import').describe('i', 'uses the module loading path').boolean('import').alias('s', 'stdin').describe('s', 'read from stdin').boolean('stdin').argv;
+var fs$92 = require('fs');
+var sweet$93 = require('./sweet.js');
+var argv$94 = require('optimist').usage('Usage: sjs [options] path/to/file.js').alias('o', 'output').describe('o', 'Output file path').alias('m', 'module').describe('m', 'use a module file for loading macro definitions').alias('w', 'watch').describe('w', 'watch a file').boolean('watch').alias('t', 'tokens').describe('t', 'just emit the expanded tokens without parsing an AST').alias('i', 'import').describe('i', 'uses the module loading path').boolean('import').alias('s', 'stdin').describe('s', 'read from stdin').boolean('stdin').argv;
 exports.run = function () {
-    var infile$94 = argv$93._[0];
-    var outfile$95 = argv$93.output;
-    var watch$96 = argv$93.watch;
-    var tokens$97 = argv$93.tokens;
-    var file$98;
-    if (infile$94) {
-        file$98 = fs$91.readFileSync(infile$94, 'utf8');
-    } else if (argv$93.stdin) {
-        file$98 = fs$91.readFileSync('/dev/stdin', 'utf8');
-    } else if (argv$93._.length === 0) {
+    var infile$95 = argv$94._[0];
+    var outfile$96 = argv$94.output;
+    var watch$97 = argv$94.watch;
+    var tokens$98 = argv$94.tokens;
+    var file$99;
+    if (infile$95) {
+        file$99 = fs$92.readFileSync(infile$95, 'utf8');
+    } else if (argv$94.stdin) {
+        file$99 = fs$92.readFileSync('/dev/stdin', 'utf8');
+    } else if (argv$94._.length === 0) {
         console.log(require('optimist').help());
         return;
     }
-    var module$99 = argv$93.module;
-    var imp$100 = argv$93.import;
-    var modulefile$101;
-    if (imp$100) {
-        sweet$92.module(infile$94);
+    var module$100 = argv$94.module;
+    var imp$101 = argv$94.import;
+    var modulefile$102;
+    if (imp$101) {
+        sweet$93.module(infile$95);
     }
-    if (module$99) {
-        modulefile$101 = fs$91.readFileSync(module$99, 'utf8');
-        file$98 = modulefile$101 + '\n' + file$98;
+    if (module$100) {
+        modulefile$102 = fs$92.readFileSync(module$100, 'utf8');
+        file$99 = modulefile$102 + '\n' + file$99;
     }
-    if (watch$96 && outfile$95) {
-        fs$91.watch(infile$94, function () {
-            file$98 = fs$91.readFileSync(infile$94, 'utf8');
+    if (watch$97 && outfile$96) {
+        fs$92.watch(infile$95, function () {
+            file$99 = fs$92.readFileSync(infile$95, 'utf8');
             try {
-                fs$91.writeFileSync(outfile$95, sweet$92.compile(file$98), 'utf8');
-            } catch (e$102) {
-                console.log(e$102);
+                fs$92.writeFileSync(outfile$96, sweet$93.compile(file$99), 'utf8');
+            } catch (e$103) {
+                console.log(e$103);
             }
         });
-    } else if (outfile$95) {
-        fs$91.writeFileSync(outfile$95, sweet$92.compile(file$98), 'utf8');
-    } else if (tokens$97) {
-        console.log(sweet$92.expand(file$98));
+    } else if (outfile$96) {
+        fs$92.writeFileSync(outfile$96, sweet$93.compile(file$99), 'utf8');
+    } else if (tokens$98) {
+        console.log(sweet$93.expand(file$99));
     } else {
-        console.log(sweet$92.compile(file$98));
+        console.log(sweet$93.compile(file$99));
     }
 };
