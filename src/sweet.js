@@ -36,7 +36,7 @@
 
         var stxcaseModule = fs.readFileSync(lib + "/stxcase.js", 'utf8');
 
-        factory(exports, parser, expander, codegen, stxcaseModule);
+        factory(exports, parser, expander, stxcaseModule, codegen);
 
         // Alow require('./example') for an example.sjs file.
         require.extensions['.sjs'] = function(module, filename) {
@@ -45,12 +45,13 @@
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', './parser', './expander', './escodegen', 'text!./stxcase.js'], factory);
+        define(['exports', './parser', './expander', 'text!./stxcase.js'], factory);
     }
-}(this, function (exports, parser, expander, codegen, stxcaseModule) {
+}(this, function (exports, parser, expander, stxcaseModule, gen) {
+    var codegen = gen || escodegen;
 
-    // fun (Str, {}) -> [...CSyntax]
-    function expand(code, options) {
+    // fun (Str) -> [...CSyntax]
+    function expand(code) {
         var program, toString;
 
         toString = String;

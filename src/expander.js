@@ -27,19 +27,23 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require('./parser'),
-                require('./syntax'), require("es6-collections"),
-                require('escodegen'), 
+        factory(exports,
+                require('underscore'),
+                require('./parser'),
+                require('./syntax'),
+                require("es6-collections"),
                 require('./scopedEval'),
-                require("./patterns"));
+                require("./patterns"),
+                require('escodegen'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports', 'underscore', 'parser', 'syntax',
-                'es6-collections', 'escodegen', 
+                'es6-collections', 
                 'scopedEval', 'patterns'], factory);
     }
-}(this, function(exports, _, parser, syn, es6, codegen, se, patternModule) {
+}(this, function(exports, _, parser, syn, es6, se, patternModule, gen) {
     'use strict';
+    var codegen = gen || escodegen;
 
     macro _get_vars {
 	    case {_ $val { } } => { return #{} }
