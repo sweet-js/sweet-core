@@ -132,7 +132,7 @@ macro that swaps the values stored in two variables.
 
     macro swap {
       rule { ($a, $b) } => {
-        var tmp;
+        var tmp = $a;
         $a = $b;
         $b = tmp;
       }
@@ -148,7 +148,7 @@ After running this through sweet.js we get the expanded code:
     var a$1 = 10;
     var b$2 = 20;
 
-    var tmp$3;
+    var tmp$3 = a$1;
     a$1 = b$2;
     b$2 = tmp$3;
 
@@ -170,7 +170,7 @@ wrong thing:
     var tmp = 10;
     var b = 20;
     
-    var tmp;
+    var tmp = tmp;
     tmp = b;
     b = tmp;
 
@@ -186,7 +186,7 @@ renamed:
     var tmp$1 = 10;
     var b$2 = 20;
     
-    var tmp$3;
+    var tmp$3 = tmp$1;
     tmp$3 = b$2;
     b$2 = tmp$1;
 
