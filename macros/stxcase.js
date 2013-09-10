@@ -34,7 +34,7 @@ macro syntax {
                        makePunc(",", name_stx),
                        makeIdent("match", name_stx),
                        makePunc(".", name_stx),
-                       makeIdent("patternEnv")
+                       makeIdent("patternEnv", name_stx)
                    ], name_stx)];
                    
         
@@ -236,7 +236,7 @@ macro syntaxCase {
                         makeIdent("stx", name_stx),
                         makePunc(".", name_stx),
                         makeIdent("mark", name_stx),
-                        makeDelim("()", [makeIdent("newMark", name_stx)])
+                        makeDelim("()", [makeIdent("newMark", name_stx)], name_stx)
                     ])), name_stx),
                     makePunc(";", name_stx)
                 ]).concat([
@@ -254,7 +254,7 @@ macro syntaxCase {
                         makePunc(".", name_stx),
                         makeIdent("rest", name_stx)
                     ], name_stx)
-                ]))];
+                ]), name_stx)];
             
         }
 
@@ -273,7 +273,7 @@ macro syntaxCase {
             makeKeyword("new", name_stx),
             makeIdent("Error", name_stx),
             makeDelim("()", [
-                makeValue("Could not match any cases for macro: "),
+                makeValue("Could not match any cases for macro: ", name_stx),
                 makePunc("+", name_stx),
                 makeIdent("name_stx", name_stx),
                 makePunc(".", name_stx),
