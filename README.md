@@ -3,7 +3,8 @@ sweet.js
 
 Hygienic Macros for JavaScript!
 
-* Documentation at [sweetjs.org](http://sweetjs.org). 
+* Documentation at [sweetjs.org](http://sweetjs.org).
+* Online [editor](http://sweetjs.org/browser/editor.html)
 * Overview and motivation in this [talk](https://air.mozilla.org/sweetjs/).
 * Example macros on the [wiki](https://github.com/mozilla/sweet.js/wiki/Example-macros). 
 * [Mailing list](https://groups.google.com/forum/#!forum/sweetjs) for discussion
