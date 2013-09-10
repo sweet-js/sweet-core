@@ -80,17 +80,24 @@
         source = stxcaseModule + "\n\n" + source;
 
         var readTree = parser.read(source);
-        return expander.expand(readTree);
+        return [expander.expand(readTree[0]), readTree[1]];
     }
 
     // fun (Str, {}) -> AST
-    function parse(code, options) {
-        return parser.parse(expand(code, options));
+    function parse(code) {
+        var exp = expand(code);
+        return parser.parse(exp[0], exp[1]);
     }
 
     exports.expand = expand;
     exports.parse = parse;
-    exports.compile = function compile(code, options) {
-      return codegen.generate(parse(code, options));
+    exports.compile = function compile(code) {
+        var ast = parse(code);
+        // codegen.attachComments(ast, ast.comments, ast.tokens);
+        var output = codegen.generate(ast, {
+            comment: true
+        });
+
+        return output;
     }
 }));

@@ -1141,7 +1141,7 @@
             throwError("Primitive macro form must contain a function for the macro body");
         }
 
-        var stub = parser.read("()");
+        var stub = parser.read("()")[0];
         stub[0].token.inner = body;
         var expanded = expand(stub, env, defscope, templateMap);
         expanded = expanded[0].destruct().concat(expanded[1].eof);
@@ -1230,7 +1230,7 @@
             var tempId = fresh();
             templateMap.set(tempId, rest[0].token.inner);
             return expandToTermTree([syn.makeIdent("getTemplate", head.id),
-                                     syn.makeDelim("()", [syn.makeValue(tempId, head.id)])].concat(rest.slice(1)),
+                                     syn.makeDelim("()", [syn.makeValue(tempId, head.id)], head.id)].concat(rest.slice(1)),
                                     env, defscope, templateMap);
         }
 
@@ -1400,7 +1400,8 @@
 
 
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam; });
-            var flatArgs = wrapDelim(joinSyntax(renamedParams, ","), term.params);
+            var flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","), term.params);
+
             var expandedArgs = expand([flatArgs], env, newDef, templateMap);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the function with all the renamings
@@ -1496,5 +1497,6 @@
     exports.VariableStatement = VariableStatement;
 
     exports.tokensToSyntax = syn.tokensToSyntax;
+    exports.syntaxToTokens = syn.syntaxToTokens;
 }));
 

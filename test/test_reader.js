@@ -8,7 +8,7 @@ var _ = require("underscore");
 var Token = parser.Token;
 
 var read = _.wrap(parser.read, function(read_func, read_arg) {
-    return syn.syntaxToTokens(read_func(read_arg));
+    return syn.syntaxToTokens(read_func(read_arg)[0]);
 });
 
 describe("reader", function() {
