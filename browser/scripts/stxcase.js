@@ -368,9 +368,9 @@ let macro = macro {
         if (body_stx[0] && body_stx[0].token.value === "rule") {
             var rule_body = mac_name_stx ? stx[2].token.inner : stx[1].token.inner;
             var rules = [];
-            for (var i = 0; i < rule_body.length; i++) {
-                var rule_pattern = rule_body[1].token.inner;
-                var rule_def = rule_body[4].token.inner;
+            for (var i = 0; i < rule_body.length; i += 5) {
+                var rule_pattern = rule_body[i + 1].token.inner;
+                var rule_def = rule_body[i + 4].token.inner;
                 rules = rules.concat([makeIdent("case", name_stx),
                                       makeDelim("{}", [makeIdent("_", name_stx)].concat(rule_pattern), name_stx),
                                       makePunc("=", name_stx), makePunc(">", name_stx),
