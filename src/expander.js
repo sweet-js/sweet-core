@@ -30,15 +30,15 @@
         factory(exports, require('underscore'), require('./parser'),
                 require('./syntax'), require("es6-collections"),
                 require('escodegen'), 
-                require('./es6-module-loader'), require('./scopedEval'),
+                require('./scopedEval'),
                 require("./patterns"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports', 'underscore', 'parser', 'syntax',
                 'es6-collections', 'escodegen', 
-                'es6-module-loader', 'scopedEval', 'patterns'], factory);
+                'scopedEval', 'patterns'], factory);
     }
-}(this, function(exports, _, parser, syn, es6, codegen, modules, se, patternModule) {
+}(this, function(exports, _, parser, syn, es6, codegen, se, patternModule) {
     'use strict';
 
     macro _get_vars {
@@ -207,9 +207,6 @@
     function throwError(msg) {
         throw new Error(msg);
     }
-
-    var Loader = modules.Loader;
-    var Module = modules.Module;
 
     var scopedEval = se.scopedEval;
 
