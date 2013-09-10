@@ -18,7 +18,8 @@ macro syntax {
     function(stx) {
         var name_stx = stx[0];
         var takeLineContext = patternModule.takeLineContext;
-        var mod = makeIdent("patternModule", null);
+        var takeLine = patternModule.takeLine;
+        var mod = takeLine(name_stx, makeIdent("patternModule", null));
         mod = takeLineContext(name_stx, [mod]);
         mod = mod[0];
 
@@ -59,14 +60,12 @@ macro syntaxCase {
     function(stx) {
         var name_stx = stx[0];
         var arg_stx = stx[1].expose().token.inner;
-        // var arg_stx = stx[1].expose();
         var cases_stx = stx[2].expose().token.inner;
-        // var cases_stx = stx[2].expose();
 
-        // "import"
         var Token = parser.Token;
         var assert = parser.assert;
         var loadPattern = patternModule.loadPattern;
+        var takeLine = patternModule.takeLine;
         var matchPatterns = matchPatterns;
 
 
@@ -90,12 +89,10 @@ macro syntaxCase {
         }
         var cases = [];
         for (var i = 0; i < cases_stx.length; i += 5) {
-            // looking for:
-            // case { ... } => { ... }
             var caseKwd = cases_stx[i];
             var casePattern = cases_stx[i + 1];
-            var caseArrow1 = cases_stx[i + 2]; // =
-            var caseArrow2 = cases_stx[i + 3]; // >
+            var caseArrow1 = cases_stx[i + 2]; 
+            var caseArrow2 = cases_stx[i + 3]; 
             var caseBody = cases_stx[i + 4];
 
             if (!(caseKwd && caseKwd.token && caseKwd.token.value === "case")) {
@@ -139,7 +136,7 @@ macro syntaxCase {
                     makePunc(",", name_stx),
                     makeIdent("class", name_stx),
                     makePunc(":", name_stx),
-                    makeValue(pat.class)
+                    makeValue(pat.class, name_stx)
                 ]);
             }
             if (typeof pat.repeat !== 'undefined') {
@@ -175,7 +172,7 @@ macro syntaxCase {
 
         function makeMatch(i) {
             var pat = makeVarDef("pat", [patternsToObject(cases[i].pattern)]);
-            var match = makeVarDef("match", [makeIdent("patternModule", null),
+            var match = makeVarDef("match", [takeLine(name_stx, makeIdent("patternModule", null)),
                                              makePunc(".", name_stx),
                                              makeIdent("matchPatterns", name_stx),
                                              makeDelim("()", [
@@ -210,10 +207,10 @@ macro syntaxCase {
                     makeIdent("success", name_stx)
                 ], name_stx),
                 makeDelim("{}", makeVarDef("newMark", [
-                    makeIdent("fresh", null),
+                    takeLine(name_stx, makeIdent("fresh", null)),
                     makeDelim("()", [], name_stx)
                 ]).concat([
-                    makeIdent("applyMarkToPatternEnv", null),
+                    takeLine(name_stx, makeIdent("applyMarkToPatternEnv", null)),
                     makeDelim("()", [
                         makeIdent("newMark", name_stx),
                         makePunc(",", name_stx),
@@ -228,7 +225,7 @@ macro syntaxCase {
                 ])).concat([
                     makeIdent("res", name_stx),
                     makePunc("=", name_stx),
-                    makeIdent("_", null),
+                    takeLine(name_stx, makeIdent("_", null)),
                     makePunc(".", name_stx),
                     makeIdent("map", name_stx),
                     makeDelim("()", [
@@ -261,7 +258,6 @@ macro syntaxCase {
             
         }
 
-        // setup a reference to the syntax argument
         var arg_def = makeVarDef("arg", [makeIdent("stx", name_stx)]);
         var name_def = makeVarDef("name_stx", [makeIdent("arg", name_stx),
                                                makeDelim("[]", [makeValue(0, name_stx)], name_stx)]);
@@ -318,13 +314,12 @@ let macro = macro {
         var name_stx = stx[0];
         var mac_name_stx;
         var body_stx;
+        var takeLine = patternModule.takeLine;
         
         if (stx[1].token.inner) {
-            // annon macro, will be let bound
             mac_name_stx = null;
             body_stx = stx[1].expose().token.inner;
         } else {
-            // named macro
             mac_name_stx = stx[1];
             body_stx = stx[2].expose().token.inner;
         }
@@ -337,12 +332,11 @@ let macro = macro {
             ];
         }
 
-        // handle primitive macro form
         if (body_stx[0] && body_stx[0].token.value === "function") {
 
             if (mac_name_stx) {
                 var res = [
-                    makeIdent("macro", null),
+                    takeLine(name_stx, makeIdent("macro", null)),
                     mac_name_stx,
                     stx[2]
                 ];
@@ -352,7 +346,7 @@ let macro = macro {
                 };
             } else {
                 var res = [
-                    makeIdent("macro", null),
+                    takeLine(name_stx, makeIdent("macro", null)),
                     stx[2]
                 ];
                 return {
@@ -364,7 +358,6 @@ let macro = macro {
         }
 
         var rules = [];
-        // syntaxRules form
         if (body_stx[0] && body_stx[0].token.value === "rule") {
             var rule_body = mac_name_stx ? stx[2].token.inner : stx[1].token.inner;
             var rules = [];
@@ -385,7 +378,9 @@ let macro = macro {
         }
         
         var rest = mac_name_stx ? stx.slice(3) : stx.slice(2);
-        var res = mac_name_stx ? [makeIdent("macro", null), mac_name_stx] : [makeIdent("macro", null)];
+        var res = mac_name_stx
+            ? [takeLine(name_stx, makeIdent("macro", null)), mac_name_stx]
+            : [takeLine(name_stx, makeIdent("macro", null))];
         res = res.concat(makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
                                                     makeIdent("env", name_stx)],
                                                    [makeIdent("return", name_stx),
@@ -415,8 +410,6 @@ macro withSyntax {
         var res = [makeIdent("syntaxCase", name[0])]
         var args = #{[$(makeDelim("()", $e)) (,) ...],};
 
-        // take the lexical context from the surrounding scope so
-        // `env` is correctly captured
         args = args.concat(makeIdent("env", name[0]));
         res = res.concat(makeDelim("()", args, here));
 
