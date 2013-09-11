@@ -3854,8 +3854,8 @@ to decide on the correct name for identifiers.
             inSwitch: false
         };
 
-        // extra = {range: true}
-        // patch();
+        extra = {range: true, loc: true}
+        patch();
         try {
             program = parseProgram();
             program.comments = comments;

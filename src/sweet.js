@@ -93,7 +93,7 @@
     exports.parse = parse;
     exports.compile = function compile(code) {
         var ast = parse(code);
-        // codegen.attachComments(ast, ast.comments, ast.tokens);
+        codegen.attachComments(ast, ast.comments, ast.tokens);
         var output = codegen.generate(ast, {
             comment: true
         });

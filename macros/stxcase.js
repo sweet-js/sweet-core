@@ -403,11 +403,11 @@ macro withSyntax {
     case {$name
           ($($p = $e:expr) (,) ...)
           {$body ...}} => {
-        var name = #{$name}
+        var name = #{$name};
         var here = #{here};
         here = here[0];
 
-        var res = [makeIdent("syntaxCase", name[0])]
+        var res = [makeIdent("syntaxCase", name[0])];
         var args = #{[$(makeDelim("()", $e)) (,) ...],};
 
         args = args.concat(makeIdent("env", name[0]));

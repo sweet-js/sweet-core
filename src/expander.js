@@ -772,6 +772,30 @@
         };
     }
 
+    function adjustLineContext (stx, original) {
+        var last = stx[0] && typeof stx[0].token.range == "undefined" ? original : stx[0];
+        return _.map(stx, function(stx) {
+            if (typeof stx.token.range == "undefined") {
+                stx.token.range = last.token.range
+            }
+            if (stx.token.type === parser.Token.Delimiter) {
+                stx.token.startLineNumber = original.token.lineNumber;
+                stx.token.endLineNumber = original.token.lineNumber;
+                stx.token.startLineStart = original.token.lineStart;
+                stx.token.endLineStart = original.token.lineStart;
+                if (stx.token.inner.length > 0) {
+                    stx.token.inner = adjustLineContext(stx.token.inner, original);
+                }
+                last = stx;
+                return stx;
+            }
+            stx.token.lineNumber = original.token.lineNumber;
+            stx.token.lineStart = original.token.lineStart;
+            last = stx;
+            return stx;
+        });
+    }
+
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, env) {
@@ -975,7 +999,8 @@
                                    + rt.result);
                     }
                     if(rt.result.length > 0) {
-                        return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
+                        var adjustedResult = adjustLineContext(rt.result, head);
+                        return step(adjustedResult[0], adjustedResult.slice(1).concat(rt.rest));
                     } else {
                         return step(Empty.create(), rt.rest);
                     } 
