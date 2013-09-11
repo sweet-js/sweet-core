@@ -19,8 +19,7 @@ macro syntax {
         var name_stx = stx[0];
         var takeLineContext = patternModule.takeLineContext;
         var takeLine = patternModule.takeLine;
-        var mod = makeIdent("patternModule", null);
-        // var mod = takeLine(makeIdent("patternModule", null), name_stx);
+        var mod = takeLine(name_stx, makeIdent("patternModule", null));
         mod = takeLineContext(name_stx, [mod]);
         mod = mod[0];
 
@@ -35,7 +34,7 @@ macro syntax {
                        makePunc(",", name_stx),
                        makeIdent("match", name_stx),
                        makePunc(".", name_stx),
-                       makeIdent("patternEnv")
+                       makeIdent("patternEnv", name_stx)
                    ], name_stx)];
                    
         
@@ -173,7 +172,7 @@ macro syntaxCase {
 
         function makeMatch(i) {
             var pat = makeVarDef("pat", [patternsToObject(cases[i].pattern)]);
-            var match = makeVarDef("match", [makeIdent("patternModule", null),
+            var match = makeVarDef("match", [takeLine(name_stx, makeIdent("patternModule", null)),
                                              makePunc(".", name_stx),
                                              makeIdent("matchPatterns", name_stx),
                                              makeDelim("()", [
@@ -208,10 +207,10 @@ macro syntaxCase {
                     makeIdent("success", name_stx)
                 ], name_stx),
                 makeDelim("{}", makeVarDef("newMark", [
-                    makeIdent("fresh", null),
+                    takeLine(name_stx, makeIdent("fresh", null)),
                     makeDelim("()", [], name_stx)
                 ]).concat([
-                    makeIdent("applyMarkToPatternEnv", null),
+                    takeLine(name_stx, makeIdent("applyMarkToPatternEnv", null)),
                     makeDelim("()", [
                         makeIdent("newMark", name_stx),
                         makePunc(",", name_stx),
@@ -226,7 +225,7 @@ macro syntaxCase {
                 ])).concat([
                     makeIdent("res", name_stx),
                     makePunc("=", name_stx),
-                    makeIdent("_", null),
+                    takeLine(name_stx, makeIdent("_", null)),
                     makePunc(".", name_stx),
                     makeIdent("map", name_stx),
                     makeDelim("()", [
@@ -237,7 +236,7 @@ macro syntaxCase {
                         makeIdent("stx", name_stx),
                         makePunc(".", name_stx),
                         makeIdent("mark", name_stx),
-                        makeDelim("()", [makeIdent("newMark", name_stx)])
+                        makeDelim("()", [makeIdent("newMark", name_stx)], name_stx)
                     ])), name_stx),
                     makePunc(";", name_stx)
                 ]).concat([
@@ -255,7 +254,7 @@ macro syntaxCase {
                         makePunc(".", name_stx),
                         makeIdent("rest", name_stx)
                     ], name_stx)
-                ]))];
+                ]), name_stx)];
             
         }
 
@@ -274,7 +273,7 @@ macro syntaxCase {
             makeKeyword("new", name_stx),
             makeIdent("Error", name_stx),
             makeDelim("()", [
-                makeValue("Could not match any cases for macro: "),
+                makeValue("Could not match any cases for macro: ", name_stx),
                 makePunc("+", name_stx),
                 makeIdent("name_stx", name_stx),
                 makePunc(".", name_stx),
@@ -315,6 +314,7 @@ let macro = macro {
         var name_stx = stx[0];
         var mac_name_stx;
         var body_stx;
+        var takeLine = patternModule.takeLine;
         
         if (stx[1].token.inner) {
             mac_name_stx = null;
@@ -336,7 +336,7 @@ let macro = macro {
 
             if (mac_name_stx) {
                 var res = [
-                    makeIdent("macro", null),
+                    takeLine(name_stx, makeIdent("macro", null)),
                     mac_name_stx,
                     stx[2]
                 ];
@@ -346,7 +346,7 @@ let macro = macro {
                 };
             } else {
                 var res = [
-                    makeIdent("macro", null),
+                    takeLine(name_stx, makeIdent("macro", null)),
                     stx[2]
                 ];
                 return {
@@ -378,7 +378,9 @@ let macro = macro {
         }
         
         var rest = mac_name_stx ? stx.slice(3) : stx.slice(2);
-        var res = mac_name_stx ? [makeIdent("macro", null), mac_name_stx] : [makeIdent("macro", null)];
+        var res = mac_name_stx
+            ? [takeLine(name_stx, makeIdent("macro", null)), mac_name_stx]
+            : [takeLine(name_stx, makeIdent("macro", null))];
         res = res.concat(makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
                                                     makeIdent("env", name_stx)],
                                                    [makeIdent("return", name_stx),
@@ -401,11 +403,11 @@ macro withSyntax {
     case {$name
           ($($p = $e:expr) (,) ...)
           {$body ...}} => {
-        var name = #{$name}
+        var name = #{$name};
         var here = #{here};
         here = here[0];
 
-        var res = [makeIdent("syntaxCase", name[0])]
+        var res = [makeIdent("syntaxCase", name[0])];
         var args = #{[$(makeDelim("()", $e)) (,) ...],};
 
         args = args.concat(makeIdent("env", name[0]));
