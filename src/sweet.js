@@ -91,12 +91,19 @@
 
     exports.expand = expand;
     exports.parse = parse;
-    exports.compile = function compile(code) {
+    exports.compile = function compile(code, sm) {
         var ast = parse(code);
         codegen.attachComments(ast, ast.comments, ast.tokens);
         var output = codegen.generate(ast, {
             comment: true
         });
+        // todo: this is stupid...stop it
+        if (sm.map === null) {
+            var sourcemap = codegen.generate(ast, {
+                sourceMap: "original.sjs"
+            });
+            sm.map = sourcemap;
+        }
 
         return output;
     }

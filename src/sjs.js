@@ -19,6 +19,9 @@ var argv = require("optimist")
     .alias('s', 'stdin')
     .describe('s', 'read from stdin')
     .boolean('stdin')
+    .alias('c', 'sourcemap')
+    .describe('c', 'generate a sourcemap')
+    .boolean('sourcemap')
     .argv;
 
 exports.run = function() {
@@ -26,6 +29,7 @@ exports.run = function() {
     var outfile = argv.output;
     var watch = argv.watch;
     var tokens = argv.tokens;
+    var sourcemap = argv.sourcemap;
 
     var file;
     if(infile) {
@@ -61,7 +65,11 @@ exports.run = function() {
 			}
 		});
 	} else if(outfile) {
-       fs.writeFileSync(outfile, sweet.compile(file), "utf8");
+        var sm = {map: null}
+        fs.writeFileSync(outfile, sweet.compile(file, sm), "utf8");
+        if (sourcemap) {
+            fs.writeFileSync("source_map.js", sm.map, "utf8");
+        }
     } else if(tokens) {
         console.log(sweet.expand(file))
     } else {

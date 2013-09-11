@@ -37,9 +37,13 @@
                 require('escodegen'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'parser', 'syntax',
+        define(['exports',
+                'underscore',
+                'parser',
+                'syntax',
                 'es6-collections', 
-                'scopedEval', 'patterns'], factory);
+                'scopedEval',
+                'patterns'], factory);
     }
 }(this, function(exports, _, parser, syn, es6, se, patternModule, gen) {
     'use strict';
