@@ -965,7 +965,7 @@
                                          rest[0] && rest[0].token.type === parser.Token.Keyword) &&
                                         rest[1] && rest[1].token.value === "=" &&
                                         rest[2] && rest[2].token.value === "macro") => {
-                        var mac = enforest(rest.slice(2), env)
+                        var mac = enforest(rest.slice(2), env);
                         if (!mac.result.hasPrototype(AnonMacro)) {
                             throw new Error("expecting an anonymous macro definition in syntax let binding");
                         }
