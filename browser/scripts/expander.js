@@ -624,18 +624,18 @@
                 stx$356.token.range = last$355.token.range;
             }
             if (stx$356.token.type === parser$97.Token.Delimiter) {
-                stx$356.token.startLineNumber = original$354.token.lineNumber;
-                stx$356.token.endLineNumber = original$354.token.lineNumber;
-                stx$356.token.startLineStart = original$354.token.lineStart;
-                stx$356.token.endLineStart = original$354.token.lineStart;
+                stx$356.token.sm_startLineNumber = original$354.token.lineNumber;
+                stx$356.token.sm_endLineNumber = original$354.token.lineNumber;
+                stx$356.token.sm_startLineStart = original$354.token.lineStart;
+                stx$356.token.sm_endLineStart = original$354.token.lineStart;
                 if (stx$356.token.inner.length > 0) {
                     stx$356.token.inner = adjustLineContext$220(stx$356.token.inner, original$354);
                 }
                 last$355 = stx$356;
                 return stx$356;
             }
-            stx$356.token.lineNumber = original$354.token.lineNumber;
-            stx$356.token.lineStart = original$354.token.lineStart;
+            stx$356.token.sm_lineNumber = original$354.token.lineNumber;
+            stx$356.token.sm_lineStart = original$354.token.lineStart;
             last$355 = stx$356;
             return stx$356;
         });
@@ -665,7 +665,6 @@
                 var keyword$368 = head$360.keyword;
                 var keyword$368 = head$360.keyword;
                 if (head$360.hasPrototype(Expr$188) && (rest$361[0] && rest$361[0].token.type === parser$97.Token.Delimiter && rest$361[0].token.value === '()')) {
-                    // Call
                     var argRes$398, enforestedArgs$399 = [], commas$400 = [];
                     rest$361[0].expose();
                     innerTokens$362 = rest$361[0].token.inner;
@@ -674,22 +673,15 @@
                         enforestedArgs$399.push(argRes$398.result);
                         innerTokens$362 = argRes$398.rest;
                         if (innerTokens$362[0] && innerTokens$362[0].token.value === ',') {
-                            // record the comma for later
                             commas$400.push(innerTokens$362[0]);
-                            // but dump it for the next loop turn
                             innerTokens$362 = innerTokens$362.slice(1);
                         } else {
-                            // either there are no more tokens or
-                            // they aren't a comma, either way we
-                            // are done with the loop
                             break;
                         }
                     }
                     var argsAreExprs$401 = _$96.all(enforestedArgs$399, function (argTerm$402) {
                             return argTerm$402.hasPrototype(Expr$188);
                         });
-                    // only a call if we can completely enforest each argument and
-                    // each argument is an expression
                     if (innerTokens$362.length === 0 && argsAreExprs$401) {
                         return step$359(Call$210.create(head$360, enforestedArgs$399, rest$361[0], commas$400), rest$361.slice(1));
                     }
@@ -712,11 +704,7 @@
                         return step$359(Const$209.create(head$360, newCallRes$410.result), newCallRes$410.rest);
                     }
                 } else if (head$360.hasPrototype(Delimiter$202) && delim$370.token.value === '()') {
-                    // ParenExpr
                     innerTokens$362 = delim$370.token.inner;
-                    // empty parens are acceptable but enforest
-                    // doesn't accept empty arrays so short
-                    // circuit here
                     if (innerTokens$362.length === 0) {
                         return step$359(ParenExpression$195.create(head$360), rest$361);
                     } else {
@@ -752,9 +740,6 @@
                 } else if (head$360.hasPrototype(Delimiter$202) && delim$370.token.value === '[]') {
                     return step$359(ArrayLiteral$194.create(head$360), rest$361);
                 } else if (head$360.hasPrototype(Delimiter$202) && head$360.delim.token.value === '{}') {
-                    // ObjectGet
-                    // ArrayLiteral
-                    // Block
                     return step$359(Block$193.create(head$360), rest$361);
                 } else if (head$360.hasPrototype(Keyword$200) && (keyword$368.token.value === 'let' && (rest$361[0] && rest$361[0].token.type === parser$97.Token.Identifier || rest$361[0] && rest$361[0].token.type === parser$97.Token.Keyword) && rest$361[1] && rest$361[1].token.value === '=' && rest$361[2] && rest$361[2].token.value === 'macro')) {
                     var mac$416 = enforest$221(rest$361.slice(2), env$358);
@@ -1149,14 +1134,18 @@
                         value: stx$507.token.value[0],
                         range: stx$507.token.startRange,
                         lineNumber: stx$507.token.startLineNumber,
-                        lineStart: stx$507.token.startLineStart
+                        sm_lineNumber: stx$507.token.sm_startLineNumber,
+                        lineStart: stx$507.token.startLineStart,
+                        sm_lineStart: stx$507.token.sm_startLineStart
                     }, exposed$508.context);
                 var closeParen$510 = syntaxFromToken$171({
                         type: parser$97.Token.Punctuator,
                         value: stx$507.token.value[1],
                         range: stx$507.token.endRange,
                         lineNumber: stx$507.token.endLineNumber,
-                        lineStart: stx$507.token.endLineStart
+                        sm_lineNumber: stx$507.token.sm_endLineNumber,
+                        lineStart: stx$507.token.endLineStart,
+                        sm_lineStart: stx$507.token.sm_endLineStart
                     }, exposed$508.context);
                 return acc$506.concat(openParen$509).concat(flatten$230(exposed$508.token.inner)).concat(closeParen$510);
             }

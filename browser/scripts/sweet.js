@@ -80,14 +80,36 @@
     // fun (Str, {}) -> AST
     function parse$112(code$119) {
         var exp$120 = expand$111(code$119);
-        return parser$106.parse(exp$120[0], exp$120[1]);
+        var lineoffset$121 = 2;
+        for (var i$123 = 0; i$123 < stxcaseModule$108.length; i$123++) {
+            if (stxcaseModule$108[i$123] === '\n') {
+                lineoffset$121++;
+            }
+        }
+        var adjustedStx$122 = exp$120[0];
+        if (typeof lineoffset$121 !== 'undefined') {
+            var adjustedStx$122 = exp$120[0].map(function (stx$124) {
+                    stx$124.token.sm_lineNumber -= lineoffset$121;
+                    return stx$124;
+                });
+        }
+        return parser$106.parse(adjustedStx$122, exp$120[1]);
     }
     exports$105.expand = expand$111;
     exports$105.parse = parse$112;
-    exports$105.compile = function compile$113(code$121) {
-        var ast$122 = parse$112(code$121);
-        codegen$110.attachComments(ast$122, ast$122.comments, ast$122.tokens);
-        var output$123 = codegen$110.generate(ast$122, { comment: true });
-        return output$123;
+    exports$105.compileWithSourcemap = function (code$125, filename$126) {
+        var ast$127 = parse$112(code$125);
+        codegen$110.attachComments(ast$127, ast$127.comments, ast$127.tokens);
+        var code_output$128 = codegen$110.generate(ast$127, { comment: true });
+        var sourcemap$129 = codegen$110.generate(ast$127, { sourceMap: filename$126 });
+        return [
+            code_output$128,
+            sourcemap$129
+        ];
+    };
+    exports$105.compile = function compile$113(code$130) {
+        var ast$131 = parse$112(code$130);
+        codegen$110.attachComments(ast$131, ast$131.comments, ast$131.tokens);
+        return codegen$110.generate(ast$131, { comment: true });
     };
 }));

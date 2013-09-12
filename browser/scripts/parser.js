@@ -2818,8 +2818,8 @@ to decide on the correct name for identifiers.
                 ];
                 locInfo$496 = {
                     start: {
-                        line: curr$497.lineNumber,
-                        column: curr$497.lineStart
+                        line: curr$497.sm_lineNumber,
+                        column: curr$497.sm_lineStart
                     }
                 };
                 node$494 = parseFunction$489.apply(null, arguments);
@@ -2831,8 +2831,8 @@ to decide on the correct name for identifiers.
                     }
                     if (loc$488) {
                         locInfo$496.end = {
-                            line: last$498.lineNumber,
-                            column: last$498.lineStart
+                            line: last$498.sm_lineNumber,
+                            column: last$498.sm_lineStart
                         };
                         node$494.loc = locInfo$496;
                     }
