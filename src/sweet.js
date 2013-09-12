@@ -86,25 +86,46 @@
     // fun (Str, {}) -> AST
     function parse(code) {
         var exp = expand(code);
-        return parser.parse(exp[0], exp[1]);
+
+        var lineoffset = 2;
+        for (var i = 0; i < stxcaseModule.length; i++) {
+            if (stxcaseModule[i] === "\n") {
+                lineoffset++;
+            }
+        }
+        
+        var adjustedStx = exp[0];
+        if (typeof lineoffset !== 'undefined') {
+            var adjustedStx = exp[0].map(function(stx) {
+                stx.token.sm_lineNumber -= lineoffset;
+                return stx;
+            });
+        }
+        return parser.parse(adjustedStx, exp[1]);
     }
 
     exports.expand = expand;
     exports.parse = parse;
-    exports.compile = function compile(code, sm) {
+
+    exports.compileWithSourcemap = function(code, filename) {
         var ast = parse(code);
         codegen.attachComments(ast, ast.comments, ast.tokens);
-        var output = codegen.generate(ast, {
+        var code_output = codegen.generate(ast, {
             comment: true
         });
-        // todo: this is stupid...stop it
-        if (sm.map === null) {
-            var sourcemap = codegen.generate(ast, {
-                sourceMap: "original.sjs"
-            });
-            sm.map = sourcemap;
-        }
+        var sourcemap = codegen.generate(ast, {
+            sourceMap: filename
+        });
 
-        return output;
+        return [code_output, sourcemap];
+        
+    }
+
+    exports.compile = function compile(code) {
+        var ast = parse(code);
+        codegen.attachComments(ast, ast.comments, ast.tokens);
+        return codegen.generate(ast, {
+            comment: true
+        });
     }
 }));

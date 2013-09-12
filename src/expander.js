@@ -783,18 +783,18 @@
                 stx.token.range = last.token.range
             }
             if (stx.token.type === parser.Token.Delimiter) {
-                stx.token.startLineNumber = original.token.lineNumber;
-                stx.token.endLineNumber = original.token.lineNumber;
-                stx.token.startLineStart = original.token.lineStart;
-                stx.token.endLineStart = original.token.lineStart;
+                stx.token.sm_startLineNumber = original.token.lineNumber;
+                stx.token.sm_endLineNumber = original.token.lineNumber;
+                stx.token.sm_startLineStart = original.token.lineStart;
+                stx.token.sm_endLineStart = original.token.lineStart;
                 if (stx.token.inner.length > 0) {
                     stx.token.inner = adjustLineContext(stx.token.inner, original);
                 }
                 last = stx;
                 return stx;
             }
-            stx.token.lineNumber = original.token.lineNumber;
-            stx.token.lineStart = original.token.lineStart;
+            stx.token.sm_lineNumber = original.token.lineNumber;
+            stx.token.sm_lineStart = original.token.lineStart;
             last = stx;
             return stx;
         });
@@ -1496,14 +1496,18 @@
                     value: stx.token.value[0],
                     range: stx.token.startRange,
                     lineNumber: stx.token.startLineNumber,
-                    lineStart: stx.token.startLineStart
+                    sm_lineNumber: stx.token.sm_startLineNumber,
+                    lineStart: stx.token.startLineStart,
+                    sm_lineStart: stx.token.sm_startLineStart
                 }, exposed.context);
                 var closeParen = syntaxFromToken({
                     type: parser.Token.Punctuator,
                     value: stx.token.value[1],
                     range: stx.token.endRange,
                     lineNumber: stx.token.endLineNumber,
-                    lineStart: stx.token.endLineStart
+                    sm_lineNumber: stx.token.sm_endLineNumber,
+                    lineStart: stx.token.endLineStart,
+                    sm_lineStart: stx.token.sm_endLineStart
                 }, exposed.context);
 
 

@@ -13,9 +13,6 @@ var argv = require("optimist")
     .boolean('watch')
     .alias('t', 'tokens')
     .describe('t', 'just emit the expanded tokens without parsing an AST')
-    .alias('i', 'import')
-    .describe('i', 'uses the module loading path')
-    .boolean('import')
     .alias('s', 'stdin')
     .describe('s', 'read from stdin')
     .boolean('stdin')
@@ -43,19 +40,15 @@ exports.run = function() {
 
 
     var module = argv.module;
-    var imp = argv.import;
     var modulefile;
 
-    if(imp) {
-        sweet.module(infile);
-    }
 
     if(module) {
         modulefile = fs.readFileSync(module, "utf8");
         file = modulefile + "\n" + file;
     }
     
-	if (watch && outfile){
+	if (watch && outfile) {
 		fs.watch(infile, function(){
 			file = fs.readFileSync(infile, "utf8");
 			try {
@@ -65,10 +58,13 @@ exports.run = function() {
 			}
 		});
 	} else if(outfile) {
-        var sm = {map: null}
-        fs.writeFileSync(outfile, sweet.compile(file, sm), "utf8");
         if (sourcemap) {
-            fs.writeFileSync("source_map.js", sm.map, "utf8");
+            var result = sweet.compileWithSourcemap(file, infile);
+            var mapfile = outfile + ".map";
+            fs.writeFileSync(outfile, result[0] + "\n//# sourceMappingURL=" + mapfile, "utf8");
+            fs.writeFileSync(mapfile, result[1], "utf8");
+        } else {
+            fs.writeFileSync(outfile, sweet.compile(file), "utf8");
         }
     } else if(tokens) {
         console.log(sweet.expand(file))
