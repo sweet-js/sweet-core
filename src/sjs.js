@@ -1,4 +1,5 @@
 var fs = require("fs");
+var path = require("path");
 
 var sweet = require("./sweet.js");
 
@@ -18,7 +19,7 @@ var argv = require("optimist")
     .boolean('stdin')
     .alias('c', 'sourcemap')
     .describe('c', 'generate a sourcemap')
-    .boolean('sourcemap')
+    .boolean("sourcemap")
     .argv;
 
 exports.run = function() {
@@ -60,9 +61,9 @@ exports.run = function() {
 	} else if(outfile) {
         if (sourcemap) {
             var result = sweet.compileWithSourcemap(file, infile);
-            var mapfile = outfile + ".map";
+            var mapfile = path.basename(outfile) + ".map";
             fs.writeFileSync(outfile, result[0] + "\n//# sourceMappingURL=" + mapfile, "utf8");
-            fs.writeFileSync(mapfile, result[1], "utf8");
+            fs.writeFileSync(outfile + ".map", result[1], "utf8");
         } else {
             fs.writeFileSync(outfile, sweet.compile(file), "utf8");
         }

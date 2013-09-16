@@ -93,11 +93,13 @@
                 lineoffset++;
             }
         }
+        var linestartoffset = stxcaseModule.length + 2;
         
         var adjustedStx = exp[0];
         if (typeof lineoffset !== 'undefined') {
             var adjustedStx = exp[0].map(function(stx) {
                 stx.token.sm_lineNumber -= lineoffset;
+                stx.token.sm_lineStart -= linestartoffset;
                 return stx;
             });
         }

@@ -56,7 +56,7 @@ function build() {
 
         exec("bin/sjs " +
              "--output " + "build/lib/" + path.basename(file) +
-             " " + file);
+             " " + file + " --sourcemap scripts");
     });
 }
 
@@ -102,7 +102,9 @@ target.build_browser = function() {
     echo("\nbuilding browser tests...");
 
     cp("-f", "build/lib/*.js", "browser/scripts");
+    cp("-f", "build/lib/*.map", "browser/scripts");
     cp("-f", "macros/*", "browser/scripts");
+    cp("-f", "src/*.js", "browser/scripts/src");
 };
 
 target.test = function() {

@@ -1496,26 +1496,38 @@
                     value: stx.token.value[0],
                     range: stx.token.startRange,
                     lineNumber: stx.token.startLineNumber,
-                    sm_lineNumber: stx.token.sm_startLineNumber,
+                    sm_lineNumber: (stx.token.sm_startLineNumber 
+                                    ? stx.token.sm_startLineNumber
+                                    : stx.token.startLineNumber),
                     lineStart: stx.token.startLineStart,
-                    sm_lineStart: stx.token.sm_startLineStart
+                    sm_lineStart: (stx.token.sm_startLineStart 
+                                   ? stx.token.sm_startLineStart
+                                   : stx.token.startLineStart)
                 }, exposed.context);
                 var closeParen = syntaxFromToken({
                     type: parser.Token.Punctuator,
                     value: stx.token.value[1],
                     range: stx.token.endRange,
                     lineNumber: stx.token.endLineNumber,
-                    sm_lineNumber: stx.token.sm_endLineNumber,
+                    sm_lineNumber: (stx.token.sm_endLineNumber
+                                    ? stx.token.sm_endLineNumber
+                                    : stx.token.endLineNumber),
                     lineStart: stx.token.endLineStart,
-                    sm_lineStart: stx.token.sm_endLineStart
+                    sm_lineStart: (stx.token.sm_endLineStart
+                                    ? stx.token.sm_endLineStart
+                                    : stx.token.endLineStart)
                 }, exposed.context);
-
-
                 return acc
                     .concat(openParen)
                     .concat(flatten(exposed.token.inner))
                     .concat(closeParen);
             }
+            stx.token.sm_lineNumber = stx.token.sm_lineNumber 
+                                    ? stx.token.sm_lineNumber 
+                                    : stx.token.lineNumber;
+            stx.token.sm_lineStart = stx.token.sm_lineStart 
+                                    ? stx.token.sm_lineStart 
+                                    : stx.token.lineStart;
             return acc.concat(stx);
         }, []);
     }
