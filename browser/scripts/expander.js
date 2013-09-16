@@ -1,33 +1,8 @@
-/*
-  Copyright (C) 2012 Tim Disney <tim@disnet.me>
-
-  
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-  ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 (function (root$93, factory$94) {
     if (typeof exports === 'object') {
         // CommonJS
         factory$94(exports, require('underscore'), require('./parser'), require('./syntax'), require('es6-collections'), require('./scopedEval'), require('./patterns'), require('escodegen'));
     } else if (typeof define === 'function' && define.amd) {
-        // AMD. Register as an anonymous module.
         define([
             'exports',
             'underscore',
@@ -136,7 +111,6 @@
         }
         return arr$254;
     }
-    // (Syntax) -> String
     function resolveCtx$179(originalName$257, ctx$258, stop_spine$259, stop_branch$260) {
         if (isMark$169(ctx$258)) {
             return resolveCtx$179(originalName$257, ctx$258.context, stop_spine$259, stop_branch$260);
@@ -182,8 +156,6 @@
             return acc$267.concat(mkSyntax$172(punc$266, parser$97.Token.Punctuator, join$268), join$268);
         }, [_$96.first(tojoin$265)]);
     }
-    // wraps the array of syntax objects in the delimiters given by the second argument
-    // ([...CSyntax], CSyntax) -> [...CSyntax]
     function wrapDelim$183(towrap$269, delimSyntax$270) {
         parser$97.assert(delimSyntax$270.token.type === parser$97.Token.Delimiter, 'expecting a delimiter token');
         return syntaxFromToken$171({
@@ -640,8 +612,6 @@
             return stx$356;
         });
     }
-    // enforest the tokens, returns an object with the `result` TermTree and
-    // the uninterpreted `rest` of the syntax
     function enforest$221(toks$357, env$358) {
         env$358 = env$358 || new Map();
         parser$97.assert(toks$357.length > 0, 'enforest assumes there are tokens to work with');
@@ -649,7 +619,6 @@
             var innerTokens$362;
             parser$97.assert(Array.isArray(rest$361), 'result must at least be an empty array');
             if (head$360.hasPrototype(TermTree$185)) {
-                // function call
                 var emp$365 = head$360.emp;
                 var emp$365 = head$360.emp;
                 var keyword$368 = head$360.keyword;
@@ -808,7 +777,6 @@
                     parser$97.assert(false, 'not implemented');
                 }
             }
-            // we're done stepping
             return {
                 result: head$360,
                 rest: rest$361
@@ -999,9 +967,6 @@
             }
         });
     }
-    // similar to `parse2` in the honu paper except here we
-    // don't generate an AST yet
-    // (TermTree, Map, Map) -> TermTree
     function expandTermTreeToFinal$227(term$470, env$471, defscope$472, templateMap$473) {
         parser$97.assert(env$471, 'environment map is required');
         if (term$470.hasPrototype(ArrayLiteral$194)) {
@@ -1134,21 +1099,23 @@
                         value: stx$507.token.value[0],
                         range: stx$507.token.startRange,
                         lineNumber: stx$507.token.startLineNumber,
-                        sm_lineNumber: stx$507.token.sm_startLineNumber,
+                        sm_lineNumber: stx$507.token.sm_startLineNumber ? stx$507.token.sm_startLineNumber : stx$507.token.startLineNumber,
                         lineStart: stx$507.token.startLineStart,
-                        sm_lineStart: stx$507.token.sm_startLineStart
+                        sm_lineStart: stx$507.token.sm_startLineStart ? stx$507.token.sm_startLineStart : stx$507.token.startLineStart
                     }, exposed$508.context);
                 var closeParen$510 = syntaxFromToken$171({
                         type: parser$97.Token.Punctuator,
                         value: stx$507.token.value[1],
                         range: stx$507.token.endRange,
                         lineNumber: stx$507.token.endLineNumber,
-                        sm_lineNumber: stx$507.token.sm_endLineNumber,
+                        sm_lineNumber: stx$507.token.sm_endLineNumber ? stx$507.token.sm_endLineNumber : stx$507.token.endLineNumber,
                         lineStart: stx$507.token.endLineStart,
-                        sm_lineStart: stx$507.token.sm_endLineStart
+                        sm_lineStart: stx$507.token.sm_endLineStart ? stx$507.token.sm_endLineStart : stx$507.token.endLineStart
                     }, exposed$508.context);
                 return acc$506.concat(openParen$509).concat(flatten$230(exposed$508.token.inner)).concat(closeParen$510);
             }
+            stx$507.token.sm_lineNumber = stx$507.token.sm_lineNumber ? stx$507.token.sm_lineNumber : stx$507.token.lineNumber;
+            stx$507.token.sm_lineStart = stx$507.token.sm_lineStart ? stx$507.token.sm_lineStart : stx$507.token.lineStart;
             return acc$506.concat(stx$507);
         }, []);
     }

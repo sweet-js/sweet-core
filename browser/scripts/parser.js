@@ -3104,9 +3104,6 @@ to decide on the correct name for identifiers.
             return true;
         }
     }
-    // Read the next token. Takes the previously read tokens, a
-    // boolean indicating if the parent delimiter is () or [], and a
-    // boolean indicating if the parent delimiter is {} a block
     function readToken$224(toks$515, inExprDelim$516, parentIsBlock$517) {
         var delimiters$518 = [
                 '(',
