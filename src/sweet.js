@@ -94,16 +94,23 @@
             }
         }
         var linestartoffset = stxcaseModule.length + 2;
-        
         var adjustedStx = exp[0];
+        var adjustedComments = exp[1];
         if (typeof lineoffset !== 'undefined') {
-            var adjustedStx = exp[0].map(function(stx) {
+            adjustedStx = exp[0].map(function(stx) {
                 stx.token.sm_lineNumber -= lineoffset;
                 stx.token.sm_lineStart -= linestartoffset;
+                stx.token.range[0] -= linestartoffset;
+                stx.token.range[1] -= linestartoffset;
                 return stx;
             });
+            adjustedComments = exp[1].map(function(tok) {
+                tok.range[0] -= linestartoffset;
+                tok.range[1] -= linestartoffset;
+                return tok;
+            }) 
         }
-        return parser.parse(adjustedStx, exp[1]);
+        return parser.parse(adjustedStx, adjustedComments);
     }
 
     exports.expand = expand;
