@@ -56,8 +56,10 @@ function build() {
 
         exec("bin/sjs " +
              "--output " + "build/lib/" + path.basename(file) +
-             " " + file + " --sourcemap scripts");
+             " " + file);
+             // " " + file + " --sourcemap scripts");
     });
+
 }
 
 target.build = function() {
@@ -105,6 +107,11 @@ target.build_browser = function() {
     cp("-f", "build/lib/*.map", "browser/scripts");
     cp("-f", "macros/*", "browser/scripts");
     cp("-f", "src/*.js", "browser/scripts/src");
+
+
+    // hacking in test.js for sourcemap
+    exec("bin/sjs --output browser/test_out.js test.js --sourcemap true");
+    cp("-f", "test.js", "browser/test.js");
 };
 
 target.test = function() {
