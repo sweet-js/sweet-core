@@ -15,10 +15,12 @@ node_modules
 npm-debug.log
 
 build/
-browser/test_bundled.js
+browser/scripts/src
 .DS_Store
 
 *.sublime-*
+
+*.map
 
 test.js
 _site

@@ -80,7 +80,7 @@
         source = stxcaseModule + "\n\n" + source;
 
         var readTree = parser.read(source);
-        return [expander.expand(readTree[0]), readTree[1]];
+        return [expander.expand(readTree[0], stxcaseModule), readTree[1]];
     }
 
     // fun (Str, {}) -> AST

@@ -679,6 +679,14 @@
         }
     });
 
+    var Module = TermTree.extend({
+        properties: ["body"],
+
+        construct: function(body) {
+            this.body = body;
+        }
+    });
+
     var Empty = TermTree.extend({
         properties: [],
         construct: function() {}
@@ -1025,6 +1033,10 @@
 
                     return step(Macro.create(rest[0], rest[1].expose().token.inner),
                                 rest.slice(2));
+                // module definition
+                } else if (head.token.value === "module" && 
+                            rest[0] && rest[0].token.value === "{}") {
+                    return step(Module.create(rest[0]), rest.slice(1));
                 // function definition
                 } else if (head.token.type === parser.Token.Keyword &&
                     head.token.value === "function" &&
@@ -1399,12 +1411,18 @@
             return term;
         } else if (term.hasPrototype(NamedFun) ||
                    term.hasPrototype(AnonFun) ||
-                   term.hasPrototype(CatchClause)) {
+                   term.hasPrototype(CatchClause) ||
+                   term.hasPrototype(Module)) {
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
             var newDef = [];
 
-            var params = term.params.addDefCtx(newDef);
+            if (term.params) {
+                var params = term.params.addDefCtx(newDef);
+            } else {
+                var params = syn.makeDelim("()", [], null);
+            }
+
             var bodies = term.body.addDefCtx(newDef);
 
             var paramNames = _.map(getParamIdentifiers(params), function(param) {
@@ -1462,28 +1480,19 @@
     }
 
     // a hack to make the top level hygiene work out
-    function expandTopLevel (stx) {
-        var funn = syntaxFromToken({
-            value: "function",
-            type: parser.Token.Keyword
-        });
-        var params = syntaxFromToken({
-            value: "()",
-            type: parser.Token.Delimiter,
-            inner: []
-        });
-        var body = syntaxFromToken({
-            value:  "{}",
-            type: parser.Token.Delimiter,
-            inner: stx
-        });
+    function expandTopLevel (stx, builtinSource) {
+        if (builtinSource) {
+            var builtinRead = parser.read(builtinSource)[0];
 
-        var res = expand([funn, params, body]);
-        // drop the { and }
-        res = flatten([res[0].body]);
-        return _.map(res.slice(1, res.length - 1), function(stx) {
-            return stx;
-        });
+            builtinRead = [syn.makeIdent("module", null),
+                            syn.makeDelim("{}", builtinRead, null)];
+
+            var builtinRes = expand(builtinRead);
+        }
+
+        var res = expand([syn.makeIdent("module", null), 
+                            syn.makeDelim("{}", stx)]);
+        return flatten(res[0].body.token.inner);
     }
 
     // break delimiter tree structure down to flat array of syntax objects
@@ -1544,4 +1553,3 @@
     exports.tokensToSyntax = syn.tokensToSyntax;
     exports.syntaxToTokens = syn.syntaxToTokens;
 }));
-
