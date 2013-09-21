@@ -36,7 +36,7 @@
 
         var stxcaseModule = fs.readFileSync(lib + "/stxcase.js", 'utf8');
 
-        factory(exports, parser, expander, codegen, stxcaseModule);
+        factory(exports, parser, expander, stxcaseModule, codegen);
 
         // Alow require('./example') for an example.sjs file.
         require.extensions['.sjs'] = function(module, filename) {
@@ -45,12 +45,13 @@
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', './parser', './expander', './escodegen', 'text!./stxcase.js'], factory);
+        define(['exports', './parser', './expander', 'text!./stxcase.js'], factory);
     }
-}(this, function (exports, parser, expander, codegen, stxcaseModule) {
+}(this, function (exports, parser, expander, stxcaseModule, gen) {
+    var codegen = gen || escodegen;
 
-    // fun (Str, {}) -> [...CSyntax]
-    function expand(code, options) {
+    // fun (Str) -> [...CSyntax]
+    function expand(code) {
         var program, toString;
 
         toString = String;
@@ -79,17 +80,61 @@
         source = stxcaseModule + "\n\n" + source;
 
         var readTree = parser.read(source);
-        return expander.expand(readTree);
+        return [expander.expand(readTree[0], stxcaseModule), readTree[1]];
     }
 
     // fun (Str, {}) -> AST
-    function parse(code, options) {
-        return parser.parse(expand(code, options));
+    function parse(code) {
+        var exp = expand(code);
+
+        var lineoffset = 2;
+        for (var i = 0; i < stxcaseModule.length; i++) {
+            if (stxcaseModule[i] === "\n") {
+                lineoffset++;
+            }
+        }
+        var linestartoffset = stxcaseModule.length + 2;
+        var adjustedStx = exp[0];
+        var adjustedComments = exp[1];
+        if (typeof lineoffset !== 'undefined') {
+            adjustedStx = exp[0].map(function(stx) {
+                stx.token.sm_lineNumber -= lineoffset;
+                stx.token.sm_lineStart -= linestartoffset;
+                stx.token.range[0] -= linestartoffset;
+                stx.token.range[1] -= linestartoffset;
+                return stx;
+            });
+            adjustedComments = exp[1].map(function(tok) {
+                tok.range[0] -= linestartoffset;
+                tok.range[1] -= linestartoffset;
+                return tok;
+            }) 
+        }
+        return parser.parse(adjustedStx, adjustedComments);
     }
 
     exports.expand = expand;
     exports.parse = parse;
-    exports.compile = function compile(code, options) {
-      return codegen.generate(parse(code, options));
+
+    exports.compileWithSourcemap = function(code, filename) {
+        var ast = parse(code);
+        codegen.attachComments(ast, ast.comments, ast.tokens);
+        var code_output = codegen.generate(ast, {
+            comment: true
+        });
+        var sourcemap = codegen.generate(ast, {
+            sourceMap: filename
+        });
+
+        return [code_output, sourcemap];
+        
+    }
+
+    exports.compile = function compile(code) {
+        var ast = parse(code);
+        codegen.attachComments(ast, ast.comments, ast.tokens);
+        return codegen.generate(ast, {
+            comment: true
+        });
     }
 }));

@@ -99,35 +99,38 @@
         }, _.first(tojoin).match);
     }
     
-    // take the line context (not lexical...um should clarify this a bit)
+    // take the line context (range, lineNumber)
     // (CSyntax, [...CSyntax]) -> [...CSyntax]
     function takeLineContext(from, to) {
-        // todo could be nicer about the line numbers...currently just
-        // taking from the macro name but could also do offset
         return _.map(to, function(stx) {
-            if (stx.token.type === parser.Token.Delimiter) {
-                var next = syntaxFromToken({
-                    type: parser.Token.Delimiter,
-                    value: stx.token.value,
-                    inner: stx.token.inner,
-                    startRange: from.range,
-                    endRange: from.range,
-                    startLineNumber: from.token.lineNumber,
-                    startLineStart: from.token.lineStart,
-                    endLineNumber: from.token.lineNumber,
-                    endLineStart: from.token.lineStart
-                }, stx.context);
-                next.deferredContext = stx.deferredContext;
-                return next;
-            }
-            return syntaxFromToken({
-                    value: stx.token.value,
-                    type: stx.token.type,
-                    lineNumber: from.token.lineNumber,
-                    lineStart: from.token.lineStart,
-                    range: from.token.range
-                }, stx.context);
+            return takeLine(from, stx);
         });
+    }
+
+    // (CSyntax, CSyntax) -> CSyntax
+    function takeLine(from, to) {
+        if (to.token.type === parser.Token.Delimiter) {
+            var next = syntaxFromToken({
+                type: parser.Token.Delimiter,
+                value: to.token.value,
+                inner: to.token.inner,
+                startRange: from.token.range,
+                endRange: from.token.range,
+                startLineNumber: from.token.lineNumber,
+                startLineStart: from.token.lineStart,
+                endLineNumber: from.token.lineNumber,
+                endLineStart: from.token.lineStart
+            }, to.context);
+            next.deferredContext = to.deferredContext;
+            return next;
+        }
+        return syntaxFromToken({
+            value: to.token.value,
+            type: to.token.type,
+            lineNumber: from.token.lineNumber,
+            lineStart: from.token.lineStart,
+            range: from.token.range
+        }, to.context);
     }
 
     function loadPattern(patterns) {
@@ -634,4 +637,5 @@
     exports.transcribe = transcribe;
     exports.matchPatternClass = matchPatternClass;
     exports.takeLineContext = takeLineContext;
+    exports.takeLine = takeLine;
 }))

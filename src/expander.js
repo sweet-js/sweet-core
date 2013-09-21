@@ -27,19 +27,27 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require('./parser'),
-                require('./syntax'), require("es6-collections"),
-                require('escodegen'), 
+        factory(exports,
+                require('underscore'),
+                require('./parser'),
+                require('./syntax'),
+                require("es6-collections"),
                 require('./scopedEval'),
-                require("./patterns"));
+                require("./patterns"),
+                require('escodegen'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'parser', 'syntax',
-                'es6-collections', 'escodegen', 
-                'scopedEval', 'patterns'], factory);
+        define(['exports',
+                'underscore',
+                'parser',
+                'syntax',
+                'es6-collections', 
+                'scopedEval',
+                'patterns'], factory);
     }
-}(this, function(exports, _, parser, syn, es6, codegen, se, patternModule) {
+}(this, function(exports, _, parser, syn, es6, se, patternModule, gen) {
     'use strict';
+    var codegen = gen || escodegen;
 
     macro _get_vars {
 	    case {_ $val { } } => { return #{} }
@@ -671,6 +679,14 @@
         }
     });
 
+    var Module = TermTree.extend({
+        properties: ["body"],
+
+        construct: function(body) {
+            this.body = body;
+        }
+    });
+
     var Empty = TermTree.extend({
         properties: [],
         construct: function() {}
@@ -766,6 +782,30 @@
             result: decls,
             rest: rest
         };
+    }
+
+    function adjustLineContext (stx, original) {
+        var last = stx[0] && typeof stx[0].token.range == "undefined" ? original : stx[0];
+        return _.map(stx, function(stx) {
+            if (typeof stx.token.range == "undefined") {
+                stx.token.range = last.token.range
+            }
+            if (stx.token.type === parser.Token.Delimiter) {
+                stx.token.sm_startLineNumber = original.token.lineNumber;
+                stx.token.sm_endLineNumber = original.token.lineNumber;
+                stx.token.sm_startLineStart = original.token.lineStart;
+                stx.token.sm_endLineStart = original.token.lineStart;
+                if (stx.token.inner.length > 0) {
+                    stx.token.inner = adjustLineContext(stx.token.inner, original);
+                }
+                last = stx;
+                return stx;
+            }
+            stx.token.sm_lineNumber = original.token.lineNumber;
+            stx.token.sm_lineStart = original.token.lineStart;
+            last = stx;
+            return stx;
+        });
     }
 
     // enforest the tokens, returns an object with the `result` TermTree and
@@ -937,7 +977,7 @@
                                          rest[0] && rest[0].token.type === parser.Token.Keyword) &&
                                         rest[1] && rest[1].token.value === "=" &&
                                         rest[2] && rest[2].token.value === "macro") => {
-                        var mac = enforest(rest.slice(2), env)
+                        var mac = enforest(rest.slice(2), env);
                         if (!mac.result.hasPrototype(AnonMacro)) {
                             throw new Error("expecting an anonymous macro definition in syntax let binding");
                         }
@@ -971,7 +1011,8 @@
                                    + rt.result);
                     }
                     if(rt.result.length > 0) {
-                        return step(rt.result[0], rt.result.slice(1).concat(rt.rest));
+                        var adjustedResult = adjustLineContext(rt.result, head);
+                        return step(adjustedResult[0], adjustedResult.slice(1).concat(rt.rest));
                     } else {
                         return step(Empty.create(), rt.rest);
                     } 
@@ -992,6 +1033,10 @@
 
                     return step(Macro.create(rest[0], rest[1].expose().token.inner),
                                 rest.slice(2));
+                // module definition
+                } else if (head.token.value === "module" && 
+                            rest[0] && rest[0].token.value === "{}") {
+                    return step(Module.create(rest[0]), rest.slice(1));
                 // function definition
                 } else if (head.token.type === parser.Token.Keyword &&
                     head.token.value === "function" &&
@@ -1137,7 +1182,7 @@
             throwError("Primitive macro form must contain a function for the macro body");
         }
 
-        var stub = parser.read("()");
+        var stub = parser.read("()")[0];
         stub[0].token.inner = body;
         var expanded = expand(stub, env, defscope, templateMap);
         expanded = expanded[0].destruct().concat(expanded[1].eof);
@@ -1226,7 +1271,7 @@
             var tempId = fresh();
             templateMap.set(tempId, rest[0].token.inner);
             return expandToTermTree([syn.makeIdent("getTemplate", head.id),
-                                     syn.makeDelim("()", [syn.makeValue(tempId, head.id)])].concat(rest.slice(1)),
+                                     syn.makeDelim("()", [syn.makeValue(tempId, head.id)], head.id)].concat(rest.slice(1)),
                                     env, defscope, templateMap);
         }
 
@@ -1366,12 +1411,18 @@
             return term;
         } else if (term.hasPrototype(NamedFun) ||
                    term.hasPrototype(AnonFun) ||
-                   term.hasPrototype(CatchClause)) {
+                   term.hasPrototype(CatchClause) ||
+                   term.hasPrototype(Module)) {
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
             var newDef = [];
 
-            var params = term.params.addDefCtx(newDef);
+            if (term.params) {
+                var params = term.params.addDefCtx(newDef);
+            } else {
+                var params = syn.makeDelim("()", [], null);
+            }
+
             var bodies = term.body.addDefCtx(newDef);
 
             var paramNames = _.map(getParamIdentifiers(params), function(param) {
@@ -1396,7 +1447,8 @@
 
 
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam; });
-            var flatArgs = wrapDelim(joinSyntax(renamedParams, ","), term.params);
+            var flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","), term.params);
+
             var expandedArgs = expand([flatArgs], env, newDef, templateMap);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the function with all the renamings
@@ -1428,28 +1480,19 @@
     }
 
     // a hack to make the top level hygiene work out
-    function expandTopLevel (stx) {
-        var funn = syntaxFromToken({
-            value: "function",
-            type: parser.Token.Keyword
-        });
-        var params = syntaxFromToken({
-            value: "()",
-            type: parser.Token.Delimiter,
-            inner: []
-        });
-        var body = syntaxFromToken({
-            value:  "{}",
-            type: parser.Token.Delimiter,
-            inner: stx
-        });
+    function expandTopLevel (stx, builtinSource) {
+        if (builtinSource) {
+            var builtinRead = parser.read(builtinSource)[0];
 
-        var res = expand([funn, params, body]);
-        // drop the { and }
-        res = flatten([res[0].body]);
-        return _.map(res.slice(1, res.length - 1), function(stx) {
-            return stx;
-        });
+            builtinRead = [syn.makeIdent("module", null),
+                            syn.makeDelim("{}", builtinRead, null)];
+
+            var builtinRes = expand(builtinRead);
+        }
+
+        var res = expand([syn.makeIdent("module", null), 
+                            syn.makeDelim("{}", stx)]);
+        return flatten(res[0].body.token.inner);
     }
 
     // break delimiter tree structure down to flat array of syntax objects
@@ -1462,22 +1505,38 @@
                     value: stx.token.value[0],
                     range: stx.token.startRange,
                     lineNumber: stx.token.startLineNumber,
-                    lineStart: stx.token.startLineStart
+                    sm_lineNumber: (stx.token.sm_startLineNumber 
+                                    ? stx.token.sm_startLineNumber
+                                    : stx.token.startLineNumber),
+                    lineStart: stx.token.startLineStart,
+                    sm_lineStart: (stx.token.sm_startLineStart 
+                                   ? stx.token.sm_startLineStart
+                                   : stx.token.startLineStart)
                 }, exposed.context);
                 var closeParen = syntaxFromToken({
                     type: parser.Token.Punctuator,
                     value: stx.token.value[1],
                     range: stx.token.endRange,
                     lineNumber: stx.token.endLineNumber,
-                    lineStart: stx.token.endLineStart
+                    sm_lineNumber: (stx.token.sm_endLineNumber
+                                    ? stx.token.sm_endLineNumber
+                                    : stx.token.endLineNumber),
+                    lineStart: stx.token.endLineStart,
+                    sm_lineStart: (stx.token.sm_endLineStart
+                                    ? stx.token.sm_endLineStart
+                                    : stx.token.endLineStart)
                 }, exposed.context);
-
-
                 return acc
                     .concat(openParen)
                     .concat(flatten(exposed.token.inner))
                     .concat(closeParen);
             }
+            stx.token.sm_lineNumber = stx.token.sm_lineNumber 
+                                    ? stx.token.sm_lineNumber 
+                                    : stx.token.lineNumber;
+            stx.token.sm_lineStart = stx.token.sm_lineStart 
+                                    ? stx.token.sm_lineStart 
+                                    : stx.token.lineStart;
             return acc.concat(stx);
         }, []);
     }
@@ -1492,5 +1551,5 @@
     exports.VariableStatement = VariableStatement;
 
     exports.tokensToSyntax = syn.tokensToSyntax;
+    exports.syntaxToTokens = syn.syntaxToTokens;
 }));
-

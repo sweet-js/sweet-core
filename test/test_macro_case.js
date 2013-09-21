@@ -24,7 +24,7 @@ $describe "procedural (syntax-case) macros" {
 	$it "should make a literal syntax object" {
 		macro m {
 			case { _ () } => {
-                return [makeValue (42, null)];
+                return [makeValue (42, #{here})];
 			}
 		}
 		expect(m()).to.be(42);
@@ -71,7 +71,7 @@ $describe "procedural (syntax-case) macros" {
     $it "should support withSyntax" {
         macro m {
             case {_ $x } => {
-                return withSyntax($y = [makeValue(42, null)]) {
+                return withSyntax($y = [makeValue(42, #{here})]) {
                     return #{
                         $x + $y
                     }
@@ -84,8 +84,8 @@ $describe "procedural (syntax-case) macros" {
     $it "should support withSyntax with multiple patterns" {
         macro m {
             case {_ $x } => {
-                return withSyntax($y = [makeValue(10, null)], 
-                                  $z = [makeValue(20, null)]) {
+                return withSyntax($y = [makeValue(10, #{here})], 
+                                  $z = [makeValue(20, #{here})]) {
                     return #{$x + $y + $z}
                 }
             }

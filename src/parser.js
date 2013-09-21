@@ -1538,7 +1538,7 @@ to decide on the correct name for identifiers.
             type = token.type;
 
         if (type === Token.Identifier) {
-            var name = (extra.noresolve) ? lex().token.value : expander.resolve(lex());
+            var name = expander.resolve(lex());
             return {
                 type: Syntax.Identifier,
                 name: name
@@ -2179,10 +2179,7 @@ to decide on the correct name for identifiers.
         if (token.type !== Token.Identifier) {
             throwUnexpected(token);
         }
-        // note we are intentionally leaving the name as a
-        // syntax object under the noresolve flag, helps with
-        // finding variable idents in the expander
-        var name = (extra.noresolve) ? stx : expander.resolve(stx);
+        var name = expander.resolve(stx);
         return {
             type: Syntax.Identifier,
             name: name
@@ -3383,8 +3380,8 @@ to decide on the correct name for identifiers.
                 rangeInfo = [curr.range[0], 0];
                 locInfo = {
                     start: {
-                        line: curr.lineNumber,
-                        column: curr.lineStart
+                        line: curr.sm_lineNumber,
+                        column: curr.sm_lineStart
                     }
                 };
 
@@ -3399,8 +3396,8 @@ to decide on the correct name for identifiers.
 
                     if (loc) {
                         locInfo.end = {
-                            line: last.lineNumber,
-                            column: last.lineStart
+                            line: last.sm_lineNumber,
+                            column: last.sm_lineStart
                         };
                         node.loc = locInfo;
                     }
@@ -3802,6 +3799,10 @@ to decide on the correct name for identifiers.
     function read(code) {
         var token, tokenTree = [];
         
+        extra = {};
+        extra.comments = [];
+        patch();
+
         source = code;
         index = 0;
         lineNumber = (source.length > 0) ? 1 : 0;
@@ -3832,16 +3833,15 @@ to decide on the correct name for identifiers.
             });
         }
         
-        return expander.tokensToSyntax(tokenTree);
+        return [expander.tokensToSyntax(tokenTree), extra.comments];
     }
     
 
     // (SyntaxObject, Str, {}) -> SyntaxObject
-    function parse(code, nodeType, options) {
+    function parse(code, comments) {
         var program, toString;
 
         tokenStream = code;
-        nodeType = nodeType || "base";
         index = 0;
         length = tokenStream.length;
         buffer = null;
@@ -3854,86 +3854,12 @@ to decide on the correct name for identifiers.
             inSwitch: false
         };
 
-        extra = {};
-        if (typeof options !== 'undefined') {
-            if(options.range || options.loc) {
-                assert(false, "Note range and loc is not currently implemented");
-            }
-            extra.range = (typeof options.range === 'boolean') && options.range;
-            extra.loc = (typeof options.loc === 'boolean') && options.loc;
-            extra.raw = (typeof options.raw === 'boolean') && options.raw;
-            if (typeof options.tokens === 'boolean' && options.tokens) {
-                extra.tokens = [];
-            }
-            if (typeof options.comment === 'boolean' && options.comment) {
-                extra.comments = [];
-            }
-            if (typeof options.tolerant === 'boolean' && options.tolerant) {
-                extra.errors = [];
-            }
-            if(typeof options.noresolve === 'boolean' && options.noresolve) {
-                extra.noresolve = options.noresolve
-            } else {
-                extra.noresolve = false;
-            }
-        }
-        
+        extra = {range: true, loc: true}
         patch();
         try {
-            var classToParse = {
-                "base": parseProgram,
-                "Program": parseProgram,
-                "expr": parseAssignmentExpression,
-                "ident": parsePrimaryExpression,
-                "lit": parsePrimaryExpression,
-                "LogicalANDExpression": parseLogicalANDExpression,
-                "PrimaryExpression": parsePrimaryExpression,
-                "VariableDeclarationList": parseVariableDeclarationList,
-                "StatementList": parseStatementList,
-                "SourceElements": function() {
-                    // hack, otherwise fails on return statements
-                    // might need to do other places too
-                    state.inFunctionBody = true;
-                    return parseSourceElements();
-                },
-                "FunctionDeclaration": parseFunctionDeclaration,
-                "FunctionExpression": parseFunctionExpression,
-                "ExpressionStatement": parseExpressionStatement,
-                "IfStatement": parseIfStatement,
-                "BreakStatement": parseBreakStatement,
-                "ContinueStatement": parseContinueStatement,
-                "WithStatement": parseWithStatement,
-                "SwitchStatement": parseSwitchStatement,
-                "ReturnStatement": parseReturnStatement,
-                "ThrowStatement": parseThrowStatement,
-                "TryStatement": parseTryStatement,
-                "WhileStatement": parseWhileStatement,
-                "ForStatement": parseForStatement,
-                "VariableDeclaration": parseVariableDeclaration,
-                "ArrayExpression": parseArrayInitialiser,
-                "ObjectExpression": parseObjectInitialiser,
-                "SequenceExpression": parseExpression,
-                "AssignmentExpression": parseAssignmentExpression,
-                "ConditionalExpression": parseConditionalExpression,
-                "NewExpression": parseNewExpression,
-                "CallExpression": parseLeftHandSideExpressionAllowCall,
-                "Block": parseBlock
-            }
-            if(classToParse[nodeType]) {
-                program = classToParse[nodeType]();
-            } else {
-                assert(false, "unmatched parse class" + nodeType);
-            }
-
-            if (typeof extra.comments !== 'undefined') {
-                program.comments = extra.comments;
-            }
-            if (typeof extra.tokens !== 'undefined') {
-                program.tokens = tokenStream.slice(0, index);
-            }
-            if (typeof extra.errors !== 'undefined') {
-                program.errors = extra.errors;
-            }
+            program = parseProgram();
+            program.comments = comments;
+            program.tokens = expander.syntaxToTokens(code);
         } catch (e) {
             throw e;
         } finally {
@@ -3944,9 +3870,6 @@ to decide on the correct name for identifiers.
         return program;
     }
     
-
-    // Sync with package.json.
-    // exports.version = '1.0.0-dev';
 
     exports.parse = parse;
     exports.read = read;

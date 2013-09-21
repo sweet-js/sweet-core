@@ -34,7 +34,7 @@ $describe "macro hygiene" {
         }
 
         (function($tmp) {
-            var z = or(false, $tmp)
+            var z = or(false, $tmp);
             expect(z).to.be("ok");
         })("ok");
 
@@ -66,7 +66,7 @@ $describe "macro hygiene" {
             return {
                 x: x
             }
-        })(42)
+        })(42);
 
         expect(o.x).to.be(42);
     }
@@ -74,7 +74,7 @@ $describe "macro hygiene" {
     $it "should not rename object dot accesses" {
         var n = (function (o, x) {
             return o.x;
-        })({x: 42})
+        })({x: 42});
 
         expect(n).to.be(42)
     }
@@ -84,7 +84,7 @@ $describe "macro hygiene" {
             var x = 42;
             return (function() {
                 var y = x;
-                var x = "foo"
+                var x = "foo";
                 return y
             })();
         })();
@@ -94,7 +94,7 @@ $describe "macro hygiene" {
     $it "should do the correct renaming without macros for vars and params" {
         var z = (function() {
             return (function(x) {
-                var x = "foo"
+                var x = "foo";
                 var y = x;
                 return y
             })(42);
@@ -110,7 +110,7 @@ $describe "macro hygiene" {
             m();
             var y = x;
             return y;
-        })("foo")
+        })("foo");
         expect(z).to.be("foo")
     }
 
@@ -130,7 +130,7 @@ $describe "macro hygiene" {
                     r = e
                 }
             }
-        }
+        };
 
         expect(r === e).to.be(true);
     }
@@ -211,8 +211,8 @@ $describe "macro hygiene" {
             }
         }
 
-        var tmp = "outer"
-        m "inner"
+        var tmp = "outer";
+        m "inner";
         expect(tmp).to.be("outer");
 
     }
@@ -227,8 +227,8 @@ $describe "macro hygiene" {
                 }
             }
 
-            var tmp = "outer"
-            m "inner"
+            var tmp = "outer";
+            m "inner";
             expect(tmp).to.be("outer");
         }
 
@@ -245,8 +245,8 @@ $describe "macro hygiene" {
             }
         }
         function f() {
-            var tmp = "outer"
-            m "inner"
+            var tmp = "outer";
+            m "inner";
             expect(tmp).to.be("outer");
         }
         f();
@@ -283,7 +283,7 @@ $describe "macro hygiene" {
         (function() {
             var res = "default";
             var x = undefined;
-            m(res)
+            m(res);
             expect(res).to.be("set");
             expect(x).to.be(undefined);
         })();
@@ -303,7 +303,7 @@ $describe "macro hygiene" {
             var x;
             x = "set";
             res = x;
-        }
+        };
         expect(res).to.be("set");
         expect(x).to.be("set");
     }
@@ -320,7 +320,7 @@ $describe "macro hygiene" {
         }
       }
 
-      var $tmp = "ok"
+      var $tmp = "ok";
       var z = or(false, $tmp);
       expect(z).to.be("ok");
     }
