@@ -600,7 +600,7 @@ to decide on the correct name for identifiers.
         if (ch1 === "#") {
             ++index;
             return {
-                type: Token.Identifier,
+                type: Token.Punctuator,
                 value: ch1,
                 lineNumber: lineNumber,
                 lineStart: lineStart,
