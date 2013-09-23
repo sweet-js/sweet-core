@@ -95,9 +95,9 @@
 
     exports.compileWithSourcemap = function(code, filename) {
         var ast = parse(code);
-        // codegen.attachComments(ast, ast.comments, ast.tokens);
+        codegen.attachComments(ast, ast.comments, ast.tokens);
         var code_output = codegen.generate(ast, {
-            comment: false
+            comment: true
         });
         var sourcemap = codegen.generate(ast, {
             sourceMap: filename
@@ -109,9 +109,9 @@
 
     exports.compile = function compile(code) {
         var ast = parse(code);
-        // codegen.attachComments(ast, ast.comments, ast.tokens);
+        codegen.attachComments(ast, ast.comments, ast.tokens);
         return codegen.generate(ast, {
-            comment: false
+            comment: true
         });
     }
 }));
