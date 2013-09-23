@@ -1,9 +1,7 @@
 (function (root$186, factory$187) {
     if (typeof exports === 'object') {
-        // CommonJS
         factory$187(exports, require('underscore'), require('es6-collections'), require('./parser'));
     } else if (typeof define === 'function' && define.amd) {
-        // AMD. Register as an anonymous module.
         define([
             'exports',
             'underscore',
@@ -21,7 +19,6 @@
             def: defctx$214
         };
     }
-    // (Num) -> CContext
     function Mark$193(mark$215, ctx$216) {
         return {
             mark: mark$215,
@@ -47,9 +44,7 @@
         return ctx$222 && typeof ctx$222.defctx !== 'undefined';
     }
     var templateMap$199 = new Map();
-    // (CToken, CContext?) -> CSyntax
     function syntaxFromToken$200(token$223, oldctx$224) {
-        // if given old syntax object steal its context otherwise create one fresh
         var ctx$225 = typeof oldctx$224 !== 'undefined' ? oldctx$224 : null;
         return Object.create({
             mark: function mark$226(newMark$227) {
@@ -61,7 +56,6 @@
                 return syntaxFromToken$200(this.token, Mark$193(newMark$227, this.context));
             },
             rename: function (id$229, name$230) {
-                // deferr renaming of delimiters
                 if (this.token.inner) {
                     var next$231 = syntaxFromToken$200(this.token, this.context);
                     next$231.deferredContext = Rename$192(id$229, name$230, this.deferredContext);
@@ -167,7 +161,6 @@
             range: range$247
         }, ctx$244);
     }
-    // ([...CSyntax]) -> [...CToken]
     function syntaxToTokens$202(stx$248) {
         return _$189.map(stx$248, function (stx$249) {
             if (stx$249.token.inner) {
@@ -176,7 +169,6 @@
             return stx$249.token;
         });
     }
-    // (CToken or [...CToken]) -> [...CSyntax]
     function tokensToSyntax$203(tokens$250) {
         if (!_$189.isArray(tokens$250)) {
             tokens$250 = [tokens$250];

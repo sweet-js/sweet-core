@@ -1,9 +1,7 @@
 (function (root$186, factory$187) {
     if (typeof exports === 'object') {
-        // CommonJS
         factory$187(exports, require('underscore'), require('es6-collections'), require('./parser'), require('./expander'), require('./syntax'));
     } else if (typeof define === 'function' && define.amd) {
-        // AMD. Register as an anonymous module.
         define([
             'exports',
             'underscore',
@@ -17,7 +15,6 @@
     var get_expression$194 = expander$192.get_expression;
     var syntaxFromToken$195 = syntax$193.syntaxFromToken;
     var mkSyntax$196 = syntax$193.mkSyntax;
-    // ([...CSyntax], Str) -> [...CSyntax])
     function joinSyntax$197(tojoin$212, punc$213) {
         if (tojoin$212.length === 0) {
             return [];
@@ -29,7 +26,6 @@
             return acc$214.concat(mkSyntax$196(punc$213, parser$191.Token.Punctuator, join$215), join$215);
         }, [_$189.first(tojoin$212)]);
     }
-    // ([...[...CSyntax]], Str) -> [...CSyntax]
     function joinSyntaxArr$198(tojoin$216, punc$217) {
         if (tojoin$216.length === 0) {
             return [];
@@ -41,7 +37,6 @@
             return acc$218.concat(mkSyntax$196(punc$217, parser$191.Token.Punctuator, _$189.first(join$219)), join$219);
         }, _$189.first(tojoin$216));
     }
-    // ([...CSyntax]) -> [...Str]
     function freeVarsInPattern$199(pattern$220) {
         var fv$221 = [];
         _$189.each(pattern$220, function (pat$222) {
@@ -70,7 +65,6 @@
     function isPatternVar$203(stx$227) {
         return stx$227.token.value[0] === '$' && stx$227.token.value !== '$';
     }
-    // ([...{level: Num, match: [...CSyntax]}], Str) -> [...CSyntax]
     function joinRepeatedMatch$204(tojoin$228, punc$229) {
         return _$189.reduce(_$189.rest(tojoin$228, 1), function (acc$230, join$231) {
             if (punc$229 === ' ') {
@@ -84,7 +78,6 @@
             return takeLine$206(from$232, stx$234);
         });
     }
-    // (CSyntax, CSyntax) -> CSyntax
     function takeLine$206(from$235, to$236) {
         if (to$236.token.type === parser$191.Token.Delimiter) {
             var next$237 = syntaxFromToken$195({
@@ -115,7 +108,6 @@
             var lastLast$243 = patterns$238[idx$241 - 2];
             var next$244 = patterns$238[idx$241 + 1];
             var nextNext$245 = patterns$238[idx$241 + 2];
-            // skip over the `:lit` part of `$x:lit`
             if (patStx$240.token.value === ':') {
                 if (last$242 && isPatternVar$203(last$242) && !isPatternVar$203(next$244)) {
                     return acc$239;
@@ -126,7 +118,6 @@
                     return acc$239;
                 }
             }
-            // skip over $
             if (patStx$240.token.value === '$' && next$244 && next$244.token.type === parser$191.Token.Delimiter) {
                 return acc$239;
             }
@@ -161,7 +152,6 @@
                 parser$191.assert(next$252.token.inner.length === 1, 'currently assuming all separators are a single token');
                 separator$250 = next$252.token.inner[0].token.value;
             }
-            // skip over ... and (,)
             if (patStx$247.token.value === '...' || delimIsSeparator$202(patStx$247) && next$252 && next$252.token.value === '...') {
                 return acc$246;
             }
@@ -172,7 +162,6 @@
     }
     function matchPatternClass$208(patternClass$254, stx$255, env$256) {
         var result$257, rest$258;
-        // pattern has no parse class
         if (patternClass$254 === 'token' && stx$255[0] && stx$255[0].token.type !== parser$191.Token.EOF) {
             result$257 = [stx$255[0]];
             rest$258 = stx$255.slice(1);
@@ -209,24 +198,8 @@
             rest: rest$258
         };
     }
-    // attempt to match patterns against stx
-    // ([...Pattern], [...Syntax], Env) -> { result: [...Syntax], rest: [...Syntax], patternEnv: PatternEnv }
     function matchPatterns$209(patterns$260, stx$261, env$262, topLevel$263) {
-        // topLevel lets us know if the patterns are on the top level or nested inside
-        // a delimiter:
-        //     case $topLevel (,) ... => { }
-        //     case ($nested (,) ...) => { }
-        // This matters for how we deal with trailing unmatched syntax when the pattern
-        // has an ellipses:
-        //     m 1,2,3 foo
-        // should match 1,2,3 and leave foo alone but:
-        //     m (1,2,3 foo)
-        // should fail to match entirely.
         topLevel$263 = topLevel$263 || false;
-        // note that there are two environments floating around,
-        // one is the mapping of identifiers to macro definitions (env)
-        // and the other is the pattern environment (patternEnv) that maps
-        // patterns in a macro case to syntax.
         var result$264 = [];
         var patternEnv$265 = {};
         var match$266;
@@ -238,9 +211,6 @@
             do {
                 match$266 = matchPattern$210(pattern$267, rest$268, env$262, patternEnv$265);
                 if (!match$266.success && pattern$267.repeat) {
-                    // a repeat can match zero tokens and still be a
-                    // "success" so break out of the inner loop and
-                    // try the next pattern
                     rest$268 = match$266.rest;
                     patternEnv$265 = match$266.patternEnv;
                     break;
@@ -253,17 +223,10 @@
                 patternEnv$265 = match$266.patternEnv;
                 if (pattern$267.repeat && success$269) {
                     if (rest$268[0] && rest$268[0].token.value === pattern$267.separator) {
-                        // more tokens and the next token matches the separator
                         rest$268 = rest$268.slice(1);
                     } else if (pattern$267.separator === ' ') {
-                        // no separator specified (using the empty string for this)
-                        // so keep going
                         continue;
                     } else if (pattern$267.separator !== ' ' && rest$268.length > 0 && i$270 === patterns$260.length - 1 && topLevel$263 === false) {
-                        // separator is specified, there is a next token, the
-                        // next token doesn't match the separator, there are
-                        // no more patterns, and this is a top level pattern
-                        // so the match has failed
                         success$269 = false;
                         break;
                     } else {
@@ -285,7 +248,6 @@
         var success$279;
         if (typeof pattern$271.inner !== 'undefined') {
             if (pattern$271.class === 'pattern_group') {
-                // pattern groups don't match the delimiters
                 subMatch$275 = matchPatterns$209(pattern$271.inner, stx$272, env$273, false);
                 rest$278 = subMatch$275.rest;
             } else if (stx$272[0] && stx$272[0].token.type === parser$191.Token.Delimiter && stx$272[0].token.value === pattern$271.value) {
@@ -307,29 +269,24 @@
                 };
             }
             success$279 = subMatch$275.success;
-            // merge the subpattern matches with the current pattern environment
             _$189.keys(subMatch$275.patternEnv).forEach(function (patternKey$280) {
                 if (pattern$271.repeat) {
-                    // if this is a repeat pattern we need to bump the level
                     var nextLevel$281 = subMatch$275.patternEnv[patternKey$280].level + 1;
                     if (patternEnv$274[patternKey$280]) {
                         patternEnv$274[patternKey$280].level = nextLevel$281;
                         patternEnv$274[patternKey$280].match.push(subMatch$275.patternEnv[patternKey$280]);
                     } else {
-                        // initialize if we haven't done so already
                         patternEnv$274[patternKey$280] = {
                             level: nextLevel$281,
                             match: [subMatch$275.patternEnv[patternKey$280]]
                         };
                     }
                 } else {
-                    // otherwise accept the environment as-is
                     patternEnv$274[patternKey$280] = subMatch$275.patternEnv[patternKey$280];
                 }
             });
         } else {
             if (pattern$271.class === 'pattern_literal') {
-                // wildcard
                 if (stx$272[0] && pattern$271.value === '_') {
                     success$279 = true;
                     rest$278 = stx$272.slice(1);
@@ -348,12 +305,10 @@
                     level: 0,
                     match: match$276.result
                 };
-                // push the match onto this value's slot in the environment
                 if (pattern$271.repeat) {
                     if (patternEnv$274[pattern$271.value]) {
                         patternEnv$274[pattern$271.value].match.push(matchEnv$277);
                     } else {
-                        // initialize if necessary
                         patternEnv$274[pattern$271.value] = {
                             level: 1,
                             match: [matchEnv$277]
@@ -372,24 +327,18 @@
     }
     function transcribe$211(macroBody$282, macroNameStx$283, env$284) {
         return _$189.chain(macroBody$282).reduce(function (acc$285, bodyStx$286, idx$287, original$288) {
-            // first find the ellipses and mark the syntax objects
-            // (note that this step does not eagerly go into delimiter bodies)
             var last$289 = original$288[idx$287 - 1];
             var next$290 = original$288[idx$287 + 1];
             var nextNext$291 = original$288[idx$287 + 2];
-            // drop `...`
             if (bodyStx$286.token.value === '...') {
                 return acc$285;
             }
-            // drop `(<separator)` when followed by an ellipse
             if (delimIsSeparator$202(bodyStx$286) && next$290 && next$290.token.value === '...') {
                 return acc$285;
             }
-            // skip the $ in $(...)
             if (bodyStx$286.token.value === '$' && next$290 && next$290.token.type === parser$191.Token.Delimiter && next$290.token.value === '()') {
                 return acc$285;
             }
-            // mark $[...] as a literal
             if (bodyStx$286.token.value === '$' && next$290 && next$290.token.type === parser$191.Token.Delimiter && next$290.token.value === '[]') {
                 next$290.literal = true;
                 return acc$285;
@@ -397,8 +346,6 @@
             if (bodyStx$286.token.type === parser$191.Token.Delimiter && bodyStx$286.token.value === '()' && last$289 && last$289.token.value === '$') {
                 bodyStx$286.group = true;
             }
-            // literal [] delimiters have their bodies just
-            // directly passed along
             if (bodyStx$286.literal === true) {
                 parser$191.assert(bodyStx$286.token.type === parser$191.Token.Delimiter, 'expecting a literal to be surrounded by []');
                 return acc$285.concat(bodyStx$286.token.inner);
@@ -412,15 +359,10 @@
             }
             return acc$285.concat(bodyStx$286);
         }, []).reduce(function (acc$292, bodyStx$293, idx$294) {
-            // then do the actual transcription
             if (bodyStx$293.repeat) {
                 if (bodyStx$293.token.type === parser$191.Token.Delimiter) {
                     bodyStx$293.expose();
                     var fv$295 = _$189.filter(freeVarsInPattern$199(bodyStx$293.token.inner), function (pat$302) {
-                            // ignore "patterns"
-                            // that aren't in the
-                            // environment (treat
-                            // them like literals)
                             return env$284.hasOwnProperty(pat$302);
                         });
                     var restrictedEnv$296 = [];
@@ -433,15 +375,12 @@
                             return env$284[pat$304].level === 0 || env$284[pat$304].match.length === repeatLength$298;
                         });
                     parser$191.assert(sameLength$299, 'all non-scalars must have the same length');
-                    // create a list of envs restricted to the free vars
                     restrictedEnv$296 = _$189.map(_$189.range(repeatLength$298), function (idx$305) {
                         var renv$306 = {};
                         _$189.each(fv$295, function (pat$307) {
                             if (env$284[pat$307].level === 0) {
-                                // copy scalars over
                                 renv$306[pat$307] = env$284[pat$307];
                             } else {
-                                // grab the match at this index
                                 renv$306[pat$307] = env$284[pat$307].match[idx$305];
                             }
                         });

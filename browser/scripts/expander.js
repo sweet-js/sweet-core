@@ -682,87 +682,6 @@
                         return step$454(UnaryOp$289.create(punc$468, unopRes$510.result), unopRes$510.rest);
                     }
                 } else if (head$455.hasPrototype(Keyword$293) && stxIsUnaryOp$311(keyword$463)) {
-                    /*
-  Copyright (C) 2012 Tim Disney <tim@disnet.me>
-
-  
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-  ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-                    // CommonJS
-                    // AMD. Register as an anonymous module.
-                    // used to export "private" methods for unit testing
-                    // some convenience monkey patching
-                    // todo: add more message information
-                    // (CSyntax) -> [...Num]
-                    // (Syntax) -> String
-                    // fun () -> Num
-                    // ([...CSyntax], Str) -> [...CSyntax])
-                    // wraps the array of syntax objects in the delimiters given by the second argument
-                    // ([...CSyntax], CSyntax) -> [...CSyntax]
-                    // (CSyntax) -> [...CSyntax]
-                    // A TermTree is the core data structure for the macro expansion process.
-                    // It acts as a semi-structured representation of the syntax.
-                    // Go back to the syntax object representation. Uses the
-                    // ordered list of properties that each subclass sets to
-                    // determine the order in which multiple children are
-                    // destructed.
-                    // () -> [...Syntax]
-                    // add all commas except for the last one
-                    // an ugly little hack to keep the same syntax objects
-                    // (with associated line numbers etc.) for all the commas
-                    // separating the arguments
-                    // ([Syntax], Map) -> {result: [VariableDeclaration], rest: [Syntax]}
-                    // assumes stx starts at the identifier. ie:
-                    // var x = ...
-                    //     ^
-                    // x = ...
-                    // x = y + z, ...
-                    // x = y ...
-                    // x = y EOF
-                    // x ,...;
-                    // x EOF
-                    // enforest the tokens, returns an object with the `result` TermTree and
-                    // the uninterpreted `rest` of the syntax
-                    // function call
-                    // Call
-                    // record the comma for later
-                    // but dump it for the next loop turn
-                    // either there are no more tokens or
-                    // they aren't a comma, either way we
-                    // are done with the loop
-                    // only a call if we can completely enforest each argument and
-                    // each argument is an expression
-                    // Conditional ( x ? true : false)
-                    // Constructor
-                    // ParenExpr
-                    // empty parens are acceptable but enforest
-                    // doesn't accept empty arrays so short
-                    // circuit here
-                    // if the tokens inside the paren aren't an expression
-                    // we just leave it as a delimiter
-                    // BinOp
-                    // only a binop if the right is a real expression
-                    // so 2+2++ will only match 2+2
-                    // UnaryOp (via punctuation)
-                    // UnaryOp (via keyword)
                     var unopRes$510 = enforest$315(rest$456, env$453);
                     if (unopRes$510.result.hasPrototype(Expr$281)) {
                         return step$454(UnaryOp$289.create(keyword$463, unopRes$510.result), unopRes$510.rest);
@@ -774,10 +693,8 @@
                 } else if (head$455.hasPrototype(Expr$281) && (rest$456[0] && rest$456[0].token.value === '.' && rest$456[1] && rest$456[1].token.type === parser$190.Token.Identifier)) {
                     return step$454(ObjDotGet$304.create(head$455, rest$456[0], rest$456[1]), rest$456.slice(2));
                 } else if (head$455.hasPrototype(Delimiter$295) && delim$465.token.value === '[]') {
-                    // ArrayLiteral
                     return step$454(ArrayLiteral$287.create(head$455), rest$456);
                 } else if (head$455.hasPrototype(Delimiter$295) && head$455.delim.token.value === '{}') {
-                    // Block
                     return step$454(Block$286.create(head$455), rest$456);
                 } else if (head$455.hasPrototype(Keyword$293) && (keyword$463.token.value === 'let' && (rest$456[0] && rest$456[0].token.type === parser$190.Token.Identifier || rest$456[0] && rest$456[0].token.type === parser$190.Token.Keyword) && rest$456[1] && rest$456[1].token.value === '=' && rest$456[2] && rest$456[2].token.value === 'macro')) {
                     var mac$511 = enforest$315(rest$456.slice(2), env$453);
@@ -793,11 +710,8 @@
                 }
             } else {
                 parser$190.assert(head$455 && head$455.token, 'assuming head is a syntax object');
-                // macro invocation
-                if ((head$455.token.type === parser$190.Token.Identifier || head$455.token.type === parser$190.Token.Keyword) && env$453.has(resolve$268(head$455))) {
-                    // pull the macro transformer out the environment
+                if ((head$455.token.type === parser$190.Token.Identifier || head$455.token.type === parser$190.Token.Keyword || head$455.token.type === parser$190.Token.Punctuator) && env$453.has(resolve$268(head$455))) {
                     var transformer$513 = env$453.get(resolve$268(head$455)).fn;
-                    // apply the transformer
                     var rt$514 = transformer$513([head$455].concat(rest$456), env$453);
                     if (!Array.isArray(rt$514.result)) {
                         throwError$255('Macro transformer must return a result array, not: ' + rt$514.result);
@@ -806,11 +720,11 @@
                         var adjustedResult$515 = adjustLineContext$314(rt$514.result, head$455);
                         return step$454(adjustedResult$515[0], adjustedResult$515.slice(1).concat(rt$514.rest));
                     } else {
-                        return step$454(Empty$310.create(), rt$514.rest);    // anon macro definition
+                        return step$454(Empty$310.create(), rt$514.rest);
                     }
                 } else if (head$455.token.type === parser$190.Token.Identifier && head$455.token.value === 'macro' && rest$456[0] && rest$456[0].token.value === '{}') {
                     return step$454(AnonMacro$301.create(rest$456[0].expose().token.inner), rest$456.slice(1));
-                } else if (head$455.token.type === parser$190.Token.Identifier && head$455.token.value === 'macro' && rest$456[0] && (rest$456[0].token.type === parser$190.Token.Identifier || rest$456[0].token.type === parser$190.Token.Keyword) && rest$456[1] && rest$456[1].token.type === parser$190.Token.Delimiter && rest$456[1].token.value === '{}') {
+                } else if (head$455.token.type === parser$190.Token.Identifier && head$455.token.value === 'macro' && rest$456[0] && (rest$456[0].token.type === parser$190.Token.Identifier || rest$456[0].token.type === parser$190.Token.Keyword || rest$456[0].token.type === parser$190.Token.Punctuator) && rest$456[1] && rest$456[1].token.type === parser$190.Token.Delimiter && rest$456[1].token.value === '{}') {
                     return step$454(Macro$300.create(rest$456[0], rest$456[1].expose().token.inner), rest$456.slice(2));
                 } else if (head$455.token.value === 'module' && rest$456[0] && rest$456[0].token.value === '{}') {
                     return step$454(Module$309.create(rest$456[0]), rest$456.slice(1));
@@ -844,11 +758,9 @@
                     parser$190.assert(rest$456.length === 0, 'nothing should be after an EOF');
                     return step$454(EOF$279.create(head$455), []);
                 } else {
-                    // todo: are we missing cases?
                     parser$190.assert(false, 'not implemented');
                 }
             }
-            // we're done stepping
             return {
                 result: head$455,
                 rest: rest$456
@@ -867,20 +779,8 @@
         return res$518;
     }
     function applyMarkToPatternEnv$317(newMark$519, env$520) {
-        /*
-        Takes a `match` object:
-
-            {
-                level: <num>,
-                match: [<match> or <syntax>]
-            }
-
-        where the match property is an array of syntax objects at the bottom (0) level.
-        Does a depth-first search and applys the mark to each syntax object.
-        */
         function dfs$521(match$522) {
             if (match$522.level === 0) {
-                // replace the match property with the marked syntax
                 match$522.match = _$189.map(match$522.match, function (stx$523) {
                     return stx$523.mark(newMark$519);
                 });
@@ -896,7 +796,6 @@
     }
     function loadMacroDef$318(mac$526, env$527, defscope$528, templateMap$529) {
         var body$530 = mac$526.body;
-        // raw function primitive form
         if (!(body$530[0] && body$530[0].token.type === parser$190.Token.Keyword && body$530[0].token.value === 'function')) {
             throwError$255('Primitive macro form must contain a function for the macro body');
         }
@@ -929,11 +828,8 @@
             });
         return macroFn$535;
     }
-    // similar to `parse1` in the honu paper
-    // ([Syntax], Map) -> {terms: [TermTree], env: Map}
     function expandToTermTree$319(stx$539, env$540, defscope$541, templateMap$542) {
         parser$190.assert(env$540, 'environment map is required');
-        // short circuit when syntax array is empty
         if (stx$539.length === 0) {
             return {
                 terms: [],
@@ -942,19 +838,15 @@
         }
         parser$190.assert(stx$539[0].token, 'expecting a syntax object');
         var f$543 = enforest$315(stx$539, env$540);
-        // head :: TermTree
         var head$544 = f$543.result;
-        // rest :: [Syntax]
         var rest$545 = f$543.rest;
         if (head$544.hasPrototype(Macro$300)) {
-            // load the macro definition into the environment and continue expanding
             var macroDefinition$547 = loadMacroDef$318(head$544, env$540, defscope$541, templateMap$542);
             addToDefinitionCtx$320([head$544.name], defscope$541, false);
             env$540.set(resolve$268(head$544.name), { fn: macroDefinition$547 });
             return expandToTermTree$319(rest$545, env$540, defscope$541, templateMap$542);
         }
         if (head$544.hasPrototype(LetMacro$299)) {
-            // load the macro definition into the environment and continue expanding
             var macroDefinition$547 = loadMacroDef$318(head$544, env$540, defscope$541, templateMap$542);
             var freshName$548 = fresh$274();
             var renamedName$549 = head$544.name.rename(head$544.name, freshName$548);
@@ -1016,16 +908,6 @@
                     });
                 skip$561 = typeof declRepeat$562 !== 'undefined';
             }
-            /* 
-               When var declarations repeat in the same function scope:
-               
-               var x = 24;
-               ...
-               var x = 42;
-
-               we just need to use the first renaming and leave the
-               definition context as is.
-            */
             if (!skip$561) {
                 var name$564 = fresh$274();
                 defscope$558.push({
@@ -1035,9 +917,6 @@
             }
         });
     }
-    // similar to `parse2` in the honu paper except here we
-    // don't generate an AST yet
-    // (TermTree, Map, Map) -> TermTree
     function expandTermTreeToFinal$321(term$565, env$566, defscope$567, templateMap$568) {
         parser$190.assert(env$566, 'environment map is required');
         if (term$565.hasPrototype(ArrayLiteral$287)) {
@@ -1080,12 +959,9 @@
             });
             return term$565;
         } else if (term$565.hasPrototype(Delimiter$295)) {
-            // expand inside the delimiter and then continue on
             term$565.delim.token.inner = expand$322(term$565.delim.token.inner, env$566, defscope$567, templateMap$568);
             return term$565;
         } else if (term$565.hasPrototype(NamedFun$297) || term$565.hasPrototype(AnonFun$298) || term$565.hasPrototype(CatchClause$308) || term$565.hasPrototype(Module$309)) {
-            // function definitions need a bunch of hygiene logic
-            // push down a fresh definition context
             var newDef$571 = [];
             if (term$565.params) {
                 var params$580 = term$565.params.addDefCtx(newDef$571);
@@ -1101,7 +977,6 @@
                         renamedParam: param$581.rename(param$581, freshName$582)
                     };
                 });
-            // rename the function body for each of the parameters
             var renamedBody$574 = _$189.reduce(paramNames$573, function (accBody$583, p$584) {
                     return accBody$583.rename(p$584.originalParam, p$584.freshName);
                 }, bodies$572);
@@ -1114,21 +989,16 @@
             var flatArgs$577 = syn$191.makeDelim('()', joinSyntax$275(renamedParams$576, ','), term$565.params);
             var expandedArgs$578 = expand$322([flatArgs$577], env$566, newDef$571, templateMap$568);
             parser$190.assert(expandedArgs$578.length === 1, 'should only get back one result');
-            // stitch up the function with all the renamings
             term$565.params = expandedArgs$578[0];
             var flattenedBody$579 = bodyTerms$575[0].destruct();
             flattenedBody$579 = _$189.reduce(newDef$571, function (acc$586, def$587) {
                 return acc$586.rename(def$587.id, def$587.name);
             }, flattenedBody$579[0]);
             term$565.body = flattenedBody$579;
-            // and continue expand the rest
             return term$565;
         }
-        // the term is fine as is
         return term$565;
     }
-    // similar to `parse` in the honu paper
-    // ([Syntax], Map, Map) -> [TermTree]
     function expand$322(stx$588, env$589, defscope$590, templateMap$591) {
         env$589 = env$589 || new Map();
         templateMap$591 = templateMap$591 || new Map();
@@ -1152,7 +1022,6 @@
             ]);
         return flatten$324(res$596[0].body.token.inner);
     }
-    // break delimiter tree structure down to flat array of syntax objects
     function flatten$324(stx$599) {
         return _$189.reduce(stx$599, function (acc$600, stx$601) {
             if (stx$601.token.type === parser$190.Token.Delimiter) {

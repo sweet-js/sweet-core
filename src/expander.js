@@ -999,7 +999,8 @@
 
                 // macro invocation
                 if ((head.token.type === parser.Token.Identifier ||
-                     head.token.type === parser.Token.Keyword) && 
+                     head.token.type === parser.Token.Keyword ||
+                     head.token.type === parser.Token.Punctuator) && 
                     env.has(resolve(head))) {
 
                     // pull the macro transformer out the environment
@@ -1027,7 +1028,8 @@
                 } else if (head.token.type === parser.Token.Identifier &&
                            head.token.value === "macro" && rest[0] &&
                            (rest[0].token.type === parser.Token.Identifier ||
-                            rest[0].token.type === parser.Token.Keyword) &&
+                            rest[0].token.type === parser.Token.Keyword ||
+                            rest[0].token.type === parser.Token.Punctuator) &&
                            rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                            rest[1].token.value === "{}") {
 
