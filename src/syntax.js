@@ -259,6 +259,13 @@
 
     function makeDelim(val, inner, stx) {
         var ctx, startLineNumber, startLineStart, endLineNumber, endLineStart, startRange, endRange;
+        
+        if (stx && Array.isArray(stx) && stx.length === 1) {
+            stx = stx[0];
+        } else if (stx && Array.isArray(stx)) {
+            throw new Error("Expecting a syntax object, not: " + stx);
+        }
+
         if(stx && stx.token.type === parser.Token.Delimiter) {
             ctx = stx.context;
             startLineNumber = stx.token.startLineNumber;
