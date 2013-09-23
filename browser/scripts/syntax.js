@@ -223,6 +223,11 @@
     }
     function makeDelim$209(val$267, inner$268, stx$269) {
         var ctx$270, startLineNumber$271, startLineStart$272, endLineNumber$273, endLineStart$274, startRange$275, endRange$276;
+        if (stx$269 && Array.isArray(stx$269) && stx$269.length === 1) {
+            stx$269 = stx$269[0];
+        } else if (stx$269 && Array.isArray(stx$269)) {
+            throw new Error('Expecting a syntax object, not: ' + stx$269);
+        }
         if (stx$269 && stx$269.token.type === parser$191.Token.Delimiter) {
             ctx$270 = stx$269.context;
             startLineNumber$271 = stx$269.token.startLineNumber;
