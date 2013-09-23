@@ -363,12 +363,12 @@ let macro = macro {
             var rules = [];
             for (var i = 0; i < rule_body.length; i += 5) {
                 var rule_pattern = rule_body[i + 1].token.inner;
-                var rule_def = rule_body[i + 4].token.inner;
+                var rule_def = rule_body[i + 4].expose().token.inner;
                 rules = rules.concat([makeIdent("case", name_stx),
                                       makeDelim("{}", [makeIdent("_", name_stx)].concat(rule_pattern), name_stx),
                                       makePunc("=", name_stx), makePunc(">", name_stx),
                                       makeDelim("{}", [makeKeyword("return", name_stx),
-                                                       makeIdent("#", name_stx),
+                                                       makeIdent("syntax", name_stx),
                                                        makeDelim("{}", rule_def, name_stx)], name_stx)])
             }
             rules = makeDelim("{}", rules, name_stx);
