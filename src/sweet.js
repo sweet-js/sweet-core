@@ -87,30 +87,7 @@
     function parse(code) {
         var exp = expand(code);
 
-        var lineoffset = 2;
-        for (var i = 0; i < stxcaseModule.length; i++) {
-            if (stxcaseModule[i] === "\n") {
-                lineoffset++;
-            }
-        }
-        var linestartoffset = stxcaseModule.length + 2;
-        var adjustedStx = exp[0];
-        var adjustedComments = exp[1];
-        if (typeof lineoffset !== 'undefined') {
-            adjustedStx = exp[0].map(function(stx) {
-                stx.token.sm_lineNumber -= lineoffset;
-                stx.token.sm_lineStart -= linestartoffset;
-                stx.token.range[0] -= linestartoffset;
-                stx.token.range[1] -= linestartoffset;
-                return stx;
-            });
-            adjustedComments = exp[1].map(function(tok) {
-                tok.range[0] -= linestartoffset;
-                tok.range[1] -= linestartoffset;
-                return tok;
-            }) 
-        }
-        return parser.parse(adjustedStx, adjustedComments);
+        return parser.parse(exp[0], exp[1]);
     }
 
     exports.expand = expand;
@@ -118,9 +95,9 @@
 
     exports.compileWithSourcemap = function(code, filename) {
         var ast = parse(code);
-        codegen.attachComments(ast, ast.comments, ast.tokens);
+        // codegen.attachComments(ast, ast.comments, ast.tokens);
         var code_output = codegen.generate(ast, {
-            comment: true
+            comment: false
         });
         var sourcemap = codegen.generate(ast, {
             sourceMap: filename
@@ -132,9 +109,9 @@
 
     exports.compile = function compile(code) {
         var ast = parse(code);
-        codegen.attachComments(ast, ast.comments, ast.tokens);
+        // codegen.attachComments(ast, ast.comments, ast.tokens);
         return codegen.generate(ast, {
-            comment: true
+            comment: false
         });
     }
 }));
