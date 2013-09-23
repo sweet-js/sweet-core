@@ -407,14 +407,22 @@ macro withSyntax {
         var here = #{here};
         here = here[0];
 
+
+        /*
+        syntaxCase ([ $(makeDelim("()", $e)) (,) ...], env) {
+            case { ($p) ... } => { $body ... }
+        }
+        */
+
         var res = [makeIdent("syntaxCase", name[0])];
         var args = #{[$(makeDelim("()", $e)) (,) ...],};
 
         args = args.concat(makeIdent("env", name[0]));
         res = res.concat(makeDelim("()", args, here));
 
-        var arm = #{case { ($p) ... } =>};
-        res = res.concat(makeDelim("{}", arm.concat(#{{ $body ... }}), here));
+        res = res.concat(#{
+            { case { ($p) ... } => { $body ... } }
+        });
 
         return [makeDelim("()", res, here), makePunc(".", here), makeIdent("result", here), makePunc(";", here)]
     }
