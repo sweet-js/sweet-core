@@ -174,7 +174,9 @@
             range = stx.token.range;
         } else if (stx == null) {
             ctx = null;
-            // the others can stay undefined
+            lineStart = 0;
+            lineNumber = 0;
+            range = [0, 0];
         } else {
             throw new Error("Expecting a syntax object, not: " + stx);
         }
@@ -259,7 +261,7 @@
 
     function makeDelim(val, inner, stx) {
         var ctx, startLineNumber, startLineStart, endLineNumber, endLineStart, startRange, endRange;
-        
+
         if (stx && Array.isArray(stx) && stx.length === 1) {
             stx = stx[0];
         } else if (stx && Array.isArray(stx)) {
@@ -284,7 +286,12 @@
             endRange = stx.token.range
         } else {
             ctx = null;
-            // the others can stay undefined
+            startLineNumber = 0;
+            startLineStart = 0;
+            endLineNumber = 0;
+            endLineStart = 0;
+            startRange = [0, 0];
+            endRange = [0, 0];
         }
 
         return syntaxFromToken({
