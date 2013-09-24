@@ -110,27 +110,53 @@
     // (CSyntax, CSyntax) -> CSyntax
     function takeLine(from, to) {
         if (to.token.type === parser.Token.Delimiter) {
-            var next = syntaxFromToken({
-                type: parser.Token.Delimiter,
-                value: to.token.value,
-                inner: to.token.inner,
-                startRange: from.token.range,
-                endRange: from.token.range,
-                startLineNumber: from.token.lineNumber,
-                startLineStart: from.token.lineStart,
-                endLineNumber: from.token.lineNumber,
-                endLineStart: from.token.lineStart
-            }, to.context);
+            if (from.token.type === parser.Token.Delimiter) {
+                var next = syntaxFromToken({
+                    type: parser.Token.Delimiter,
+                    value: to.token.value,
+                    inner: to.token.inner,
+                    startRange: from.token.startRange,
+                    endRange: from.token.endRange,
+                    startLineNumber: from.token.startLineNumber,
+                    startLineStart: from.token.startLineStart,
+                    endLineNumber: from.token.endLineNumber,
+                    endLineStart: from.token.endLineStart
+                }, to.context);
+
+            } else {
+                var next = syntaxFromToken({
+                    type: parser.Token.Delimiter,
+                    value: to.token.value,
+                    inner: to.token.inner,
+                    startRange: from.token.range,
+                    endRange: from.token.range,
+                    startLineNumber: from.token.lineNumber,
+                    startLineStart: from.token.lineStart,
+                    endLineNumber: from.token.lineNumber,
+                    endLineStart: from.token.lineStart
+                }, to.context);
+            }
             next.deferredContext = to.deferredContext;
             return next;
         }
-        return syntaxFromToken({
-            value: to.token.value,
-            type: to.token.type,
-            lineNumber: from.token.lineNumber,
-            lineStart: from.token.lineStart,
-            range: from.token.range
-        }, to.context);
+
+        if (from.token.type === parser.Token.Delimiter) {
+            return syntaxFromToken({
+                value: to.token.value,
+                type: to.token.type,
+                lineNumber: from.token.startLineNumber,
+                lineStart: from.token.startLineStart,
+                range: from.token.startRange
+            }, to.context);
+        } else {
+            return syntaxFromToken({
+                value: to.token.value,
+                type: to.token.type,
+                lineNumber: from.token.lineNumber,
+                lineStart: from.token.lineStart,
+                range: from.token.range
+            }, to.context);
+        }
     }
 
     function loadPattern(patterns) {
