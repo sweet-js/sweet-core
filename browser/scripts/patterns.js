@@ -89,27 +89,51 @@
     // (CSyntax, CSyntax) -> CSyntax
     function takeLine$117(from$146, to$147) {
         if (to$147.token.type === parser$102.Token.Delimiter) {
-            var next$148 = syntaxFromToken$106({
-                    type: parser$102.Token.Delimiter,
-                    value: to$147.token.value,
-                    inner: to$147.token.inner,
-                    startRange: from$146.token.range,
-                    endRange: from$146.token.range,
-                    startLineNumber: from$146.token.lineNumber,
-                    startLineStart: from$146.token.lineStart,
-                    endLineNumber: from$146.token.lineNumber,
-                    endLineStart: from$146.token.lineStart
-                }, to$147.context);
+            if (from$146.token.type === parser$102.Token.Delimiter) {
+                var next$148 = syntaxFromToken$106({
+                        type: parser$102.Token.Delimiter,
+                        value: to$147.token.value,
+                        inner: to$147.token.inner,
+                        startRange: from$146.token.startRange,
+                        endRange: from$146.token.endRange,
+                        startLineNumber: from$146.token.startLineNumber,
+                        startLineStart: from$146.token.startLineStart,
+                        endLineNumber: from$146.token.endLineNumber,
+                        endLineStart: from$146.token.endLineStart
+                    }, to$147.context);
+            } else {
+                var next$148 = syntaxFromToken$106({
+                        type: parser$102.Token.Delimiter,
+                        value: to$147.token.value,
+                        inner: to$147.token.inner,
+                        startRange: from$146.token.range,
+                        endRange: from$146.token.range,
+                        startLineNumber: from$146.token.lineNumber,
+                        startLineStart: from$146.token.lineStart,
+                        endLineNumber: from$146.token.lineNumber,
+                        endLineStart: from$146.token.lineStart
+                    }, to$147.context);
+            }
             next$148.deferredContext = to$147.deferredContext;
             return next$148;
         }
-        return syntaxFromToken$106({
-            value: to$147.token.value,
-            type: to$147.token.type,
-            lineNumber: from$146.token.lineNumber,
-            lineStart: from$146.token.lineStart,
-            range: from$146.token.range
-        }, to$147.context);
+        if (from$146.token.type === parser$102.Token.Delimiter) {
+            return syntaxFromToken$106({
+                value: to$147.token.value,
+                type: to$147.token.type,
+                lineNumber: from$146.token.startLineNumber,
+                lineStart: from$146.token.startLineStart,
+                range: from$146.token.startRange
+            }, to$147.context);
+        } else {
+            return syntaxFromToken$106({
+                value: to$147.token.value,
+                type: to$147.token.type,
+                lineNumber: from$146.token.lineNumber,
+                lineStart: from$146.token.lineStart,
+                range: from$146.token.range
+            }, to$147.context);
+        }
     }
     function loadPattern$118(patterns$149) {
         return _$100.chain(patterns$149).reduce(function (acc$150, patStx$151, idx$152) {
