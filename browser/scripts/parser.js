@@ -2810,7 +2810,6 @@ to decide on the correct name for identifiers.
             }
             return function () {
                 var node$498, rangeInfo$499, locInfo$500;
-                // skipComment();
                 var curr$501 = tokenStream$115[index$109].token;
                 rangeInfo$499 = [
                     curr$501.range[0],

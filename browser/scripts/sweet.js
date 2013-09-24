@@ -70,7 +70,6 @@
                 }
             }
         }
-        // source = stxcaseModule + "\n\n" + source;
         var readTree$122 = parser$110.read(source$121);
         return [
             expander$111.expand(readTree$122[0], stxcaseModule$112),
@@ -79,6 +78,11 @@
     }
     // fun (Str, {}) -> AST
     function parse$116(code$123) {
+        if (code$123 === '') {
+            // old version of esprima doesn't play nice with the empty string
+            // and loc/range info so until we can upgrade hack in a single space
+            code$123 = ' ';
+        }
         var exp$124 = expand$115(code$123);
         return parser$110.parse(exp$124[0], exp$124[1]);
     }
