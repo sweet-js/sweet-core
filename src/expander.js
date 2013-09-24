@@ -680,16 +680,24 @@
     });
 
     var Module = TermTree.extend({
-        properties: ["body"],
+        properties: ["body", "exports"],
 
         construct: function(body) {
             this.body = body;
+            this.exports = [];
         }
     });
 
     var Empty = TermTree.extend({
         properties: [],
         construct: function() {}
+    });
+
+    var Export = TermTree.extend({
+        properties: ["name"],
+        construct: function(name) {
+            this.name = name;
+        }
     });
 
     function stxIsUnaryOp (stx) {
@@ -979,7 +987,7 @@
                                         rest[2] && rest[2].token.value === "macro") => {
                         var mac = enforest(rest.slice(2), env);
                         if (!mac.result.hasPrototype(AnonMacro)) {
-                            throw new Error("expecting an anonymous macro definition in syntax let binding");
+                            throw new Error("expecting an anonymous macro definition in syntax let binding, not: " + mac.result);
                         }
                         return step(LetMacro.create(rest[0], mac.result.body), mac.rest);
                                   
@@ -1092,6 +1100,13 @@
                     head.token.type === parser.Token.NullLiteral) {
 
                     return step(Lit.create(head), rest);
+                // export
+                } else if (head.token.type === parser.Token.Identifier && 
+                            head.token.value === "export" && 
+                            rest[0] && (rest[0].token.type === parser.Token.Identifier ||
+                                        rest[0].token.type === parser.Token.Keyword ||
+                                        rest[0].token.type === parser.Token.Punctuator)) {
+                    return step(Export.create(rest[0]), rest.slice(1));
                 // identifier
                 } else if (head.token.type === parser.Token.Identifier) {
                     return step(Id.create(head), rest);
@@ -1456,6 +1471,17 @@
             // stitch up the function with all the renamings
             term.params = expandedArgs[0];
 
+            if (term.hasPrototype(Module)) {
+                bodyTerms[0].body.delim.token.inner = _.filter(bodyTerms[0].body.delim.token.inner, function(innerTerm) {
+                    if (innerTerm.hasPrototype(Export)) {
+                        term.exports.push(innerTerm);
+                        return false;
+                    } else {
+                        return true;
+                    }
+                });
+            }
+
             var flattenedBody = bodyTerms[0].destruct();
             flattenedBody = _.reduce(newDef, function(acc, def) {
                 return acc.rename(def.id, def.name);
@@ -1483,17 +1509,32 @@
 
     // a hack to make the top level hygiene work out
     function expandTopLevel (stx, builtinSource) {
+        var buildinEnv = new Map();
+        var env = new Map();
+        var params = [];
         if (builtinSource) {
             var builtinRead = parser.read(builtinSource)[0];
 
             builtinRead = [syn.makeIdent("module", null),
                             syn.makeDelim("{}", builtinRead, null)];
 
-            var builtinRes = expand(builtinRead);
+            var builtinRes = expand(builtinRead, buildinEnv);
+            params = _.map(builtinRes[0].exports, function(term) {
+                return {
+                    oldExport: term.name,
+                    newParam: syn.makeIdent(term.name.token.value, null)
+                }
+            });
         }
+        var modBody = syn.makeDelim("{}", stx, null);
+        modBody = _.reduce(params, function(acc, param) {
+            var newName = fresh();
+            env.set(resolve(param.newParam.rename(param.newParam, newName)), 
+                    buildinEnv.get(resolve(param.oldExport)));
+            return acc.rename(param.newParam, newName);
+        }, modBody);
 
-        var res = expand([syn.makeIdent("module", null), 
-                            syn.makeDelim("{}", stx)]);
+        var res = expand([syn.makeIdent("module", null), modBody], env);
         return flatten(res[0].body.token.inner);
     }
 

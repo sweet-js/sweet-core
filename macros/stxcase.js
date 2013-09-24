@@ -1,4 +1,4 @@
-macro quoteSyntax {
+let quoteSyntax = macro {
     function(stx) {
         var name_stx = stx[0];
 
@@ -13,8 +13,9 @@ macro quoteSyntax {
         };
     }
 }
+export quoteSyntax
 
-macro syntax {
+let syntax = macro {
     function(stx) {
         var name_stx = stx[0];
         var takeLineContext = patternModule.takeLineContext;
@@ -44,6 +45,7 @@ macro syntax {
         };
     }
 }
+export syntax
 
 macro # {
     function (stx) {
@@ -54,9 +56,10 @@ macro # {
         }
     }
 }
+export #
 
 
-macro syntaxCase {
+let syntaxCase = macro {
     function(stx) {
         var name_stx = stx[0];
         var arg_stx = stx[1].expose().token.inner;
@@ -307,6 +310,7 @@ macro syntaxCase {
         }
     }
 }
+export syntaxCase
 
 
 let macro = macro {
@@ -398,21 +402,15 @@ let macro = macro {
         }
     }
 }
+export macro;
 
-macro withSyntax {
+let withSyntax = macro {
     case {$name
           ($($p = $e:expr) (,) ...)
           {$body ...}} => {
         var name = #{$name};
         var here = #{here};
         here = here[0];
-
-
-        /*
-        syntaxCase ([ $(makeDelim("()", $e)) (,) ...], env) {
-            case { ($p) ... } => { $body ... }
-        }
-        */
 
         var res = [makeIdent("syntaxCase", name[0])];
         var args = #{[$(makeDelim("()", $e)) (,) ...],};
@@ -428,4 +426,4 @@ macro withSyntax {
     }
 }
 
-
+export withSyntax

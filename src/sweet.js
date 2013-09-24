@@ -77,7 +77,7 @@
             }
         }
 
-        source = stxcaseModule + "\n\n" + source;
+        // source = stxcaseModule + "\n\n" + source;
 
         var readTree = parser.read(source);
         return [expander.expand(readTree[0], stxcaseModule), readTree[1]];
