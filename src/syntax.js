@@ -57,21 +57,18 @@
     var templateMap = new Map();
 
 
-    // (CToken, CContext?) -> CSyntax
-    function syntaxFromToken(token, oldctx) {
-        // if given old syntax object steal its context otherwise create one fresh
-        var ctx = (typeof oldctx !== 'undefined') ? oldctx : null;
-
+    // (CToken, CSyntax?) -> CSyntax
+    function syntaxFromToken(token, oldstx) {
         return Object.create({
             // (Int) -> CSyntax
             // non mutating
             mark: function mark(newMark) {
                 if (this.token.inner) {
-                    var next = syntaxFromToken(this.token, this.context);
+                    var next = syntaxFromToken(this.token, this);
                     next.deferredContext = Mark(newMark, this.deferredContext);
                     return next;
                 }
-                return syntaxFromToken(this.token, Mark(newMark, this.context));
+                return syntaxFromToken(this.token, {context: Mark(newMark, this.context)});
             },
 
             // (CSyntax or [...CSyntax], Str) -> CSyntax
@@ -80,14 +77,14 @@
 
                 // deferr renaming of delimiters
                 if (this.token.inner) {
-                    var next = syntaxFromToken(this.token, this.context);
+                    var next = syntaxFromToken(this.token, this);
                     next.deferredContext = Rename(id, name, this.deferredContext);
                     return next;
                 }
 
                 if (this.token.type === parser.Token.Identifier ||
                     this.token.type === parser.Token.Keyword) {
-                    return syntaxFromToken(this.token, Rename(id, name, this.context));
+                    return syntaxFromToken(this.token, {context: Rename(id, name, this.context)});
 
                 } else {
                     return this;
@@ -96,12 +93,12 @@
 
             addDefCtx: function(defctx) {
                 if (this.token.inner) {
-                    var next = syntaxFromToken(this.token, this.context);
+                    var next = syntaxFromToken(this.token, this);
                     next.deferredContext = Def(defctx, this.deferredContext);
                     return next;
                 }
 
-                return syntaxFromToken(this.token, Def(defctx, this.context));
+                return syntaxFromToken(this.token, {context: Def(defctx, this.context)});
             },
 
             getDefCtx: function() {
@@ -135,12 +132,12 @@
 
                 this.token.inner = _.map(this.token.inner, _.bind(function(stx) {
                     if (stx.token.inner) {
-                        var next = syntaxFromToken(stx.token, stx.context);
+                        var next = syntaxFromToken(stx.token, stx);
                         next.deferredContext = applyContext(stx.deferredContext, this.deferredContext);
                         return next;
                     } else {
                         return syntaxFromToken(stx.token,
-                                               applyContext(stx.context, this.deferredContext));
+                                               {context: applyContext(stx.context, this.deferredContext)});
                     }
                 }, this));
                 this.deferredContext = null;
@@ -154,8 +151,15 @@
             }
         }, {
             token: { value: token, enumerable: true, configurable: true},
-            context: { value: ctx, writable: true, enumerable: true, configurable: true},
-            deferredContext: { value: null, writable: true, enumerable: true, configurable: true}
+            context: { 
+                // if given old syntax object steal its context otherwise create one fresh
+                value: (oldstx && oldstx.context) ? oldstx.context : null,
+                writable: true, enumerable: true, configurable: true
+            },
+            deferredContext: { 
+                value: (oldstx && oldstx.deferredContext) ? oldstx.deferredContext : null, 
+                writable: true, enumerable: true, configurable: true
+            }
         });
     }
 
@@ -168,12 +172,10 @@
         }
 
         if(stx && stx.token) {
-            ctx = stx.context;
             lineStart = stx.token.lineStart;
             lineNumber = stx.token.lineNumber;
             range = stx.token.range;
         } else if (stx == null) {
-            ctx = null;
             lineStart = 0;
             lineNumber = 0;
             range = [0, 0];
@@ -186,7 +188,7 @@
             lineStart: lineStart,
             lineNumber: lineNumber,
             range: range
-        }, ctx);
+        }, stx);
     }
     
     // ([...CSyntax]) -> [...CToken]
@@ -229,12 +231,10 @@
     function makeRegex(val, flags, stx) {
         var ctx, lineStart, lineNumber, range;
         if(stx && stx.token) {
-            ctx = stx.context;
             lineStart = stx.token.lineStart;
             lineNumber = stx.token.lineNumber;
             range = stx.token.range;
         } else {
-            ctx = null;
             // the others can stay undefined
         }
         return syntaxFromToken({
@@ -244,7 +244,7 @@
             lineStart: lineStart,
             lineNumber: lineNumber,
             range: range
-        }, ctx);
+        }, stx);
     }
 
     function makeIdent(val, stx) {
@@ -269,7 +269,6 @@
         }
 
         if(stx && stx.token.type === parser.Token.Delimiter) {
-            ctx = stx.context;
             startLineNumber = stx.token.startLineNumber;
             startLineStart = stx.token.startLineStart
             endLineNumber = stx.token.endLineNumber;
@@ -277,7 +276,6 @@
             startRange = stx.token.startRange;
             endRange = stx.token.endRange;
         } else if (stx && stx.token){
-            ctx = stx.context;
             startLineNumber = stx.token.lineNumber;
             startLineStart = stx.token.lineStart;
             endLineNumber = stx.token.lineNumber;
@@ -285,7 +283,6 @@
             startRange = stx.token.range;
             endRange = stx.token.range
         } else {
-            ctx = null;
             startLineNumber = 0;
             startLineStart = 0;
             endLineNumber = 0;
@@ -304,7 +301,7 @@
             endLineNumber: endLineNumber,
             startRange: startRange,
             endRange: endRange
-        }, ctx);
+        }, stx);
     }
 
     function unwrapSyntax(stx) {

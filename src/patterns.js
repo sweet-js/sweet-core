@@ -121,7 +121,7 @@
                     startLineStart: from.token.startLineStart,
                     endLineNumber: from.token.endLineNumber,
                     endLineStart: from.token.endLineStart
-                }, to.context);
+                }, to);
 
             } else {
                 var next = syntaxFromToken({
@@ -134,9 +134,8 @@
                     startLineStart: from.token.lineStart,
                     endLineNumber: from.token.lineNumber,
                     endLineStart: from.token.lineStart
-                }, to.context);
+                }, to);
             }
-            next.deferredContext = to.deferredContext;
             return next;
         }
 
@@ -147,7 +146,7 @@
                 lineNumber: from.token.startLineNumber,
                 lineStart: from.token.startLineStart,
                 range: from.token.startRange
-            }, to.context);
+            }, to);
         } else {
             return syntaxFromToken({
                 value: to.token.value,
@@ -155,7 +154,7 @@
                 lineNumber: from.token.lineNumber,
                 lineStart: from.token.lineStart,
                 range: from.token.range
-            }, to.context);
+            }, to);
         }
     }
 
@@ -605,7 +604,7 @@
                                                   renv);
                             } else {
                                 var newBody = syntaxFromToken(_.clone(bodyStx.token),
-                                                              bodyStx.context);
+                                                              bodyStx);
                                 newBody.token.inner = transcribe(bodyStx.token.inner,
                                                                  macroNameStx,
                                                                  renv);
@@ -636,7 +635,7 @@
                     if (bodyStx.token.type === parser.Token.Delimiter) {
                         bodyStx.expose();
                         var newBody = syntaxFromToken(_.clone(bodyStx.token),
-                                                      macroBody.context);
+                                                      macroBody);
                         newBody.token.inner = transcribe(bodyStx.token.inner,
                                                          macroNameStx, env);
                         return acc.concat(takeLineContext(macroNameStx, [newBody]));

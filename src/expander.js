@@ -383,7 +383,7 @@
             range: delimSyntax.token.range,
             startLineNumber: delimSyntax.token.startLineNumber,
             lineStart: delimSyntax.token.lineStart
-        }, delimSyntax.context);
+        }, delimSyntax);
     }
 
     // (CSyntax) -> [...CSyntax]
@@ -603,7 +603,7 @@
             parser.assert(this.fun.hasPrototype(TermTree),
                 "expecting a term tree in destruct of call");
             var that = this;
-            this.delim = syntaxFromToken(_.clone(this.delim.token), this.delim.context);
+            this.delim = syntaxFromToken(_.clone(this.delim.token), this.delim);
             this.delim.token.inner = _.reduce(this.args, function(acc, term) {
                 parser.assert(term && term.hasPrototype(TermTree),
                               "expecting term trees in destruct of Call");
@@ -1567,7 +1567,7 @@
                     sm_lineStart: (stx.token.sm_startLineStart 
                                    ? stx.token.sm_startLineStart
                                    : stx.token.startLineStart)
-                }, exposed.context);
+                }, exposed);
                 var closeParen = syntaxFromToken({
                     type: parser.Token.Punctuator,
                     value: stx.token.value[1],
@@ -1580,7 +1580,7 @@
                     sm_lineStart: (stx.token.sm_endLineStart
                                     ? stx.token.sm_endLineStart
                                     : stx.token.endLineStart)
-                }, exposed.context);
+                }, exposed);
                 return acc
                     .concat(openParen)
                     .concat(flatten(exposed.token.inner))
