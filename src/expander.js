@@ -187,29 +187,41 @@
     exports._test = {};
 
     // some convenience monkey patching
-    Object.prototype.create = function() {
-        var o = Object.create(this);
-        if (typeof o.construct === "function") {
-            o.construct.apply(o, arguments);
+    Object.defineProperties(Object.prototype, {
+        "create": {
+            value: function() {
+                var o = Object.create(this);
+                if (typeof o.construct === "function") {
+                    o.construct.apply(o, arguments);
+                }
+                return o;
+            },
+            enumerable: false,
+            writable: true
+        },
+        "extend": {
+            value: function(properties) {
+                var result = Object.create(this);
+                for (var prop in properties) {
+                    if (properties.hasOwnProperty(prop)) {
+                        result[prop] = properties[prop];
+                    }
+                }
+                return result;
+            },
+            enumerable: false,
+            writable: true
+        },
+        "hasPrototype": {
+            value: function(proto) {
+                function F() {}
+                F.prototype = proto;
+                return this instanceof F;
+            },
+            enumerable: false,
+            writable: true
         }
-        return o;
-    };
-
-    Object.prototype.extend = function(properties) {
-        var result = Object.create(this);
-        for (var prop in properties) {
-            if (properties.hasOwnProperty(prop)) {
-                result[prop] = properties[prop];
-            }
-        }
-        return result;
-    };
-
-    Object.prototype.hasPrototype = function(proto) {
-        function F() {}
-        F.prototype = proto;
-        return this instanceof F;
-    };
+    });
 
     // todo: add more message information
     function throwError(msg) {
