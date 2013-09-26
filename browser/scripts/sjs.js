@@ -17,27 +17,35 @@ exports.run = function () {
         console.log(require('optimist').help());
         return;
     }
-    var module$107 = argv$100.module;
-    var modulefile$108;
-    if (module$107) {
-        modulefile$108 = fs$97.readFileSync(module$107, 'utf8');
-        file$106 = modulefile$108 + '\n' + file$106;
+    var mod$107 = argv$100.module;
+    var cwd$108 = process.cwd();
+    var Module$109 = module.constructor;
+    var modulepath$110, modulefile$111, modulemock$112;
+    if (mod$107) {
+        modulemock$112 = {
+            id: cwd$108 + '/$sweet-loader.js',
+            filename: '$sweet-loader.js',
+            paths: /^\.\/|\.\./.test(cwd$108) ? [cwd$108] : Module$109._nodeModulePaths(cwd$108)
+        };
+        modulepath$110 = Module$109._resolveFilename(mod$107, modulemock$112);
+        modulefile$111 = fs$97.readFileSync(modulepath$110, 'utf8');
+        file$106 = modulefile$111 + '\n' + file$106;
     }
     if (watch$103 && outfile$102) {
         fs$97.watch(infile$101, function () {
             file$106 = fs$97.readFileSync(infile$101, 'utf8');
             try {
                 fs$97.writeFileSync(outfile$102, sweet$99.compile(file$106), 'utf8');
-            } catch (e$109) {
-                console.log(e$109);
+            } catch (e$113) {
+                console.log(e$113);
             }
         });
     } else if (outfile$102) {
         if (sourcemap$105) {
-            var result$110 = sweet$99.compileWithSourcemap(file$106, infile$101);
-            var mapfile$111 = path$98.basename(outfile$102) + '.map';
-            fs$97.writeFileSync(outfile$102, result$110[0] + '\n//# sourceMappingURL=' + mapfile$111, 'utf8');
-            fs$97.writeFileSync(outfile$102 + '.map', result$110[1], 'utf8');
+            var result$114 = sweet$99.compileWithSourcemap(file$106, infile$101);
+            var mapfile$115 = path$98.basename(outfile$102) + '.map';
+            fs$97.writeFileSync(outfile$102, result$114[0] + '\n//# sourceMappingURL=' + mapfile$115, 'utf8');
+            fs$97.writeFileSync(outfile$102 + '.map', result$114[1], 'utf8');
         } else {
             fs$97.writeFileSync(outfile$102, sweet$99.compile(file$106), 'utf8');
         }
