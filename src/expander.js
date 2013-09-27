@@ -239,7 +239,7 @@
     var isRename = syn.isRename;
 
     var syntaxFromToken = syn.syntaxFromToken;
-    var mkSyntax = syn.mkSyntax;
+    var joinSyntax = syn.joinSyntax;
 
 
     function remdup(mark, mlist) {
@@ -356,17 +356,6 @@
     // fun () -> Num
     function fresh() { return nextFresh++; };
 
-
-
-    // ([...CSyntax], Str) -> [...CSyntax])
-    function joinSyntax(tojoin, punc) {
-        if (tojoin.length === 0) { return []; }
-        if (punc === " ") { return tojoin; }
-
-        return _.reduce(_.rest(tojoin, 1), function (acc, join) {
-            return acc.concat(mkSyntax(punc, parser.Token.Punctuator, join), join);
-        }, [_.first(tojoin)]);
-    }
 
 
 

@@ -54,9 +54,6 @@
         return ctx && (typeof ctx.defctx !== 'undefined');
     }
 
-    var templateMap = new Map();
-
-
     // (CToken, CSyntax?) -> CSyntax
     function syntaxFromToken(token, oldstx) {
         return Object.create({
@@ -163,33 +160,129 @@
         });
     }
 
-    function mkSyntax(value, type, stx) {
-        var ctx, lineStart, lineNumber, range;
+    function mkSyntax(stx, value, type, inner) {
         if (stx && Array.isArray(stx) && stx.length === 1) {
             stx = stx[0];
         } else if (stx && Array.isArray(stx)) {
-            throw new Error("Expecting a syntax object, not: " + stx);
+            throw new Error("Expecting a syntax object or an array with a single syntax object, not: " + stx);
         }
 
-        if(stx && stx.token) {
-            lineStart = stx.token.lineStart;
-            lineNumber = stx.token.lineNumber;
-            range = stx.token.range;
-        } else if (stx == null) {
-            lineStart = 0;
-            lineNumber = 0;
-            range = [0, 0];
+        if (type === parser.Token.Delimiter) {
+            var startLineNumber, startLineStart, endLineNumber, endLineStart, startRange, endRange;
+            if (!Array.isArray(inner)) {
+                throw new Error("Must provide inner array of syntax objects when creating a delimiter");
+            }
+
+            if(stx && stx.token.type === parser.Token.Delimiter) {
+                startLineNumber = stx.token.startLineNumber;
+                startLineStart = stx.token.startLineStart
+                endLineNumber = stx.token.endLineNumber;
+                endLineStart = stx.token.endLineStart;
+                startRange = stx.token.startRange;
+                endRange = stx.token.endRange;
+            } else if (stx && stx.token){
+                startLineNumber = stx.token.lineNumber;
+                startLineStart = stx.token.lineStart;
+                endLineNumber = stx.token.lineNumber;
+                endLineStart = stx.token.lineStart;
+                startRange = stx.token.range;
+                endRange = stx.token.range
+            } else {
+                startLineNumber = 0;
+                startLineStart = 0;
+                endLineNumber = 0;
+                endLineStart = 0;
+                startRange = [0, 0];
+                endRange = [0, 0];
+            }
+
+            return syntaxFromToken({
+                type: parser.Token.Delimiter,
+                value: value,
+                inner: inner,
+                startLineStart: startLineStart,
+                startLineNumber: startLineNumber,
+                endLineStart: endLineStart,
+                endLineNumber: endLineNumber,
+                startRange: startRange,
+                endRange: endRange
+            }, stx);
         } else {
-            throw new Error("Expecting a syntax object, not: " + stx);
+            var lineStart, lineNumber, range;
+            if (stx && stx.token.type === parser.Token.Delimiter) {
+                lineStart = stx.token.startLineStart;
+                lineNumber = stx.token.startLineNumber;
+                range = stx.token.startRange;
+            } else if(stx && stx.token) {
+                lineStart = stx.token.lineStart;
+                lineNumber = stx.token.lineNumber;
+                range = stx.token.range;
+            } else {
+                lineStart = 0;
+                lineNumber = 0;
+                range = [0, 0];
+            } 
+            return syntaxFromToken({
+                type: type,
+                value: value,
+                lineStart: lineStart,
+                lineNumber: lineNumber,
+                range: range
+            }, stx);
         }
-        return syntaxFromToken({
-            type: type,
-            value: value,
-            lineStart: lineStart,
-            lineNumber: lineNumber,
-            range: range
-        }, stx);
+
     }
+    
+
+    function makeValue(val, stx) {
+        if(typeof val === 'boolean') {
+            return mkSyntax(stx, val ? "true" : "false", parser.Token.BooleanLiteral);
+        } else if (typeof val === 'number') {
+            return mkSyntax(stx, val, parser.Token.NumericLiteral);
+        } else if (typeof val === 'string') {
+            return mkSyntax(stx, val, parser.Token.StringLiteral);
+        } else if (val === null) {
+            return mkSyntax(stx, 'null', parser.Token.NullLiteral);
+        } else {
+            throw new Error("Cannot make value syntax object from: " + val);
+        }
+    }
+
+    function makeRegex(val, flags, stx) {
+        var newstx = mkSyntax(stx, new RegExp(val, flags), parser.Token.RegexLiteral);
+        // regex tokens need the extra field literal on token
+        newstx.token.literal = val;
+        return newstx;
+    }
+
+    function makeIdent(val, stx) {
+        return mkSyntax(stx, val, parser.Token.Identifier);
+    }
+
+    function makeKeyword(val, stx) {
+        return mkSyntax(stx, val, parser.Token.Keyword);
+    }
+
+    function makePunc(val, stx) {
+        return mkSyntax(stx, val, parser.Token.Punctuator);
+    }
+
+    function makeDelim(val, inner, stx) {
+        return mkSyntax(stx, val, parser.Token.Delimiter, inner);
+    }
+
+    function unwrapSyntax(stx) {
+        if (stx.token) {
+            if(stx.token.type === parser.Token.Delimiter) {
+                return stx.token;
+            } else {
+                return stx.token.value;
+            }
+        } else {
+            throw new Error ("Not a syntax object: " + stx);
+        }
+    }
+
     
     // ([...CSyntax]) -> [...CToken]
     function syntaxToTokens(stx) {
@@ -214,106 +307,29 @@
         });
     }
 
-    function makeValue(val, stx) {
-        if(typeof val === 'boolean') {
-            return mkSyntax(val ? "true" : "false", parser.Token.BooleanLiteral, stx);
-        } else if (typeof val === 'number') {
-            return mkSyntax(val, parser.Token.NumericLiteral, stx);
-        } else if (typeof val === 'string') {
-            return mkSyntax(val, parser.Token.StringLiteral, stx);
-        } else if (val === null) {
-            return mkSyntax('null', parser.Token.NullLiteral, stx);
-        } else {
-            throw new Error("Cannot make value syntax object from: " + val);
-        }
+
+    // ([...CSyntax], Str) -> [...CSyntax])
+    function joinSyntax(tojoin, punc) {
+        if (tojoin.length === 0) { return []; }
+        if (punc === " ") { return tojoin; }
+
+        return _.reduce(_.rest(tojoin, 1), function (acc, join) {
+            return acc.concat(makePunc(punc, join), join);
+        }, [_.first(tojoin)]);
     }
 
-    function makeRegex(val, flags, stx) {
-        var ctx, lineStart, lineNumber, range;
-        if(stx && stx.token) {
-            lineStart = stx.token.lineStart;
-            lineNumber = stx.token.lineNumber;
-            range = stx.token.range;
-        } else {
-            // the others can stay undefined
-        }
-        return syntaxFromToken({
-            type: parser.Token.RegexLiteral,
-            literal: val,
-            value: new RegExp(val, flags),
-            lineStart: lineStart,
-            lineNumber: lineNumber,
-            range: range
-        }, stx);
-    }
 
-    function makeIdent(val, stx) {
-        return mkSyntax(val, parser.Token.Identifier, stx);
-    }
-
-    function makeKeyword(val, stx) {
-        return mkSyntax(val, parser.Token.Keyword, stx);
-    }
-
-    function makePunc(val, stx) {
-        return mkSyntax(val, parser.Token.Punctuator, stx);
-    }
-
-    function makeDelim(val, inner, stx) {
-        var ctx, startLineNumber, startLineStart, endLineNumber, endLineStart, startRange, endRange;
-
-        if (stx && Array.isArray(stx) && stx.length === 1) {
-            stx = stx[0];
-        } else if (stx && Array.isArray(stx)) {
-            throw new Error("Expecting a syntax object, not: " + stx);
+    // ([...[...CSyntax]], Str) -> [...CSyntax]
+    function joinSyntaxArr(tojoin, punc) {
+        if (tojoin.length === 0) { return []; }
+        if (punc === " ") {
+            return _.flatten(tojoin, true);
         }
 
-        if(stx && stx.token.type === parser.Token.Delimiter) {
-            startLineNumber = stx.token.startLineNumber;
-            startLineStart = stx.token.startLineStart
-            endLineNumber = stx.token.endLineNumber;
-            endLineStart = stx.token.endLineStart;
-            startRange = stx.token.startRange;
-            endRange = stx.token.endRange;
-        } else if (stx && stx.token){
-            startLineNumber = stx.token.lineNumber;
-            startLineStart = stx.token.lineStart;
-            endLineNumber = stx.token.lineNumber;
-            endLineStart = stx.token.lineStart;
-            startRange = stx.token.range;
-            endRange = stx.token.range
-        } else {
-            startLineNumber = 0;
-            startLineStart = 0;
-            endLineNumber = 0;
-            endLineStart = 0;
-            startRange = [0, 0];
-            endRange = [0, 0];
-        }
-
-        return syntaxFromToken({
-            type: parser.Token.Delimiter,
-            value: val,
-            inner: inner,
-            startLineStart: startLineStart,
-            startLineNumber: startLineNumber,
-            endLineStart: endLineStart,
-            endLineNumber: endLineNumber,
-            startRange: startRange,
-            endRange: endRange
-        }, stx);
-    }
-
-    function unwrapSyntax(stx) {
-        if (stx.token) {
-            if(stx.token.type === parser.Token.Delimiter) {
-                return stx.token;
-            } else {
-                return stx.token.value;
-            }
-        } else {
-            throw new Error ("Not a syntax object: " + stx);
-        }
+        return _.reduce(_.rest(tojoin, 1), function (acc, join){
+            return acc.concat(makePunc(punc, _.first(join)),
+                              join);
+        }, _.first(tojoin));
     }
 
     exports.unwrapSyntax = unwrapSyntax;
@@ -333,7 +349,9 @@
     exports.isRename = isRename;
 
     exports.syntaxFromToken = syntaxFromToken;
-    exports.mkSyntax = mkSyntax;
     exports.tokensToSyntax = tokensToSyntax;
     exports.syntaxToTokens = syntaxToTokens;
+
+    exports.joinSyntax = joinSyntax;
+    exports.joinSyntaxArr = joinSyntaxArr;
 }));

@@ -12,33 +12,9 @@
 
     var get_expression = expander.get_expression;
     var syntaxFromToken = syntax.syntaxFromToken;
-    var mkSyntax = syntax.mkSyntax;
-
-    
-    // ([...CSyntax], Str) -> [...CSyntax])
-    function joinSyntax(tojoin, punc) {
-        if (tojoin.length === 0) { return []; }
-        if (punc === " ") { return tojoin; }
-
-        return _.reduce(_.rest(tojoin, 1), function (acc, join) {
-            return acc.concat(mkSyntax(punc, parser.Token.Punctuator, join), join);
-        }, [_.first(tojoin)]);
-    }
-
-    // ([...[...CSyntax]], Str) -> [...CSyntax]
-    function joinSyntaxArr(tojoin, punc) {
-        if (tojoin.length === 0) { return []; }
-        if (punc === " ") {
-            return _.flatten(tojoin, true);
-        }
-
-        return _.reduce(_.rest(tojoin, 1), function (acc, join){
-            return acc.concat(mkSyntax(punc,
-                                       parser.Token.Punctuator,
-                                       _.first(join)),
-                              join);
-        }, _.first(tojoin));
-    }
+    var makePunc = syntax.makePunc;
+    var joinSyntax = syntax.joinSyntax;
+    var joinSyntaxArr = syntax.joinSyntaxArr;
 
     // ([...CSyntax]) -> [...Str]
     function freeVarsInPattern(pattern) {
@@ -92,9 +68,7 @@
             if (punc === " ") {
                 return acc.concat(join.match);
             }
-            return acc.concat(mkSyntax(punc,
-                                       parser.Token.Punctuator,
-                                       _.first(join.match)),
+            return acc.concat(makePunc(punc, _.first(join.match)),
                               join.match);
         }, _.first(tojoin).match);
     }
