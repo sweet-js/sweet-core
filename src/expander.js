@@ -187,29 +187,41 @@
     exports._test = {};
 
     // some convenience monkey patching
-    Object.prototype.create = function() {
-        var o = Object.create(this);
-        if (typeof o.construct === "function") {
-            o.construct.apply(o, arguments);
+    Object.defineProperties(Object.prototype, {
+        "create": {
+            value: function() {
+                var o = Object.create(this);
+                if (typeof o.construct === "function") {
+                    o.construct.apply(o, arguments);
+                }
+                return o;
+            },
+            enumerable: false,
+            writable: true
+        },
+        "extend": {
+            value: function(properties) {
+                var result = Object.create(this);
+                for (var prop in properties) {
+                    if (properties.hasOwnProperty(prop)) {
+                        result[prop] = properties[prop];
+                    }
+                }
+                return result;
+            },
+            enumerable: false,
+            writable: true
+        },
+        "hasPrototype": {
+            value: function(proto) {
+                function F() {}
+                F.prototype = proto;
+                return this instanceof F;
+            },
+            enumerable: false,
+            writable: true
         }
-        return o;
-    };
-
-    Object.prototype.extend = function(properties) {
-        var result = Object.create(this);
-        for (var prop in properties) {
-            if (properties.hasOwnProperty(prop)) {
-                result[prop] = properties[prop];
-            }
-        }
-        return result;
-    };
-
-    Object.prototype.hasPrototype = function(proto) {
-        function F() {}
-        F.prototype = proto;
-        return this instanceof F;
-    };
+    });
 
     // todo: add more message information
     function throwError(msg) {
@@ -227,7 +239,7 @@
     var isRename = syn.isRename;
 
     var syntaxFromToken = syn.syntaxFromToken;
-    var mkSyntax = syn.mkSyntax;
+    var joinSyntax = syn.joinSyntax;
 
 
     function remdup(mark, mlist) {
@@ -346,17 +358,6 @@
 
 
 
-    // ([...CSyntax], Str) -> [...CSyntax])
-    function joinSyntax(tojoin, punc) {
-        if (tojoin.length === 0) { return []; }
-        if (punc === " ") { return tojoin; }
-
-        return _.reduce(_.rest(tojoin, 1), function (acc, join) {
-            return acc.concat(mkSyntax(punc, parser.Token.Punctuator, join), join);
-        }, [_.first(tojoin)]);
-    }
-
-
 
     // wraps the array of syntax objects in the delimiters given by the second argument
     // ([...CSyntax], CSyntax) -> [...CSyntax]
@@ -371,7 +372,7 @@
             range: delimSyntax.token.range,
             startLineNumber: delimSyntax.token.startLineNumber,
             lineStart: delimSyntax.token.lineStart
-        }, delimSyntax.context);
+        }, delimSyntax);
     }
 
     // (CSyntax) -> [...CSyntax]
@@ -591,7 +592,7 @@
             parser.assert(this.fun.hasPrototype(TermTree),
                 "expecting a term tree in destruct of call");
             var that = this;
-            this.delim = syntaxFromToken(_.clone(this.delim.token), this.delim.context);
+            this.delim = syntaxFromToken(_.clone(this.delim.token), this.delim);
             this.delim.token.inner = _.reduce(this.args, function(acc, term) {
                 parser.assert(term && term.hasPrototype(TermTree),
                               "expecting term trees in destruct of Call");
@@ -680,16 +681,24 @@
     });
 
     var Module = TermTree.extend({
-        properties: ["body"],
+        properties: ["body", "exports"],
 
         construct: function(body) {
             this.body = body;
+            this.exports = [];
         }
     });
 
     var Empty = TermTree.extend({
         properties: [],
         construct: function() {}
+    });
+
+    var Export = TermTree.extend({
+        properties: ["name"],
+        construct: function(name) {
+            this.name = name;
+        }
     });
 
     function stxIsUnaryOp (stx) {
@@ -979,7 +988,7 @@
                                         rest[2] && rest[2].token.value === "macro") => {
                         var mac = enforest(rest.slice(2), env);
                         if (!mac.result.hasPrototype(AnonMacro)) {
-                            throw new Error("expecting an anonymous macro definition in syntax let binding");
+                            throw new Error("expecting an anonymous macro definition in syntax let binding, not: " + mac.result);
                         }
                         return step(LetMacro.create(rest[0], mac.result.body), mac.rest);
                                   
@@ -1092,6 +1101,13 @@
                     head.token.type === parser.Token.NullLiteral) {
 
                     return step(Lit.create(head), rest);
+                // export
+                } else if (head.token.type === parser.Token.Identifier && 
+                            head.token.value === "export" && 
+                            rest[0] && (rest[0].token.type === parser.Token.Identifier ||
+                                        rest[0].token.type === parser.Token.Keyword ||
+                                        rest[0].token.type === parser.Token.Punctuator)) {
+                    return step(Export.create(rest[0]), rest.slice(1));
                 // identifier
                 } else if (head.token.type === parser.Token.Identifier) {
                     return step(Id.create(head), rest);
@@ -1456,6 +1472,17 @@
             // stitch up the function with all the renamings
             term.params = expandedArgs[0];
 
+            if (term.hasPrototype(Module)) {
+                bodyTerms[0].body.delim.token.inner = _.filter(bodyTerms[0].body.delim.token.inner, function(innerTerm) {
+                    if (innerTerm.hasPrototype(Export)) {
+                        term.exports.push(innerTerm);
+                        return false;
+                    } else {
+                        return true;
+                    }
+                });
+            }
+
             var flattenedBody = bodyTerms[0].destruct();
             flattenedBody = _.reduce(newDef, function(acc, def) {
                 return acc.rename(def.id, def.name);
@@ -1483,17 +1510,32 @@
 
     // a hack to make the top level hygiene work out
     function expandTopLevel (stx, builtinSource) {
+        var buildinEnv = new Map();
+        var env = new Map();
+        var params = [];
         if (builtinSource) {
             var builtinRead = parser.read(builtinSource)[0];
 
             builtinRead = [syn.makeIdent("module", null),
                             syn.makeDelim("{}", builtinRead, null)];
 
-            var builtinRes = expand(builtinRead);
+            var builtinRes = expand(builtinRead, buildinEnv);
+            params = _.map(builtinRes[0].exports, function(term) {
+                return {
+                    oldExport: term.name,
+                    newParam: syn.makeIdent(term.name.token.value, null)
+                }
+            });
         }
+        var modBody = syn.makeDelim("{}", stx, null);
+        modBody = _.reduce(params, function(acc, param) {
+            var newName = fresh();
+            env.set(resolve(param.newParam.rename(param.newParam, newName)), 
+                    buildinEnv.get(resolve(param.oldExport)));
+            return acc.rename(param.newParam, newName);
+        }, modBody);
 
-        var res = expand([syn.makeIdent("module", null), 
-                            syn.makeDelim("{}", stx)]);
+        var res = expand([syn.makeIdent("module", null), modBody], env);
         return flatten(res[0].body.token.inner);
     }
 
@@ -1514,7 +1556,7 @@
                     sm_lineStart: (stx.token.sm_startLineStart 
                                    ? stx.token.sm_startLineStart
                                    : stx.token.startLineStart)
-                }, exposed.context);
+                }, exposed);
                 var closeParen = syntaxFromToken({
                     type: parser.Token.Punctuator,
                     value: stx.token.value[1],
@@ -1527,7 +1569,7 @@
                     sm_lineStart: (stx.token.sm_endLineStart
                                     ? stx.token.sm_endLineStart
                                     : stx.token.endLineStart)
-                }, exposed.context);
+                }, exposed);
                 return acc
                     .concat(openParen)
                     .concat(flatten(exposed.token.inner))

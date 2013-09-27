@@ -597,7 +597,7 @@ to decide on the correct name for identifiers.
             };
         }
 
-        if (ch1 === "#") {
+        if (ch1 === "#" || ch1 === "@") {
             ++index;
             return {
                 type: Token.Punctuator,
@@ -3854,7 +3854,7 @@ to decide on the correct name for identifiers.
             inSwitch: false
         };
 
-        extra = {range: false, loc: false}
+        extra = {range: true, loc: true}
         patch();
         try {
             program = parseProgram();

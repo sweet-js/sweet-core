@@ -77,14 +77,17 @@
             }
         }
 
-        source = stxcaseModule + "\n\n" + source;
-
         var readTree = parser.read(source);
         return [expander.expand(readTree[0], stxcaseModule), readTree[1]];
     }
 
     // fun (Str, {}) -> AST
     function parse(code) {
+        if (code === "") {
+            // old version of esprima doesn't play nice with the empty string
+            // and loc/range info so until we can upgrade hack in a single space
+            code = " ";
+        }
         var exp = expand(code);
 
         return parser.parse(exp[0], exp[1]);
@@ -95,9 +98,9 @@
 
     exports.compileWithSourcemap = function(code, filename) {
         var ast = parse(code);
-        // codegen.attachComments(ast, ast.comments, ast.tokens);
+        codegen.attachComments(ast, ast.comments, ast.tokens);
         var code_output = codegen.generate(ast, {
-            comment: false
+            comment: true
         });
         var sourcemap = codegen.generate(ast, {
             sourceMap: filename
@@ -109,9 +112,9 @@
 
     exports.compile = function compile(code) {
         var ast = parse(code);
-        // codegen.attachComments(ast, ast.comments, ast.tokens);
+        codegen.attachComments(ast, ast.comments, ast.tokens);
         return codegen.generate(ast, {
-            comment: false
+            comment: true
         });
     }
 }));

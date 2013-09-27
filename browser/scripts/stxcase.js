@@ -1,4 +1,4 @@
-macro quoteSyntax {
+let quoteSyntax = macro {
     function(stx) {
         var name_stx = stx[0];
 
@@ -13,8 +13,9 @@ macro quoteSyntax {
         };
     }
 }
+export quoteSyntax
 
-macro syntax {
+let syntax = macro {
     function(stx) {
         var name_stx = stx[0];
         var takeLineContext = patternModule.takeLineContext;
@@ -44,6 +45,7 @@ macro syntax {
         };
     }
 }
+export syntax
 
 macro # {
     function (stx) {
@@ -54,9 +56,10 @@ macro # {
         }
     }
 }
+export #
 
 
-macro syntaxCase {
+let syntaxCase = macro {
     function(stx) {
         var name_stx = stx[0];
         var arg_stx = stx[1].expose().token.inner;
@@ -307,6 +310,7 @@ macro syntaxCase {
         }
     }
 }
+export syntaxCase
 
 
 let macro = macro {
@@ -363,12 +367,12 @@ let macro = macro {
             var rules = [];
             for (var i = 0; i < rule_body.length; i += 5) {
                 var rule_pattern = rule_body[i + 1].token.inner;
-                var rule_def = rule_body[i + 4].token.inner;
+                var rule_def = rule_body[i + 4].expose().token.inner;
                 rules = rules.concat([makeIdent("case", name_stx),
                                       makeDelim("{}", [makeIdent("_", name_stx)].concat(rule_pattern), name_stx),
                                       makePunc("=", name_stx), makePunc(">", name_stx),
                                       makeDelim("{}", [makeKeyword("return", name_stx),
-                                                       makeIdent("#", name_stx),
+                                                       makeIdent("syntax", name_stx),
                                                        makeDelim("{}", rule_def, name_stx)], name_stx)])
             }
             rules = makeDelim("{}", rules, name_stx);
@@ -398,8 +402,9 @@ let macro = macro {
         }
     }
 }
+export macro;
 
-macro withSyntax {
+let withSyntax = macro {
     case {$name
           ($($p = $e:expr) (,) ...)
           {$body ...}} => {
@@ -413,11 +418,12 @@ macro withSyntax {
         args = args.concat(makeIdent("env", name[0]));
         res = res.concat(makeDelim("()", args, here));
 
-        var arm = #{case { ($p) ... } =>};
-        res = res.concat(makeDelim("{}", arm.concat(#{{ $body ... }}), here));
+        res = res.concat(#{
+            { case { ($p) ... } => { $body ... } }
+        });
 
         return [makeDelim("()", res, here), makePunc(".", here), makeIdent("result", here), makePunc(";", here)]
     }
 }
 
-
+export withSyntax

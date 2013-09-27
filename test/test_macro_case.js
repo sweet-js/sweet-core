@@ -112,6 +112,25 @@ $describe "procedural (syntax-case) macros" {
 
         expect((function 42)()).to.be(42);
     }
-    
 
+    $it "should unwrap the context syntax array for makeDelim" {
+        macro $delim {
+            case { $$mac $val } => {
+                var d = makeDelim('[]', #{$val}, #{$$mac});
+                return [d];
+            }
+        }
+
+        expect($delim 42).to.eql([42]);
+    }
+
+    $it "should unwrap single element arrays in unwrapSyntax" {
+        macro m {
+            case {_ () } => {
+                var num = unwrapSyntax(#{42})
+                return [makeValue(num, #{here})];
+            }
+        }
+        expect(m()).to.be(42);
+    }
 }

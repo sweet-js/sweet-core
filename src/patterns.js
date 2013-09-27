@@ -12,33 +12,9 @@
 
     var get_expression = expander.get_expression;
     var syntaxFromToken = syntax.syntaxFromToken;
-    var mkSyntax = syntax.mkSyntax;
-
-    
-    // ([...CSyntax], Str) -> [...CSyntax])
-    function joinSyntax(tojoin, punc) {
-        if (tojoin.length === 0) { return []; }
-        if (punc === " ") { return tojoin; }
-
-        return _.reduce(_.rest(tojoin, 1), function (acc, join) {
-            return acc.concat(mkSyntax(punc, parser.Token.Punctuator, join), join);
-        }, [_.first(tojoin)]);
-    }
-
-    // ([...[...CSyntax]], Str) -> [...CSyntax]
-    function joinSyntaxArr(tojoin, punc) {
-        if (tojoin.length === 0) { return []; }
-        if (punc === " ") {
-            return _.flatten(tojoin, true);
-        }
-
-        return _.reduce(_.rest(tojoin, 1), function (acc, join){
-            return acc.concat(mkSyntax(punc,
-                                       parser.Token.Punctuator,
-                                       _.first(join)),
-                              join);
-        }, _.first(tojoin));
-    }
+    var makePunc = syntax.makePunc;
+    var joinSyntax = syntax.joinSyntax;
+    var joinSyntaxArr = syntax.joinSyntaxArr;
 
     // ([...CSyntax]) -> [...Str]
     function freeVarsInPattern(pattern) {
@@ -92,9 +68,7 @@
             if (punc === " ") {
                 return acc.concat(join.match);
             }
-            return acc.concat(mkSyntax(punc,
-                                       parser.Token.Punctuator,
-                                       _.first(join.match)),
+            return acc.concat(makePunc(punc, _.first(join.match)),
                               join.match);
         }, _.first(tojoin).match);
     }
@@ -110,27 +84,52 @@
     // (CSyntax, CSyntax) -> CSyntax
     function takeLine(from, to) {
         if (to.token.type === parser.Token.Delimiter) {
-            var next = syntaxFromToken({
-                type: parser.Token.Delimiter,
-                value: to.token.value,
-                inner: to.token.inner,
-                startRange: from.token.range,
-                endRange: from.token.range,
-                startLineNumber: from.token.lineNumber,
-                startLineStart: from.token.lineStart,
-                endLineNumber: from.token.lineNumber,
-                endLineStart: from.token.lineStart
-            }, to.context);
-            next.deferredContext = to.deferredContext;
+            if (from.token.type === parser.Token.Delimiter) {
+                var next = syntaxFromToken({
+                    type: parser.Token.Delimiter,
+                    value: to.token.value,
+                    inner: to.token.inner,
+                    startRange: from.token.startRange,
+                    endRange: from.token.endRange,
+                    startLineNumber: from.token.startLineNumber,
+                    startLineStart: from.token.startLineStart,
+                    endLineNumber: from.token.endLineNumber,
+                    endLineStart: from.token.endLineStart
+                }, to);
+
+            } else {
+                var next = syntaxFromToken({
+                    type: parser.Token.Delimiter,
+                    value: to.token.value,
+                    inner: to.token.inner,
+                    startRange: from.token.range,
+                    endRange: from.token.range,
+                    startLineNumber: from.token.lineNumber,
+                    startLineStart: from.token.lineStart,
+                    endLineNumber: from.token.lineNumber,
+                    endLineStart: from.token.lineStart
+                }, to);
+            }
             return next;
         }
-        return syntaxFromToken({
-            value: to.token.value,
-            type: to.token.type,
-            lineNumber: from.token.lineNumber,
-            lineStart: from.token.lineStart,
-            range: from.token.range
-        }, to.context);
+
+        if (from.token.type === parser.Token.Delimiter) {
+            return syntaxFromToken({
+                value: to.token.value,
+                type: to.token.type,
+                lineNumber: from.token.startLineNumber,
+                lineStart: from.token.startLineStart,
+                range: from.token.startRange
+            }, to);
+        } else {
+            return syntaxFromToken({
+                value: to.token.value,
+                type: to.token.type,
+                lineNumber: from.token.lineNumber,
+                lineStart: from.token.lineStart,
+                range: from.token.range
+            }, to);
+        }
     }
 
     function loadPattern(patterns) {
@@ -579,7 +578,7 @@
                                                   renv);
                             } else {
                                 var newBody = syntaxFromToken(_.clone(bodyStx.token),
-                                                              bodyStx.context);
+                                                              bodyStx);
                                 newBody.token.inner = transcribe(bodyStx.token.inner,
                                                                  macroNameStx,
                                                                  renv);
@@ -610,7 +609,7 @@
                     if (bodyStx.token.type === parser.Token.Delimiter) {
                         bodyStx.expose();
                         var newBody = syntaxFromToken(_.clone(bodyStx.token),
-                                                      macroBody.context);
+                                                      macroBody);
                         newBody.token.inner = transcribe(bodyStx.token.inner,
                                                          macroNameStx, env);
                         return acc.concat(takeLineContext(macroNameStx, [newBody]));
