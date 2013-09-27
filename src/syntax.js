@@ -272,6 +272,11 @@
     }
 
     function unwrapSyntax(stx) {
+        if (Array.isArray(stx) && stx.length === 1) {
+            // pull stx out of single element arrays for convenience 
+            stx = stx[0];
+        }
+        
         if (stx.token) {
             if(stx.token.type === parser.Token.Delimiter) {
                 return stx.token;
@@ -283,7 +288,7 @@
         }
     }
 
-    
+
     // ([...CSyntax]) -> [...CToken]
     function syntaxToTokens(stx) {
         return _.map(stx, function(stx) {
