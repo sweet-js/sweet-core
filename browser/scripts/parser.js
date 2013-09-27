@@ -525,7 +525,7 @@ to decide on the correct name for identifiers.
                 ]
             };
         }
-        if (ch1$266 === '#') {
+        if (ch1$266 === '#' || ch1$266 === '@') {
             ++index$109;
             return {
                 type: Token$101.Punctuator,
