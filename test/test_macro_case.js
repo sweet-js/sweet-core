@@ -133,4 +133,13 @@ $describe "procedural (syntax-case) macros" {
         }
         expect(m()).to.be(42);
     }
+
+    $it "should handle negative numbers in makeValue" {
+        macro m {
+            case {_ () } => {
+                return [makeValue(-42, #{here})];
+            }
+        }
+        expect(m()).to.be(-42);
+    }
 }

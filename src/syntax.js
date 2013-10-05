@@ -238,7 +238,11 @@
         if(typeof val === 'boolean') {
             return mkSyntax(stx, val ? "true" : "false", parser.Token.BooleanLiteral);
         } else if (typeof val === 'number') {
-            return mkSyntax(stx, val, parser.Token.NumericLiteral);
+            if (val < 0) {
+                return makeDelim('()', [makePunc('-', stx), makeValue(Math.abs(val), stx)], stx);
+            } else {
+                return mkSyntax(stx, val, parser.Token.NumericLiteral);
+            }
         } else if (typeof val === 'string') {
             return mkSyntax(stx, val, parser.Token.StringLiteral);
         } else if (val === null) {
