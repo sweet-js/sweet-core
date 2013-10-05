@@ -43,18 +43,23 @@ exports.run = function() {
     var mod = argv.module;
     var cwd = process.cwd();
     var Module = module.constructor;
-    var modulepath, modulefile, modulemock;
+    var modulemock;
 
 
-    if(mod) {
+    if (mod) {
         modulemock = {
           id: cwd + '/$sweet-loader.js',
           filename: '$sweet-loader.js',
           paths: /^\.\/|\.\./.test(cwd) ? [cwd] : Module._nodeModulePaths(cwd)
         };
-        modulepath = Module._resolveFilename(mod, modulemock);
-        modulefile = fs.readFileSync(modulepath, "utf8");
-        file = modulefile + "\n" + file;
+        if (typeof mod === "string") {
+            mod = [mod];
+        }
+        file = mod.reduceRight(function(f, m) {
+            var modulepath = Module._resolveFilename(m, modulemock);
+            var modulefile = fs.readFileSync(modulepath, "utf8");
+            return modulefile + "\n" + f;
+        }, file);
     }
     
 	if (watch && outfile) {
