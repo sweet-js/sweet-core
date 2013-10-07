@@ -238,7 +238,9 @@
         if(typeof val === 'boolean') {
             return mkSyntax(stx, val ? "true" : "false", parser.Token.BooleanLiteral);
         } else if (typeof val === 'number') {
-            if (val < 0) {
+            if (val !== val) {
+                return makeDelim('()', [makeValue(0, stx), makePunc('/', stx), makeValue(0, stx)], stx);
+            } if (val < 0) {
                 return makeDelim('()', [makePunc('-', stx), makeValue(Math.abs(val), stx)], stx);
             } else {
                 return mkSyntax(stx, val, parser.Token.NumericLiteral);

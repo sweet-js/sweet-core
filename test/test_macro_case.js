@@ -142,4 +142,15 @@ $describe "procedural (syntax-case) macros" {
         }
         expect(m()).to.be(-42);
     }
+
+    $it "should handle NaN in makeValue" {
+        macro m {
+            case {_ () } => {
+                return [makeValue(0/0, #{here})];
+            }
+        }
+        var n = m();
+        expect(n).to.be.a('number');
+        expect(n).not.to.equal(n);
+    }
 }
