@@ -1470,7 +1470,9 @@
             var expandedArgs = expand([flatArgs], env, newDef, templateMap);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the function with all the renamings
-            term.params = expandedArgs[0];
+            if (term.params) {
+                term.params = expandedArgs[0];
+            }
 
             if (term.hasPrototype(Module)) {
                 bodyTerms[0].body.delim.token.inner = _.filter(bodyTerms[0].body.delim.token.inner, function(innerTerm) {
@@ -1536,7 +1538,7 @@
         }, modBody);
 
         var res = expand([syn.makeIdent("module", null), modBody], env);
-        return flatten(res[0].body.token.inner);
+        return flatten(res[0].body.expose().token.inner);
     }
 
     // break delimiter tree structure down to flat array of syntax objects
