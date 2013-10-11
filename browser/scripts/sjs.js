@@ -20,32 +20,37 @@ exports.run = function () {
     var mod$107 = argv$100.module;
     var cwd$108 = process.cwd();
     var Module$109 = module.constructor;
-    var modulepath$110, modulefile$111, modulemock$112;
+    var modulemock$110;
     if (mod$107) {
-        modulemock$112 = {
+        modulemock$110 = {
             id: cwd$108 + '/$sweet-loader.js',
             filename: '$sweet-loader.js',
             paths: /^\.\/|\.\./.test(cwd$108) ? [cwd$108] : Module$109._nodeModulePaths(cwd$108)
         };
-        modulepath$110 = Module$109._resolveFilename(mod$107, modulemock$112);
-        modulefile$111 = fs$97.readFileSync(modulepath$110, 'utf8');
-        file$106 = modulefile$111 + '\n' + file$106;
+        if (typeof mod$107 === 'string') {
+            mod$107 = [mod$107];
+        }
+        file$106 = mod$107.reduceRight(function (f$111, m$112) {
+            var modulepath$113 = Module$109._resolveFilename(m$112, modulemock$110);
+            var modulefile$114 = fs$97.readFileSync(modulepath$113, 'utf8');
+            return modulefile$114 + '\n' + f$111;
+        }, file$106);
     }
     if (watch$103 && outfile$102) {
         fs$97.watch(infile$101, function () {
             file$106 = fs$97.readFileSync(infile$101, 'utf8');
             try {
                 fs$97.writeFileSync(outfile$102, sweet$99.compile(file$106), 'utf8');
-            } catch (e$113) {
-                console.log(e$113);
+            } catch (e$115) {
+                console.log(e$115);
             }
         });
     } else if (outfile$102) {
         if (sourcemap$105) {
-            var result$114 = sweet$99.compileWithSourcemap(file$106, infile$101);
-            var mapfile$115 = path$98.basename(outfile$102) + '.map';
-            fs$97.writeFileSync(outfile$102, result$114[0] + '\n//# sourceMappingURL=' + mapfile$115, 'utf8');
-            fs$97.writeFileSync(outfile$102 + '.map', result$114[1], 'utf8');
+            var result$116 = sweet$99.compileWithSourcemap(file$106, infile$101);
+            var mapfile$117 = path$98.basename(outfile$102) + '.map';
+            fs$97.writeFileSync(outfile$102, result$116[0] + '\n//# sourceMappingURL=' + mapfile$117, 'utf8');
+            fs$97.writeFileSync(outfile$102 + '.map', result$116[1], 'utf8');
         } else {
             fs$97.writeFileSync(outfile$102, sweet$99.compile(file$106), 'utf8');
         }
