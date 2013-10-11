@@ -324,4 +324,15 @@ $describe "macro hygiene" {
       var z = or(false, $tmp);
       expect(z).to.be("ok");
     }
+
+    $it "keeps vars introduced by a macro distinct" {
+        macro m {
+            case {_ ()} => {
+                return #{var x = 42;}
+            }
+        }
+        var x = 24;
+        m ()
+        expect(x).to.be(24);
+    }
 }
