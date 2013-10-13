@@ -28,6 +28,7 @@
         // CommonJS
         var parser = require("./parser");
         var expander = require("./expander");
+        var syn = require("./syntax");
         var codegen = require("escodegen");
 
         var path = require('path');
@@ -36,7 +37,7 @@
 
         var stxcaseModule = fs.readFileSync(lib + "/stxcase.js", 'utf8');
 
-        factory(exports, parser, expander, stxcaseModule, codegen);
+        factory(exports, parser, expander, syn, stxcaseModule, codegen);
 
         // Alow require('./example') for an example.sjs file.
         require.extensions['.sjs'] = function(module, filename) {
@@ -45,9 +46,9 @@
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', './parser', './expander', 'text!./stxcase.js'], factory);
+        define(['exports', './parser', './expander', './syntax', 'text!./stxcase.js'], factory);
     }
-}(this, function (exports, parser, expander, stxcaseModule, gen) {
+}(this, function (exports, parser, expander, syn, stxcaseModule, gen) {
     var codegen = gen || escodegen;
 
     // fun (Str) -> [...CSyntax]
@@ -78,7 +79,15 @@
         }
 
         var readTree = parser.read(source);
-        return [expander.expand(readTree[0], stxcaseModule), readTree[1]];
+        try {
+            return [expander.expand(readTree[0], stxcaseModule), readTree[1]];
+        } catch(err) {
+            if (err instanceof syn.MacroSyntaxError) {
+                throw new SyntaxError(syn.printSyntaxError(source, err));
+            } else {
+                throw err;
+            }
+        }
     }
 
     // fun (Str, {}) -> AST

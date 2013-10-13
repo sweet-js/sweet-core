@@ -343,6 +343,45 @@
         }, _.first(tojoin));
     }
 
+    function MacroSyntaxError(name, message, stx) {
+        this.name = name;
+        this.message = message;
+        this.stx = stx;
+    }
+
+    function throwSyntaxError(name, message, stx) {
+        if (stx && Array.isArray(stx)) {
+          stx = stx[0];
+        }
+        throw new MacroSyntaxError(name, message, stx);
+    }
+
+    function printSyntaxError(code, err) {
+        if (!err.stx) {
+            return '[' + err.name + '] ' + err.message;
+        }
+
+        var token = err.stx.token;
+        var lineNumber = token.startLineNumber || token.lineNumber;
+        var lineStart = token.startLineStart || token.lineStart;
+        var start = token.range[0];
+        var offset = start - lineStart;
+        var line = '';
+        var pre = lineNumber + ': ';
+        var ch;
+
+        while (ch = code.charAt(lineStart++)) {
+            if (ch == '\r' || ch == '\n') { 
+                break;
+            }
+            line += ch;
+        }
+        
+        return '[' + err.name + '] ' + err.message + '\n' +
+               pre + line + '\n' +
+               (Array(offset + pre.length).join(' ')) + ' ^';
+    }
+
     exports.unwrapSyntax = unwrapSyntax;
     exports.makeDelim = makeDelim;
     exports.makePunc = makePunc;
@@ -365,4 +404,8 @@
 
     exports.joinSyntax = joinSyntax;
     exports.joinSyntaxArr = joinSyntaxArr;
+
+    exports.MacroSyntaxError = MacroSyntaxError;
+    exports.throwSyntaxError = throwSyntaxError;
+    exports.printSyntaxError = printSyntaxError;
 }));

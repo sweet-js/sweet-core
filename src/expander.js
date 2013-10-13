@@ -1215,6 +1215,7 @@
             makePunc: syn.makePunc,
             makeDelim: syn.makeDelim,
             unwrapSyntax: syn.unwrapSyntax,
+            throwSyntaxError: syn.throwSyntaxError,
             fresh: fresh,
             _: _,
             parser: parser,
