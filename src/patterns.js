@@ -281,6 +281,9 @@
         var success = true;
 
         for (var i = 0; i < patterns.length; i++) {
+            if (success === false) {
+                break;
+            }
             pattern = patterns[i];
             do {
                 match = matchPattern(pattern, rest, env, patternEnv);
@@ -288,8 +291,6 @@
                     // a repeat can match zero tokens and still be a
                     // "success" so break out of the inner loop and
                     // try the next pattern
-                    rest = match.rest;
-                    patternEnv = match.patternEnv;
                     break;
                 }
                 if (!match.success) {
