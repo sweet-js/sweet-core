@@ -299,6 +299,16 @@
                 rest = match.rest;
                 patternEnv = match.patternEnv;
 
+                if (success && !(topLevel || pattern.repeat)) {
+                    // the very last pattern matched, inside a
+                    // delimiter, not a repeat, *and* there are more
+                    // unmatched bits of syntax
+                    if (i == (patterns.length - 1) && rest.length !== 0) {
+                        success = false;
+                        break;
+                    }
+                }
+
                 if (pattern.repeat && success) {
                     if (rest[0] && rest[0].token.value === pattern.separator) {
                         // more tokens and the next token matches the separator
@@ -321,7 +331,7 @@
                         break;
                     }
                 }
-            } while (pattern.repeat && match.success && rest.length > 0);
+            } while (pattern.repeat && success && rest.length > 0);
         }
         return {
             success: success,
@@ -364,7 +374,7 @@
         if (typeof pattern.inner !== 'undefined') {
             if (pattern.class === "pattern_group") {
                 // pattern groups don't match the delimiters
-                subMatch = matchPatterns(pattern.inner, stx, env, false);
+                subMatch = matchPatterns(pattern.inner, stx, env, true);
                 rest = subMatch.rest;
             } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter &&
                        stx[0].token.value === pattern.value) {

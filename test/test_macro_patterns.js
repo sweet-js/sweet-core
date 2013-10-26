@@ -580,6 +580,19 @@ describe("macro expander", function() {
         expect(foo[x = 0]).to.be("bar");
     });
 
+    it('should fail to match with trailing stx in a delimiter', function() {
+        macro m {
+            rule { ($x) } => {
+                42
+            }
+            rule { ($x $y) } => {
+                "success"
+            }
+        }
+        expect(m (100 200)).to.be("success");
+    });
+
+
 
 
 });
