@@ -80,7 +80,7 @@
 
         var readTree = parser.read(source);
         try {
-            return [expander.expand(readTree[0], stxcaseModule), readTree[1]];
+            return expander.expand(readTree, stxcaseModule);
         } catch(err) {
             if (err instanceof syn.MacroSyntaxError) {
                 throw new SyntaxError(syn.printSyntaxError(source, err));
@@ -97,9 +97,8 @@
             // and loc/range info so until we can upgrade hack in a single space
             code = " ";
         }
-        var exp = expand(code);
 
-        return parser.parse(exp[0], exp[1]);
+        return parser.parse(expand(code));
     }
 
     exports.expand = expand;
@@ -107,7 +106,6 @@
 
     exports.compileWithSourcemap = function(code, filename) {
         var ast = parse(code);
-        codegen.attachComments(ast, ast.comments, ast.tokens);
         var code_output = codegen.generate(ast, {
             comment: true
         });
@@ -121,7 +119,6 @@
 
     exports.compile = function compile(code) {
         var ast = parse(code);
-        codegen.attachComments(ast, ast.comments, ast.tokens);
         return codegen.generate(ast, {
             comment: true
         });

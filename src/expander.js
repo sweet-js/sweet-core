@@ -1200,7 +1200,7 @@
             throwError("Primitive macro form must contain a function for the macro body");
         }
 
-        var stub = parser.read("()")[0];
+        var stub = parser.read("()");
         stub[0].token.inner = body;
         var expanded = expand(stub, env, defscope, templateMap);
         expanded = expanded[0].destruct().concat(expanded[1].eof);
@@ -1517,7 +1517,7 @@
         var env = new Map();
         var params = [];
         if (builtinSource) {
-            var builtinRead = parser.read(builtinSource)[0];
+            var builtinRead = parser.read(builtinSource);
 
             builtinRead = [syn.makeIdent("module", null),
                             syn.makeDelim("{}", builtinRead, null)];
@@ -1573,6 +1573,12 @@
                                     ? stx.token.sm_endLineStart
                                     : stx.token.endLineStart)
                 }, exposed);
+                if (stx.token.leadingComments) {
+                    openParen.token.leadingComments = stx.token.leadingComments;
+                }
+                if (stx.token.trailingComments) {
+                    openParen.token.trailingComments = stx.token.trailingComments;
+                }
                 return acc
                     .concat(openParen)
                     .concat(flatten(exposed.token.inner))
