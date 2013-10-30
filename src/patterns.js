@@ -84,8 +84,9 @@
     // (CSyntax, CSyntax) -> CSyntax
     function takeLine(from, to) {
         if (to.token.type === parser.Token.Delimiter) {
+            var next;
             if (from.token.type === parser.Token.Delimiter) {
-                var next = syntaxFromToken({
+                next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: to.token.value,
                     inner: to.token.inner,
@@ -98,7 +99,7 @@
                 }, to);
 
             } else {
-                var next = syntaxFromToken({
+                next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: to.token.value,
                     inner: to.token.inner,
@@ -110,26 +111,32 @@
                     endLineStart: from.token.lineStart
                 }, to);
             }
-            return next;
-        }
-
-        if (from.token.type === parser.Token.Delimiter) {
-            return syntaxFromToken({
-                value: to.token.value,
-                type: to.token.type,
-                lineNumber: from.token.startLineNumber,
-                lineStart: from.token.startLineStart,
-                range: from.token.startRange
-            }, to);
         } else {
-            return syntaxFromToken({
-                value: to.token.value,
-                type: to.token.type,
-                lineNumber: from.token.lineNumber,
-                lineStart: from.token.lineStart,
-                range: from.token.range
-            }, to);
+            if (from.token.type === parser.Token.Delimiter) {
+                next = syntaxFromToken({
+                    value: to.token.value,
+                    type: to.token.type,
+                    lineNumber: from.token.startLineNumber,
+                    lineStart: from.token.startLineStart,
+                    range: from.token.startRange
+                }, to);
+            } else {
+                next = syntaxFromToken({
+                    value: to.token.value,
+                    type: to.token.type,
+                    lineNumber: from.token.lineNumber,
+                    lineStart: from.token.lineStart,
+                    range: from.token.range,
+                }, to);
+            }
         }
+        if (to.token.leadingComments) {
+            next.token.leadingComments = to.token.leadingComments;
+        }
+        if (to.token.trailingComments) {
+            next.token.trailingComments = to.token.trailingComments;
+        }
+        return next;
     }
 
     function loadPattern(patterns) {

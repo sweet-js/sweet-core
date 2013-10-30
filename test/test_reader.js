@@ -8,7 +8,7 @@ var _ = require("underscore");
 var Token = parser.Token;
 
 var read = _.wrap(parser.read, function(read_func, read_arg) {
-    return syn.syntaxToTokens(read_func(read_arg)[0]);
+    return syn.syntaxToTokens(read_func(read_arg));
 });
 
 describe("reader", function() {
@@ -427,6 +427,18 @@ describe("reader", function() {
     it('should read / following a for( ; function(){ /a/g; } /a/g; ){} as a divide', function() {
         expect(read("for( ; function(){ /a/g; } /a/g; ){}")[1].inner[4].type)
             .to.be(Token.Punctuator);
+    });
+
+    it('should read line comments', function() {
+        var stx = read("//foo\nbar;");
+        expect(stx[0].leadingComments[0].type).to.be("Line");
+        expect(stx[0].leadingComments[0].value).to.be("foo");
+    });
+
+    it('should read block comments', function() {
+        var stx = read("/*foo*/\nbar;");
+        expect(stx[0].leadingComments[0].type).to.be("Block");
+        expect(stx[0].leadingComments[0].value).to.be("foo");
     });
 
 });
