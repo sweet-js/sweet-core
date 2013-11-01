@@ -1,5 +1,5 @@
-var parser = require("../lib/parser");
-var expander = require("../lib/expander");
+var parser = require("../build/lib/parser");
+var expander = require("../build/lib/expander");
 var expect = require("expect.js");
 
 var enforest = expander.enforest;
@@ -9,25 +9,25 @@ var flatten = expander.flatten;
 
 describe("enforest", function() {
     it("should enforest a single ident", function() {
-        var res = enforest(read("x")[0]);
+        var res = enforest(read("x"));
         expect(res.result.id.token.value).to.be("x");
     });
 
     it("should enforest a macro definition", function() {
-        var res = enforest(read("macro id { case $x => { $x } } fun")[0]);
+        var res = enforest(read("macro id { case $x => { $x } } fun"));
         expect(res.result.name.token.value).to.be("id");
         expect(res.result.body.length).to.be(5);
         expect(res.rest[0].token.value).to.be("fun")
     });
 
     it("should enforest a function declaration", function() {
-        var res = enforest(read("function id (x) { return x; }")[0]);
+        var res = enforest(read("function id (x) { return x; }"));
         expect(res.result.name.token.value).to.be("id");
         expect(res.result.params.token.inner[0].token.value).to.be("x");
     });
 
     it("should enforest a VarStatement", function() {
-        var res = enforest(read("var x, y")[0]);
+        var res = enforest(read("var x, y"));
         expect(res.result.decls.length).to.be(2);
     });
 });
