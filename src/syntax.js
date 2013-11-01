@@ -40,13 +40,12 @@
             id: id
         };
     }
-
     
-    var isRename = function(r) {
+    function isRename(r) {
         return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
     };
 
-    var isMark = function isMark(m) {
+    function isMark(m) {
         return m && (typeof m.mark !== 'undefined');
     };
 
@@ -54,110 +53,103 @@
         return ctx && (typeof ctx.defctx !== 'undefined');
     }
 
+    function Syntax(token, oldstx) {
+        this.token = token;
+        this.context = (oldstx && oldstx.context) ? oldstx.context : null;
+        this.deferredContext = (oldstx && oldstx.deferredContext) ? oldstx.deferredContext : null;
+    }
+
+    Syntax.prototype = {
+        // (Int) -> CSyntax
+        // non mutating
+        mark: function(newMark) {
+            if (this.token.inner) {
+                var next = syntaxFromToken(this.token, this);
+                next.deferredContext = Mark(newMark, this.deferredContext);
+                return next;
+            }
+            return syntaxFromToken(this.token, {context: Mark(newMark, this.context)});
+        },
+
+        // (CSyntax or [...CSyntax], Str) -> CSyntax
+        // non mutating
+        rename: function(id, name) {
+            // deferr renaming of delimiters
+            if (this.token.inner) {
+                var next = syntaxFromToken(this.token, this);
+                next.deferredContext = Rename(id, name, this.deferredContext);
+                return next;
+            }
+
+            if (this.token.type === parser.Token.Identifier ||
+                this.token.type === parser.Token.Keyword) {
+                return syntaxFromToken(this.token, {context: Rename(id, name, this.context)});
+            } else {
+                return this;
+            }
+        },
+
+        addDefCtx: function(defctx) {
+            if (this.token.inner) {
+                var next = syntaxFromToken(this.token, this);
+                next.deferredContext = Def(defctx, this.deferredContext);
+                return next;
+            }
+            return syntaxFromToken(this.token, {context: Def(defctx, this.context)});
+        },
+
+        getDefCtx: function() {
+            var ctx = this.context;
+            while(ctx !== null) {
+                if (isDef(ctx)) {
+                    return ctx.defctx;
+                }
+                ctx = ctx.context;
+            }
+            return null;
+        },
+
+        expose: function() {
+            parser.assert(this.token.type === parser.Token.Delimiter,
+                          "Only delimiters can be exposed");
+
+            function applyContext(stxCtx, ctx) {
+                if (ctx == null) {
+                    return stxCtx;
+                } else if (isRename(ctx)) {
+                    return Rename(ctx.id, ctx.name, applyContext(stxCtx, ctx.context))
+                } else if (isMark(ctx)) {
+                    return Mark(ctx.mark, applyContext(stxCtx, ctx.context));
+                } else if (isDef(ctx)) {
+                    return Def(ctx.defctx, applyContext(stxCtx, ctx.context));
+                } else {
+                    parser.assert(false, "unknown context type");
+                }
+            }
+
+            this.token.inner = _.map(this.token.inner, _.bind(function(stx) {
+                if (stx.token.inner) {
+                    var next = syntaxFromToken(stx.token, stx);
+                    next.deferredContext = applyContext(stx.deferredContext, this.deferredContext);
+                    return next;
+                } else {
+                    return syntaxFromToken(stx.token,
+                                           {context: applyContext(stx.context, this.deferredContext)});
+                }
+            }, this));
+            this.deferredContext = null;
+            return this;
+        },
+
+        toString: function() {
+            var val = this.token.type === parser.Token.EOF ? "EOF" : this.token.value;
+            return "[Syntax: " + val + "]";
+        }
+    };
+
     // (CToken, CSyntax?) -> CSyntax
     function syntaxFromToken(token, oldstx) {
-        return Object.create({
-            // (Int) -> CSyntax
-            // non mutating
-            mark: function mark(newMark) {
-                if (this.token.inner) {
-                    var next = syntaxFromToken(this.token, this);
-                    next.deferredContext = Mark(newMark, this.deferredContext);
-                    return next;
-                }
-                return syntaxFromToken(this.token, {context: Mark(newMark, this.context)});
-            },
-
-            // (CSyntax or [...CSyntax], Str) -> CSyntax
-            // non mutating
-            rename: function(id, name) {
-
-                // deferr renaming of delimiters
-                if (this.token.inner) {
-                    var next = syntaxFromToken(this.token, this);
-                    next.deferredContext = Rename(id, name, this.deferredContext);
-                    return next;
-                }
-
-                if (this.token.type === parser.Token.Identifier ||
-                    this.token.type === parser.Token.Keyword) {
-                    return syntaxFromToken(this.token, {context: Rename(id, name, this.context)});
-
-                } else {
-                    return this;
-                }
-            },
-
-            addDefCtx: function(defctx) {
-                if (this.token.inner) {
-                    var next = syntaxFromToken(this.token, this);
-                    next.deferredContext = Def(defctx, this.deferredContext);
-                    return next;
-                }
-
-                return syntaxFromToken(this.token, {context: Def(defctx, this.context)});
-            },
-
-            getDefCtx: function() {
-                var ctx = this.context;
-                while(ctx !== null) {
-                    if (isDef(ctx)) {
-                        return ctx.defctx;
-                    }
-                    ctx = ctx.context;
-                }
-                return null;
-            },
-
-            expose: function() {
-                parser.assert(this.token.type === parser.Token.Delimiter,
-                              "Only delimiters can be exposed");
-
-                function applyContext(stxCtx, ctx) {
-                    if (ctx == null) {
-                        return stxCtx;
-                    } else if (isRename(ctx)) {
-                        return Rename(ctx.id, ctx.name, applyContext(stxCtx, ctx.context))
-                    } else if (isMark(ctx)) {
-                        return Mark(ctx.mark, applyContext(stxCtx, ctx.context));
-                    } else if (isDef(ctx)) {
-                        return Def(ctx.defctx, applyContext(stxCtx, ctx.context));
-                    } else {
-                        parser.assert(false, "unknown context type");
-                    }
-                }
-
-                this.token.inner = _.map(this.token.inner, _.bind(function(stx) {
-                    if (stx.token.inner) {
-                        var next = syntaxFromToken(stx.token, stx);
-                        next.deferredContext = applyContext(stx.deferredContext, this.deferredContext);
-                        return next;
-                    } else {
-                        return syntaxFromToken(stx.token,
-                                               {context: applyContext(stx.context, this.deferredContext)});
-                    }
-                }, this));
-                this.deferredContext = null;
-                return this;
-            },
-
-
-            toString: function() {
-                var val = this.token.type === parser.Token.EOF ? "EOF" : this.token.value;
-                return "[Syntax: " + val + "]";
-            }
-        }, {
-            token: { value: token, enumerable: true, configurable: true},
-            context: { 
-                // if given old syntax object steal its context otherwise create one fresh
-                value: (oldstx && oldstx.context) ? oldstx.context : null,
-                writable: true, enumerable: true, configurable: true
-            },
-            deferredContext: { 
-                value: (oldstx && oldstx.deferredContext) ? oldstx.deferredContext : null, 
-                writable: true, enumerable: true, configurable: true
-            }
-        });
+        return new Syntax(token, oldstx);
     }
 
     function mkSyntax(stx, value, type, inner) {
