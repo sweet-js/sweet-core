@@ -1022,6 +1022,7 @@
                     }
                     if(rt.result.length > 0) {
                         var adjustedResult = adjustLineContext(rt.result, head);
+                        adjustedResult[0].token.leadingComments = head.token.leadingComments;
                         return step(adjustedResult[0], adjustedResult.slice(1).concat(rt.rest));
                     } else {
                         return step(Empty.create(), rt.rest);
