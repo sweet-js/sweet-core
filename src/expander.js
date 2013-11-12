@@ -1013,7 +1013,7 @@
                     // pull the macro transformer out the environment
                     var transformer = context.env.get(resolve(head)).fn;
                     // apply the transformer
-                    var rt = transformer([head].concat(rest), context.env);
+                    var rt = transformer([head].concat(rest), context);
                     if(!Array.isArray(rt.result)) {
                         throwError("Macro transformer must return a result array, not: "
                                    + rt.result);
