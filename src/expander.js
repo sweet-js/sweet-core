@@ -1010,10 +1010,15 @@
                      head.token.type === parser.Token.Punctuator) && 
                     context.env.has(resolve(head))) {
 
+                    // create a new mark to be used for the input to
+                    // the macro
+                    var newMark = fresh();
+                    var transformerContext = makeExpanderContext(_.defaults({mark: newMark}, context));
+
                     // pull the macro transformer out the environment
                     var transformer = context.env.get(resolve(head)).fn;
                     // apply the transformer
-                    var rt = transformer([head].concat(rest), context);
+                    var rt = transformer([head].concat(rest), transformerContext);
                     if(!Array.isArray(rt.result)) {
                         throwError("Macro transformer must return a result array, not: "
                                    + rt.result);
@@ -1419,11 +1424,7 @@
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
             var newDef = [];
-            var bodyContext = makeExpanderContext({
-                env: context.env,
-                defscope: newDef,
-                templateMap: context.templateMap
-            });
+            var bodyContext = makeExpanderContext(_.defaults({defscope: newDef}, context));
 
             if (term.params) {
                 var params = term.params.addDefCtx(newDef);
@@ -1508,6 +1509,8 @@
             defscope: {value: o.defscope,
                        writable: false, enumerable: true, configurable: false},
             templateMap: {value: o.templateMap || new Map(),
+                          writable: false, enumerable: true, configurable: false},
+            mark: {value: o.mark,
                           writable: false, enumerable: true, configurable: false}
         });
     }
