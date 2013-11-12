@@ -720,22 +720,22 @@
     // assumes stx starts at the identifier. ie:
     // var x = ...
     //     ^
-    function enforestVarStatement (stx, env) {
+    function enforestVarStatement (stx, context) {
         var decls = [];
 
-        var res = enforest(stx, env);
+        var res = enforest(stx, context);
         var result = res.result;
         var rest = res.rest;
 
         if (rest[0]) {
-            var nextRes = enforest(rest, env);
+            var nextRes = enforest(rest, context);
 
             // x = ...
             if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === "=") {
-                var initializerRes = enforest(nextRes.rest, env);
+                var initializerRes = enforest(nextRes.rest, context);
 
                 if (initializerRes.rest[0]) {
-                    var restRes = enforest(initializerRes.rest, env);
+                    var restRes = enforest(initializerRes.rest, context);
 
                     // x = y + z, ...
                     if (restRes.result.hasPrototype(Punc) &&
@@ -745,7 +745,7 @@
                                                               nextRes.result.punc,
                                                               initializerRes.result,
                                                               restRes.result.punc));
-                        var subRes = enforestVarStatement(restRes.rest, env);
+                        var subRes = enforestVarStatement(restRes.rest, context);
                         decls = decls.concat(subRes.result);
                         rest = subRes.rest;
                     // x = y ...
@@ -764,7 +764,7 @@
             // x ,...;
             } else if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === ",") {
                 decls.push(VariableDeclaration.create(result.id, null, null, nextRes.result.punc));
-                var subRes = enforestVarStatement(nextRes.rest, env);
+                var subRes = enforestVarStatement(nextRes.rest, context);
                 decls = decls.concat(subRes.result);
                 rest = subRes.rest;
             } else {
@@ -819,9 +819,7 @@
 
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
-    function enforest(toks, env) {
-        env = env || new Map();
-
+    function enforest(toks, context) {
         parser.assert(toks.length > 0, "enforest assumes there are tokens to work with");
 
         function step(head, rest) {
@@ -840,7 +838,7 @@
                         rest[0].expose();
                         innerTokens = rest[0].token.inner;
                         while (innerTokens.length > 0) {
-                            argRes = enforest(innerTokens, env);
+                            argRes = enforest(innerTokens, context);
                             enforestedArgs.push(argRes.result);
                             innerTokens = argRes.rest;
                             if (innerTokens[0] && innerTokens[0].token.value === ",") {
@@ -873,13 +871,13 @@
                     // Conditional ( x ? true : false)
                     Expr(emp) | (rest[0] && rest[0].token.value === "?") => {
                         var question = rest[0];
-                        var condRes = enforest(rest.slice(1), env);
+                        var condRes = enforest(rest.slice(1), context);
                         var truExpr = condRes.result;
                         var right = condRes.rest;
                         if(truExpr.hasPrototype(Expr) &&
                            right[0] && right[0].token.value === ":") {
                             var colon = right[0];
-                            var flsRes = enforest(right.slice(1), env);
+                            var flsRes = enforest(right.slice(1), context);
                             var flsExpr = flsRes.result;
                             if(flsExpr.hasPrototype(Expr)) {
                                 return step(ConditionalExpression.create(head,
@@ -894,7 +892,7 @@
 
                     // Constructor
                     Keyword(keyword) | (keyword.token.value === "new" && rest[0]) => {
-                        var newCallRes = enforest(rest, env);
+                        var newCallRes = enforest(rest, context);
                         if(newCallRes.result.hasPrototype(Call)) {
                             return step(Const.create(head, newCallRes.result),
                                         newCallRes.rest);
@@ -910,7 +908,7 @@
                         if (innerTokens.length === 0) {
                             return step(ParenExpression.create(head), rest);
                         } else {
-                            var innerTerm = get_expression(innerTokens, env);
+                            var innerTerm = get_expression(innerTokens, context);
                             if (innerTerm.result &&
                                 innerTerm.result.hasPrototype(Expr)) {
                                 return step(ParenExpression.create(head), rest);
@@ -924,7 +922,7 @@
                     TermTree(emp) | (rest[0] && rest[1] && stxIsBinOp(rest[0])) => {
                         var op = rest[0];
                         var left = head;
-                        var bopRes = enforest(rest.slice(1), env);
+                        var bopRes = enforest(rest.slice(1), context);
                         var right = bopRes.result;
                         // only a binop if the right is a real expression
                         // so 2+2++ will only match 2+2
@@ -935,7 +933,7 @@
 
                     // UnaryOp (via punctuation)
                     Punc(punc) | stxIsUnaryOp(punc) => {
-                        var unopRes = enforest(rest, env);
+                        var unopRes = enforest(rest, context);
                         if (unopRes.result.hasPrototype(Expr)) {
                             return step(UnaryOp.create(punc, unopRes.result),
                                         unopRes.rest);
@@ -944,7 +942,7 @@
 
                     // UnaryOp (via keyword)
                     Keyword(keyword) | stxIsUnaryOp(keyword) => {
-                        var unopRes = enforest(rest, env);
+                        var unopRes = enforest(rest, context);
                         if (unopRes.result.hasPrototype(Expr)) {
                             return step(UnaryOp.create(keyword, unopRes.result),
                                         unopRes.rest);
@@ -986,7 +984,7 @@
                                          rest[0] && rest[0].token.type === parser.Token.Keyword) &&
                                         rest[1] && rest[1].token.value === "=" &&
                                         rest[2] && rest[2].token.value === "macro") => {
-                        var mac = enforest(rest.slice(2), env);
+                        var mac = enforest(rest.slice(2), context);
                         if (!mac.result.hasPrototype(AnonMacro)) {
                             throw new Error("expecting an anonymous macro definition in syntax let binding, not: " + mac.result);
                         }
@@ -996,7 +994,7 @@
 
                     // VariableStatement
                     Keyword(keyword) | (keyword.token.value === "var" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, env);
+                        var vsRes = enforestVarStatement(rest, context);
                         if (vsRes) {
                             return step(VariableStatement.create(head, vsRes.result),
                                         vsRes.rest);
@@ -1010,12 +1008,12 @@
                 if ((head.token.type === parser.Token.Identifier ||
                      head.token.type === parser.Token.Keyword ||
                      head.token.type === parser.Token.Punctuator) && 
-                    env.has(resolve(head))) {
+                    context.env.has(resolve(head))) {
 
                     // pull the macro transformer out the environment
-                    var transformer = env.get(resolve(head)).fn;
+                    var transformer = context.env.get(resolve(head)).fn;
                     // apply the transformer
-                    var rt = transformer([head].concat(rest), env);
+                    var rt = transformer([head].concat(rest), context.env);
                     if(!Array.isArray(rt.result)) {
                         throwError("Macro transformer must return a result array, not: "
                                    + rt.result);
@@ -1146,8 +1144,8 @@
         return step(toks[0], toks.slice(1));
     }
 
-    function get_expression(stx, env) {
-        var res = enforest(stx, env);
+    function get_expression(stx, context) {
+        var res = enforest(stx, context);
         if (!res.result.hasPrototype(Expr)) {
             return {
                 result: null,
@@ -1192,7 +1190,7 @@
 
     // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
-    function loadMacroDef(mac, env, defscope, templateMap) {
+    function loadMacroDef(mac, context) {
         var body = mac.body;
 
         // raw function primitive form
@@ -1203,7 +1201,7 @@
 
         var stub = parser.read("()");
         stub[0].token.inner = body;
-        var expanded = expand(stub, env, defscope, templateMap);
+        var expanded = expand(stub, context);
         expanded = expanded[0].destruct().concat(expanded[1].eof);
         var flattend = flatten(expanded);
         var bodyCode = codegen.generate(parser.parse(flattend));
@@ -1221,7 +1219,7 @@
             _: _,
             parser: parser,
             patternModule: patternModule,
-            getTemplate: function(id) {return templateMap.get(id);},
+            getTemplate: function(id) {return context.templateMap.get(id);},
             applyMarkToPatternEnv: applyMarkToPatternEnv,
             mergeMatches: function(newMatch, oldMatch) {
                 newMatch.patternEnv = _.extend({}, oldMatch.patternEnv, newMatch.patternEnv);
@@ -1234,20 +1232,20 @@
 
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
-    function expandToTermTree (stx, env, defscope, templateMap) {
-        parser.assert(env, "environment map is required");
+    function expandToTermTree (stx, context) {
+        parser.assert(context, "expander context is required");
 
         // short circuit when syntax array is empty
         if (stx.length === 0) {
             return {
                 terms: [],
-                env: env
+                context: context
             };
         }
 
         parser.assert(stx[0].token, "expecting a syntax object");
 
-        var f = enforest(stx, env);
+        var f = enforest(stx, context);
         // head :: TermTree
         var head = f.result;
         // rest :: [Syntax]
@@ -1255,19 +1253,19 @@
 
         if (head.hasPrototype(Macro)) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition = loadMacroDef(head, env, defscope, templateMap);
+            var macroDefinition = loadMacroDef(head, context);
 
-            addToDefinitionCtx([head.name], defscope, false);
-            env.set(resolve(head.name), {
+            addToDefinitionCtx([head.name], context.defscope, false);
+            context.env.set(resolve(head.name), {
                 fn: macroDefinition
             });
 
-            return expandToTermTree(rest, env, defscope, templateMap);
+            return expandToTermTree(rest, context);
         }
 
         if (head.hasPrototype(LetMacro)) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition = loadMacroDef(head, env, defscope, templateMap);
+            var macroDefinition = loadMacroDef(head, context);
             var freshName = fresh();
             var renamedName = head.name.rename(head.name, freshName);
             rest = _.map(rest, function(stx) {
@@ -1275,29 +1273,29 @@
             });
             head.name = renamedName;
 
-            env.set(resolve(head.name), {
+            context.env.set(resolve(head.name), {
                 fn: macroDefinition
             });
 
-            return expandToTermTree(rest, env, defscope, templateMap);
+            return expandToTermTree(rest, context);
         }
 
         if (head.hasPrototype(NamedFun)) {
-            addToDefinitionCtx([head.name], defscope, true);
+            addToDefinitionCtx([head.name], context.defscope, true);
         }
 
         if(head.hasPrototype(Id) && head.id.token.value === "#quoteSyntax" &&
            rest[0] && rest[0].token.value === "{}") {
             var tempId = fresh();
-            templateMap.set(tempId, rest[0].token.inner);
+            context.templateMap.set(tempId, rest[0].token.inner);
             return expandToTermTree([syn.makeIdent("getTemplate", head.id),
                                      syn.makeDelim("()", [syn.makeValue(tempId, head.id)], head.id)].concat(rest.slice(1)),
-                                    env, defscope, templateMap);
+                                    context);
         }
 
         if (head.hasPrototype(VariableStatement)) {
             addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
-                               defscope,
+                               context.defscope,
                                true)
         }
 
@@ -1305,7 +1303,7 @@
             head.body.delim.token.inner.forEach(function(term) {
                 if (term.hasPrototype(VariableStatement)) {
                     addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
-                                       defscope,
+                                       context.defscope,
                                        true);
                 }
             });
@@ -1316,17 +1314,17 @@
             head.delim.token.inner.forEach(function(term) {
                 if (term.hasPrototype(VariableStatement)) {
                     addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
-                                       defscope,
+                                       context.defscope,
                                        true);
                                       
                 }
             });
         }
 
-        var trees = expandToTermTree(rest, env, defscope, templateMap);
+        var trees = expandToTermTree(rest, context);
         return {
             terms: [head].concat(trees.terms),
-            env: trees.env
+            context: trees.context
         };
     }
 
@@ -1367,67 +1365,52 @@
     // similar to `parse2` in the honu paper except here we
     // don't generate an AST yet
     // (TermTree, Map, Map) -> TermTree
-    function expandTermTreeToFinal (term, env, defscope, templateMap) {
-        parser.assert(env, "environment map is required");
+    function expandTermTreeToFinal (term, context) {
+        parser.assert(context && context.env, "environment map is required");
 
 
         if (term.hasPrototype(ArrayLiteral)) {
-            term.array.delim.token.inner = expand(term.array.delim.token.inner,
-                                                  env,
-                                                  defscope,
-                                                  templateMap);
+            term.array.delim.token.inner = expand(term.array.delim.token.inner, context);
             return term;
         } else if (term.hasPrototype(Block)) {
-            term.body.delim.token.inner = expand(term.body.delim.token.inner,
-                                                 env,
-                                                 defscope,
-                                                 templateMap);
+            term.body.delim.token.inner = expand(term.body.delim.token.inner, context);
             return term;
         } else if (term.hasPrototype(ParenExpression)) {
-            term.expr.delim.token.inner = expand(term.expr.delim.token.inner,
-                                                 env,
-                                                 defscope,
-                                                 templateMap);
+            term.expr.delim.token.inner = expand(term.expr.delim.token.inner, context);
             return term;
         } else if (term.hasPrototype(Call)) {
-            term.fun = expandTermTreeToFinal(term.fun,
-                                             env,
-                                             defscope,
-                                             templateMap);
+            term.fun = expandTermTreeToFinal(term.fun, context);
             term.args = _.map(term.args, function(arg) {
-                return expandTermTreeToFinal(arg, env, defscope, templateMap);
+                return expandTermTreeToFinal(arg, context);
             });
             return term;
         } else if (term.hasPrototype(UnaryOp)) {
-            term.expr = expandTermTreeToFinal(term.expr, env, defscope, templateMap);
+            term.expr = expandTermTreeToFinal(term.expr, context);
             return term;
         } else if (term.hasPrototype(BinOp)) {
-            term.left = expandTermTreeToFinal(term.left, env, defscope, templateMap);
-            term.right = expandTermTreeToFinal(term.right, env, defscope);
+            term.left = expandTermTreeToFinal(term.left, context);
+            term.right = expandTermTreeToFinal(term.right, context);
             return term;
         } else if (term.hasPrototype(ObjGet)) {
-            term.right.delim.token.inner = expand(term.right.delim.token.inner,
-                                                  env,
-                                                  defscope,
-                                                  templateMap);
+            term.right.delim.token.inner = expand(term.right.delim.token.inner, context);
             return term;
         } else if (term.hasPrototype(ObjDotGet)) {
-            term.left = expandTermTreeToFinal(term.left, env, defscope, templateMap);
-            term.right = expandTermTreeToFinal(term.right, env, defscope, templateMap);
+            term.left = expandTermTreeToFinal(term.left, context);
+            term.right = expandTermTreeToFinal(term.right, context);
             return term;
         } else if (term.hasPrototype(VariableDeclaration)) {
             if (term.init) {
-                term.init = expandTermTreeToFinal(term.init, env, defscope, templateMap);
+                term.init = expandTermTreeToFinal(term.init, context);
             }
             return term;
         } else if (term.hasPrototype(VariableStatement)) {
             term.decls = _.map(term.decls, function(decl) {
-                return expandTermTreeToFinal(decl, env, defscope, templateMap);
+                return expandTermTreeToFinal(decl, context);
             });
             return term;
         } else if (term.hasPrototype(Delimiter)) {
             // expand inside the delimiter and then continue on
-            term.delim.token.inner = expand(term.delim.token.inner, env,defscope, templateMap);
+            term.delim.token.inner = expand(term.delim.token.inner, context);
             return term;
         } else if (term.hasPrototype(NamedFun) ||
                    term.hasPrototype(AnonFun) ||
@@ -1436,6 +1419,11 @@
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
             var newDef = [];
+            var bodyContext = makeExpanderContext({
+                env: context.env,
+                defscope: newDef,
+                templateMap: context.templateMap
+            });
 
             if (term.params) {
                 var params = term.params.addDefCtx(newDef);
@@ -1461,7 +1449,7 @@
             }, bodies);
             renamedBody = renamedBody.expose();
 
-            var bodyTerms = expand([renamedBody], env, newDef, templateMap);
+            var bodyTerms = expand([renamedBody], bodyContext);
             parser.assert(bodyTerms.length === 1 && bodyTerms[0].body,
                             "expecting a block in the bodyTerms");
 
@@ -1469,7 +1457,7 @@
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam; });
             var flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","), term.params);
 
-            var expandedArgs = expand([flatArgs], env, newDef, templateMap);
+            var expandedArgs = expand([flatArgs], bodyContext);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the function with all the renamings
             if (term.params) {
@@ -1502,28 +1490,41 @@
 
     // similar to `parse` in the honu paper
     // ([Syntax], Map, Map) -> [TermTree]
-    function expand(stx, env, defscope, templateMap) {
-        env = env || new Map();
-        templateMap = templateMap || new Map();
-
-        var trees = expandToTermTree(stx, env, defscope, templateMap);
+    function expand(stx, context) {
+        parser.assert(context, "must provide an expander context");
+        
+        var trees = expandToTermTree(stx, context);
         return _.map(trees.terms, function(term) {
-            return expandTermTreeToFinal(term, trees.env, defscope, templateMap);
+            return expandTermTreeToFinal(term, trees.context);
         })
+    }
+
+    function makeExpanderContext(o) {
+        o = o || {};
+        // read-only but can enumerate
+        return Object.create(Object.prototype, {
+            env: {value: o.env || new Map(),
+                  writable: false, enumerable: true, configurable: false},
+            defscope: {value: o.defscope,
+                       writable: false, enumerable: true, configurable: false},
+            templateMap: {value: o.templateMap || new Map(),
+                          writable: false, enumerable: true, configurable: false}
+        });
     }
 
     // a hack to make the top level hygiene work out
     function expandTopLevel (stx, builtinSource) {
-        var buildinEnv = new Map();
+        var builtInEnv = new Map();
         var env = new Map();
         var params = [];
+        var context, builtInContext = makeExpanderContext({env: builtInEnv});
         if (builtinSource) {
             var builtinRead = parser.read(builtinSource);
 
             builtinRead = [syn.makeIdent("module", null),
                             syn.makeDelim("{}", builtinRead, null)];
 
-            var builtinRes = expand(builtinRead, buildinEnv);
+            var builtinRes = expand(builtinRead, builtInContext);
             params = _.map(builtinRes[0].exports, function(term) {
                 return {
                     oldExport: term.name,
@@ -1535,11 +1536,12 @@
         modBody = _.reduce(params, function(acc, param) {
             var newName = fresh();
             env.set(resolve(param.newParam.rename(param.newParam, newName)), 
-                    buildinEnv.get(resolve(param.oldExport)));
+                    builtInEnv.get(resolve(param.oldExport)));
             return acc.rename(param.newParam, newName);
         }, modBody);
+        context = makeExpanderContext({env: env});
 
-        var res = expand([syn.makeIdent("module", null), modBody], env);
+        var res = expand([syn.makeIdent("module", null), modBody], context);
         return flatten(res[0].body.expose().token.inner);
     }
 
@@ -1600,6 +1602,8 @@
 
     exports.resolve = resolve;
     exports.get_expression = get_expression;
+
+    exports.makeExpanderContext = makeExpanderContext;
 
     exports.Expr = Expr;
     exports.VariableStatement = VariableStatement;

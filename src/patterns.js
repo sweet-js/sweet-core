@@ -231,7 +231,7 @@
             result = [stx[0]];
             rest = stx.slice(1);
         } else if (stx.length > 0 && patternClass === "VariableStatement") {
-            var match = expander.enforest(stx, env);
+            var match = expander.enforest(stx, expander.makeExpanderContext({env: env}));
             if (match.result && match.result.hasPrototype(expander.VariableStatement)) {
                 result = match.result.destruct(false);
                 rest = match.rest;
@@ -240,7 +240,7 @@
                 rest = stx;
             }
         } else if (stx.length > 0 && patternClass === "expr") {
-            var match = expander.get_expression(stx, env);
+            var match = expander.get_expression(stx, expander.makeExpanderContext({env: env}));
             if (match.result === null || (!match.result.hasPrototype(expander.Expr))) {
                 result = null;
                 rest = stx;
