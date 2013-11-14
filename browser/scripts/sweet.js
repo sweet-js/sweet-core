@@ -21,22 +21,22 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-(function (root$97, factory$98) {
+(function (root$111, factory$112) {
     if (typeof exports === 'object') {
         // CommonJS
-        var parser$99 = require('./parser');
-        var expander$100 = require('./expander');
-        var syn$101 = require('./syntax');
-        var codegen$102 = require('escodegen');
-        var path$103 = require('path');
-        var fs$104 = require('fs');
-        var lib$105 = path$103.join(path$103.dirname(fs$104.realpathSync(__filename)), '../macros');
-        var stxcaseModule$106 = fs$104.readFileSync(lib$105 + '/stxcase.js', 'utf8');
-        factory$98(exports, parser$99, expander$100, syn$101, stxcaseModule$106, codegen$102);
+        var parser$113 = require('./parser');
+        var expander$114 = require('./expander');
+        var syn$115 = require('./syntax');
+        var codegen$116 = require('escodegen');
+        var path$117 = require('path');
+        var fs$118 = require('fs');
+        var lib$119 = path$117.join(path$117.dirname(fs$118.realpathSync(__filename)), '../macros');
+        var stxcaseModule$120 = fs$118.readFileSync(lib$119 + '/stxcase.js', 'utf8');
+        factory$112(exports, parser$113, expander$114, syn$115, stxcaseModule$120, codegen$116);
         // Alow require('./example') for an example.sjs file.
-        require.extensions['.sjs'] = function (module$107, filename$108) {
-            var content$109 = require('fs').readFileSync(filename$108, 'utf8');
-            module$107._compile(codegen$102.generate(exports.parse(content$109)), filename$108);
+        require.extensions['.sjs'] = function (module$121, filename$122) {
+            var content$123 = require('fs').readFileSync(filename$122, 'utf8');
+            module$121._compile(codegen$116.generate(exports.parse(content$123)), filename$122);
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
@@ -46,65 +46,65 @@
             './expander',
             './syntax',
             'text!./stxcase.js'
-        ], factory$98);
+        ], factory$112);
     }
-}(this, function (exports$110, parser$111, expander$112, syn$113, stxcaseModule$114, gen$115) {
-    var codegen$116 = gen$115 || escodegen;
+}(this, function (exports$124, parser$125, expander$126, syn$127, stxcaseModule$128, gen$129) {
+    var codegen$130 = gen$129 || escodegen;
     // fun (Str) -> [...CSyntax]
-    function expand$117(code$120) {
-        var program$121, toString$122;
-        toString$122 = String;
-        if (typeof code$120 !== 'string' && !(code$120 instanceof String)) {
-            code$120 = toString$122(code$120);
+    function expand$131(code$134) {
+        var program$135, toString$136;
+        toString$136 = String;
+        if (typeof code$134 !== 'string' && !(code$134 instanceof String)) {
+            code$134 = toString$136(code$134);
         }
-        var source$123 = code$120;
-        if (source$123.length > 0) {
-            if (typeof source$123[0] === 'undefined') {
+        var source$137 = code$134;
+        if (source$137.length > 0) {
+            if (typeof source$137[0] === 'undefined') {
                 // Try first to convert to a string. This is good as fast path
                 // for old IE which understands string indexing for string
                 // literals only and not for string object.
-                if (code$120 instanceof String) {
-                    source$123 = code$120.valueOf();
+                if (code$134 instanceof String) {
+                    source$137 = code$134.valueOf();
                 }
                 // Force accessing the characters via an array.
-                if (typeof source$123[0] === 'undefined') {
-                    source$123 = stringToArray(code$120);
+                if (typeof source$137[0] === 'undefined') {
+                    source$137 = stringToArray(code$134);
                 }
             }
         }
-        var readTree$124 = parser$111.read(source$123);
+        var readTree$138 = parser$125.read(source$137);
         try {
-            return expander$112.expand(readTree$124, stxcaseModule$114);
-        } catch (err$125) {
-            if (err$125 instanceof syn$113.MacroSyntaxError) {
-                throw new SyntaxError(syn$113.printSyntaxError(source$123, err$125));
+            return expander$126.expand(readTree$138, stxcaseModule$128);
+        } catch (err$139) {
+            if (err$139 instanceof syn$127.MacroSyntaxError) {
+                throw new SyntaxError(syn$127.printSyntaxError(source$137, err$139));
             } else {
-                throw err$125;
+                throw err$139;
             }
         }
     }
     // fun (Str, {}) -> AST
-    function parse$118(code$126) {
-        if (code$126 === '') {
+    function parse$132(code$140) {
+        if (code$140 === '') {
             // old version of esprima doesn't play nice with the empty string
             // and loc/range info so until we can upgrade hack in a single space
-            code$126 = ' ';
+            code$140 = ' ';
         }
-        return parser$111.parse(expand$117(code$126));
+        return parser$125.parse(expand$131(code$140));
     }
-    exports$110.expand = expand$117;
-    exports$110.parse = parse$118;
-    exports$110.compileWithSourcemap = function (code$127, filename$128) {
-        var ast$129 = parse$118(code$127);
-        var code_output$130 = codegen$116.generate(ast$129, { comment: true });
-        var sourcemap$131 = codegen$116.generate(ast$129, { sourceMap: filename$128 });
+    exports$124.expand = expand$131;
+    exports$124.parse = parse$132;
+    exports$124.compileWithSourcemap = function (code$141, filename$142) {
+        var ast$143 = parse$132(code$141);
+        var code_output$144 = codegen$130.generate(ast$143, { comment: true });
+        var sourcemap$145 = codegen$130.generate(ast$143, { sourceMap: filename$142 });
         return [
-            code_output$130,
-            sourcemap$131
+            code_output$144,
+            sourcemap$145
         ];
     };
-    exports$110.compile = function compile$119(code$132) {
-        var ast$133 = parse$118(code$132);
-        return codegen$116.generate(ast$133, { comment: true });
+    exports$124.compile = function compile$133(code$146) {
+        var ast$147 = parse$132(code$146);
+        return codegen$130.generate(ast$147, { comment: true });
     };
 }));
