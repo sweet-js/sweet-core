@@ -11,6 +11,7 @@ require(["./sweet"], function(sweet) {
     var storage_mode = 'editor_mode';
 
     var starting_code = $("#editor").text();
+    var compileWithSourcemap = $("body").attr("data-sourcemap") === "true";
 
     var editor = CodeMirror.fromTextArea($('#editor')[0], {
         lineNumbers: true,
@@ -52,7 +53,12 @@ require(["./sweet"], function(sweet) {
         var code = editor.getValue();
         var expanded, compiled;
         try {
-            compiled = sweet.compile(code);
+            if (compileWithSourcemap) {
+                var res = sweet.compileWithSourcemap(code);
+                compiled = res.code;
+            } else {
+                compiled = sweet.compile(code);
+            }
             output.setValue(compiled);
             localStorage[storage_code] = code;
 
