@@ -28,6 +28,7 @@
         // CommonJS
         var parser = require("./parser");
         var expander = require("./expander");
+        var syn = require("./syntax");
         var codegen = require("escodegen");
 
         var path = require('path');
@@ -36,7 +37,7 @@
 
         var stxcaseModule = fs.readFileSync(lib + "/stxcase.js", 'utf8');
 
-        factory(exports, parser, expander, stxcaseModule, codegen);
+        factory(exports, parser, expander, syn, stxcaseModule, codegen);
 
         // Alow require('./example') for an example.sjs file.
         require.extensions['.sjs'] = function(module, filename) {
@@ -45,9 +46,9 @@
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', './parser', './expander', 'text!./stxcase.js'], factory);
+        define(['exports', './parser', './expander', './syntax', 'text!./stxcase.js'], factory);
     }
-}(this, function (exports, parser, expander, stxcaseModule, gen) {
+}(this, function (exports, parser, expander, syn, stxcaseModule, gen) {
     var codegen = gen || escodegen;
 
     // fun (Str) -> [...CSyntax]
@@ -78,7 +79,15 @@
         }
 
         var readTree = parser.read(source);
-        return [expander.expand(readTree[0], stxcaseModule), readTree[1]];
+        try {
+            return expander.expand(readTree, stxcaseModule);
+        } catch(err) {
+            if (err instanceof syn.MacroSyntaxError) {
+                throw new SyntaxError(syn.printSyntaxError(source, err));
+            } else {
+                throw err;
+            }
+        }
     }
 
     // fun (Str, {}) -> AST
@@ -88,9 +97,8 @@
             // and loc/range info so until we can upgrade hack in a single space
             code = " ";
         }
-        var exp = expand(code);
 
-        return parser.parse(exp[0], exp[1]);
+        return parser.parse(expand(code));
     }
 
     exports.expand = expand;
@@ -98,7 +106,6 @@
 
     exports.compileWithSourcemap = function(code, filename) {
         var ast = parse(code);
-        codegen.attachComments(ast, ast.comments, ast.tokens);
         var code_output = codegen.generate(ast, {
             comment: true
         });
@@ -112,7 +119,6 @@
 
     exports.compile = function compile(code) {
         var ast = parse(code);
-        codegen.attachComments(ast, ast.comments, ast.tokens);
         return codegen.generate(ast, {
             comment: true
         });

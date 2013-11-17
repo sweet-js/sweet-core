@@ -84,8 +84,9 @@
     // (CSyntax, CSyntax) -> CSyntax
     function takeLine(from, to) {
         if (to.token.type === parser.Token.Delimiter) {
+            var next;
             if (from.token.type === parser.Token.Delimiter) {
-                var next = syntaxFromToken({
+                next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: to.token.value,
                     inner: to.token.inner,
@@ -98,7 +99,7 @@
                 }, to);
 
             } else {
-                var next = syntaxFromToken({
+                next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: to.token.value,
                     inner: to.token.inner,
@@ -110,26 +111,32 @@
                     endLineStart: from.token.lineStart
                 }, to);
             }
-            return next;
-        }
-
-        if (from.token.type === parser.Token.Delimiter) {
-            return syntaxFromToken({
-                value: to.token.value,
-                type: to.token.type,
-                lineNumber: from.token.startLineNumber,
-                lineStart: from.token.startLineStart,
-                range: from.token.startRange
-            }, to);
         } else {
-            return syntaxFromToken({
-                value: to.token.value,
-                type: to.token.type,
-                lineNumber: from.token.lineNumber,
-                lineStart: from.token.lineStart,
-                range: from.token.range
-            }, to);
+            if (from.token.type === parser.Token.Delimiter) {
+                next = syntaxFromToken({
+                    value: to.token.value,
+                    type: to.token.type,
+                    lineNumber: from.token.startLineNumber,
+                    lineStart: from.token.startLineStart,
+                    range: from.token.startRange
+                }, to);
+            } else {
+                next = syntaxFromToken({
+                    value: to.token.value,
+                    type: to.token.type,
+                    lineNumber: from.token.lineNumber,
+                    lineStart: from.token.lineStart,
+                    range: from.token.range,
+                }, to);
+            }
         }
+        if (to.token.leadingComments) {
+            next.token.leadingComments = to.token.leadingComments;
+        }
+        if (to.token.trailingComments) {
+            next.token.trailingComments = to.token.trailingComments;
+        }
+        return next;
     }
 
     function loadPattern(patterns) {
@@ -224,7 +231,7 @@
             result = [stx[0]];
             rest = stx.slice(1);
         } else if (stx.length > 0 && patternClass === "VariableStatement") {
-            var match = expander.enforest(stx, env);
+            var match = expander.enforest(stx, expander.makeExpanderContext({env: env}));
             if (match.result && match.result.hasPrototype(expander.VariableStatement)) {
                 result = match.result.destruct(false);
                 rest = match.rest;
@@ -233,7 +240,7 @@
                 rest = stx;
             }
         } else if (stx.length > 0 && patternClass === "expr") {
-            var match = expander.get_expression(stx, env);
+            var match = expander.get_expression(stx, expander.makeExpanderContext({env: env}));
             if (match.result === null || (!match.result.hasPrototype(expander.Expr))) {
                 result = null;
                 rest = stx;
@@ -281,6 +288,9 @@
         var success = true;
 
         for (var i = 0; i < patterns.length; i++) {
+            if (success === false) {
+                break;
+            }
             pattern = patterns[i];
             do {
                 match = matchPattern(pattern, rest, env, patternEnv);
@@ -288,8 +298,6 @@
                     // a repeat can match zero tokens and still be a
                     // "success" so break out of the inner loop and
                     // try the next pattern
-                    rest = match.rest;
-                    patternEnv = match.patternEnv;
                     break;
                 }
                 if (!match.success) {
@@ -298,6 +306,16 @@
                 }
                 rest = match.rest;
                 patternEnv = match.patternEnv;
+
+                if (success && !(topLevel || pattern.repeat)) {
+                    // the very last pattern matched, inside a
+                    // delimiter, not a repeat, *and* there are more
+                    // unmatched bits of syntax
+                    if (i == (patterns.length - 1) && rest.length !== 0) {
+                        success = false;
+                        break;
+                    }
+                }
 
                 if (pattern.repeat && success) {
                     if (rest[0] && rest[0].token.value === pattern.separator) {
@@ -321,7 +339,7 @@
                         break;
                     }
                 }
-            } while (pattern.repeat && match.success && rest.length > 0);
+            } while (pattern.repeat && success && rest.length > 0);
         }
         return {
             success: success,
@@ -364,7 +382,7 @@
         if (typeof pattern.inner !== 'undefined') {
             if (pattern.class === "pattern_group") {
                 // pattern groups don't match the delimiters
-                subMatch = matchPatterns(pattern.inner, stx, env, false);
+                subMatch = matchPatterns(pattern.inner, stx, env, true);
                 rest = subMatch.rest;
             } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter &&
                        stx[0].token.value === pattern.value) {

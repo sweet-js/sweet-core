@@ -24,3 +24,5 @@ browser/scripts/src
 
 test.js
 _site
+
+.tern-port

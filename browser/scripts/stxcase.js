@@ -183,6 +183,8 @@ let syntaxCase = macro {
                                                  makePunc(",", name_stx),
                                                  makeIdent("arg", name_stx),
                                                  makePunc(",", name_stx),
+                                                 makeIdent("context", name_stx),
+                                                 makePunc(".", name_stx),
                                                  makeIdent("env", name_stx),
                                                  makePunc(",", name_stx),
                                                  makeValue(true, name_stx)
@@ -215,7 +217,9 @@ let syntaxCase = macro {
                 ]).concat([
                     takeLine(name_stx, makeIdent("applyMarkToPatternEnv", null)),
                     makeDelim("()", [
-                        makeIdent("newMark", name_stx),
+                        makeIdent("context", name_stx),
+                        makePunc(".", name_stx),
+                        makeIdent("mark", name_stx),
                         makePunc(",", name_stx),
                         makeIdent("match", name_stx),
                         makePunc(".", name_stx),
@@ -239,7 +243,11 @@ let syntaxCase = macro {
                         makeIdent("stx", name_stx),
                         makePunc(".", name_stx),
                         makeIdent("mark", name_stx),
-                        makeDelim("()", [makeIdent("newMark", name_stx)], name_stx)
+                        makeDelim("()", [
+                            makeIdent("context", name_stx),
+                            makePunc(".", name_stx),
+                            makeIdent("mark", name_stx)
+                        ], name_stx)
                     ])), name_stx),
                     makePunc(";", name_stx)
                 ]).concat([
@@ -288,7 +296,7 @@ let syntaxCase = macro {
 
         var res = [
             makeDelim("()", makeFunc([makeIdent("stx", name_stx),
-                                      makeIdent("env", name_stx),
+                                      makeIdent("context", name_stx),
                                       makeIdent("parentMatch", name_stx)], body),
                       name_stx),
             makeDelim("()", arg_stx.concat([
@@ -386,12 +394,12 @@ let macro = macro {
             ? [takeLine(name_stx, makeIdent("macro", null)), mac_name_stx]
             : [takeLine(name_stx, makeIdent("macro", null))];
         res = res.concat(makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
-                                                    makeIdent("env", name_stx)],
+                                                    makeIdent("context", name_stx)],
                                                    [makeIdent("return", name_stx),
                                                     makeIdent("syntaxCase", name_stx),
                                                     makeDelim("()", [makeIdent("stx", name_stx),
                                                                      makePunc(",", name_stx),
-                                                                     makeIdent("env", name_stx)], name_stx),
+                                                                     makeIdent("context", name_stx)], name_stx),
                                                     rules]),
                                     name_stx));
 
@@ -415,7 +423,7 @@ let withSyntax = macro {
         var res = [makeIdent("syntaxCase", name[0])];
         var args = #{[$(makeDelim("()", $e)) (,) ...],};
 
-        args = args.concat(makeIdent("env", name[0]));
+        args = args.concat(makeIdent("context", name[0]));
         res = res.concat(makeDelim("()", args, here));
 
         res = res.concat(#{

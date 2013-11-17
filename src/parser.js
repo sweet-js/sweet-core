@@ -3423,6 +3423,17 @@ to decide on the correct name for identifiers.
                             node.loc.start = node.callee.loc.start;
                         }
                     }
+
+                    if (node.type !== Syntax.Program) {
+                        if (curr.leadingComments) {
+                            node.leadingComments = curr.leadingComments;
+                        }
+
+                        if (curr.trailingComments) {
+                            node.trailingComments = curr.trailingComments;
+                        }
+                    }
+
                     return node;
                 }
             };
@@ -3659,17 +3670,31 @@ to decide on the correct name for identifiers.
         var delimiters = ['(', '{', '['];
         var parenIdents = ["if", "while", "for", "with"];
         var last = toks.length - 1;
+        var comments, commentsLen = extra.comments.length;
 
         function back(n) {
             var idx = (toks.length - n > 0) ? (toks.length - n) : 0;
             return toks[idx];
         }
 
+        function attachComments(token) {
+            if (comments) {
+                token.leadingComments = comments;
+            }
+            return token;
+        }
+
+        function _advance() { return attachComments(advance()); }
+        function _scanRegExp() { return attachComments(scanRegExp()); }
         
         skipComment();
+
+        if (extra.comments.length > commentsLen) {
+            comments = extra.comments.slice(commentsLen);
+        }
         
-        if(isIn(getChar(), delimiters)) {
-            return readDelim(toks, inExprDelim, parentIsBlock);
+        if (isIn(getChar(), delimiters)) {
+            return attachComments(readDelim(toks, inExprDelim, parentIsBlock));
         } 
 
         if (getChar() === "/") {
@@ -3678,10 +3703,10 @@ to decide on the correct name for identifiers.
                 if (prev.value === "()") {
                     if (isIn(back(2).value, parenIdents)) {
                         // ... if (...) / ...
-                        return scanRegExp();
+                        return _scanRegExp();
                     } 
                     // ... (...) / ...
-                    return advance();
+                    return _advance();
                 } 
                 if (prev.value === "{}") {
                     if(blockAllowed(toks, 0, inExprDelim, parentIsBlock)) {
@@ -3690,49 +3715,49 @@ to decide on the correct name for identifiers.
                             if (back(4).value === "function") {
                                 if (!blockAllowed(toks, 3, inExprDelim, parentIsBlock)) {
                                     // new function foo (...) {...} / ...
-                                    return advance();
+                                    return _advance();
                                 }
                                 if ((toks.length - 5 <= 0) && inExprDelim) {
                                     // (function foo (...) {...} /...)
                                     // [function foo (...) {...} /...]
-                                    return advance();
+                                    return _advance();
                                 }
                             }
                             // unnamed function
                             if (back(3).value === "function") {
                                 if (!blockAllowed(toks, 2, inExprDelim, parentIsBlock)) {
                                     // new function (...) {...} / ...
-                                    return advance();
+                                    return _advance();
                                 }
                                 if ((toks.length - 4 <= 0) && inExprDelim) {
                                     // (function (...) {...} /...)
                                     // [function (...) {...} /...]
-                                    return advance();
+                                    return _advance();
                                 }
                             }
                         }
                         // ...; {...} /...
-                        return scanRegExp();
+                        return _scanRegExp();
                         
                     } else {
                         // ... + {...} / ...
-                        return advance();
+                        return _advance();
                     }
                 } 
 
                 if (prev.type === Token.Punctuator) {
                     // ... + /...
-                    return scanRegExp();
+                    return _scanRegExp();
                 } 
                 if (isKeyword(prev.value)) {
                     // typeof /...
-                    return scanRegExp();
+                    return _scanRegExp();
                 } 
-                return advance();
+                return _advance();
             } 
-            return scanRegExp();
+            return _scanRegExp();
         } 
-        return advance();
+        return _advance();
     }
     
     function readDelim(toks, inExprDelim, parentIsBlock) {
@@ -3769,6 +3794,9 @@ to decide on the correct name for identifiers.
                               (startDelim.value === "(" || startDelim.value === "["),
                               delimIsBlock);
             if((token.type === Token.Punctuator) && (token.value === matchDelim[startDelim.value])) {
+                if (token.leadingComments) {
+                    delimToken.trailingComments = token.leadingComments;
+                }
                 break;
             } else if(token.type === Token.EOF) {
                 throwError({}, Messages.UnexpectedEOS);
@@ -3833,12 +3861,12 @@ to decide on the correct name for identifiers.
             });
         }
         
-        return [expander.tokensToSyntax(tokenTree), extra.comments];
+        return expander.tokensToSyntax(tokenTree);
     }
     
 
     // (SyntaxObject, Str, {}) -> SyntaxObject
-    function parse(code, comments) {
+    function parse(code) {
         var program, toString;
 
         tokenStream = code;
@@ -3858,7 +3886,6 @@ to decide on the correct name for identifiers.
         patch();
         try {
             program = parseProgram();
-            program.comments = comments;
             program.tokens = expander.syntaxToTokens(code);
         } catch (e) {
             throw e;

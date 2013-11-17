@@ -580,6 +580,27 @@ describe("macro expander", function() {
         expect(foo[x = 0]).to.be("bar");
     });
 
+    it('should fail to match with trailing stx in a delimiter', function() {
+        macro m {
+            rule { ($x) } => {
+                42
+            }
+            rule { ($x $y) } => {
+                "success"
+            }
+        }
+        expect(m (100 200)).to.be("success");
+    });
 
+    it('should not match too much', function() {
+        macro m {
+            rule { $(foo $bar) ...} => {
+                [$bar (,) ...];
+            }
+        }
+        // testing for regression bug, had been matching the `3`
+        var res = m foo 1 foo 2 3;
+        expect(res).to.eql([1,2]);
+    });
 
 });

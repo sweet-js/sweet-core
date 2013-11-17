@@ -56,6 +56,7 @@ function build() {
 
         exec("bin/sjs " +
              "--output " + "build/lib/" + path.basename(file) +
+             " --module lambda-chop/macros" +
              " " + file);
              // " " + file + " --sourcemap scripts");
     });
