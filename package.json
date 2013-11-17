@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "mocha": "~1.3.2",
+    "lambda-chop": "~0.1.1",
     "expect.js": "0.1.x",
     "shelljs": "0.1.x",
     "benchmark": "1.0.x"
