@@ -995,7 +995,8 @@
                     
                     Keyword(keyword) | (keyword.token.value === "let" && 
                                         (rest[0] && rest[0].token.type === parser.Token.Identifier || 
-                                         rest[0] && rest[0].token.type === parser.Token.Keyword) &&
+                                         rest[0] && rest[0].token.type === parser.Token.Keyword ||
+                                         rest[0] && rest[0].token.type === parser.Token.Punctuator) &&
                                         rest[1] && rest[1].token.value === "=" &&
                                         rest[2] && rest[2].token.value === "macro") => {
                         var mac = enforest(rest.slice(2), context);
