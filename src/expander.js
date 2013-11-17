@@ -379,7 +379,7 @@
     function getParamIdentifiers(argSyntax) {
         parser.assert(argSyntax.token.type === parser.Token.Delimiter,
             "expecting delimiter for function params");
-        return _.filter(argSyntax.token.inner, function(stx) {
+        return _.filter(argSyntax.token.inner, λ(stx) -> {
             return stx.token.value !== ",";
         });
     }
@@ -1288,9 +1288,7 @@
             var macroDefinition = loadMacroDef(head, context);
             var freshName = fresh();
             var renamedName = head.name.rename(head.name, freshName);
-            rest = _.map(rest, function(stx) {
-                return stx.rename(head.name, freshName);
-            });
+            rest = _.map(rest, λ(stx) -> stx.rename(head.name, freshName));
             head.name = renamedName;
 
             context.env.set(resolve(head.name), {
@@ -1314,7 +1312,7 @@
         }
 
         if (head.hasPrototype(VariableStatement)) {
-            addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
+            addToDefinitionCtx(_.map(head.decls, λ(decl) -> { return decl.ident; }),
                                context.defscope,
                                true)
         }
@@ -1322,7 +1320,7 @@
         if(head.hasPrototype(Block) && head.body.hasPrototype(Delimiter)) {
             head.body.delim.token.inner.forEach(function(term) {
                 if (term.hasPrototype(VariableStatement)) {
-                    addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
+                    addToDefinitionCtx(_.map(term.decls, λ(decl) -> { return decl.ident; }),
                                        context.defscope,
                                        true);
                 }
@@ -1331,9 +1329,9 @@
         } 
 
         if(head.hasPrototype(Delimiter)) {
-            head.delim.token.inner.forEach(function(term) {
+            head.delim.token.inner.forEach(λ(term) -> {
                 if (term.hasPrototype(VariableStatement)) {
-                    addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
+                    addToDefinitionCtx(_.map(term.decls, λ(decl) -> { return decl.ident; }),
                                        context.defscope,
                                        true);
                                       
@@ -1351,10 +1349,10 @@
     function addToDefinitionCtx(idents, defscope, skipRep) {
         parser.assert(idents && idents.length > 0, "expecting some variable identifiers");
         skipRep = skipRep || false;
-        _.each(idents, function(id) {
+        _.each(idents, λ(id) -> {
             var skip = false;
             if (skipRep) {
-                var declRepeat = _.find(defscope, function(def) {
+                var declRepeat = _.find(defscope, λ(def) -> {
                     return def.id.token.value === id.token.value &&
                         arraysEqual(marksof(def.id.context), marksof(id.context));
                 });
@@ -1400,7 +1398,7 @@
             return term;
         } else if (term.hasPrototype(Call)) {
             term.fun = expandTermTreeToFinal(term.fun, context);
-            term.args = _.map(term.args, function(arg) {
+            term.args = _.map(term.args, λ(arg) -> {
                 return expandTermTreeToFinal(arg, context);
             });
             return term;
@@ -1424,7 +1422,7 @@
             }
             return term;
         } else if (term.hasPrototype(VariableStatement)) {
-            term.decls = _.map(term.decls, function(decl) {
+            term.decls = _.map(term.decls, λ(decl) -> {
                 return expandTermTreeToFinal(decl, context);
             });
             return term;
@@ -1449,7 +1447,7 @@
 
             var bodies = term.body.addDefCtx(newDef);
 
-            var paramNames = _.map(getParamIdentifiers(params), function(param) {
+            var paramNames = _.map(getParamIdentifiers(params), λ(param) -> {
                 var freshName = fresh();
                 return {
                     freshName: freshName,
@@ -1460,7 +1458,7 @@
 
 
             // rename the function body for each of the parameters
-            var renamedBody = _.reduce(paramNames, function (accBody, p) {
+            var renamedBody = _.reduce(paramNames, λ(accBody, p) -> {
                 return accBody.rename(p.originalParam, p.freshName)
             }, bodies);
             renamedBody = renamedBody.expose();
@@ -1469,7 +1467,8 @@
             var bodyTerms = expandedResult.terms;
 
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam; });
-            var flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","), term.params);
+            var flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","),
+                                         term.params);
 
             var expandedArgs = expand([flatArgs], bodyContext);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
@@ -1478,7 +1477,7 @@
                 term.params = expandedArgs[0];
             }
 
-            bodyTerms = _.map(bodyTerms, function(bodyTerm) {
+            bodyTerms = _.map(bodyTerms, λ(bodyTerm) -> {
                 // add the definition context to the result of
                 // expansion (this makes sure that syntax objects
                 // introduced by expansion have the def context)
@@ -1489,7 +1488,7 @@
             })
             
             if (term.hasPrototype(Module)) {
-                bodyTerms = _.filter(bodyTerms, function(bodyTerm) {
+                bodyTerms = _.filter(bodyTerms, λ(bodyTerm) -> {
                     if (bodyTerm.hasPrototype(Export)) {
                         term.exports.push(bodyTerm);
                         return false;
@@ -1515,7 +1514,7 @@
         parser.assert(context, "must provide an expander context");
         
         var trees = expandToTermTree(stx, context);
-        return _.map(trees.terms, function(term) {
+        return _.map(trees.terms, λ(term) -> {
             return expandTermTreeToFinal(term, trees.context);
         })
     }
