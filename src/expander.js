@@ -933,7 +933,7 @@
                     }
 
                     // BinOp
-                    TermTree(emp) | (rest[0] && rest[1] && stxIsBinOp(rest[0])) => {
+                    Expr(emp) | (rest[0] && rest[1] && stxIsBinOp(rest[0])) => {
                         var op = rest[0];
                         var left = head;
                         var bopRes = enforest(rest.slice(1), context);
