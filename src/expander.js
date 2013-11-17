@@ -379,9 +379,7 @@
     function getParamIdentifiers(argSyntax) {
         parser.assert(argSyntax.token.type === parser.Token.Delimiter,
             "expecting delimiter for function params");
-        return _.filter(argSyntax.token.inner, λ(stx) -> {
-            return stx.token.value !== ",";
-        });
+        return _.filter(argSyntax.token.inner, λ(stx) -> stx.token.value !== ",");
     }
 
 
@@ -1466,7 +1464,7 @@
             var expandedResult = expandToTermTree(renamedBody.token.inner, bodyContext);
             var bodyTerms = expandedResult.terms;
 
-            var renamedParams = _.map(paramNames, function(p) { return p.renamedParam; });
+            var renamedParams = _.map(paramNames, λ(p) -> p.renamedParam);
             var flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","),
                                          term.params);
 
