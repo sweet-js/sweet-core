@@ -1,6 +1,6 @@
 var expect = require("expect.js");
 
-macro $describe {
+let describe = macro {
     case {_ $description:lit { $body ... }} => {
         return #{
             describe($description, function() {
@@ -10,7 +10,7 @@ macro $describe {
     }
 }
 
-macro $it {
+let it = macro {
     case {_ $description:lit { $body ... }} => {
         return #{
             it($description, function() {
@@ -20,9 +20,9 @@ macro $it {
     }
 }
 
-$describe "macro hygiene" {
+describe "macro hygiene" {
 
-    $it "should work for or macro" {
+    it "should work for or macro" {
         macro or {
             case {_ ($x , $y)} => {
                 return #{
@@ -42,7 +42,7 @@ $describe "macro hygiene" {
     
 
 
-    $it "should work for a binding outside of the macro def" {
+    it "should work for a binding outside of the macro def" {
 
         var z = (function(x) {
 
@@ -61,7 +61,7 @@ $describe "macro hygiene" {
     }
 
 
-    $it "should not rename object idents if they are the same as vars" {
+    it "should not rename object idents if they are the same as vars" {
         var o = (function (x) {
             return {
                 x: x
@@ -71,7 +71,7 @@ $describe "macro hygiene" {
         expect(o.x).to.be(42);
     }
 
-    $it "should not rename object dot accesses" {
+    it "should not rename object dot accesses" {
         var n = (function (o, x) {
             return o.x;
         })({x: 42});
@@ -79,7 +79,7 @@ $describe "macro hygiene" {
         expect(n).to.be(42)
     }
 
-    $it "should do the correct renaming without macros for vars" {
+    it "should do the correct renaming without macros for vars" {
         var z = (function() {
             var x = 42;
             return (function() {
@@ -91,7 +91,7 @@ $describe "macro hygiene" {
         expect(z).to.be(undefined)
     }
 
-    $it "should do the correct renaming without macros for vars and params" {
+    it "should do the correct renaming without macros for vars and params" {
         var z = (function() {
             return (function(x) {
                 var x = "foo";
@@ -102,7 +102,7 @@ $describe "macro hygiene" {
         expect(z).to.be("foo")
     }
 
-    $it "should do the correct renaming with macros for vars" {
+    it "should do the correct renaming with macros for vars" {
         macro m {
             case {_ ()} => { return #{var x = 5;}  }
         }
@@ -114,7 +114,7 @@ $describe "macro hygiene" {
         expect(z).to.be("foo")
     }
 
-    $it "should work with vars and catch statements" {
+    it "should work with vars and catch statements" {
         var r;
         var e = 'not error';
 
@@ -135,7 +135,7 @@ $describe "macro hygiene" {
         expect(r === e).to.be(true);
     }
 
-    $it "should work with a nested macro" {
+    it "should work with a nested macro" {
         macro main {
             case {_ ($a)} => {
                 return #{
@@ -161,7 +161,7 @@ $describe "macro hygiene" {
         expect(z).to.be(303);
     }
 
-    $it "should work with multiple declarations" {
+    it "should work with multiple declarations" {
         var a = 10;
         var b = 20;
         macro main {
@@ -187,7 +187,7 @@ $describe "macro hygiene" {
         expect(z).to.be(30);
     }
 
-    $it "var declarations in nested blocks should be distinct" {
+    it "var declarations in nested blocks should be distinct" {
         var foo = 100;
         macro sub {
             case {_ ()} => { return #{foo }}
@@ -202,7 +202,7 @@ $describe "macro hygiene" {
         expect(bar()).to.be(100);
     }
 
-    $it "should work for vars with hoisting" {
+    it "should work for vars with hoisting" {
         macro m {
             case {_ $x:lit} => {
                 return #{
@@ -217,7 +217,7 @@ $describe "macro hygiene" {
 
     }
 
-    $it "should work for vars with hoisting and params" {
+    it "should work for vars with hoisting and params" {
         function f(tmp) {
             macro m {
                 case {_ $x:lit} => {
@@ -236,7 +236,7 @@ $describe "macro hygiene" {
 
     }
 
-    $it "should work for var with nested function" {
+    it "should work for var with nested function" {
         macro m {
             case {_ $x:lit} => {
                 return #{
@@ -252,7 +252,7 @@ $describe "macro hygiene" {
         f();
     }
 
-    // $it "should handle vars decls introduced by a macro expansion where macro definition is in the same scope level" {
+    // it "should handle vars decls introduced by a macro expansion where macro definition is in the same scope level" {
     //     var res = "default";
     //     var x = undefined;
     //     macro m {
@@ -269,7 +269,7 @@ $describe "macro hygiene" {
     //     expect(x).to.be(undefined);
     // }
 
-    $it "should handle vars decls introduced by a macro expansion where macro definition is NOT in the same scope level" {
+    it "should handle vars decls introduced by a macro expansion where macro definition is NOT in the same scope level" {
         macro m {
             case {_ ($res)} => {
                 return #{
@@ -289,7 +289,7 @@ $describe "macro hygiene" {
         })();
     }
 
-    $it "should handle var decls passed to a macro expansion" {
+    it "should handle var decls passed to a macro expansion" {
         var res = "default";
         var x = undefined;
         macro m {
@@ -308,7 +308,7 @@ $describe "macro hygiene" {
         expect(x).to.be("set");
     }
 
-    $it "should work for the or macro with var" {
+    it "should work for the or macro with var" {
       macro or {
         case {_ ($x:expr, $y:expr)} => {
             return #{
@@ -325,7 +325,7 @@ $describe "macro hygiene" {
       expect(z).to.be("ok");
     }
 
-    $it "keeps vars introduced by a macro distinct" {
+    it "keeps vars introduced by a macro distinct" {
         macro m {
             case {_ ()} => {
                 return #{var x = 42;}

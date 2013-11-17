@@ -113,7 +113,10 @@
             sourceMap: filename
         });
 
-        return [code_output, sourcemap];
+        return {
+            code: code_output,
+            sourceMap: sourcemap
+        };
         
     }
 

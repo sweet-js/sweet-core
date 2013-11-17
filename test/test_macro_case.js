@@ -1,6 +1,6 @@
 var expect = require("expect.js");
 
-macro $describe {
+let describe = macro {
     case {_ $description:lit { $body ... } } => {
         return syntax {
             describe($description, function() {
@@ -10,7 +10,7 @@ macro $describe {
     }
 }
 
-macro $it {
+let it = macro {
     case {_ $description:lit { $body ... }} => {
         return syntax {
             it($description, function() {
@@ -20,8 +20,8 @@ macro $it {
     }
 }
 
-$describe "procedural (syntax-case) macros" {
-	$it "should make a literal syntax object" {
+describe "procedural (syntax-case) macros" {
+	it "should make a literal syntax object" {
 		macro m {
 			case { _ () } => {
                 return [makeValue (42, #{here})];
@@ -30,7 +30,7 @@ $describe "procedural (syntax-case) macros" {
 		expect(m()).to.be(42);
 	}
 
-    $it "should work with syntax" {
+    it "should work with syntax" {
         macro m {
             case { _ () } => {
                 return syntax { 42 }
@@ -39,7 +39,7 @@ $describe "procedural (syntax-case) macros" {
         expect(m()).to.be(42);
     }
 
-    $it "should work with #" {
+    it "should work with #" {
         macro m {
             case { _ () } => {
                 return #{ 42 }
@@ -49,7 +49,7 @@ $describe "procedural (syntax-case) macros" {
     }
 
 
-    $it "should handle returning a single pattern variable" {
+    it "should handle returning a single pattern variable" {
         macro m {
             case { _ ($x:expr) } => {
                 return #{ $x }
@@ -59,7 +59,7 @@ $describe "procedural (syntax-case) macros" {
         expect(m(42 + 24)).to.be(42 + 24);
     }
 
-    $it "should handle a repeated pattern in the template" {
+    it "should handle a repeated pattern in the template" {
         macro m {
             case { _ ($x ...) } => {
                 return #{ [$x (,) ...] }
@@ -68,7 +68,7 @@ $describe "procedural (syntax-case) macros" {
         expect(m(1 2 3)).to.eql([1,2,3]);
     }
 
-    $it "should support withSyntax" {
+    it "should support withSyntax" {
         macro m {
             case {_ $x } => {
                 return withSyntax($y = [makeValue(42, #{here})]) {
@@ -81,7 +81,7 @@ $describe "procedural (syntax-case) macros" {
         expect(m 100).to.be(142);
     }
     
-    $it "should support withSyntax with multiple patterns" {
+    it "should support withSyntax with multiple patterns" {
         macro m {
             case {_ $x } => {
                 return withSyntax($y = [makeValue(10, #{here})], 
@@ -93,7 +93,7 @@ $describe "procedural (syntax-case) macros" {
         expect(m 5).to.be(35);
     }
     
-    $it "should support let bound macros" {
+    it "should support let bound macros" {
         let m = macro {
             case {_ $x} => { 
                 return #{$x} 
@@ -103,7 +103,7 @@ $describe "procedural (syntax-case) macros" {
         expect(m 42).to.be(42);
     }
 
-    $it "should support let bound macros" {
+    it "should support let bound macros" {
         let function = macro {
             case {_ $x} => { 
                 return #{function foo() { return $x; } } 
@@ -113,7 +113,7 @@ $describe "procedural (syntax-case) macros" {
         expect((function 42)()).to.be(42);
     }
 
-    $it "should unwrap the context syntax array for makeDelim" {
+    it "should unwrap the context syntax array for makeDelim" {
         macro $delim {
             case { $$mac $val } => {
                 var d = makeDelim('[]', #{$val}, #{$$mac});
@@ -124,7 +124,7 @@ $describe "procedural (syntax-case) macros" {
         expect($delim 42).to.eql([42]);
     }
 
-    $it "should unwrap single element arrays in unwrapSyntax" {
+    it "should unwrap single element arrays in unwrapSyntax" {
         macro m {
             case {_ () } => {
                 var num = unwrapSyntax(#{42})
@@ -134,7 +134,7 @@ $describe "procedural (syntax-case) macros" {
         expect(m()).to.be(42);
     }
 
-    $it "should handle negative numbers in makeValue" {
+    it "should handle negative numbers in makeValue" {
         macro m {
             case {_ () } => {
                 return [makeValue(-42, #{here})];
@@ -143,7 +143,7 @@ $describe "procedural (syntax-case) macros" {
         expect(m()).to.be(-42);
     }
 
-    $it "should handle NaN in makeValue" {
+    it "should handle NaN in makeValue" {
         macro m {
             case {_ () } => {
                 return [makeValue(0/0, #{here})];
