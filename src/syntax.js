@@ -73,17 +73,17 @@
 
         // (CSyntax or [...CSyntax], Str) -> CSyntax
         // non mutating
-        rename: function(id, name) {
+        rename: function(id, name, defctx) {
             // deferr renaming of delimiters
             if (this.token.inner) {
                 var next = syntaxFromToken(this.token, this);
-                next.deferredContext = Rename(id, name, this.deferredContext);
+                next.deferredContext = Rename(id, name, this.deferredContext, defctx);
                 return next;
             }
 
             if (this.token.type === parser.Token.Identifier ||
                 this.token.type === parser.Token.Keyword) {
-                return syntaxFromToken(this.token, {context: Rename(id, name, this.context)});
+                return syntaxFromToken(this.token, {context: Rename(id, name, this.context, defctx)});
             } else {
                 return this;
             }
@@ -117,7 +117,10 @@
                 if (ctx == null) {
                     return stxCtx;
                 } else if (isRename(ctx)) {
-                    return Rename(ctx.id, ctx.name, applyContext(stxCtx, ctx.context))
+                    return Rename(ctx.id,
+                                  ctx.name,
+                                  applyContext(stxCtx, ctx.context),
+                                  ctx.def);
                 } else if (isMark(ctx)) {
                     return Mark(ctx.mark, applyContext(stxCtx, ctx.context));
                 } else if (isDef(ctx)) {

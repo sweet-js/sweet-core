@@ -345,7 +345,7 @@
             }
             return resolveCtx(originalName,
                               ctx.context,
-                              unionEl(stop_spine, ctx.def),
+                              stop_spine,
                               stop_branch);
         }
         return originalName;
@@ -413,6 +413,20 @@
                     return acc;
                 }
             }, this), []);
+        },
+
+        addDefCtx: function(def) {
+            for (var i = 0; i < this.properties.length; i++) {
+                var prop = this.properties[i];
+                if (Array.isArray(this[prop])) {
+                    this[prop] = _.map(this[prop], function (item) {
+                        return item.addDefCtx(def);
+                    });
+                } else if (this[prop]) {
+                    this[prop] = this[prop].addDefCtx(def);
+                }
+            }
+            return this;
         }
     };
 
@@ -1375,13 +1389,13 @@
 
 
         if (term.hasPrototype(ArrayLiteral)) {
-            term.array.delim.token.inner = expand(term.array.delim.token.inner, context);
+            term.array.delim.token.inner = expand(term.array.delim.expose().token.inner, context);
             return term;
         } else if (term.hasPrototype(Block)) {
-            term.body.delim.token.inner = expand(term.body.delim.token.inner, context);
+            term.body.delim.token.inner = expand(term.body.delim.expose().token.inner, context);
             return term;
         } else if (term.hasPrototype(ParenExpression)) {
-            term.expr.delim.token.inner = expand(term.expr.delim.token.inner, context);
+            term.expr.delim.token.inner = expand(term.expr.delim.expose().token.inner, context);
             return term;
         } else if (term.hasPrototype(Call)) {
             term.fun = expandTermTreeToFinal(term.fun, context);
@@ -1397,7 +1411,7 @@
             term.right = expandTermTreeToFinal(term.right, context);
             return term;
         } else if (term.hasPrototype(ObjGet)) {
-            term.right.delim.token.inner = expand(term.right.delim.token.inner, context);
+            term.right.delim.token.inner = expand(term.right.delim.expose().token.inner, context);
             return term;
         } else if (term.hasPrototype(ObjDotGet)) {
             term.left = expandTermTreeToFinal(term.left, context);
@@ -1415,7 +1429,7 @@
             return term;
         } else if (term.hasPrototype(Delimiter)) {
             // expand inside the delimiter and then continue on
-            term.delim.token.inner = expand(term.delim.token.inner, context);
+            term.delim.token.inner = expand(term.delim.expose().token.inner, context);
             return term;
         } else if (term.hasPrototype(NamedFun) ||
                    term.hasPrototype(AnonFun) ||
@@ -1427,7 +1441,7 @@
             var bodyContext = makeExpanderContext(_.defaults({defscope: newDef}, context));
 
             if (term.params) {
-                var params = term.params.addDefCtx(newDef);
+                var params = term.params.expose();
             } else {
                 var params = syn.makeDelim("()", [], null);
             }
@@ -1450,10 +1464,8 @@
             }, bodies);
             renamedBody = renamedBody.expose();
 
-            var bodyTerms = expand([renamedBody], bodyContext);
-            parser.assert(bodyTerms.length === 1 && bodyTerms[0].body,
-                            "expecting a block in the bodyTerms");
-
+            var expandedResult = expandToTermTree(renamedBody.token.inner, bodyContext);
+            var bodyTerms = expandedResult.terms;
 
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam; });
             var flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","), term.params);
@@ -1465,10 +1477,20 @@
                 term.params = expandedArgs[0];
             }
 
+            bodyTerms = _.map(bodyTerms, function(bodyTerm) {
+                // add the definition context to the result of
+                // expansion (this makes sure that syntax objects
+                // introduced by expansion have the def context)
+                var termWithCtx = bodyTerm.addDefCtx(newDef);
+                // finish expansion
+                return expandTermTreeToFinal(termWithCtx,
+                                             expandedResult.context);
+            })
+            
             if (term.hasPrototype(Module)) {
-                bodyTerms[0].body.delim.token.inner = _.filter(bodyTerms[0].body.delim.token.inner, function(innerTerm) {
-                    if (innerTerm.hasPrototype(Export)) {
-                        term.exports.push(innerTerm);
+                bodyTerms = _.filter(bodyTerms, function(bodyTerm) {
+                    if (bodyTerm.hasPrototype(Export)) {
+                        term.exports.push(bodyTerm);
                         return false;
                     } else {
                         return true;
@@ -1476,11 +1498,8 @@
                 });
             }
 
-            var flattenedBody = bodyTerms[0].destruct();
-            flattenedBody = _.reduce(newDef, function(acc, def) {
-                return acc.rename(def.id, def.name);
-            }, flattenedBody[0]);
-            term.body = flattenedBody;
+            renamedBody.token.inner = bodyTerms;
+            term.body = renamedBody;
 
             // and continue expand the rest
             return term;
@@ -1521,6 +1540,12 @@
         var env = new Map();
         var params = [];
         var context, builtInContext = makeExpanderContext({env: builtInEnv});
+        /*
+        var testing = expand(parser.read("(function () {var foo; function bar(foo) { foo; }})"), makeExpanderContext());
+        testing = flatten(testing[0].destruct()).concat(testing[1].eof);
+        testing = parser.parse(testing);
+        testing = codegen.generate(testing);
+        */
         if (builtinSource) {
             var builtinRead = parser.read(builtinSource);
 
@@ -1545,7 +1570,8 @@
         context = makeExpanderContext({env: env});
 
         var res = expand([syn.makeIdent("module", null), modBody], context);
-        return flatten(res[0].body.expose().token.inner);
+        res = res[0].destruct();
+        return flatten(res[0].token.inner);
     }
 
     // break delimiter tree structure down to flat array of syntax objects
