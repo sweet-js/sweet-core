@@ -1233,7 +1233,6 @@
             makeDelim: syn.makeDelim,
             unwrapSyntax: syn.unwrapSyntax,
             throwSyntaxError: syn.throwSyntaxError,
-            _: _,
             parser: parser,
             patternModule: patternModule,
             getTemplate: function(id) {return context.templateMap.get(id);},

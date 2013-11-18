@@ -229,23 +229,20 @@ let syntaxCase = macro {
                 ])).concat([
                     makeIdent("res", name_stx),
                     makePunc("=", name_stx),
-                    takeLine(name_stx, makeIdent("_", null)),
+                    makeIdent("res", name_stx),
                     makePunc(".", name_stx),
                     makeIdent("map", name_stx),
-                    makeDelim("()", [
-                        makeIdent("res", name_stx),
-                        makePunc(",", name_stx)
-                    ].concat(makeFunc([makeIdent("stx", name_stx)], [
-                        makeKeyword("return", name_stx),
-                        makeIdent("stx", name_stx),
-                        makePunc(".", name_stx),
-                        makeIdent("mark", name_stx),
-                        makeDelim("()", [
-                            makeIdent("context", name_stx),
+                    makeDelim("()", makeFunc([makeIdent("stx", name_stx)], [
+                            makeKeyword("return", name_stx),
+                            makeIdent("stx", name_stx),
                             makePunc(".", name_stx),
-                            makeIdent("mark", name_stx)
-                        ], name_stx)
-                    ])), name_stx),
+                            makeIdent("mark", name_stx),
+                            makeDelim("()", [
+                                makeIdent("context", name_stx),
+                                makePunc(".", name_stx),
+                                makeIdent("mark", name_stx)
+                            ], name_stx)
+                    ]), name_stx),
                     makePunc(";", name_stx)
                 ]).concat([
                     makeKeyword("return", name_stx),
