@@ -3381,7 +3381,7 @@ to decide on the correct name for identifiers.
                 locInfo = {
                     start: {
                         line: curr.sm_lineNumber,
-                        column: curr.sm_lineStart
+                        column: curr.range[0]
                     }
                 };
 
@@ -3397,7 +3397,7 @@ to decide on the correct name for identifiers.
                     if (loc) {
                         locInfo.end = {
                             line: last.sm_lineNumber,
-                            column: last.sm_lineStart
+                            column: last.range[0]
                         };
                         node.loc = locInfo;
                     }
