@@ -211,10 +211,7 @@ let syntaxCase = macro {
                     makePunc(".", name_stx),
                     makeIdent("success", name_stx)
                 ], name_stx),
-                makeDelim("{}", makeVarDef("newMark", [
-                    takeLine(name_stx, makeIdent("fresh", null)),
-                    makeDelim("()", [], name_stx)
-                ]).concat([
+                makeDelim("{}",[
                     takeLine(name_stx, makeIdent("applyMarkToPatternEnv", null)),
                     makeDelim("()", [
                         makeIdent("context", name_stx),
@@ -226,7 +223,7 @@ let syntaxCase = macro {
                         makeIdent("patternEnv", name_stx)
                     ], name_stx),
                     makePunc(";", name_stx)
-                ]).concat(makeVarDef("res", [
+                ].concat(makeVarDef("res", [
                     makeDelim("()", makeFunc([], cases[i].body), name_stx),
                     makeDelim("()", [], name_stx)
                 ])).concat([
