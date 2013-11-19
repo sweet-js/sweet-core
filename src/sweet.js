@@ -104,26 +104,31 @@
     exports.expand = expand;
     exports.parse = parse;
 
-    exports.compileWithSourcemap = function(code, filename) {
-        var ast = parse(code);
-        var code_output = codegen.generate(ast, {
-            comment: true
-        });
-        var sourcemap = codegen.generate(ast, {
-            sourceMap: filename
-        });
+    // (Str, {sourceMap: ?Bool, filename: ?Str})
+    //    -> { code: Str, sourceMap: ?Str }
+    exports.compile = function compile(code, options) {
+        var code_output, sourcemap;
+        options = options || {};
 
+        var ast = parse(code);
+
+        if (options.sourceMap) {
+            code_output = codegen.generate(ast, {
+                comment: true
+            });
+            sourcemap = codegen.generate(ast, {
+                sourceMap: options.filename
+            });
+
+            return {
+                code: code_output,
+                sourceMap: sourcemap
+            };
+        } 
         return {
-            code: code_output,
-            sourceMap: sourcemap
+            code: codegen.generate(ast, {
+                comment: true
+            })
         };
-        
-    }
-
-    exports.compile = function compile(code) {
-        var ast = parse(code);
-        return codegen.generate(ast, {
-            comment: true
-        });
     }
 }));

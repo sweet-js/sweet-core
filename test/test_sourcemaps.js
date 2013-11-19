@@ -23,7 +23,7 @@ let it = macro {
 }
 
 function run(code, originalLoc) {
-    var res = sweet.compileWithSourcemap(code, "test.js");
+    var res = sweet.compile(code, {sourceMap: true, filename: "test.js"});
     var smc = new sm.SourceMapConsumer(res.sourceMap);
 
     return smc.originalPositionFor(originalLoc);

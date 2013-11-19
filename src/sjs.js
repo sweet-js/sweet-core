@@ -66,25 +66,28 @@ exports.run = function() {
 		fs.watch(infile, function(){
 			file = fs.readFileSync(infile, "utf8");
 			try {
-				fs.writeFileSync(outfile, sweet.compile(file), "utf8");
+				fs.writeFileSync(outfile, sweet.compile(file).code, "utf8");
 			} catch (e) {
 				console.log(e);
 			}
 		});
 	} else if(outfile) {
         if (sourcemap) {
-            var result = sweet.compileWithSourcemap(file, infile);
+            var result = sweet.compile(file, {
+                sourceMap: true,
+                filename: infile
+            });
             var mapfile = path.basename(outfile) + ".map";
             fs.writeFileSync(outfile,
                              result.code + "\n//# sourceMappingURL=" + mapfile,
                              "utf8");
             fs.writeFileSync(outfile + ".map", result.sourceMap, "utf8");
         } else {
-            fs.writeFileSync(outfile, sweet.compile(file), "utf8");
+            fs.writeFileSync(outfile, sweet.compile(file).code, "utf8");
         }
     } else if(tokens) {
         console.log(sweet.expand(file))
     } else {
-        console.log(sweet.compile(file));
+        console.log(sweet.compile(file).code);
     }
 };
