@@ -1234,6 +1234,7 @@
             unwrapSyntax: syn.unwrapSyntax,
             throwSyntaxError: syn.throwSyntaxError,
             parser: parser,
+            _: _,
             patternModule: patternModule,
             getTemplate: function(id) {return context.templateMap.get(id);},
             applyMarkToPatternEnv: applyMarkToPatternEnv,
