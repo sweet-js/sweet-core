@@ -64,7 +64,7 @@ module.exports = function(grunt) {
         });
 
         var moduleSrc = options.modules.map(function(m) {
-            return moduleCache[m] || (moduleCache[m] = readModuleFromCwd(m));
+            return moduleCache[m] || (moduleCache[m] = readModule(m));
         }).join("\n");
 
         this.files.forEach(function(f) {
@@ -106,15 +106,8 @@ module.exports = function(grunt) {
                                    "copy:browserMacros",
                                    "mochaTest"]);
 
-    function readModuleFromCwd(mod) {
-        var cwd = process.cwd();
-        var Module = module.constructor;
-        var mockModule = {
-            id: cwd + '/$sweet-loader.js',
-            filename: '$sweet-loader.js',
-            paths: /^\.\/|\.\./.test(cwd) ? [cwd] : Module._nodeModulePaths(cwd)
-        };
-        var path = Module._resolveFilename(mod, mockModule)
+    function readModule(mod) {
+        var path = require.resolve(mod);
         return grunt.file.read(path);
     }
 };
