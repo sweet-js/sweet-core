@@ -45,6 +45,9 @@ module.exports = function(grunt) {
         },
         mochaTest: {
             test: {
+                options:{
+                    colors: !grunt.option('no-color')
+                },
                 src: ["build/*.js"]
             }
         },
