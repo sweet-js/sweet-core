@@ -51,60 +51,63 @@
 }(this, function (exports$1212, parser$1213, expander$1214, syn$1215, stxcaseModule$1216, gen$1217) {
     var codegen$1218 = gen$1217 || escodegen;
     // fun (Str) -> [...CSyntax]
-    function expand$1220(code$1226) {
-        var program$1227, toString$1228;
-        toString$1228 = String;
-        if (typeof code$1226 !== 'string' && !(code$1226 instanceof String)) {
-            code$1226 = toString$1228(code$1226);
+    function expand$1220(code$1225) {
+        var program$1226, toString$1227;
+        toString$1227 = String;
+        if (typeof code$1225 !== 'string' && !(code$1225 instanceof String)) {
+            code$1225 = toString$1227(code$1225);
         }
-        var source$1229 = code$1226;
-        if (source$1229.length > 0) {
-            if (typeof source$1229[0] === 'undefined') {
+        var source$1228 = code$1225;
+        if (source$1228.length > 0) {
+            if (typeof source$1228[0] === 'undefined') {
                 // Try first to convert to a string. This is good as fast path
                 // for old IE which understands string indexing for string
                 // literals only and not for string object.
-                if (code$1226 instanceof String) {
-                    source$1229 = code$1226.valueOf();
+                if (code$1225 instanceof String) {
+                    source$1228 = code$1225.valueOf();
                 }
                 // Force accessing the characters via an array.
-                if (typeof source$1229[0] === 'undefined') {
-                    source$1229 = stringToArray(code$1226);
+                if (typeof source$1228[0] === 'undefined') {
+                    source$1228 = stringToArray(code$1225);
                 }
             }
         }
-        var readTree$1230 = parser$1213.read(source$1229);
+        var readTree$1229 = parser$1213.read(source$1228);
         try {
-            return expander$1214.expand(readTree$1230, stxcaseModule$1216);
-        } catch (err$1231) {
-            if (err$1231 instanceof syn$1215.MacroSyntaxError) {
-                throw new SyntaxError(syn$1215.printSyntaxError(source$1229, err$1231));
+            return expander$1214.expand(readTree$1229, stxcaseModule$1216);
+        } catch (err$1230) {
+            if (err$1230 instanceof syn$1215.MacroSyntaxError) {
+                throw new SyntaxError(syn$1215.printSyntaxError(source$1228, err$1230));
             } else {
-                throw err$1231;
+                throw err$1230;
             }
         }
     }
     // fun (Str, {}) -> AST
-    function parse$1222(code$1232) {
-        if (code$1232 === '') {
+    function parse$1222(code$1231) {
+        if (code$1231 === '') {
             // old version of esprima doesn't play nice with the empty string
             // and loc/range info so until we can upgrade hack in a single space
-            code$1232 = ' ';
+            code$1231 = ' ';
         }
-        return parser$1213.parse(expand$1220(code$1232));
+        return parser$1213.parse(expand$1220(code$1231));
     }
     exports$1212.expand = expand$1220;
     exports$1212.parse = parse$1222;
-    exports$1212.compileWithSourcemap = function (code$1233, filename$1234) {
-        var ast$1235 = parse$1222(code$1233);
-        var code_output$1236 = codegen$1218.generate(ast$1235, { comment: true });
-        var sourcemap$1237 = codegen$1218.generate(ast$1235, { sourceMap: filename$1234 });
-        return {
-            code: code_output$1236,
-            sourceMap: sourcemap$1237
-        };
-    };
-    exports$1212.compile = function compile$1225(code$1238) {
-        var ast$1239 = parse$1222(code$1238);
-        return codegen$1218.generate(ast$1239, { comment: true });
+    // (Str, {sourceMap: ?Bool, filename: ?Str})
+    //    -> { code: Str, sourceMap: ?Str }
+    exports$1212.compile = function compile$1224(code$1232, options$1233) {
+        var code_output$1234, sourcemap$1235;
+        options$1233 = options$1233 || {};
+        var ast$1236 = parse$1222(code$1232);
+        if (options$1233.sourceMap) {
+            code_output$1234 = codegen$1218.generate(ast$1236, { comment: true });
+            sourcemap$1235 = codegen$1218.generate(ast$1236, { sourceMap: options$1233.filename });
+            return {
+                code: code_output$1234,
+                sourceMap: sourcemap$1235
+            };
+        }
+        return { code: codegen$1218.generate(ast$1236, { comment: true }) };
     };
 }));
