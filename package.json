@@ -1,48 +1,53 @@
 {
-    "name": "sweet.js",
-    "description": "Hygienic Macros for JavaScript",
-    "main": "lib/sweet.js",
-    "version": "0.2.6",
-    "engines": {
-        "node": ">=0.4.0"
-    },
-    "author": "Tim Disney",
-    "licenses": [
-        {
-            "type": "BSD",
-            "url": "http://github.com/mozilla/sweet.js/master/LICENSE.BSD"
-        }
-    ],
-    "scripts": {
-        "test": "node build"
-    },
-    "directories": {
-        "test": "test"
-    },
-    "bin": {"sjs": "bin/sjs"},
-    "dependencies": {
-        "expect.js": "~0.1.2",
-        "optimist": "~0.3.4",
-        "underscore": "~1.3.3",
-        "escodegen": "0.0.27",
-        "es6-collections": "0.2.x"
-    },
-    "devDependencies": {
-        "mocha": "~1.3.2",
-        "lambda-chop": "~0.1.1",
-        "sparkler": "~0.1.3",
-        "expect.js": "0.1.x",
-        "shelljs": "0.1.x",
-        "source-map": "~0.1.31",
-        "benchmark": "1.0.x"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/mozilla/sweet.js.git"
-    },
-    "keywords": [
-        "macros",
-        "javascript"
-    ],
-    "license": "BSD"
+  "name": "sweet.js",
+  "description": "Hygienic Macros for JavaScript",
+  "main": "lib/sweet.js",
+  "version": "0.2.6",
+  "engines": {
+    "node": ">=0.4.0"
+  },
+  "author": "Tim Disney",
+  "licenses": [
+    {
+      "type": "BSD",
+      "url": "http://github.com/mozilla/sweet.js/master/LICENSE.BSD"
+    }
+  ],
+  "scripts": {
+    "test": "node build"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "bin": {
+    "sjs": "bin/sjs"
+  },
+  "dependencies": {
+    "expect.js": "~0.1.2",
+    "optimist": "~0.3.4",
+    "underscore": "~1.3.3",
+    "escodegen": "0.0.27",
+    "es6-collections": "0.2.x"
+  },
+  "devDependencies": {
+    "mocha": "~1.3.2",
+    "lambda-chop": "~0.1.1",
+    "sparkler": "~0.1.3",
+    "expect.js": "0.1.x",
+    "shelljs": "0.1.x",
+    "source-map": "~0.1.31",
+    "benchmark": "1.0.x",
+    "grunt-contrib-copy": "~0.4.1",
+    "grunt-contrib-jshint": "~0.7.2",
+    "grunt-mocha-test": "~0.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mozilla/sweet.js.git"
+  },
+  "keywords": [
+    "macros",
+    "javascript"
+  ],
+  "license": "BSD"
 }
