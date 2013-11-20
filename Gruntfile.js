@@ -29,16 +29,22 @@ module.exports = function(grunt) {
         },
         copy: {
             buildMacros: {
+                expand: true,
+                flatten: true,
                 src: "macros/*",
                 dest: "build/macros/"
             },
 
             browserMacros: {
+                expand: true,
+                flatten: true,
                 src: "macros/*",
                 dest: "browser/scripts/"
             },
 
             dist: {
+                expand: true,
+                flatten: true,
                 src: "build/lib/*.js",
                 dest: "lib/"
             }
