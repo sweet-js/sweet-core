@@ -182,13 +182,6 @@
                 endLineStart = stx.token.lineStart;
                 startRange = stx.token.range;
                 endRange = stx.token.range
-            } else {
-                startLineNumber = 0;
-                startLineStart = 0;
-                endLineNumber = 0;
-                endLineStart = 0;
-                startRange = [0, 0];
-                endRange = [0, 0];
             }
 
             return syntaxFromToken({
@@ -212,11 +205,8 @@
                 lineStart = stx.token.lineStart;
                 lineNumber = stx.token.lineNumber;
                 range = stx.token.range;
-            } else {
-                lineStart = 0;
-                lineNumber = 0;
-                range = [0, 0];
             } 
+
             return syntaxFromToken({
                 type: type,
                 value: value,

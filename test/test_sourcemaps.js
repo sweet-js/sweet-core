@@ -55,7 +55,7 @@ describe "source mapping" {
         expect(pos.column).to.be(4);
     }
 
-    it "should work with a simple macro" {
+    it "should work with a simple rule macro" {
         var pos = run("macro id { rule { $x } => { $x }}\nid 42;", {
             // 42;
             // ^
@@ -66,4 +66,16 @@ describe "source mapping" {
         expect(pos.line).to.be(2);
         expect(pos.column).to.be(0);
     }
+
+    it "should work with a case macro" {
+        var pos = run("macro m {\ncase {_ } => {\nreturn withSyntax($y = [makeValue(42, #{here})]) {\n return #{$y}\n}\n}\n}\nm;", {
+            line: 1,
+            column: 0
+        });
+
+        expect(pos.line).to.be(8);
+        expect(pos.column).to.be(0);
+    }
+
+    
 }
