@@ -87,9 +87,6 @@ module.exports = function(grunt) {
                 });
 
                 dest.forEach(function(dest) {
-                    // concatenated module and original source
-                    grunt.file.write(dest + path.basename(file) + ".original",
-                                     code);
                     // macro expanded result
                     grunt.file.write(dest + path.basename(file),
                                      output.code);
