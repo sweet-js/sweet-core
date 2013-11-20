@@ -51,14 +51,19 @@ require(["./sweet"], function(sweet) {
 
     function updateExpand() {
         var code = editor.getValue();
-        var expanded, compiled;
+        var expanded, compiled, res;
         try {
             if (compileWithSourcemap) {
-                var res = sweet.compileWithSourcemap(code);
-                compiled = res.code;
+                res = sweet.compile(code, {
+                    sourceMap: true,
+                    filename: "test.js"
+                });
             } else {
-                compiled = sweet.compile(code);
+                res = sweet.compile(code, {
+                    sourceMap: false
+                });
             }
+            compiled = res.code;
             output.setValue(compiled);
             localStorage[storage_code] = code;
 
