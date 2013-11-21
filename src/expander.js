@@ -1548,10 +1548,9 @@
 
     // a hack to make the top level hygiene work out
     function expandTopLevel (stx, builtinSource) {
-        var builtInEnv = new Map();
         var env = new Map();
         var params = [];
-        var context, builtInContext = makeExpanderContext({env: builtInEnv});
+        var context, builtInContext = makeExpanderContext({env: env});
         /*
         var testing = expand(parser.read("(function () {var foo; function bar(foo) { foo; }})"), makeExpanderContext());
         testing = flatten(testing[0].destruct()).concat(testing[1].eof);
@@ -1576,7 +1575,7 @@
         modBody = _.reduce(params, function(acc, param) {
             var newName = fresh();
             env.set(resolve(param.newParam.rename(param.newParam, newName)), 
-                    builtInEnv.get(resolve(param.oldExport)));
+                    env.get(resolve(param.oldExport)));
             return acc.rename(param.newParam, newName);
         }, modBody);
         context = makeExpanderContext({env: env});
