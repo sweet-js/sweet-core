@@ -54,6 +54,7 @@
     // fun (Str) -> [...CSyntax]
     function expand(code, globalMacros) {
         var program, toString;
+        globalMacros = globalMacros || '';
 
         toString = String;
         if (typeof code !== 'string' && !(code instanceof String)) {
