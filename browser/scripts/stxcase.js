@@ -414,7 +414,7 @@ let withSyntax = macro {
         var here = #{here};
         here = here[0];
 
-        var res = [makeIdent("syntaxCase", name[0])];
+        var res = [makeIdent("syntaxCase", #{$name})];
         var args = #{[$(makeDelim("()", $e)) (,) ...],};
 
         args = args.concat(makeIdent("context", name[0]));
