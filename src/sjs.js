@@ -92,7 +92,7 @@ exports.run = function() {
             fs.writeFileSync(outfile, sweet.compile(file).code, "utf8");
         }
     } else if(tokens) {
-        console.log(sweet.expand(file))
+        console.log(sweet.expand(file, globalMacros));
     } else {
         console.log(sweet.compile(file, {
             macros: globalMacros 
