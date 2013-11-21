@@ -108,22 +108,21 @@
     // (Str, {sourceMap: ?Bool, filename: ?Str})
     //    -> { code: Str, sourceMap: ?Str }
     exports.compile = function compile(code, options) {
-        var code_output, sourcemap;
+        var output;
         options = options || {};
 
         var ast = parse(code, options.macros);
 
         if (options.sourceMap) {
-            code_output = codegen.generate(ast, {
-                comment: true
-            });
-            sourcemap = codegen.generate(ast, {
-                sourceMap: options.filename
+            output = codegen.generate(ast, {
+                comment: true,
+                sourceMap: options.filename,
+                sourceMapWithCode: true
             });
 
             return {
-                code: code_output,
-                sourceMap: sourcemap
+                code: output.code,
+                sourceMap: output.map.toString()
             };
         } 
         return {

@@ -42,6 +42,13 @@ module.exports = function(grunt) {
                 dest: "browser/scripts/"
             },
 
+            browserSrc: {
+                expand: true,
+                flatten: true,
+                src: "src/*",
+                dest: "browser/scripts/src/"
+            },
+
             dist: {
                 expand: true,
                 flatten: true,
@@ -108,6 +115,7 @@ module.exports = function(grunt) {
 
     grunt.registerTask("default", ["build",
                                    "copy:buildMacros",
+                                   "copy:browserSrc",
                                    "copy:browserMacros",
                                    "mochaTest"]);
 
