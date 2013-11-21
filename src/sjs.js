@@ -30,6 +30,7 @@ exports.run = function() {
     var sourcemap = argv.sourcemap;
 
     var file;
+    var globalMacros;
     if(infile) {
         file = fs.readFileSync(infile, "utf8");
     } else if (argv.stdin) {
@@ -55,18 +56,22 @@ exports.run = function() {
         if (typeof mod === "string") {
             mod = [mod];
         }
-        file = mod.reduceRight(function(f, m) {
+        globalMacros = mod.reduceRight(function(f, m) {
             var modulepath = Module._resolveFilename(m, modulemock);
             var modulefile = fs.readFileSync(modulepath, "utf8");
             return modulefile + "\n" + f;
-        }, file);
+        }, '');
     }
     
 	if (watch && outfile) {
 		fs.watch(infile, function(){
 			file = fs.readFileSync(infile, "utf8");
 			try {
-				fs.writeFileSync(outfile, sweet.compile(file).code, "utf8");
+				fs.writeFileSync(outfile,
+                                 sweet.compile(file, {
+                                     macros: globalMacros
+                                 }).code,
+                                 "utf8");
 			} catch (e) {
 				console.log(e);
 			}
@@ -75,7 +80,8 @@ exports.run = function() {
         if (sourcemap) {
             var result = sweet.compile(file, {
                 sourceMap: true,
-                filename: infile
+                filename: infile,
+                macros: globalMacros
             });
             var mapfile = path.basename(outfile) + ".map";
             fs.writeFileSync(outfile,
@@ -86,8 +92,10 @@ exports.run = function() {
             fs.writeFileSync(outfile, sweet.compile(file).code, "utf8");
         }
     } else if(tokens) {
-        console.log(sweet.expand(file))
+        console.log(sweet.expand(file, globalMacros));
     } else {
-        console.log(sweet.compile(file).code);
+        console.log(sweet.compile(file, {
+            macros: globalMacros 
+        }).code);
     }
 };
