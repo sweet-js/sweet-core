@@ -1,5 +1,4 @@
 module.exports = function(grunt) {
-    var sweet = require("./lib/sweet");
     var path = require("path");
 
     grunt.loadNpmTasks('grunt-contrib-copy');
@@ -14,12 +13,15 @@ module.exports = function(grunt) {
                 modules: []
             },
             sweetjs: {
+                options: {
+                    compileFrom: "./lib/sweet"
+                },
                 src: "src/*.js",
                 dest: ["build/lib/", "browser/scripts/"]
             },
             test: {
                 options: {
-                    sourceMap: true
+                    compileFrom: "./build/lib/sweet"
                 },
                 src: "test/*.js",
                 dest: "build/"
@@ -64,8 +66,10 @@ module.exports = function(grunt) {
     grunt.registerMultiTask("build", function() {
         var options = this.options({
             modules: [],
-            sourceMap: true
+            sourceMap: true,
+            compileFrom: "./lib/sweet"
         });
+        var sweet = require(options.compileFrom);
 
         var moduleSrc = options.modules.map(function(m) {
             return moduleCache[m] || (moduleCache[m] = readModule(m));
