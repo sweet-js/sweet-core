@@ -32,6 +32,7 @@ function run(code, originalLoc) {
 describe "source mapping" {
     it "should work for a single line" {
         var pos =  run("var x;", {
+            //              ^
             // var x;
             //     ^
             line: 1,
@@ -44,6 +45,7 @@ describe "source mapping" {
 
     it "should work for multiple lines" {
         var pos = run("var x;\nvar y;", {
+            //                     ^
             // var x;
             // var y;
             //     ^
@@ -57,6 +59,7 @@ describe "source mapping" {
 
     it "should work with a simple rule macro" {
         var pos = run("macro id { rule { $x } => { $x }}\nid 42;", {
+            //                                               ^
             // 42;
             // ^
             line: 1,
@@ -64,17 +67,33 @@ describe "source mapping" {
         });
 
         expect(pos.line).to.be(2);
-        expect(pos.column).to.be(0);
+        expect(pos.column).to.be(3);
     }
 
     it "should work with a case macro" {
-        var pos = run("macro m {\ncase {_ } => {\nreturn withSyntax($y = [makeValue(42, #{here})]) {\n return #{$y}\n}\n}\n}\nm;", {
+        var pos = run("macro m {case {_ } => {return withSyntax($y = [makeValue(42, #{here})]) { return #{$y}}}}\nm;", {
+            //                                                                            ^
+            // 42
+            // ^
             line: 1,
             column: 0
         });
 
-        expect(pos.line).to.be(8);
-        expect(pos.column).to.be(0);
+        expect(pos.line).to.be(1);
+        expect(pos.column).to.be(63);
+    }
+
+    it "should work with nested delimiters in a macro expansion" {
+        var pos = run("macro m {case{_} => {return #{[[42]]}}}\nm", {
+            //                                        ^
+            // [[42]]
+            //  ^
+            line: 1,
+            column: 2
+        }); 
+
+        expect(pos.line).to.be(1);
+        expect(pos.column).to.be(32);
     }
 
     

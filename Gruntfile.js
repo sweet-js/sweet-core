@@ -19,9 +19,7 @@ module.exports = function(grunt) {
             },
             test: {
                 options: {
-                    // bug in source mapping is causing test
-                    // compilation to fail
-                    sourceMap: false
+                    sourceMap: true
                 },
                 src: "test/*.js",
                 dest: "build/"

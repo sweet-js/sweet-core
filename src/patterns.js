@@ -89,7 +89,7 @@
                 next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: to.token.value,
-                    inner: to.token.inner,
+                    inner: takeLineContext(from, to.token.inner),
                     startRange: from.token.startRange,
                     endRange: from.token.endRange,
                     startLineNumber: from.token.startLineNumber,
@@ -102,7 +102,7 @@
                 next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: to.token.value,
-                    inner: to.token.inner,
+                    inner: takeLineContext(from, to.token.inner),
                     startRange: from.token.range,
                     endRange: from.token.range,
                     startLineNumber: from.token.lineNumber,
@@ -630,7 +630,7 @@
                                                       macroBody);
                         newBody.token.inner = transcribe(bodyStx.token.inner,
                                                          macroNameStx, env);
-                        return acc.concat(takeLineContext(macroNameStx, [newBody]));
+                        return acc.concat([newBody]);
                     }
                     if (isPatternVar(bodyStx) &&
                         Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
@@ -641,10 +641,9 @@
                             throw new Error("Ellipses level for " + bodyStx.token.value +
                                        " does not match in the template");
                         } 
-                        return acc.concat(takeLineContext(macroNameStx,
-                                                          env[bodyStx.token.value].match));
+                        return acc.concat(env[bodyStx.token.value].match);
                     }
-                    return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
+                    return acc.concat([bodyStx]);
                 }
             }, []).value();
     }

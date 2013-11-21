@@ -805,26 +805,39 @@
         };
     }
 
-    function adjustLineContext (stx, original) {
-        var last = stx[0] && typeof stx[0].token.range == "undefined" ? original : stx[0];
+    function adjustLineContext(stx, original, current) {
+        current = current || {
+            lastLineNumber: original.token.lineNumber,
+            lineNumber: original.token.lineNumber - 1
+        };
+
         return _.map(stx, function(stx) {
-            if (typeof stx.token.range == "undefined") {
-                stx.token.range = last.token.range
-            }
             if (stx.token.type === parser.Token.Delimiter) {
-                stx.token.sm_startLineNumber = original.token.lineNumber;
-                stx.token.sm_endLineNumber = original.token.lineNumber;
-                stx.token.sm_startLineStart = original.token.lineStart;
-                stx.token.sm_endLineStart = original.token.lineStart;
+                stx.token.sm_startLineNumber = stx.token.sm_startLineNumber || stx.token.startLineNumber;
+                stx.token.sm_endLineNumber = stx.token.sm_endLineNumber || stx.token.endLineNumber;
+                stx.token.sm_startLineStart = stx.token.sm_startLineStart || stx.token.startLineStart;
+                stx.token.sm_endLineStart = stx.token.sm_endLineStart || stx.token.endLineStart;
+
+                stx.token.startLineNumber = original.token.lineNumber;
+
                 if (stx.token.inner.length > 0) {
-                    stx.token.inner = adjustLineContext(stx.token.inner, original);
+                    stx.token.inner = adjustLineContext(stx.token.inner, original, current);
                 }
-                last = stx;
                 return stx;
             }
-            stx.token.sm_lineNumber = original.token.lineNumber;
-            stx.token.sm_lineStart = original.token.lineStart;
-            last = stx;
+            // Only set the sourcemap line info once. Necessary because a single
+            // syntax object can go through expansion multiple times. If at some point
+            // we want to write an expansion stepper this might be a good place to store
+            // intermediate expansion line info (ie push to a stack instead of 
+            // just write once).
+            stx.token.sm_lineNumber = stx.token.sm_lineNumber || stx.token.lineNumber;
+            stx.token.sm_lineStart = stx.token.sm_lineStart || stx.token.lineStart;
+            stx.token.sm_range = stx.token.sm_range || _.clone(stx.token.range);
+
+            // move the line info to line up with the macro name
+            // (line info starting from the macro name)
+            stx.token.lineNumber = original.token.lineNumber;
+
             return stx;
         });
     }
@@ -1582,6 +1595,9 @@
                     type: parser.Token.Punctuator,
                     value: stx.token.value[0],
                     range: stx.token.startRange,
+                    sm_range: (stx.token.sm_range
+                                ? stx.token.sm_range
+                                : stx.token.startRange),
                     lineNumber: stx.token.startLineNumber,
                     sm_lineNumber: (stx.token.sm_startLineNumber 
                                     ? stx.token.sm_startLineNumber
@@ -1595,6 +1611,9 @@
                     type: parser.Token.Punctuator,
                     value: stx.token.value[1],
                     range: stx.token.endRange,
+                    sm_range: (stx.token.sm_range
+                                ? stx.token.sm_range
+                                : stx.token.endRange),
                     lineNumber: stx.token.endLineNumber,
                     sm_lineNumber: (stx.token.sm_endLineNumber
                                     ? stx.token.sm_endLineNumber
@@ -1621,6 +1640,9 @@
             stx.token.sm_lineStart = stx.token.sm_lineStart 
                                     ? stx.token.sm_lineStart 
                                     : stx.token.lineStart;
+            stx.token.sm_range = stx.token.sm_range
+                                    ? stx.token.sm_range
+                                    : stx.token.range;
             return acc.concat(stx);
         }, []);
     }
