@@ -14,6 +14,9 @@ var argv = require("optimist")
     .boolean('watch')
     .alias('t', 'tokens')
     .describe('t', 'just emit the expanded tokens without parsing an AST')
+    .alias('p', 'no-parse')
+    .describe('p', 'print out the expanded result but do not run through the parser (or apply hygienic renamings)')
+    .boolean("no-parse")
     .alias('s', 'stdin')
     .describe('s', 'read from stdin')
     .boolean('stdin')
@@ -28,6 +31,7 @@ exports.run = function() {
     var watch = argv.watch;
     var tokens = argv.tokens;
     var sourcemap = argv.sourcemap;
+    var noparse = argv['no-parse'];
 
     var file;
     var globalMacros;
@@ -91,8 +95,13 @@ exports.run = function() {
         } else {
             fs.writeFileSync(outfile, sweet.compile(file).code, "utf8");
         }
-    } else if(tokens) {
+    } else if (tokens) {
         console.log(sweet.expand(file, globalMacros));
+    } else if (noparse) {
+        var unparsedString = sweet.expand(file, globalMacros).reduce(function(acc, stx) {
+            return acc + " " + stx.token.value;
+        }, "");
+        console.log(unparsedString);
     } else {
         console.log(sweet.compile(file, {
             macros: globalMacros 
