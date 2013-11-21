@@ -52,8 +52,9 @@
     var codegen = gen || escodegen;
 
     // fun (Str) -> [...CSyntax]
-    function expand(code) {
+    function expand(code, globalMacros) {
         var program, toString;
+        globalMacros = globalMacros || '';
 
         toString = String;
         if (typeof code !== 'string' && !(code instanceof String)) {
@@ -80,7 +81,7 @@
 
         var readTree = parser.read(source);
         try {
-            return expander.expand(readTree, stxcaseModule);
+            return expander.expand(readTree, stxcaseModule + '\n' + globalMacros);
         } catch(err) {
             if (err instanceof syn.MacroSyntaxError) {
                 throw new SyntaxError(syn.printSyntaxError(source, err));
@@ -91,14 +92,14 @@
     }
 
     // fun (Str, {}) -> AST
-    function parse(code) {
+    function parse(code, globalMacros) {
         if (code === "") {
             // old version of esprima doesn't play nice with the empty string
             // and loc/range info so until we can upgrade hack in a single space
             code = " ";
         }
 
-        return parser.parse(expand(code));
+        return parser.parse(expand(code, globalMacros));
     }
 
     exports.expand = expand;
@@ -110,7 +111,7 @@
         var code_output, sourcemap;
         options = options || {};
 
-        var ast = parse(code);
+        var ast = parse(code, options.macros);
 
         if (options.sourceMap) {
             code_output = codegen.generate(ast, {
