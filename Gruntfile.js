@@ -96,12 +96,13 @@ module.exports = function(grunt) {
                 });
 
                 dest.forEach(function(dest) {
+                    var sourceMappingURL = dest + path.basename(file) + ".map";
                     // macro expanded result
                     grunt.file.write(dest + path.basename(file),
-                                     output.code);
+                                     output.code + "\n//# sourceMappingURL=" + path.basename(file) + ".map");
                     if (options.sourceMap) {
                         // sourcemap
-                        grunt.file.write(dest + path.basename(file) + ".map",
+                        grunt.file.write(sourceMappingURL,
                                          output.sourceMap);
                         
                     }
