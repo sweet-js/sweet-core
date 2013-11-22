@@ -813,6 +813,26 @@
 
         return _.map(stx, function(stx) {
             if (stx.token.type === parser.Token.Delimiter) {
+                // handle tokens with missing line info
+                stx.token.startLineNumber = typeof stx.token.startLineNumber == 'undefined'
+                                                ? original.token.lineNumber
+                                                : stx.token.startLineNumber
+                stx.token.endLineNumber = typeof stx.token.endLineNumber == 'undefined'
+                                                ? original.token.lineNumber
+                                                : stx.token.endLineNumber
+                stx.token.startLineStart = typeof stx.token.startLineStart == 'undefined'
+                                                ? original.token.lineStart
+                                                : stx.token.startLineStart
+                stx.token.endLineStart = typeof stx.token.endLineStart == 'undefined'
+                                                ? original.token.lineStart
+                                                : stx.token.endLineStart
+                stx.token.startRange = typeof stx.token.startRange == 'undefined'
+                                                ? original.token.range
+                                                : stx.token.startRange
+                stx.token.endRange = typeof stx.token.endRange == 'undefined'
+                                                ? original.token.range
+                                                : stx.token.endRange
+
                 stx.token.sm_startLineNumber = typeof stx.token.sm_startLineNumber == 'undefined'
                                                 ? stx.token.startLineNumber
                                                 : stx.token.sm_startLineNumber;
@@ -825,6 +845,12 @@
                 stx.token.sm_endLineStart = typeof stx.token.sm_endLineStart == 'undefined'
                                                 ? stx.token.endLineStart
                                                 : stx.token.sm_endLineStart;
+                stx.token.sm_startRange = typeof stx.token.sm_startRange == 'undefined'
+                                                ? stx.token.startRange
+                                                : stx.token.sm_startRange;
+                stx.token.sm_endRange = typeof stx.token.sm_endRange == 'undefined'
+                                                ? stx.token.endRange
+                                                : stx.token.sm_endRange;
 
                 stx.token.startLineNumber = original.token.lineNumber;
 
@@ -833,6 +859,17 @@
                 }
                 return stx;
             }
+            // handle tokens with missing line info
+            stx.token.lineNumber = typeof stx.token.lineNumber == 'undefined'
+                                    ? original.token.lineNumber
+                                    : stx.token.lineNumber;
+            stx.token.lineStart = typeof stx.token.lineStart == 'undefined'
+                                    ? original.token.lineStart
+                                    : stx.token.lineStart;
+            stx.token.range = typeof stx.token.range == 'undefined'
+                                    ? original.token.range
+                                    : stx.token.range;
+
             // Only set the sourcemap line info once. Necessary because a single
             // syntax object can go through expansion multiple times. If at some point
             // we want to write an expansion stepper this might be a good place to store
@@ -1608,33 +1645,33 @@
                     type: parser.Token.Punctuator,
                     value: stx.token.value[0],
                     range: stx.token.startRange,
-                    sm_range: (stx.token.sm_range
-                                ? stx.token.sm_range
-                                : stx.token.startRange),
+                    sm_range: (typeof stx.token.sm_startRange == 'undefined'
+                                ? stx.token.startRange
+                                : stx.token.sm_startRange),
                     lineNumber: stx.token.startLineNumber,
-                    sm_lineNumber: (stx.token.sm_startLineNumber 
-                                    ? stx.token.sm_startLineNumber
-                                    : stx.token.startLineNumber),
+                    sm_lineNumber: (typeof stx.token.sm_startLineNumber == 'undefined'
+                                    ? stx.token.startLineNumber
+                                    : stx.token.sm_startLineNumber),
                     lineStart: stx.token.startLineStart,
-                    sm_lineStart: (stx.token.sm_startLineStart 
-                                   ? stx.token.sm_startLineStart
-                                   : stx.token.startLineStart)
+                    sm_lineStart: (typeof stx.token.sm_startLineStart == 'undefined'
+                                   ? stx.token.startLineStart
+                                   : stx.token.sm_startLineStart)
                 }, exposed);
                 var closeParen = syntaxFromToken({
                     type: parser.Token.Punctuator,
                     value: stx.token.value[1],
                     range: stx.token.endRange,
-                    sm_range: (stx.token.sm_range
-                                ? stx.token.sm_range
-                                : stx.token.endRange),
+                    sm_range: (typeof stx.token.sm_endRange == 'undefined'
+                                ? stx.token.endRange
+                                : stx.token.sm_endRange),
                     lineNumber: stx.token.endLineNumber,
-                    sm_lineNumber: (stx.token.sm_endLineNumber
-                                    ? stx.token.sm_endLineNumber
-                                    : stx.token.endLineNumber),
+                    sm_lineNumber: (typeof stx.token.sm_endLineNumber == 'undefined'
+                                    ? stx.token.endLineNumber
+                                    : stx.token.sm_endLineNumber),
                     lineStart: stx.token.endLineStart,
-                    sm_lineStart: (stx.token.sm_endLineStart
-                                    ? stx.token.sm_endLineStart
-                                    : stx.token.endLineStart)
+                    sm_lineStart: (typeof stx.token.sm_endLineStart == 'undefined'
+                                    ? stx.token.endLineStart
+                                    : stx.token.sm_endLineStart)
                 }, exposed);
                 if (stx.token.leadingComments) {
                     openParen.token.leadingComments = stx.token.leadingComments;
