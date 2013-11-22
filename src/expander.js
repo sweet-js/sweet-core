@@ -813,10 +813,18 @@
 
         return _.map(stx, function(stx) {
             if (stx.token.type === parser.Token.Delimiter) {
-                stx.token.sm_startLineNumber = stx.token.sm_startLineNumber || stx.token.startLineNumber;
-                stx.token.sm_endLineNumber = stx.token.sm_endLineNumber || stx.token.endLineNumber;
-                stx.token.sm_startLineStart = stx.token.sm_startLineStart || stx.token.startLineStart;
-                stx.token.sm_endLineStart = stx.token.sm_endLineStart || stx.token.endLineStart;
+                stx.token.sm_startLineNumber = typeof stx.token.sm_startLineNumber == 'undefined'
+                                                ? stx.token.startLineNumber
+                                                : stx.token.sm_startLineNumber;
+                stx.token.sm_endLineNumber = typeof stx.token.sm_endLineNumber == 'undefined'
+                                                ? stx.token.endLineNumber
+                                                : stx.token.sm_endLineNumber;
+                stx.token.sm_startLineStart = typeof stx.token.sm_startLineStart == 'undefined'
+                                                ?  stx.token.startLineStart
+                                                : stx.token.sm_startLineStart;
+                stx.token.sm_endLineStart = typeof stx.token.sm_endLineStart == 'undefined'
+                                                ? stx.token.endLineStart
+                                                : stx.token.sm_endLineStart;
 
                 stx.token.startLineNumber = original.token.lineNumber;
 
@@ -830,9 +838,15 @@
             // we want to write an expansion stepper this might be a good place to store
             // intermediate expansion line info (ie push to a stack instead of 
             // just write once).
-            stx.token.sm_lineNumber = stx.token.sm_lineNumber || stx.token.lineNumber;
-            stx.token.sm_lineStart = stx.token.sm_lineStart || stx.token.lineStart;
-            stx.token.sm_range = stx.token.sm_range || _.clone(stx.token.range);
+            stx.token.sm_lineNumber = typeof stx.token.sm_lineNumber == 'undefined' 
+                                        ? stx.token.lineNumber
+                                        : stx.token.sm_lineNumber;
+            stx.token.sm_lineStart = typeof stx.token.sm_lineStart == 'undefined'
+                                        ? stx.token.lineStart
+                                        : stx.token.sm_lineStart;
+            stx.token.sm_range = typeof stx.token.sm_range == 'undefined'
+                                    ? _.clone(stx.token.range)
+                                    : stx.token.sm_range;
 
             // move the line info to line up with the macro name
             // (line info starting from the macro name)
