@@ -16,8 +16,8 @@ require(["./sweet"], function(sweet) {
     var editor = CodeMirror.fromTextArea($('#editor')[0], {
         lineNumbers: true,
         smartIndent: false,
-        indentWithTabs: true,
-        tabSize: 2,
+        indentWithTabs: false,
+        tabSize: 4,
         autofocus: true,
         theme: 'solarized dark'
     });
