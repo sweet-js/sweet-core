@@ -659,24 +659,37 @@
         };
         return _$113.map(stx$399, function (stx$402) {
             if (stx$402.token.type === parser$114.Token.Delimiter) {
-                stx$402.token.sm_startLineNumber = stx$402.token.sm_startLineNumber || stx$402.token.startLineNumber;
-                stx$402.token.sm_endLineNumber = stx$402.token.sm_endLineNumber || stx$402.token.endLineNumber;
-                stx$402.token.sm_startLineStart = stx$402.token.sm_startLineStart || stx$402.token.startLineStart;
-                stx$402.token.sm_endLineStart = stx$402.token.sm_endLineStart || stx$402.token.endLineStart;
+                // handle tokens with missing line info
+                stx$402.token.startLineNumber = typeof stx$402.token.startLineNumber == 'undefined' ? original$400.token.lineNumber : stx$402.token.startLineNumber;
+                stx$402.token.endLineNumber = typeof stx$402.token.endLineNumber == 'undefined' ? original$400.token.lineNumber : stx$402.token.endLineNumber;
+                stx$402.token.startLineStart = typeof stx$402.token.startLineStart == 'undefined' ? original$400.token.lineStart : stx$402.token.startLineStart;
+                stx$402.token.endLineStart = typeof stx$402.token.endLineStart == 'undefined' ? original$400.token.lineStart : stx$402.token.endLineStart;
+                stx$402.token.startRange = typeof stx$402.token.startRange == 'undefined' ? original$400.token.range : stx$402.token.startRange;
+                stx$402.token.endRange = typeof stx$402.token.endRange == 'undefined' ? original$400.token.range : stx$402.token.endRange;
+                stx$402.token.sm_startLineNumber = typeof stx$402.token.sm_startLineNumber == 'undefined' ? stx$402.token.startLineNumber : stx$402.token.sm_startLineNumber;
+                stx$402.token.sm_endLineNumber = typeof stx$402.token.sm_endLineNumber == 'undefined' ? stx$402.token.endLineNumber : stx$402.token.sm_endLineNumber;
+                stx$402.token.sm_startLineStart = typeof stx$402.token.sm_startLineStart == 'undefined' ? stx$402.token.startLineStart : stx$402.token.sm_startLineStart;
+                stx$402.token.sm_endLineStart = typeof stx$402.token.sm_endLineStart == 'undefined' ? stx$402.token.endLineStart : stx$402.token.sm_endLineStart;
+                stx$402.token.sm_startRange = typeof stx$402.token.sm_startRange == 'undefined' ? stx$402.token.startRange : stx$402.token.sm_startRange;
+                stx$402.token.sm_endRange = typeof stx$402.token.sm_endRange == 'undefined' ? stx$402.token.endRange : stx$402.token.sm_endRange;
                 stx$402.token.startLineNumber = original$400.token.lineNumber;
                 if (stx$402.token.inner.length > 0) {
                     stx$402.token.inner = adjustLineContext$263(stx$402.token.inner, original$400, current$401);
                 }
                 return stx$402;
             }
+            // handle tokens with missing line info
+            stx$402.token.lineNumber = typeof stx$402.token.lineNumber == 'undefined' ? original$400.token.lineNumber : stx$402.token.lineNumber;
+            stx$402.token.lineStart = typeof stx$402.token.lineStart == 'undefined' ? original$400.token.lineStart : stx$402.token.lineStart;
+            stx$402.token.range = typeof stx$402.token.range == 'undefined' ? original$400.token.range : stx$402.token.range;
             // Only set the sourcemap line info once. Necessary because a single
             // syntax object can go through expansion multiple times. If at some point
             // we want to write an expansion stepper this might be a good place to store
             // intermediate expansion line info (ie push to a stack instead of 
             // just write once).
-            stx$402.token.sm_lineNumber = stx$402.token.sm_lineNumber || stx$402.token.lineNumber;
-            stx$402.token.sm_lineStart = stx$402.token.sm_lineStart || stx$402.token.lineStart;
-            stx$402.token.sm_range = stx$402.token.sm_range || _$113.clone(stx$402.token.range);
+            stx$402.token.sm_lineNumber = typeof stx$402.token.sm_lineNumber == 'undefined' ? stx$402.token.lineNumber : stx$402.token.sm_lineNumber;
+            stx$402.token.sm_lineStart = typeof stx$402.token.sm_lineStart == 'undefined' ? stx$402.token.lineStart : stx$402.token.sm_lineStart;
+            stx$402.token.sm_range = typeof stx$402.token.sm_range == 'undefined' ? _$113.clone(stx$402.token.range) : stx$402.token.sm_range;
             // move the line info to line up with the macro name
             // (line info starting from the macro name)
             stx$402.token.lineNumber = original$400.token.lineNumber;
@@ -1273,21 +1286,21 @@
                         type: parser$114.Token.Punctuator,
                         value: stx$558.token.value[0],
                         range: stx$558.token.startRange,
-                        sm_range: stx$558.token.sm_range ? stx$558.token.sm_range : stx$558.token.startRange,
+                        sm_range: typeof stx$558.token.sm_startRange == 'undefined' ? stx$558.token.startRange : stx$558.token.sm_startRange,
                         lineNumber: stx$558.token.startLineNumber,
-                        sm_lineNumber: stx$558.token.sm_startLineNumber ? stx$558.token.sm_startLineNumber : stx$558.token.startLineNumber,
+                        sm_lineNumber: typeof stx$558.token.sm_startLineNumber == 'undefined' ? stx$558.token.startLineNumber : stx$558.token.sm_startLineNumber,
                         lineStart: stx$558.token.startLineStart,
-                        sm_lineStart: stx$558.token.sm_startLineStart ? stx$558.token.sm_startLineStart : stx$558.token.startLineStart
+                        sm_lineStart: typeof stx$558.token.sm_startLineStart == 'undefined' ? stx$558.token.startLineStart : stx$558.token.sm_startLineStart
                     }, exposed$559);
                 var closeParen$561 = syntaxFromToken$213({
                         type: parser$114.Token.Punctuator,
                         value: stx$558.token.value[1],
                         range: stx$558.token.endRange,
-                        sm_range: stx$558.token.sm_range ? stx$558.token.sm_range : stx$558.token.endRange,
+                        sm_range: typeof stx$558.token.sm_endRange == 'undefined' ? stx$558.token.endRange : stx$558.token.sm_endRange,
                         lineNumber: stx$558.token.endLineNumber,
-                        sm_lineNumber: stx$558.token.sm_endLineNumber ? stx$558.token.sm_endLineNumber : stx$558.token.endLineNumber,
+                        sm_lineNumber: typeof stx$558.token.sm_endLineNumber == 'undefined' ? stx$558.token.endLineNumber : stx$558.token.sm_endLineNumber,
                         lineStart: stx$558.token.endLineStart,
-                        sm_lineStart: stx$558.token.sm_endLineStart ? stx$558.token.sm_endLineStart : stx$558.token.endLineStart
+                        sm_lineStart: typeof stx$558.token.sm_endLineStart == 'undefined' ? stx$558.token.endLineStart : stx$558.token.sm_endLineStart
                     }, exposed$559);
                 if (stx$558.token.leadingComments) {
                     openParen$560.token.leadingComments = stx$558.token.leadingComments;
