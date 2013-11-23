@@ -287,12 +287,25 @@
         var rest = stx;
         var success = true;
 
+        patternLoop:
         for (var i = 0; i < patterns.length; i++) {
             if (success === false) {
                 break;
             }
             pattern = patterns[i];
             do {
+                // handles cases where patterns trail a repeated pattern like `$x ... ;`
+                if (pattern.repeat && i + 1 < patterns.length) {
+                    var restMatch = matchPatterns(patterns.slice(i+1), rest, env, topLevel);
+                    if (restMatch.success) {
+                        // match the repeat pattern on the empty array to fill in its
+                        // pattern variable in the environment 
+                        match = matchPattern(pattern, [], env, patternEnv);
+                        patternEnv = _.extend(restMatch.patternEnv, match.patternEnv);
+                        rest = restMatch.rest;
+                        break patternLoop;
+                    }
+                }
                 match = matchPattern(pattern, rest, env, patternEnv);
                 if ((!match.success) && pattern.repeat) {
                     // a repeat can match zero tokens and still be a
@@ -318,6 +331,15 @@
                 }
 
                 if (pattern.repeat && success) {
+                    // if (i < patterns.length - 1 && rest.length > 0) {
+                    //     var restMatch = matchPatterns(patterns.slice(i+1), rest, env, topLevel);
+                    //     if (restMatch.success) {
+                    //         patternEnv = _.extend(patternEnv, restMatch.patternEnv);
+                    //         rest = restMatch.rest;
+                    //         break patternLoop;
+                    //     }
+                    // }
+
                     if (rest[0] && rest[0].token.value === pattern.separator) {
                         // more tokens and the next token matches the separator
                         rest = rest.slice(1);

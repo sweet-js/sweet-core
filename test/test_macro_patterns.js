@@ -241,6 +241,18 @@ describe("macro expander", function() {
         expect(z[1]).to.be(3);
     });
 
+    it("should not match ... too greedily", function() {
+        macro m {
+            rule { $x ... ; } => {
+                [$x (,) ...]
+            }
+        }  
+        var res1 = m 1 2 3 ;
+        var res2 = m ;
+        expect(res1).to.eql([1,2,3]);
+        expect(res2).to.eql([]);
+    });
+
 
     it("should expand a simple let macro", function() {
         macro let {
