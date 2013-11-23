@@ -57,6 +57,34 @@ describe "source mapping" {
         expect(pos.column).to.be(4);
     }
 
+    it "should work with comments" {
+        var pos = run("// this is a comment\nvar x;\nvar y;", {
+            //                                           ^
+            // // this is a comment
+            // var x;
+            // var y;
+            //     ^
+            line: 3,
+            column: 4
+        });
+
+        expect(pos.line).to.be(3);
+        expect(pos.column).to.be(4)
+    }
+
+    it "should work with parens (escodegen strips unnecessary parens)" {
+        var pos = run("(2)\n", {
+            //          ^
+            // 2
+            // ^
+            line: 1,
+            column: 0
+        });
+
+        expect(pos.line).to.be(1);
+        expect(pos.column).to.be(1)
+    }
+
     it "should work with a simple rule macro" {
         var pos = run("macro id { rule { $x } => { $x }}\nid 42;", {
             //                                               ^

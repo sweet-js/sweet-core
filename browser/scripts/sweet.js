@@ -115,4 +115,3 @@
         return { code: codegen$1629.generate(ast$1645, { comment: true }) };
     };
 }));
-//# sourceMappingURL=sweet.js.map

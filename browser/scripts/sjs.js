@@ -71,4 +71,3 @@ exports.run = function () {
         console.log(sweet$1476.compile(file$1484, { macros: globalMacros$1485 }).code);
     }
 };
-//# sourceMappingURL=sjs.js.map
