@@ -615,4 +615,16 @@ describe("macro expander", function() {
         expect(res).to.eql([1,2]);
     });
 
+    it('should keep the pattern var on the same line as return', function() {
+        macro m {
+            rule { $x } => {
+                (function () { return $x; });
+            }
+        }
+        var res1 = m 100;
+        var res2 = m 200;
+        expect(res1()).to.be(100);
+        expect(res2()).to.be(200);
+    })
+
 });

@@ -1300,7 +1300,9 @@
             parser: parser,
             _: _,
             patternModule: patternModule,
-            getTemplate: function(id) {return context.templateMap.get(id);},
+            getTemplate: function(id) {
+                return cloneSyntaxArray(context.templateMap.get(id));
+            },
             applyMarkToPatternEnv: applyMarkToPatternEnv,
             mergeMatches: function(newMatch, oldMatch) {
                 newMatch.patternEnv = _.extend({}, oldMatch.patternEnv, newMatch.patternEnv);
@@ -1309,6 +1311,15 @@
         }); 
 
         return macroFn;
+    }
+    function cloneSyntaxArray(arr) {
+        return arr.map(function(stx) {
+            var o = syntaxFromToken(_.clone(stx.token), stx);
+            if (o.token.type === parser.Token.Delimiter) {
+                o.token.inner = cloneSyntaxArray(o.token.inner);
+            }
+            return o;
+        });
     }
 
     // similar to `parse1` in the honu paper
