@@ -82,7 +82,8 @@
             }
 
             if (this.token.type === parser.Token.Identifier ||
-                this.token.type === parser.Token.Keyword) {
+                this.token.type === parser.Token.Keyword ||
+                this.token.type === parser.Token.Punctuator) {
                 return syntaxFromToken(this.token, {context: Rename(id, name, this.context, defctx)});
             } else {
                 return this;

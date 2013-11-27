@@ -625,6 +625,13 @@ describe("macro expander", function() {
         var res2 = m 200;
         expect(res1()).to.be(100);
         expect(res2()).to.be(200);
-    })
+    });
+
+    it('should bind let macros inside delimiters', function() {
+        let ^ = macro { rule { $x } => { $x } }
+
+        var res = (^ 1);
+        expect(res).to.be(1);
+    });
 
 });
