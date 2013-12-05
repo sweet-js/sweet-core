@@ -35,6 +35,19 @@ module.exports = function(grunt) {
                 dest: "build/macros/"
             },
 
+            scopedEval: {
+                expand: true,
+                flatten: true,
+                src: "lib/scopedEval.js",
+                dest: "build/lib/"
+            },
+            scopedEvalBrowser: {
+                expand: true,
+                flatten: true,
+                src: "lib/scopedEval.js",
+                dest: "browser/scripts/"
+            },
+
             browserMacros: {
                 expand: true,
                 flatten: true,
@@ -116,10 +129,12 @@ module.exports = function(grunt) {
 
     grunt.registerTask("dist", ["build:sweetjs", "copy:dist"]);
 
-    grunt.registerTask("default", ["build",
+    grunt.registerTask("default", ["copy:scopedEval",
                                    "copy:buildMacros",
+                                   "build",
                                    "copy:browserSrc",
                                    "copy:browserMacros",
+                                   "copy:scopedEvalBrowser",
                                    "mochaTest"]);
 
     function readModule(mod) {
