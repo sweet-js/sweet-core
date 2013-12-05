@@ -290,7 +290,9 @@ let syntaxCase = macro {
 
         var res = [
             makeDelim("()", makeFunc([makeIdent("stx", name_stx),
+                                      makePunc(",", name_stx),
                                       makeIdent("context", name_stx),
+                                      makePunc(",", name_stx),
                                       makeIdent("parentMatch", name_stx)], body),
                       name_stx),
             makeDelim("()", arg_stx.concat([
@@ -388,7 +390,8 @@ let macro = macro {
             ? [takeLine(name_stx, makeIdent("macro", null)), mac_name_stx]
             : [takeLine(name_stx, makeIdent("macro", null))];
         res = res.concat(makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
-                                                    makeIdent("context", name_stx)],
+                                                   makePunc(",", name_stx),
+                                                   makeIdent("context", name_stx)],
                                                    [makeIdent("return", name_stx),
                                                     makeIdent("syntaxCase", name_stx),
                                                     makeDelim("()", [makeIdent("stx", name_stx),
