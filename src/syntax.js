@@ -348,9 +348,9 @@
         }
 
         var token = err.stx.token;
-        var lineNumber = token.startLineNumber || token.lineNumber;
-        var lineStart = token.startLineStart || token.lineStart;
-        var start = token.range[0];
+        var lineNumber = token.sm_startLineNumber || token.sm_lineNumber || token.startLineNumber || token.lineNumber;
+        var lineStart = token.sm_startLineStart || token.sm_lineStart || token.startLineStart || token.lineStart;
+        var start = (token.sm_startRange || token.sm_range || token.startRange || token.range)[0];
         var offset = start - lineStart;
         var line = '';
         var pre = lineNumber + ': ';
