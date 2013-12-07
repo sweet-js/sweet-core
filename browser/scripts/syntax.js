@@ -296,9 +296,9 @@
             return '[' + err$2251.name + '] ' + err$2251.message;
         }
         var token$2252 = err$2251.stx.token;
-        var lineNumber$2253 = token$2252.startLineNumber || token$2252.lineNumber;
-        var lineStart$2254 = token$2252.startLineStart || token$2252.lineStart;
-        var start$2255 = token$2252.range[0];
+        var lineNumber$2253 = token$2252.sm_startLineNumber || token$2252.sm_lineNumber || token$2252.startLineNumber || token$2252.lineNumber;
+        var lineStart$2254 = token$2252.sm_startLineStart || token$2252.sm_lineStart || token$2252.startLineStart || token$2252.lineStart;
+        var start$2255 = (token$2252.sm_startRange || token$2252.sm_range || token$2252.startRange || token$2252.range)[0];
         var offset$2256 = start$2255 - lineStart$2254;
         var line$2257 = '';
         var pre$2258 = lineNumber$2253 + ': ';
