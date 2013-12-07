@@ -377,9 +377,13 @@
 
     // (CSyntax) -> [...CSyntax]
     function getParamIdentifiers(argSyntax) {
-        parser.assert(argSyntax.token.type === parser.Token.Delimiter,
-            "expecting delimiter for function params");
-        return _.filter(argSyntax.token.inner, function(stx) { return stx.token.value !== ","});
+        if (argSyntax.token.type === parser.Token.Delimiter) {
+            return _.filter(argSyntax.token.inner, function(stx) { return stx.token.value !== ","});
+        } else if (argSyntax.token.type === parser.Token.Identifier) {
+            return [argSyntax];
+        } else {
+            parser.assert(false, "expecting a delimiter or a single identifier for function parameters");
+        }
     }
 
 
@@ -405,7 +409,14 @@
                         return acc.concat(t);
                     }, []);
                     return acc.concat(this[prop]);
-                } else if(this[prop]) {
+                } else if (Array.isArray(this[prop])) {
+                    return acc.concat(_.reduce(this[prop], function(acc, t) {
+                        if (t.hasPrototype(TermTree)) {
+                            return acc.concat(t.destruct());
+                        } 
+                        return acc.concat(t);
+                    }, []));
+                } else if (this[prop]) {
                     return acc.concat(this[prop]);
                 } else {
                     return acc;
@@ -563,6 +574,21 @@
             this.params = params;
             this.body = body;
         }
+    });
+
+    var ArrowFun = Expr.extend({
+        properties: ["params", "arrow", "body"],
+
+        construct: function(params, arrow, body) {
+            this.params = params;
+            this.arrow = arrow;
+            this.body = body;
+        },
+
+        // destruct: function() {
+        //     var p = this.params.
+        // }
+
     });
 
     var LetMacro = TermTree.extend({
@@ -977,6 +1003,33 @@
                         }
                     }
 
+                    // Arrow functions with expression bodies
+                    Delimiter(delim) | (delim.token.value === "()" &&
+                                         rest[0] &&
+                                         rest[0].token.type === parser.Token.Punctuator &&
+                                         rest[0].token.value === "=>") => {
+                        var res = enforest(rest.slice(1), context);
+                        if (res.result.hasPrototype(Expr)) {
+                            return step(ArrowFun.create(delim, rest[0], res.result.destruct()), 
+                                        res.rest);
+                        } else {
+                            throwError("Body of arrow function must be an expression");
+                        }
+                    }
+
+                    // Arrow functions with expression bodies
+                    Id(id) | (rest[0] &&
+                                 rest[0].token.type === parser.Token.Punctuator &&
+                                 rest[0].token.value === "=>") => {
+                        var res = enforest(rest.slice(1), context);
+                        if (res.result.hasPrototype(Expr)) {
+                            return step(ArrowFun.create(id, rest[0], res.result.destruct()), 
+                                        res.rest);
+                        } else {
+                            throwError("Body of arrow function must be an expression");
+                        }
+                    }
+
                     // ParenExpr
                     Delimiter(delim) | delim.token.value === "()" => {
                         innerTokens = delim.token.inner;
@@ -1195,6 +1248,16 @@
                                                 rest[1],
                                                 rest[2]),
                                 rest.slice(3));
+                // arrow function
+                } else if(((head.token.type === parser.Token.Delimiter && 
+                            head.token.value === "()") ||
+                            head.token.type === parser.Token.Identifier) &&
+                            rest[0] && rest[0].token.type === parser.Token.Punctuator &&
+                            rest[0].token.value === "=>" &&
+                            rest[1] && rest[1].token.type === parser.Token.Delimiter &&
+                            rest[1].token.value === "{}") {
+                    return step(ArrowFun.create(head, rest[0], rest[1]),
+                                rest.slice(2));
                 // catch statement
                 } else if (head.token.type === parser.Token.Keyword &&
                            head.token.value === "catch" &&
@@ -1544,19 +1607,29 @@
         } else if (term.hasPrototype(NamedFun) ||
                    term.hasPrototype(AnonFun) ||
                    term.hasPrototype(CatchClause) ||
+                   term.hasPrototype(ArrowFun) ||
                    term.hasPrototype(Module)) {
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
             var newDef = [];
             var bodyContext = makeExpanderContext(_.defaults({defscope: newDef}, context));
 
-            if (term.params) {
+            var paramSingleIdent = term.params && term.params.token.type === parser.Token.Identifier;
+
+            if (term.params && term.params.token.type === parser.Token.Delimiter) {
                 var params = term.params.expose();
+            } else if (paramSingleIdent) {
+                var params = term.params;
             } else {
                 var params = syn.makeDelim("()", [], null);
             }
 
-            var bodies = term.body.addDefCtx(newDef);
+            if (Array.isArray(term.body)) {
+                var bodies = syn.makeDelim("{}", term.body, null);
+            } else {
+                var bodies = term.body;
+            }
+            bodies = bodies.addDefCtx(newDef);
 
             var paramNames = _.map(getParamIdentifiers(params), function(param) {
                 var freshName = fresh();
@@ -1578,8 +1651,12 @@
             var bodyTerms = expandedResult.terms;
 
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam});
-            var flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","),
-                                         term.params);
+            if (paramSingleIdent) {
+                var flatArgs = renamedParams[0];
+            } else {
+                var flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","),
+                                             term.params);
+            }
 
             var expandedArgs = expand([flatArgs], bodyContext);
             parser.assert(expandedArgs.length === 1, "should only get back one result");
@@ -1610,7 +1687,11 @@
             }
 
             renamedBody.token.inner = bodyTerms;
-            term.body = renamedBody;
+            if (Array.isArray(term.body)) {
+                term.body = renamedBody.token.inner;
+            } else {
+                term.body = renamedBody;
+            }
 
             // and continue expand the rest
             return term;
