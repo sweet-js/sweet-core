@@ -14,7 +14,6 @@ module.exports = function(grunt) {
             },
             sweetjs: {
                 options: {
-                    sourceMap: false,
                     compileFrom: "./lib/sweet"
                 },
                 src: "src/*.js",
