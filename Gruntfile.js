@@ -103,16 +103,16 @@ module.exports = function(grunt) {
             f.src.forEach(function(file) {
                 grunt.log.writeln("compiling " + file);
 
-                var code = moduleSrc + "\n" + grunt.file.read(file);
+                var code = grunt.file.read(file);
                 var output = sweet.compile(code, {
                     sourceMap: options.sourceMap,
-                    filename: file
+                    filename: file,
+                    macros: moduleSrc
                 });
 
                 dest.forEach(function(dest) {
                     var sourceMappingURL = dest + path.basename(file) + ".map";
-                    // var outputFile = output.code + "\n//# sourceMappingURL=" + path.basename(file) + ".map"
-                    var outputFile = output.code; 
+                    var outputFile = output.code + "\n//# sourceMappingURL=" + path.basename(file) + ".map"
                     // macro expanded result
                     grunt.file.write(dest + path.basename(file),
                                      outputFile);
