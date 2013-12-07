@@ -74,6 +74,10 @@ parseYieldExpression: true
         index,
         lineNumber,
         lineStart,
+        sm_lineNumber,
+        sm_lineStart,
+        sm_range,
+        sm_index,
         length,
         delegate,
         tokenStream,
@@ -1495,7 +1499,12 @@ parseYieldExpression: true
 
         lookahead = tokenStream[++streamIndex].token;
         lookaheadIndex = streamIndex;
+
         index = lookahead.range[0];
+        sm_lineNumber = lookahead.sm_lineNumber;
+        sm_lineStart = lookahead.sm_lineStart;
+        sm_range = lookahead.sm_range;
+        sm_index = lookahead.sm_range[0];
 
 
         return token;
@@ -1514,6 +1523,10 @@ parseYieldExpression: true
         }
         lookahead = tokenStream[lookaheadIndex].token;
         index = lookahead.range[0];
+        sm_lineNumber = lookahead.sm_lineNumber;
+        sm_lineStart = lookahead.sm_lineStart;
+        sm_range = lookahead.sm_range;
+        sm_index = lookahead.sm_range[0];
     }
 
     function lookahead2() {
@@ -1533,6 +1546,10 @@ parseYieldExpression: true
             lookaheadIndex = streamIndex+1;
             lookahead = tokenStream[lookaheadIndex].token;
             index = lookahead.range[0];
+            sm_lineNumber = lookahead.sm_lineNumber;
+            sm_lineStart = lookahead.sm_lineStart;
+            sm_range = lookahead.sm_range;
+            sm_index = lookahead.sm_range[0];
         }
 
         result = tokenStream[lookaheadIndex+1].token;
@@ -4882,15 +4899,15 @@ parseYieldExpression: true
     }
 
     function LocationMarker() {
-        this.range = [index, index];
+        this.range = [sm_index, sm_index];
         this.loc = {
             start: {
-                line: lineNumber,
-                column: index - lineStart
+                line: sm_lineNumber,
+                column: sm_index - sm_lineStart
             },
             end: {
-                line: lineNumber,
-                column: index - lineStart
+                line: sm_lineNumber,
+                column: sm_index - sm_lineStart
             }
         };
     }
@@ -4899,9 +4916,9 @@ parseYieldExpression: true
         constructor: LocationMarker,
 
         end: function () {
-            this.range[1] = index;
-            this.loc.end.line = lineNumber;
-            this.loc.end.column = index - lineStart;
+            this.range[1] = sm_index;
+            this.loc.end.line = sm_lineNumber;
+            this.loc.end.column = sm_index - sm_lineStart;
         },
 
         applyGroup: function (node) {
@@ -4955,7 +4972,6 @@ parseYieldExpression: true
     function trackGroupExpression() {
         var marker, expr;
 
-        // skipComment();
         marker = createLocationMarker();
         expect('(');
 
