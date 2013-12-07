@@ -1178,12 +1178,12 @@
                 } else if (head.token.type === parser.Token.NumericLiteral ||
                     head.token.type === parser.Token.StringLiteral ||
                     head.token.type === parser.Token.BooleanLiteral ||
-                    head.token.type === parser.Token.RegexLiteral ||
+                    head.token.type === parser.Token.RegularExpression ||
                     head.token.type === parser.Token.NullLiteral) {
 
                     return step(Lit.create(head), rest);
                 // export
-                } else if (head.token.type === parser.Token.Identifier && 
+                } else if (head.token.type === parser.Token.Keyword && 
                             head.token.value === "export" && 
                             rest[0] && (rest[0].token.type === parser.Token.Identifier ||
                                         rest[0].token.type === parser.Token.Keyword ||
