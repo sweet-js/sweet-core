@@ -66,7 +66,7 @@
 	    case {
             _
 		    $val {
-			    $proto($field (,) ...) | $guard:expr => { $body ... }
+			    $proto($field (,) ...) | ($guard:expr) => { $body ... }
 			    $rest ...
 		    }
 	    } => {
@@ -111,7 +111,7 @@
 	    case {
             _
 		    $val else {
-			    $proto($field (,) ...) | $guard:expr => { $body ... }
+			    $proto($field (,) ...) | ($guard:expr) => { $body ... }
 			    $rest ...
 		    }
 	    } => {
@@ -141,7 +141,7 @@
 	    case {
             _
 		    $val {
-			    $proto($field ...) | $guard:expr => { $body ... }
+			    $proto($field ...) | ($guard:expr) => { $body ... }
 			    $rest ...
 		    }
 	    } => {
@@ -171,13 +171,13 @@
 	    case {
             _
 		    $val {
-			    $proto($field (,) ...) | $guard:expr => { $body ... }
+			    $proto($field (,) ...) | ($guard:expr)  => { $body ... }
 			    $rest ...
 		    }
 	    } => {
             return #{
-		        _get_vars $val { $proto($field ...) | $guard => { $body ... } $rest ... }
-		        _case $val { $proto($field (,) ...) | $guard => { $body ... } $rest ... }
+		        _get_vars $val { $proto($field ...) | ($guard) => { $body ... } $rest ... }
+		        _case $val { $proto($field (,) ...) | ($guard) => { $body ... } $rest ... }
             }
 	    }
     }
@@ -1031,7 +1031,7 @@
                     }
 
                     // ParenExpr
-                    Delimiter(delim) | delim.token.value === "()" => {
+                    Delimiter(delim) | (delim.token.value === "()") => {
                         innerTokens = delim.token.inner;
                         // empty parens are acceptable but enforest
                         // doesn't accept empty arrays so short
@@ -1063,7 +1063,7 @@
                     }
 
                     // UnaryOp (via punctuation)
-                    Punc(punc) | stxIsUnaryOp(punc) => {
+                    Punc(punc) | (stxIsUnaryOp(punc)) => {
                         var unopRes = enforest(rest, context);
                         if (unopRes.result.hasPrototype(Expr)) {
                             return step(UnaryOp.create(punc, unopRes.result),
@@ -1072,7 +1072,7 @@
                     }
 
                     // UnaryOp (via keyword)
-                    Keyword(keyword) | stxIsUnaryOp(keyword) => {
+                    Keyword(keyword) | (stxIsUnaryOp(keyword)) => {
                         var unopRes = enforest(rest, context);
                         if (unopRes.result.hasPrototype(Expr)) {
                             return step(UnaryOp.create(keyword, unopRes.result),
@@ -1101,12 +1101,12 @@
                     }
 
                     // ArrayLiteral
-                    Delimiter(delim) | delim.token.value === "[]" => {
+                    Delimiter(delim) | (delim.token.value === "[]") => {
                         return step(ArrayLiteral.create(head), rest);
                     }
 
                     // Block
-                    Delimiter(delim) | head.delim.token.value === "{}" => {
+                    Delimiter(delim) | (head.delim.token.value === "{}") => {
                         return step(Block.create(head), rest);
                     }
                     
