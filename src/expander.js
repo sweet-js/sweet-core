@@ -543,7 +543,7 @@
     });
 
     var NamedFun = Expr.extend({
-        properties: ["keyword", "*", "name", "params", "body"],
+        properties: ["keyword", "star", "name", "params", "body"],
 
         construct: function(keyword, star, name, params, body) {
             this.keyword = keyword;
@@ -555,7 +555,7 @@
     });
 
     var AnonFun = Expr.extend({
-        properties: ["keyword", "start", "params", "body"],
+        properties: ["keyword", "star", "params", "body"],
 
         construct: function(keyword, star, params, body) {
             this.keyword = keyword;
