@@ -94,12 +94,11 @@ let syntaxCase = macro {
             throw new Error("Must have at least one case")
         }
         var cases = [];
-        for (var i = 0; i < cases_stx.length; i += 5) {
+        for (var i = 0; i < cases_stx.length; i += 4) {
             var caseKwd = cases_stx[i];
             var casePattern = cases_stx[i + 1];
-            var caseArrow1 = cases_stx[i + 2]; 
-            var caseArrow2 = cases_stx[i + 3]; 
-            var caseBody = cases_stx[i + 4];
+            var caseArrow = cases_stx[i + 2];
+            var caseBody = cases_stx[i + 3];
 
             if (!(caseKwd && caseKwd.token && caseKwd.token.value === "case")) {
                 throw new Error("expecting case keyword in syntax case");
@@ -107,10 +106,7 @@ let syntaxCase = macro {
             if (!(casePattern && casePattern.token && casePattern.token.value === "{}")) {
                 throw new Error("expecting a pattern surrounded by {} in syntax case");
             }
-            if (!(caseArrow1 && caseArrow1.token && caseArrow1.token.value === "=")) {
-                throw new Error("expecting an arrow separating pattern from body in syntax case");
-            }
-            if (!(caseArrow2 && caseArrow2.token && caseArrow2.token.value === ">")) {
+            if (!(caseArrow && caseArrow.token && caseArrow.token.value === "=>")) {
                 throw new Error("expecting an arrow separating pattern from body in syntax case");
             }
             if (!(caseBody && caseBody.token && caseBody.token.value === "{}")) {
@@ -373,12 +369,12 @@ let macro = macro {
         if (body_stx[0] && body_stx[0].token.value === "rule") {
             var rule_body = mac_name_stx ? stx[2].token.inner : stx[1].token.inner;
             var rules = [];
-            for (var i = 0; i < rule_body.length; i += 5) {
+            for (var i = 0; i < rule_body.length; i += 4) {
                 var rule_pattern = rule_body[i + 1].token.inner;
-                var rule_def = rule_body[i + 4].expose().token.inner;
+                var rule_def = rule_body[i + 3].expose().token.inner;
                 rules = rules.concat([makeIdent("case", here),
                                       makeDelim("{}", [makeIdent("_", here)].concat(rule_pattern), here),
-                                      makePunc("=", here), makePunc(">", here),
+                                      makePunc("=>", here),
                                       makeDelim("{}", [makeKeyword("return", here),
                                                        makeIdent("syntax", name_stx),
                                                        makeDelim("{}", rule_def, here)], here)])

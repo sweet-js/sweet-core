@@ -1,117 +1,81 @@
-/*
-  Copyright (C) 2012 Tim Disney <tim@disnet.me>
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-  ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
-  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
-  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-(function (root$1674, factory$1675) {
+(function (root$1985, factory$1986) {
     if (typeof exports === 'object') {
-        // CommonJS
-        var parser$1676 = require('./parser');
-        var expander$1677 = require('./expander');
-        var syn$1678 = require('./syntax');
-        var codegen$1679 = require('escodegen');
-        var path$1680 = require('path');
-        var fs$1681 = require('fs');
-        var lib$1682 = path$1680.join(path$1680.dirname(fs$1681.realpathSync(__filename)), '../macros');
-        var stxcaseModule$1683 = fs$1681.readFileSync(lib$1682 + '/stxcase.js', 'utf8');
-        factory$1675(exports, parser$1676, expander$1677, syn$1678, stxcaseModule$1683, codegen$1679);
-        // Alow require('./example') for an example.sjs file.
-        require.extensions['.sjs'] = function (module$1684, filename$1685) {
-            var content$1686 = require('fs').readFileSync(filename$1685, 'utf8');
-            module$1684._compile(codegen$1679.generate(exports.parse(content$1686)), filename$1685);
+        var parser$1987 = require('./parser');
+        var expander$1988 = require('./expander');
+        var syn$1989 = require('./syntax');
+        var codegen$1990 = require('escodegen');
+        var path$1991 = require('path');
+        var fs$1992 = require('fs');
+        var lib$1993 = path$1991.join(path$1991.dirname(fs$1992.realpathSync(__filename)), '../macros');
+        var stxcaseModule$1994 = fs$1992.readFileSync(lib$1993 + '/stxcase.js', 'utf8');
+        factory$1986(exports, parser$1987, expander$1988, syn$1989, stxcaseModule$1994, codegen$1990);
+        require.extensions['.sjs'] = function (module$1995, filename$1996) {
+            var content$1997 = require('fs').readFileSync(filename$1996, 'utf8');
+            module$1995._compile(codegen$1990.generate(exports.parse(content$1997)), filename$1996);
         };
     } else if (typeof define === 'function' && define.amd) {
-        // AMD. Register as an anonymous module.
         define([
             'exports',
             './parser',
             './expander',
             './syntax',
             'text!./stxcase.js'
-        ], factory$1675);
+        ], factory$1986);
     }
-}(this, function (exports$1687, parser$1688, expander$1689, syn$1690, stxcaseModule$1691, gen$1692) {
-    var codegen$1693 = gen$1692 || escodegen;
-    // fun (Str) -> [...CSyntax]
-    function expand$1694(code$1697, globalMacros$1698) {
-        var program$1699, toString$1700;
-        globalMacros$1698 = globalMacros$1698 || '';
-        toString$1700 = String;
-        if (typeof code$1697 !== 'string' && !(code$1697 instanceof String)) {
-            code$1697 = toString$1700(code$1697);
+}(this, function (exports$1998, parser$1999, expander$2000, syn$2001, stxcaseModule$2002, gen$2003) {
+    var codegen$2004 = gen$2003 || escodegen;
+    function expand$2005(code$2008, globalMacros$2009) {
+        var program$2010, toString$2011;
+        globalMacros$2009 = globalMacros$2009 || '';
+        toString$2011 = String;
+        if (typeof code$2008 !== 'string' && !(code$2008 instanceof String)) {
+            code$2008 = toString$2011(code$2008);
         }
-        var source$1701 = code$1697;
-        if (source$1701.length > 0) {
-            if (typeof source$1701[0] === 'undefined') {
-                // Try first to convert to a string. This is good as fast path
-                // for old IE which understands string indexing for string
-                // literals only and not for string object.
-                if (code$1697 instanceof String) {
-                    source$1701 = code$1697.valueOf();
+        var source$2012 = code$2008;
+        if (source$2012.length > 0) {
+            if (typeof source$2012[0] === 'undefined') {
+                if (code$2008 instanceof String) {
+                    source$2012 = code$2008.valueOf();
                 }
-                // Force accessing the characters via an array.
-                if (typeof source$1701[0] === 'undefined') {
-                    source$1701 = stringToArray(code$1697);
+                if (typeof source$2012[0] === 'undefined') {
+                    source$2012 = stringToArray(code$2008);
                 }
             }
         }
-        var readTree$1702 = parser$1688.read(source$1701);
+        var readTree$2013 = parser$1999.read(source$2012);
         try {
-            return expander$1689.expand(readTree$1702, stxcaseModule$1691 + '\n' + globalMacros$1698);
-        } catch (err$1703) {
-            if (err$1703 instanceof syn$1690.MacroSyntaxError) {
-                throw new SyntaxError(syn$1690.printSyntaxError(source$1701, err$1703));
+            return expander$2000.expand(readTree$2013, stxcaseModule$2002 + '\n' + globalMacros$2009);
+        } catch (err$2014) {
+            if (err$2014 instanceof syn$2001.MacroSyntaxError) {
+                throw new SyntaxError(syn$2001.printSyntaxError(source$2012, err$2014));
             } else {
-                throw err$1703;
+                throw err$2014;
             }
         }
     }
-    // fun (Str, {}) -> AST
-    function parse$1695(code$1704, globalMacros$1705) {
-        if (code$1704 === '') {
-            // old version of esprima doesn't play nice with the empty string
-            // and loc/range info so until we can upgrade hack in a single space
-            code$1704 = ' ';
+    function parse$2006(code$2015, globalMacros$2016) {
+        if (code$2015 === '') {
+            code$2015 = ' ';
         }
-        return parser$1688.parse(expand$1694(code$1704, globalMacros$1705));
+        return parser$1999.parse(expand$2005(code$2015, globalMacros$2016));
     }
-    exports$1687.expand = expand$1694;
-    exports$1687.parse = parse$1695;
-    // (Str, {sourceMap: ?Bool, filename: ?Str})
-    //    -> { code: Str, sourceMap: ?Str }
-    exports$1687.compile = function compile$1696(code$1706, options$1707) {
-        var output$1708;
-        options$1707 = options$1707 || {};
-        var ast$1709 = parse$1695(code$1706, options$1707.macros);
-        if (options$1707.sourceMap) {
-            output$1708 = codegen$1693.generate(ast$1709, {
+    exports$1998.expand = expand$2005;
+    exports$1998.parse = parse$2006;
+    exports$1998.compile = function compile$2007(code$2017, options$2018) {
+        var output$2019;
+        options$2018 = options$2018 || {};
+        var ast$2020 = parse$2006(code$2017, options$2018.macros);
+        if (options$2018.sourceMap) {
+            output$2019 = codegen$2004.generate(ast$2020, {
                 comment: true,
-                sourceMap: options$1707.filename,
+                sourceMap: options$2018.filename,
                 sourceMapWithCode: true
             });
             return {
-                code: output$1708.code,
-                sourceMap: output$1708.map.toString()
+                code: output$2019.code,
+                sourceMap: output$2019.map.toString()
             };
         }
-        return { code: codegen$1693.generate(ast$1709, { comment: true }) };
+        return { code: codegen$2004.generate(ast$2020, { comment: true }) };
     };
 }));
