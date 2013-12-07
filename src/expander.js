@@ -710,6 +710,42 @@
         }
     });
 
+    var LetStatement = Statement.extend({
+        properties: ["letkw", "decls"],
+
+        destruct: function() {
+            return this.letkw
+                .destruct()
+                .concat(_.reduce(this.decls, function(acc, decl) {
+                    return acc.concat(decl.destruct());
+                }, []));
+        },
+
+        construct: function(letkw, decls) {
+            parser.assert(Array.isArray(decls), "decls must be an array");
+            this.letkw = letkw;
+            this.decls = decls;
+        }
+    });
+
+    var ConstStatement = Statement.extend({
+        properties: ["constkw", "decls"],
+
+        destruct: function() {
+            return this.constkw
+                .destruct()
+                .concat(_.reduce(this.decls, function(acc, decl) {
+                    return acc.concat(decl.destruct());
+                }, []));
+        },
+
+        construct: function(constkw, decls) {
+            parser.assert(Array.isArray(decls), "decls must be an array");
+            this.constkw = constkw;
+            this.decls = decls;
+        }
+    });
+
     var CatchClause = TermTree.extend({
         properties: ["catchkw", "params", "body"],
 
@@ -1132,6 +1168,22 @@
                                         vsRes.rest);
                         }
                     }
+                    // Let Statement
+                    Keyword(keyword) | (keyword.token.value === "let" && rest[0]) => {
+                        var vsRes = enforestVarStatement(rest, context);
+                        if (vsRes) {
+                            return step(LetStatement.create(head, vsRes.result),
+                                        vsRes.rest);
+                        }
+                    }
+                    // Const Statement
+                    Keyword(keyword) | (keyword.token.value === "const" && rest[0]) => {
+                        var vsRes = enforestVarStatement(rest, context);
+                        if (vsRes) {
+                            return step(ConstStatement.create(head, vsRes.result),
+                                        vsRes.rest);
+                        }
+                    }
                 }
             } else {
                 parser.assert(head && head.token, "assuming head is a syntax object");
@@ -1470,6 +1522,17 @@
             });
 
             return expandToTermTree(rest, context);
+        }
+
+        if (head.hasPrototype(LetStatement) || head.hasPrototype(ConstStatement)) {
+            head.decls.forEach(function(decl) {
+                var freshName = fresh();
+                var renamedDecl = decl.ident.rename(decl.ident, freshName);
+                rest = rest.map(function(stx) {
+                    return stx.rename(decl.ident, freshName);
+                });
+                decl.ident = renamedDecl;
+            });
         }
 
         if (head.hasPrototype(NamedFun)) {
