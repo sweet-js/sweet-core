@@ -5095,13 +5095,21 @@ parseYieldExpression: true
             }
 
             return function () {
-                var marker, node;
-
-                // skipComment();
+                var marker, node, curr = lookahead;
 
                 marker = createLocationMarker();
                 node = parseFunction.apply(null, arguments);
                 marker.end();
+
+                if (node.type !== Syntax.Program) {
+                    if (curr.leadingComments) {
+                        node.leadingComments = curr.leadingComments;
+                    }
+
+                    if (curr.trailingComments) {
+                        node.trailingComments = curr.trailingComments;
+                    }
+                }
 
                 if (range && typeof node.range === 'undefined') {
                     marker.apply(node);
