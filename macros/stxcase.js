@@ -427,7 +427,7 @@ let withSyntax = macro {
             { case { ($p) ... } => { $body ... } }
         });
 
-        return [makeDelim("()", res, here), makePunc(".", here), makeIdent("result", here), makePunc(";", here)]
+        return [makeDelim("()", res, here), makePunc(".", here), makeIdent("result", here)];
     }
 }
 
