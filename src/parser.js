@@ -1496,15 +1496,15 @@ parseYieldExpression: true
 
         lineNumber = token.lineNumber;
         lineStart = token.lineStart;
+        sm_lineNumber = lookahead.sm_lineNumber;
+        sm_lineStart = lookahead.sm_lineStart;
+        sm_range = lookahead.sm_range;
+        sm_index = lookahead.sm_range[0];
 
         lookahead = tokenStream[++streamIndex].token;
         lookaheadIndex = streamIndex;
 
         index = lookahead.range[0];
-        sm_lineNumber = lookahead.sm_lineNumber;
-        sm_lineStart = lookahead.sm_lineStart;
-        sm_range = lookahead.sm_range;
-        sm_index = lookahead.sm_range[0];
 
 
         return token;
@@ -1523,10 +1523,6 @@ parseYieldExpression: true
         }
         lookahead = tokenStream[lookaheadIndex].token;
         index = lookahead.range[0];
-        sm_lineNumber = lookahead.sm_lineNumber;
-        sm_lineStart = lookahead.sm_lineStart;
-        sm_range = lookahead.sm_range;
-        sm_index = lookahead.sm_range[0];
     }
 
     function lookahead2() {
@@ -1546,10 +1542,6 @@ parseYieldExpression: true
             lookaheadIndex = streamIndex+1;
             lookahead = tokenStream[lookaheadIndex].token;
             index = lookahead.range[0];
-            sm_lineNumber = lookahead.sm_lineNumber;
-            sm_lineStart = lookahead.sm_lineStart;
-            sm_range = lookahead.sm_range;
-            sm_index = lookahead.sm_range[0];
         }
 
         result = tokenStream[lookaheadIndex+1].token;
@@ -4899,6 +4891,10 @@ parseYieldExpression: true
     }
 
     function LocationMarker() {
+        var sm_index = lookahead ? lookahead.sm_range[0] : 0;
+        var sm_lineStart = lookahead ? lookahead.sm_lineStart : 0;
+        var sm_lineNumber = lookahead ? lookahead.sm_lineNumber : 1;
+
         this.range = [sm_index, sm_index];
         this.loc = {
             start: {
@@ -5723,6 +5719,10 @@ parseYieldExpression: true
         streamIndex = -1;
         index = 0;
         lineStart = 0;
+        sm_lineStart = 0;
+        sm_lineNumber = lineNumber;
+        sm_index = 0;
+        sm_range = [0, 0];
         lookahead = null;
         state = {
             allowKeyword: false,
@@ -5771,7 +5771,7 @@ parseYieldExpression: true
             }
         }
 
-        extra = {range: true, loc: true};
+        extra = {loc: true};
         patch();
         try {
             program = parseProgram();
