@@ -1492,10 +1492,10 @@ parseYieldExpression: true
 
         lineNumber = token.lineNumber;
         lineStart = token.lineStart;
-        index = token.range[0];
 
         lookahead = tokenStream[++streamIndex].token;
         lookaheadIndex = streamIndex;
+        index = lookahead.range[0];
 
 
         return token;
@@ -1513,6 +1513,7 @@ parseYieldExpression: true
             return;
         }
         lookahead = tokenStream[lookaheadIndex].token;
+        index = lookahead.range[0];
     }
 
     function lookahead2() {
@@ -1531,6 +1532,7 @@ parseYieldExpression: true
         if (lookahead === null) {
             lookaheadIndex = streamIndex+1;
             lookahead = tokenStream[lookaheadIndex].token;
+            index = lookahead.range[0];
         }
 
         result = tokenStream[lookaheadIndex+1].token;
