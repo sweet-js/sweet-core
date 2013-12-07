@@ -543,10 +543,11 @@
     });
 
     var NamedFun = Expr.extend({
-        properties: ["keyword", "name", "params", "body"],
+        properties: ["keyword", "*", "name", "params", "body"],
 
-        construct: function(keyword, name, params, body) {
+        construct: function(keyword, star, name, params, body) {
             this.keyword = keyword;
+            this.star = star;
             this.name = name;
             this.params = params;
             this.body = body;
@@ -554,10 +555,11 @@
     });
 
     var AnonFun = Expr.extend({
-        properties: ["keyword", "params", "body"],
+        properties: ["keyword", "start", "params", "body"],
 
-        construct: function(keyword, params, body) {
+        construct: function(keyword, star, params, body) {
             this.keyword = keyword;
+            this.star = star;
             this.params = params;
             this.body = body;
         }
@@ -1140,10 +1142,27 @@
 
                     rest[1].token.inner = rest[1].expose().token.inner;
                     rest[2].token.inner = rest[2].expose().token.inner;
-                    return step(NamedFun.create(head, rest[0],
+                    return step(NamedFun.create(head, null, rest[0],
                                                 rest[1],
                                                 rest[2]),
                                 rest.slice(3));
+                // generator function definition
+                } else if (head.token.type === parser.Token.Keyword &&
+                    head.token.value === "function" &&
+                    rest[0] && rest[0].token.type === parser.Token.Punctuator &&
+                    rest[0].token.value === "*" &&
+                    rest[1] && rest[1].token.type === parser.Token.Identifier &&
+                    rest[2] && rest[2].token.type === parser.Token.Delimiter &&
+                    rest[2].token.value === "()" &&
+                    rest[3] && rest[3].token.type === parser.Token.Delimiter &&
+                    rest[3].token.value === "{}") {
+
+                    rest[2].token.inner = rest[2].expose().token.inner;
+                    rest[3].token.inner = rest[3].expose().token.inner;
+                    return step(NamedFun.create(head, rest[0], rest[1],
+                                                rest[2],
+                                                rest[3]),
+                                rest.slice(4));
                 // anonymous function definition
                 } else if(head.token.type === parser.Token.Keyword &&
                     head.token.value === "function" &&
@@ -1155,9 +1174,27 @@
                     rest[0].token.inner = rest[0].expose().token.inner;
                     rest[1].token.inner = rest[1].expose().token.inner;
                     return step(AnonFun.create(head,
+                                                null,
                                                 rest[0],
                                                 rest[1]),
                                 rest.slice(2));
+                // anonymous generator function definition
+                } else if(head.token.type === parser.Token.Keyword &&
+                    head.token.value === "function" &&
+                    rest[0] && rest[0].token.type === parser.Token.Punctuator &&
+                    rest[0].token.value === "*" &&
+                    rest[1] && rest[1].token.type === parser.Token.Delimiter &&
+                    rest[1].token.value === "()" &&
+                    rest[2] && rest[2].token.type === parser.Token.Delimiter &&
+                    rest[2].token.value === "{}") {
+
+                    rest[1].token.inner = rest[1].expose().token.inner;
+                    rest[2].token.inner = rest[2].expose().token.inner;
+                    return step(AnonFun.create(head,
+                                                rest[0],
+                                                rest[1],
+                                                rest[2]),
+                                rest.slice(3));
                 // catch statement
                 } else if (head.token.type === parser.Token.Keyword &&
                            head.token.value === "catch" &&
