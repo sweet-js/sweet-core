@@ -4568,8 +4568,7 @@ parseYieldExpression: true
                 // this is not directive
                 break;
             }
-            assert(false, "directive isn't right");
-            directive = source.slice(token.range[0] + 1, token.range[1] - 1);
+            directive = token.value;
             if (directive === 'use strict') {
                 strict = true;
                 if (firstRestricted) {
