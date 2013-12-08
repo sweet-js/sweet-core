@@ -296,13 +296,13 @@
                         //         break patternLoop;
                         //     }
                         // }
-                        if (rest$1837[0] && rest$1837[0].token.value === pattern$1836.separator) {
-                            // more tokens and the next token matches the separator
-                            rest$1837 = rest$1837.slice(1);
-                        } else if (pattern$1836.separator === ' ') {
+                        if (pattern$1836.separator === ' ') {
                             // no separator specified (using the empty string for this)
                             // so keep going
                             continue;
+                        } else if (rest$1837[0] && rest$1837[0].token.value === pattern$1836.separator) {
+                            // more tokens and the next token matches the separator
+                            rest$1837 = rest$1837.slice(1);
                         } else if (pattern$1836.separator !== ' ' && rest$1837.length > 0 && i$1839 === patterns$1829.length - 1 && topLevel$1832 === false) {
                             // separator is specified, there is a next token, the
                             // next token doesn't match the separator, there are
