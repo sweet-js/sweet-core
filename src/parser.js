@@ -2053,13 +2053,18 @@ parseYieldExpression: true
                 }
             );
 
+        var startIndex = streamIndex > 3 ? streamIndex - 3 : 0;
+        var toks = tokenStream.slice(startIndex, streamIndex + 3).map(function(stx) {
+            return stx.token.value;
+        }).join(' ');
+        var tailingMsg = "\n[... " + toks + " ...]";
         if (typeof token.lineNumber === 'number') {
-            error = new Error('Line ' + token.lineNumber + ': ' + msg);
+            error = new Error('Line ' + token.lineNumber + ': ' + msg + tailingMsg);
             error.index = token.range[0];
             error.lineNumber = token.lineNumber;
             error.column = token.range[0] - lineStart + 1;
         } else {
-            error = new Error('Line ' + lineNumber + ': ' + msg);
+            error = new Error('Line ' + lineNumber + ': ' + msg + tailingMsg);
             error.index = index;
             error.lineNumber = lineNumber;
             error.column = index - lineStart + 1;
