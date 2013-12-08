@@ -22,10 +22,10 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-(function (root$121, factory$122) {
+(function (root$166, factory$167) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory$122(exports, require('underscore'), require('./parser'), require('./syntax'), require('es6-collections'), require('./scopedEval'), require('./patterns'), require('escodegen'));
+        factory$167(exports, require('underscore'), require('./parser'), require('./syntax'), require('es6-collections'), require('./scopedEval'), require('./patterns'), require('escodegen'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define([
@@ -36,314 +36,314 @@
             'es6-collections',
             'scopedEval',
             'patterns'
-        ], factory$122);
+        ], factory$167);
     }
-}(this, function (exports$123, _$124, parser$125, syn$126, es6$127, se$128, patternModule$129, gen$130) {
+}(this, function (exports$168, _$169, parser$170, syn$171, es6$172, se$173, patternModule$174, gen$175) {
     'use strict';
-    var codegen$131 = gen$130 || escodegen;
+    var codegen$176 = gen$175 || escodegen;
     // used to export "private" methods for unit testing
-    exports$123._test = {};
+    exports$168._test = {};
     // some convenience monkey patching
     Object.defineProperties(Object.prototype, {
         'create': {
             value: function () {
-                var o$290 = Object.create(this);
-                if (typeof o$290.construct === 'function') {
-                    o$290.construct.apply(o$290, arguments);
+                var o$335 = Object.create(this);
+                if (typeof o$335.construct === 'function') {
+                    o$335.construct.apply(o$335, arguments);
                 }
-                return o$290;
+                return o$335;
             },
             enumerable: false,
             writable: true
         },
         'extend': {
-            value: function (properties$291) {
-                var result$292 = Object.create(this);
-                for (var prop$293 in properties$291) {
-                    if (properties$291.hasOwnProperty(prop$293)) {
-                        result$292[prop$293] = properties$291[prop$293];
+            value: function (properties$336) {
+                var result$337 = Object.create(this);
+                for (var prop$338 in properties$336) {
+                    if (properties$336.hasOwnProperty(prop$338)) {
+                        result$337[prop$338] = properties$336[prop$338];
                     }
                 }
-                return result$292;
+                return result$337;
             },
             enumerable: false,
             writable: true
         },
         'hasPrototype': {
-            value: function (proto$294) {
-                function F$295() {
+            value: function (proto$339) {
+                function F$340() {
                 }
-                F$295.prototype = proto$294;
-                return this instanceof F$295;
+                F$340.prototype = proto$339;
+                return this instanceof F$340;
             },
             enumerable: false,
             writable: true
         }
     });
     // todo: add more message information
-    function throwError$215(msg$296) {
-        throw new Error(msg$296);
+    function throwError$260(msg$341) {
+        throw new Error(msg$341);
     }
-    var scopedEval$216 = se$128.scopedEval;
-    var Rename$217 = syn$126.Rename;
-    var Mark$218 = syn$126.Mark;
-    var Var$219 = syn$126.Var;
-    var Def$220 = syn$126.Def;
-    var isDef$221 = syn$126.isDef;
-    var isMark$222 = syn$126.isMark;
-    var isRename$223 = syn$126.isRename;
-    var syntaxFromToken$224 = syn$126.syntaxFromToken;
-    var joinSyntax$225 = syn$126.joinSyntax;
-    function remdup$226(mark$297, mlist$298) {
-        if (mark$297 === _$124.first(mlist$298)) {
-            return _$124.rest(mlist$298, 1);
+    var scopedEval$261 = se$173.scopedEval;
+    var Rename$262 = syn$171.Rename;
+    var Mark$263 = syn$171.Mark;
+    var Var$264 = syn$171.Var;
+    var Def$265 = syn$171.Def;
+    var isDef$266 = syn$171.isDef;
+    var isMark$267 = syn$171.isMark;
+    var isRename$268 = syn$171.isRename;
+    var syntaxFromToken$269 = syn$171.syntaxFromToken;
+    var joinSyntax$270 = syn$171.joinSyntax;
+    function remdup$271(mark$342, mlist$343) {
+        if (mark$342 === _$169.first(mlist$343)) {
+            return _$169.rest(mlist$343, 1);
         }
-        return [mark$297].concat(mlist$298);
+        return [mark$342].concat(mlist$343);
     }
     // (CSyntax) -> [...Num]
-    function marksof$227(ctx$299, stopName$300, originalName$301) {
-        var mark$302, submarks$303;
-        if (isMark$222(ctx$299)) {
-            mark$302 = ctx$299.mark;
-            submarks$303 = marksof$227(ctx$299.context, stopName$300, originalName$301);
-            return remdup$226(mark$302, submarks$303);
+    function marksof$272(ctx$344, stopName$345, originalName$346) {
+        var mark$347, submarks$348;
+        if (isMark$267(ctx$344)) {
+            mark$347 = ctx$344.mark;
+            submarks$348 = marksof$272(ctx$344.context, stopName$345, originalName$346);
+            return remdup$271(mark$347, submarks$348);
         }
-        if (isDef$221(ctx$299)) {
-            return marksof$227(ctx$299.context, stopName$300, originalName$301);
+        if (isDef$266(ctx$344)) {
+            return marksof$272(ctx$344.context, stopName$345, originalName$346);
         }
-        if (isRename$223(ctx$299)) {
-            if (stopName$300 === originalName$301 + '$' + ctx$299.name) {
+        if (isRename$268(ctx$344)) {
+            if (stopName$345 === originalName$346 + '$' + ctx$344.name) {
                 return [];
             }
-            return marksof$227(ctx$299.context, stopName$300, originalName$301);
+            return marksof$272(ctx$344.context, stopName$345, originalName$346);
         }
         return [];
     }
-    function resolve$228(stx$304) {
-        return resolveCtx$232(stx$304.token.value, stx$304.context, [], []);
+    function resolve$273(stx$349) {
+        return resolveCtx$277(stx$349.token.value, stx$349.context, [], []);
     }
-    function arraysEqual$229(a$305, b$306) {
-        if (a$305.length !== b$306.length) {
+    function arraysEqual$274(a$350, b$351) {
+        if (a$350.length !== b$351.length) {
             return false;
         }
-        for (var i$307 = 0; i$307 < a$305.length; i$307++) {
-            if (a$305[i$307] !== b$306[i$307]) {
+        for (var i$352 = 0; i$352 < a$350.length; i$352++) {
+            if (a$350[i$352] !== b$351[i$352]) {
                 return false;
             }
         }
         return true;
     }
-    function renames$230(defctx$308, oldctx$309, originalName$310) {
-        var acc$311 = oldctx$309;
-        for (var i$312 = 0; i$312 < defctx$308.length; i$312++) {
-            if (defctx$308[i$312].id.token.value === originalName$310) {
-                acc$311 = Rename$217(defctx$308[i$312].id, defctx$308[i$312].name, acc$311, defctx$308);
+    function renames$275(defctx$353, oldctx$354, originalName$355) {
+        var acc$356 = oldctx$354;
+        for (var i$357 = 0; i$357 < defctx$353.length; i$357++) {
+            if (defctx$353[i$357].id.token.value === originalName$355) {
+                acc$356 = Rename$262(defctx$353[i$357].id, defctx$353[i$357].name, acc$356, defctx$353);
             }
         }
-        return acc$311;
+        return acc$356;
     }
-    function unionEl$231(arr$313, el$314) {
-        if (arr$313.indexOf(el$314) === -1) {
-            var res$315 = arr$313.slice(0);
-            res$315.push(el$314);
-            return res$315;
+    function unionEl$276(arr$358, el$359) {
+        if (arr$358.indexOf(el$359) === -1) {
+            var res$360 = arr$358.slice(0);
+            res$360.push(el$359);
+            return res$360;
         }
-        return arr$313;
+        return arr$358;
     }
     // (Syntax) -> String
-    function resolveCtx$232(originalName$316, ctx$317, stop_spine$318, stop_branch$319) {
-        if (isMark$222(ctx$317)) {
-            return resolveCtx$232(originalName$316, ctx$317.context, stop_spine$318, stop_branch$319);
+    function resolveCtx$277(originalName$361, ctx$362, stop_spine$363, stop_branch$364) {
+        if (isMark$267(ctx$362)) {
+            return resolveCtx$277(originalName$361, ctx$362.context, stop_spine$363, stop_branch$364);
         }
-        if (isDef$221(ctx$317)) {
-            if (stop_spine$318.indexOf(ctx$317.defctx) !== -1) {
-                return resolveCtx$232(originalName$316, ctx$317.context, stop_spine$318, stop_branch$319);
+        if (isDef$266(ctx$362)) {
+            if (stop_spine$363.indexOf(ctx$362.defctx) !== -1) {
+                return resolveCtx$277(originalName$361, ctx$362.context, stop_spine$363, stop_branch$364);
             } else {
-                return resolveCtx$232(originalName$316, renames$230(ctx$317.defctx, ctx$317.context, originalName$316), stop_spine$318, unionEl$231(stop_branch$319, ctx$317.defctx));
+                return resolveCtx$277(originalName$361, renames$275(ctx$362.defctx, ctx$362.context, originalName$361), stop_spine$363, unionEl$276(stop_branch$364, ctx$362.defctx));
             }
         }
-        if (isRename$223(ctx$317)) {
-            if (originalName$316 === ctx$317.id.token.value) {
-                var idName$320 = resolveCtx$232(ctx$317.id.token.value, ctx$317.id.context, stop_branch$319, stop_branch$319);
-                var subName$321 = resolveCtx$232(originalName$316, ctx$317.context, unionEl$231(stop_spine$318, ctx$317.def), stop_branch$319);
-                if (idName$320 === subName$321) {
-                    var idMarks$322 = marksof$227(ctx$317.id.context, originalName$316 + '$' + ctx$317.name, originalName$316);
-                    var subMarks$323 = marksof$227(ctx$317.context, originalName$316 + '$' + ctx$317.name, originalName$316);
-                    if (arraysEqual$229(idMarks$322, subMarks$323)) {
-                        return originalName$316 + '$' + ctx$317.name;
+        if (isRename$268(ctx$362)) {
+            if (originalName$361 === ctx$362.id.token.value) {
+                var idName$365 = resolveCtx$277(ctx$362.id.token.value, ctx$362.id.context, stop_branch$364, stop_branch$364);
+                var subName$366 = resolveCtx$277(originalName$361, ctx$362.context, unionEl$276(stop_spine$363, ctx$362.def), stop_branch$364);
+                if (idName$365 === subName$366) {
+                    var idMarks$367 = marksof$272(ctx$362.id.context, originalName$361 + '$' + ctx$362.name, originalName$361);
+                    var subMarks$368 = marksof$272(ctx$362.context, originalName$361 + '$' + ctx$362.name, originalName$361);
+                    if (arraysEqual$274(idMarks$367, subMarks$368)) {
+                        return originalName$361 + '$' + ctx$362.name;
                     }
                 }
             }
-            return resolveCtx$232(originalName$316, ctx$317.context, stop_spine$318, stop_branch$319);
+            return resolveCtx$277(originalName$361, ctx$362.context, stop_spine$363, stop_branch$364);
         }
-        return originalName$316;
+        return originalName$361;
     }
-    var nextFresh$233 = 0;
+    var nextFresh$278 = 0;
     // fun () -> Num
-    function fresh$234() {
-        return nextFresh$233++;
+    function fresh$279() {
+        return nextFresh$278++;
     }
     ;
     // wraps the array of syntax objects in the delimiters given by the second argument
     // ([...CSyntax], CSyntax) -> [...CSyntax]
-    function wrapDelim$235(towrap$324, delimSyntax$325) {
-        parser$125.assert(delimSyntax$325.token.type === parser$125.Token.Delimiter, 'expecting a delimiter token');
-        return syntaxFromToken$224({
-            type: parser$125.Token.Delimiter,
-            value: delimSyntax$325.token.value,
-            inner: towrap$324,
-            range: delimSyntax$325.token.range,
-            startLineNumber: delimSyntax$325.token.startLineNumber,
-            lineStart: delimSyntax$325.token.lineStart
-        }, delimSyntax$325);
+    function wrapDelim$280(towrap$369, delimSyntax$370) {
+        parser$170.assert(delimSyntax$370.token.type === parser$170.Token.Delimiter, 'expecting a delimiter token');
+        return syntaxFromToken$269({
+            type: parser$170.Token.Delimiter,
+            value: delimSyntax$370.token.value,
+            inner: towrap$369,
+            range: delimSyntax$370.token.range,
+            startLineNumber: delimSyntax$370.token.startLineNumber,
+            lineStart: delimSyntax$370.token.lineStart
+        }, delimSyntax$370);
     }
     // (CSyntax) -> [...CSyntax]
-    function getParamIdentifiers$236(argSyntax$326) {
-        if (argSyntax$326.token.type === parser$125.Token.Delimiter) {
-            return _$124.filter(argSyntax$326.token.inner, function (stx$327) {
-                return stx$327.token.value !== ',';
+    function getParamIdentifiers$281(argSyntax$371) {
+        if (argSyntax$371.token.type === parser$170.Token.Delimiter) {
+            return _$169.filter(argSyntax$371.token.inner, function (stx$372) {
+                return stx$372.token.value !== ',';
             });
-        } else if (argSyntax$326.token.type === parser$125.Token.Identifier) {
-            return [argSyntax$326];
+        } else if (argSyntax$371.token.type === parser$170.Token.Identifier) {
+            return [argSyntax$371];
         } else {
-            parser$125.assert(false, 'expecting a delimiter or a single identifier for function parameters');
+            parser$170.assert(false, 'expecting a delimiter or a single identifier for function parameters');
         }
     }
     // A TermTree is the core data structure for the macro expansion process.
     // It acts as a semi-structured representation of the syntax.
-    var TermTree$237 = {
+    var TermTree$282 = {
             destruct: function () {
-                return _$124.reduce(this.properties, _$124.bind(function (acc$328, prop$329) {
-                    if (this[prop$329] && this[prop$329].hasPrototype(TermTree$237)) {
-                        return acc$328.concat(this[prop$329].destruct());
-                    } else if (this[prop$329] && this[prop$329].token && this[prop$329].token.inner) {
-                        this[prop$329].token.inner = _$124.reduce(this[prop$329].token.inner, function (acc$330, t$331) {
-                            if (t$331.hasPrototype(TermTree$237)) {
-                                return acc$330.concat(t$331.destruct());
+                return _$169.reduce(this.properties, _$169.bind(function (acc$373, prop$374) {
+                    if (this[prop$374] && this[prop$374].hasPrototype(TermTree$282)) {
+                        return acc$373.concat(this[prop$374].destruct());
+                    } else if (this[prop$374] && this[prop$374].token && this[prop$374].token.inner) {
+                        this[prop$374].token.inner = _$169.reduce(this[prop$374].token.inner, function (acc$375, t$376) {
+                            if (t$376.hasPrototype(TermTree$282)) {
+                                return acc$375.concat(t$376.destruct());
                             }
-                            return acc$330.concat(t$331);
+                            return acc$375.concat(t$376);
                         }, []);
-                        return acc$328.concat(this[prop$329]);
-                    } else if (Array.isArray(this[prop$329])) {
-                        return acc$328.concat(_$124.reduce(this[prop$329], function (acc$332, t$333) {
-                            if (t$333.hasPrototype(TermTree$237)) {
-                                return acc$332.concat(t$333.destruct());
+                        return acc$373.concat(this[prop$374]);
+                    } else if (Array.isArray(this[prop$374])) {
+                        return acc$373.concat(_$169.reduce(this[prop$374], function (acc$377, t$378) {
+                            if (t$378.hasPrototype(TermTree$282)) {
+                                return acc$377.concat(t$378.destruct());
                             }
-                            return acc$332.concat(t$333);
+                            return acc$377.concat(t$378);
                         }, []));
-                    } else if (this[prop$329]) {
-                        return acc$328.concat(this[prop$329]);
+                    } else if (this[prop$374]) {
+                        return acc$373.concat(this[prop$374]);
                     } else {
-                        return acc$328;
+                        return acc$373;
                     }
                 }, this), []);
             },
-            addDefCtx: function (def$334) {
-                for (var i$335 = 0; i$335 < this.properties.length; i$335++) {
-                    var prop$336 = this.properties[i$335];
-                    if (Array.isArray(this[prop$336])) {
-                        this[prop$336] = _$124.map(this[prop$336], function (item$337) {
-                            return item$337.addDefCtx(def$334);
+            addDefCtx: function (def$379) {
+                for (var i$380 = 0; i$380 < this.properties.length; i$380++) {
+                    var prop$381 = this.properties[i$380];
+                    if (Array.isArray(this[prop$381])) {
+                        this[prop$381] = _$169.map(this[prop$381], function (item$382) {
+                            return item$382.addDefCtx(def$379);
                         });
-                    } else if (this[prop$336]) {
-                        this[prop$336] = this[prop$336].addDefCtx(def$334);
+                    } else if (this[prop$381]) {
+                        this[prop$381] = this[prop$381].addDefCtx(def$379);
                     }
                 }
                 return this;
             }
         };
-    var EOF$238 = TermTree$237.extend({
+    var EOF$283 = TermTree$282.extend({
             properties: ['eof'],
-            construct: function (e$338) {
-                this.eof = e$338;
+            construct: function (e$383) {
+                this.eof = e$383;
             }
         });
-    var Statement$239 = TermTree$237.extend({
+    var Statement$284 = TermTree$282.extend({
             construct: function () {
             }
         });
-    var Expr$240 = TermTree$237.extend({
+    var Expr$285 = TermTree$282.extend({
             construct: function () {
             }
         });
-    var PrimaryExpression$241 = Expr$240.extend({
+    var PrimaryExpression$286 = Expr$285.extend({
             construct: function () {
             }
         });
-    var ThisExpression$242 = PrimaryExpression$241.extend({
+    var ThisExpression$287 = PrimaryExpression$286.extend({
             properties: ['this'],
-            construct: function (that$339) {
-                this.this = that$339;
+            construct: function (that$384) {
+                this.this = that$384;
             }
         });
-    var Lit$243 = PrimaryExpression$241.extend({
+    var Lit$288 = PrimaryExpression$286.extend({
             properties: ['lit'],
-            construct: function (l$340) {
-                this.lit = l$340;
+            construct: function (l$385) {
+                this.lit = l$385;
             }
         });
-    exports$123._test.PropertyAssignment = PropertyAssignment$244;
-    var PropertyAssignment$244 = TermTree$237.extend({
+    exports$168._test.PropertyAssignment = PropertyAssignment$289;
+    var PropertyAssignment$289 = TermTree$282.extend({
             properties: [
                 'propName',
                 'assignment'
             ],
-            construct: function (propName$341, assignment$342) {
-                this.propName = propName$341;
-                this.assignment = assignment$342;
+            construct: function (propName$386, assignment$387) {
+                this.propName = propName$386;
+                this.assignment = assignment$387;
             }
         });
-    var Block$245 = PrimaryExpression$241.extend({
+    var Block$290 = PrimaryExpression$286.extend({
             properties: ['body'],
-            construct: function (body$343) {
-                this.body = body$343;
+            construct: function (body$388) {
+                this.body = body$388;
             }
         });
-    var ArrayLiteral$246 = PrimaryExpression$241.extend({
+    var ArrayLiteral$291 = PrimaryExpression$286.extend({
             properties: ['array'],
-            construct: function (ar$344) {
-                this.array = ar$344;
+            construct: function (ar$389) {
+                this.array = ar$389;
             }
         });
-    var ParenExpression$247 = PrimaryExpression$241.extend({
+    var ParenExpression$292 = PrimaryExpression$286.extend({
             properties: ['expr'],
-            construct: function (expr$345) {
-                this.expr = expr$345;
+            construct: function (expr$390) {
+                this.expr = expr$390;
             }
         });
-    var UnaryOp$248 = Expr$240.extend({
+    var UnaryOp$293 = Expr$285.extend({
             properties: [
                 'op',
                 'expr'
             ],
-            construct: function (op$346, expr$347) {
-                this.op = op$346;
-                this.expr = expr$347;
+            construct: function (op$391, expr$392) {
+                this.op = op$391;
+                this.expr = expr$392;
             }
         });
-    var PostfixOp$249 = Expr$240.extend({
+    var PostfixOp$294 = Expr$285.extend({
             properties: [
                 'expr',
                 'op'
             ],
-            construct: function (expr$348, op$349) {
-                this.expr = expr$348;
-                this.op = op$349;
+            construct: function (expr$393, op$394) {
+                this.expr = expr$393;
+                this.op = op$394;
             }
         });
-    var BinOp$250 = Expr$240.extend({
+    var BinOp$295 = Expr$285.extend({
             properties: [
                 'left',
                 'op',
                 'right'
             ],
-            construct: function (op$350, left$351, right$352) {
-                this.op = op$350;
-                this.left = left$351;
-                this.right = right$352;
+            construct: function (op$395, left$396, right$397) {
+                this.op = op$395;
+                this.left = left$396;
+                this.right = right$397;
             }
         });
-    var ConditionalExpression$251 = Expr$240.extend({
+    var ConditionalExpression$296 = Expr$285.extend({
             properties: [
                 'cond',
                 'question',
@@ -351,39 +351,39 @@
                 'colon',
                 'fls'
             ],
-            construct: function (cond$353, question$354, tru$355, colon$356, fls$357) {
-                this.cond = cond$353;
-                this.question = question$354;
-                this.tru = tru$355;
-                this.colon = colon$356;
-                this.fls = fls$357;
+            construct: function (cond$398, question$399, tru$400, colon$401, fls$402) {
+                this.cond = cond$398;
+                this.question = question$399;
+                this.tru = tru$400;
+                this.colon = colon$401;
+                this.fls = fls$402;
             }
         });
-    var Keyword$252 = TermTree$237.extend({
+    var Keyword$297 = TermTree$282.extend({
             properties: ['keyword'],
-            construct: function (k$358) {
-                this.keyword = k$358;
+            construct: function (k$403) {
+                this.keyword = k$403;
             }
         });
-    var Punc$253 = TermTree$237.extend({
+    var Punc$298 = TermTree$282.extend({
             properties: ['punc'],
-            construct: function (p$359) {
-                this.punc = p$359;
+            construct: function (p$404) {
+                this.punc = p$404;
             }
         });
-    var Delimiter$254 = TermTree$237.extend({
+    var Delimiter$299 = TermTree$282.extend({
             properties: ['delim'],
-            construct: function (d$360) {
-                this.delim = d$360;
+            construct: function (d$405) {
+                this.delim = d$405;
             }
         });
-    var Id$255 = PrimaryExpression$241.extend({
+    var Id$300 = PrimaryExpression$286.extend({
             properties: ['id'],
-            construct: function (id$361) {
-                this.id = id$361;
+            construct: function (id$406) {
+                this.id = id$406;
             }
         });
-    var NamedFun$256 = Expr$240.extend({
+    var NamedFun$301 = Expr$285.extend({
             properties: [
                 'keyword',
                 'star',
@@ -391,77 +391,77 @@
                 'params',
                 'body'
             ],
-            construct: function (keyword$362, star$363, name$364, params$365, body$366) {
-                this.keyword = keyword$362;
-                this.star = star$363;
-                this.name = name$364;
-                this.params = params$365;
-                this.body = body$366;
+            construct: function (keyword$407, star$408, name$409, params$410, body$411) {
+                this.keyword = keyword$407;
+                this.star = star$408;
+                this.name = name$409;
+                this.params = params$410;
+                this.body = body$411;
             }
         });
-    var AnonFun$257 = Expr$240.extend({
+    var AnonFun$302 = Expr$285.extend({
             properties: [
                 'keyword',
                 'star',
                 'params',
                 'body'
             ],
-            construct: function (keyword$367, star$368, params$369, body$370) {
-                this.keyword = keyword$367;
-                this.star = star$368;
-                this.params = params$369;
-                this.body = body$370;
+            construct: function (keyword$412, star$413, params$414, body$415) {
+                this.keyword = keyword$412;
+                this.star = star$413;
+                this.params = params$414;
+                this.body = body$415;
             }
         });
-    var ArrowFun$258 = Expr$240.extend({
+    var ArrowFun$303 = Expr$285.extend({
             properties: [
                 'params',
                 'arrow',
                 'body'
             ],
-            construct: function (params$371, arrow$372, body$373) {
-                this.params = params$371;
-                this.arrow = arrow$372;
-                this.body = body$373;
+            construct: function (params$416, arrow$417, body$418) {
+                this.params = params$416;
+                this.arrow = arrow$417;
+                this.body = body$418;
             }
         });
-    var LetMacro$259 = TermTree$237.extend({
+    var LetMacro$304 = TermTree$282.extend({
             properties: [
                 'name',
                 'body'
             ],
-            construct: function (name$374, body$375) {
-                this.name = name$374;
-                this.body = body$375;
+            construct: function (name$419, body$420) {
+                this.name = name$419;
+                this.body = body$420;
             }
         });
-    var Macro$260 = TermTree$237.extend({
+    var Macro$305 = TermTree$282.extend({
             properties: [
                 'name',
                 'body'
             ],
-            construct: function (name$376, body$377) {
-                this.name = name$376;
-                this.body = body$377;
+            construct: function (name$421, body$422) {
+                this.name = name$421;
+                this.body = body$422;
             }
         });
-    var AnonMacro$261 = TermTree$237.extend({
+    var AnonMacro$306 = TermTree$282.extend({
             properties: ['body'],
-            construct: function (body$378) {
-                this.body = body$378;
+            construct: function (body$423) {
+                this.body = body$423;
             }
         });
-    var Const$262 = Expr$240.extend({
+    var Const$307 = Expr$285.extend({
             properties: [
                 'newterm',
                 'call'
             ],
-            construct: function (newterm$379, call$380) {
-                this.newterm = newterm$379;
-                this.call = call$380;
+            construct: function (newterm$424, call$425) {
+                this.newterm = newterm$424;
+                this.call = call$425;
             }
         });
-    var Call$263 = Expr$240.extend({
+    var Call$308 = Expr$285.extend({
             properties: [
                 'fun',
                 'args',
@@ -469,150 +469,150 @@
                 'commas'
             ],
             destruct: function () {
-                parser$125.assert(this.fun.hasPrototype(TermTree$237), 'expecting a term tree in destruct of call');
-                var that$381 = this;
-                this.delim = syntaxFromToken$224(_$124.clone(this.delim.token), this.delim);
-                this.delim.token.inner = _$124.reduce(this.args, function (acc$382, term$383) {
-                    parser$125.assert(term$383 && term$383.hasPrototype(TermTree$237), 'expecting term trees in destruct of Call');
-                    var dst$384 = acc$382.concat(term$383.destruct());
+                parser$170.assert(this.fun.hasPrototype(TermTree$282), 'expecting a term tree in destruct of call');
+                var that$426 = this;
+                this.delim = syntaxFromToken$269(_$169.clone(this.delim.token), this.delim);
+                this.delim.token.inner = _$169.reduce(this.args, function (acc$427, term$428) {
+                    parser$170.assert(term$428 && term$428.hasPrototype(TermTree$282), 'expecting term trees in destruct of Call');
+                    var dst$429 = acc$427.concat(term$428.destruct());
                     // add all commas except for the last one
-                    if (that$381.commas.length > 0) {
-                        dst$384 = dst$384.concat(that$381.commas.shift());
+                    if (that$426.commas.length > 0) {
+                        dst$429 = dst$429.concat(that$426.commas.shift());
                     }
-                    return dst$384;
+                    return dst$429;
                 }, []);
-                return this.fun.destruct().concat(Delimiter$254.create(this.delim).destruct());
+                return this.fun.destruct().concat(Delimiter$299.create(this.delim).destruct());
             },
-            construct: function (funn$385, args$386, delim$387, commas$388) {
-                parser$125.assert(Array.isArray(args$386), 'requires an array of arguments terms');
-                this.fun = funn$385;
-                this.args = args$386;
-                this.delim = delim$387;
+            construct: function (funn$430, args$431, delim$432, commas$433) {
+                parser$170.assert(Array.isArray(args$431), 'requires an array of arguments terms');
+                this.fun = funn$430;
+                this.args = args$431;
+                this.delim = delim$432;
                 // an ugly little hack to keep the same syntax objects
                 // (with associated line numbers etc.) for all the commas
                 // separating the arguments
-                this.commas = commas$388;
+                this.commas = commas$433;
             }
         });
-    var ObjDotGet$264 = Expr$240.extend({
+    var ObjDotGet$309 = Expr$285.extend({
             properties: [
                 'left',
                 'dot',
                 'right'
             ],
-            construct: function (left$389, dot$390, right$391) {
-                this.left = left$389;
-                this.dot = dot$390;
-                this.right = right$391;
+            construct: function (left$434, dot$435, right$436) {
+                this.left = left$434;
+                this.dot = dot$435;
+                this.right = right$436;
             }
         });
-    var ObjGet$265 = Expr$240.extend({
+    var ObjGet$310 = Expr$285.extend({
             properties: [
                 'left',
                 'right'
             ],
-            construct: function (left$392, right$393) {
-                this.left = left$392;
-                this.right = right$393;
+            construct: function (left$437, right$438) {
+                this.left = left$437;
+                this.right = right$438;
             }
         });
-    var VariableDeclaration$266 = TermTree$237.extend({
+    var VariableDeclaration$311 = TermTree$282.extend({
             properties: [
                 'ident',
                 'eqstx',
                 'init',
                 'comma'
             ],
-            construct: function (ident$394, eqstx$395, init$396, comma$397) {
-                this.ident = ident$394;
-                this.eqstx = eqstx$395;
-                this.init = init$396;
-                this.comma = comma$397;
+            construct: function (ident$439, eqstx$440, init$441, comma$442) {
+                this.ident = ident$439;
+                this.eqstx = eqstx$440;
+                this.init = init$441;
+                this.comma = comma$442;
             }
         });
-    var VariableStatement$267 = Statement$239.extend({
+    var VariableStatement$312 = Statement$284.extend({
             properties: [
                 'varkw',
                 'decls'
             ],
             destruct: function () {
-                return this.varkw.destruct().concat(_$124.reduce(this.decls, function (acc$398, decl$399) {
-                    return acc$398.concat(decl$399.destruct());
+                return this.varkw.destruct().concat(_$169.reduce(this.decls, function (acc$443, decl$444) {
+                    return acc$443.concat(decl$444.destruct());
                 }, []));
             },
-            construct: function (varkw$400, decls$401) {
-                parser$125.assert(Array.isArray(decls$401), 'decls must be an array');
-                this.varkw = varkw$400;
-                this.decls = decls$401;
+            construct: function (varkw$445, decls$446) {
+                parser$170.assert(Array.isArray(decls$446), 'decls must be an array');
+                this.varkw = varkw$445;
+                this.decls = decls$446;
             }
         });
-    var LetStatement$268 = Statement$239.extend({
+    var LetStatement$313 = Statement$284.extend({
             properties: [
                 'letkw',
                 'decls'
             ],
             destruct: function () {
-                return this.letkw.destruct().concat(_$124.reduce(this.decls, function (acc$402, decl$403) {
-                    return acc$402.concat(decl$403.destruct());
+                return this.letkw.destruct().concat(_$169.reduce(this.decls, function (acc$447, decl$448) {
+                    return acc$447.concat(decl$448.destruct());
                 }, []));
             },
-            construct: function (letkw$404, decls$405) {
-                parser$125.assert(Array.isArray(decls$405), 'decls must be an array');
-                this.letkw = letkw$404;
-                this.decls = decls$405;
+            construct: function (letkw$449, decls$450) {
+                parser$170.assert(Array.isArray(decls$450), 'decls must be an array');
+                this.letkw = letkw$449;
+                this.decls = decls$450;
             }
         });
-    var ConstStatement$269 = Statement$239.extend({
+    var ConstStatement$314 = Statement$284.extend({
             properties: [
                 'constkw',
                 'decls'
             ],
             destruct: function () {
-                return this.constkw.destruct().concat(_$124.reduce(this.decls, function (acc$406, decl$407) {
-                    return acc$406.concat(decl$407.destruct());
+                return this.constkw.destruct().concat(_$169.reduce(this.decls, function (acc$451, decl$452) {
+                    return acc$451.concat(decl$452.destruct());
                 }, []));
             },
-            construct: function (constkw$408, decls$409) {
-                parser$125.assert(Array.isArray(decls$409), 'decls must be an array');
-                this.constkw = constkw$408;
-                this.decls = decls$409;
+            construct: function (constkw$453, decls$454) {
+                parser$170.assert(Array.isArray(decls$454), 'decls must be an array');
+                this.constkw = constkw$453;
+                this.decls = decls$454;
             }
         });
-    var CatchClause$270 = TermTree$237.extend({
+    var CatchClause$315 = TermTree$282.extend({
             properties: [
                 'catchkw',
                 'params',
                 'body'
             ],
-            construct: function (catchkw$410, params$411, body$412) {
-                this.catchkw = catchkw$410;
-                this.params = params$411;
-                this.body = body$412;
+            construct: function (catchkw$455, params$456, body$457) {
+                this.catchkw = catchkw$455;
+                this.params = params$456;
+                this.body = body$457;
             }
         });
-    var Module$271 = TermTree$237.extend({
+    var Module$316 = TermTree$282.extend({
             properties: [
                 'body',
                 'exports'
             ],
-            construct: function (body$413) {
-                this.body = body$413;
+            construct: function (body$458) {
+                this.body = body$458;
                 this.exports = [];
             }
         });
-    var Empty$272 = TermTree$237.extend({
+    var Empty$317 = TermTree$282.extend({
             properties: [],
             construct: function () {
             }
         });
-    var Export$273 = TermTree$237.extend({
+    var Export$318 = TermTree$282.extend({
             properties: ['name'],
-            construct: function (name$414) {
-                this.name = name$414;
+            construct: function (name$459) {
+                this.name = name$459;
             }
         });
-    function stxIsUnaryOp$274(stx$415) {
-        var staticOperators$416 = [
+    function stxIsUnaryOp$319(stx$460) {
+        var staticOperators$461 = [
                 '+',
                 '-',
                 '~',
@@ -623,10 +623,10 @@
                 '++',
                 '--'
             ];
-        return _$124.contains(staticOperators$416, stx$415.token.value);
+        return _$169.contains(staticOperators$461, stx$460.token.value);
     }
-    function stxIsBinOp$275(stx$417) {
-        var staticOperators$418 = [
+    function stxIsBinOp$320(stx$462) {
+        var staticOperators$463 = [
                 '+',
                 '-',
                 '*',
@@ -651,151 +651,151 @@
                 '>>',
                 '>>>'
             ];
-        return _$124.contains(staticOperators$418, stx$417.token.value);
+        return _$169.contains(staticOperators$463, stx$462.token.value);
     }
     // ([Syntax], Map) -> {result: [VariableDeclaration], rest: [Syntax]}
     // assumes stx starts at the identifier. ie:
     // var x = ...
     //     ^
-    function enforestVarStatement$276(stx$419, context$420) {
-        var decls$421 = [];
-        var res$422 = enforest$278(stx$419, context$420);
-        var result$423 = res$422.result;
-        var rest$424 = res$422.rest;
-        if (rest$424[0]) {
-            var nextRes$425 = enforest$278(rest$424, context$420);
+    function enforestVarStatement$321(stx$464, context$465) {
+        var decls$466 = [];
+        var res$467 = enforest$323(stx$464, context$465);
+        var result$468 = res$467.result;
+        var rest$469 = res$467.rest;
+        if (rest$469[0]) {
+            var nextRes$470 = enforest$323(rest$469, context$465);
             // x = ...
-            if (nextRes$425.result.hasPrototype(Punc$253) && nextRes$425.result.punc.token.value === '=') {
-                var initializerRes$426 = enforest$278(nextRes$425.rest, context$420);
-                if (initializerRes$426.rest[0]) {
-                    var restRes$427 = enforest$278(initializerRes$426.rest, context$420);
+            if (nextRes$470.result.hasPrototype(Punc$298) && nextRes$470.result.punc.token.value === '=') {
+                var initializerRes$471 = enforest$323(nextRes$470.rest, context$465);
+                if (initializerRes$471.rest[0]) {
+                    var restRes$472 = enforest$323(initializerRes$471.rest, context$465);
                     // x = y + z, ...
-                    if (restRes$427.result.hasPrototype(Punc$253) && restRes$427.result.punc.token.value === ',') {
-                        decls$421.push(VariableDeclaration$266.create(result$423.id, nextRes$425.result.punc, initializerRes$426.result, restRes$427.result.punc));
-                        var subRes$428 = enforestVarStatement$276(restRes$427.rest, context$420);
-                        decls$421 = decls$421.concat(subRes$428.result);
-                        rest$424 = subRes$428.rest;
+                    if (restRes$472.result.hasPrototype(Punc$298) && restRes$472.result.punc.token.value === ',') {
+                        decls$466.push(VariableDeclaration$311.create(result$468.id, nextRes$470.result.punc, initializerRes$471.result, restRes$472.result.punc));
+                        var subRes$473 = enforestVarStatement$321(restRes$472.rest, context$465);
+                        decls$466 = decls$466.concat(subRes$473.result);
+                        rest$469 = subRes$473.rest;
                     }    // x = y ...
                     else {
-                        decls$421.push(VariableDeclaration$266.create(result$423.id, nextRes$425.result.punc, initializerRes$426.result));
-                        rest$424 = initializerRes$426.rest;
+                        decls$466.push(VariableDeclaration$311.create(result$468.id, nextRes$470.result.punc, initializerRes$471.result));
+                        rest$469 = initializerRes$471.rest;
                     }
                 }    // x = y EOF
                 else {
-                    decls$421.push(VariableDeclaration$266.create(result$423.id, nextRes$425.result.punc, initializerRes$426.result));
+                    decls$466.push(VariableDeclaration$311.create(result$468.id, nextRes$470.result.punc, initializerRes$471.result));
                 }
             }    // x ,...;
-            else if (nextRes$425.result.hasPrototype(Punc$253) && nextRes$425.result.punc.token.value === ',') {
-                decls$421.push(VariableDeclaration$266.create(result$423.id, null, null, nextRes$425.result.punc));
-                var subRes$428 = enforestVarStatement$276(nextRes$425.rest, context$420);
-                decls$421 = decls$421.concat(subRes$428.result);
-                rest$424 = subRes$428.rest;
+            else if (nextRes$470.result.hasPrototype(Punc$298) && nextRes$470.result.punc.token.value === ',') {
+                decls$466.push(VariableDeclaration$311.create(result$468.id, null, null, nextRes$470.result.punc));
+                var subRes$473 = enforestVarStatement$321(nextRes$470.rest, context$465);
+                decls$466 = decls$466.concat(subRes$473.result);
+                rest$469 = subRes$473.rest;
             } else {
-                if (result$423.hasPrototype(Id$255)) {
-                    decls$421.push(VariableDeclaration$266.create(result$423.id));
+                if (result$468.hasPrototype(Id$300)) {
+                    decls$466.push(VariableDeclaration$311.create(result$468.id));
                 } else {
-                    throwError$215('Expecting an identifier in variable declaration');
+                    throwError$260('Expecting an identifier in variable declaration');
                 }
             }
         }    // x EOF
         else {
-            if (result$423.hasPrototype(Id$255)) {
-                decls$421.push(VariableDeclaration$266.create(result$423.id));
-            } else if (result$423.hasPrototype(BinOp$250) && result$423.op.token.value === 'in') {
-                decls$421.push(VariableDeclaration$266.create(result$423.left.id, result$423.op, result$423.right));
+            if (result$468.hasPrototype(Id$300)) {
+                decls$466.push(VariableDeclaration$311.create(result$468.id));
+            } else if (result$468.hasPrototype(BinOp$295) && result$468.op.token.value === 'in') {
+                decls$466.push(VariableDeclaration$311.create(result$468.left.id, result$468.op, result$468.right));
             } else {
-                throwError$215('Expecting an identifier in variable declaration');
+                throwError$260('Expecting an identifier in variable declaration');
             }
         }
         return {
-            result: decls$421,
-            rest: rest$424
+            result: decls$466,
+            rest: rest$469
         };
     }
-    function adjustLineContext$277(stx$429, original$430, current$431) {
-        current$431 = current$431 || {
-            lastLineNumber: original$430.token.lineNumber,
-            lineNumber: original$430.token.lineNumber - 1
+    function adjustLineContext$322(stx$474, original$475, current$476) {
+        current$476 = current$476 || {
+            lastLineNumber: original$475.token.lineNumber,
+            lineNumber: original$475.token.lineNumber - 1
         };
-        return _$124.map(stx$429, function (stx$432) {
-            if (stx$432.token.type === parser$125.Token.Delimiter) {
+        return _$169.map(stx$474, function (stx$477) {
+            if (stx$477.token.type === parser$170.Token.Delimiter) {
                 // handle tokens with missing line info
-                stx$432.token.startLineNumber = typeof stx$432.token.startLineNumber == 'undefined' ? original$430.token.lineNumber : stx$432.token.startLineNumber;
-                stx$432.token.endLineNumber = typeof stx$432.token.endLineNumber == 'undefined' ? original$430.token.lineNumber : stx$432.token.endLineNumber;
-                stx$432.token.startLineStart = typeof stx$432.token.startLineStart == 'undefined' ? original$430.token.lineStart : stx$432.token.startLineStart;
-                stx$432.token.endLineStart = typeof stx$432.token.endLineStart == 'undefined' ? original$430.token.lineStart : stx$432.token.endLineStart;
-                stx$432.token.startRange = typeof stx$432.token.startRange == 'undefined' ? original$430.token.range : stx$432.token.startRange;
-                stx$432.token.endRange = typeof stx$432.token.endRange == 'undefined' ? original$430.token.range : stx$432.token.endRange;
-                stx$432.token.sm_startLineNumber = typeof stx$432.token.sm_startLineNumber == 'undefined' ? stx$432.token.startLineNumber : stx$432.token.sm_startLineNumber;
-                stx$432.token.sm_endLineNumber = typeof stx$432.token.sm_endLineNumber == 'undefined' ? stx$432.token.endLineNumber : stx$432.token.sm_endLineNumber;
-                stx$432.token.sm_startLineStart = typeof stx$432.token.sm_startLineStart == 'undefined' ? stx$432.token.startLineStart : stx$432.token.sm_startLineStart;
-                stx$432.token.sm_endLineStart = typeof stx$432.token.sm_endLineStart == 'undefined' ? stx$432.token.endLineStart : stx$432.token.sm_endLineStart;
-                stx$432.token.sm_startRange = typeof stx$432.token.sm_startRange == 'undefined' ? stx$432.token.startRange : stx$432.token.sm_startRange;
-                stx$432.token.sm_endRange = typeof stx$432.token.sm_endRange == 'undefined' ? stx$432.token.endRange : stx$432.token.sm_endRange;
-                stx$432.token.startLineNumber = original$430.token.lineNumber;
-                if (stx$432.token.inner.length > 0) {
-                    stx$432.token.inner = adjustLineContext$277(stx$432.token.inner, original$430, current$431);
+                stx$477.token.startLineNumber = typeof stx$477.token.startLineNumber == 'undefined' ? original$475.token.lineNumber : stx$477.token.startLineNumber;
+                stx$477.token.endLineNumber = typeof stx$477.token.endLineNumber == 'undefined' ? original$475.token.lineNumber : stx$477.token.endLineNumber;
+                stx$477.token.startLineStart = typeof stx$477.token.startLineStart == 'undefined' ? original$475.token.lineStart : stx$477.token.startLineStart;
+                stx$477.token.endLineStart = typeof stx$477.token.endLineStart == 'undefined' ? original$475.token.lineStart : stx$477.token.endLineStart;
+                stx$477.token.startRange = typeof stx$477.token.startRange == 'undefined' ? original$475.token.range : stx$477.token.startRange;
+                stx$477.token.endRange = typeof stx$477.token.endRange == 'undefined' ? original$475.token.range : stx$477.token.endRange;
+                stx$477.token.sm_startLineNumber = typeof stx$477.token.sm_startLineNumber == 'undefined' ? stx$477.token.startLineNumber : stx$477.token.sm_startLineNumber;
+                stx$477.token.sm_endLineNumber = typeof stx$477.token.sm_endLineNumber == 'undefined' ? stx$477.token.endLineNumber : stx$477.token.sm_endLineNumber;
+                stx$477.token.sm_startLineStart = typeof stx$477.token.sm_startLineStart == 'undefined' ? stx$477.token.startLineStart : stx$477.token.sm_startLineStart;
+                stx$477.token.sm_endLineStart = typeof stx$477.token.sm_endLineStart == 'undefined' ? stx$477.token.endLineStart : stx$477.token.sm_endLineStart;
+                stx$477.token.sm_startRange = typeof stx$477.token.sm_startRange == 'undefined' ? stx$477.token.startRange : stx$477.token.sm_startRange;
+                stx$477.token.sm_endRange = typeof stx$477.token.sm_endRange == 'undefined' ? stx$477.token.endRange : stx$477.token.sm_endRange;
+                stx$477.token.startLineNumber = original$475.token.lineNumber;
+                if (stx$477.token.inner.length > 0) {
+                    stx$477.token.inner = adjustLineContext$322(stx$477.token.inner, original$475, current$476);
                 }
-                return stx$432;
+                return stx$477;
             }
             // handle tokens with missing line info
-            stx$432.token.lineNumber = typeof stx$432.token.lineNumber == 'undefined' ? original$430.token.lineNumber : stx$432.token.lineNumber;
-            stx$432.token.lineStart = typeof stx$432.token.lineStart == 'undefined' ? original$430.token.lineStart : stx$432.token.lineStart;
-            stx$432.token.range = typeof stx$432.token.range == 'undefined' ? original$430.token.range : stx$432.token.range;
+            stx$477.token.lineNumber = typeof stx$477.token.lineNumber == 'undefined' ? original$475.token.lineNumber : stx$477.token.lineNumber;
+            stx$477.token.lineStart = typeof stx$477.token.lineStart == 'undefined' ? original$475.token.lineStart : stx$477.token.lineStart;
+            stx$477.token.range = typeof stx$477.token.range == 'undefined' ? original$475.token.range : stx$477.token.range;
             // Only set the sourcemap line info once. Necessary because a single
             // syntax object can go through expansion multiple times. If at some point
             // we want to write an expansion stepper this might be a good place to store
             // intermediate expansion line info (ie push to a stack instead of 
             // just write once).
-            stx$432.token.sm_lineNumber = typeof stx$432.token.sm_lineNumber == 'undefined' ? stx$432.token.lineNumber : stx$432.token.sm_lineNumber;
-            stx$432.token.sm_lineStart = typeof stx$432.token.sm_lineStart == 'undefined' ? stx$432.token.lineStart : stx$432.token.sm_lineStart;
-            stx$432.token.sm_range = typeof stx$432.token.sm_range == 'undefined' ? _$124.clone(stx$432.token.range) : stx$432.token.sm_range;
+            stx$477.token.sm_lineNumber = typeof stx$477.token.sm_lineNumber == 'undefined' ? stx$477.token.lineNumber : stx$477.token.sm_lineNumber;
+            stx$477.token.sm_lineStart = typeof stx$477.token.sm_lineStart == 'undefined' ? stx$477.token.lineStart : stx$477.token.sm_lineStart;
+            stx$477.token.sm_range = typeof stx$477.token.sm_range == 'undefined' ? _$169.clone(stx$477.token.range) : stx$477.token.sm_range;
             // move the line info to line up with the macro name
             // (line info starting from the macro name)
-            stx$432.token.lineNumber = original$430.token.lineNumber;
-            return stx$432;
+            stx$477.token.lineNumber = original$475.token.lineNumber;
+            return stx$477;
         });
     }
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
-    function enforest$278(toks$433, context$434) {
-        parser$125.assert(toks$433.length > 0, 'enforest assumes there are tokens to work with');
-        function step$435(head$436, rest$437) {
-            var innerTokens$438;
-            parser$125.assert(Array.isArray(rest$437), 'result must at least be an empty array');
-            if (head$436.hasPrototype(TermTree$237)) {
+    function enforest$323(toks$478, context$479) {
+        parser$170.assert(toks$478.length > 0, 'enforest assumes there are tokens to work with');
+        function step$480(head$481, rest$482) {
+            var innerTokens$483;
+            parser$170.assert(Array.isArray(rest$482), 'result must at least be an empty array');
+            if (head$481.hasPrototype(TermTree$282)) {
                 // function call
-                var emp$441 = head$436.emp;
-                var emp$441 = head$436.emp;
-                var keyword$444 = head$436.keyword;
-                var delim$446 = head$436.delim;
-                var id$448 = head$436.id;
-                var delim$446 = head$436.delim;
-                var emp$441 = head$436.emp;
-                var punc$452 = head$436.punc;
-                var keyword$444 = head$436.keyword;
-                var emp$441 = head$436.emp;
-                var emp$441 = head$436.emp;
-                var emp$441 = head$436.emp;
-                var delim$446 = head$436.delim;
-                var delim$446 = head$436.delim;
-                var keyword$444 = head$436.keyword;
-                var keyword$444 = head$436.keyword;
-                var keyword$444 = head$436.keyword;
-                var keyword$444 = head$436.keyword;
-                if (head$436.hasPrototype(Expr$240) && rest$437[0] && rest$437[0].token.type === parser$125.Token.Delimiter && rest$437[0].token.value === '()') {
-                    var argRes$483, enforestedArgs$484 = [], commas$485 = [];
-                    rest$437[0].expose();
-                    innerTokens$438 = rest$437[0].token.inner;
-                    while (innerTokens$438.length > 0) {
-                        argRes$483 = enforest$278(innerTokens$438, context$434);
-                        enforestedArgs$484.push(argRes$483.result);
-                        innerTokens$438 = argRes$483.rest;
-                        if (innerTokens$438[0] && innerTokens$438[0].token.value === ',') {
+                var emp$486 = head$481.emp;
+                var emp$486 = head$481.emp;
+                var keyword$489 = head$481.keyword;
+                var delim$491 = head$481.delim;
+                var id$493 = head$481.id;
+                var delim$491 = head$481.delim;
+                var emp$486 = head$481.emp;
+                var punc$497 = head$481.punc;
+                var keyword$489 = head$481.keyword;
+                var emp$486 = head$481.emp;
+                var emp$486 = head$481.emp;
+                var emp$486 = head$481.emp;
+                var delim$491 = head$481.delim;
+                var delim$491 = head$481.delim;
+                var keyword$489 = head$481.keyword;
+                var keyword$489 = head$481.keyword;
+                var keyword$489 = head$481.keyword;
+                var keyword$489 = head$481.keyword;
+                if (head$481.hasPrototype(Expr$285) && rest$482[0] && rest$482[0].token.type === parser$170.Token.Delimiter && rest$482[0].token.value === '()') {
+                    var argRes$528, enforestedArgs$529 = [], commas$530 = [];
+                    rest$482[0].expose();
+                    innerTokens$483 = rest$482[0].token.inner;
+                    while (innerTokens$483.length > 0) {
+                        argRes$528 = enforest$323(innerTokens$483, context$479);
+                        enforestedArgs$529.push(argRes$528.result);
+                        innerTokens$483 = argRes$528.rest;
+                        if (innerTokens$483[0] && innerTokens$483[0].token.value === ',') {
                             // record the comma for later
-                            commas$485.push(innerTokens$438[0]);
+                            commas$530.push(innerTokens$483[0]);
                             // but dump it for the next loop turn
-                            innerTokens$438 = innerTokens$438.slice(1);
+                            innerTokens$483 = innerTokens$483.slice(1);
                         } else {
                             // either there are no more tokens or
                             // they aren't a comma, either way we
@@ -803,224 +803,224 @@
                             break;
                         }
                     }
-                    var argsAreExprs$486 = _$124.all(enforestedArgs$484, function (argTerm$487) {
-                            return argTerm$487.hasPrototype(Expr$240);
+                    var argsAreExprs$531 = _$169.all(enforestedArgs$529, function (argTerm$532) {
+                            return argTerm$532.hasPrototype(Expr$285);
                         });
                     // only a call if we can completely enforest each argument and
                     // each argument is an expression
-                    if (innerTokens$438.length === 0 && argsAreExprs$486) {
-                        return step$435(Call$263.create(head$436, enforestedArgs$484, rest$437[0], commas$485), rest$437.slice(1));
+                    if (innerTokens$483.length === 0 && argsAreExprs$531) {
+                        return step$480(Call$308.create(head$481, enforestedArgs$529, rest$482[0], commas$530), rest$482.slice(1));
                     }
-                } else if (head$436.hasPrototype(Expr$240) && rest$437[0] && rest$437[0].token.value === '?') {
-                    var question$488 = rest$437[0];
-                    var condRes$489 = enforest$278(rest$437.slice(1), context$434);
-                    var truExpr$490 = condRes$489.result;
-                    var right$491 = condRes$489.rest;
-                    if (truExpr$490.hasPrototype(Expr$240) && right$491[0] && right$491[0].token.value === ':') {
-                        var colon$492 = right$491[0];
-                        var flsRes$493 = enforest$278(right$491.slice(1), context$434);
-                        var flsExpr$494 = flsRes$493.result;
-                        if (flsExpr$494.hasPrototype(Expr$240)) {
-                            return step$435(ConditionalExpression$251.create(head$436, question$488, truExpr$490, colon$492, flsExpr$494), flsRes$493.rest);
+                } else if (head$481.hasPrototype(Expr$285) && rest$482[0] && rest$482[0].token.value === '?') {
+                    var question$533 = rest$482[0];
+                    var condRes$534 = enforest$323(rest$482.slice(1), context$479);
+                    var truExpr$535 = condRes$534.result;
+                    var right$536 = condRes$534.rest;
+                    if (truExpr$535.hasPrototype(Expr$285) && right$536[0] && right$536[0].token.value === ':') {
+                        var colon$537 = right$536[0];
+                        var flsRes$538 = enforest$323(right$536.slice(1), context$479);
+                        var flsExpr$539 = flsRes$538.result;
+                        if (flsExpr$539.hasPrototype(Expr$285)) {
+                            return step$480(ConditionalExpression$296.create(head$481, question$533, truExpr$535, colon$537, flsExpr$539), flsRes$538.rest);
                         }
                     }
-                } else if (head$436.hasPrototype(Keyword$252) && keyword$444.token.value === 'new' && rest$437[0]) {
-                    var newCallRes$495 = enforest$278(rest$437, context$434);
-                    if (newCallRes$495.result.hasPrototype(Call$263)) {
-                        return step$435(Const$262.create(head$436, newCallRes$495.result), newCallRes$495.rest);
+                } else if (head$481.hasPrototype(Keyword$297) && keyword$489.token.value === 'new' && rest$482[0]) {
+                    var newCallRes$540 = enforest$323(rest$482, context$479);
+                    if (newCallRes$540.result.hasPrototype(Call$308)) {
+                        return step$480(Const$307.create(head$481, newCallRes$540.result), newCallRes$540.rest);
                     }
-                } else if (head$436.hasPrototype(Delimiter$254) && delim$446.token.value === '()' && rest$437[0] && rest$437[0].token.type === parser$125.Token.Punctuator && rest$437[0].token.value === '=>') {
-                    var res$496 = enforest$278(rest$437.slice(1), context$434);
-                    if (res$496.result.hasPrototype(Expr$240)) {
-                        return step$435(ArrowFun$258.create(delim$446, rest$437[0], res$496.result.destruct()), res$496.rest);
+                } else if (head$481.hasPrototype(Delimiter$299) && delim$491.token.value === '()' && rest$482[0] && rest$482[0].token.type === parser$170.Token.Punctuator && rest$482[0].token.value === '=>') {
+                    var res$541 = enforest$323(rest$482.slice(1), context$479);
+                    if (res$541.result.hasPrototype(Expr$285)) {
+                        return step$480(ArrowFun$303.create(delim$491, rest$482[0], res$541.result.destruct()), res$541.rest);
                     } else {
-                        throwError$215('Body of arrow function must be an expression');
+                        throwError$260('Body of arrow function must be an expression');
                     }
-                } else if (head$436.hasPrototype(Id$255) && rest$437[0] && rest$437[0].token.type === parser$125.Token.Punctuator && rest$437[0].token.value === '=>') {
-                    var res$496 = enforest$278(rest$437.slice(1), context$434);
-                    if (res$496.result.hasPrototype(Expr$240)) {
-                        return step$435(ArrowFun$258.create(id$448, rest$437[0], res$496.result.destruct()), res$496.rest);
+                } else if (head$481.hasPrototype(Id$300) && rest$482[0] && rest$482[0].token.type === parser$170.Token.Punctuator && rest$482[0].token.value === '=>') {
+                    var res$541 = enforest$323(rest$482.slice(1), context$479);
+                    if (res$541.result.hasPrototype(Expr$285)) {
+                        return step$480(ArrowFun$303.create(id$493, rest$482[0], res$541.result.destruct()), res$541.rest);
                     } else {
-                        throwError$215('Body of arrow function must be an expression');
+                        throwError$260('Body of arrow function must be an expression');
                     }
-                } else if (head$436.hasPrototype(Delimiter$254) && delim$446.token.value === '()') {
-                    innerTokens$438 = delim$446.token.inner;
+                } else if (head$481.hasPrototype(Delimiter$299) && delim$491.token.value === '()') {
+                    innerTokens$483 = delim$491.token.inner;
                     // empty parens are acceptable but enforest
                     // doesn't accept empty arrays so short
                     // circuit here
-                    if (innerTokens$438.length === 0) {
-                        return step$435(ParenExpression$247.create(head$436), rest$437);
+                    if (innerTokens$483.length === 0) {
+                        return step$480(ParenExpression$292.create(head$481), rest$482);
                     } else {
-                        var innerTerm$497 = get_expression$279(innerTokens$438, context$434);
-                        if (innerTerm$497.result && innerTerm$497.result.hasPrototype(Expr$240)) {
-                            return step$435(ParenExpression$247.create(head$436), rest$437);
+                        var innerTerm$542 = get_expression$324(innerTokens$483, context$479);
+                        if (innerTerm$542.result && innerTerm$542.result.hasPrototype(Expr$285)) {
+                            return step$480(ParenExpression$292.create(head$481), rest$482);
                         }
                     }    // if the tokens inside the paren aren't an expression
                          // we just leave it as a delimiter
-                } else if (head$436.hasPrototype(Expr$240) && rest$437[0] && rest$437[1] && stxIsBinOp$275(rest$437[0])) {
-                    var op$498 = rest$437[0];
-                    var left$499 = head$436;
-                    var bopRes$500 = enforest$278(rest$437.slice(1), context$434);
-                    var right$491 = bopRes$500.result;
+                } else if (head$481.hasPrototype(Expr$285) && rest$482[0] && rest$482[1] && stxIsBinOp$320(rest$482[0])) {
+                    var op$543 = rest$482[0];
+                    var left$544 = head$481;
+                    var bopRes$545 = enforest$323(rest$482.slice(1), context$479);
+                    var right$536 = bopRes$545.result;
                     // only a binop if the right is a real expression
                     // so 2+2++ will only match 2+2
-                    if (right$491.hasPrototype(Expr$240)) {
-                        return step$435(BinOp$250.create(op$498, left$499, right$491), bopRes$500.rest);
+                    if (right$536.hasPrototype(Expr$285)) {
+                        return step$480(BinOp$295.create(op$543, left$544, right$536), bopRes$545.rest);
                     }
-                } else if (head$436.hasPrototype(Punc$253) && stxIsUnaryOp$274(punc$452)) {
-                    var unopRes$501 = enforest$278(rest$437, context$434);
-                    if (unopRes$501.result.hasPrototype(Expr$240)) {
-                        return step$435(UnaryOp$248.create(punc$452, unopRes$501.result), unopRes$501.rest);
+                } else if (head$481.hasPrototype(Punc$298) && stxIsUnaryOp$319(punc$497)) {
+                    var unopRes$546 = enforest$323(rest$482, context$479);
+                    if (unopRes$546.result.hasPrototype(Expr$285)) {
+                        return step$480(UnaryOp$293.create(punc$497, unopRes$546.result), unopRes$546.rest);
                     }
-                } else if (head$436.hasPrototype(Keyword$252) && stxIsUnaryOp$274(keyword$444)) {
-                    var unopRes$501 = enforest$278(rest$437, context$434);
-                    if (unopRes$501.result.hasPrototype(Expr$240)) {
-                        return step$435(UnaryOp$248.create(keyword$444, unopRes$501.result), unopRes$501.rest);
+                } else if (head$481.hasPrototype(Keyword$297) && stxIsUnaryOp$319(keyword$489)) {
+                    var unopRes$546 = enforest$323(rest$482, context$479);
+                    if (unopRes$546.result.hasPrototype(Expr$285)) {
+                        return step$480(UnaryOp$293.create(keyword$489, unopRes$546.result), unopRes$546.rest);
                     }
-                } else if (head$436.hasPrototype(Expr$240) && rest$437[0] && (rest$437[0].token.value === '++' || rest$437[0].token.value === '--')) {
-                    return step$435(PostfixOp$249.create(head$436, rest$437[0]), rest$437.slice(1));
-                } else if (head$436.hasPrototype(Expr$240) && rest$437[0] && rest$437[0].token.value === '[]') {
-                    return step$435(ObjGet$265.create(head$436, Delimiter$254.create(rest$437[0].expose())), rest$437.slice(1));
-                } else if (head$436.hasPrototype(Expr$240) && rest$437[0] && rest$437[0].token.value === '.' && rest$437[1] && rest$437[1].token.type === parser$125.Token.Identifier) {
-                    return step$435(ObjDotGet$264.create(head$436, rest$437[0], rest$437[1]), rest$437.slice(2));
-                } else if (head$436.hasPrototype(Delimiter$254) && delim$446.token.value === '[]') {
-                    return step$435(ArrayLiteral$246.create(head$436), rest$437);
-                } else if (head$436.hasPrototype(Delimiter$254) && head$436.delim.token.value === '{}') {
-                    return step$435(Block$245.create(head$436), rest$437);
-                } else if (head$436.hasPrototype(Keyword$252) && keyword$444.token.value === 'let' && (rest$437[0] && rest$437[0].token.type === parser$125.Token.Identifier || rest$437[0] && rest$437[0].token.type === parser$125.Token.Keyword || rest$437[0] && rest$437[0].token.type === parser$125.Token.Punctuator) && rest$437[1] && rest$437[1].token.value === '=' && rest$437[2] && rest$437[2].token.value === 'macro') {
-                    var mac$502 = enforest$278(rest$437.slice(2), context$434);
-                    if (!mac$502.result.hasPrototype(AnonMacro$261)) {
-                        throw new Error('expecting an anonymous macro definition in syntax let binding, not: ' + mac$502.result);
+                } else if (head$481.hasPrototype(Expr$285) && rest$482[0] && (rest$482[0].token.value === '++' || rest$482[0].token.value === '--')) {
+                    return step$480(PostfixOp$294.create(head$481, rest$482[0]), rest$482.slice(1));
+                } else if (head$481.hasPrototype(Expr$285) && rest$482[0] && rest$482[0].token.value === '[]') {
+                    return step$480(ObjGet$310.create(head$481, Delimiter$299.create(rest$482[0].expose())), rest$482.slice(1));
+                } else if (head$481.hasPrototype(Expr$285) && rest$482[0] && rest$482[0].token.value === '.' && rest$482[1] && rest$482[1].token.type === parser$170.Token.Identifier) {
+                    return step$480(ObjDotGet$309.create(head$481, rest$482[0], rest$482[1]), rest$482.slice(2));
+                } else if (head$481.hasPrototype(Delimiter$299) && delim$491.token.value === '[]') {
+                    return step$480(ArrayLiteral$291.create(head$481), rest$482);
+                } else if (head$481.hasPrototype(Delimiter$299) && head$481.delim.token.value === '{}') {
+                    return step$480(Block$290.create(head$481), rest$482);
+                } else if (head$481.hasPrototype(Keyword$297) && keyword$489.token.value === 'let' && (rest$482[0] && rest$482[0].token.type === parser$170.Token.Identifier || rest$482[0] && rest$482[0].token.type === parser$170.Token.Keyword || rest$482[0] && rest$482[0].token.type === parser$170.Token.Punctuator) && rest$482[1] && rest$482[1].token.value === '=' && rest$482[2] && rest$482[2].token.value === 'macro') {
+                    var mac$547 = enforest$323(rest$482.slice(2), context$479);
+                    if (!mac$547.result.hasPrototype(AnonMacro$306)) {
+                        throw new Error('expecting an anonymous macro definition in syntax let binding, not: ' + mac$547.result);
                     }
-                    return step$435(LetMacro$259.create(rest$437[0], mac$502.result.body), mac$502.rest);
-                } else if (head$436.hasPrototype(Keyword$252) && keyword$444.token.value === 'var' && rest$437[0]) {
-                    var vsRes$503 = enforestVarStatement$276(rest$437, context$434);
-                    if (vsRes$503) {
-                        return step$435(VariableStatement$267.create(head$436, vsRes$503.result), vsRes$503.rest);
+                    return step$480(LetMacro$304.create(rest$482[0], mac$547.result.body), mac$547.rest);
+                } else if (head$481.hasPrototype(Keyword$297) && keyword$489.token.value === 'var' && rest$482[0]) {
+                    var vsRes$548 = enforestVarStatement$321(rest$482, context$479);
+                    if (vsRes$548) {
+                        return step$480(VariableStatement$312.create(head$481, vsRes$548.result), vsRes$548.rest);
                     }
-                } else if (head$436.hasPrototype(Keyword$252) && keyword$444.token.value === 'let' && rest$437[0]) {
-                    var vsRes$503 = enforestVarStatement$276(rest$437, context$434);
-                    if (vsRes$503) {
-                        return step$435(LetStatement$268.create(head$436, vsRes$503.result), vsRes$503.rest);
+                } else if (head$481.hasPrototype(Keyword$297) && keyword$489.token.value === 'let' && rest$482[0]) {
+                    var vsRes$548 = enforestVarStatement$321(rest$482, context$479);
+                    if (vsRes$548) {
+                        return step$480(LetStatement$313.create(head$481, vsRes$548.result), vsRes$548.rest);
                     }
-                } else if (head$436.hasPrototype(Keyword$252) && keyword$444.token.value === 'const' && rest$437[0]) {
-                    var vsRes$503 = enforestVarStatement$276(rest$437, context$434);
-                    if (vsRes$503) {
-                        return step$435(ConstStatement$269.create(head$436, vsRes$503.result), vsRes$503.rest);
+                } else if (head$481.hasPrototype(Keyword$297) && keyword$489.token.value === 'const' && rest$482[0]) {
+                    var vsRes$548 = enforestVarStatement$321(rest$482, context$479);
+                    if (vsRes$548) {
+                        return step$480(ConstStatement$314.create(head$481, vsRes$548.result), vsRes$548.rest);
                     }
                 }
             } else {
-                parser$125.assert(head$436 && head$436.token, 'assuming head is a syntax object');
+                parser$170.assert(head$481 && head$481.token, 'assuming head is a syntax object');
                 // macro invocation
-                if ((head$436.token.type === parser$125.Token.Identifier || head$436.token.type === parser$125.Token.Keyword || head$436.token.type === parser$125.Token.Punctuator) && context$434.env.has(resolve$228(head$436))) {
+                if ((head$481.token.type === parser$170.Token.Identifier || head$481.token.type === parser$170.Token.Keyword || head$481.token.type === parser$170.Token.Punctuator) && context$479.env.has(resolve$273(head$481))) {
                     // create a new mark to be used for the input to
                     // the macro
-                    var newMark$504 = fresh$234();
-                    var transformerContext$505 = makeExpanderContext$287(_$124.defaults({ mark: newMark$504 }, context$434));
+                    var newMark$549 = fresh$279();
+                    var transformerContext$550 = makeExpanderContext$332(_$169.defaults({ mark: newMark$549 }, context$479));
                     // pull the macro transformer out the environment
-                    var transformer$506 = context$434.env.get(resolve$228(head$436)).fn;
+                    var transformer$551 = context$479.env.get(resolve$273(head$481)).fn;
                     // apply the transformer
-                    var rt$507 = transformer$506([head$436].concat(rest$437), transformerContext$505);
-                    if (!Array.isArray(rt$507.result)) {
-                        throwError$215('Macro transformer must return a result array, not: ' + rt$507.result);
+                    var rt$552 = transformer$551([head$481].concat(rest$482), transformerContext$550);
+                    if (!Array.isArray(rt$552.result)) {
+                        throwError$260('Macro transformer must return a result array, not: ' + rt$552.result);
                     }
-                    if (rt$507.result.length > 0) {
-                        var adjustedResult$508 = adjustLineContext$277(rt$507.result, head$436);
-                        adjustedResult$508[0].token.leadingComments = head$436.token.leadingComments;
-                        return step$435(adjustedResult$508[0], adjustedResult$508.slice(1).concat(rt$507.rest));
+                    if (rt$552.result.length > 0) {
+                        var adjustedResult$553 = adjustLineContext$322(rt$552.result, head$481);
+                        adjustedResult$553[0].token.leadingComments = head$481.token.leadingComments;
+                        return step$480(adjustedResult$553[0], adjustedResult$553.slice(1).concat(rt$552.rest));
                     } else {
-                        return step$435(Empty$272.create(), rt$507.rest);
+                        return step$480(Empty$317.create(), rt$552.rest);
                     }
                 }    // anon macro definition
-                else if (head$436.token.type === parser$125.Token.Identifier && head$436.token.value === 'macro' && rest$437[0] && rest$437[0].token.value === '{}') {
-                    return step$435(AnonMacro$261.create(rest$437[0].expose().token.inner), rest$437.slice(1));
+                else if (head$481.token.type === parser$170.Token.Identifier && head$481.token.value === 'macro' && rest$482[0] && rest$482[0].token.value === '{}') {
+                    return step$480(AnonMacro$306.create(rest$482[0].expose().token.inner), rest$482.slice(1));
                 }    // macro definition
-                else if (head$436.token.type === parser$125.Token.Identifier && head$436.token.value === 'macro' && rest$437[0] && (rest$437[0].token.type === parser$125.Token.Identifier || rest$437[0].token.type === parser$125.Token.Keyword || rest$437[0].token.type === parser$125.Token.Punctuator) && rest$437[1] && rest$437[1].token.type === parser$125.Token.Delimiter && rest$437[1].token.value === '{}') {
-                    return step$435(Macro$260.create(rest$437[0], rest$437[1].expose().token.inner), rest$437.slice(2));
+                else if (head$481.token.type === parser$170.Token.Identifier && head$481.token.value === 'macro' && rest$482[0] && (rest$482[0].token.type === parser$170.Token.Identifier || rest$482[0].token.type === parser$170.Token.Keyword || rest$482[0].token.type === parser$170.Token.Punctuator) && rest$482[1] && rest$482[1].token.type === parser$170.Token.Delimiter && rest$482[1].token.value === '{}') {
+                    return step$480(Macro$305.create(rest$482[0], rest$482[1].expose().token.inner), rest$482.slice(2));
                 }    // module definition
-                else if (head$436.token.value === 'module' && rest$437[0] && rest$437[0].token.value === '{}') {
-                    return step$435(Module$271.create(rest$437[0]), rest$437.slice(1));
+                else if (head$481.token.value === 'module' && rest$482[0] && rest$482[0].token.value === '{}') {
+                    return step$480(Module$316.create(rest$482[0]), rest$482.slice(1));
                 }    // function definition
-                else if (head$436.token.type === parser$125.Token.Keyword && head$436.token.value === 'function' && rest$437[0] && rest$437[0].token.type === parser$125.Token.Identifier && rest$437[1] && rest$437[1].token.type === parser$125.Token.Delimiter && rest$437[1].token.value === '()' && rest$437[2] && rest$437[2].token.type === parser$125.Token.Delimiter && rest$437[2].token.value === '{}') {
-                    rest$437[1].token.inner = rest$437[1].expose().token.inner;
-                    rest$437[2].token.inner = rest$437[2].expose().token.inner;
-                    return step$435(NamedFun$256.create(head$436, null, rest$437[0], rest$437[1], rest$437[2]), rest$437.slice(3));
+                else if (head$481.token.type === parser$170.Token.Keyword && head$481.token.value === 'function' && rest$482[0] && rest$482[0].token.type === parser$170.Token.Identifier && rest$482[1] && rest$482[1].token.type === parser$170.Token.Delimiter && rest$482[1].token.value === '()' && rest$482[2] && rest$482[2].token.type === parser$170.Token.Delimiter && rest$482[2].token.value === '{}') {
+                    rest$482[1].token.inner = rest$482[1].expose().token.inner;
+                    rest$482[2].token.inner = rest$482[2].expose().token.inner;
+                    return step$480(NamedFun$301.create(head$481, null, rest$482[0], rest$482[1], rest$482[2]), rest$482.slice(3));
                 }    // generator function definition
-                else if (head$436.token.type === parser$125.Token.Keyword && head$436.token.value === 'function' && rest$437[0] && rest$437[0].token.type === parser$125.Token.Punctuator && rest$437[0].token.value === '*' && rest$437[1] && rest$437[1].token.type === parser$125.Token.Identifier && rest$437[2] && rest$437[2].token.type === parser$125.Token.Delimiter && rest$437[2].token.value === '()' && rest$437[3] && rest$437[3].token.type === parser$125.Token.Delimiter && rest$437[3].token.value === '{}') {
-                    rest$437[2].token.inner = rest$437[2].expose().token.inner;
-                    rest$437[3].token.inner = rest$437[3].expose().token.inner;
-                    return step$435(NamedFun$256.create(head$436, rest$437[0], rest$437[1], rest$437[2], rest$437[3]), rest$437.slice(4));
+                else if (head$481.token.type === parser$170.Token.Keyword && head$481.token.value === 'function' && rest$482[0] && rest$482[0].token.type === parser$170.Token.Punctuator && rest$482[0].token.value === '*' && rest$482[1] && rest$482[1].token.type === parser$170.Token.Identifier && rest$482[2] && rest$482[2].token.type === parser$170.Token.Delimiter && rest$482[2].token.value === '()' && rest$482[3] && rest$482[3].token.type === parser$170.Token.Delimiter && rest$482[3].token.value === '{}') {
+                    rest$482[2].token.inner = rest$482[2].expose().token.inner;
+                    rest$482[3].token.inner = rest$482[3].expose().token.inner;
+                    return step$480(NamedFun$301.create(head$481, rest$482[0], rest$482[1], rest$482[2], rest$482[3]), rest$482.slice(4));
                 }    // anonymous function definition
-                else if (head$436.token.type === parser$125.Token.Keyword && head$436.token.value === 'function' && rest$437[0] && rest$437[0].token.type === parser$125.Token.Delimiter && rest$437[0].token.value === '()' && rest$437[1] && rest$437[1].token.type === parser$125.Token.Delimiter && rest$437[1].token.value === '{}') {
-                    rest$437[0].token.inner = rest$437[0].expose().token.inner;
-                    rest$437[1].token.inner = rest$437[1].expose().token.inner;
-                    return step$435(AnonFun$257.create(head$436, null, rest$437[0], rest$437[1]), rest$437.slice(2));
+                else if (head$481.token.type === parser$170.Token.Keyword && head$481.token.value === 'function' && rest$482[0] && rest$482[0].token.type === parser$170.Token.Delimiter && rest$482[0].token.value === '()' && rest$482[1] && rest$482[1].token.type === parser$170.Token.Delimiter && rest$482[1].token.value === '{}') {
+                    rest$482[0].token.inner = rest$482[0].expose().token.inner;
+                    rest$482[1].token.inner = rest$482[1].expose().token.inner;
+                    return step$480(AnonFun$302.create(head$481, null, rest$482[0], rest$482[1]), rest$482.slice(2));
                 }    // anonymous generator function definition
-                else if (head$436.token.type === parser$125.Token.Keyword && head$436.token.value === 'function' && rest$437[0] && rest$437[0].token.type === parser$125.Token.Punctuator && rest$437[0].token.value === '*' && rest$437[1] && rest$437[1].token.type === parser$125.Token.Delimiter && rest$437[1].token.value === '()' && rest$437[2] && rest$437[2].token.type === parser$125.Token.Delimiter && rest$437[2].token.value === '{}') {
-                    rest$437[1].token.inner = rest$437[1].expose().token.inner;
-                    rest$437[2].token.inner = rest$437[2].expose().token.inner;
-                    return step$435(AnonFun$257.create(head$436, rest$437[0], rest$437[1], rest$437[2]), rest$437.slice(3));
+                else if (head$481.token.type === parser$170.Token.Keyword && head$481.token.value === 'function' && rest$482[0] && rest$482[0].token.type === parser$170.Token.Punctuator && rest$482[0].token.value === '*' && rest$482[1] && rest$482[1].token.type === parser$170.Token.Delimiter && rest$482[1].token.value === '()' && rest$482[2] && rest$482[2].token.type === parser$170.Token.Delimiter && rest$482[2].token.value === '{}') {
+                    rest$482[1].token.inner = rest$482[1].expose().token.inner;
+                    rest$482[2].token.inner = rest$482[2].expose().token.inner;
+                    return step$480(AnonFun$302.create(head$481, rest$482[0], rest$482[1], rest$482[2]), rest$482.slice(3));
                 }    // arrow function
-                else if ((head$436.token.type === parser$125.Token.Delimiter && head$436.token.value === '()' || head$436.token.type === parser$125.Token.Identifier) && rest$437[0] && rest$437[0].token.type === parser$125.Token.Punctuator && rest$437[0].token.value === '=>' && rest$437[1] && rest$437[1].token.type === parser$125.Token.Delimiter && rest$437[1].token.value === '{}') {
-                    return step$435(ArrowFun$258.create(head$436, rest$437[0], rest$437[1]), rest$437.slice(2));
+                else if ((head$481.token.type === parser$170.Token.Delimiter && head$481.token.value === '()' || head$481.token.type === parser$170.Token.Identifier) && rest$482[0] && rest$482[0].token.type === parser$170.Token.Punctuator && rest$482[0].token.value === '=>' && rest$482[1] && rest$482[1].token.type === parser$170.Token.Delimiter && rest$482[1].token.value === '{}') {
+                    return step$480(ArrowFun$303.create(head$481, rest$482[0], rest$482[1]), rest$482.slice(2));
                 }    // catch statement
-                else if (head$436.token.type === parser$125.Token.Keyword && head$436.token.value === 'catch' && rest$437[0] && rest$437[0].token.type === parser$125.Token.Delimiter && rest$437[0].token.value === '()' && rest$437[1] && rest$437[1].token.type === parser$125.Token.Delimiter && rest$437[1].token.value === '{}') {
-                    rest$437[0].token.inner = rest$437[0].expose().token.inner;
-                    rest$437[1].token.inner = rest$437[1].expose().token.inner;
-                    return step$435(CatchClause$270.create(head$436, rest$437[0], rest$437[1]), rest$437.slice(2));
+                else if (head$481.token.type === parser$170.Token.Keyword && head$481.token.value === 'catch' && rest$482[0] && rest$482[0].token.type === parser$170.Token.Delimiter && rest$482[0].token.value === '()' && rest$482[1] && rest$482[1].token.type === parser$170.Token.Delimiter && rest$482[1].token.value === '{}') {
+                    rest$482[0].token.inner = rest$482[0].expose().token.inner;
+                    rest$482[1].token.inner = rest$482[1].expose().token.inner;
+                    return step$480(CatchClause$315.create(head$481, rest$482[0], rest$482[1]), rest$482.slice(2));
                 }    // this expression
-                else if (head$436.token.type === parser$125.Token.Keyword && head$436.token.value === 'this') {
-                    return step$435(ThisExpression$242.create(head$436), rest$437);
+                else if (head$481.token.type === parser$170.Token.Keyword && head$481.token.value === 'this') {
+                    return step$480(ThisExpression$287.create(head$481), rest$482);
                 }    // literal
-                else if (head$436.token.type === parser$125.Token.NumericLiteral || head$436.token.type === parser$125.Token.StringLiteral || head$436.token.type === parser$125.Token.BooleanLiteral || head$436.token.type === parser$125.Token.RegularExpression || head$436.token.type === parser$125.Token.NullLiteral) {
-                    return step$435(Lit$243.create(head$436), rest$437);
+                else if (head$481.token.type === parser$170.Token.NumericLiteral || head$481.token.type === parser$170.Token.StringLiteral || head$481.token.type === parser$170.Token.BooleanLiteral || head$481.token.type === parser$170.Token.RegularExpression || head$481.token.type === parser$170.Token.NullLiteral) {
+                    return step$480(Lit$288.create(head$481), rest$482);
                 }    // export
-                else if (head$436.token.type === parser$125.Token.Keyword && head$436.token.value === 'export' && rest$437[0] && (rest$437[0].token.type === parser$125.Token.Identifier || rest$437[0].token.type === parser$125.Token.Keyword || rest$437[0].token.type === parser$125.Token.Punctuator)) {
-                    return step$435(Export$273.create(rest$437[0]), rest$437.slice(1));
+                else if (head$481.token.type === parser$170.Token.Keyword && head$481.token.value === 'export' && rest$482[0] && (rest$482[0].token.type === parser$170.Token.Identifier || rest$482[0].token.type === parser$170.Token.Keyword || rest$482[0].token.type === parser$170.Token.Punctuator)) {
+                    return step$480(Export$318.create(rest$482[0]), rest$482.slice(1));
                 }    // identifier
-                else if (head$436.token.type === parser$125.Token.Identifier) {
-                    return step$435(Id$255.create(head$436), rest$437);
+                else if (head$481.token.type === parser$170.Token.Identifier) {
+                    return step$480(Id$300.create(head$481), rest$482);
                 }    // punctuator
-                else if (head$436.token.type === parser$125.Token.Punctuator) {
-                    return step$435(Punc$253.create(head$436), rest$437);
-                } else if (head$436.token.type === parser$125.Token.Keyword && head$436.token.value === 'with') {
-                    throwError$215('with is not supported in sweet.js');
+                else if (head$481.token.type === parser$170.Token.Punctuator) {
+                    return step$480(Punc$298.create(head$481), rest$482);
+                } else if (head$481.token.type === parser$170.Token.Keyword && head$481.token.value === 'with') {
+                    throwError$260('with is not supported in sweet.js');
                 }    // keyword
-                else if (head$436.token.type === parser$125.Token.Keyword) {
-                    return step$435(Keyword$252.create(head$436), rest$437);
+                else if (head$481.token.type === parser$170.Token.Keyword) {
+                    return step$480(Keyword$297.create(head$481), rest$482);
                 }    // Delimiter
-                else if (head$436.token.type === parser$125.Token.Delimiter) {
-                    return step$435(Delimiter$254.create(head$436.expose()), rest$437);
+                else if (head$481.token.type === parser$170.Token.Delimiter) {
+                    return step$480(Delimiter$299.create(head$481.expose()), rest$482);
                 }    // end of file
-                else if (head$436.token.type === parser$125.Token.EOF) {
-                    parser$125.assert(rest$437.length === 0, 'nothing should be after an EOF');
-                    return step$435(EOF$238.create(head$436), []);
+                else if (head$481.token.type === parser$170.Token.EOF) {
+                    parser$170.assert(rest$482.length === 0, 'nothing should be after an EOF');
+                    return step$480(EOF$283.create(head$481), []);
                 } else {
                     // todo: are we missing cases?
-                    parser$125.assert(false, 'not implemented');
+                    parser$170.assert(false, 'not implemented');
                 }
             }
             // we're done stepping
             return {
-                result: head$436,
-                rest: rest$437
+                result: head$481,
+                rest: rest$482
             };
         }
-        return step$435(toks$433[0], toks$433.slice(1));
+        return step$480(toks$478[0], toks$478.slice(1));
     }
-    function get_expression$279(stx$509, context$510) {
-        var res$511 = enforest$278(stx$509, context$510);
-        if (!res$511.result.hasPrototype(Expr$240)) {
+    function get_expression$324(stx$554, context$555) {
+        var res$556 = enforest$323(stx$554, context$555);
+        if (!res$556.result.hasPrototype(Expr$285)) {
             return {
                 result: null,
-                rest: stx$509
+                rest: stx$554
             };
         }
-        return res$511;
+        return res$556;
     }
     // mark each syntax object in the pattern environment,
     // mutating the environment
-    function applyMarkToPatternEnv$280(newMark$512, env$513) {
+    function applyMarkToPatternEnv$325(newMark$557, env$558) {
         /*
         Takes a `match` object:
 
@@ -1032,164 +1032,164 @@
         where the match property is an array of syntax objects at the bottom (0) level.
         Does a depth-first search and applys the mark to each syntax object.
         */
-        function dfs$514(match$515) {
-            if (match$515.level === 0) {
+        function dfs$559(match$560) {
+            if (match$560.level === 0) {
                 // replace the match property with the marked syntax
-                match$515.match = _$124.map(match$515.match, function (stx$516) {
-                    return stx$516.mark(newMark$512);
+                match$560.match = _$169.map(match$560.match, function (stx$561) {
+                    return stx$561.mark(newMark$557);
                 });
             } else {
-                _$124.each(match$515.match, function (match$517) {
-                    dfs$514(match$517);
+                _$169.each(match$560.match, function (match$562) {
+                    dfs$559(match$562);
                 });
             }
         }
-        _$124.keys(env$513).forEach(function (key$518) {
-            dfs$514(env$513[key$518]);
+        _$169.keys(env$558).forEach(function (key$563) {
+            dfs$559(env$558[key$563]);
         });
     }
     // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
-    function loadMacroDef$281(mac$519, context$520) {
-        var body$521 = mac$519.body;
+    function loadMacroDef$326(mac$564, context$565) {
+        var body$566 = mac$564.body;
         // raw function primitive form
-        if (!(body$521[0] && body$521[0].token.type === parser$125.Token.Keyword && body$521[0].token.value === 'function')) {
-            throwError$215('Primitive macro form must contain a function for the macro body');
+        if (!(body$566[0] && body$566[0].token.type === parser$170.Token.Keyword && body$566[0].token.value === 'function')) {
+            throwError$260('Primitive macro form must contain a function for the macro body');
         }
-        var stub$522 = parser$125.read('()');
-        stub$522[0].token.inner = body$521;
-        var expanded$523 = expand$286(stub$522, context$520);
-        expanded$523 = expanded$523[0].destruct().concat(expanded$523[1].eof);
-        var flattend$524 = flatten$289(expanded$523);
-        var bodyCode$525 = codegen$131.generate(parser$125.parse(flattend$524));
-        var macroFn$526 = scopedEval$216(bodyCode$525, {
-                makeValue: syn$126.makeValue,
-                makeRegex: syn$126.makeRegex,
-                makeIdent: syn$126.makeIdent,
-                makeKeyword: syn$126.makeKeyword,
-                makePunc: syn$126.makePunc,
-                makeDelim: syn$126.makeDelim,
-                unwrapSyntax: syn$126.unwrapSyntax,
-                throwSyntaxError: syn$126.throwSyntaxError,
-                parser: parser$125,
-                _: _$124,
-                patternModule: patternModule$129,
-                getTemplate: function (id$527) {
-                    return cloneSyntaxArray$282(context$520.templateMap.get(id$527));
+        var stub$567 = parser$170.read('()');
+        stub$567[0].token.inner = body$566;
+        var expanded$568 = expand$331(stub$567, context$565);
+        expanded$568 = expanded$568[0].destruct().concat(expanded$568[1].eof);
+        var flattend$569 = flatten$334(expanded$568);
+        var bodyCode$570 = codegen$176.generate(parser$170.parse(flattend$569));
+        var macroFn$571 = scopedEval$261(bodyCode$570, {
+                makeValue: syn$171.makeValue,
+                makeRegex: syn$171.makeRegex,
+                makeIdent: syn$171.makeIdent,
+                makeKeyword: syn$171.makeKeyword,
+                makePunc: syn$171.makePunc,
+                makeDelim: syn$171.makeDelim,
+                unwrapSyntax: syn$171.unwrapSyntax,
+                throwSyntaxError: syn$171.throwSyntaxError,
+                parser: parser$170,
+                _: _$169,
+                patternModule: patternModule$174,
+                getTemplate: function (id$572) {
+                    return cloneSyntaxArray$327(context$565.templateMap.get(id$572));
                 },
-                applyMarkToPatternEnv: applyMarkToPatternEnv$280,
-                mergeMatches: function (newMatch$528, oldMatch$529) {
-                    newMatch$528.patternEnv = _$124.extend({}, oldMatch$529.patternEnv, newMatch$528.patternEnv);
-                    return newMatch$528;
+                applyMarkToPatternEnv: applyMarkToPatternEnv$325,
+                mergeMatches: function (newMatch$573, oldMatch$574) {
+                    newMatch$573.patternEnv = _$169.extend({}, oldMatch$574.patternEnv, newMatch$573.patternEnv);
+                    return newMatch$573;
                 }
             });
-        return macroFn$526;
+        return macroFn$571;
     }
-    function cloneSyntaxArray$282(arr$530) {
-        return arr$530.map(function (stx$531) {
-            var o$532 = syntaxFromToken$224(_$124.clone(stx$531.token), stx$531);
-            if (o$532.token.type === parser$125.Token.Delimiter) {
-                o$532.token.inner = cloneSyntaxArray$282(o$532.token.inner);
+    function cloneSyntaxArray$327(arr$575) {
+        return arr$575.map(function (stx$576) {
+            var o$577 = syntaxFromToken$269(_$169.clone(stx$576.token), stx$576);
+            if (o$577.token.type === parser$170.Token.Delimiter) {
+                o$577.token.inner = cloneSyntaxArray$327(o$577.token.inner);
             }
-            return o$532;
+            return o$577;
         });
     }
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
-    function expandToTermTree$283(stx$533, context$534) {
-        parser$125.assert(context$534, 'expander context is required');
+    function expandToTermTree$328(stx$578, context$579) {
+        parser$170.assert(context$579, 'expander context is required');
         // short circuit when syntax array is empty
-        if (stx$533.length === 0) {
+        if (stx$578.length === 0) {
             return {
                 terms: [],
-                context: context$534
+                context: context$579
             };
         }
-        parser$125.assert(stx$533[0].token, 'expecting a syntax object');
-        var f$535 = enforest$278(stx$533, context$534);
+        parser$170.assert(stx$578[0].token, 'expecting a syntax object');
+        var f$580 = enforest$323(stx$578, context$579);
         // head :: TermTree
-        var head$536 = f$535.result;
+        var head$581 = f$580.result;
         // rest :: [Syntax]
-        var rest$537 = f$535.rest;
-        if (head$536.hasPrototype(Macro$260)) {
+        var rest$582 = f$580.rest;
+        if (head$581.hasPrototype(Macro$305)) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition$539 = loadMacroDef$281(head$536, context$534);
-            addToDefinitionCtx$284([head$536.name], context$534.defscope, false);
-            context$534.env.set(resolve$228(head$536.name), { fn: macroDefinition$539 });
-            return expandToTermTree$283(rest$537, context$534);
+            var macroDefinition$584 = loadMacroDef$326(head$581, context$579);
+            addToDefinitionCtx$329([head$581.name], context$579.defscope, false);
+            context$579.env.set(resolve$273(head$581.name), { fn: macroDefinition$584 });
+            return expandToTermTree$328(rest$582, context$579);
         }
-        if (head$536.hasPrototype(LetMacro$259)) {
+        if (head$581.hasPrototype(LetMacro$304)) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition$539 = loadMacroDef$281(head$536, context$534);
-            var freshName$540 = fresh$234();
-            var renamedName$541 = head$536.name.rename(head$536.name, freshName$540);
-            rest$537 = _$124.map(rest$537, function (stx$542) {
-                return stx$542.rename(head$536.name, freshName$540);
+            var macroDefinition$584 = loadMacroDef$326(head$581, context$579);
+            var freshName$585 = fresh$279();
+            var renamedName$586 = head$581.name.rename(head$581.name, freshName$585);
+            rest$582 = _$169.map(rest$582, function (stx$587) {
+                return stx$587.rename(head$581.name, freshName$585);
             });
-            head$536.name = renamedName$541;
-            context$534.env.set(resolve$228(head$536.name), { fn: macroDefinition$539 });
-            return expandToTermTree$283(rest$537, context$534);
+            head$581.name = renamedName$586;
+            context$579.env.set(resolve$273(head$581.name), { fn: macroDefinition$584 });
+            return expandToTermTree$328(rest$582, context$579);
         }
-        if (head$536.hasPrototype(LetStatement$268) || head$536.hasPrototype(ConstStatement$269)) {
-            head$536.decls.forEach(function (decl$543) {
-                var freshName$544 = fresh$234();
-                var renamedDecl$545 = decl$543.ident.rename(decl$543.ident, freshName$544);
-                rest$537 = rest$537.map(function (stx$546) {
-                    return stx$546.rename(decl$543.ident, freshName$544);
+        if (head$581.hasPrototype(LetStatement$313) || head$581.hasPrototype(ConstStatement$314)) {
+            head$581.decls.forEach(function (decl$588) {
+                var freshName$589 = fresh$279();
+                var renamedDecl$590 = decl$588.ident.rename(decl$588.ident, freshName$589);
+                rest$582 = rest$582.map(function (stx$591) {
+                    return stx$591.rename(decl$588.ident, freshName$589);
                 });
-                decl$543.ident = renamedDecl$545;
+                decl$588.ident = renamedDecl$590;
             });
         }
-        if (head$536.hasPrototype(NamedFun$256)) {
-            addToDefinitionCtx$284([head$536.name], context$534.defscope, true);
+        if (head$581.hasPrototype(NamedFun$301)) {
+            addToDefinitionCtx$329([head$581.name], context$579.defscope, true);
         }
-        if (head$536.hasPrototype(Id$255) && head$536.id.token.value === '#quoteSyntax' && rest$537[0] && rest$537[0].token.value === '{}') {
-            var tempId$547 = fresh$234();
-            context$534.templateMap.set(tempId$547, rest$537[0].token.inner);
-            return expandToTermTree$283([
-                syn$126.makeIdent('getTemplate', head$536.id),
-                syn$126.makeDelim('()', [syn$126.makeValue(tempId$547, head$536.id)], head$536.id)
-            ].concat(rest$537.slice(1)), context$534);
+        if (head$581.hasPrototype(Id$300) && head$581.id.token.value === '#quoteSyntax' && rest$582[0] && rest$582[0].token.value === '{}') {
+            var tempId$592 = fresh$279();
+            context$579.templateMap.set(tempId$592, rest$582[0].token.inner);
+            return expandToTermTree$328([
+                syn$171.makeIdent('getTemplate', head$581.id),
+                syn$171.makeDelim('()', [syn$171.makeValue(tempId$592, head$581.id)], head$581.id)
+            ].concat(rest$582.slice(1)), context$579);
         }
-        if (head$536.hasPrototype(VariableStatement$267)) {
-            addToDefinitionCtx$284(_$124.map(head$536.decls, function (decl$548) {
-                return decl$548.ident;
-            }), context$534.defscope, true);
+        if (head$581.hasPrototype(VariableStatement$312)) {
+            addToDefinitionCtx$329(_$169.map(head$581.decls, function (decl$593) {
+                return decl$593.ident;
+            }), context$579.defscope, true);
         }
-        if (head$536.hasPrototype(Block$245) && head$536.body.hasPrototype(Delimiter$254)) {
-            head$536.body.delim.token.inner.forEach(function (term$549) {
-                if (term$549.hasPrototype(VariableStatement$267)) {
-                    addToDefinitionCtx$284(_$124.map(term$549.decls, function (decl$550) {
-                        return decl$550.ident;
-                    }), context$534.defscope, true);
+        if (head$581.hasPrototype(Block$290) && head$581.body.hasPrototype(Delimiter$299)) {
+            head$581.body.delim.token.inner.forEach(function (term$594) {
+                if (term$594.hasPrototype(VariableStatement$312)) {
+                    addToDefinitionCtx$329(_$169.map(term$594.decls, function (decl$595) {
+                        return decl$595.ident;
+                    }), context$579.defscope, true);
                 }
             });
         }
-        if (head$536.hasPrototype(Delimiter$254)) {
-            head$536.delim.token.inner.forEach(function (term$551) {
-                if (term$551.hasPrototype(VariableStatement$267)) {
-                    addToDefinitionCtx$284(_$124.map(term$551.decls, function (decl$552) {
-                        return decl$552.ident;
-                    }), context$534.defscope, true);
+        if (head$581.hasPrototype(Delimiter$299)) {
+            head$581.delim.token.inner.forEach(function (term$596) {
+                if (term$596.hasPrototype(VariableStatement$312)) {
+                    addToDefinitionCtx$329(_$169.map(term$596.decls, function (decl$597) {
+                        return decl$597.ident;
+                    }), context$579.defscope, true);
                 }
             });
         }
-        var trees$538 = expandToTermTree$283(rest$537, context$534);
+        var trees$583 = expandToTermTree$328(rest$582, context$579);
         return {
-            terms: [head$536].concat(trees$538.terms),
-            context: trees$538.context
+            terms: [head$581].concat(trees$583.terms),
+            context: trees$583.context
         };
     }
-    function addToDefinitionCtx$284(idents$553, defscope$554, skipRep$555) {
-        parser$125.assert(idents$553 && idents$553.length > 0, 'expecting some variable identifiers');
-        skipRep$555 = skipRep$555 || false;
-        _$124.each(idents$553, function (id$556) {
-            var skip$557 = false;
-            if (skipRep$555) {
-                var declRepeat$558 = _$124.find(defscope$554, function (def$559) {
-                        return def$559.id.token.value === id$556.token.value && arraysEqual$229(marksof$227(def$559.id.context), marksof$227(id$556.context));
+    function addToDefinitionCtx$329(idents$598, defscope$599, skipRep$600) {
+        parser$170.assert(idents$598 && idents$598.length > 0, 'expecting some variable identifiers');
+        skipRep$600 = skipRep$600 || false;
+        _$169.each(idents$598, function (id$601) {
+            var skip$602 = false;
+            if (skipRep$600) {
+                var declRepeat$603 = _$169.find(defscope$599, function (def$604) {
+                        return def$604.id.token.value === id$601.token.value && arraysEqual$274(marksof$272(def$604.id.context), marksof$272(id$601.context));
                     });
-                skip$557 = typeof declRepeat$558 !== 'undefined';
+                skip$602 = typeof declRepeat$603 !== 'undefined';
             }
             /* 
                When var declarations repeat in the same function scope:
@@ -1201,11 +1201,11 @@
                we just need to use the first renaming and leave the
                definition context as is.
             */
-            if (!skip$557) {
-                var name$560 = fresh$234();
-                defscope$554.push({
-                    id: id$556,
-                    name: name$560
+            if (!skip$602) {
+                var name$605 = fresh$279();
+                defscope$599.push({
+                    id: id$601,
+                    name: name$605
                 });
             }
         });
@@ -1213,162 +1213,162 @@
     // similar to `parse2` in the honu paper except here we
     // don't generate an AST yet
     // (TermTree, Map, Map) -> TermTree
-    function expandTermTreeToFinal$285(term$561, context$562) {
-        parser$125.assert(context$562 && context$562.env, 'environment map is required');
-        if (term$561.hasPrototype(ArrayLiteral$246)) {
-            term$561.array.delim.token.inner = expand$286(term$561.array.delim.expose().token.inner, context$562);
-            return term$561;
-        } else if (term$561.hasPrototype(Block$245)) {
-            term$561.body.delim.token.inner = expand$286(term$561.body.delim.expose().token.inner, context$562);
-            return term$561;
-        } else if (term$561.hasPrototype(ParenExpression$247)) {
-            term$561.expr.delim.token.inner = expand$286(term$561.expr.delim.expose().token.inner, context$562);
-            return term$561;
-        } else if (term$561.hasPrototype(Call$263)) {
-            term$561.fun = expandTermTreeToFinal$285(term$561.fun, context$562);
-            term$561.args = _$124.map(term$561.args, function (arg$563) {
-                return expandTermTreeToFinal$285(arg$563, context$562);
+    function expandTermTreeToFinal$330(term$606, context$607) {
+        parser$170.assert(context$607 && context$607.env, 'environment map is required');
+        if (term$606.hasPrototype(ArrayLiteral$291)) {
+            term$606.array.delim.token.inner = expand$331(term$606.array.delim.expose().token.inner, context$607);
+            return term$606;
+        } else if (term$606.hasPrototype(Block$290)) {
+            term$606.body.delim.token.inner = expand$331(term$606.body.delim.expose().token.inner, context$607);
+            return term$606;
+        } else if (term$606.hasPrototype(ParenExpression$292)) {
+            term$606.expr.delim.token.inner = expand$331(term$606.expr.delim.expose().token.inner, context$607);
+            return term$606;
+        } else if (term$606.hasPrototype(Call$308)) {
+            term$606.fun = expandTermTreeToFinal$330(term$606.fun, context$607);
+            term$606.args = _$169.map(term$606.args, function (arg$608) {
+                return expandTermTreeToFinal$330(arg$608, context$607);
             });
-            return term$561;
-        } else if (term$561.hasPrototype(UnaryOp$248)) {
-            term$561.expr = expandTermTreeToFinal$285(term$561.expr, context$562);
-            return term$561;
-        } else if (term$561.hasPrototype(BinOp$250)) {
-            term$561.left = expandTermTreeToFinal$285(term$561.left, context$562);
-            term$561.right = expandTermTreeToFinal$285(term$561.right, context$562);
-            return term$561;
-        } else if (term$561.hasPrototype(ObjGet$265)) {
-            term$561.right.delim.token.inner = expand$286(term$561.right.delim.expose().token.inner, context$562);
-            return term$561;
-        } else if (term$561.hasPrototype(ObjDotGet$264)) {
-            term$561.left = expandTermTreeToFinal$285(term$561.left, context$562);
-            term$561.right = expandTermTreeToFinal$285(term$561.right, context$562);
-            return term$561;
-        } else if (term$561.hasPrototype(VariableDeclaration$266)) {
-            if (term$561.init) {
-                term$561.init = expandTermTreeToFinal$285(term$561.init, context$562);
+            return term$606;
+        } else if (term$606.hasPrototype(UnaryOp$293)) {
+            term$606.expr = expandTermTreeToFinal$330(term$606.expr, context$607);
+            return term$606;
+        } else if (term$606.hasPrototype(BinOp$295)) {
+            term$606.left = expandTermTreeToFinal$330(term$606.left, context$607);
+            term$606.right = expandTermTreeToFinal$330(term$606.right, context$607);
+            return term$606;
+        } else if (term$606.hasPrototype(ObjGet$310)) {
+            term$606.right.delim.token.inner = expand$331(term$606.right.delim.expose().token.inner, context$607);
+            return term$606;
+        } else if (term$606.hasPrototype(ObjDotGet$309)) {
+            term$606.left = expandTermTreeToFinal$330(term$606.left, context$607);
+            term$606.right = expandTermTreeToFinal$330(term$606.right, context$607);
+            return term$606;
+        } else if (term$606.hasPrototype(VariableDeclaration$311)) {
+            if (term$606.init) {
+                term$606.init = expandTermTreeToFinal$330(term$606.init, context$607);
             }
-            return term$561;
-        } else if (term$561.hasPrototype(VariableStatement$267)) {
-            term$561.decls = _$124.map(term$561.decls, function (decl$564) {
-                return expandTermTreeToFinal$285(decl$564, context$562);
+            return term$606;
+        } else if (term$606.hasPrototype(VariableStatement$312)) {
+            term$606.decls = _$169.map(term$606.decls, function (decl$609) {
+                return expandTermTreeToFinal$330(decl$609, context$607);
             });
-            return term$561;
-        } else if (term$561.hasPrototype(Delimiter$254)) {
+            return term$606;
+        } else if (term$606.hasPrototype(Delimiter$299)) {
             // expand inside the delimiter and then continue on
-            term$561.delim.token.inner = expand$286(term$561.delim.expose().token.inner, context$562);
-            return term$561;
-        } else if (term$561.hasPrototype(NamedFun$256) || term$561.hasPrototype(AnonFun$257) || term$561.hasPrototype(CatchClause$270) || term$561.hasPrototype(ArrowFun$258) || term$561.hasPrototype(Module$271)) {
+            term$606.delim.token.inner = expand$331(term$606.delim.expose().token.inner, context$607);
+            return term$606;
+        } else if (term$606.hasPrototype(NamedFun$301) || term$606.hasPrototype(AnonFun$302) || term$606.hasPrototype(CatchClause$315) || term$606.hasPrototype(ArrowFun$303) || term$606.hasPrototype(Module$316)) {
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
-            var newDef$565 = [];
-            var bodyContext$566 = makeExpanderContext$287(_$124.defaults({ defscope: newDef$565 }, context$562));
-            var paramSingleIdent$567 = term$561.params && term$561.params.token.type === parser$125.Token.Identifier;
-            if (term$561.params && term$561.params.token.type === parser$125.Token.Delimiter) {
-                var params$574 = term$561.params.expose();
-            } else if (paramSingleIdent$567) {
-                var params$574 = term$561.params;
+            var newDef$610 = [];
+            var bodyContext$611 = makeExpanderContext$332(_$169.defaults({ defscope: newDef$610 }, context$607));
+            var paramSingleIdent$612 = term$606.params && term$606.params.token.type === parser$170.Token.Identifier;
+            if (term$606.params && term$606.params.token.type === parser$170.Token.Delimiter) {
+                var params$619 = term$606.params.expose();
+            } else if (paramSingleIdent$612) {
+                var params$619 = term$606.params;
             } else {
-                var params$574 = syn$126.makeDelim('()', [], null);
+                var params$619 = syn$171.makeDelim('()', [], null);
             }
-            if (Array.isArray(term$561.body)) {
-                var bodies$575 = syn$126.makeDelim('{}', term$561.body, null);
+            if (Array.isArray(term$606.body)) {
+                var bodies$620 = syn$171.makeDelim('{}', term$606.body, null);
             } else {
-                var bodies$575 = term$561.body;
+                var bodies$620 = term$606.body;
             }
-            bodies$575 = bodies$575.addDefCtx(newDef$565);
-            var paramNames$568 = _$124.map(getParamIdentifiers$236(params$574), function (param$576) {
-                    var freshName$577 = fresh$234();
+            bodies$620 = bodies$620.addDefCtx(newDef$610);
+            var paramNames$613 = _$169.map(getParamIdentifiers$281(params$619), function (param$621) {
+                    var freshName$622 = fresh$279();
                     return {
-                        freshName: freshName$577,
-                        originalParam: param$576,
-                        renamedParam: param$576.rename(param$576, freshName$577)
+                        freshName: freshName$622,
+                        originalParam: param$621,
+                        renamedParam: param$621.rename(param$621, freshName$622)
                     };
                 });
             // rename the function body for each of the parameters
-            var renamedBody$569 = _$124.reduce(paramNames$568, function (accBody$578, p$579) {
-                    return accBody$578.rename(p$579.originalParam, p$579.freshName);
-                }, bodies$575);
-            renamedBody$569 = renamedBody$569.expose();
-            var expandedResult$570 = expandToTermTree$283(renamedBody$569.token.inner, bodyContext$566);
-            var bodyTerms$571 = expandedResult$570.terms;
-            var renamedParams$572 = _$124.map(paramNames$568, function (p$580) {
-                    return p$580.renamedParam;
+            var renamedBody$614 = _$169.reduce(paramNames$613, function (accBody$623, p$624) {
+                    return accBody$623.rename(p$624.originalParam, p$624.freshName);
+                }, bodies$620);
+            renamedBody$614 = renamedBody$614.expose();
+            var expandedResult$615 = expandToTermTree$328(renamedBody$614.token.inner, bodyContext$611);
+            var bodyTerms$616 = expandedResult$615.terms;
+            var renamedParams$617 = _$169.map(paramNames$613, function (p$625) {
+                    return p$625.renamedParam;
                 });
-            if (paramSingleIdent$567) {
-                var flatArgs$581 = renamedParams$572[0];
+            if (paramSingleIdent$612) {
+                var flatArgs$626 = renamedParams$617[0];
             } else {
-                var flatArgs$581 = syn$126.makeDelim('()', joinSyntax$225(renamedParams$572, ','), term$561.params);
+                var flatArgs$626 = syn$171.makeDelim('()', joinSyntax$270(renamedParams$617, ','), term$606.params);
             }
-            var expandedArgs$573 = expand$286([flatArgs$581], bodyContext$566);
-            parser$125.assert(expandedArgs$573.length === 1, 'should only get back one result');
+            var expandedArgs$618 = expand$331([flatArgs$626], bodyContext$611);
+            parser$170.assert(expandedArgs$618.length === 1, 'should only get back one result');
             // stitch up the function with all the renamings
-            if (term$561.params) {
-                term$561.params = expandedArgs$573[0];
+            if (term$606.params) {
+                term$606.params = expandedArgs$618[0];
             }
-            bodyTerms$571 = _$124.map(bodyTerms$571, function (bodyTerm$582) {
+            bodyTerms$616 = _$169.map(bodyTerms$616, function (bodyTerm$627) {
                 // add the definition context to the result of
                 // expansion (this makes sure that syntax objects
                 // introduced by expansion have the def context)
-                var termWithCtx$583 = bodyTerm$582.addDefCtx(newDef$565);
+                var termWithCtx$628 = bodyTerm$627.addDefCtx(newDef$610);
                 // finish expansion
-                return expandTermTreeToFinal$285(termWithCtx$583, expandedResult$570.context);
+                return expandTermTreeToFinal$330(termWithCtx$628, expandedResult$615.context);
             });
-            if (term$561.hasPrototype(Module$271)) {
-                bodyTerms$571 = _$124.filter(bodyTerms$571, function (bodyTerm$584) {
-                    if (bodyTerm$584.hasPrototype(Export$273)) {
-                        term$561.exports.push(bodyTerm$584);
+            if (term$606.hasPrototype(Module$316)) {
+                bodyTerms$616 = _$169.filter(bodyTerms$616, function (bodyTerm$629) {
+                    if (bodyTerm$629.hasPrototype(Export$318)) {
+                        term$606.exports.push(bodyTerm$629);
                         return false;
                     } else {
                         return true;
                     }
                 });
             }
-            renamedBody$569.token.inner = bodyTerms$571;
-            if (Array.isArray(term$561.body)) {
-                term$561.body = renamedBody$569.token.inner;
+            renamedBody$614.token.inner = bodyTerms$616;
+            if (Array.isArray(term$606.body)) {
+                term$606.body = renamedBody$614.token.inner;
             } else {
-                term$561.body = renamedBody$569;
+                term$606.body = renamedBody$614;
             }
             // and continue expand the rest
-            return term$561;
+            return term$606;
         }
         // the term is fine as is
-        return term$561;
+        return term$606;
     }
     // similar to `parse` in the honu paper
     // ([Syntax], Map, Map) -> [TermTree]
-    function expand$286(stx$585, context$586) {
-        parser$125.assert(context$586, 'must provide an expander context');
-        var trees$587 = expandToTermTree$283(stx$585, context$586);
-        return _$124.map(trees$587.terms, function (term$588) {
-            return expandTermTreeToFinal$285(term$588, trees$587.context);
+    function expand$331(stx$630, context$631) {
+        parser$170.assert(context$631, 'must provide an expander context');
+        var trees$632 = expandToTermTree$328(stx$630, context$631);
+        return _$169.map(trees$632.terms, function (term$633) {
+            return expandTermTreeToFinal$330(term$633, trees$632.context);
         });
     }
-    function makeExpanderContext$287(o$589) {
-        o$589 = o$589 || {};
+    function makeExpanderContext$332(o$634) {
+        o$634 = o$634 || {};
         // read-only but can enumerate
         return Object.create(Object.prototype, {
             env: {
-                value: o$589.env || new Map(),
+                value: o$634.env || new Map(),
                 writable: false,
                 enumerable: true,
                 configurable: false
             },
             defscope: {
-                value: o$589.defscope,
+                value: o$634.defscope,
                 writable: false,
                 enumerable: true,
                 configurable: false
             },
             templateMap: {
-                value: o$589.templateMap || new Map(),
+                value: o$634.templateMap || new Map(),
                 writable: false,
                 enumerable: true,
                 configurable: false
             },
             mark: {
-                value: o$589.mark,
+                value: o$634.mark,
                 writable: false,
                 enumerable: true,
                 configurable: false
@@ -1376,91 +1376,91 @@
         });
     }
     // a hack to make the top level hygiene work out
-    function expandTopLevel$288(stx$590, builtinSource$591) {
-        var env$592 = new Map();
-        var params$593 = [];
-        var context$594, builtInContext$595 = makeExpanderContext$287({ env: env$592 });
+    function expandTopLevel$333(stx$635, builtinSource$636) {
+        var env$637 = new Map();
+        var params$638 = [];
+        var context$639, builtInContext$640 = makeExpanderContext$332({ env: env$637 });
         /*
         var testing = expand(parser.read("(function () {var foo; function bar(foo) { foo; }})"), makeExpanderContext());
         testing = flatten(testing[0].destruct()).concat(testing[1].eof);
         testing = parser.parse(testing);
         testing = codegen.generate(testing);
         */
-        if (builtinSource$591) {
-            var builtinRead$598 = parser$125.read(builtinSource$591);
-            builtinRead$598 = [
-                syn$126.makeIdent('module', null),
-                syn$126.makeDelim('{}', builtinRead$598, null)
+        if (builtinSource$636) {
+            var builtinRead$643 = parser$170.read(builtinSource$636);
+            builtinRead$643 = [
+                syn$171.makeIdent('module', null),
+                syn$171.makeDelim('{}', builtinRead$643, null)
             ];
-            var builtinRes$599 = expand$286(builtinRead$598, builtInContext$595);
-            params$593 = _$124.map(builtinRes$599[0].exports, function (term$600) {
+            var builtinRes$644 = expand$331(builtinRead$643, builtInContext$640);
+            params$638 = _$169.map(builtinRes$644[0].exports, function (term$645) {
                 return {
-                    oldExport: term$600.name,
-                    newParam: syn$126.makeIdent(term$600.name.token.value, null)
+                    oldExport: term$645.name,
+                    newParam: syn$171.makeIdent(term$645.name.token.value, null)
                 };
             });
         }
-        var modBody$596 = syn$126.makeDelim('{}', stx$590, null);
-        modBody$596 = _$124.reduce(params$593, function (acc$601, param$602) {
-            var newName$603 = fresh$234();
-            env$592.set(resolve$228(param$602.newParam.rename(param$602.newParam, newName$603)), env$592.get(resolve$228(param$602.oldExport)));
-            return acc$601.rename(param$602.newParam, newName$603);
-        }, modBody$596);
-        context$594 = makeExpanderContext$287({ env: env$592 });
-        var res$597 = expand$286([
-                syn$126.makeIdent('module', null),
-                modBody$596
-            ], context$594);
-        res$597 = res$597[0].destruct();
-        return flatten$289(res$597[0].token.inner);
+        var modBody$641 = syn$171.makeDelim('{}', stx$635, null);
+        modBody$641 = _$169.reduce(params$638, function (acc$646, param$647) {
+            var newName$648 = fresh$279();
+            env$637.set(resolve$273(param$647.newParam.rename(param$647.newParam, newName$648)), env$637.get(resolve$273(param$647.oldExport)));
+            return acc$646.rename(param$647.newParam, newName$648);
+        }, modBody$641);
+        context$639 = makeExpanderContext$332({ env: env$637 });
+        var res$642 = expand$331([
+                syn$171.makeIdent('module', null),
+                modBody$641
+            ], context$639);
+        res$642 = res$642[0].destruct();
+        return flatten$334(res$642[0].token.inner);
     }
     // break delimiter tree structure down to flat array of syntax objects
-    function flatten$289(stx$604) {
-        return _$124.reduce(stx$604, function (acc$605, stx$606) {
-            if (stx$606.token.type === parser$125.Token.Delimiter) {
-                var exposed$607 = stx$606.expose();
-                var openParen$608 = syntaxFromToken$224({
-                        type: parser$125.Token.Punctuator,
-                        value: stx$606.token.value[0],
-                        range: stx$606.token.startRange,
-                        sm_range: typeof stx$606.token.sm_startRange == 'undefined' ? stx$606.token.startRange : stx$606.token.sm_startRange,
-                        lineNumber: stx$606.token.startLineNumber,
-                        sm_lineNumber: typeof stx$606.token.sm_startLineNumber == 'undefined' ? stx$606.token.startLineNumber : stx$606.token.sm_startLineNumber,
-                        lineStart: stx$606.token.startLineStart,
-                        sm_lineStart: typeof stx$606.token.sm_startLineStart == 'undefined' ? stx$606.token.startLineStart : stx$606.token.sm_startLineStart
-                    }, exposed$607);
-                var closeParen$609 = syntaxFromToken$224({
-                        type: parser$125.Token.Punctuator,
-                        value: stx$606.token.value[1],
-                        range: stx$606.token.endRange,
-                        sm_range: typeof stx$606.token.sm_endRange == 'undefined' ? stx$606.token.endRange : stx$606.token.sm_endRange,
-                        lineNumber: stx$606.token.endLineNumber,
-                        sm_lineNumber: typeof stx$606.token.sm_endLineNumber == 'undefined' ? stx$606.token.endLineNumber : stx$606.token.sm_endLineNumber,
-                        lineStart: stx$606.token.endLineStart,
-                        sm_lineStart: typeof stx$606.token.sm_endLineStart == 'undefined' ? stx$606.token.endLineStart : stx$606.token.sm_endLineStart
-                    }, exposed$607);
-                if (stx$606.token.leadingComments) {
-                    openParen$608.token.leadingComments = stx$606.token.leadingComments;
+    function flatten$334(stx$649) {
+        return _$169.reduce(stx$649, function (acc$650, stx$651) {
+            if (stx$651.token.type === parser$170.Token.Delimiter) {
+                var exposed$652 = stx$651.expose();
+                var openParen$653 = syntaxFromToken$269({
+                        type: parser$170.Token.Punctuator,
+                        value: stx$651.token.value[0],
+                        range: stx$651.token.startRange,
+                        sm_range: typeof stx$651.token.sm_startRange == 'undefined' ? stx$651.token.startRange : stx$651.token.sm_startRange,
+                        lineNumber: stx$651.token.startLineNumber,
+                        sm_lineNumber: typeof stx$651.token.sm_startLineNumber == 'undefined' ? stx$651.token.startLineNumber : stx$651.token.sm_startLineNumber,
+                        lineStart: stx$651.token.startLineStart,
+                        sm_lineStart: typeof stx$651.token.sm_startLineStart == 'undefined' ? stx$651.token.startLineStart : stx$651.token.sm_startLineStart
+                    }, exposed$652);
+                var closeParen$654 = syntaxFromToken$269({
+                        type: parser$170.Token.Punctuator,
+                        value: stx$651.token.value[1],
+                        range: stx$651.token.endRange,
+                        sm_range: typeof stx$651.token.sm_endRange == 'undefined' ? stx$651.token.endRange : stx$651.token.sm_endRange,
+                        lineNumber: stx$651.token.endLineNumber,
+                        sm_lineNumber: typeof stx$651.token.sm_endLineNumber == 'undefined' ? stx$651.token.endLineNumber : stx$651.token.sm_endLineNumber,
+                        lineStart: stx$651.token.endLineStart,
+                        sm_lineStart: typeof stx$651.token.sm_endLineStart == 'undefined' ? stx$651.token.endLineStart : stx$651.token.sm_endLineStart
+                    }, exposed$652);
+                if (stx$651.token.leadingComments) {
+                    openParen$653.token.leadingComments = stx$651.token.leadingComments;
                 }
-                if (stx$606.token.trailingComments) {
-                    openParen$608.token.trailingComments = stx$606.token.trailingComments;
+                if (stx$651.token.trailingComments) {
+                    openParen$653.token.trailingComments = stx$651.token.trailingComments;
                 }
-                return acc$605.concat(openParen$608).concat(flatten$289(exposed$607.token.inner)).concat(closeParen$609);
+                return acc$650.concat(openParen$653).concat(flatten$334(exposed$652.token.inner)).concat(closeParen$654);
             }
-            stx$606.token.sm_lineNumber = stx$606.token.sm_lineNumber ? stx$606.token.sm_lineNumber : stx$606.token.lineNumber;
-            stx$606.token.sm_lineStart = stx$606.token.sm_lineStart ? stx$606.token.sm_lineStart : stx$606.token.lineStart;
-            stx$606.token.sm_range = stx$606.token.sm_range ? stx$606.token.sm_range : stx$606.token.range;
-            return acc$605.concat(stx$606);
+            stx$651.token.sm_lineNumber = stx$651.token.sm_lineNumber ? stx$651.token.sm_lineNumber : stx$651.token.lineNumber;
+            stx$651.token.sm_lineStart = stx$651.token.sm_lineStart ? stx$651.token.sm_lineStart : stx$651.token.lineStart;
+            stx$651.token.sm_range = stx$651.token.sm_range ? stx$651.token.sm_range : stx$651.token.range;
+            return acc$650.concat(stx$651);
         }, []);
     }
-    exports$123.enforest = enforest$278;
-    exports$123.expand = expandTopLevel$288;
-    exports$123.resolve = resolve$228;
-    exports$123.get_expression = get_expression$279;
-    exports$123.makeExpanderContext = makeExpanderContext$287;
-    exports$123.Expr = Expr$240;
-    exports$123.VariableStatement = VariableStatement$267;
-    exports$123.tokensToSyntax = syn$126.tokensToSyntax;
-    exports$123.syntaxToTokens = syn$126.syntaxToTokens;
+    exports$168.enforest = enforest$323;
+    exports$168.expand = expandTopLevel$333;
+    exports$168.resolve = resolve$273;
+    exports$168.get_expression = get_expression$324;
+    exports$168.makeExpanderContext = makeExpanderContext$332;
+    exports$168.Expr = Expr$285;
+    exports$168.VariableStatement = VariableStatement$312;
+    exports$168.tokensToSyntax = syn$171.tokensToSyntax;
+    exports$168.syntaxToTokens = syn$171.syntaxToTokens;
 }));
 //# sourceMappingURL=expander.js.map

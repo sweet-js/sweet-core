@@ -431,4 +431,30 @@ let withSyntax = macro {
     }
 }
 
-export withSyntax
+export withSyntax;
+
+let function = macro {
+    case {_ $name $params { $body ... } } => {
+        return withSyntax ($arguments = [makeIdent("arguments", null)]) {
+            return #{
+                function $name $params {
+                    var arguments = $arguments;
+                    $body ...
+                }
+            }
+        }
+    }
+
+    case {_ $params { $body ... } } => {
+        return withSyntax ($arguments = [makeIdent("arguments", null)]) {
+            return #{
+                function $params {
+                    var arguments = $arguments;
+                    $body ...
+                }
+            }
+        }
+    }
+}
+// export function;
+
