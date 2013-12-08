@@ -430,14 +430,14 @@ macro withSyntax_unzip {
             withSyntax_unzip $name ($ps ... ($p $punc)) ($es ... ($e)) ($rest ...) $body
         };
     }
-    case { $name ($ps ...) ($es ...) ($p $punc = $e:expr) $body } => {
+    case { _ $name ($ps ...) ($es ...) ($p $punc = $e:expr) $body } => {
         var punc = #{$punc};
         if (punc[0].token.type !== parser.Token.Punctuator ||
             punc[0].token.value !== "...") {
             throwSyntaxError("withSyntax", "Unexpected token", punc);
         }
         return #{
-            withSyntax_unip $name ($ps ... ($p $punc)) ($es ... ($e)) () $body
+            withSyntax_unzip $name ($ps ... ($p $punc)) ($es ... ($e)) () $body
         };
     }
     case { _ $name ($ps ...) ($es ...) () $body } => {
