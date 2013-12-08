@@ -340,13 +340,13 @@
                     //     }
                     // }
 
-                    if (rest[0] && rest[0].token.value === pattern.separator) {
-                        // more tokens and the next token matches the separator
-                        rest = rest.slice(1);
-                    } else if (pattern.separator === " ") {
+                    if (pattern.separator === " ") {
                         // no separator specified (using the empty string for this)
                         // so keep going
                         continue;
+                    } else if (rest[0] && rest[0].token.value === pattern.separator) {
+                        // more tokens and the next token matches the separator
+                        rest = rest.slice(1);
                     } else if ((pattern.separator !== " ") &&
                                 (rest.length > 0) &&
                                 (i === patterns.length - 1) &&
