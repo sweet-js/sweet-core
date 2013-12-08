@@ -1216,7 +1216,14 @@
                     // pull the macro transformer out the environment
                     var transformer = context.env.get(resolve(head)).fn;
                     // apply the transformer
-                    var rt = transformer([head].concat(rest), transformerContext);
+                    try {
+                        var rt = transformer([head].concat(rest), transformerContext);
+                    } catch (e) {
+                        var argumentString = "`" + rest.slice(0, 5).map(function(stx) {
+                            return stx.token.value;
+                        }).join(" ") + "...`";
+                        throwError("Macro `" + head.token.value + "` could not be matched with " + argumentString);
+                    }
                     if(!Array.isArray(rt.result)) {
                         throwError("Macro transformer must return a result array, not: "
                                    + rt.result);
