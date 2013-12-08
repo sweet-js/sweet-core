@@ -1,74 +1,74 @@
-var fs$1879 = require('fs');
-var path$1880 = require('path');
-var sweet$1881 = require('./sweet.js');
-var argv$1882 = require('optimist').usage('Usage: sjs [options] path/to/file.js').alias('o', 'output').describe('o', 'Output file path').alias('m', 'module').describe('m', 'use a module file for loading macro definitions. Use ./ or ../ for relative path otherwise looks up in installed npm packages').alias('w', 'watch').describe('w', 'watch a file').boolean('watch').alias('t', 'tokens').describe('t', 'just emit the expanded tokens without parsing an AST').alias('p', 'no-parse').describe('p', 'print out the expanded result but do not run through the parser (or apply hygienic renamings)').boolean('no-parse').alias('s', 'stdin').describe('s', 'read from stdin').boolean('stdin').alias('c', 'sourcemap').describe('c', 'generate a sourcemap').boolean('sourcemap').argv;
+var fs$2043 = require('fs');
+var path$2044 = require('path');
+var sweet$2045 = require('./sweet.js');
+var argv$2046 = require('optimist').usage('Usage: sjs [options] path/to/file.js').alias('o', 'output').describe('o', 'Output file path').alias('m', 'module').describe('m', 'use a module file for loading macro definitions. Use ./ or ../ for relative path otherwise looks up in installed npm packages').alias('w', 'watch').describe('w', 'watch a file').boolean('watch').alias('t', 'tokens').describe('t', 'just emit the expanded tokens without parsing an AST').alias('p', 'no-parse').describe('p', 'print out the expanded result but do not run through the parser (or apply hygienic renamings)').boolean('no-parse').alias('s', 'stdin').describe('s', 'read from stdin').boolean('stdin').alias('c', 'sourcemap').describe('c', 'generate a sourcemap').boolean('sourcemap').argv;
 exports.run = function () {
-    var infile$1883 = argv$1882._[0];
-    var outfile$1884 = argv$1882.output;
-    var watch$1885 = argv$1882.watch;
-    var tokens$1886 = argv$1882.tokens;
-    var sourcemap$1887 = argv$1882.sourcemap;
-    var noparse$1888 = argv$1882['no-parse'];
-    var file$1889;
-    var globalMacros$1890;
-    if (infile$1883) {
-        file$1889 = fs$1879.readFileSync(infile$1883, 'utf8');
-    } else if (argv$1882.stdin) {
-        file$1889 = fs$1879.readFileSync('/dev/stdin', 'utf8');
-    } else if (argv$1882._.length === 0) {
+    var infile$2047 = argv$2046._[0];
+    var outfile$2048 = argv$2046.output;
+    var watch$2049 = argv$2046.watch;
+    var tokens$2050 = argv$2046.tokens;
+    var sourcemap$2051 = argv$2046.sourcemap;
+    var noparse$2052 = argv$2046['no-parse'];
+    var file$2053;
+    var globalMacros$2054;
+    if (infile$2047) {
+        file$2053 = fs$2043.readFileSync(infile$2047, 'utf8');
+    } else if (argv$2046.stdin) {
+        file$2053 = fs$2043.readFileSync('/dev/stdin', 'utf8');
+    } else if (argv$2046._.length === 0) {
         console.log(require('optimist').help());
         return;
     }
-    var mod$1891 = argv$1882.module;
-    var cwd$1892 = process.cwd();
-    var Module$1893 = module.constructor;
-    var modulemock$1894;
-    if (mod$1891) {
-        modulemock$1894 = {
-            id: cwd$1892 + '/$sweet-loader.js',
+    var mod$2055 = argv$2046.module;
+    var cwd$2056 = process.cwd();
+    var Module$2057 = module.constructor;
+    var modulemock$2058;
+    if (mod$2055) {
+        modulemock$2058 = {
+            id: cwd$2056 + '/$sweet-loader.js',
             filename: '$sweet-loader.js',
-            paths: /^\.\/|\.\./.test(cwd$1892) ? [cwd$1892] : Module$1893._nodeModulePaths(cwd$1892)
+            paths: /^\.\/|\.\./.test(cwd$2056) ? [cwd$2056] : Module$2057._nodeModulePaths(cwd$2056)
         };
-        if (typeof mod$1891 === 'string') {
-            mod$1891 = [mod$1891];
+        if (typeof mod$2055 === 'string') {
+            mod$2055 = [mod$2055];
         }
-        globalMacros$1890 = mod$1891.reduceRight(function (f$1895, m$1896) {
-            var modulepath$1897 = Module$1893._resolveFilename(m$1896, modulemock$1894);
-            var modulefile$1898 = fs$1879.readFileSync(modulepath$1897, 'utf8');
-            return modulefile$1898 + '\n' + f$1895;
+        globalMacros$2054 = mod$2055.reduceRight(function (f$2059, m$2060) {
+            var modulepath$2061 = Module$2057._resolveFilename(m$2060, modulemock$2058);
+            var modulefile$2062 = fs$2043.readFileSync(modulepath$2061, 'utf8');
+            return modulefile$2062 + '\n' + f$2059;
         }, '');
     }
-    if (watch$1885 && outfile$1884) {
-        fs$1879.watch(infile$1883, function () {
-            file$1889 = fs$1879.readFileSync(infile$1883, 'utf8');
+    if (watch$2049 && outfile$2048) {
+        fs$2043.watch(infile$2047, function () {
+            file$2053 = fs$2043.readFileSync(infile$2047, 'utf8');
             try {
-                fs$1879.writeFileSync(outfile$1884, sweet$1881.compile(file$1889, { macros: globalMacros$1890 }).code, 'utf8');
-            } catch (e$1899) {
-                console.log(e$1899);
+                fs$2043.writeFileSync(outfile$2048, sweet$2045.compile(file$2053, { macros: globalMacros$2054 }).code, 'utf8');
+            } catch (e$2063) {
+                console.log(e$2063);
             }
         });
-    } else if (outfile$1884) {
-        if (sourcemap$1887) {
-            var result$1900 = sweet$1881.compile(file$1889, {
+    } else if (outfile$2048) {
+        if (sourcemap$2051) {
+            var result$2064 = sweet$2045.compile(file$2053, {
                     sourceMap: true,
-                    filename: infile$1883,
-                    macros: globalMacros$1890
+                    filename: infile$2047,
+                    macros: globalMacros$2054
                 });
-            var mapfile$1901 = path$1880.basename(outfile$1884) + '.map';
-            fs$1879.writeFileSync(outfile$1884, result$1900.code + '\n//# sourceMappingURL=' + mapfile$1901, 'utf8');
-            fs$1879.writeFileSync(outfile$1884 + '.map', result$1900.sourceMap, 'utf8');
+            var mapfile$2065 = path$2044.basename(outfile$2048) + '.map';
+            fs$2043.writeFileSync(outfile$2048, result$2064.code + '\n//# sourceMappingURL=' + mapfile$2065, 'utf8');
+            fs$2043.writeFileSync(outfile$2048 + '.map', result$2064.sourceMap, 'utf8');
         } else {
-            fs$1879.writeFileSync(outfile$1884, sweet$1881.compile(file$1889).code, 'utf8');
+            fs$2043.writeFileSync(outfile$2048, sweet$2045.compile(file$2053).code, 'utf8');
         }
-    } else if (tokens$1886) {
-        console.log(sweet$1881.expand(file$1889, globalMacros$1890));
-    } else if (noparse$1888) {
-        var unparsedString$1902 = sweet$1881.expand(file$1889, globalMacros$1890).reduce(function (acc$1903, stx$1904) {
-                return acc$1903 + ' ' + stx$1904.token.value;
+    } else if (tokens$2050) {
+        console.log(sweet$2045.expand(file$2053, globalMacros$2054));
+    } else if (noparse$2052) {
+        var unparsedString$2066 = sweet$2045.expand(file$2053, globalMacros$2054).reduce(function (acc$2067, stx$2068) {
+                return acc$2067 + ' ' + stx$2068.token.value;
             }, '');
-        console.log(unparsedString$1902);
+        console.log(unparsedString$2066);
     } else {
-        console.log(sweet$1881.compile(file$1889, { macros: globalMacros$1890 }).code);
+        console.log(sweet$2045.compile(file$2053, { macros: globalMacros$2054 }).code);
     }
 };
 //# sourceMappingURL=sjs.js.map
