@@ -1159,6 +1159,17 @@
                     Delimiter(delim) | (head.delim.token.value === "{}") => {
                         return step(Block.create(head), rest);
                     }
+
+                    Id(id) | (id.token.value === "#quoteSyntax" && 
+                                rest[0] && rest[0].token.value === "{}") => {
+
+                        var tempId = fresh();
+                        context.templateMap.set(tempId, rest[0].token.inner);
+                        return step(syn.makeIdent("getTemplate", id), 
+                                    [syn.makeDelim("()", [syn.makeValue(tempId, id)], id)].concat(rest.slice(1)));
+                    }
+
+
                     
                     Keyword(keyword) | (keyword.token.value === "let" && 
                                         (rest[0] && rest[0].token.type === parser.Token.Identifier || 
@@ -1558,15 +1569,6 @@
 
         if (head.hasPrototype(NamedFun)) {
             addToDefinitionCtx([head.name], context.defscope, true);
-        }
-
-        if(head.hasPrototype(Id) && head.id.token.value === "#quoteSyntax" &&
-           rest[0] && rest[0].token.value === "{}") {
-            var tempId = fresh();
-            context.templateMap.set(tempId, rest[0].token.inner);
-            return expandToTermTree([syn.makeIdent("getTemplate", head.id),
-                                     syn.makeDelim("()", [syn.makeValue(tempId, head.id)], head.id)].concat(rest.slice(1)),
-                                    context);
         }
 
         if (head.hasPrototype(VariableStatement)) {
