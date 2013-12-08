@@ -409,26 +409,62 @@ let macro = macro {
 }
 export macro;
 
-let withSyntax = macro {
-    case {$name
-          ($($p = $e:expr) (,) ...)
-          {$body ...}} => {
+macro withSyntax_unzip {
+    case { _ $name ($ps ...) ($es ...) ($p = $e:expr , $rest ...) $body } => {
+        return #{
+            withSyntax_unzip $name ($ps ... ($p)) ($es ... ($e)) ($rest ...) $body
+        };
+    }
+    case { _ $name ($ps ...) ($es ...) ($p = $e:expr) $body } => {
+        return #{
+            withSyntax_unzip $name ($ps ... ($p)) ($es ... ($e)) () $body
+        };
+    }
+    case { _ $name ($ps ...) ($es ...) ($p $punc = $e:expr , $rest ...) $body } => {
+        var punc = #{$punc};
+        if (punc[0].token.type !== parser.Token.Punctuator ||
+            punc[0].token.value !== "...") {
+            throwSyntaxError("withSyntax", "Unexpected token", punc);
+        }
+        return #{
+            withSyntax_unzip $name ($ps ... ($p $punc)) ($es ... ($e)) ($rest ...) $body
+        };
+    }
+    case { $name ($ps ...) ($es ...) ($p $punc = $e:expr) $body } => {
+        var punc = #{$punc};
+        if (punc[0].token.type !== parser.Token.Punctuator ||
+            punc[0].token.value !== "...") {
+            throwSyntaxError("withSyntax", "Unexpected token", punc);
+        }
+        return #{
+            withSyntax_unip $name ($ps ... ($p $punc)) ($es ... ($e)) () $body
+        };
+    }
+    case { _ $name ($ps ...) ($es ...) () $body } => {
         var name = #{$name};
         var here = #{here};
-        here = here[0];
 
-        var res = [makeIdent("syntaxCase", name[0])];
-        var args = #{[$(makeDelim("()", $e)) (,) ...],};
+        var args = #{[$(makeDelim("()", $es)) (,) ...],};
+        args = args.concat(makeIdent("context", name));
 
-        args = args.concat(makeIdent("context", name[0]));
+        var res = [makeIdent("syntaxCase", name)];
         res = res.concat(makeDelim("()", args, here));
-
         res = res.concat(#{
-            { case { ($p) ... } => { $body ... } }
+            { case { $ps ... } => $body }
         });
 
-        return [makeDelim("()", res, here), makePunc(".", here), makeIdent("result", here)];
+        return [makeDelim("()", res, here),
+                makePunc(".", here),
+                makeIdent("result", here)];
     }
 }
 
-export withSyntax
+let withSyntax = macro {
+    case { $name ($vars ...) {$body ...} } => {
+        return #{
+            withSyntax_unzip $name () () ($vars ...) {$body ...}
+        }
+    }
+}
+
+export withSyntax;

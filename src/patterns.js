@@ -186,8 +186,8 @@
                 return acc.concat(patStx);
                 // then second pass to mark repeat and separator
             }, []).reduce(function(acc, patStx, idx, patterns) {
-                var separator = " ";
-                var repeat = false;
+                var separator = patStx.separator || " ";
+                var repeat = patStx.repeat || false;
                 var next = patterns[idx+1];
                 var nextNext = patterns[idx+2];
 
