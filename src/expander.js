@@ -1230,10 +1230,20 @@
                     try {
                         var rt = transformer([head].concat(rest), transformerContext);
                     } catch (e) {
-                        var argumentString = "`" + rest.slice(0, 5).map(function(stx) {
-                            return stx.token.value;
-                        }).join(" ") + "...`";
-                        throwError("Macro `" + head.token.value + "` could not be matched with " + argumentString);
+                        if (e.type && e.type === "SyntaxCaseError") {
+                            // add a nicer error for syntax case
+                            var argumentString = "`" + rest.slice(0, 5).map(function(stx) {
+                                return stx.token.value;
+                            }).join(" ") + "...`";
+                            syn.throwSyntaxError("macro", "Macro `" + head.token.value + 
+                                                          "` could not be matched with " + 
+                                                          argumentString,
+                                                          head);
+                        }
+                        else {
+                            // just rethrow it
+                            throw e;
+                        } 
                     }
                     if(!Array.isArray(rt.result)) {
                         throwError("Macro transformer must return a result array, not: "

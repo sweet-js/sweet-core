@@ -272,20 +272,13 @@ let syntaxCase = macro {
         for(var i = 0; i < cases.length; i++) {
             body = body.concat(makeMatch(i)).concat(makeTranscribe(i));
         }
-        body = body.concat([
-            makeKeyword("throw", here),
-            makeKeyword("new", here),
-            makeIdent("Error", here),
-            makeDelim("()", [
-                makeValue("Could not match any cases for macro: ", here),
-                makePunc("+", here),
-                makeIdent("name_stx", name_stx),
-                makePunc(".", here),
-                makeIdent("token", here),
-                makePunc(".", here),
-                makeIdent("value", here)
-            ], here)
-        ]);
+        body = body.concat(quoteSyntax {
+            function SyntaxCaseError(msg) {
+                this.type = "SyntaxCaseError";
+                this.msg = msg;
+            }
+            throw new SyntaxCaseError("Could not match any cases");
+        });
 
         var res = [
             makeDelim("()", makeFunc([makeIdent("stx", name_stx),
