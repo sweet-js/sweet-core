@@ -665,4 +665,19 @@ describe("macro expander", function() {
         expect(m $[]).to.be("literal group");
     });
 
+    it("shoud work nicely with ASI", function() {
+        macro fun {
+            rule { $body:expr } => {
+                $body 
+            }
+        }
+
+        function foo() {
+            var a = fun 12
+            var b = fun 42
+            return a;
+        }
+        expect(foo()).to.be(12);
+    });
+
 });

@@ -810,32 +810,22 @@
             if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === "=") {
                 var initializerRes = enforest(nextRes.rest, context);
 
-                if (initializerRes.rest[0]) {
-                    var restRes = enforest(initializerRes.rest, context);
+                // x = y + z, ...
+                if (initializerRes.rest[0] && initializerRes.rest[0].token.value === ",") {
 
-                    // x = y + z, ...
-                    if (restRes.result.hasPrototype(Punc) &&
-                        restRes.result.punc.token.value === ",") {
-
-                        decls.push(VariableDeclaration.create(result.id,
-                                                              nextRes.result.punc,
-                                                              initializerRes.result,
-                                                              restRes.result.punc));
-                        var subRes = enforestVarStatement(restRes.rest, context);
-                        decls = decls.concat(subRes.result);
-                        rest = subRes.rest;
-                    // x = y ...
-                    } else {
-                        decls.push(VariableDeclaration.create(result.id,
-                                                              nextRes.result.punc,
-                                                              initializerRes.result));
-                        rest = initializerRes.rest;
-                    }
-                // x = y EOF
+                    decls.push(VariableDeclaration.create(result.id,
+                                                          nextRes.result.punc,
+                                                          initializerRes.result,
+                                                          initializerRes.rest[0]));
+                    var subRes = enforestVarStatement(initializerRes.rest.slice(1), context);
+                    decls = decls.concat(subRes.result);
+                    rest = subRes.rest;
+                // x = y ...
                 } else {
                     decls.push(VariableDeclaration.create(result.id,
                                                           nextRes.result.punc,
                                                           initializerRes.result));
+                    rest = initializerRes.rest;
                 }
             // x ,...;
             } else if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === ",") {
