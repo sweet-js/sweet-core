@@ -648,4 +648,21 @@ describe("macro expander", function() {
         expect(x).to.be(42);
     });
 
+    it("should match tokens as is in literal groups", function() {
+        let m = macro {
+            rule { $a $[...] $b } => {
+                $a + $b
+            }
+            rule { $[$a:expr] } => {
+                "class"
+            }
+            rule { $[$[]] } => {
+                "literal group"
+            }
+        }
+        expect(m 42 ... 12).to.be(54);
+        expect(m $a:expr).to.be("class");
+        expect(m $[]).to.be("literal group");
+    });
+
 });

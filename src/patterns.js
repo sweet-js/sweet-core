@@ -157,6 +157,17 @@
         return next;
     }
 
+    function loadLiteralGroup(patterns) {
+        _.forEach(patterns, function(patStx) {
+            if (patStx.token.type === parser.Token.Delimiter) {
+                patStx.token.inner = loadLiteralGroup(patStx.token.inner);
+            } else {
+                patStx.class = "pattern_literal";
+            }
+        });
+        return patterns;
+    }
+
     function loadPattern(patterns) {
 
         return _.chain(patterns)
@@ -197,7 +208,13 @@
                     if (last && last.token.value === "$") {
                         patStx.class = "pattern_group";
                     }
-                    patStx.token.inner = loadPattern(patStx.token.inner);
+
+                    // Leave literal groups as is
+                    if (patStx.class === "pattern_group" && patStx.token.value === '[]') {
+                        patStx.token.inner = loadLiteralGroup(patStx.token.inner);
+                    } else {
+                        patStx.token.inner = loadPattern(patStx.token.inner);
+                    }
                 } else {
                     patStx.class = "pattern_literal";
                 }
