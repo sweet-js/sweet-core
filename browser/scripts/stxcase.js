@@ -18,7 +18,7 @@ export quoteSyntax
 let syntax = macro {
     function(stx) {
         var name_stx = stx[0];
-        var here = (quoteSyntax{here});
+        var here = quoteSyntax{here};
         var takeLineContext = patternModule.takeLineContext;
         var takeLine = patternModule.takeLine;
         var mod = makeIdent("patternModule", here);
@@ -268,6 +268,11 @@ let syntaxCase = macro {
 
 
         var body = arg_def.concat(name_def);
+        var stxcaseError = quoteSyntax {
+            function SyntaxCaseError(msg) {
+                this.msg = msg;
+            }
+        };
 
         for(var i = 0; i < cases.length; i++) {
             body = body.concat(makeMatch(i)).concat(makeTranscribe(i));
