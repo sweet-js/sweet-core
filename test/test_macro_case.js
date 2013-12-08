@@ -92,6 +92,20 @@ describe "procedural (syntax-case) macros" {
         }
         expect(m 5).to.be(35);
     }
+
+    it "should support withSyntax with repeaters" {
+        macro m {
+            case {_ $x } => {
+                return withSyntax($y ... = [makeValue(10, #{here}),
+                                            makePunc('+', #{here}),
+                                            makeValue(20, #{here})],
+                                  $z = [makeValue(30, #{here})]) {
+                    return #{$x + $y ... + $z}
+                }
+            }
+        }
+        expect(m 5).to.be(65);
+    }
     
     it "should support let bound macros" {
         let m = macro {
