@@ -66,7 +66,7 @@ let syntaxCase = macro {
         var name_stx = stx[0];
         var arg_stx = stx[1].expose().token.inner;
         var cases_stx = stx[2].expose().token.inner;
-        var here = (quoteSyntax{here});
+        var here = quoteSyntax{here};
 
         var Token = parser.Token;
         var assert = parser.assert;
@@ -268,29 +268,17 @@ let syntaxCase = macro {
 
 
         var body = arg_def.concat(name_def);
-        var stxcaseError = quoteSyntax {
-            function SyntaxCaseError(msg) {
-                this.msg = msg;
-            }
-        };
 
         for(var i = 0; i < cases.length; i++) {
             body = body.concat(makeMatch(i)).concat(makeTranscribe(i));
         }
-        body = body.concat([
-            makeKeyword("throw", here),
-            makeKeyword("new", here),
-            makeIdent("Error", here),
-            makeDelim("()", [
-                makeValue("Could not match any cases for macro: ", here),
-                makePunc("+", here),
-                makeIdent("name_stx", name_stx),
-                makePunc(".", here),
-                makeIdent("token", here),
-                makePunc(".", here),
-                makeIdent("value", here)
-            ], here)
-        ]);
+        body = body.concat(quoteSyntax {
+            function SyntaxCaseError(msg) {
+                this.type = "SyntaxCaseError";
+                this.msg = msg;
+            }
+            throw new SyntaxCaseError("Could not match any cases");
+        });
 
         var res = [
             makeDelim("()", makeFunc([makeIdent("stx", name_stx),
@@ -324,7 +312,7 @@ export syntaxCase
 let macro = macro {
     function(stx) {
         var name_stx = stx[0];
-        var here = (quoteSyntax{here});
+        var here = quoteSyntax{here};
         var mac_name_stx;
         var body_stx;
         var takeLine = patternModule.takeLine;
