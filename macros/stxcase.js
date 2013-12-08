@@ -372,11 +372,12 @@ let macro = macro {
             for (var i = 0; i < rule_body.length; i += 4) {
                 var rule_pattern = rule_body[i + 1].token.inner;
                 var rule_def = rule_body[i + 3].expose().token.inner;
+                var stxSyntax = takeLine(here[0], makeIdent("syntax", name_stx));
                 rules = rules.concat([makeIdent("case", here),
                                       makeDelim("{}", [makeIdent("_", here)].concat(rule_pattern), here),
                                       makePunc("=>", here),
                                       makeDelim("{}", [makeKeyword("return", here),
-                                                       makeIdent("syntax", name_stx),
+                                                       stxSyntax,
                                                        makeDelim("{}", rule_def, here)], here)])
             }
             rules = makeDelim("{}", rules, here);
@@ -385,6 +386,7 @@ let macro = macro {
             rules = mac_name_stx ? stx[2] : stx[1]; 
         }
         
+        var stxSyntaxCase = takeLine(here[0], makeIdent("syntaxCase", name_stx));
         var rest = mac_name_stx ? stx.slice(3) : stx.slice(2);
         var res = mac_name_stx
             ? [makeIdent("macro", here), mac_name_stx]
@@ -393,7 +395,7 @@ let macro = macro {
                                                    makePunc(",", here),
                                                    makeIdent("context", name_stx)],
                                                    [makeKeyword("return", here),
-                                                    makeIdent("syntaxCase", name_stx),
+                                                    stxSyntaxCase,
                                                     makeDelim("()", [makeIdent("stx", name_stx),
                                                                      makePunc(",", here),
                                                                      makeIdent("context", name_stx)], here),

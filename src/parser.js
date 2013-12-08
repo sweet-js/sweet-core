@@ -2185,7 +2185,7 @@ parseYieldExpression: true
     function consumeSemicolon() {
         var line, ch;
 
-        ch = lookahead.value ? lookahead.value.charCodeAt(0) : -1;
+        ch = lookahead.value ? String(lookahead.value).charCodeAt(0) : -1;
 
         // Catch the very common case first: immediately a semicolon (char #59).
         if (ch === 59) {

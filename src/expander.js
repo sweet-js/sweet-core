@@ -916,7 +916,14 @@
                                                 ? stx.token.endRange
                                                 : stx.token.sm_endRange;
 
-                stx.token.startLineNumber = original.token.lineNumber;
+                if (stx.token.startLineNumber === current.lastLineNumber &&
+                    current.lastLineNumber !== current.lineNumber) {
+                    stx.token.startLineNumber = current.lineNumber;
+                } else if (stx.token.startLineNumber !== current.lastLineNumber) {
+                    current.lineNumber++;
+                    current.lastLineNumber = stx.token.startLineNumber; 
+                    stx.token.startLineNumber = current.lineNumber;
+                }
 
                 if (stx.token.inner.length > 0) {
                     stx.token.inner = adjustLineContext(stx.token.inner, original, current);
@@ -951,7 +958,14 @@
 
             // move the line info to line up with the macro name
             // (line info starting from the macro name)
-            stx.token.lineNumber = original.token.lineNumber;
+            if (stx.token.lineNumber === current.lastLineNumber &&
+                current.lastLineNumber !== current.lineNumber) {
+                stx.token.lineNumber = current.lineNumber;
+            } else if (stx.token.lineNumber !== current.lastLineNumber) {
+                current.lineNumber++;
+                current.lastLineNumber = stx.token.lineNumber; 
+                stx.token.lineNumber = current.lineNumber;
+            }
 
             return stx;
         });

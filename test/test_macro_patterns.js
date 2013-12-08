@@ -634,4 +634,18 @@ describe("macro expander", function() {
         expect(res).to.be(1);
     });
 
+    it("should work with ASI", function() {
+        let m  = macro {
+            rule {{ $body ...}} => {
+                $body ...
+            }
+        }
+
+        var x = m {
+            42 
+            24
+        }
+        expect(x).to.be(42);
+    });
+
 });

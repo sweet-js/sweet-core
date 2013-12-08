@@ -95,7 +95,13 @@
                     startLineNumber: from.token.startLineNumber,
                     startLineStart: from.token.startLineStart,
                     endLineNumber: from.token.endLineNumber,
-                    endLineStart: from.token.endLineStart
+                    endLineStart: from.token.endLineStart,
+                    sm_startLineNumber: to.token.startLineNumber,
+                    sm_endLineNumber: to.token.endLineNumber,
+                    sm_startLineStart: to.token.startLineStart,
+                    sm_endLineStart: to.token.endLineStart,
+                    sm_startRange: to.token.startRange,
+                    sm_endRange: to.token.endRange
                 }, to);
 
             } else {
@@ -108,7 +114,13 @@
                     startLineNumber: from.token.lineNumber,
                     startLineStart: from.token.lineStart,
                     endLineNumber: from.token.lineNumber,
-                    endLineStart: from.token.lineStart
+                    endLineStart: from.token.lineStart,
+                    sm_startLineNumber: to.token.startLineNumber,
+                    sm_endLineNumber: to.token.endLineNumber,
+                    sm_startLineStart: to.token.startLineStart,
+                    sm_endLineStart: to.token.endLineStart,
+                    sm_startRange: to.token.startRange,
+                    sm_endRange: to.token.endRange
                 }, to);
             }
         } else {
@@ -118,7 +130,10 @@
                     type: to.token.type,
                     lineNumber: from.token.startLineNumber,
                     lineStart: from.token.startLineStart,
-                    range: from.token.startRange
+                    range: from.token.startRange,
+                    sm_lineNumber: to.token.lineNumber,
+                    sm_lineStart: to.token.lineStart,
+                    sm_range: to.token.range
                 }, to);
             } else {
                 next = syntaxFromToken({
@@ -127,6 +142,9 @@
                     lineNumber: from.token.lineNumber,
                     lineStart: from.token.lineStart,
                     range: from.token.range,
+                    sm_lineNumber: to.token.lineNumber,
+                    sm_lineStart: to.token.lineStart,
+                    sm_range: to.token.range
                 }, to);
             }
         }
@@ -663,7 +681,7 @@
                             throw new Error("Ellipses level for " + bodyStx.token.value +
                                        " does not match in the template");
                         } 
-                        return acc.concat(env[bodyStx.token.value].match);
+                        return acc.concat(takeLineContext(bodyStx, env[bodyStx.token.value].match) );
                     }
                     return acc.concat([bodyStx]);
                 }
