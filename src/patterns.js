@@ -632,7 +632,7 @@
                                       "all non-scalars must have the same length");
 
                         // create a list of envs restricted to the free vars
-                        restrictedEnv = _.map(_.range(repeatLength), function(idx) {
+                        _.each(_.range(repeatLength), function(idx) {
                             var renv = {};
                             _.each(fv, function(pat) {
                                 if (env[pat].level === 0) {
@@ -644,7 +644,9 @@
                                     renv[pat] = env[pat].match[idx];
                                 }
                             });
-                            return renv;
+                            if (Object.keys(renv).length > 0) {
+                                restrictedEnv.push(renv); 
+                            }
                         });
 
                         var transcribed = _.map(restrictedEnv, function(renv) {
