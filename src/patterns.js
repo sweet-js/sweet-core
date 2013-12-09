@@ -513,9 +513,9 @@
 
                 // push the match onto this value's slot in the environment
                 if (pattern.repeat) {
-                    if (patternEnv[pattern.value]) {
+                    if (patternEnv[pattern.value] && success) {
                         patternEnv[pattern.value].match.push(matchEnv);
-                    } else {
+                    } else if (patternEnv[pattern.value] == undefined){
                         // initialize if necessary
                         patternEnv[pattern.value] = {
                             level: 1,
@@ -638,8 +638,9 @@
                                 if (env[pat].level === 0) {
                                     // copy scalars over
                                     renv[pat] = env[pat];
-                                } else {
-                                    // grab the match at this index
+                                } else if (env[pat].match[idx].match.length > 0) {
+                                    // grab the match at this index (so long as there
+                                    // are syntax objects in the match)
                                     renv[pat] = env[pat].match[idx];
                                 }
                             });

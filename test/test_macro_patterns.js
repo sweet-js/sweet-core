@@ -680,4 +680,15 @@ describe("macro expander", function() {
         expect(foo()).to.be(12);
     });
 
+    it("should deal with var groupings", function() {
+        macro foo {
+            rule { ($x ...) } => {
+                $(var $x = 100;) ...
+            }
+        } 
+        foo ();
+        foo (x);
+        expect(x).to.be(100);
+    });
+
 });
