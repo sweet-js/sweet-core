@@ -540,7 +540,7 @@
                         });
                     parser$1785.assert(sameLength$1889, 'all non-scalars must have the same length');
                     // create a list of envs restricted to the free vars
-                    restrictedEnv$1886 = _$1783.map(_$1783.range(repeatLength$1888), function (idx$1895) {
+                    _$1783.each(_$1783.range(repeatLength$1888), function (idx$1895) {
                         var renv$1896 = {};
                         _$1783.each(fv$1885, function (pat$1897) {
                             if (env$1874[pat$1897].level === 0) {
@@ -552,7 +552,9 @@
                                 renv$1896[pat$1897] = env$1874[pat$1897].match[idx$1895];
                             }
                         });
-                        return renv$1896;
+                        if (Object.keys(renv$1896).length > 0) {
+                            restrictedEnv$1886.push(renv$1896);
+                        }
                     });
                     var transcribed$1890 = _$1783.map(restrictedEnv$1886, function (renv$1898) {
                             if (bodyStx$1883.group) {
