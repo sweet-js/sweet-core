@@ -796,7 +796,7 @@
     // assumes stx starts at the identifier. ie:
     // var x = ...
     //     ^
-    function enforestVarStatement (stx, context) {
+    function enforestVarStatement (stx, context, isLet) {
         var decls = [];
 
         var res = enforest(stx, context);
@@ -804,6 +804,14 @@
         var rest = res.rest;
 
         if (rest[0]) {
+            if (isLet && result.hasPrototype(Id)) {
+                var freshName = fresh();
+                var renamedId = result.id.rename(result.id, freshName);
+                rest = rest.map(function(stx) {
+                    return stx.rename(result.id, freshName);
+                });
+                result.id = renamedId;
+            }
             var nextRes = enforest(rest, context);
 
             // x = ...
@@ -817,7 +825,7 @@
                                                           nextRes.result.punc,
                                                           initializerRes.result,
                                                           initializerRes.rest[0]));
-                    var subRes = enforestVarStatement(initializerRes.rest.slice(1), context);
+                    var subRes = enforestVarStatement(initializerRes.rest.slice(1), context, isLet);
                     decls = decls.concat(subRes.result);
                     rest = subRes.rest;
                 // x = y ...
@@ -830,7 +838,7 @@
             // x ,...;
             } else if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === ",") {
                 decls.push(VariableDeclaration.create(result.id, null, null, nextRes.result.punc));
-                var subRes = enforestVarStatement(nextRes.rest, context);
+                var subRes = enforestVarStatement(nextRes.rest, context, isLet);
                 decls = decls.concat(subRes.result);
                 rest = subRes.rest;
             } else {
@@ -1177,7 +1185,7 @@
 
                     // VariableStatement
                     Keyword(keyword) | (keyword.token.value === "var" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, context);
+                        var vsRes = enforestVarStatement(rest, context, false);
                         if (vsRes) {
                             return step(VariableStatement.create(head, vsRes.result),
                                         vsRes.rest);
@@ -1185,7 +1193,7 @@
                     }
                     // Let Statement
                     Keyword(keyword) | (keyword.token.value === "let" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, context);
+                        var vsRes = enforestVarStatement(rest, context, true);
                         if (vsRes) {
                             return step(LetStatement.create(head, vsRes.result),
                                         vsRes.rest);
@@ -1193,7 +1201,7 @@
                     }
                     // Const Statement
                     Keyword(keyword) | (keyword.token.value === "const" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, context);
+                        var vsRes = enforestVarStatement(rest, context, true);
                         if (vsRes) {
                             return step(ConstStatement.create(head, vsRes.result),
                                         vsRes.rest);
@@ -1554,17 +1562,6 @@
             });
 
             return expandToTermTree(rest, context);
-        }
-
-        if (head.hasPrototype(LetStatement) || head.hasPrototype(ConstStatement)) {
-            head.decls.forEach(function(decl) {
-                var freshName = fresh();
-                var renamedDecl = decl.ident.rename(decl.ident, freshName);
-                rest = rest.map(function(stx) {
-                    return stx.rename(decl.ident, freshName);
-                });
-                decl.ident = renamedDecl;
-            });
         }
 
         if (head.hasPrototype(NamedFun)) {
