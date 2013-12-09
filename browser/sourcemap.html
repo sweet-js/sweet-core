@@ -1,0 +1,164 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Edit Sweet.js (Includes Sourcemap Path)</title>
+  <script src="scripts/jquery.js"></script>
+  <script src="scripts/codemirror.js"></script>
+  <script src="scripts/vim.js"></script>
+  <script src="scripts/emacs.js"></script>
+  <link rel="stylesheet" href="codemirror.css">
+  <link rel="stylesheet" href="solarized.css">
+  <script src="mode/javascript/javascript.js"></script>
+
+  <script src="scripts/escodegen.js"></script>
+
+  <link href='http://fonts.googleapis.com/css?family=Lato:100' rel='stylesheet' type='text/css'>
+  <script data-main="scripts/editor" src="scripts/require.js"></script>
+
+ <style type="text/css">
+ body {
+  font-family: Droid Sans, Arial, sans-serif;
+  line-height: 1.5;
+  /*max-width: 64.3em;*/
+}
+  .CodeMirror {
+    font-size: 14px;
+    height: 100%;
+  }
+
+  #options {
+    position: absolute;
+    font-size: 14px;
+    font-family: Droid Sans, Arial, sans-serif;
+    line-height: 1.5;
+    top: 20px;
+    right: 40px;
+    z-index: 1;
+  }
+
+  #header {
+    position: absolute;
+    top: 0;
+    right: 50%;
+    bottom: 0;
+    left: 0;
+
+    font-size: 250%;
+    text-transform: uppercase;
+    color: rgb(68, 68, 68);
+    font-family: 'Lato',Helvetica Neue,Helvetica,Arial,sans-serif;
+    font-weight: 100;
+    padding-left: 20px;
+  }
+
+  #errors {
+    color: red;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 50%;
+    padding-top: 20px;
+    padding-left: 55px;
+  }
+
+  #edit-box {
+    position: absolute;
+    top: 60px;
+    right: 50%;
+    bottom: 0;
+    left: 0;
+  }
+  #output-box {
+    position: absolute;
+    top: 60px;
+    right: 0;
+    bottom: 0;
+    left: 50%;
+  }
+
+</style>
+</head>
+<body data-sourcemap="true">
+
+<div id="options"><a href="#" id="btn-vim">vim</a> | <a href="#" id="btn-emacs">emacs</a></div>
+
+<div id='header'>
+   sweeten your javascript
+</div>
+<div id="errors">
+  
+</div>
+
+<div id='edit-box'>
+<textarea id="editor">/*
+Welcome to sweet.js! 
+
+You can play around with macro writing here on the left side and 
+your code will automatically be compiled on the right. This page 
+will also save your code to localStorage on every successful 
+compile so feel free to close the page and come back later!
+*/
+
+// Here is a really simple identity macro to get started. 
+
+// The `macro` keyword is used to create and name new macros.
+macro id { 
+  rule {
+    // after the macro name, match:
+    // (1) a open paren 
+    // (2) a single token and bind it to `$x`
+    // (3) a close paren
+    ($x)
+  } => {
+    // just return the token we bound to `$x`
+    $x
+  }
+}
+id ( 42 );
+
+// Note that a single token to sweet.js includes matched 
+// delimiters not just numbers and identifiers. For example,
+// an array with all of its elements counts as one token:
+id ([1,2,3])
+
+// One of the really important things sweet.js does is protect
+// macros from unintentionally binding or capturing variables they
+// wasn't supposed to. This is called hygiene and to enforce hygiene 
+// sweet.js must carefully rename all variable names.
+
+var x; // note the different name on the right --->
+
+// For example, let's look at the swap macro that uses a temporary 
+// variable to swap the contents of two other vars:
+macro swap {
+  rule {
+    ($x, $y)
+  } => {
+    var tmp = $x;
+    $y = $x;
+    $x = tmp;
+  }
+}
+
+var foo = 100;
+var bar = 200;
+var tmp = 'my other temporary variable';
+
+swap (foo, bar)
+
+// Notice that even though the `tmp` variable we made outside of
+// the macro had the same name as the `tmp` variable inside the
+// macro, sweet.js kept them distinct.
+
+
+</textarea>
+</div>
+
+<div id='output-box'>
+<textarea id="output"></textarea>
+</div>
+
+
+</body>
+</html>

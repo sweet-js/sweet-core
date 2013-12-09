@@ -52,8 +52,9 @@
     var codegen = gen || escodegen;
 
     // fun (Str) -> [...CSyntax]
-    function expand(code) {
+    function expand(code, globalMacros) {
         var program, toString;
+        globalMacros = globalMacros || '';
 
         toString = String;
         if (typeof code !== 'string' && !(code instanceof String)) {
@@ -80,7 +81,7 @@
 
         var readTree = parser.read(source);
         try {
-            return expander.expand(readTree, stxcaseModule);
+            return expander.expand(readTree, stxcaseModule + '\n' + globalMacros);
         } catch(err) {
             if (err instanceof syn.MacroSyntaxError) {
                 throw new SyntaxError(syn.printSyntaxError(source, err));
@@ -91,36 +92,43 @@
     }
 
     // fun (Str, {}) -> AST
-    function parse(code) {
+    function parse(code, globalMacros) {
         if (code === "") {
             // old version of esprima doesn't play nice with the empty string
             // and loc/range info so until we can upgrade hack in a single space
             code = " ";
         }
 
-        return parser.parse(expand(code));
+        return parser.parse(expand(code, globalMacros));
     }
 
     exports.expand = expand;
     exports.parse = parse;
 
-    exports.compileWithSourcemap = function(code, filename) {
-        var ast = parse(code);
-        var code_output = codegen.generate(ast, {
-            comment: true
-        });
-        var sourcemap = codegen.generate(ast, {
-            sourceMap: filename
-        });
+    // (Str, {sourceMap: ?Bool, filename: ?Str})
+    //    -> { code: Str, sourceMap: ?Str }
+    exports.compile = function compile(code, options) {
+        var output;
+        options = options || {};
 
-        return [code_output, sourcemap];
-        
-    }
+        var ast = parse(code, options.macros);
 
-    exports.compile = function compile(code) {
-        var ast = parse(code);
-        return codegen.generate(ast, {
-            comment: true
-        });
+        if (options.sourceMap) {
+            output = codegen.generate(ast, {
+                comment: true,
+                sourceMap: options.filename,
+                sourceMapWithCode: true
+            });
+
+            return {
+                code: output.code,
+                sourceMap: output.map.toString()
+            };
+        } 
+        return {
+            code: codegen.generate(ast, {
+                comment: true
+            })
+        };
     }
 }));

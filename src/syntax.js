@@ -82,7 +82,8 @@
             }
 
             if (this.token.type === parser.Token.Identifier ||
-                this.token.type === parser.Token.Keyword) {
+                this.token.type === parser.Token.Keyword ||
+                this.token.type === parser.Token.Punctuator) {
                 return syntaxFromToken(this.token, {context: Rename(id, name, this.context, defctx)});
             } else {
                 return this;
@@ -182,13 +183,6 @@
                 endLineStart = stx.token.lineStart;
                 startRange = stx.token.range;
                 endRange = stx.token.range
-            } else {
-                startLineNumber = 0;
-                startLineStart = 0;
-                endLineNumber = 0;
-                endLineStart = 0;
-                startRange = [0, 0];
-                endRange = [0, 0];
             }
 
             return syntaxFromToken({
@@ -212,11 +206,8 @@
                 lineStart = stx.token.lineStart;
                 lineNumber = stx.token.lineNumber;
                 range = stx.token.range;
-            } else {
-                lineStart = 0;
-                lineNumber = 0;
-                range = [0, 0];
             } 
+
             return syntaxFromToken({
                 type: type,
                 value: value,
@@ -357,9 +348,9 @@
         }
 
         var token = err.stx.token;
-        var lineNumber = token.startLineNumber || token.lineNumber;
-        var lineStart = token.startLineStart || token.lineStart;
-        var start = token.range[0];
+        var lineNumber = token.sm_startLineNumber || token.sm_lineNumber || token.startLineNumber || token.lineNumber;
+        var lineStart = token.sm_startLineStart || token.sm_lineStart || token.startLineStart || token.lineStart;
+        var start = (token.sm_startRange || token.sm_range || token.startRange || token.range)[0];
         var offset = start - lineStart;
         var line = '';
         var pre = lineNumber + ': ';

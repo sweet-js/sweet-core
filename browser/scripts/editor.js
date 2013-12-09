@@ -11,12 +11,13 @@ require(["./sweet"], function(sweet) {
     var storage_mode = 'editor_mode';
 
     var starting_code = $("#editor").text();
+    var compileWithSourcemap = $("body").attr("data-sourcemap") === "true";
 
     var editor = CodeMirror.fromTextArea($('#editor')[0], {
         lineNumbers: true,
         smartIndent: false,
-        indentWithTabs: true,
-        tabSize: 2,
+        indentWithTabs: false,
+        tabSize: 4,
         autofocus: true,
         theme: 'solarized dark'
     });
@@ -50,9 +51,19 @@ require(["./sweet"], function(sweet) {
 
     function updateExpand() {
         var code = editor.getValue();
-        var expanded, compiled;
+        var expanded, compiled, res;
         try {
-            compiled = sweet.compile(code);
+            if (compileWithSourcemap) {
+                res = sweet.compile(code, {
+                    sourceMap: true,
+                    filename: "test.js"
+                });
+            } else {
+                res = sweet.compile(code, {
+                    sourceMap: false
+                });
+            }
+            compiled = res.code;
             output.setValue(compiled);
             localStorage[storage_code] = code;
 

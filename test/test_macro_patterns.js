@@ -241,6 +241,18 @@ describe("macro expander", function() {
         expect(z[1]).to.be(3);
     });
 
+    it("should not match ... too greedily", function() {
+        macro m {
+            rule { $x ... ; } => {
+                [$x (,) ...]
+            }
+        }  
+        var res1 = m 1 2 3 ;
+        var res2 = m ;
+        expect(res1).to.eql([1,2,3]);
+        expect(res2).to.eql([]);
+    });
+
 
     it("should expand a simple let macro", function() {
         macro let {
@@ -601,6 +613,82 @@ describe("macro expander", function() {
         // testing for regression bug, had been matching the `3`
         var res = m foo 1 foo 2 3;
         expect(res).to.eql([1,2]);
+    });
+
+    it('should keep the pattern var on the same line as return', function() {
+        macro m {
+            rule { $x } => {
+                (function () { return $x; });
+            }
+        }
+        var res1 = m 100;
+        var res2 = m 200;
+        expect(res1()).to.be(100);
+        expect(res2()).to.be(200);
+    });
+
+    it('should bind let macros inside delimiters', function() {
+        let ^ = macro { rule { $x } => { $x } }
+
+        var res = (^ 1);
+        expect(res).to.be(1);
+    });
+
+    it("should work with ASI", function() {
+        let m  = macro {
+            rule {{ $body ...}} => {
+                $body ...
+            }
+        }
+
+        var x = m {
+            42 
+            24
+        }
+        expect(x).to.be(42);
+    });
+
+    it("should match tokens as is in literal groups", function() {
+        let m = macro {
+            rule { $a $[...] $b } => {
+                $a + $b
+            }
+            rule { $[$a:expr] } => {
+                "class"
+            }
+            rule { $[$[]] } => {
+                "literal group"
+            }
+        }
+        expect(m 42 ... 12).to.be(54);
+        expect(m $a:expr).to.be("class");
+        expect(m $[]).to.be("literal group");
+    });
+
+    it("shoud work nicely with ASI", function() {
+        macro fun {
+            rule { $body:expr } => {
+                $body 
+            }
+        }
+
+        function foo() {
+            var a = fun 12
+            var b = fun 42
+            return a;
+        }
+        expect(foo()).to.be(12);
+    });
+
+    it("should deal with var groupings", function() {
+        macro foo {
+            rule { ($x ...) } => {
+                $(var $x = 100;) ...
+            }
+        } 
+        foo ();
+        foo (x);
+        expect(x).to.be(100);
     });
 
 });

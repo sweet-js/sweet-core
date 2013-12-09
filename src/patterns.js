@@ -89,26 +89,38 @@
                 next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: to.token.value,
-                    inner: to.token.inner,
+                    inner: takeLineContext(from, to.token.inner),
                     startRange: from.token.startRange,
                     endRange: from.token.endRange,
                     startLineNumber: from.token.startLineNumber,
                     startLineStart: from.token.startLineStart,
                     endLineNumber: from.token.endLineNumber,
-                    endLineStart: from.token.endLineStart
+                    endLineStart: from.token.endLineStart,
+                    sm_startLineNumber: to.token.startLineNumber,
+                    sm_endLineNumber: to.token.endLineNumber,
+                    sm_startLineStart: to.token.startLineStart,
+                    sm_endLineStart: to.token.endLineStart,
+                    sm_startRange: to.token.startRange,
+                    sm_endRange: to.token.endRange
                 }, to);
 
             } else {
                 next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: to.token.value,
-                    inner: to.token.inner,
+                    inner: takeLineContext(from, to.token.inner),
                     startRange: from.token.range,
                     endRange: from.token.range,
                     startLineNumber: from.token.lineNumber,
                     startLineStart: from.token.lineStart,
                     endLineNumber: from.token.lineNumber,
-                    endLineStart: from.token.lineStart
+                    endLineStart: from.token.lineStart,
+                    sm_startLineNumber: to.token.startLineNumber,
+                    sm_endLineNumber: to.token.endLineNumber,
+                    sm_startLineStart: to.token.startLineStart,
+                    sm_endLineStart: to.token.endLineStart,
+                    sm_startRange: to.token.startRange,
+                    sm_endRange: to.token.endRange
                 }, to);
             }
         } else {
@@ -118,7 +130,10 @@
                     type: to.token.type,
                     lineNumber: from.token.startLineNumber,
                     lineStart: from.token.startLineStart,
-                    range: from.token.startRange
+                    range: from.token.startRange,
+                    sm_lineNumber: to.token.lineNumber,
+                    sm_lineStart: to.token.lineStart,
+                    sm_range: to.token.range
                 }, to);
             } else {
                 next = syntaxFromToken({
@@ -127,6 +142,9 @@
                     lineNumber: from.token.lineNumber,
                     lineStart: from.token.lineStart,
                     range: from.token.range,
+                    sm_lineNumber: to.token.lineNumber,
+                    sm_lineStart: to.token.lineStart,
+                    sm_range: to.token.range
                 }, to);
             }
         }
@@ -137,6 +155,17 @@
             next.token.trailingComments = to.token.trailingComments;
         }
         return next;
+    }
+
+    function loadLiteralGroup(patterns) {
+        _.forEach(patterns, function(patStx) {
+            if (patStx.token.type === parser.Token.Delimiter) {
+                patStx.token.inner = loadLiteralGroup(patStx.token.inner);
+            } else {
+                patStx.class = "pattern_literal";
+            }
+        });
+        return patterns;
     }
 
     function loadPattern(patterns) {
@@ -179,15 +208,21 @@
                     if (last && last.token.value === "$") {
                         patStx.class = "pattern_group";
                     }
-                    patStx.token.inner = loadPattern(patStx.token.inner);
+
+                    // Leave literal groups as is
+                    if (patStx.class === "pattern_group" && patStx.token.value === '[]') {
+                        patStx.token.inner = loadLiteralGroup(patStx.token.inner);
+                    } else {
+                        patStx.token.inner = loadPattern(patStx.token.inner);
+                    }
                 } else {
                     patStx.class = "pattern_literal";
                 }
                 return acc.concat(patStx);
                 // then second pass to mark repeat and separator
             }, []).reduce(function(acc, patStx, idx, patterns) {
-                var separator = " ";
-                var repeat = false;
+                var separator = patStx.separator || " ";
+                var repeat = patStx.repeat || false;
                 var next = patterns[idx+1];
                 var nextNext = patterns[idx+2];
 
@@ -287,12 +322,25 @@
         var rest = stx;
         var success = true;
 
+        patternLoop:
         for (var i = 0; i < patterns.length; i++) {
             if (success === false) {
                 break;
             }
             pattern = patterns[i];
             do {
+                // handles cases where patterns trail a repeated pattern like `$x ... ;`
+                if (pattern.repeat && i + 1 < patterns.length) {
+                    var restMatch = matchPatterns(patterns.slice(i+1), rest, env, topLevel);
+                    if (restMatch.success) {
+                        // match the repeat pattern on the empty array to fill in its
+                        // pattern variable in the environment 
+                        match = matchPattern(pattern, [], env, patternEnv);
+                        patternEnv = _.extend(restMatch.patternEnv, match.patternEnv);
+                        rest = restMatch.rest;
+                        break patternLoop;
+                    }
+                }
                 match = matchPattern(pattern, rest, env, patternEnv);
                 if ((!match.success) && pattern.repeat) {
                     // a repeat can match zero tokens and still be a
@@ -318,13 +366,22 @@
                 }
 
                 if (pattern.repeat && success) {
-                    if (rest[0] && rest[0].token.value === pattern.separator) {
-                        // more tokens and the next token matches the separator
-                        rest = rest.slice(1);
-                    } else if (pattern.separator === " ") {
+                    // if (i < patterns.length - 1 && rest.length > 0) {
+                    //     var restMatch = matchPatterns(patterns.slice(i+1), rest, env, topLevel);
+                    //     if (restMatch.success) {
+                    //         patternEnv = _.extend(patternEnv, restMatch.patternEnv);
+                    //         rest = restMatch.rest;
+                    //         break patternLoop;
+                    //     }
+                    // }
+
+                    if (pattern.separator === " ") {
                         // no separator specified (using the empty string for this)
                         // so keep going
                         continue;
+                    } else if (rest[0] && rest[0].token.value === pattern.separator) {
+                        // more tokens and the next token matches the separator
+                        rest = rest.slice(1);
                     } else if ((pattern.separator !== " ") &&
                                 (rest.length > 0) &&
                                 (i === patterns.length - 1) &&
@@ -456,9 +513,9 @@
 
                 // push the match onto this value's slot in the environment
                 if (pattern.repeat) {
-                    if (patternEnv[pattern.value]) {
+                    if (patternEnv[pattern.value] && success) {
                         patternEnv[pattern.value].match.push(matchEnv);
-                    } else {
+                    } else if (patternEnv[pattern.value] == undefined){
                         // initialize if necessary
                         patternEnv[pattern.value] = {
                             level: 1,
@@ -575,18 +632,21 @@
                                       "all non-scalars must have the same length");
 
                         // create a list of envs restricted to the free vars
-                        restrictedEnv = _.map(_.range(repeatLength), function(idx) {
+                        _.each(_.range(repeatLength), function(idx) {
                             var renv = {};
                             _.each(fv, function(pat) {
                                 if (env[pat].level === 0) {
                                     // copy scalars over
                                     renv[pat] = env[pat];
-                                } else {
-                                    // grab the match at this index
+                                } else if (env[pat].match[idx].match.length > 0) {
+                                    // grab the match at this index (so long as there
+                                    // are syntax objects in the match)
                                     renv[pat] = env[pat].match[idx];
                                 }
                             });
-                            return renv;
+                            if (Object.keys(renv).length > 0) {
+                                restrictedEnv.push(renv); 
+                            }
                         });
 
                         var transcribed = _.map(restrictedEnv, function(renv) {
@@ -630,7 +690,7 @@
                                                       macroBody);
                         newBody.token.inner = transcribe(bodyStx.token.inner,
                                                          macroNameStx, env);
-                        return acc.concat(takeLineContext(macroNameStx, [newBody]));
+                        return acc.concat([newBody]);
                     }
                     if (isPatternVar(bodyStx) &&
                         Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
@@ -641,10 +701,9 @@
                             throw new Error("Ellipses level for " + bodyStx.token.value +
                                        " does not match in the template");
                         } 
-                        return acc.concat(takeLineContext(macroNameStx,
-                                                          env[bodyStx.token.value].match));
+                        return acc.concat(takeLineContext(bodyStx, env[bodyStx.token.value].match) );
                     }
-                    return acc.concat(takeLineContext(macroNameStx, [bodyStx]));
+                    return acc.concat([bodyStx]);
                 }
             }, []).value();
     }

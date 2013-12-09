@@ -14,6 +14,9 @@ var argv = require("optimist")
     .boolean('watch')
     .alias('t', 'tokens')
     .describe('t', 'just emit the expanded tokens without parsing an AST')
+    .alias('p', 'no-parse')
+    .describe('p', 'print out the expanded result but do not run through the parser (or apply hygienic renamings)')
+    .boolean("no-parse")
     .alias('s', 'stdin')
     .describe('s', 'read from stdin')
     .boolean('stdin')
@@ -28,8 +31,10 @@ exports.run = function() {
     var watch = argv.watch;
     var tokens = argv.tokens;
     var sourcemap = argv.sourcemap;
+    var noparse = argv['no-parse'];
 
     var file;
+    var globalMacros;
     if(infile) {
         file = fs.readFileSync(infile, "utf8");
     } else if (argv.stdin) {
@@ -55,34 +60,51 @@ exports.run = function() {
         if (typeof mod === "string") {
             mod = [mod];
         }
-        file = mod.reduceRight(function(f, m) {
+        globalMacros = mod.reduceRight(function(f, m) {
             var modulepath = Module._resolveFilename(m, modulemock);
             var modulefile = fs.readFileSync(modulepath, "utf8");
             return modulefile + "\n" + f;
-        }, file);
+        }, '');
     }
     
 	if (watch && outfile) {
 		fs.watch(infile, function(){
 			file = fs.readFileSync(infile, "utf8");
 			try {
-				fs.writeFileSync(outfile, sweet.compile(file), "utf8");
+				fs.writeFileSync(outfile,
+                                 sweet.compile(file, {
+                                     macros: globalMacros
+                                 }).code,
+                                 "utf8");
 			} catch (e) {
 				console.log(e);
 			}
 		});
 	} else if(outfile) {
         if (sourcemap) {
-            var result = sweet.compileWithSourcemap(file, infile);
+            var result = sweet.compile(file, {
+                sourceMap: true,
+                filename: infile,
+                macros: globalMacros
+            });
             var mapfile = path.basename(outfile) + ".map";
-            fs.writeFileSync(outfile, result[0] + "\n//# sourceMappingURL=" + mapfile, "utf8");
-            fs.writeFileSync(outfile + ".map", result[1], "utf8");
+            fs.writeFileSync(outfile,
+                             result.code + "\n//# sourceMappingURL=" + mapfile,
+                             "utf8");
+            fs.writeFileSync(outfile + ".map", result.sourceMap, "utf8");
         } else {
-            fs.writeFileSync(outfile, sweet.compile(file), "utf8");
+            fs.writeFileSync(outfile, sweet.compile(file).code, "utf8");
         }
-    } else if(tokens) {
-        console.log(sweet.expand(file))
+    } else if (tokens) {
+        console.log(sweet.expand(file, globalMacros));
+    } else if (noparse) {
+        var unparsedString = sweet.expand(file, globalMacros).reduce(function(acc, stx) {
+            return acc + " " + stx.token.value;
+        }, "");
+        console.log(unparsedString);
     } else {
-        console.log(sweet.compile(file));
+        console.log(sweet.compile(file, {
+            macros: globalMacros 
+        }).code);
     }
 };

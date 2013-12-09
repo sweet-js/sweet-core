@@ -287,7 +287,7 @@ describe("reader", function() {
             .to.equal("/42/i");
 
         expect(read("{function foo() {} /42/i}")[0].inner[4].type)
-            .to.be(Token.RegexLiteral);
+            .to.be(Token.RegularExpression);
     });
     
     
@@ -347,45 +347,45 @@ describe("reader", function() {
 
     it('should read / following {x=4}/b/i; as a regex', function() {
         expect(read("{x=4}/b/i;")[1].type)
-            .to.be(Token.RegexLiteral);
+            .to.be(Token.RegularExpression);
     });
 
     it('should read / following {x:4}/b/i; as a regex', function() {
         expect(read("{x:4}/b/i;")[1].type)
-            .to.be(Token.RegexLiteral);
+            .to.be(Token.RegularExpression);
     });
       
     it('should read / following {y:5}{x:4}/b/i; as a regex', function() {
         expect(read("{y:5}{x:4}/b/i;")[2].type)
-            .to.be(Token.RegexLiteral);
+            .to.be(Token.RegularExpression);
     });
 
     it('should read / following {y:{x:4}/b/i}; as a regex', function() {
         expect(read("{y:{x:4}/b/i};")[0].inner[3].type)
-            .to.be(Token.RegexLiteral);
+            .to.be(Token.RegularExpression);
     });
 
     it('should read / following return\n{x:4}/b/i; as a regex', function() {
         expect(read("return\n{x:4}/b/i;")[2].type)
-            .to.be(Token.RegexLiteral);
+            .to.be(Token.RegularExpression);
     });
 
     
     it('should read / following a foo\n{} /b/i as a regex', function() {
         expect(read("foo\n{} /b/i")[2].type)
-            .to.be(Token.RegexLiteral);
+            .to.be(Token.RegularExpression);
         
     });
 
     it('should read / following a foo = 2\n{} /b/i as a regex', function() {
         expect(read("foo = 2\n{} /b/i")[4].type)
-            .to.be(Token.RegexLiteral);
+            .to.be(Token.RegularExpression);
         
     });
 
     it('should read / following a {a:function foo() {}/b/i} as a regex', function() {
         expect(read("{a:function foo() {}/b/i}")[0].inner[6].type)
-            .to.be(Token.RegexLiteral);
+            .to.be(Token.RegularExpression);
         
     });
 
@@ -421,7 +421,7 @@ describe("reader", function() {
 
     it('should read / following a for( ; {a:/a/g} ; ){} as a regex', function() {
         expect(read("for( ; {a:/a/g} ; ){}")[1].inner[1].inner[2].type)
-            .to.be(Token.RegexLiteral);
+            .to.be(Token.RegularExpression);
     });
 
     it('should read / following a for( ; function(){ /a/g; } /a/g; ){} as a divide', function() {

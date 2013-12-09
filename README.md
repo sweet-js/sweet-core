@@ -18,7 +18,7 @@ Install with npm:
 
     $ npm install -g sweet.js
 
-To try it out make a file `test_macros.sjs`:
+To try it out make a file `test_macros.js`:
 
 ```js
 // functions can now be spelled def!
@@ -36,9 +36,22 @@ console.log( add(3, 7) );
 
 And compile it with `sjs`:
 
-    $ sjs -o output.js test_macros.sjs
+    $ sjs -o output.js test_macros.js
     $ node output.js
     10
+
+If you want to collect your macro definitions into a separate file you can use the `-m` flag:
+
+    $ sjs -m macros.js -o output.js main.js 
+
+Where the macros defined in `macros.js` that you want to be available in `main.js` are exported with the keyword `export`:
+
+```javascript
+// macros.js
+
+macro m { /* ... */ }
+export m;
+```
 
 Alternately you can require an sjs file from node. For example, in `main.js` add:
 
@@ -75,19 +88,19 @@ Install the dev dependencies:
 
 Build and run the tests:
 
-    $ node build
+    $ grunt
     
-Sweet.js is self hosted so the files in `src/` are compiled with the files in `lib/` and then copied into `build/lib/`. Then the tests in `test/` are compiled with `build/lib/`. Once you are happy with your changes run `node build build_sweetjs` to compile sweet.js into `lib/` which can then be checked into git.
+Sweet.js is self hosted so the files in `src/` are compiled with the files in `lib/` and then copied into `build/lib/`. Then the tests in `test/` are compiled with `build/lib/`. Once you are happy with your changes run `grunt dist` to compile sweet.js into `lib/` which can then be checked into git.
 
 Slightly confusing but the process goes like this:
 
     <hack hack hack>
-    $ node build
+    $ grunt
     <tests fail!>
     <hack hack hack>
-    $ node build
+    $ grunt
     <tests pass!>
-    $ node build build_sweetjs
+    $ grunt dist
     $ git add lib/
     $ git commit -m "sweet!"
     
