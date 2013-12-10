@@ -691,4 +691,14 @@ describe("macro expander", function() {
         expect(x).to.be(100);
     });
 
+    it("should handle groupings when some patterns are matched and some are not", function() {
+        macro m {
+            rule { $x ($y ...) } => {
+                $($x + $y) ...
+            }
+        } 
+        expect(m 1 (2)).to.be(3);
+        expect(m 1 ()).to.be(undefined);
+    });
+
 });

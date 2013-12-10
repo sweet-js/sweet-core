@@ -535,6 +535,12 @@
 
     }
 
+    function hasMatch(m) {
+        if (m.level === 0) {
+            return m.match.length > 0;
+        }
+        return m.match.every(function(m) { return hasMatch(m); });
+    }
     
     // given the given the macroBody (list of Pattern syntax objects) and the
     // environment (a mapping of patterns to syntax) return the body with the
@@ -638,13 +644,15 @@
                                 if (env[pat].level === 0) {
                                     // copy scalars over
                                     renv[pat] = env[pat];
-                                } else if (env[pat].match[idx].match.length > 0) {
-                                    // grab the match at this index (so long as there
-                                    // are syntax objects in the match)
+                                } else {
+                                    // grab the match at this index 
                                     renv[pat] = env[pat].match[idx];
                                 }
                             });
-                            if (Object.keys(renv).length > 0) {
+                            var allHaveMatch = Object.keys(renv).every(function(pat) {
+                                return hasMatch(renv[pat]);
+                            });
+                            if (allHaveMatch) {
                                 restrictedEnv.push(renv); 
                             }
                         });
