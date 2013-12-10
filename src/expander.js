@@ -49,6 +49,7 @@
     'use strict';
     var codegen = gen || escodegen;
     var assert = syn.assert;
+    var throwSyntaxError = syn.throwSyntaxError;
 
     macro _get_vars {
 	    case {_ $val { } } => { return #{} }
@@ -224,10 +225,6 @@
         }
     });
 
-    // todo: add more message information
-    function throwError(msg) {
-        throw new Error(msg);
-    }
 
     var scopedEval = se.scopedEval;
 
@@ -846,7 +843,7 @@
                 if (result.hasPrototype(Id)) {
                     decls.push(VariableDeclaration.create(result.id));
                 } else {
-                    throwError("Expecting an identifier in variable declaration");
+                    throwSyntaxError("enforest", "Expecting an identifier in variable declaration", rest);
                 }
             }
         // x EOF
@@ -858,7 +855,7 @@
                                                       result.op,
                                                       result.right));
             } else {
-                throwError("Expecting an identifier in variable declaration");
+                throwSyntaxError("enforest", "Expecting an identifier in variable declaration", stx);
             }
         }
         
@@ -1062,7 +1059,7 @@
                             return step(ArrowFun.create(delim, rest[0], res.result.destruct()), 
                                         res.rest);
                         } else {
-                            throwError("Body of arrow function must be an expression");
+                            throwSyntaxError("enforest", "Body of arrow function must be an expression", rest.slice(1));
                         }
                     }
 
@@ -1075,7 +1072,7 @@
                             return step(ArrowFun.create(id, rest[0], res.result.destruct()), 
                                         res.rest);
                         } else {
-                            throwError("Body of arrow function must be an expression");
+                            throwSyntaxError("enforest", "Body of arrow function must be an expression", rest.slice(1));
                         }
                     }
 
@@ -1178,7 +1175,7 @@
                                         rest[2] && rest[2].token.value === "macro") => {
                         var mac = enforest(rest.slice(2), context);
                         if (!mac.result.hasPrototype(AnonMacro)) {
-                            throw new Error("expecting an anonymous macro definition in syntax let binding, not: " + mac.result);
+                            throwSyntaxError("enforest", "expecting an anonymous macro definition in syntax let binding", rest.slice(2));
                         }
                         return step(LetMacro.create(rest[0], mac.result.body), mac.rest);
                                   
@@ -1234,7 +1231,7 @@
                             var argumentString = "`" + rest.slice(0, 5).map(function(stx) {
                                 return stx.token.value;
                             }).join(" ") + "...`";
-                            syn.throwSyntaxError("macro", "Macro `" + head.token.value + 
+                            throwSyntaxError("macro", "Macro `" + head.token.value + 
                                                           "` could not be matched with " + 
                                                           argumentString,
                                                           head);
@@ -1245,8 +1242,7 @@
                         } 
                     }
                     if(!Array.isArray(rt.result)) {
-                        throwError("Macro transformer must return a result array, not: "
-                                   + rt.result);
+                        throwSyntaxError("enforest", "Macro must return a syntax array", head);
                     }
                     if(rt.result.length > 0) {
                         var adjustedResult = adjustLineContext(rt.result, head);
@@ -1390,7 +1386,7 @@
                     return step(Punc.create(head), rest);
                 } else if (head.token.type === parser.Token.Keyword &&
                             head.token.value === "with") {
-                    throwError("with is not supported in sweet.js");
+                    throwSyntaxError("enforest", "with is not supported in sweet.js", head); 
                 // keyword
                 } else if (head.token.type === parser.Token.Keyword) {
                     return step(Keyword.create(head), rest);
@@ -1471,7 +1467,7 @@
         // raw function primitive form
         if(!(body[0] && body[0].token.type === parser.Token.Keyword &&
              body[0].token.value === "function")) {
-            throwError("Primitive macro form must contain a function for the macro body");
+            throwSyntaxError("load macro", "Primitive macro form must contain a function for the macro body", body);
         }
 
         var stub = parser.read("()");
@@ -1489,7 +1485,7 @@
             makePunc: syn.makePunc,
             makeDelim: syn.makeDelim,
             unwrapSyntax: syn.unwrapSyntax,
-            throwSyntaxError: syn.throwSyntaxError,
+            throwSyntaxError: throwSyntaxError,
             parser: parser,
             _: _,
             patternModule: patternModule,

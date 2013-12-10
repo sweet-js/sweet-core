@@ -16,6 +16,7 @@
     var joinSyntax = syntax.joinSyntax;
     var joinSyntaxArr = syntax.joinSyntaxArr;
     var assert = syntax.assert;
+    var throwSyntaxError = syntax.throwSyntaxError;
 
 
     // ([...CSyntax]) -> [...Str]
@@ -200,7 +201,7 @@
                 if (isPatternVar(patStx)) {
                     if (next && next.token.value === ":" && !isPatternVar(nextNext)) {
                         if (typeof nextNext === 'undefined') {
-                            throw new Error("expecting a pattern class following a `:`");
+                            throwSyntaxError("patterns", "expecting a pattern class following a `:`", next);
                         }
                         patStx.class = nextNext.token.value;
                     } else {
@@ -684,11 +685,9 @@
                     }
 
                     if (!env[bodyStx.token.value]) {
-                        throw new Error("The pattern variable " + bodyStx.token.value +
-                                        " is not bound for the template");
+                        throwSyntaxError("patterns", "The pattern variable is not bound for the template", bodyStx);
                     } else if (env[bodyStx.token.value].level !== 1) {
-                        throw new Error("Ellipses level for " + bodyStx.token.value +
-                                        " does not match in the template");
+                        throwSyntaxError("patterns", "Ellipses level does not match in the template", bodyStx);
                     } 
 
                     return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match,
@@ -705,11 +704,9 @@
                     if (isPatternVar(bodyStx) &&
                         Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
                         if (!env[bodyStx.token.value]) {
-                            throw new Error("The pattern variable " + bodyStx.token.value +
-                                       " is not bound for the template");
+                            throwSyntaxError("patterns", "The pattern variable is not bound for the template", bodyStx);
                         } else if (env[bodyStx.token.value].level !== 0) {
-                            throw new Error("Ellipses level for " + bodyStx.token.value +
-                                       " does not match in the template");
+                            throwSyntaxError("patterns", "Ellipses level does not match in the template", bodyStx);
                         } 
                         return acc.concat(takeLineContext(bodyStx, env[bodyStx.token.value].match) );
                     }
