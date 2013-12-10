@@ -8,6 +8,11 @@
     }
 }(this, function(exports, _, es6, parser) {
 
+    function assert(condition, message) {
+        if (!condition) {
+            throw new Error('ASSERT: ' + message);
+        }
+    }
 
     // (CSyntax, Str) -> CContext
     function Rename(id, name, ctx, defctx) {
@@ -111,7 +116,7 @@
         },
 
         expose: function() {
-            parser.assert(this.token.type === parser.Token.Delimiter,
+            assert(this.token.type === parser.Token.Delimiter,
                           "Only delimiters can be exposed");
 
             function applyContext(stxCtx, ctx) {
@@ -127,7 +132,7 @@
                 } else if (isDef(ctx)) {
                     return Def(ctx.defctx, applyContext(stxCtx, ctx.context));
                 } else {
-                    parser.assert(false, "unknown context type");
+                    assert(false, "unknown context type");
                 }
             }
 
@@ -367,6 +372,8 @@
                pre + line + '\n' +
                (Array(offset + pre.length).join(' ')) + ' ^';
     }
+
+    exports.assert = assert;
 
     exports.unwrapSyntax = unwrapSyntax;
     exports.makeDelim = makeDelim;

@@ -15,6 +15,8 @@
     var makePunc = syntax.makePunc;
     var joinSyntax = syntax.joinSyntax;
     var joinSyntaxArr = syntax.joinSyntaxArr;
+    var assert = syntax.assert;
+
 
     // ([...CSyntax]) -> [...Str]
     function freeVarsInPattern(pattern) {
@@ -232,7 +234,7 @@
                 } else if (delimIsSeparator(next) &&
                            nextNext && nextNext.token.value === "...") {
                     repeat = true;
-                    parser.assert(next.token.inner.length === 1,
+                    assert(next.token.inner.length === 1,
                            "currently assuming all separators are a single token");
                     separator = next.token.inner[0].token.value;
                 }
@@ -592,7 +594,7 @@
                     // literal [] delimiters have their bodies just
                     // directly passed along
                     if (bodyStx.literal === true) {
-                        parser.assert(bodyStx.token.type === parser.Token.Delimiter,
+                        assert(bodyStx.token.type === parser.Token.Delimiter,
                                         "expecting a literal to be surrounded by []");
                         return acc.concat(bodyStx.token.inner);
                     }
@@ -626,7 +628,7 @@
                             return env[pat].level > 0;
                         });
 
-                        parser.assert(typeof nonScalar !== 'undefined',
+                        assert(typeof nonScalar !== 'undefined',
                                       "must have a least one non-scalar in repeat");
 
                         var repeatLength = env[nonScalar].match.length;
@@ -634,7 +636,7 @@
                             return (env[pat].level === 0) ||
                                 (env[pat].match.length === repeatLength);
                         });
-                        parser.assert(sameLength,
+                        assert(sameLength,
                                       "all non-scalars must have the same length");
 
                         // create a list of envs restricted to the free vars

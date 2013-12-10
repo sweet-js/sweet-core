@@ -48,6 +48,7 @@
 }(this, function(exports, _, parser, syn, es6, se, patternModule, gen) {
     'use strict';
     var codegen = gen || escodegen;
+    var assert = syn.assert;
 
     macro _get_vars {
 	    case {_ $val { } } => { return #{} }
@@ -362,7 +363,7 @@
     // wraps the array of syntax objects in the delimiters given by the second argument
     // ([...CSyntax], CSyntax) -> [...CSyntax]
     function wrapDelim(towrap, delimSyntax) {
-        parser.assert(delimSyntax.token.type === parser.Token.Delimiter,
+        assert(delimSyntax.token.type === parser.Token.Delimiter,
                       "expecting a delimiter token");
 
         return syntaxFromToken({
@@ -382,7 +383,7 @@
         } else if (argSyntax.token.type === parser.Token.Identifier) {
             return [argSyntax];
         } else {
-            parser.assert(false, "expecting a delimiter or a single identifier for function parameters");
+            assert(false, "expecting a delimiter or a single identifier for function parameters");
         }
     }
 
@@ -629,12 +630,12 @@
         properties: ["fun", "args", "delim", "commas"],
 
         destruct: function() {
-            parser.assert(this.fun.hasPrototype(TermTree),
+            assert(this.fun.hasPrototype(TermTree),
                 "expecting a term tree in destruct of call");
             var that = this;
             this.delim = syntaxFromToken(_.clone(this.delim.token), this.delim);
             this.delim.token.inner = _.reduce(this.args, function(acc, term) {
-                parser.assert(term && term.hasPrototype(TermTree),
+                assert(term && term.hasPrototype(TermTree),
                               "expecting term trees in destruct of Call");
                 var dst = acc.concat(term.destruct());
                 // add all commas except for the last one
@@ -650,7 +651,7 @@
         },
 
         construct: function(funn, args, delim, commas) {
-            parser.assert(Array.isArray(args), "requires an array of arguments terms");
+            assert(Array.isArray(args), "requires an array of arguments terms");
             this.fun = funn;
             this.args = args;
             this.delim = delim;
@@ -704,7 +705,7 @@
         },
 
         construct: function(varkw, decls) {
-            parser.assert(Array.isArray(decls), "decls must be an array");
+            assert(Array.isArray(decls), "decls must be an array");
             this.varkw = varkw;
             this.decls = decls;
         }
@@ -722,7 +723,7 @@
         },
 
         construct: function(letkw, decls) {
-            parser.assert(Array.isArray(decls), "decls must be an array");
+            assert(Array.isArray(decls), "decls must be an array");
             this.letkw = letkw;
             this.decls = decls;
         }
@@ -740,7 +741,7 @@
         },
 
         construct: function(constkw, decls) {
-            parser.assert(Array.isArray(decls), "decls must be an array");
+            assert(Array.isArray(decls), "decls must be an array");
             this.constkw = constkw;
             this.decls = decls;
         }
@@ -972,11 +973,11 @@
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, context) {
-        parser.assert(toks.length > 0, "enforest assumes there are tokens to work with");
+        assert(toks.length > 0, "enforest assumes there are tokens to work with");
 
         function step(head, rest) {
             var innerTokens;
-            parser.assert(Array.isArray(rest), "result must at least be an empty array");
+            assert(Array.isArray(rest), "result must at least be an empty array");
             if (head.hasPrototype(TermTree)) {
 
                 // function call
@@ -1209,7 +1210,7 @@
                     }
                 }
             } else {
-                parser.assert(head && head.token, "assuming head is a syntax object");
+                assert(head && head.token, "assuming head is a syntax object");
 
                 // macro invocation
                 if ((head.token.type === parser.Token.Identifier ||
@@ -1398,11 +1399,11 @@
                     return step(Delimiter.create(head.expose()), rest);
                 // end of file
                 } else if (head.token.type === parser.Token.EOF) {
-                    parser.assert(rest.length === 0, "nothing should be after an EOF");
+                    assert(rest.length === 0, "nothing should be after an EOF");
                     return step(EOF.create(head), []);
                 } else {
                     // todo: are we missing cases?
-                    parser.assert(false, "not implemented");
+                    assert(false, "not implemented");
                 }
 
             }
@@ -1517,7 +1518,7 @@
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
     function expandToTermTree (stx, context) {
-        parser.assert(context, "expander context is required");
+        assert(context, "expander context is required");
 
         // short circuit when syntax array is empty
         if (stx.length === 0) {
@@ -1527,7 +1528,7 @@
             };
         }
 
-        parser.assert(stx[0].token, "expecting a syntax object");
+        assert(stx[0].token, "expecting a syntax object");
 
         var f = enforest(stx, context);
         // head :: TermTree
@@ -1604,7 +1605,7 @@
     }
 
     function addToDefinitionCtx(idents, defscope, skipRep) {
-        parser.assert(idents && idents.length > 0, "expecting some variable identifiers");
+        assert(idents && idents.length > 0, "expecting some variable identifiers");
         skipRep = skipRep || false;
         _.each(idents, function(id) {
             var skip = false;
@@ -1641,7 +1642,7 @@
     // don't generate an AST yet
     // (TermTree, Map, Map) -> TermTree
     function expandTermTreeToFinal (term, context) {
-        parser.assert(context && context.env, "environment map is required");
+        assert(context && context.env, "environment map is required");
 
 
         if (term.hasPrototype(ArrayLiteral)) {
@@ -1742,7 +1743,7 @@
             }
 
             var expandedArgs = expand([flatArgs], bodyContext);
-            parser.assert(expandedArgs.length === 1, "should only get back one result");
+            assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the function with all the renamings
             if (term.params) {
                 term.params = expandedArgs[0];
@@ -1786,7 +1787,7 @@
     // similar to `parse` in the honu paper
     // ([Syntax], Map, Map) -> [TermTree]
     function expand(stx, context) {
-        parser.assert(context, "must provide an expander context");
+        assert(context, "must provide an expander context");
         
         var trees = expandToTermTree(stx, context);
         return _.map(trees.terms, function(term) {
