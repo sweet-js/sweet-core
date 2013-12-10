@@ -5806,7 +5806,6 @@ parseYieldExpression: true
     exports.tokenize = tokenize;
     exports.read = read;
     exports.Token = Token;
-    exports.assert = assert;
 
     exports.parse = parse;
 
