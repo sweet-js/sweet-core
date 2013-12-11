@@ -50,6 +50,7 @@
     var codegen = gen || escodegen;
     var assert = syn.assert;
     var throwSyntaxError = syn.throwSyntaxError;
+    var unwrapSyntax = syn.unwrapSyntax;
 
     macro _get_vars {
 	    case {_ $val { } } => { return #{} }
@@ -434,6 +435,19 @@
                 }
             }
             return this;
+        },
+        rename: function(id, name) {
+            for (var i = 0; i < this.properties.length; i++) {
+                var prop = this.properties[i];
+                if (Array.isArray(this[prop])) {
+                    this[prop] = _.map(this[prop], function (item) {
+                        return item.rename(id, name);
+                    });
+                } else if (this[prop]) {
+                    this[prop] = this[prop].rename(id, name);
+                }
+            }
+            return this;
         }
     };
 
@@ -446,7 +460,7 @@
 
     var Statement = TermTree.extend({ construct: function() {} });
 
-    var Expr = TermTree.extend({ construct: function() {} });
+    var Expr = Statement.extend({ construct: function() {} });
     var PrimaryExpression = Expr.extend({ construct: function() {} });
 
     var ThisExpression = PrimaryExpression.extend({
@@ -582,10 +596,6 @@
             this.arrow = arrow;
             this.body = body;
         },
-
-        // destruct: function() {
-        //     var p = this.params.
-        // }
 
     });
 
@@ -744,7 +754,7 @@
         }
     });
 
-    var CatchClause = TermTree.extend({
+    var CatchClause = Statement.extend({
         properties: ["catchkw", "params", "body"],
 
         construct: function(catchkw, params, body) {
@@ -763,7 +773,7 @@
         }
     });
 
-    var Empty = TermTree.extend({
+    var Empty = Statement.extend({
         properties: [],
         construct: function() {}
     });
@@ -775,11 +785,20 @@
         }
     });
 
+    var ForStatement = Statement.extend({
+        properties: ["forkw", "cond"],
+
+        construct: function (forkw, cond) {
+            this.forkw = forkw;
+            this.cond = cond;
+        }
+    });
+
     function stxIsUnaryOp (stx) {
         var staticOperators = ["+", "-", "~", "!",
                                 "delete", "void", "typeof",
                                 "++", "--"];
-        return _.contains(staticOperators, stx.token.value);
+        return _.contains(staticOperators, unwrapSyntax(stx));
     }
 
     function stxIsBinOp (stx) {
@@ -787,7 +806,7 @@
                                 "==", "!=", "===", "!==", 
                                 "<", ">", "<=", ">=", "in", "instanceof",
                                 "<<", ">>", ">>>"];
-        return _.contains(staticOperators, stx.token.value);
+        return _.contains(staticOperators, unwrapSyntax(stx));
     }
 
     // ([Syntax], Map) -> {result: [VariableDeclaration], rest: [Syntax]}
@@ -1019,13 +1038,13 @@
                     }
 
                     // Conditional ( x ? true : false)
-                    Expr(emp) | (rest[0] && rest[0].token.value === "?") => {
+                    Expr(emp) | (rest[0] && unwrapSyntax(rest[0]) === "?") => {
                         var question = rest[0];
                         var condRes = enforest(rest.slice(1), context);
                         var truExpr = condRes.result;
                         var right = condRes.rest;
                         if(truExpr.hasPrototype(Expr) &&
-                           right[0] && right[0].token.value === ":") {
+                           right[0] && unwrapSyntax(right[0]) === ":") {
                             var colon = right[0];
                             var flsRes = enforest(right.slice(1), context);
                             var flsExpr = flsRes.result;
@@ -1041,7 +1060,7 @@
                     }
 
                     // Constructor
-                    Keyword(keyword) | (keyword.token.value === "new" && rest[0]) => {
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "new" && rest[0]) => {
                         var newCallRes = enforest(rest, context);
                         if(newCallRes.result.hasPrototype(Call)) {
                             return step(Const.create(head, newCallRes.result),
@@ -1053,7 +1072,7 @@
                     Delimiter(delim) | (delim.token.value === "()" &&
                                          rest[0] &&
                                          rest[0].token.type === parser.Token.Punctuator &&
-                                         rest[0].token.value === "=>") => {
+                                         unwrapSyntax(rest[0]) === "=>") => {
                         var res = enforest(rest.slice(1), context);
                         if (res.result.hasPrototype(Expr)) {
                             return step(ArrowFun.create(delim, rest[0], res.result.destruct()), 
@@ -1066,7 +1085,7 @@
                     // Arrow functions with expression bodies
                     Id(id) | (rest[0] &&
                                  rest[0].token.type === parser.Token.Punctuator &&
-                                 rest[0].token.value === "=>") => {
+                                 unwrapSyntax(rest[0]) === "=>") => {
                         var res = enforest(rest.slice(1), context);
                         if (res.result.hasPrototype(Expr)) {
                             return step(ArrowFun.create(id, rest[0], res.result.destruct()), 
@@ -1127,8 +1146,8 @@
                     }
 
                     // Postfix
-                    Expr(emp) | (rest[0] && (rest[0].token.value === "++" || 
-                                            rest[0].token.value === "--")) => {
+                    Expr(emp) | (rest[0] && (unwrapSyntax(rest[0]) === "++" || 
+                                            unwrapSyntax(rest[0]) === "--")) => {
                         return step(PostfixOp.create(head, rest[0]), rest.slice(1));
                     }
 
@@ -1139,7 +1158,7 @@
                     }
 
                     // ObjectGet
-                    Expr(emp) | (rest[0] && rest[0].token.value === "." &&
+                    Expr(emp) | (rest[0] && unwrapSyntax(rest[0]) === "." &&
                                  rest[1] &&
                                  rest[1].token.type === parser.Token.Identifier) => {
                         return step(ObjDotGet.create(head, rest[0], rest[1]),
@@ -1156,7 +1175,7 @@
                         return step(Block.create(head), rest);
                     }
 
-                    Id(id) | (id.token.value === "#quoteSyntax" && 
+                    Id(id) | (unwrapSyntax(id) === "#quoteSyntax" && 
                                 rest[0] && rest[0].token.value === "{}") => {
 
                         var tempId = fresh();
@@ -1167,11 +1186,11 @@
 
 
                     
-                    Keyword(keyword) | (keyword.token.value === "let" && 
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "let" && 
                                         (rest[0] && rest[0].token.type === parser.Token.Identifier || 
                                          rest[0] && rest[0].token.type === parser.Token.Keyword ||
                                          rest[0] && rest[0].token.type === parser.Token.Punctuator) &&
-                                        rest[1] && rest[1].token.value === "=" &&
+                                        rest[1] && unwrapSyntax(rest[1]) === "=" &&
                                         rest[2] && rest[2].token.value === "macro") => {
                         var mac = enforest(rest.slice(2), context);
                         if (!mac.result.hasPrototype(AnonMacro)) {
@@ -1182,7 +1201,7 @@
                     }
 
                     // VariableStatement
-                    Keyword(keyword) | (keyword.token.value === "var" && rest[0]) => {
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "var" && rest[0]) => {
                         var vsRes = enforestVarStatement(rest, context, false);
                         if (vsRes) {
                             return step(VariableStatement.create(head, vsRes.result),
@@ -1190,7 +1209,7 @@
                         }
                     }
                     // Let Statement
-                    Keyword(keyword) | (keyword.token.value === "let" && rest[0]) => {
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "let" && rest[0]) => {
                         var vsRes = enforestVarStatement(rest, context, true);
                         if (vsRes) {
                             return step(LetStatement.create(head, vsRes.result),
@@ -1198,12 +1217,18 @@
                         }
                     }
                     // Const Statement
-                    Keyword(keyword) | (keyword.token.value === "const" && rest[0]) => {
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "const" && rest[0]) => {
                         var vsRes = enforestVarStatement(rest, context, true);
                         if (vsRes) {
                             return step(ConstStatement.create(head, vsRes.result),
                                         vsRes.rest);
                         }
+                    }
+
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "for" && 
+                                        rest[0] && rest[0].token.value === "()") => {
+                        return step(ForStatement.create(keyword, rest[0]), 
+                                    rest.slice(1));
                     }
                 }
             } else {
@@ -1270,12 +1295,12 @@
                     return step(Macro.create(rest[0], rest[1].expose().token.inner),
                                 rest.slice(2));
                 // module definition
-                } else if (head.token.value === "module" && 
+                } else if (unwrapSyntax(head) === "module" && 
                             rest[0] && rest[0].token.value === "{}") {
                     return step(Module.create(rest[0]), rest.slice(1));
                 // function definition
                 } else if (head.token.type === parser.Token.Keyword &&
-                    head.token.value === "function" &&
+                    unwrapSyntax(head) === "function" &&
                     rest[0] && rest[0].token.type === parser.Token.Identifier &&
                     rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                     rest[1].token.value === "()" &&
@@ -1290,7 +1315,7 @@
                                 rest.slice(3));
                 // generator function definition
                 } else if (head.token.type === parser.Token.Keyword &&
-                    head.token.value === "function" &&
+                    unwrapSyntax(head) === "function" &&
                     rest[0] && rest[0].token.type === parser.Token.Punctuator &&
                     rest[0].token.value === "*" &&
                     rest[1] && rest[1].token.type === parser.Token.Identifier &&
@@ -1307,7 +1332,7 @@
                                 rest.slice(4));
                 // anonymous function definition
                 } else if(head.token.type === parser.Token.Keyword &&
-                    head.token.value === "function" &&
+                    unwrapSyntax(head) === "function" &&
                     rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                     rest[0].token.value === "()" &&
                     rest[1] && rest[1].token.type === parser.Token.Delimiter &&
@@ -1322,7 +1347,7 @@
                                 rest.slice(2));
                 // anonymous generator function definition
                 } else if(head.token.type === parser.Token.Keyword &&
-                    head.token.value === "function" &&
+                    unwrapSyntax(head) === "function" &&
                     rest[0] && rest[0].token.type === parser.Token.Punctuator &&
                     rest[0].token.value === "*" &&
                     rest[1] && rest[1].token.type === parser.Token.Delimiter &&
@@ -1349,7 +1374,7 @@
                                 rest.slice(2));
                 // catch statement
                 } else if (head.token.type === parser.Token.Keyword &&
-                           head.token.value === "catch" &&
+                           unwrapSyntax(head) === "catch" &&
                            rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                            rest[0].token.value === "()" &&
                            rest[1] && rest[1].token.type === parser.Token.Delimiter &&
@@ -1360,7 +1385,7 @@
                                rest.slice(2));
                 // this expression
                 } else if (head.token.type === parser.Token.Keyword &&
-                    head.token.value === "this") {
+                    unwrapSyntax(head) === "this") {
 
                     return step(ThisExpression.create(head), rest);
                 // literal
@@ -1373,7 +1398,7 @@
                     return step(Lit.create(head), rest);
                 // export
                 } else if (head.token.type === parser.Token.Keyword && 
-                            head.token.value === "export" && 
+                            unwrapSyntax(head) === "export" && 
                             rest[0] && (rest[0].token.type === parser.Token.Identifier ||
                                         rest[0].token.type === parser.Token.Keyword ||
                                         rest[0].token.type === parser.Token.Punctuator)) {
@@ -1385,7 +1410,7 @@
                 } else if (head.token.type === parser.Token.Punctuator) {
                     return step(Punc.create(head), rest);
                 } else if (head.token.type === parser.Token.Keyword &&
-                            head.token.value === "with") {
+                            unwrapSyntax(head) === "with") {
                     throwSyntaxError("enforest", "with is not supported in sweet.js", head); 
                 // keyword
                 } else if (head.token.type === parser.Token.Keyword) {
@@ -1591,6 +1616,43 @@
                                       
                 }
             });
+        }
+
+        if (head.hasPrototype(ForStatement)) {
+            head.cond.expose();
+            var forCond = head.cond.token.inner;
+            if(forCond[0] && resolve(forCond[0]) === "let" &&
+               forCond[1] && forCond[1].token.type === parser.Token.Identifier) {
+                var letNew = fresh();
+                var letId = forCond[1];
+
+                forCond = forCond.map(function(stx) {
+                    return stx.rename(letId, letNew);
+                });
+
+                // hack: we want to do the let renaming here, not
+                // in the expansion of `for (...)` so just remove the `let`
+                // keyword
+                head.cond.token.inner = expand([forCond[0]], context)
+                                        .concat(expand(forCond.slice(1), context));
+
+                // nice and easy case: `for (...) { ... }`
+                if (rest[0] && rest[0].token.value === "{}") {
+                    rest[0] = rest[0].rename(letId, letNew);
+                } else {
+                    // need to deal with things like `for (...) if (...) log(...)`
+                    var bodyEnf = enforest(rest, context);
+                    var renamedBodyTerm = bodyEnf.result.rename(letId, letNew);
+                    var forTrees = expandToTermTree(bodyEnf.rest, context);
+                    return {
+                        terms: [head, renamedBodyTerm].concat(forTrees.terms),
+                        context: forTrees.context
+                    };
+                }
+
+            } else {
+                head.cond.token.inner = expand(head.cond.token.inner, context);
+            }
         }
 
         var trees = expandToTermTree(rest, context);
