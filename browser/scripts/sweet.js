@@ -94,47 +94,51 @@
         return parser$2525.parse(expand$2531(code$2543, globalMacros$2544, maxExpands$2545));
     }
     // fun ([...CSyntax]) -> String
-    function prettyPrint$2533(stxarr$2546) {
-        var indent$2547 = 0;
-        var unparsedLines$2548 = stxarr$2546.reduce(function (acc$2549, stx$2550) {
-                var s$2551 = stx$2550.token.value;
-                if (s$2551 == '{') {
-                    acc$2549[0].str += ' ' + s$2551;
-                    indent$2547++;
-                    acc$2549.unshift({
-                        indent: indent$2547,
+    function prettyPrint$2533(stxarr$2546, shouldResolve$2547) {
+        var indent$2548 = 0;
+        var unparsedLines$2549 = stxarr$2546.reduce(function (acc$2550, stx$2551) {
+                var s$2552 = shouldResolve$2547 ? expander$2526.resolve(stx$2551) : stx$2551.token.value;
+                // skip the end of file token
+                if (stx$2551.token.type === parser$2525.Token.EOF) {
+                    return acc$2550;
+                }
+                if (s$2552 == '{') {
+                    acc$2550[0].str += ' ' + s$2552;
+                    indent$2548++;
+                    acc$2550.unshift({
+                        indent: indent$2548,
                         str: ''
                     });
-                } else if (s$2551 == '}') {
-                    indent$2547--;
-                    acc$2549.unshift({
-                        indent: indent$2547,
-                        str: s$2551
+                } else if (s$2552 == '}') {
+                    indent$2548--;
+                    acc$2550.unshift({
+                        indent: indent$2548,
+                        str: s$2552
                     });
-                    acc$2549.unshift({
-                        indent: indent$2547,
+                    acc$2550.unshift({
+                        indent: indent$2548,
                         str: ''
                     });
-                } else if (s$2551 == ';') {
-                    acc$2549[0].str += s$2551;
-                    acc$2549.unshift({
-                        indent: indent$2547,
+                } else if (s$2552 == ';') {
+                    acc$2550[0].str += s$2552;
+                    acc$2550.unshift({
+                        indent: indent$2548,
                         str: ''
                     });
                 } else {
-                    acc$2549[0].str += (acc$2549[0].str ? ' ' : '') + s$2551;
+                    acc$2550[0].str += (acc$2550[0].str ? ' ' : '') + s$2552;
                 }
-                return acc$2549;
+                return acc$2550;
             }, [{
                     indent: 0,
                     str: ''
                 }]);
-        return unparsedLines$2548.reduce(function (acc$2552, line$2553) {
-            var ind$2554 = '';
-            while (ind$2554.length < line$2553.indent * 2) {
-                ind$2554 += ' ';
+        return unparsedLines$2549.reduce(function (acc$2553, line$2554) {
+            var ind$2555 = '';
+            while (ind$2555.length < line$2554.indent * 2) {
+                ind$2555 += ' ';
             }
-            return ind$2554 + line$2553.str + '\n' + acc$2552;
+            return ind$2555 + line$2554.str + '\n' + acc$2553;
         }, '');
     }
     exports$2524.expand = expand$2531;
@@ -142,22 +146,22 @@
     exports$2524.prettyPrint = prettyPrint$2533;
     // (Str, {sourceMap: ?Bool, filename: ?Str})
     //    -> { code: Str, sourceMap: ?Str }
-    exports$2524.compile = function compile$2534(code$2555, options$2556) {
-        var output$2557;
-        options$2556 = options$2556 || {};
-        var ast$2558 = parse$2532(code$2555, options$2556.macros);
-        if (options$2556.sourceMap) {
-            output$2557 = codegen$2530.generate(ast$2558, {
+    exports$2524.compile = function compile$2534(code$2556, options$2557) {
+        var output$2558;
+        options$2557 = options$2557 || {};
+        var ast$2559 = parse$2532(code$2556, options$2557.macros);
+        if (options$2557.sourceMap) {
+            output$2558 = codegen$2530.generate(ast$2559, {
                 comment: true,
-                sourceMap: options$2556.filename,
+                sourceMap: options$2557.filename,
                 sourceMapWithCode: true
             });
             return {
-                code: output$2557.code,
-                sourceMap: output$2557.map.toString()
+                code: output$2558.code,
+                sourceMap: output$2558.map.toString()
             };
         }
-        return { code: codegen$2530.generate(ast$2558, { comment: true }) };
+        return { code: codegen$2530.generate(ast$2559, { comment: true }) };
     };
 }));
 //# sourceMappingURL=sweet.js.map
