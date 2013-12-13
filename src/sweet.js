@@ -104,10 +104,10 @@
 
 
     // fun ([...CSyntax]) -> String
-    function prettyPrint(stxarr) {
+    function prettyPrint(stxarr, shouldResolve) {
         var indent = 0;
         var unparsedLines = stxarr.reduce(function(acc, stx) {
-            var s = stx.token.value;
+            var s = shouldResolve ? expander.resolve(stx) : stx.token.value;
             // skip the end of file token
             if (stx.token.type === parser.Token.EOF) { return acc; }
 

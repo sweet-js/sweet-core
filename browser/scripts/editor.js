@@ -21,6 +21,9 @@ require(["./sweet"], function(sweet) {
         autofocus: true,
         theme: 'solarized dark'
     });
+
+    var currentStep = 1;
+
     if (window.location.hash) {
         editor.setValue(decodeURI(window.location.hash.slice(1)));
     } else {
@@ -45,6 +48,16 @@ require(["./sweet"], function(sweet) {
         editor.setOption('keyMap', 'emacs');
         editor.focus();
         localStorage[storage_mode] = "emacs";
+    });
+
+    $('#btn-step').click(function() {
+        var unparsedString = sweet.prettyPrint(
+            sweet.expand(editor.getValue(), 
+                         undefined, 
+                         currentStep++),
+            $("#ck-hygiene").prop("checked"));
+        $("#lab-step").text(currentStep);
+        output.setValue(unparsedString); 
     });
 
     var updateTimeout;
@@ -73,8 +86,10 @@ require(["./sweet"], function(sweet) {
             output.setValue(compiled);
 
             $('#errors').text('');
+            $('#errors').hide();
         } catch (e) {
             $('#errors').text(e);
+            $('#errors').show();
         }
     }
     updateExpand();
