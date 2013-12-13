@@ -23,6 +23,8 @@ var argv = require("optimist")
     .alias('c', 'sourcemap')
     .describe('c', 'generate a sourcemap')
     .boolean("sourcemap")
+    .alias('n', 'num-expands')
+    .describe('n', 'the maximum number of expands to perform')
     .argv;
 
 exports.run = function() {
@@ -32,6 +34,7 @@ exports.run = function() {
     var tokens = argv.tokens;
     var sourcemap = argv.sourcemap;
     var noparse = argv['no-parse'];
+    var numexpands = argv['num-expands'];
 
     var file;
     var globalMacros;
@@ -96,15 +99,14 @@ exports.run = function() {
             fs.writeFileSync(outfile, sweet.compile(file).code, "utf8");
         }
     } else if (tokens) {
-        console.log(sweet.expand(file, globalMacros));
+        console.log(sweet.expand(file, globalMacros, numexpands));
     } else if (noparse) {
-        var unparsedString = sweet.expand(file, globalMacros).reduce(function(acc, stx) {
-            return acc + " " + stx.token.value;
-        }, "");
+        var unparsedString = sweet.prettyPrint(sweet.expand(file, globalMacros, numexpands));        
         console.log(unparsedString);
     } else {
         console.log(sweet.compile(file, {
-            macros: globalMacros 
+            macros: globalMacros,
+            numExpands: numexpands
         }).code);
     }
 };

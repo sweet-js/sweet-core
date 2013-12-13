@@ -52,7 +52,7 @@
     var codegen = gen || escodegen;
 
     // fun (Str) -> [...CSyntax]
-    function expand(code, globalMacros) {
+    function expand(code, globalMacros, maxExpands) {
         var program, toString;
         globalMacros = globalMacros || '';
 
@@ -81,7 +81,7 @@
 
         var readTree = parser.read(source);
         try {
-            return expander.expand(readTree, stxcaseModule + '\n' + globalMacros);
+            return expander.expand(readTree, stxcaseModule + '\n' + globalMacros, maxExpands);
         } catch(err) {
             if (err instanceof syn.MacroSyntaxError) {
                 throw new SyntaxError(syn.printSyntaxError(source, err));
@@ -92,18 +92,58 @@
     }
 
     // fun (Str, {}) -> AST
-    function parse(code, globalMacros) {
+    function parse(code, globalMacros, maxExpands) {
         if (code === "") {
             // old version of esprima doesn't play nice with the empty string
             // and loc/range info so until we can upgrade hack in a single space
             code = " ";
         }
 
-        return parser.parse(expand(code, globalMacros));
+        return parser.parse(expand(code, globalMacros, maxExpands));
+    }
+
+
+    // fun ([...CSyntax]) -> String
+    function prettyPrint(stxarr, shouldResolve) {
+        var indent = 0;
+        var unparsedLines = stxarr.reduce(function(acc, stx) {
+            var s = shouldResolve ? expander.resolve(stx) : stx.token.value;
+            // skip the end of file token
+            if (stx.token.type === parser.Token.EOF) { return acc; }
+
+            if(s == '{') {
+                acc[0].str += ' ' + s;
+                indent++;
+                acc.unshift({ indent: indent, str: '' });
+            }
+            else if(s == '}') {
+                indent--;
+                acc.unshift({ indent: indent, str: s });
+                acc.unshift({ indent: indent, str: '' });
+            }
+            else if(s == ';') {
+                acc[0].str += s;
+                acc.unshift({ indent: indent, str: '' });
+            }
+            else {
+                acc[0].str += (acc[0].str ? ' ' : '') + s;
+            }
+
+            return acc;
+        }, [{ indent: 0, str: '' }]);
+
+        return unparsedLines.reduce(function(acc, line) {
+            var ind = '';
+            while(ind.length < line.indent * 2) {
+                ind += ' ';
+            }
+            return ind + line.str + '\n' + acc;
+        }, '');
     }
 
     exports.expand = expand;
     exports.parse = parse;
+    exports.prettyPrint = prettyPrint;
 
     // (Str, {sourceMap: ?Bool, filename: ?Str})
     //    -> { code: Str, sourceMap: ?Str }

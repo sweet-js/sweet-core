@@ -167,4 +167,38 @@ describe "procedural (syntax-case) macros" {
         expect(n).to.be.a('number');
         expect(n).not.to.equal(n);
     }
+
+    it "should handle letstx" {
+        let l = macro {
+            case {_ $x } => {
+                letstx $y = [makeValue(42, #{here})];
+                return #{ $x + $y }
+            }
+        }
+        expect(l 100).to.be(142);
+    }
+
+    it "should handle letstx with multiple patterns" {
+        let l = macro {
+            case {_ $x } => {
+                letstx $y = [makeValue(42, #{here})], $z = [makeValue(100, #{here})];
+                return #{ $x + $y + $z}
+            }
+        }
+        expect(l 100).to.be(242);
+    }
+
+    it "should handle letstx with repeaters" {
+        let l = macro {
+            case {_ $x } => {
+                letstx $y ... = [makeValue(10, #{here}),
+                                            makePunc('+', #{here}),
+                                            makeValue(20, #{here})],
+                       $z = [makeValue(30, #{here})];
+                return #{$x + $y ... + $z}
+            }
+        }
+        expect(l 5).to.be(65);
+    }
+
 }
