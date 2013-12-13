@@ -111,6 +111,10 @@
             // skip the end of file token
             if (stx.token.type === parser.Token.EOF) { return acc; }
 
+            if(stx.token.type === parser.Token.StringLiteral) {
+                s = '"' + s + '"';
+            }
+
             if(s == '{') {
                 acc[0].str += ' ' + s;
                 indent++;
