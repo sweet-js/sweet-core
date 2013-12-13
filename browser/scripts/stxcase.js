@@ -504,7 +504,7 @@ let withSyntax = macro {
 export withSyntax;
 
 let letstx = macro {
-    case {$letname $($pat ... = $e:expr) (,) ...; $rest ...} => { 
+    case {$letname $($pat ... = $e:expr) (,) ...; $rest ...} => {
         // need to capture the lexical context
         return withSyntax($withSyntax_name = [makeIdent("withSyntax", #{$letname})]) {
             return #{
