@@ -108,6 +108,8 @@
         var indent = 0;
         var unparsedLines = stxarr.reduce(function(acc, stx) {
             var s = stx.token.value;
+            // skip the end of file token
+            if (stx.token.type === parser.Token.EOF) { return acc; }
 
             if(s == '{') {
                 acc[0].str += ' ' + s;
