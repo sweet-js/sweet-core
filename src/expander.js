@@ -1252,7 +1252,7 @@
                     var mac = context.env.get(resolve(head));
                     var transformer = mac.fn;
 
-                    if(!builtinMode && !mac.builtin && expandCount >= maxExpands) {
+                    if(expandCount >= maxExpands) {
                         return { result: head, rest: rest };
                     }
                     else if(!builtinMode && !mac.builtin) {
@@ -1569,7 +1569,7 @@
         // rest :: [Syntax]
         var rest = f.rest;
 
-        if (head.hasPrototype(Macro)) {
+        if (head.hasPrototype(Macro) && expandCount < maxExpands) {
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head, context);
 
@@ -1582,7 +1582,7 @@
             return expandToTermTree(rest, context);
         }
 
-        if (head.hasPrototype(LetMacro)) {
+        if (head.hasPrototype(LetMacro) && expandCount < maxExpands) {
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head, context);
             var freshName = fresh();
