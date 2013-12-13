@@ -1890,12 +1890,6 @@
         maxExpands = _maxExpands || Infinity;
         expandCount = 0;
 
-        /*
-        var testing = expand(parser.read("(function () {var foo; function bar(foo) { foo; }})"), makeExpanderContext());
-        testing = flatten(testing[0].destruct()).concat(testing[1].eof);
-        testing = parser.parse(testing);
-        testing = codegen.generate(testing);
-        */
         if (builtinSource) {
             var builtinRead = parser.read(builtinSource);
 
