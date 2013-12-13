@@ -240,6 +240,9 @@
     var syntaxFromToken = syn.syntaxFromToken;
     var joinSyntax = syn.joinSyntax;
 
+    var builtinMode = false;
+    var expandCount = 0;
+    var maxExpands;
 
     function remdup(mark, mlist) {
         if (mark === _.first(mlist)) {
@@ -1246,7 +1249,16 @@
                     var transformerContext = makeExpanderContext(_.defaults({mark: newMark}, context));
 
                     // pull the macro transformer out the environment
-                    var transformer = context.env.get(resolve(head)).fn;
+                    var mac = context.env.get(resolve(head));
+                    var transformer = mac.fn;
+
+                    if(expandCount >= maxExpands) {
+                        return { result: head, rest: rest };
+                    }
+                    else if(!builtinMode && !mac.builtin) {
+                        expandCount++;
+                    }
+
                     // apply the transformer
                     try {
                         var rt = transformer([head].concat(rest), transformerContext);
@@ -1557,19 +1569,20 @@
         // rest :: [Syntax]
         var rest = f.rest;
 
-        if (head.hasPrototype(Macro)) {
+        if (head.hasPrototype(Macro) && expandCount < maxExpands) {
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head, context);
 
             addToDefinitionCtx([head.name], context.defscope, false);
             context.env.set(resolve(head.name), {
-                fn: macroDefinition
+                fn: macroDefinition,
+                builtin: builtinMode
             });
 
             return expandToTermTree(rest, context);
         }
 
-        if (head.hasPrototype(LetMacro)) {
+        if (head.hasPrototype(LetMacro) && expandCount < maxExpands) {
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head, context);
             var freshName = fresh();
@@ -1580,7 +1593,8 @@
             head.name = renamedName;
 
             context.env.set(resolve(head.name), {
-                fn: macroDefinition
+                fn: macroDefinition,
+                builtin: builtinMode
             });
 
             return expandToTermTree(rest, context);
@@ -1869,10 +1883,13 @@
     }
 
     // a hack to make the top level hygiene work out
-    function expandTopLevel (stx, builtinSource) {
+    function expandTopLevel (stx, builtinSource, _maxExpands) {
         var env = new Map();
         var params = [];
         var context, builtInContext = makeExpanderContext({env: env});
+        maxExpands = _maxExpands || Infinity;
+        expandCount = 0;
+
         /*
         var testing = expand(parser.read("(function () {var foo; function bar(foo) { foo; }})"), makeExpanderContext());
         testing = flatten(testing[0].destruct()).concat(testing[1].eof);
@@ -1885,7 +1902,10 @@
             builtinRead = [syn.makeIdent("module", null),
                             syn.makeDelim("{}", builtinRead, null)];
 
+            builtinMode = true;
             var builtinRes = expand(builtinRead, builtInContext);
+            builtinMode = false;
+
             params = _.map(builtinRes[0].exports, function(term) {
                 return {
                     oldExport: term.name,
