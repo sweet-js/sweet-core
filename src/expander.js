@@ -1523,6 +1523,7 @@
             makeDelim: syn.makeDelim,
             unwrapSyntax: syn.unwrapSyntax,
             throwSyntaxError: throwSyntaxError,
+            prettyPrint: syn.prettyPrint,
             parser: parser,
             _: _,
             patternModule: patternModule,

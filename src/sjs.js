@@ -2,6 +2,7 @@ var fs = require("fs");
 var path = require("path");
 
 var sweet = require("./sweet.js");
+var syn = require("./syntax.js");
 
 var argv = require("optimist")
     .usage("Usage: sjs [options] path/to/file.js")
@@ -25,6 +26,8 @@ var argv = require("optimist")
     .boolean("sourcemap")
     .alias('n', 'num-expands')
     .describe('n', 'the maximum number of expands to perform')
+    .alias('h', 'step-hygiene')
+    .describe('h', 'display hygienic renames when stepping with "--num-expands"')
     .argv;
 
 exports.run = function() {
@@ -35,6 +38,7 @@ exports.run = function() {
     var sourcemap = argv.sourcemap;
     var noparse = argv['no-parse'];
     var numexpands = argv['num-expands'];
+    var displayHygiene = argv['step-hygiene']
 
     var file;
     var globalMacros;
@@ -101,7 +105,7 @@ exports.run = function() {
     } else if (tokens) {
         console.log(sweet.expand(file, globalMacros, numexpands));
     } else if (noparse) {
-        var unparsedString = sweet.prettyPrint(sweet.expand(file, globalMacros, numexpands));        
+        var unparsedString = syn.prettyPrint(sweet.expand(file, globalMacros, numexpands), displayHygiene);        
         console.log(unparsedString);
     } else {
         console.log(sweet.compile(file, {
