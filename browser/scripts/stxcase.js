@@ -203,62 +203,101 @@ let syntaxCase = macro {
         }
 
         function makeTranscribe(i) {
-            return [
+            // if (match.succss) {
+            var transcribeGuard = [
                 makeKeyword("if", here),
                 makeDelim("()", [
                     makeIdent("match", name_stx),
                     makePunc(".", here),
                     makeIdent("success", here)
-                ], here),
-                makeDelim("{}",[
-                    makeIdent("applyMarkToPatternEnv", here),
-                    makeDelim("()", [
-                        makeIdent("context", name_stx),
-                        makePunc(".", here),
-                        makeIdent("mark", name_stx),
-                        makePunc(",", here),
-                        makeIdent("match", name_stx),
-                        makePunc(".", here),
-                        makeIdent("patternEnv", name_stx)
-                    ], here),
-                    makePunc(";", here)
-                ].concat(makeVarDef("res", [
-                    makeDelim("()", makeFunc([], cases[i].body), here),
-                    makeDelim("()", [], here)
-                ])).concat([
-                    makeIdent("res", name_stx),
-                    makePunc("=", here),
-                    makeIdent("res", name_stx),
+                ], here)
+            ];
+            // applyMarkToPatternEnv (context.mark, match.patternEnv);
+            var applyPreMark = [
+                makeIdent("applyMarkToPatternEnv", here),
+                makeDelim("()", [
+                    makeIdent("context", name_stx),
                     makePunc(".", here),
-                    makeIdent("map", here),
-                    makeDelim("()", makeFunc([makeIdent("stx", here)], [
-                            makeKeyword("return", here),
-                            makeIdent("stx", here),
-                            makePunc(".", here),
-                            makeIdent("mark", here),
-                            makeDelim("()", [
-                                makeIdent("context", name_stx),
-                                makePunc(".", here),
-                                makeIdent("mark", here)
-                            ], here)
-                    ]), here),
-                    makePunc(";", here)
-                ]).concat([
-                    makeKeyword("return", here),
-                    makeDelim("{}", [
-                        makeIdent("result", here),
-                        makePunc(":", here),
-                        makeIdent("res", name_stx),
-
-                        makePunc(",", here),
-
-                        makeIdent("rest", here),
-                        makePunc(":", here),
-                        makeIdent("match", name_stx),
-                        makePunc(".", here),
-                        makeIdent("rest", here)
+                    makeIdent("mark", name_stx),
+                    makePunc(",", here),
+                    makeIdent("match", name_stx),
+                    makePunc(".", here),
+                    makeIdent("patternEnv", name_stx)
+                ], here),
+                makePunc(";", here)
+            ];
+            // var res = (function() { <cases[i].body> })();
+            var runBody = makeVarDef("res", [
+                makeDelim("()", makeFunc([], cases[i].body), here),
+                makeDelim("()", [], here),
+                makePunc(";", here)
+            ]);
+            // if (!Array.isArray(res)) { throwSyntaxError("macro", "Macro must return a syntax array", stx); }
+            var errHandling = [
+                makeKeyword("if", here),
+                makeDelim("()", [
+                    makePunc("!", here),
+                    makeIdent("Array", here),
+                    makePunc(".", here),
+                    makeIdent("isArray", here),
+                    makeDelim("()", [
+                        makeIdent("res", name_stx)
                     ], here)
-                ]), here)];
+                ], here),
+                makeDelim("{}", [
+                    makeIdent("throwSyntaxError", here),
+                    makeDelim("()", [
+                        makeValue("macro", here),
+                        makePunc(",", here),
+                        makeValue("Macro must return a syntax array", here),
+                        makePunc(",", here),
+                        makeIdent("stx", name_stx)
+                    ], here)
+                ], here)
+            ];
+            // res = res.map(function(stx) { return stx.mark(context.mark); })
+            var applyPostMark = [
+                makeIdent("res", name_stx),
+                makePunc("=", here),
+                makeIdent("res", name_stx),
+                makePunc(".", here),
+                makeIdent("map", here),
+                makeDelim("()", makeFunc([makeIdent("stx", here)], [
+                        makeKeyword("return", here),
+                        makeIdent("stx", here),
+                        makePunc(".", here),
+                        makeIdent("mark", here),
+                        makeDelim("()", [
+                            makeIdent("context", name_stx),
+                            makePunc(".", here),
+                            makeIdent("mark", here)
+                        ], here)
+                ]), here),
+                makePunc(";", here)
+            ];
+            // return { result: res, rest: match.rest };
+            var retResult = [
+                makeKeyword("return", here),
+                makeDelim("{}", [
+                    makeIdent("result", here),
+                    makePunc(":", here),
+                    makeIdent("res", name_stx),
+
+                    makePunc(",", here),
+
+                    makeIdent("rest", here),
+                    makePunc(":", here),
+                    makeIdent("match", name_stx),
+                    makePunc(".", here),
+                    makeIdent("rest", here)
+                ], here)
+            ];
+            var transcribeBody = makeDelim("{}", applyPreMark
+                                                    .concat(runBody)
+                                                    .concat(errHandling)
+                                                    .concat(applyPostMark)
+                                                    .concat(retResult), here);
+            return transcribeGuard.concat(transcribeBody);
             
         }
 
@@ -463,3 +502,17 @@ let withSyntax = macro {
 }
 
 export withSyntax;
+
+let letstx = macro {
+    case {$letname $($pat ... = $e:expr) (,) ...; $rest ...} => {
+        // need to capture the lexical context
+        return withSyntax($withSyntax_name = [makeIdent("withSyntax", #{$letname})]) {
+            return #{
+                return $withSyntax_name ($($pat ... = $e) (,) ...) {
+                    $rest ...
+                }
+            }
+        }
+    }
+}
+export letstx;

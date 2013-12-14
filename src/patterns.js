@@ -15,6 +15,9 @@
     var makePunc = syntax.makePunc;
     var joinSyntax = syntax.joinSyntax;
     var joinSyntaxArr = syntax.joinSyntaxArr;
+    var assert = syntax.assert;
+    var throwSyntaxError = syntax.throwSyntaxError;
+
 
     // ([...CSyntax]) -> [...Str]
     function freeVarsInPattern(pattern) {
@@ -198,7 +201,7 @@
                 if (isPatternVar(patStx)) {
                     if (next && next.token.value === ":" && !isPatternVar(nextNext)) {
                         if (typeof nextNext === 'undefined') {
-                            throw new Error("expecting a pattern class following a `:`");
+                            throwSyntaxError("patterns", "expecting a pattern class following a `:`", next);
                         }
                         patStx.class = nextNext.token.value;
                     } else {
@@ -232,7 +235,7 @@
                 } else if (delimIsSeparator(next) &&
                            nextNext && nextNext.token.value === "...") {
                     repeat = true;
-                    parser.assert(next.token.inner.length === 1,
+                    assert(next.token.inner.length === 1,
                            "currently assuming all separators are a single token");
                     separator = next.token.inner[0].token.value;
                 }
@@ -535,6 +538,12 @@
 
     }
 
+    function hasMatch(m) {
+        if (m.level === 0) {
+            return m.match.length > 0;
+        }
+        return m.match.every(function(m) { return hasMatch(m); });
+    }
     
     // given the given the macroBody (list of Pattern syntax objects) and the
     // environment (a mapping of patterns to syntax) return the body with the
@@ -586,7 +595,7 @@
                     // literal [] delimiters have their bodies just
                     // directly passed along
                     if (bodyStx.literal === true) {
-                        parser.assert(bodyStx.token.type === parser.Token.Delimiter,
+                        assert(bodyStx.token.type === parser.Token.Delimiter,
                                         "expecting a literal to be surrounded by []");
                         return acc.concat(bodyStx.token.inner);
                     }
@@ -620,7 +629,7 @@
                             return env[pat].level > 0;
                         });
 
-                        parser.assert(typeof nonScalar !== 'undefined',
+                        assert(typeof nonScalar !== 'undefined',
                                       "must have a least one non-scalar in repeat");
 
                         var repeatLength = env[nonScalar].match.length;
@@ -628,7 +637,7 @@
                             return (env[pat].level === 0) ||
                                 (env[pat].match.length === repeatLength);
                         });
-                        parser.assert(sameLength,
+                        assert(sameLength,
                                       "all non-scalars must have the same length");
 
                         // create a list of envs restricted to the free vars
@@ -638,13 +647,15 @@
                                 if (env[pat].level === 0) {
                                     // copy scalars over
                                     renv[pat] = env[pat];
-                                } else if (env[pat].match[idx].match.length > 0) {
-                                    // grab the match at this index (so long as there
-                                    // are syntax objects in the match)
+                                } else {
+                                    // grab the match at this index 
                                     renv[pat] = env[pat].match[idx];
                                 }
                             });
-                            if (Object.keys(renv).length > 0) {
+                            var allHaveMatch = Object.keys(renv).every(function(pat) {
+                                return hasMatch(renv[pat]);
+                            });
+                            if (allHaveMatch) {
                                 restrictedEnv.push(renv); 
                             }
                         });
@@ -674,11 +685,9 @@
                     }
 
                     if (!env[bodyStx.token.value]) {
-                        throw new Error("The pattern variable " + bodyStx.token.value +
-                                        " is not bound for the template");
+                        throwSyntaxError("patterns", "The pattern variable is not bound for the template", bodyStx);
                     } else if (env[bodyStx.token.value].level !== 1) {
-                        throw new Error("Ellipses level for " + bodyStx.token.value +
-                                        " does not match in the template");
+                        throwSyntaxError("patterns", "Ellipses level does not match in the template", bodyStx);
                     } 
 
                     return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match,
@@ -695,11 +704,9 @@
                     if (isPatternVar(bodyStx) &&
                         Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
                         if (!env[bodyStx.token.value]) {
-                            throw new Error("The pattern variable " + bodyStx.token.value +
-                                       " is not bound for the template");
+                            throwSyntaxError("patterns", "The pattern variable is not bound for the template", bodyStx);
                         } else if (env[bodyStx.token.value].level !== 0) {
-                            throw new Error("Ellipses level for " + bodyStx.token.value +
-                                       " does not match in the template");
+                            throwSyntaxError("patterns", "Ellipses level does not match in the template", bodyStx);
                         } 
                         return acc.concat(takeLineContext(bodyStx, env[bodyStx.token.value].match) );
                     }

@@ -8,6 +8,11 @@
     }
 }(this, function(exports, _, es6, parser) {
 
+    function assert(condition, message) {
+        if (!condition) {
+            throw new Error('ASSERT: ' + message);
+        }
+    }
 
     // (CSyntax, Str) -> CContext
     function Rename(id, name, ctx, defctx) {
@@ -111,7 +116,7 @@
         },
 
         expose: function() {
-            parser.assert(this.token.type === parser.Token.Delimiter,
+            assert(this.token.type === parser.Token.Delimiter,
                           "Only delimiters can be exposed");
 
             function applyContext(stxCtx, ctx) {
@@ -127,7 +132,7 @@
                 } else if (isDef(ctx)) {
                     return Def(ctx.defctx, applyContext(stxCtx, ctx.context));
                 } else {
-                    parser.assert(false, "unknown context type");
+                    assert(false, "unknown context type");
                 }
             }
 
@@ -160,13 +165,15 @@
         if (stx && Array.isArray(stx) && stx.length === 1) {
             stx = stx[0];
         } else if (stx && Array.isArray(stx)) {
-            throw new Error("Expecting a syntax object or an array with a single syntax object, not: " + stx);
+            throw new Error();
+            throwSyntaxError("mkSyntax", "Expecting a syntax object or an array with a single syntax object");
         }
 
         if (type === parser.Token.Delimiter) {
             var startLineNumber, startLineStart, endLineNumber, endLineStart, startRange, endRange;
             if (!Array.isArray(inner)) {
                 throw new Error("Must provide inner array of syntax objects when creating a delimiter");
+                throwSyntaxError("mkSyntax", "Must provide inner array of syntax objects when creating a delimiter");
             }
 
             if(stx && stx.token.type === parser.Token.Delimiter) {
@@ -236,7 +243,7 @@
         } else if (val === null) {
             return mkSyntax(stx, 'null', parser.Token.NullLiteral);
         } else {
-            throw new Error("Cannot make value syntax object from: " + val);
+            throwSyntaxError("makeValue", "Cannot make value syntax object from: " + val);
         }
     }
 
@@ -367,6 +374,8 @@
                pre + line + '\n' +
                (Array(offset + pre.length).join(' ')) + ' ^';
     }
+
+    exports.assert = assert;
 
     exports.unwrapSyntax = unwrapSyntax;
     exports.makeDelim = makeDelim;

@@ -48,6 +48,9 @@
 }(this, function(exports, _, parser, syn, es6, se, patternModule, gen) {
     'use strict';
     var codegen = gen || escodegen;
+    var assert = syn.assert;
+    var throwSyntaxError = syn.throwSyntaxError;
+    var unwrapSyntax = syn.unwrapSyntax;
 
     macro _get_vars {
 	    case {_ $val { } } => { return #{} }
@@ -223,10 +226,6 @@
         }
     });
 
-    // todo: add more message information
-    function throwError(msg) {
-        throw new Error(msg);
-    }
 
     var scopedEval = se.scopedEval;
 
@@ -241,6 +240,9 @@
     var syntaxFromToken = syn.syntaxFromToken;
     var joinSyntax = syn.joinSyntax;
 
+    var builtinMode = false;
+    var expandCount = 0;
+    var maxExpands;
 
     function remdup(mark, mlist) {
         if (mark === _.first(mlist)) {
@@ -362,7 +364,7 @@
     // wraps the array of syntax objects in the delimiters given by the second argument
     // ([...CSyntax], CSyntax) -> [...CSyntax]
     function wrapDelim(towrap, delimSyntax) {
-        parser.assert(delimSyntax.token.type === parser.Token.Delimiter,
+        assert(delimSyntax.token.type === parser.Token.Delimiter,
                       "expecting a delimiter token");
 
         return syntaxFromToken({
@@ -382,7 +384,7 @@
         } else if (argSyntax.token.type === parser.Token.Identifier) {
             return [argSyntax];
         } else {
-            parser.assert(false, "expecting a delimiter or a single identifier for function parameters");
+            assert(false, "expecting a delimiter or a single identifier for function parameters");
         }
     }
 
@@ -436,6 +438,19 @@
                 }
             }
             return this;
+        },
+        rename: function(id, name) {
+            for (var i = 0; i < this.properties.length; i++) {
+                var prop = this.properties[i];
+                if (Array.isArray(this[prop])) {
+                    this[prop] = _.map(this[prop], function (item) {
+                        return item.rename(id, name);
+                    });
+                } else if (this[prop]) {
+                    this[prop] = this[prop].rename(id, name);
+                }
+            }
+            return this;
         }
     };
 
@@ -448,7 +463,7 @@
 
     var Statement = TermTree.extend({ construct: function() {} });
 
-    var Expr = TermTree.extend({ construct: function() {} });
+    var Expr = Statement.extend({ construct: function() {} });
     var PrimaryExpression = Expr.extend({ construct: function() {} });
 
     var ThisExpression = PrimaryExpression.extend({
@@ -585,10 +600,6 @@
             this.body = body;
         },
 
-        // destruct: function() {
-        //     var p = this.params.
-        // }
-
     });
 
     var LetMacro = TermTree.extend({
@@ -629,12 +640,12 @@
         properties: ["fun", "args", "delim", "commas"],
 
         destruct: function() {
-            parser.assert(this.fun.hasPrototype(TermTree),
+            assert(this.fun.hasPrototype(TermTree),
                 "expecting a term tree in destruct of call");
             var that = this;
             this.delim = syntaxFromToken(_.clone(this.delim.token), this.delim);
             this.delim.token.inner = _.reduce(this.args, function(acc, term) {
-                parser.assert(term && term.hasPrototype(TermTree),
+                assert(term && term.hasPrototype(TermTree),
                               "expecting term trees in destruct of Call");
                 var dst = acc.concat(term.destruct());
                 // add all commas except for the last one
@@ -650,7 +661,7 @@
         },
 
         construct: function(funn, args, delim, commas) {
-            parser.assert(Array.isArray(args), "requires an array of arguments terms");
+            assert(Array.isArray(args), "requires an array of arguments terms");
             this.fun = funn;
             this.args = args;
             this.delim = delim;
@@ -704,7 +715,7 @@
         },
 
         construct: function(varkw, decls) {
-            parser.assert(Array.isArray(decls), "decls must be an array");
+            assert(Array.isArray(decls), "decls must be an array");
             this.varkw = varkw;
             this.decls = decls;
         }
@@ -722,7 +733,7 @@
         },
 
         construct: function(letkw, decls) {
-            parser.assert(Array.isArray(decls), "decls must be an array");
+            assert(Array.isArray(decls), "decls must be an array");
             this.letkw = letkw;
             this.decls = decls;
         }
@@ -740,13 +751,13 @@
         },
 
         construct: function(constkw, decls) {
-            parser.assert(Array.isArray(decls), "decls must be an array");
+            assert(Array.isArray(decls), "decls must be an array");
             this.constkw = constkw;
             this.decls = decls;
         }
     });
 
-    var CatchClause = TermTree.extend({
+    var CatchClause = Statement.extend({
         properties: ["catchkw", "params", "body"],
 
         construct: function(catchkw, params, body) {
@@ -765,7 +776,7 @@
         }
     });
 
-    var Empty = TermTree.extend({
+    var Empty = Statement.extend({
         properties: [],
         construct: function() {}
     });
@@ -777,11 +788,20 @@
         }
     });
 
+    var ForStatement = Statement.extend({
+        properties: ["forkw", "cond"],
+
+        construct: function (forkw, cond) {
+            this.forkw = forkw;
+            this.cond = cond;
+        }
+    });
+
     function stxIsUnaryOp (stx) {
         var staticOperators = ["+", "-", "~", "!",
                                 "delete", "void", "typeof",
                                 "++", "--"];
-        return _.contains(staticOperators, stx.token.value);
+        return _.contains(staticOperators, unwrapSyntax(stx));
     }
 
     function stxIsBinOp (stx) {
@@ -789,7 +809,7 @@
                                 "==", "!=", "===", "!==", 
                                 "<", ">", "<=", ">=", "in", "instanceof",
                                 "<<", ">>", ">>>"];
-        return _.contains(staticOperators, stx.token.value);
+        return _.contains(staticOperators, unwrapSyntax(stx));
     }
 
     // ([Syntax], Map) -> {result: [VariableDeclaration], rest: [Syntax]}
@@ -845,7 +865,7 @@
                 if (result.hasPrototype(Id)) {
                     decls.push(VariableDeclaration.create(result.id));
                 } else {
-                    throwError("Expecting an identifier in variable declaration");
+                    throwSyntaxError("enforest", "Expecting an identifier in variable declaration", rest);
                 }
             }
         // x EOF
@@ -857,7 +877,7 @@
                                                       result.op,
                                                       result.right));
             } else {
-                throwError("Expecting an identifier in variable declaration");
+                throwSyntaxError("enforest", "Expecting an identifier in variable declaration", stx);
             }
         }
         
@@ -972,11 +992,11 @@
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, context) {
-        parser.assert(toks.length > 0, "enforest assumes there are tokens to work with");
+        assert(toks.length > 0, "enforest assumes there are tokens to work with");
 
         function step(head, rest) {
             var innerTokens;
-            parser.assert(Array.isArray(rest), "result must at least be an empty array");
+            assert(Array.isArray(rest), "result must at least be an empty array");
             if (head.hasPrototype(TermTree)) {
 
                 // function call
@@ -1021,13 +1041,13 @@
                     }
 
                     // Conditional ( x ? true : false)
-                    Expr(emp) | (rest[0] && rest[0].token.value === "?") => {
+                    Expr(emp) | (rest[0] && unwrapSyntax(rest[0]) === "?") => {
                         var question = rest[0];
                         var condRes = enforest(rest.slice(1), context);
                         var truExpr = condRes.result;
                         var right = condRes.rest;
                         if(truExpr.hasPrototype(Expr) &&
-                           right[0] && right[0].token.value === ":") {
+                           right[0] && unwrapSyntax(right[0]) === ":") {
                             var colon = right[0];
                             var flsRes = enforest(right.slice(1), context);
                             var flsExpr = flsRes.result;
@@ -1043,7 +1063,7 @@
                     }
 
                     // Constructor
-                    Keyword(keyword) | (keyword.token.value === "new" && rest[0]) => {
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "new" && rest[0]) => {
                         var newCallRes = enforest(rest, context);
                         if(newCallRes.result.hasPrototype(Call)) {
                             return step(Const.create(head, newCallRes.result),
@@ -1055,26 +1075,26 @@
                     Delimiter(delim) | (delim.token.value === "()" &&
                                          rest[0] &&
                                          rest[0].token.type === parser.Token.Punctuator &&
-                                         rest[0].token.value === "=>") => {
+                                         unwrapSyntax(rest[0]) === "=>") => {
                         var res = enforest(rest.slice(1), context);
                         if (res.result.hasPrototype(Expr)) {
                             return step(ArrowFun.create(delim, rest[0], res.result.destruct()), 
                                         res.rest);
                         } else {
-                            throwError("Body of arrow function must be an expression");
+                            throwSyntaxError("enforest", "Body of arrow function must be an expression", rest.slice(1));
                         }
                     }
 
                     // Arrow functions with expression bodies
                     Id(id) | (rest[0] &&
                                  rest[0].token.type === parser.Token.Punctuator &&
-                                 rest[0].token.value === "=>") => {
+                                 unwrapSyntax(rest[0]) === "=>") => {
                         var res = enforest(rest.slice(1), context);
                         if (res.result.hasPrototype(Expr)) {
                             return step(ArrowFun.create(id, rest[0], res.result.destruct()), 
                                         res.rest);
                         } else {
-                            throwError("Body of arrow function must be an expression");
+                            throwSyntaxError("enforest", "Body of arrow function must be an expression", rest.slice(1));
                         }
                     }
 
@@ -1129,8 +1149,8 @@
                     }
 
                     // Postfix
-                    Expr(emp) | (rest[0] && (rest[0].token.value === "++" || 
-                                            rest[0].token.value === "--")) => {
+                    Expr(emp) | (rest[0] && (unwrapSyntax(rest[0]) === "++" || 
+                                            unwrapSyntax(rest[0]) === "--")) => {
                         return step(PostfixOp.create(head, rest[0]), rest.slice(1));
                     }
 
@@ -1141,7 +1161,7 @@
                     }
 
                     // ObjectGet
-                    Expr(emp) | (rest[0] && rest[0].token.value === "." &&
+                    Expr(emp) | (rest[0] && unwrapSyntax(rest[0]) === "." &&
                                  rest[1] &&
                                  rest[1].token.type === parser.Token.Identifier) => {
                         return step(ObjDotGet.create(head, rest[0], rest[1]),
@@ -1158,7 +1178,7 @@
                         return step(Block.create(head), rest);
                     }
 
-                    Id(id) | (id.token.value === "#quoteSyntax" && 
+                    Id(id) | (unwrapSyntax(id) === "#quoteSyntax" && 
                                 rest[0] && rest[0].token.value === "{}") => {
 
                         var tempId = fresh();
@@ -1169,22 +1189,22 @@
 
 
                     
-                    Keyword(keyword) | (keyword.token.value === "let" && 
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "let" && 
                                         (rest[0] && rest[0].token.type === parser.Token.Identifier || 
                                          rest[0] && rest[0].token.type === parser.Token.Keyword ||
                                          rest[0] && rest[0].token.type === parser.Token.Punctuator) &&
-                                        rest[1] && rest[1].token.value === "=" &&
+                                        rest[1] && unwrapSyntax(rest[1]) === "=" &&
                                         rest[2] && rest[2].token.value === "macro") => {
                         var mac = enforest(rest.slice(2), context);
                         if (!mac.result.hasPrototype(AnonMacro)) {
-                            throw new Error("expecting an anonymous macro definition in syntax let binding, not: " + mac.result);
+                            throwSyntaxError("enforest", "expecting an anonymous macro definition in syntax let binding", rest.slice(2));
                         }
                         return step(LetMacro.create(rest[0], mac.result.body), mac.rest);
                                   
                     }
 
                     // VariableStatement
-                    Keyword(keyword) | (keyword.token.value === "var" && rest[0]) => {
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "var" && rest[0]) => {
                         var vsRes = enforestVarStatement(rest, context, false);
                         if (vsRes) {
                             return step(VariableStatement.create(head, vsRes.result),
@@ -1192,7 +1212,7 @@
                         }
                     }
                     // Let Statement
-                    Keyword(keyword) | (keyword.token.value === "let" && rest[0]) => {
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "let" && rest[0]) => {
                         var vsRes = enforestVarStatement(rest, context, true);
                         if (vsRes) {
                             return step(LetStatement.create(head, vsRes.result),
@@ -1200,16 +1220,22 @@
                         }
                     }
                     // Const Statement
-                    Keyword(keyword) | (keyword.token.value === "const" && rest[0]) => {
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "const" && rest[0]) => {
                         var vsRes = enforestVarStatement(rest, context, true);
                         if (vsRes) {
                             return step(ConstStatement.create(head, vsRes.result),
                                         vsRes.rest);
                         }
                     }
+
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "for" && 
+                                        rest[0] && rest[0].token.value === "()") => {
+                        return step(ForStatement.create(keyword, rest[0]), 
+                                    rest.slice(1));
+                    }
                 }
             } else {
-                parser.assert(head && head.token, "assuming head is a syntax object");
+                assert(head && head.token, "assuming head is a syntax object");
 
                 // macro invocation
                 if ((head.token.type === parser.Token.Identifier ||
@@ -1223,7 +1249,16 @@
                     var transformerContext = makeExpanderContext(_.defaults({mark: newMark}, context));
 
                     // pull the macro transformer out the environment
-                    var transformer = context.env.get(resolve(head)).fn;
+                    var mac = context.env.get(resolve(head));
+                    var transformer = mac.fn;
+
+                    if(expandCount >= maxExpands) {
+                        return { result: head, rest: rest };
+                    }
+                    else if(!builtinMode && !mac.builtin) {
+                        expandCount++;
+                    }
+
                     // apply the transformer
                     try {
                         var rt = transformer([head].concat(rest), transformerContext);
@@ -1233,7 +1268,7 @@
                             var argumentString = "`" + rest.slice(0, 5).map(function(stx) {
                                 return stx.token.value;
                             }).join(" ") + "...`";
-                            syn.throwSyntaxError("macro", "Macro `" + head.token.value + 
+                            throwSyntaxError("macro", "Macro `" + head.token.value + 
                                                           "` could not be matched with " + 
                                                           argumentString,
                                                           head);
@@ -1244,8 +1279,7 @@
                         } 
                     }
                     if(!Array.isArray(rt.result)) {
-                        throwError("Macro transformer must return a result array, not: "
-                                   + rt.result);
+                        throwSyntaxError("enforest", "Macro must return a syntax array", head);
                     }
                     if(rt.result.length > 0) {
                         var adjustedResult = adjustLineContext(rt.result, head);
@@ -1273,12 +1307,12 @@
                     return step(Macro.create(rest[0], rest[1].expose().token.inner),
                                 rest.slice(2));
                 // module definition
-                } else if (head.token.value === "module" && 
+                } else if (unwrapSyntax(head) === "module" && 
                             rest[0] && rest[0].token.value === "{}") {
                     return step(Module.create(rest[0]), rest.slice(1));
                 // function definition
                 } else if (head.token.type === parser.Token.Keyword &&
-                    head.token.value === "function" &&
+                    unwrapSyntax(head) === "function" &&
                     rest[0] && rest[0].token.type === parser.Token.Identifier &&
                     rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                     rest[1].token.value === "()" &&
@@ -1293,7 +1327,7 @@
                                 rest.slice(3));
                 // generator function definition
                 } else if (head.token.type === parser.Token.Keyword &&
-                    head.token.value === "function" &&
+                    unwrapSyntax(head) === "function" &&
                     rest[0] && rest[0].token.type === parser.Token.Punctuator &&
                     rest[0].token.value === "*" &&
                     rest[1] && rest[1].token.type === parser.Token.Identifier &&
@@ -1310,7 +1344,7 @@
                                 rest.slice(4));
                 // anonymous function definition
                 } else if(head.token.type === parser.Token.Keyword &&
-                    head.token.value === "function" &&
+                    unwrapSyntax(head) === "function" &&
                     rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                     rest[0].token.value === "()" &&
                     rest[1] && rest[1].token.type === parser.Token.Delimiter &&
@@ -1325,7 +1359,7 @@
                                 rest.slice(2));
                 // anonymous generator function definition
                 } else if(head.token.type === parser.Token.Keyword &&
-                    head.token.value === "function" &&
+                    unwrapSyntax(head) === "function" &&
                     rest[0] && rest[0].token.type === parser.Token.Punctuator &&
                     rest[0].token.value === "*" &&
                     rest[1] && rest[1].token.type === parser.Token.Delimiter &&
@@ -1352,7 +1386,7 @@
                                 rest.slice(2));
                 // catch statement
                 } else if (head.token.type === parser.Token.Keyword &&
-                           head.token.value === "catch" &&
+                           unwrapSyntax(head) === "catch" &&
                            rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                            rest[0].token.value === "()" &&
                            rest[1] && rest[1].token.type === parser.Token.Delimiter &&
@@ -1363,7 +1397,7 @@
                                rest.slice(2));
                 // this expression
                 } else if (head.token.type === parser.Token.Keyword &&
-                    head.token.value === "this") {
+                    unwrapSyntax(head) === "this") {
 
                     return step(ThisExpression.create(head), rest);
                 // literal
@@ -1376,7 +1410,7 @@
                     return step(Lit.create(head), rest);
                 // export
                 } else if (head.token.type === parser.Token.Keyword && 
-                            head.token.value === "export" && 
+                            unwrapSyntax(head) === "export" && 
                             rest[0] && (rest[0].token.type === parser.Token.Identifier ||
                                         rest[0].token.type === parser.Token.Keyword ||
                                         rest[0].token.type === parser.Token.Punctuator)) {
@@ -1388,8 +1422,8 @@
                 } else if (head.token.type === parser.Token.Punctuator) {
                     return step(Punc.create(head), rest);
                 } else if (head.token.type === parser.Token.Keyword &&
-                            head.token.value === "with") {
-                    throwError("with is not supported in sweet.js");
+                            unwrapSyntax(head) === "with") {
+                    throwSyntaxError("enforest", "with is not supported in sweet.js", head); 
                 // keyword
                 } else if (head.token.type === parser.Token.Keyword) {
                     return step(Keyword.create(head), rest);
@@ -1398,11 +1432,11 @@
                     return step(Delimiter.create(head.expose()), rest);
                 // end of file
                 } else if (head.token.type === parser.Token.EOF) {
-                    parser.assert(rest.length === 0, "nothing should be after an EOF");
+                    assert(rest.length === 0, "nothing should be after an EOF");
                     return step(EOF.create(head), []);
                 } else {
                     // todo: are we missing cases?
-                    parser.assert(false, "not implemented");
+                    assert(false, "not implemented");
                 }
 
             }
@@ -1470,7 +1504,7 @@
         // raw function primitive form
         if(!(body[0] && body[0].token.type === parser.Token.Keyword &&
              body[0].token.value === "function")) {
-            throwError("Primitive macro form must contain a function for the macro body");
+            throwSyntaxError("load macro", "Primitive macro form must contain a function for the macro body", body);
         }
 
         var stub = parser.read("()");
@@ -1488,7 +1522,7 @@
             makePunc: syn.makePunc,
             makeDelim: syn.makeDelim,
             unwrapSyntax: syn.unwrapSyntax,
-            throwSyntaxError: syn.throwSyntaxError,
+            throwSyntaxError: throwSyntaxError,
             parser: parser,
             _: _,
             patternModule: patternModule,
@@ -1517,7 +1551,7 @@
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
     function expandToTermTree (stx, context) {
-        parser.assert(context, "expander context is required");
+        assert(context, "expander context is required");
 
         // short circuit when syntax array is empty
         if (stx.length === 0) {
@@ -1527,7 +1561,7 @@
             };
         }
 
-        parser.assert(stx[0].token, "expecting a syntax object");
+        assert(stx[0].token, "expecting a syntax object");
 
         var f = enforest(stx, context);
         // head :: TermTree
@@ -1535,19 +1569,20 @@
         // rest :: [Syntax]
         var rest = f.rest;
 
-        if (head.hasPrototype(Macro)) {
+        if (head.hasPrototype(Macro) && expandCount < maxExpands) {
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head, context);
 
             addToDefinitionCtx([head.name], context.defscope, false);
             context.env.set(resolve(head.name), {
-                fn: macroDefinition
+                fn: macroDefinition,
+                builtin: builtinMode
             });
 
             return expandToTermTree(rest, context);
         }
 
-        if (head.hasPrototype(LetMacro)) {
+        if (head.hasPrototype(LetMacro) && expandCount < maxExpands) {
             // load the macro definition into the environment and continue expanding
             var macroDefinition = loadMacroDef(head, context);
             var freshName = fresh();
@@ -1558,7 +1593,8 @@
             head.name = renamedName;
 
             context.env.set(resolve(head.name), {
-                fn: macroDefinition
+                fn: macroDefinition,
+                builtin: builtinMode
             });
 
             return expandToTermTree(rest, context);
@@ -1596,6 +1632,43 @@
             });
         }
 
+        if (head.hasPrototype(ForStatement)) {
+            head.cond.expose();
+            var forCond = head.cond.token.inner;
+            if(forCond[0] && resolve(forCond[0]) === "let" &&
+               forCond[1] && forCond[1].token.type === parser.Token.Identifier) {
+                var letNew = fresh();
+                var letId = forCond[1];
+
+                forCond = forCond.map(function(stx) {
+                    return stx.rename(letId, letNew);
+                });
+
+                // hack: we want to do the let renaming here, not
+                // in the expansion of `for (...)` so just remove the `let`
+                // keyword
+                head.cond.token.inner = expand([forCond[0]], context)
+                                        .concat(expand(forCond.slice(1), context));
+
+                // nice and easy case: `for (...) { ... }`
+                if (rest[0] && rest[0].token.value === "{}") {
+                    rest[0] = rest[0].rename(letId, letNew);
+                } else {
+                    // need to deal with things like `for (...) if (...) log(...)`
+                    var bodyEnf = enforest(rest, context);
+                    var renamedBodyTerm = bodyEnf.result.rename(letId, letNew);
+                    var forTrees = expandToTermTree(bodyEnf.rest, context);
+                    return {
+                        terms: [head, renamedBodyTerm].concat(forTrees.terms),
+                        context: forTrees.context
+                    };
+                }
+
+            } else {
+                head.cond.token.inner = expand(head.cond.token.inner, context);
+            }
+        }
+
         var trees = expandToTermTree(rest, context);
         return {
             terms: [head].concat(trees.terms),
@@ -1604,7 +1677,7 @@
     }
 
     function addToDefinitionCtx(idents, defscope, skipRep) {
-        parser.assert(idents && idents.length > 0, "expecting some variable identifiers");
+        assert(idents && idents.length > 0, "expecting some variable identifiers");
         skipRep = skipRep || false;
         _.each(idents, function(id) {
             var skip = false;
@@ -1641,7 +1714,7 @@
     // don't generate an AST yet
     // (TermTree, Map, Map) -> TermTree
     function expandTermTreeToFinal (term, context) {
-        parser.assert(context && context.env, "environment map is required");
+        assert(context && context.env, "environment map is required");
 
 
         if (term.hasPrototype(ArrayLiteral)) {
@@ -1742,7 +1815,7 @@
             }
 
             var expandedArgs = expand([flatArgs], bodyContext);
-            parser.assert(expandedArgs.length === 1, "should only get back one result");
+            assert(expandedArgs.length === 1, "should only get back one result");
             // stitch up the function with all the renamings
             if (term.params) {
                 term.params = expandedArgs[0];
@@ -1786,7 +1859,7 @@
     // similar to `parse` in the honu paper
     // ([Syntax], Map, Map) -> [TermTree]
     function expand(stx, context) {
-        parser.assert(context, "must provide an expander context");
+        assert(context, "must provide an expander context");
         
         var trees = expandToTermTree(stx, context);
         return _.map(trees.terms, function(term) {
@@ -1810,23 +1883,23 @@
     }
 
     // a hack to make the top level hygiene work out
-    function expandTopLevel (stx, builtinSource) {
+    function expandTopLevel (stx, builtinSource, _maxExpands) {
         var env = new Map();
         var params = [];
         var context, builtInContext = makeExpanderContext({env: env});
-        /*
-        var testing = expand(parser.read("(function () {var foo; function bar(foo) { foo; }})"), makeExpanderContext());
-        testing = flatten(testing[0].destruct()).concat(testing[1].eof);
-        testing = parser.parse(testing);
-        testing = codegen.generate(testing);
-        */
+        maxExpands = _maxExpands || Infinity;
+        expandCount = 0;
+
         if (builtinSource) {
             var builtinRead = parser.read(builtinSource);
 
             builtinRead = [syn.makeIdent("module", null),
                             syn.makeDelim("{}", builtinRead, null)];
 
+            builtinMode = true;
             var builtinRes = expand(builtinRead, builtInContext);
+            builtinMode = false;
+
             params = _.map(builtinRes[0].exports, function(term) {
                 return {
                     oldExport: term.name,

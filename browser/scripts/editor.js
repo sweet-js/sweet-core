@@ -21,7 +21,14 @@ require(["./sweet"], function(sweet) {
         autofocus: true,
         theme: 'solarized dark'
     });
-    editor.setValue(localStorage[storage_code] ? localStorage[storage_code] : starting_code);
+
+    var currentStep = 1;
+
+    if (window.location.hash) {
+        editor.setValue(decodeURI(window.location.hash.slice(1)));
+    } else {
+        editor.setValue(localStorage[storage_code] ? localStorage[storage_code] : starting_code);
+    }
     if(localStorage[storage_mode]) {
         editor.setOption("keyMap", localStorage[storage_mode]);
     }
@@ -43,6 +50,16 @@ require(["./sweet"], function(sweet) {
         localStorage[storage_mode] = "emacs";
     });
 
+    $('#btn-step').click(function() {
+        var unparsedString = sweet.prettyPrint(
+            sweet.expand(editor.getValue(), 
+                         undefined, 
+                         currentStep++),
+            $("#ck-hygiene").prop("checked"));
+        $("#lab-step").text(currentStep);
+        output.setValue(unparsedString); 
+    });
+
     var updateTimeout;
     editor.on("change", function(e) {
         clearTimeout(updateTimeout);
@@ -52,6 +69,8 @@ require(["./sweet"], function(sweet) {
     function updateExpand() {
         var code = editor.getValue();
         var expanded, compiled, res;
+        window.location = "editor.html#" + encodeURI(code);
+        localStorage[storage_code] = code;
         try {
             if (compileWithSourcemap) {
                 res = sweet.compile(code, {
@@ -65,11 +84,12 @@ require(["./sweet"], function(sweet) {
             }
             compiled = res.code;
             output.setValue(compiled);
-            localStorage[storage_code] = code;
 
             $('#errors').text('');
+            $('#errors').hide();
         } catch (e) {
             $('#errors').text(e);
+            $('#errors').show();
         }
     }
     updateExpand();

@@ -347,15 +347,14 @@ to Scheme's `syntax-e`).
 
 When using these functions to create new syntax objects it is
 convenient to refer to them in `#{}` templates. To do this sweet.js
-provides the `withSyntax` macro that binds syntax objects to pattern
+provides the `letstx` macro that binds syntax objects to pattern
 variables:
 
     macro m {
       case {_ $x } => {
         var y = makeValue(42, #{$x});
-        return withSyntax($y = [y], $z = [makeValue(2, #{$x})]) {
-          return #{$x + $y - $z}
-        }
+        letstx $y = [y], $z = [makeValue(2, #{$x})];
+        return #{$x + $y - $z}
       }
     }
     m 1
@@ -390,7 +389,7 @@ environment. The lexical context we want is actually found on the
 new `it` binding using the lexical context of `aif`:
 
     macro aif {
-	  case {
+  	  case {
         // bind the macro name to `$aif_name`
         $aif_name 
         ($cond ...) {$body ...}
@@ -398,19 +397,18 @@ new `it` binding using the lexical context of `aif`:
         // make a new `it` identifier using the lexical context
         // from `$aif_name`
 		var it = makeIdent("it", #{$aif_name});
-		return withSyntax($it = [it]) {
-		  return #{ 
-            // create an IIFE that binds `$cond` to `$it`
-            (function ($it) {
-			  if ($cond ...) {
-                // all `it` identifiers in `$body` will now
-                // be bound to `$it` 
-                $body ...
-              }
-            })($cond ...);
-		  }
-		}
-	  }
+		letstx $it = [it];
+	  return #{ 
+          // create an IIFE that binds `$cond` to `$it`
+          (function ($it) {
+      		  if ($cond ...) {
+              // all `it` identifiers in `$body` will now
+              // be bound to `$it` 
+              $body ...
+            }
+          })($cond ...);
+    	  }
+  	  }
     }
 
 ## Let it be...less recursive
