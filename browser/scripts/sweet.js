@@ -21,22 +21,22 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-(function (root$2511, factory$2512) {
+(function (root$2513, factory$2514) {
     if (typeof exports === 'object') {
         // CommonJS
-        var parser$2513 = require('./parser');
-        var expander$2514 = require('./expander');
-        var syn$2515 = require('./syntax');
-        var codegen$2516 = require('escodegen');
-        var path$2517 = require('path');
-        var fs$2518 = require('fs');
-        var lib$2519 = path$2517.join(path$2517.dirname(fs$2518.realpathSync(__filename)), '../macros');
-        var stxcaseModule$2520 = fs$2518.readFileSync(lib$2519 + '/stxcase.js', 'utf8');
-        factory$2512(exports, parser$2513, expander$2514, syn$2515, stxcaseModule$2520, codegen$2516);
+        var parser$2515 = require('./parser');
+        var expander$2516 = require('./expander');
+        var syn$2517 = require('./syntax');
+        var codegen$2518 = require('escodegen');
+        var path$2519 = require('path');
+        var fs$2520 = require('fs');
+        var lib$2521 = path$2519.join(path$2519.dirname(fs$2520.realpathSync(__filename)), '../macros');
+        var stxcaseModule$2522 = fs$2520.readFileSync(lib$2521 + '/stxcase.js', 'utf8');
+        factory$2514(exports, parser$2515, expander$2516, syn$2517, stxcaseModule$2522, codegen$2518);
         // Alow require('./example') for an example.sjs file.
-        require.extensions['.sjs'] = function (module$2521, filename$2522) {
-            var content$2523 = require('fs').readFileSync(filename$2522, 'utf8');
-            module$2521._compile(codegen$2516.generate(exports.parse(content$2523)), filename$2522);
+        require.extensions['.sjs'] = function (module$2523, filename$2524) {
+            var content$2525 = require('fs').readFileSync(filename$2524, 'utf8');
+            module$2523._compile(codegen$2518.generate(exports.parse(content$2525)), filename$2524);
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
@@ -46,125 +46,73 @@
             './expander',
             './syntax',
             'text!./stxcase.js'
-        ], factory$2512);
+        ], factory$2514);
     }
-}(this, function (exports$2524, parser$2525, expander$2526, syn$2527, stxcaseModule$2528, gen$2529) {
-    var codegen$2530 = gen$2529 || escodegen;
+}(this, function (exports$2526, parser$2527, expander$2528, syn$2529, stxcaseModule$2530, gen$2531) {
+    var codegen$2532 = gen$2531 || escodegen;
     // fun (Str) -> [...CSyntax]
-    function expand$2531(code$2535, globalMacros$2536, maxExpands$2537) {
-        var program$2538, toString$2539;
-        globalMacros$2536 = globalMacros$2536 || '';
-        toString$2539 = String;
-        if (typeof code$2535 !== 'string' && !(code$2535 instanceof String)) {
-            code$2535 = toString$2539(code$2535);
+    function expand$2533(code$2536, globalMacros$2537, maxExpands$2538) {
+        var program$2539, toString$2540;
+        globalMacros$2537 = globalMacros$2537 || '';
+        toString$2540 = String;
+        if (typeof code$2536 !== 'string' && !(code$2536 instanceof String)) {
+            code$2536 = toString$2540(code$2536);
         }
-        var source$2540 = code$2535;
-        if (source$2540.length > 0) {
-            if (typeof source$2540[0] === 'undefined') {
+        var source$2541 = code$2536;
+        if (source$2541.length > 0) {
+            if (typeof source$2541[0] === 'undefined') {
                 // Try first to convert to a string. This is good as fast path
                 // for old IE which understands string indexing for string
                 // literals only and not for string object.
-                if (code$2535 instanceof String) {
-                    source$2540 = code$2535.valueOf();
+                if (code$2536 instanceof String) {
+                    source$2541 = code$2536.valueOf();
                 }
                 // Force accessing the characters via an array.
-                if (typeof source$2540[0] === 'undefined') {
-                    source$2540 = stringToArray(code$2535);
+                if (typeof source$2541[0] === 'undefined') {
+                    source$2541 = stringToArray(code$2536);
                 }
             }
         }
-        var readTree$2541 = parser$2525.read(source$2540);
+        var readTree$2542 = parser$2527.read(source$2541);
         try {
-            return expander$2526.expand(readTree$2541, stxcaseModule$2528 + '\n' + globalMacros$2536, maxExpands$2537);
-        } catch (err$2542) {
-            if (err$2542 instanceof syn$2527.MacroSyntaxError) {
-                throw new SyntaxError(syn$2527.printSyntaxError(source$2540, err$2542));
+            return expander$2528.expand(readTree$2542, stxcaseModule$2530 + '\n' + globalMacros$2537, maxExpands$2538);
+        } catch (err$2543) {
+            if (err$2543 instanceof syn$2529.MacroSyntaxError) {
+                throw new SyntaxError(syn$2529.printSyntaxError(source$2541, err$2543));
             } else {
-                throw err$2542;
+                throw err$2543;
             }
         }
     }
     // fun (Str, {}) -> AST
-    function parse$2532(code$2543, globalMacros$2544, maxExpands$2545) {
-        if (code$2543 === '') {
+    function parse$2534(code$2544, globalMacros$2545, maxExpands$2546) {
+        if (code$2544 === '') {
             // old version of esprima doesn't play nice with the empty string
             // and loc/range info so until we can upgrade hack in a single space
-            code$2543 = ' ';
+            code$2544 = ' ';
         }
-        return parser$2525.parse(expand$2531(code$2543, globalMacros$2544, maxExpands$2545));
+        return parser$2527.parse(expand$2533(code$2544, globalMacros$2545, maxExpands$2546));
     }
-    // fun ([...CSyntax]) -> String
-    function prettyPrint$2533(stxarr$2546, shouldResolve$2547) {
-        var indent$2548 = 0;
-        var unparsedLines$2549 = stxarr$2546.reduce(function (acc$2550, stx$2551) {
-                var s$2552 = shouldResolve$2547 ? expander$2526.resolve(stx$2551) : stx$2551.token.value;
-                // skip the end of file token
-                if (stx$2551.token.type === parser$2525.Token.EOF) {
-                    return acc$2550;
-                }
-                if (stx$2551.token.type === parser$2525.Token.StringLiteral) {
-                    s$2552 = '"' + s$2552 + '"';
-                }
-                if (s$2552 == '{') {
-                    acc$2550[0].str += ' ' + s$2552;
-                    indent$2548++;
-                    acc$2550.unshift({
-                        indent: indent$2548,
-                        str: ''
-                    });
-                } else if (s$2552 == '}') {
-                    indent$2548--;
-                    acc$2550.unshift({
-                        indent: indent$2548,
-                        str: s$2552
-                    });
-                    acc$2550.unshift({
-                        indent: indent$2548,
-                        str: ''
-                    });
-                } else if (s$2552 == ';') {
-                    acc$2550[0].str += s$2552;
-                    acc$2550.unshift({
-                        indent: indent$2548,
-                        str: ''
-                    });
-                } else {
-                    acc$2550[0].str += (acc$2550[0].str ? ' ' : '') + s$2552;
-                }
-                return acc$2550;
-            }, [{
-                    indent: 0,
-                    str: ''
-                }]);
-        return unparsedLines$2549.reduce(function (acc$2553, line$2554) {
-            var ind$2555 = '';
-            while (ind$2555.length < line$2554.indent * 2) {
-                ind$2555 += ' ';
-            }
-            return ind$2555 + line$2554.str + '\n' + acc$2553;
-        }, '');
-    }
-    exports$2524.expand = expand$2531;
-    exports$2524.parse = parse$2532;
-    exports$2524.prettyPrint = prettyPrint$2533;
+    exports$2526.expand = expand$2533;
+    exports$2526.parse = parse$2534;
     // (Str, {sourceMap: ?Bool, filename: ?Str})
     //    -> { code: Str, sourceMap: ?Str }
-    exports$2524.compile = function compile$2534(code$2556, options$2557) {
-        var output$2558;
-        options$2557 = options$2557 || {};
-        var ast$2559 = parse$2532(code$2556, options$2557.macros);
-        if (options$2557.sourceMap) {
-            output$2558 = codegen$2530.generate(ast$2559, {
+    exports$2526.compile = function compile$2535(code$2547, options$2548) {
+        var output$2549;
+        options$2548 = options$2548 || {};
+        var ast$2550 = parse$2534(code$2547, options$2548.macros);
+        if (options$2548.sourceMap) {
+            output$2549 = codegen$2532.generate(ast$2550, {
                 comment: true,
-                sourceMap: options$2557.filename,
+                sourceMap: options$2548.filename,
                 sourceMapWithCode: true
             });
             return {
-                code: output$2558.code,
-                sourceMap: output$2558.map.toString()
+                code: output$2549.code,
+                sourceMap: output$2549.map.toString()
             };
         }
-        return { code: codegen$2530.generate(ast$2559, { comment: true }) };
+        return { code: codegen$2532.generate(ast$2550, { comment: true }) };
     };
 }));
 //# sourceMappingURL=sweet.js.map

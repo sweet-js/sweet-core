@@ -1140,6 +1140,7 @@
                 makeDelim: syn$214.makeDelim,
                 unwrapSyntax: syn$214.unwrapSyntax,
                 throwSyntaxError: throwSyntaxError$221,
+                prettyPrint: syn$214.prettyPrint,
                 parser: parser$213,
                 _: _$212,
                 patternModule: patternModule$217,
