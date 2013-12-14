@@ -333,6 +333,37 @@ let macro = macro {
             ];
         }
 
+        function translateRule(pattern, def, isInfix) {
+            var translatedPatt;
+            // When infix, we need to loop through the body and make sure there
+            // is a separator to distinguish the lhs and rhs.
+            if (isInfix) {
+                translatedPatt = [];
+                for (var i = 0, len = pattern.length; i < len; i++) {
+                    translatedPatt.push(pattern[i]);
+                    if (pattern[i].token.type === parser.Token.Punctuator &&
+                        pattern[i].token.value === '|') {
+                        translatedPatt.push(makeIdent("_", here));
+                    }
+                }
+            } else {
+                translatedPatt = [makeIdent("_", here)].concat(pattern);
+            }
+
+            var translatedDef = [
+                makeKeyword("return", here),
+                takeLine(here[0], makeIdent("syntax", name_stx)),
+                makeDelim("{}", def, here)
+            ];
+
+            return [makeIdent("case", here)].concat(
+                isInfix ? makeIdent("infix", here) : [],
+                makeDelim("{}", translatedPatt, here),
+                makePunc("=>", here),
+                makeDelim("{}", translatedDef, here)
+            );
+        }
+
         if (body_stx[0] && body_stx[0].token.value === "function") {
 
             if (mac_name_stx) {
@@ -363,15 +394,13 @@ let macro = macro {
             var rule_body = mac_name_stx ? stx[2].token.inner : stx[1].token.inner;
             var rules = [];
             for (var i = 0; i < rule_body.length; i += 4) {
+                var isInfix = rule_body[i + 1].token.value === 'infix';
+                if (isInfix) {
+                    i += 1;
+                }
                 var rule_pattern = rule_body[i + 1].token.inner;
                 var rule_def = rule_body[i + 3].expose().token.inner;
-                var stxSyntax = takeLine(here[0], makeIdent("syntax", name_stx));
-                rules = rules.concat([makeIdent("case", here),
-                                      makeDelim("{}", [makeIdent("_", here)].concat(rule_pattern), here),
-                                      makePunc("=>", here),
-                                      makeDelim("{}", [makeKeyword("return", here),
-                                                       stxSyntax,
-                                                       makeDelim("{}", rule_def, here)], here)])
+                rules = rules.concat(translateRule(rule_pattern, rule_def, isInfix));
             }
             rules = makeDelim("{}", rules, here);
 
