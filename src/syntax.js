@@ -1,12 +1,12 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require("es6-collections"),  require("./parser"));
+        factory(exports, require('underscore'), require("es6-collections"),  require("./parser"), require("./expander"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'es6-collections', 'parser'], factory);
+        define(['exports', 'underscore', 'es6-collections', 'parser', 'expander'], factory);
     }
-}(this, function(exports, _, es6, parser) {
+}(this, function(exports, _, es6, parser, expander) {
 
     function assert(condition, message) {
         if (!condition) {
@@ -375,6 +375,48 @@
                (Array(offset + pre.length).join(' ')) + ' ^';
     }
 
+    // fun ([...CSyntax]) -> String
+    function prettyPrint(stxarr, shouldResolve) {
+        var indent = 0;
+        var unparsedLines = stxarr.reduce(function(acc, stx) {
+            var s = shouldResolve ? expander.resolve(stx) : stx.token.value;
+            // skip the end of file token
+            if (stx.token.type === parser.Token.EOF) { return acc; }
+
+            if(stx.token.type === parser.Token.StringLiteral) {
+                s = '"' + s + '"';
+            }
+
+            if(s == '{') {
+                acc[0].str += ' ' + s;
+                indent++;
+                acc.unshift({ indent: indent, str: '' });
+            }
+            else if(s == '}') {
+                indent--;
+                acc.unshift({ indent: indent, str: s });
+                acc.unshift({ indent: indent, str: '' });
+            }
+            else if(s == ';') {
+                acc[0].str += s;
+                acc.unshift({ indent: indent, str: '' });
+            }
+            else {
+                acc[0].str += (acc[0].str ? ' ' : '') + s;
+            }
+
+            return acc;
+        }, [{ indent: 0, str: '' }]);
+
+        return unparsedLines.reduce(function(acc, line) {
+            var ind = '';
+            while(ind.length < line.indent * 2) {
+                ind += ' ';
+            }
+            return ind + line.str + '\n' + acc;
+        }, '');
+    }
+
     exports.assert = assert;
 
     exports.unwrapSyntax = unwrapSyntax;
@@ -399,6 +441,8 @@
 
     exports.joinSyntax = joinSyntax;
     exports.joinSyntaxArr = joinSyntaxArr;
+
+    exports.prettyPrint = prettyPrint;
 
     exports.MacroSyntaxError = MacroSyntaxError;
     exports.throwSyntaxError = throwSyntaxError;
