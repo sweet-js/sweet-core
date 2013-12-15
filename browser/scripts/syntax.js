@@ -1,7 +1,7 @@
-(function (root$2766, factory$2767) {
+(function (root$2960, factory$2961) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory$2767(exports, require('underscore'), require('es6-collections'), require('./parser'), require('./expander'));
+        factory$2961(exports, require('underscore'), require('es6-collections'), require('./parser'), require('./expander'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define([
@@ -10,401 +10,401 @@
             'es6-collections',
             'parser',
             'expander'
-        ], factory$2767);
+        ], factory$2961);
     }
-}(this, function (exports$2768, _$2769, es6$2770, parser$2771, expander$2772) {
-    function assert$2773(condition$2799, message$2800) {
-        if (!condition$2799) {
-            throw new Error('ASSERT: ' + message$2800);
+}(this, function (exports$2962, _$2963, es6$2964, parser$2965, expander$2966) {
+    function assert$2967(condition$2993, message$2994) {
+        if (!condition$2993) {
+            throw new Error('ASSERT: ' + message$2994);
         }
     }
     // (CSyntax, Str) -> CContext
-    function Rename$2774(id$2801, name$2802, ctx$2803, defctx$2804) {
-        defctx$2804 = defctx$2804 || null;
+    function Rename$2968(id$2995, name$2996, ctx$2997, defctx$2998) {
+        defctx$2998 = defctx$2998 || null;
         return {
-            id: id$2801,
-            name: name$2802,
-            context: ctx$2803,
-            def: defctx$2804
+            id: id$2995,
+            name: name$2996,
+            context: ctx$2997,
+            def: defctx$2998
         };
     }
     // (Num) -> CContext
-    function Mark$2775(mark$2805, ctx$2806) {
+    function Mark$2969(mark$2999, ctx$3000) {
         return {
-            mark: mark$2805,
-            context: ctx$2806
+            mark: mark$2999,
+            context: ctx$3000
         };
     }
-    function Def$2776(defctx$2807, ctx$2808) {
+    function Def$2970(defctx$3001, ctx$3002) {
         return {
-            defctx: defctx$2807,
-            context: ctx$2808
+            defctx: defctx$3001,
+            context: ctx$3002
         };
     }
-    function Var$2777(id$2809) {
-        return { id: id$2809 };
+    function Var$2971(id$3003) {
+        return { id: id$3003 };
     }
-    function isRename$2778(r$2810) {
-        return r$2810 && typeof r$2810.id !== 'undefined' && typeof r$2810.name !== 'undefined';
-    }
-    ;
-    function isMark$2779(m$2811) {
-        return m$2811 && typeof m$2811.mark !== 'undefined';
+    function isRename$2972(r$3004) {
+        return r$3004 && typeof r$3004.id !== 'undefined' && typeof r$3004.name !== 'undefined';
     }
     ;
-    function isDef$2780(ctx$2812) {
-        return ctx$2812 && typeof ctx$2812.defctx !== 'undefined';
+    function isMark$2973(m$3005) {
+        return m$3005 && typeof m$3005.mark !== 'undefined';
     }
-    function Syntax$2781(token$2813, oldstx$2814) {
-        this.token = token$2813;
-        this.context = oldstx$2814 && oldstx$2814.context ? oldstx$2814.context : null;
-        this.deferredContext = oldstx$2814 && oldstx$2814.deferredContext ? oldstx$2814.deferredContext : null;
+    ;
+    function isDef$2974(ctx$3006) {
+        return ctx$3006 && typeof ctx$3006.defctx !== 'undefined';
     }
-    Syntax$2781.prototype = {
-        mark: function (newMark$2815) {
+    function Syntax$2975(token$3007, oldstx$3008) {
+        this.token = token$3007;
+        this.context = oldstx$3008 && oldstx$3008.context ? oldstx$3008.context : null;
+        this.deferredContext = oldstx$3008 && oldstx$3008.deferredContext ? oldstx$3008.deferredContext : null;
+    }
+    Syntax$2975.prototype = {
+        mark: function (newMark$3009) {
             if (this.token.inner) {
-                var next$2816 = syntaxFromToken$2782(this.token, this);
-                next$2816.deferredContext = Mark$2775(newMark$2815, this.deferredContext);
-                return next$2816;
+                var next$3010 = syntaxFromToken$2976(this.token, this);
+                next$3010.deferredContext = Mark$2969(newMark$3009, this.deferredContext);
+                return next$3010;
             }
-            return syntaxFromToken$2782(this.token, { context: Mark$2775(newMark$2815, this.context) });
+            return syntaxFromToken$2976(this.token, { context: Mark$2969(newMark$3009, this.context) });
         },
-        rename: function (id$2817, name$2818, defctx$2819) {
+        rename: function (id$3011, name$3012, defctx$3013) {
             // deferr renaming of delimiters
             if (this.token.inner) {
-                var next$2820 = syntaxFromToken$2782(this.token, this);
-                next$2820.deferredContext = Rename$2774(id$2817, name$2818, this.deferredContext, defctx$2819);
-                return next$2820;
+                var next$3014 = syntaxFromToken$2976(this.token, this);
+                next$3014.deferredContext = Rename$2968(id$3011, name$3012, this.deferredContext, defctx$3013);
+                return next$3014;
             }
-            if (this.token.type === parser$2771.Token.Identifier || this.token.type === parser$2771.Token.Keyword || this.token.type === parser$2771.Token.Punctuator) {
-                return syntaxFromToken$2782(this.token, { context: Rename$2774(id$2817, name$2818, this.context, defctx$2819) });
+            if (this.token.type === parser$2965.Token.Identifier || this.token.type === parser$2965.Token.Keyword || this.token.type === parser$2965.Token.Punctuator) {
+                return syntaxFromToken$2976(this.token, { context: Rename$2968(id$3011, name$3012, this.context, defctx$3013) });
             } else {
                 return this;
             }
         },
-        addDefCtx: function (defctx$2821) {
+        addDefCtx: function (defctx$3015) {
             if (this.token.inner) {
-                var next$2822 = syntaxFromToken$2782(this.token, this);
-                next$2822.deferredContext = Def$2776(defctx$2821, this.deferredContext);
-                return next$2822;
+                var next$3016 = syntaxFromToken$2976(this.token, this);
+                next$3016.deferredContext = Def$2970(defctx$3015, this.deferredContext);
+                return next$3016;
             }
-            return syntaxFromToken$2782(this.token, { context: Def$2776(defctx$2821, this.context) });
+            return syntaxFromToken$2976(this.token, { context: Def$2970(defctx$3015, this.context) });
         },
         getDefCtx: function () {
-            var ctx$2823 = this.context;
-            while (ctx$2823 !== null) {
-                if (isDef$2780(ctx$2823)) {
-                    return ctx$2823.defctx;
+            var ctx$3017 = this.context;
+            while (ctx$3017 !== null) {
+                if (isDef$2974(ctx$3017)) {
+                    return ctx$3017.defctx;
                 }
-                ctx$2823 = ctx$2823.context;
+                ctx$3017 = ctx$3017.context;
             }
             return null;
         },
         expose: function () {
-            assert$2773(this.token.type === parser$2771.Token.Delimiter, 'Only delimiters can be exposed');
-            function applyContext$2824(stxCtx$2825, ctx$2826) {
-                if (ctx$2826 == null) {
-                    return stxCtx$2825;
-                } else if (isRename$2778(ctx$2826)) {
-                    return Rename$2774(ctx$2826.id, ctx$2826.name, applyContext$2824(stxCtx$2825, ctx$2826.context), ctx$2826.def);
-                } else if (isMark$2779(ctx$2826)) {
-                    return Mark$2775(ctx$2826.mark, applyContext$2824(stxCtx$2825, ctx$2826.context));
-                } else if (isDef$2780(ctx$2826)) {
-                    return Def$2776(ctx$2826.defctx, applyContext$2824(stxCtx$2825, ctx$2826.context));
+            assert$2967(this.token.type === parser$2965.Token.Delimiter, 'Only delimiters can be exposed');
+            function applyContext$3018(stxCtx$3019, ctx$3020) {
+                if (ctx$3020 == null) {
+                    return stxCtx$3019;
+                } else if (isRename$2972(ctx$3020)) {
+                    return Rename$2968(ctx$3020.id, ctx$3020.name, applyContext$3018(stxCtx$3019, ctx$3020.context), ctx$3020.def);
+                } else if (isMark$2973(ctx$3020)) {
+                    return Mark$2969(ctx$3020.mark, applyContext$3018(stxCtx$3019, ctx$3020.context));
+                } else if (isDef$2974(ctx$3020)) {
+                    return Def$2970(ctx$3020.defctx, applyContext$3018(stxCtx$3019, ctx$3020.context));
                 } else {
-                    assert$2773(false, 'unknown context type');
+                    assert$2967(false, 'unknown context type');
                 }
             }
-            this.token.inner = _$2769.map(this.token.inner, _$2769.bind(function (stx$2827) {
-                if (stx$2827.token.inner) {
-                    var next$2828 = syntaxFromToken$2782(stx$2827.token, stx$2827);
-                    next$2828.deferredContext = applyContext$2824(stx$2827.deferredContext, this.deferredContext);
-                    return next$2828;
+            this.token.inner = _$2963.map(this.token.inner, _$2963.bind(function (stx$3021) {
+                if (stx$3021.token.inner) {
+                    var next$3022 = syntaxFromToken$2976(stx$3021.token, stx$3021);
+                    next$3022.deferredContext = applyContext$3018(stx$3021.deferredContext, this.deferredContext);
+                    return next$3022;
                 } else {
-                    return syntaxFromToken$2782(stx$2827.token, { context: applyContext$2824(stx$2827.context, this.deferredContext) });
+                    return syntaxFromToken$2976(stx$3021.token, { context: applyContext$3018(stx$3021.context, this.deferredContext) });
                 }
             }, this));
             this.deferredContext = null;
             return this;
         },
         toString: function () {
-            var val$2829 = this.token.type === parser$2771.Token.EOF ? 'EOF' : this.token.value;
-            return '[Syntax: ' + val$2829 + ']';
+            var val$3023 = this.token.type === parser$2965.Token.EOF ? 'EOF' : this.token.value;
+            return '[Syntax: ' + val$3023 + ']';
         }
     };
     // (CToken, CSyntax?) -> CSyntax
-    function syntaxFromToken$2782(token$2830, oldstx$2831) {
-        return new Syntax$2781(token$2830, oldstx$2831);
+    function syntaxFromToken$2976(token$3024, oldstx$3025) {
+        return new Syntax$2975(token$3024, oldstx$3025);
     }
-    function mkSyntax$2783(stx$2832, value$2833, type$2834, inner$2835) {
-        if (stx$2832 && Array.isArray(stx$2832) && stx$2832.length === 1) {
-            stx$2832 = stx$2832[0];
-        } else if (stx$2832 && Array.isArray(stx$2832)) {
+    function mkSyntax$2977(stx$3026, value$3027, type$3028, inner$3029) {
+        if (stx$3026 && Array.isArray(stx$3026) && stx$3026.length === 1) {
+            stx$3026 = stx$3026[0];
+        } else if (stx$3026 && Array.isArray(stx$3026)) {
             throw new Error();
-            throwSyntaxError$2796('mkSyntax', 'Expecting a syntax object or an array with a single syntax object');
+            throwSyntaxError$2990('mkSyntax', 'Expecting a syntax object or an array with a single syntax object');
         }
-        if (type$2834 === parser$2771.Token.Delimiter) {
-            var startLineNumber$2836, startLineStart$2837, endLineNumber$2838, endLineStart$2839, startRange$2840, endRange$2841;
-            if (!Array.isArray(inner$2835)) {
+        if (type$3028 === parser$2965.Token.Delimiter) {
+            var startLineNumber$3030, startLineStart$3031, endLineNumber$3032, endLineStart$3033, startRange$3034, endRange$3035;
+            if (!Array.isArray(inner$3029)) {
                 throw new Error('Must provide inner array of syntax objects when creating a delimiter');
-                throwSyntaxError$2796('mkSyntax', 'Must provide inner array of syntax objects when creating a delimiter');
+                throwSyntaxError$2990('mkSyntax', 'Must provide inner array of syntax objects when creating a delimiter');
             }
-            if (stx$2832 && stx$2832.token.type === parser$2771.Token.Delimiter) {
-                startLineNumber$2836 = stx$2832.token.startLineNumber;
-                startLineStart$2837 = stx$2832.token.startLineStart;
-                endLineNumber$2838 = stx$2832.token.endLineNumber;
-                endLineStart$2839 = stx$2832.token.endLineStart;
-                startRange$2840 = stx$2832.token.startRange;
-                endRange$2841 = stx$2832.token.endRange;
-            } else if (stx$2832 && stx$2832.token) {
-                startLineNumber$2836 = stx$2832.token.lineNumber;
-                startLineStart$2837 = stx$2832.token.lineStart;
-                endLineNumber$2838 = stx$2832.token.lineNumber;
-                endLineStart$2839 = stx$2832.token.lineStart;
-                startRange$2840 = stx$2832.token.range;
-                endRange$2841 = stx$2832.token.range;
+            if (stx$3026 && stx$3026.token.type === parser$2965.Token.Delimiter) {
+                startLineNumber$3030 = stx$3026.token.startLineNumber;
+                startLineStart$3031 = stx$3026.token.startLineStart;
+                endLineNumber$3032 = stx$3026.token.endLineNumber;
+                endLineStart$3033 = stx$3026.token.endLineStart;
+                startRange$3034 = stx$3026.token.startRange;
+                endRange$3035 = stx$3026.token.endRange;
+            } else if (stx$3026 && stx$3026.token) {
+                startLineNumber$3030 = stx$3026.token.lineNumber;
+                startLineStart$3031 = stx$3026.token.lineStart;
+                endLineNumber$3032 = stx$3026.token.lineNumber;
+                endLineStart$3033 = stx$3026.token.lineStart;
+                startRange$3034 = stx$3026.token.range;
+                endRange$3035 = stx$3026.token.range;
             }
-            return syntaxFromToken$2782({
-                type: parser$2771.Token.Delimiter,
-                value: value$2833,
-                inner: inner$2835,
-                startLineStart: startLineStart$2837,
-                startLineNumber: startLineNumber$2836,
-                endLineStart: endLineStart$2839,
-                endLineNumber: endLineNumber$2838,
-                startRange: startRange$2840,
-                endRange: endRange$2841
-            }, stx$2832);
+            return syntaxFromToken$2976({
+                type: parser$2965.Token.Delimiter,
+                value: value$3027,
+                inner: inner$3029,
+                startLineStart: startLineStart$3031,
+                startLineNumber: startLineNumber$3030,
+                endLineStart: endLineStart$3033,
+                endLineNumber: endLineNumber$3032,
+                startRange: startRange$3034,
+                endRange: endRange$3035
+            }, stx$3026);
         } else {
-            var lineStart$2842, lineNumber$2843, range$2844;
-            if (stx$2832 && stx$2832.token.type === parser$2771.Token.Delimiter) {
-                lineStart$2842 = stx$2832.token.startLineStart;
-                lineNumber$2843 = stx$2832.token.startLineNumber;
-                range$2844 = stx$2832.token.startRange;
-            } else if (stx$2832 && stx$2832.token) {
-                lineStart$2842 = stx$2832.token.lineStart;
-                lineNumber$2843 = stx$2832.token.lineNumber;
-                range$2844 = stx$2832.token.range;
+            var lineStart$3036, lineNumber$3037, range$3038;
+            if (stx$3026 && stx$3026.token.type === parser$2965.Token.Delimiter) {
+                lineStart$3036 = stx$3026.token.startLineStart;
+                lineNumber$3037 = stx$3026.token.startLineNumber;
+                range$3038 = stx$3026.token.startRange;
+            } else if (stx$3026 && stx$3026.token) {
+                lineStart$3036 = stx$3026.token.lineStart;
+                lineNumber$3037 = stx$3026.token.lineNumber;
+                range$3038 = stx$3026.token.range;
             }
-            return syntaxFromToken$2782({
-                type: type$2834,
-                value: value$2833,
-                lineStart: lineStart$2842,
-                lineNumber: lineNumber$2843,
-                range: range$2844
-            }, stx$2832);
+            return syntaxFromToken$2976({
+                type: type$3028,
+                value: value$3027,
+                lineStart: lineStart$3036,
+                lineNumber: lineNumber$3037,
+                range: range$3038
+            }, stx$3026);
         }
     }
-    function makeValue$2784(val$2845, stx$2846) {
-        if (typeof val$2845 === 'boolean') {
-            return mkSyntax$2783(stx$2846, val$2845 ? 'true' : 'false', parser$2771.Token.BooleanLiteral);
-        } else if (typeof val$2845 === 'number') {
-            if (val$2845 !== val$2845) {
-                return makeDelim$2789('()', [
-                    makeValue$2784(0, stx$2846),
-                    makePunc$2788('/', stx$2846),
-                    makeValue$2784(0, stx$2846)
-                ], stx$2846);
+    function makeValue$2978(val$3039, stx$3040) {
+        if (typeof val$3039 === 'boolean') {
+            return mkSyntax$2977(stx$3040, val$3039 ? 'true' : 'false', parser$2965.Token.BooleanLiteral);
+        } else if (typeof val$3039 === 'number') {
+            if (val$3039 !== val$3039) {
+                return makeDelim$2983('()', [
+                    makeValue$2978(0, stx$3040),
+                    makePunc$2982('/', stx$3040),
+                    makeValue$2978(0, stx$3040)
+                ], stx$3040);
             }
-            if (val$2845 < 0) {
-                return makeDelim$2789('()', [
-                    makePunc$2788('-', stx$2846),
-                    makeValue$2784(Math.abs(val$2845), stx$2846)
-                ], stx$2846);
+            if (val$3039 < 0) {
+                return makeDelim$2983('()', [
+                    makePunc$2982('-', stx$3040),
+                    makeValue$2978(Math.abs(val$3039), stx$3040)
+                ], stx$3040);
             } else {
-                return mkSyntax$2783(stx$2846, val$2845, parser$2771.Token.NumericLiteral);
+                return mkSyntax$2977(stx$3040, val$3039, parser$2965.Token.NumericLiteral);
             }
-        } else if (typeof val$2845 === 'string') {
-            return mkSyntax$2783(stx$2846, val$2845, parser$2771.Token.StringLiteral);
-        } else if (val$2845 === null) {
-            return mkSyntax$2783(stx$2846, 'null', parser$2771.Token.NullLiteral);
+        } else if (typeof val$3039 === 'string') {
+            return mkSyntax$2977(stx$3040, val$3039, parser$2965.Token.StringLiteral);
+        } else if (val$3039 === null) {
+            return mkSyntax$2977(stx$3040, 'null', parser$2965.Token.NullLiteral);
         } else {
-            throwSyntaxError$2796('makeValue', 'Cannot make value syntax object from: ' + val$2845);
+            throwSyntaxError$2990('makeValue', 'Cannot make value syntax object from: ' + val$3039);
         }
     }
-    function makeRegex$2785(val$2847, flags$2848, stx$2849) {
-        var newstx$2850 = mkSyntax$2783(stx$2849, new RegExp(val$2847, flags$2848), parser$2771.Token.RegexLiteral);
+    function makeRegex$2979(val$3041, flags$3042, stx$3043) {
+        var newstx$3044 = mkSyntax$2977(stx$3043, new RegExp(val$3041, flags$3042), parser$2965.Token.RegexLiteral);
         // regex tokens need the extra field literal on token
-        newstx$2850.token.literal = val$2847;
-        return newstx$2850;
+        newstx$3044.token.literal = val$3041;
+        return newstx$3044;
     }
-    function makeIdent$2786(val$2851, stx$2852) {
-        return mkSyntax$2783(stx$2852, val$2851, parser$2771.Token.Identifier);
+    function makeIdent$2980(val$3045, stx$3046) {
+        return mkSyntax$2977(stx$3046, val$3045, parser$2965.Token.Identifier);
     }
-    function makeKeyword$2787(val$2853, stx$2854) {
-        return mkSyntax$2783(stx$2854, val$2853, parser$2771.Token.Keyword);
+    function makeKeyword$2981(val$3047, stx$3048) {
+        return mkSyntax$2977(stx$3048, val$3047, parser$2965.Token.Keyword);
     }
-    function makePunc$2788(val$2855, stx$2856) {
-        return mkSyntax$2783(stx$2856, val$2855, parser$2771.Token.Punctuator);
+    function makePunc$2982(val$3049, stx$3050) {
+        return mkSyntax$2977(stx$3050, val$3049, parser$2965.Token.Punctuator);
     }
-    function makeDelim$2789(val$2857, inner$2858, stx$2859) {
-        return mkSyntax$2783(stx$2859, val$2857, parser$2771.Token.Delimiter, inner$2858);
+    function makeDelim$2983(val$3051, inner$3052, stx$3053) {
+        return mkSyntax$2977(stx$3053, val$3051, parser$2965.Token.Delimiter, inner$3052);
     }
-    function unwrapSyntax$2790(stx$2860) {
-        if (Array.isArray(stx$2860) && stx$2860.length === 1) {
+    function unwrapSyntax$2984(stx$3054) {
+        if (Array.isArray(stx$3054) && stx$3054.length === 1) {
             // pull stx out of single element arrays for convenience 
-            stx$2860 = stx$2860[0];
+            stx$3054 = stx$3054[0];
         }
-        if (stx$2860.token) {
-            if (stx$2860.token.type === parser$2771.Token.Delimiter) {
-                return stx$2860.token;
+        if (stx$3054.token) {
+            if (stx$3054.token.type === parser$2965.Token.Delimiter) {
+                return stx$3054.token;
             } else {
-                return stx$2860.token.value;
+                return stx$3054.token.value;
             }
         } else {
-            throw new Error('Not a syntax object: ' + stx$2860);
+            throw new Error('Not a syntax object: ' + stx$3054);
         }
     }
     // ([...CSyntax]) -> [...CToken]
-    function syntaxToTokens$2791(stx$2861) {
-        return _$2769.map(stx$2861, function (stx$2862) {
-            if (stx$2862.token.inner) {
-                stx$2862.token.inner = syntaxToTokens$2791(stx$2862.token.inner);
+    function syntaxToTokens$2985(stx$3055) {
+        return _$2963.map(stx$3055, function (stx$3056) {
+            if (stx$3056.token.inner) {
+                stx$3056.token.inner = syntaxToTokens$2985(stx$3056.token.inner);
             }
-            return stx$2862.token;
+            return stx$3056.token;
         });
     }
     // (CToken or [...CToken]) -> [...CSyntax]
-    function tokensToSyntax$2792(tokens$2863) {
-        if (!_$2769.isArray(tokens$2863)) {
-            tokens$2863 = [tokens$2863];
+    function tokensToSyntax$2986(tokens$3057) {
+        if (!_$2963.isArray(tokens$3057)) {
+            tokens$3057 = [tokens$3057];
         }
-        return _$2769.map(tokens$2863, function (token$2864) {
-            if (token$2864.inner) {
-                token$2864.inner = tokensToSyntax$2792(token$2864.inner);
+        return _$2963.map(tokens$3057, function (token$3058) {
+            if (token$3058.inner) {
+                token$3058.inner = tokensToSyntax$2986(token$3058.inner);
             }
-            return syntaxFromToken$2782(token$2864);
+            return syntaxFromToken$2976(token$3058);
         });
     }
     // ([...CSyntax], Str) -> [...CSyntax])
-    function joinSyntax$2793(tojoin$2865, punc$2866) {
-        if (tojoin$2865.length === 0) {
+    function joinSyntax$2987(tojoin$3059, punc$3060) {
+        if (tojoin$3059.length === 0) {
             return [];
         }
-        if (punc$2866 === ' ') {
-            return tojoin$2865;
+        if (punc$3060 === ' ') {
+            return tojoin$3059;
         }
-        return _$2769.reduce(_$2769.rest(tojoin$2865, 1), function (acc$2867, join$2868) {
-            return acc$2867.concat(makePunc$2788(punc$2866, join$2868), join$2868);
-        }, [_$2769.first(tojoin$2865)]);
+        return _$2963.reduce(_$2963.rest(tojoin$3059, 1), function (acc$3061, join$3062) {
+            return acc$3061.concat(makePunc$2982(punc$3060, join$3062), join$3062);
+        }, [_$2963.first(tojoin$3059)]);
     }
     // ([...[...CSyntax]], Str) -> [...CSyntax]
-    function joinSyntaxArr$2794(tojoin$2869, punc$2870) {
-        if (tojoin$2869.length === 0) {
+    function joinSyntaxArr$2988(tojoin$3063, punc$3064) {
+        if (tojoin$3063.length === 0) {
             return [];
         }
-        if (punc$2870 === ' ') {
-            return _$2769.flatten(tojoin$2869, true);
+        if (punc$3064 === ' ') {
+            return _$2963.flatten(tojoin$3063, true);
         }
-        return _$2769.reduce(_$2769.rest(tojoin$2869, 1), function (acc$2871, join$2872) {
-            return acc$2871.concat(makePunc$2788(punc$2870, _$2769.first(join$2872)), join$2872);
-        }, _$2769.first(tojoin$2869));
+        return _$2963.reduce(_$2963.rest(tojoin$3063, 1), function (acc$3065, join$3066) {
+            return acc$3065.concat(makePunc$2982(punc$3064, _$2963.first(join$3066)), join$3066);
+        }, _$2963.first(tojoin$3063));
     }
-    function MacroSyntaxError$2795(name$2873, message$2874, stx$2875) {
-        this.name = name$2873;
-        this.message = message$2874;
-        this.stx = stx$2875;
+    function MacroSyntaxError$2989(name$3067, message$3068, stx$3069) {
+        this.name = name$3067;
+        this.message = message$3068;
+        this.stx = stx$3069;
     }
-    function throwSyntaxError$2796(name$2876, message$2877, stx$2878) {
-        if (stx$2878 && Array.isArray(stx$2878)) {
-            stx$2878 = stx$2878[0];
+    function throwSyntaxError$2990(name$3070, message$3071, stx$3072) {
+        if (stx$3072 && Array.isArray(stx$3072)) {
+            stx$3072 = stx$3072[0];
         }
-        throw new MacroSyntaxError$2795(name$2876, message$2877, stx$2878);
+        throw new MacroSyntaxError$2989(name$3070, message$3071, stx$3072);
     }
-    function printSyntaxError$2797(code$2879, err$2880) {
-        if (!err$2880.stx) {
-            return '[' + err$2880.name + '] ' + err$2880.message;
+    function printSyntaxError$2991(code$3073, err$3074) {
+        if (!err$3074.stx) {
+            return '[' + err$3074.name + '] ' + err$3074.message;
         }
-        var token$2881 = err$2880.stx.token;
-        var lineNumber$2882 = token$2881.sm_startLineNumber || token$2881.sm_lineNumber || token$2881.startLineNumber || token$2881.lineNumber;
-        var lineStart$2883 = token$2881.sm_startLineStart || token$2881.sm_lineStart || token$2881.startLineStart || token$2881.lineStart;
-        var start$2884 = (token$2881.sm_startRange || token$2881.sm_range || token$2881.startRange || token$2881.range)[0];
-        var offset$2885 = start$2884 - lineStart$2883;
-        var line$2886 = '';
-        var pre$2887 = lineNumber$2882 + ': ';
-        var ch$2888;
-        while (ch$2888 = code$2879.charAt(lineStart$2883++)) {
-            if (ch$2888 == '\r' || ch$2888 == '\n') {
+        var token$3075 = err$3074.stx.token;
+        var lineNumber$3076 = token$3075.sm_startLineNumber || token$3075.sm_lineNumber || token$3075.startLineNumber || token$3075.lineNumber;
+        var lineStart$3077 = token$3075.sm_startLineStart || token$3075.sm_lineStart || token$3075.startLineStart || token$3075.lineStart;
+        var start$3078 = (token$3075.sm_startRange || token$3075.sm_range || token$3075.startRange || token$3075.range)[0];
+        var offset$3079 = start$3078 - lineStart$3077;
+        var line$3080 = '';
+        var pre$3081 = lineNumber$3076 + ': ';
+        var ch$3082;
+        while (ch$3082 = code$3073.charAt(lineStart$3077++)) {
+            if (ch$3082 == '\r' || ch$3082 == '\n') {
                 break;
             }
-            line$2886 += ch$2888;
+            line$3080 += ch$3082;
         }
-        return '[' + err$2880.name + '] ' + err$2880.message + '\n' + pre$2887 + line$2886 + '\n' + Array(offset$2885 + pre$2887.length).join(' ') + ' ^';
+        return '[' + err$3074.name + '] ' + err$3074.message + '\n' + pre$3081 + line$3080 + '\n' + Array(offset$3079 + pre$3081.length).join(' ') + ' ^';
     }
     // fun ([...CSyntax]) -> String
-    function prettyPrint$2798(stxarr$2889, shouldResolve$2890) {
-        var indent$2891 = 0;
-        var unparsedLines$2892 = stxarr$2889.reduce(function (acc$2893, stx$2894) {
-                var s$2895 = shouldResolve$2890 ? expander$2772.resolve(stx$2894) : stx$2894.token.value;
+    function prettyPrint$2992(stxarr$3083, shouldResolve$3084) {
+        var indent$3085 = 0;
+        var unparsedLines$3086 = stxarr$3083.reduce(function (acc$3087, stx$3088) {
+                var s$3089 = shouldResolve$3084 ? expander$2966.resolve(stx$3088) : stx$3088.token.value;
                 // skip the end of file token
-                if (stx$2894.token.type === parser$2771.Token.EOF) {
-                    return acc$2893;
+                if (stx$3088.token.type === parser$2965.Token.EOF) {
+                    return acc$3087;
                 }
-                if (stx$2894.token.type === parser$2771.Token.StringLiteral) {
-                    s$2895 = '"' + s$2895 + '"';
+                if (stx$3088.token.type === parser$2965.Token.StringLiteral) {
+                    s$3089 = '"' + s$3089 + '"';
                 }
-                if (s$2895 == '{') {
-                    acc$2893[0].str += ' ' + s$2895;
-                    indent$2891++;
-                    acc$2893.unshift({
-                        indent: indent$2891,
+                if (s$3089 == '{') {
+                    acc$3087[0].str += ' ' + s$3089;
+                    indent$3085++;
+                    acc$3087.unshift({
+                        indent: indent$3085,
                         str: ''
                     });
-                } else if (s$2895 == '}') {
-                    indent$2891--;
-                    acc$2893.unshift({
-                        indent: indent$2891,
-                        str: s$2895
+                } else if (s$3089 == '}') {
+                    indent$3085--;
+                    acc$3087.unshift({
+                        indent: indent$3085,
+                        str: s$3089
                     });
-                    acc$2893.unshift({
-                        indent: indent$2891,
+                    acc$3087.unshift({
+                        indent: indent$3085,
                         str: ''
                     });
-                } else if (s$2895 == ';') {
-                    acc$2893[0].str += s$2895;
-                    acc$2893.unshift({
-                        indent: indent$2891,
+                } else if (s$3089 == ';') {
+                    acc$3087[0].str += s$3089;
+                    acc$3087.unshift({
+                        indent: indent$3085,
                         str: ''
                     });
                 } else {
-                    acc$2893[0].str += (acc$2893[0].str ? ' ' : '') + s$2895;
+                    acc$3087[0].str += (acc$3087[0].str ? ' ' : '') + s$3089;
                 }
-                return acc$2893;
+                return acc$3087;
             }, [{
                     indent: 0,
                     str: ''
                 }]);
-        return unparsedLines$2892.reduce(function (acc$2896, line$2897) {
-            var ind$2898 = '';
-            while (ind$2898.length < line$2897.indent * 2) {
-                ind$2898 += ' ';
+        return unparsedLines$3086.reduce(function (acc$3090, line$3091) {
+            var ind$3092 = '';
+            while (ind$3092.length < line$3091.indent * 2) {
+                ind$3092 += ' ';
             }
-            return ind$2898 + line$2897.str + '\n' + acc$2896;
+            return ind$3092 + line$3091.str + '\n' + acc$3090;
         }, '');
     }
-    exports$2768.assert = assert$2773;
-    exports$2768.unwrapSyntax = unwrapSyntax$2790;
-    exports$2768.makeDelim = makeDelim$2789;
-    exports$2768.makePunc = makePunc$2788;
-    exports$2768.makeKeyword = makeKeyword$2787;
-    exports$2768.makeIdent = makeIdent$2786;
-    exports$2768.makeRegex = makeRegex$2785;
-    exports$2768.makeValue = makeValue$2784;
-    exports$2768.Rename = Rename$2774;
-    exports$2768.Mark = Mark$2775;
-    exports$2768.Var = Var$2777;
-    exports$2768.Def = Def$2776;
-    exports$2768.isDef = isDef$2780;
-    exports$2768.isMark = isMark$2779;
-    exports$2768.isRename = isRename$2778;
-    exports$2768.syntaxFromToken = syntaxFromToken$2782;
-    exports$2768.tokensToSyntax = tokensToSyntax$2792;
-    exports$2768.syntaxToTokens = syntaxToTokens$2791;
-    exports$2768.joinSyntax = joinSyntax$2793;
-    exports$2768.joinSyntaxArr = joinSyntaxArr$2794;
-    exports$2768.prettyPrint = prettyPrint$2798;
-    exports$2768.MacroSyntaxError = MacroSyntaxError$2795;
-    exports$2768.throwSyntaxError = throwSyntaxError$2796;
-    exports$2768.printSyntaxError = printSyntaxError$2797;
+    exports$2962.assert = assert$2967;
+    exports$2962.unwrapSyntax = unwrapSyntax$2984;
+    exports$2962.makeDelim = makeDelim$2983;
+    exports$2962.makePunc = makePunc$2982;
+    exports$2962.makeKeyword = makeKeyword$2981;
+    exports$2962.makeIdent = makeIdent$2980;
+    exports$2962.makeRegex = makeRegex$2979;
+    exports$2962.makeValue = makeValue$2978;
+    exports$2962.Rename = Rename$2968;
+    exports$2962.Mark = Mark$2969;
+    exports$2962.Var = Var$2971;
+    exports$2962.Def = Def$2970;
+    exports$2962.isDef = isDef$2974;
+    exports$2962.isMark = isMark$2973;
+    exports$2962.isRename = isRename$2972;
+    exports$2962.syntaxFromToken = syntaxFromToken$2976;
+    exports$2962.tokensToSyntax = tokensToSyntax$2986;
+    exports$2962.syntaxToTokens = syntaxToTokens$2985;
+    exports$2962.joinSyntax = joinSyntax$2987;
+    exports$2962.joinSyntaxArr = joinSyntaxArr$2988;
+    exports$2962.prettyPrint = prettyPrint$2992;
+    exports$2962.MacroSyntaxError = MacroSyntaxError$2989;
+    exports$2962.throwSyntaxError = throwSyntaxError$2990;
+    exports$2962.printSyntaxError = printSyntaxError$2991;
 }));
 //# sourceMappingURL=syntax.js.map
