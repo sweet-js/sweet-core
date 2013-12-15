@@ -335,4 +335,18 @@ describe "macro hygiene" {
         m ()
         expect(x).to.be(24);
     }
+
+    it "keeps vars introduced by letstx distinct" {
+        macro m {
+            case {_ $x $v} => {
+                letstx $unused = [makeValue(0, null)];
+                return #{var x = $v; $x = x;}
+            }
+        } 
+        var foo, bar;
+        m foo 100
+        m bar 200
+        expect(foo).to.be(100);
+        expect(bar).to.be(200);
+    }
 }

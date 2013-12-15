@@ -479,7 +479,28 @@ macro withSyntax_unzip {
         var here = #{here};
 
         var args = #{[$(makeDelim("()", $es)) (,) ...],};
-        args = args.concat(makeIdent("context", name));
+        // since withSyntax runs within a macro invocation
+        // it needs to make it's own mark rather than reuse the calling
+        // macro mark
+        // (_.defaults({mark: fresh()}, context))
+        var withContext = [
+            makeDelim("()", [
+                makeIdent("_", here),
+                makePunc(".", here),
+                makeIdent("defaults", here),
+                makeDelim("()", [
+                    makeDelim("{}", [
+                        makeIdent("mark", here),
+                        makePunc(":", here),
+                        makeIdent("__fresh", here),
+                        makeDelim("()", [], here)
+                    ], here),
+                    makePunc(",", here),
+                    makeIdent("context", name)
+                ], here)     
+            ], here)
+        ];
+        args = args.concat(withContext);
 
         var res = [makeIdent("syntaxCase", name)];
         res = res.concat(makeDelim("()", args, here));

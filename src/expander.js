@@ -1523,7 +1523,9 @@
             makeDelim: syn.makeDelim,
             unwrapSyntax: syn.unwrapSyntax,
             throwSyntaxError: throwSyntaxError,
+            prettyPrint: syn.prettyPrint,
             parser: parser,
+            __fresh: fresh,
             _: _,
             patternModule: patternModule,
             getTemplate: function(id) {

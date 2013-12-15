@@ -103,51 +103,9 @@
     }
 
 
-    // fun ([...CSyntax]) -> String
-    function prettyPrint(stxarr, shouldResolve) {
-        var indent = 0;
-        var unparsedLines = stxarr.reduce(function(acc, stx) {
-            var s = shouldResolve ? expander.resolve(stx) : stx.token.value;
-            // skip the end of file token
-            if (stx.token.type === parser.Token.EOF) { return acc; }
-
-            if(stx.token.type === parser.Token.StringLiteral) {
-                s = '"' + s + '"';
-            }
-
-            if(s == '{') {
-                acc[0].str += ' ' + s;
-                indent++;
-                acc.unshift({ indent: indent, str: '' });
-            }
-            else if(s == '}') {
-                indent--;
-                acc.unshift({ indent: indent, str: s });
-                acc.unshift({ indent: indent, str: '' });
-            }
-            else if(s == ';') {
-                acc[0].str += s;
-                acc.unshift({ indent: indent, str: '' });
-            }
-            else {
-                acc[0].str += (acc[0].str ? ' ' : '') + s;
-            }
-
-            return acc;
-        }, [{ indent: 0, str: '' }]);
-
-        return unparsedLines.reduce(function(acc, line) {
-            var ind = '';
-            while(ind.length < line.indent * 2) {
-                ind += ' ';
-            }
-            return ind + line.str + '\n' + acc;
-        }, '');
-    }
 
     exports.expand = expand;
     exports.parse = parse;
-    exports.prettyPrint = prettyPrint;
 
     // (Str, {sourceMap: ?Bool, filename: ?Str})
     //    -> { code: Str, sourceMap: ?Str }
