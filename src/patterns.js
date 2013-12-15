@@ -538,6 +538,15 @@
 
     }
 
+    function matchLookbehind(patterns, stx, terms, env) {
+        return {
+            success: true,
+            patternEnv: {},
+            prevStx: null,
+            prevTerms: null
+        };
+    }
+
     function hasMatch(m) {
         if (m.level === 0) {
             return m.match.length > 0;
@@ -717,6 +726,7 @@
 
     exports.loadPattern = loadPattern;
     exports.matchPatterns = matchPatterns;
+    exports.matchLookbehind = matchLookbehind;
     exports.transcribe = transcribe;
     exports.matchPatternClass = matchPatternClass;
     exports.takeLineContext = takeLineContext;
