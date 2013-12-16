@@ -48,11 +48,11 @@
     
     function isRename(r) {
         return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
-    };
+    }
 
     function isMark(m) {
         return m && (typeof m.mark !== 'undefined');
-    };
+    }
 
     function isDef(ctx) {
         return ctx && (typeof ctx.defctx !== 'undefined');
@@ -165,14 +165,12 @@
         if (stx && Array.isArray(stx) && stx.length === 1) {
             stx = stx[0];
         } else if (stx && Array.isArray(stx)) {
-            throw new Error();
             throwSyntaxError("mkSyntax", "Expecting a syntax object or an array with a single syntax object");
         }
 
         if (type === parser.Token.Delimiter) {
             var startLineNumber, startLineStart, endLineNumber, endLineStart, startRange, endRange;
             if (!Array.isArray(inner)) {
-                throw new Error("Must provide inner array of syntax objects when creating a delimiter");
                 throwSyntaxError("mkSyntax", "Must provide inner array of syntax objects when creating a delimiter");
             }
 
@@ -363,7 +361,7 @@
         var pre = lineNumber + ': ';
         var ch;
 
-        while (ch = code.charAt(lineStart++)) {
+        while ((ch = code.charAt(lineStart++))) {
             if (ch == '\r' || ch == '\n') { 
                 break;
             }

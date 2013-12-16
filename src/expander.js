@@ -1045,11 +1045,11 @@
                         var question = rest[0];
                         var condRes = enforest(rest.slice(1), context);
                         var truExpr = condRes.result;
-                        var right = condRes.rest;
+                        var condRight = condRes.rest;
                         if(truExpr.hasPrototype(Expr) &&
-                           right[0] && unwrapSyntax(right[0]) === ":") {
-                            var colon = right[0];
-                            var flsRes = enforest(right.slice(1), context);
+                           condRight[0] && unwrapSyntax(condRight[0]) === ":") {
+                            var colon = condRight[0];
+                            var flsRes = enforest(condRight.slice(1), context);
                             var flsExpr = flsRes.result;
                             if(flsExpr.hasPrototype(Expr)) {
                                 return step(ConditionalExpression.create(head,
@@ -1076,10 +1076,10 @@
                                          rest[0] &&
                                          rest[0].token.type === parser.Token.Punctuator &&
                                          unwrapSyntax(rest[0]) === "=>") => {
-                        var res = enforest(rest.slice(1), context);
-                        if (res.result.hasPrototype(Expr)) {
-                            return step(ArrowFun.create(delim, rest[0], res.result.destruct()), 
-                                        res.rest);
+                        var arrowRes = enforest(rest.slice(1), context);
+                        if (arrowRes.result.hasPrototype(Expr)) {
+                            return step(ArrowFun.create(delim, rest[0], arrowRes.result.destruct()), 
+                                        arrowRes.rest);
                         } else {
                             throwSyntaxError("enforest", "Body of arrow function must be an expression", rest.slice(1));
                         }
@@ -1141,10 +1141,10 @@
 
                     // UnaryOp (via keyword)
                     Keyword(keyword) | (stxIsUnaryOp(keyword)) => {
-                        var unopRes = enforest(rest, context);
-                        if (unopRes.result.hasPrototype(Expr)) {
-                            return step(UnaryOp.create(keyword, unopRes.result),
-                                        unopRes.rest);
+                        var unopKeyres = enforest(rest, context);
+                        if (unopKeyres.result.hasPrototype(Expr)) {
+                            return step(UnaryOp.create(keyword, unopKeyres.result),
+                                        unopKeyres.rest);
                         }
                     }
 
@@ -1213,18 +1213,18 @@
                     }
                     // Let Statement
                     Keyword(keyword) | (unwrapSyntax(keyword) === "let" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, context, true);
-                        if (vsRes) {
-                            return step(LetStatement.create(head, vsRes.result),
-                                        vsRes.rest);
+                        var lsRes = enforestVarStatement(rest, context, true);
+                        if (lsRes) {
+                            return step(LetStatement.create(head, lsRes.result),
+                                        lsRes.rest);
                         }
                     }
                     // Const Statement
                     Keyword(keyword) | (unwrapSyntax(keyword) === "const" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, context, true);
-                        if (vsRes) {
-                            return step(ConstStatement.create(head, vsRes.result),
-                                        vsRes.rest);
+                        var csRes = enforestVarStatement(rest, context, true);
+                        if (csRes) {
+                            return step(ConstStatement.create(head, csRes.result),
+                                        csRes.rest);
                         }
                     }
 
@@ -1249,19 +1249,20 @@
                     var transformerContext = makeExpanderContext(_.defaults({mark: newMark}, context));
 
                     // pull the macro transformer out the environment
-                    var mac = context.env.get(resolve(head));
-                    var transformer = mac.fn;
+                    var macroObj = context.env.get(resolve(head));
+                    var transformer = macroObj.fn;
 
                     if(expandCount >= maxExpands) {
                         return { result: head, rest: rest };
                     }
-                    else if(!builtinMode && !mac.builtin) {
+                    else if(!builtinMode && !macroObj.builtin) {
                         expandCount++;
                     }
 
                     // apply the transformer
+                    var rt;
                     try {
-                        var rt = transformer([head].concat(rest), transformerContext);
+                        rt = transformer([head].concat(rest), transformerContext);
                     } catch (e) {
                         if (e.type && e.type === "SyntaxCaseError") {
                             // add a nicer error for syntax case
@@ -1571,9 +1572,10 @@
         // rest :: [Syntax]
         var rest = f.rest;
 
+        var macroDefinition
         if (head.hasPrototype(Macro) && expandCount < maxExpands) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition = loadMacroDef(head, context);
+            macroDefinition = loadMacroDef(head, context);
 
             addToDefinitionCtx([head.name], context.defscope, false);
             context.env.set(resolve(head.name), {
@@ -1586,7 +1588,7 @@
 
         if (head.hasPrototype(LetMacro) && expandCount < maxExpands) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition = loadMacroDef(head, context);
+            macroDefinition = loadMacroDef(head, context);
             var freshName = fresh();
             var renamedName = head.name.rename(head.name, freshName);
             rest = _.map(rest, function(stx) {
@@ -1774,18 +1776,19 @@
 
             var paramSingleIdent = term.params && term.params.token.type === parser.Token.Identifier;
 
+            var params;
             if (term.params && term.params.token.type === parser.Token.Delimiter) {
-                var params = term.params.expose();
+                params = term.params.expose();
             } else if (paramSingleIdent) {
-                var params = term.params;
+                params = term.params;
             } else {
-                var params = syn.makeDelim("()", [], null);
+                params = syn.makeDelim("()", [], null);
             }
-
+            var bodies;
             if (Array.isArray(term.body)) {
-                var bodies = syn.makeDelim("{}", term.body, null);
+                bodies = syn.makeDelim("{}", term.body, null);
             } else {
-                var bodies = term.body;
+                bodies = term.body;
             }
             bodies = bodies.addDefCtx(newDef);
 
@@ -1809,10 +1812,11 @@
             var bodyTerms = expandedResult.terms;
 
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam});
+            var flatArgs;
             if (paramSingleIdent) {
-                var flatArgs = renamedParams[0];
+                flatArgs = renamedParams[0];
             } else {
-                var flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","),
+                flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","),
                                              term.params);
             }
 
