@@ -856,10 +856,10 @@
                     var question$602 = rest$547[0];
                     var condRes$603 = enforest$379(rest$547.slice(1), context$544);
                     var truExpr$604 = condRes$603.result;
-                    var right$605 = condRes$603.rest;
-                    if (truExpr$604.hasPrototype(Expr$340) && right$605[0] && unwrapSyntax$223(right$605[0]) === ':') {
-                        var colon$606 = right$605[0];
-                        var flsRes$607 = enforest$379(right$605.slice(1), context$544);
+                    var condRight$605 = condRes$603.rest;
+                    if (truExpr$604.hasPrototype(Expr$340) && condRight$605[0] && unwrapSyntax$223(condRight$605[0]) === ':') {
+                        var colon$606 = condRight$605[0];
+                        var flsRes$607 = enforest$379(condRight$605.slice(1), context$544);
                         var flsExpr$608 = flsRes$607.result;
                         if (flsExpr$608.hasPrototype(Expr$340)) {
                             return step$545(ConditionalExpression$351.create(head$546, question$602, truExpr$604, colon$606, flsExpr$608), flsRes$607.rest);
@@ -871,16 +871,16 @@
                         return step$545(Const$362.create(head$546, newCallRes$609.result), newCallRes$609.rest);
                     }
                 } else if (head$546.hasPrototype(Delimiter$354) && delim$556.token.value === '()' && rest$547[0] && rest$547[0].token.type === parser$214.Token.Punctuator && unwrapSyntax$223(rest$547[0]) === '=>') {
-                    var res$610 = enforest$379(rest$547.slice(1), context$544);
-                    if (res$610.result.hasPrototype(Expr$340)) {
-                        return step$545(ArrowFun$358.create(delim$556, rest$547[0], res$610.result.destruct()), res$610.rest);
+                    var arrowRes$610 = enforest$379(rest$547.slice(1), context$544);
+                    if (arrowRes$610.result.hasPrototype(Expr$340)) {
+                        return step$545(ArrowFun$358.create(delim$556, rest$547[0], arrowRes$610.result.destruct()), arrowRes$610.rest);
                     } else {
                         throwSyntaxError$222('enforest', 'Body of arrow function must be an expression', rest$547.slice(1));
                     }
                 } else if (head$546.hasPrototype(Id$355) && rest$547[0] && rest$547[0].token.type === parser$214.Token.Punctuator && unwrapSyntax$223(rest$547[0]) === '=>') {
-                    var res$610 = enforest$379(rest$547.slice(1), context$544);
-                    if (res$610.result.hasPrototype(Expr$340)) {
-                        return step$545(ArrowFun$358.create(id$558, rest$547[0], res$610.result.destruct()), res$610.rest);
+                    var res$611 = enforest$379(rest$547.slice(1), context$544);
+                    if (res$611.result.hasPrototype(Expr$340)) {
+                        return step$545(ArrowFun$358.create(id$558, rest$547[0], res$611.result.destruct()), res$611.rest);
                     } else {
                         throwSyntaxError$222('enforest', 'Body of arrow function must be an expression', rest$547.slice(1));
                     }
@@ -892,31 +892,31 @@
                     if (innerTokens$548.length === 0) {
                         return step$545(ParenExpression$347.create(head$546), rest$547);
                     } else {
-                        var innerTerm$611 = get_expression$380(innerTokens$548, context$544);
-                        if (innerTerm$611.result && innerTerm$611.result.hasPrototype(Expr$340)) {
+                        var innerTerm$612 = get_expression$380(innerTokens$548, context$544);
+                        if (innerTerm$612.result && innerTerm$612.result.hasPrototype(Expr$340)) {
                             return step$545(ParenExpression$347.create(head$546), rest$547);
                         }
                     }    // if the tokens inside the paren aren't an expression
                          // we just leave it as a delimiter
                 } else if (head$546.hasPrototype(Expr$340) && rest$547[0] && rest$547[1] && stxIsBinOp$376(rest$547[0])) {
-                    var op$612 = rest$547[0];
-                    var left$613 = head$546;
-                    var bopRes$614 = enforest$379(rest$547.slice(1), context$544);
-                    var right$605 = bopRes$614.result;
+                    var op$613 = rest$547[0];
+                    var left$614 = head$546;
+                    var bopRes$615 = enforest$379(rest$547.slice(1), context$544);
+                    var right$616 = bopRes$615.result;
                     // only a binop if the right is a real expression
                     // so 2+2++ will only match 2+2
-                    if (right$605.hasPrototype(Expr$340)) {
-                        return step$545(BinOp$350.create(op$612, left$613, right$605), bopRes$614.rest);
+                    if (right$616.hasPrototype(Expr$340)) {
+                        return step$545(BinOp$350.create(op$613, left$614, right$616), bopRes$615.rest);
                     }
                 } else if (head$546.hasPrototype(Punc$353) && stxIsUnaryOp$375(punc$562)) {
-                    var unopRes$615 = enforest$379(rest$547, context$544);
-                    if (unopRes$615.result.hasPrototype(Expr$340)) {
-                        return step$545(UnaryOp$348.create(punc$562, unopRes$615.result), unopRes$615.rest);
+                    var unopRes$617 = enforest$379(rest$547, context$544);
+                    if (unopRes$617.result.hasPrototype(Expr$340)) {
+                        return step$545(UnaryOp$348.create(punc$562, unopRes$617.result), unopRes$617.rest);
                     }
                 } else if (head$546.hasPrototype(Keyword$352) && stxIsUnaryOp$375(keyword$554)) {
-                    var unopRes$615 = enforest$379(rest$547, context$544);
-                    if (unopRes$615.result.hasPrototype(Expr$340)) {
-                        return step$545(UnaryOp$348.create(keyword$554, unopRes$615.result), unopRes$615.rest);
+                    var unopKeyres$618 = enforest$379(rest$547, context$544);
+                    if (unopKeyres$618.result.hasPrototype(Expr$340)) {
+                        return step$545(UnaryOp$348.create(keyword$554, unopKeyres$618.result), unopKeyres$618.rest);
                     }
                 } else if (head$546.hasPrototype(Expr$340) && rest$547[0] && (unwrapSyntax$223(rest$547[0]) === '++' || unwrapSyntax$223(rest$547[0]) === '--')) {
                     return step$545(PostfixOp$349.create(head$546, rest$547[0]), rest$547.slice(1));
@@ -929,29 +929,29 @@
                 } else if (head$546.hasPrototype(Delimiter$354) && head$546.delim.token.value === '{}') {
                     return step$545(Block$345.create(head$546), rest$547);
                 } else if (head$546.hasPrototype(Id$355) && unwrapSyntax$223(id$558) === '#quoteSyntax' && rest$547[0] && rest$547[0].token.value === '{}') {
-                    var tempId$616 = fresh$334();
-                    context$544.templateMap.set(tempId$616, rest$547[0].token.inner);
-                    return step$545(syn$215.makeIdent('getTemplate', id$558), [syn$215.makeDelim('()', [syn$215.makeValue(tempId$616, id$558)], id$558)].concat(rest$547.slice(1)));
+                    var tempId$619 = fresh$334();
+                    context$544.templateMap.set(tempId$619, rest$547[0].token.inner);
+                    return step$545(syn$215.makeIdent('getTemplate', id$558), [syn$215.makeDelim('()', [syn$215.makeValue(tempId$619, id$558)], id$558)].concat(rest$547.slice(1)));
                 } else if (head$546.hasPrototype(Keyword$352) && unwrapSyntax$223(keyword$554) === 'let' && (rest$547[0] && rest$547[0].token.type === parser$214.Token.Identifier || rest$547[0] && rest$547[0].token.type === parser$214.Token.Keyword || rest$547[0] && rest$547[0].token.type === parser$214.Token.Punctuator) && rest$547[1] && unwrapSyntax$223(rest$547[1]) === '=' && rest$547[2] && rest$547[2].token.value === 'macro') {
-                    var mac$617 = enforest$379(rest$547.slice(2), context$544);
-                    if (!mac$617.result.hasPrototype(AnonMacro$361)) {
+                    var mac$620 = enforest$379(rest$547.slice(2), context$544);
+                    if (!mac$620.result.hasPrototype(AnonMacro$361)) {
                         throwSyntaxError$222('enforest', 'expecting an anonymous macro definition in syntax let binding', rest$547.slice(2));
                     }
-                    return step$545(LetMacro$359.create(rest$547[0], mac$617.result.body), mac$617.rest);
+                    return step$545(LetMacro$359.create(rest$547[0], mac$620.result.body), mac$620.rest);
                 } else if (head$546.hasPrototype(Keyword$352) && unwrapSyntax$223(keyword$554) === 'var' && rest$547[0]) {
-                    var vsRes$618 = enforestVarStatement$377(rest$547, context$544, false);
-                    if (vsRes$618) {
-                        return step$545(VariableStatement$367.create(head$546, vsRes$618.result), vsRes$618.rest);
+                    var vsRes$621 = enforestVarStatement$377(rest$547, context$544, false);
+                    if (vsRes$621) {
+                        return step$545(VariableStatement$367.create(head$546, vsRes$621.result), vsRes$621.rest);
                     }
                 } else if (head$546.hasPrototype(Keyword$352) && unwrapSyntax$223(keyword$554) === 'let' && rest$547[0]) {
-                    var vsRes$618 = enforestVarStatement$377(rest$547, context$544, true);
-                    if (vsRes$618) {
-                        return step$545(LetStatement$368.create(head$546, vsRes$618.result), vsRes$618.rest);
+                    var lsRes$622 = enforestVarStatement$377(rest$547, context$544, true);
+                    if (lsRes$622) {
+                        return step$545(LetStatement$368.create(head$546, lsRes$622.result), lsRes$622.rest);
                     }
                 } else if (head$546.hasPrototype(Keyword$352) && unwrapSyntax$223(keyword$554) === 'const' && rest$547[0]) {
-                    var vsRes$618 = enforestVarStatement$377(rest$547, context$544, true);
-                    if (vsRes$618) {
-                        return step$545(ConstStatement$369.create(head$546, vsRes$618.result), vsRes$618.rest);
+                    var csRes$623 = enforestVarStatement$377(rest$547, context$544, true);
+                    if (csRes$623) {
+                        return step$545(ConstStatement$369.create(head$546, csRes$623.result), csRes$623.rest);
                     }
                 } else if (head$546.hasPrototype(Keyword$352) && unwrapSyntax$223(keyword$554) === 'for' && rest$547[0] && rest$547[0].token.value === '()') {
                     return step$545(ForStatement$374.create(keyword$554, rest$547[0]), rest$547.slice(1));
@@ -962,43 +962,44 @@
                 if ((head$546.token.type === parser$214.Token.Identifier || head$546.token.type === parser$214.Token.Keyword || head$546.token.type === parser$214.Token.Punctuator) && context$544.env.has(resolve$328(head$546))) {
                     // create a new mark to be used for the input to
                     // the macro
-                    var newMark$619 = fresh$334();
-                    var transformerContext$620 = makeExpanderContext$388(_$213.defaults({ mark: newMark$619 }, context$544));
+                    var newMark$624 = fresh$334();
+                    var transformerContext$625 = makeExpanderContext$388(_$213.defaults({ mark: newMark$624 }, context$544));
                     // pull the macro transformer out the environment
-                    var mac$617 = context$544.env.get(resolve$328(head$546));
-                    var transformer$621 = mac$617.fn;
+                    var macroObj$626 = context$544.env.get(resolve$328(head$546));
+                    var transformer$627 = macroObj$626.fn;
                     if (expandCount$324 >= maxExpands$325) {
                         return {
                             result: head$546,
                             rest: rest$547
                         };
-                    } else if (!builtinMode$323 && !mac$617.builtin) {
+                    } else if (!builtinMode$323 && !macroObj$626.builtin) {
                         expandCount$324++;
                     }
                     // apply the transformer
+                    var rt$628;
                     try {
-                        var rt$622 = transformer$621([head$546].concat(rest$547), transformerContext$620);
-                    } catch (e$623) {
-                        if (e$623.type && e$623.type === 'SyntaxCaseError') {
+                        rt$628 = transformer$627([head$546].concat(rest$547), transformerContext$625);
+                    } catch (e$629) {
+                        if (e$629.type && e$629.type === 'SyntaxCaseError') {
                             // add a nicer error for syntax case
-                            var argumentString$624 = '`' + rest$547.slice(0, 5).map(function (stx$625) {
-                                    return stx$625.token.value;
+                            var argumentString$630 = '`' + rest$547.slice(0, 5).map(function (stx$631) {
+                                    return stx$631.token.value;
                                 }).join(' ') + '...`';
-                            throwSyntaxError$222('macro', 'Macro `' + head$546.token.value + '` could not be matched with ' + argumentString$624, head$546);
+                            throwSyntaxError$222('macro', 'Macro `' + head$546.token.value + '` could not be matched with ' + argumentString$630, head$546);
                         } else {
                             // just rethrow it
-                            throw e$623;
+                            throw e$629;
                         }
                     }
-                    if (!Array.isArray(rt$622.result)) {
+                    if (!Array.isArray(rt$628.result)) {
                         throwSyntaxError$222('enforest', 'Macro must return a syntax array', head$546);
                     }
-                    if (rt$622.result.length > 0) {
-                        var adjustedResult$626 = adjustLineContext$378(rt$622.result, head$546);
-                        adjustedResult$626[0].token.leadingComments = head$546.token.leadingComments;
-                        return step$545(adjustedResult$626[0], adjustedResult$626.slice(1).concat(rt$622.rest));
+                    if (rt$628.result.length > 0) {
+                        var adjustedResult$632 = adjustLineContext$378(rt$628.result, head$546);
+                        adjustedResult$632[0].token.leadingComments = head$546.token.leadingComments;
+                        return step$545(adjustedResult$632[0], adjustedResult$632.slice(1).concat(rt$628.rest));
                     } else {
-                        return step$545(Empty$372.create(), rt$622.rest);
+                        return step$545(Empty$372.create(), rt$628.rest);
                     }
                 }    // anon macro definition
                 else if (head$546.token.type === parser$214.Token.Identifier && head$546.token.value === 'macro' && rest$547[0] && rest$547[0].token.value === '{}') {
@@ -1077,19 +1078,19 @@
         }
         return step$545(toks$543[0], toks$543.slice(1));
     }
-    function get_expression$380(stx$627, context$628) {
-        var res$629 = enforest$379(stx$627, context$628);
-        if (!res$629.result.hasPrototype(Expr$340)) {
+    function get_expression$380(stx$633, context$634) {
+        var res$635 = enforest$379(stx$633, context$634);
+        if (!res$635.result.hasPrototype(Expr$340)) {
             return {
                 result: null,
-                rest: stx$627
+                rest: stx$633
             };
         }
-        return res$629;
+        return res$635;
     }
     // mark each syntax object in the pattern environment,
     // mutating the environment
-    function applyMarkToPatternEnv$381(newMark$630, env$631) {
+    function applyMarkToPatternEnv$381(newMark$636, env$637) {
         /*
         Takes a `match` object:
 
@@ -1101,37 +1102,37 @@
         where the match property is an array of syntax objects at the bottom (0) level.
         Does a depth-first search and applys the mark to each syntax object.
         */
-        function dfs$632(match$633) {
-            if (match$633.level === 0) {
+        function dfs$638(match$639) {
+            if (match$639.level === 0) {
                 // replace the match property with the marked syntax
-                match$633.match = _$213.map(match$633.match, function (stx$634) {
-                    return stx$634.mark(newMark$630);
+                match$639.match = _$213.map(match$639.match, function (stx$640) {
+                    return stx$640.mark(newMark$636);
                 });
             } else {
-                _$213.each(match$633.match, function (match$635) {
-                    dfs$632(match$635);
+                _$213.each(match$639.match, function (match$641) {
+                    dfs$638(match$641);
                 });
             }
         }
-        _$213.keys(env$631).forEach(function (key$636) {
-            dfs$632(env$631[key$636]);
+        _$213.keys(env$637).forEach(function (key$642) {
+            dfs$638(env$637[key$642]);
         });
     }
     // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
-    function loadMacroDef$382(mac$637, context$638) {
-        var body$639 = mac$637.body;
+    function loadMacroDef$382(mac$643, context$644) {
+        var body$645 = mac$643.body;
         // raw function primitive form
-        if (!(body$639[0] && body$639[0].token.type === parser$214.Token.Keyword && body$639[0].token.value === 'function')) {
-            throwSyntaxError$222('load macro', 'Primitive macro form must contain a function for the macro body', body$639);
+        if (!(body$645[0] && body$645[0].token.type === parser$214.Token.Keyword && body$645[0].token.value === 'function')) {
+            throwSyntaxError$222('load macro', 'Primitive macro form must contain a function for the macro body', body$645);
         }
-        var stub$640 = parser$214.read('()');
-        stub$640[0].token.inner = body$639;
-        var expanded$641 = expand$387(stub$640, context$638);
-        expanded$641 = expanded$641[0].destruct().concat(expanded$641[1].eof);
-        var flattend$642 = flatten$390(expanded$641);
-        var bodyCode$643 = codegen$220.generate(parser$214.parse(flattend$642));
-        var macroFn$644 = scopedEval$313(bodyCode$643, {
+        var stub$646 = parser$214.read('()');
+        stub$646[0].token.inner = body$645;
+        var expanded$647 = expand$387(stub$646, context$644);
+        expanded$647 = expanded$647[0].destruct().concat(expanded$647[1].eof);
+        var flattend$648 = flatten$390(expanded$647);
+        var bodyCode$649 = codegen$220.generate(parser$214.parse(flattend$648));
+        var macroFn$650 = scopedEval$313(bodyCode$649, {
                 makeValue: syn$215.makeValue,
                 makeRegex: syn$215.makeRegex,
                 makeIdent: syn$215.makeIdent,
@@ -1145,143 +1146,144 @@
                 __fresh: fresh$334,
                 _: _$213,
                 patternModule: patternModule$218,
-                getTemplate: function (id$645) {
-                    return cloneSyntaxArray$383(context$638.templateMap.get(id$645));
+                getTemplate: function (id$651) {
+                    return cloneSyntaxArray$383(context$644.templateMap.get(id$651));
                 },
                 applyMarkToPatternEnv: applyMarkToPatternEnv$381,
-                mergeMatches: function (newMatch$646, oldMatch$647) {
-                    newMatch$646.patternEnv = _$213.extend({}, oldMatch$647.patternEnv, newMatch$646.patternEnv);
-                    return newMatch$646;
+                mergeMatches: function (newMatch$652, oldMatch$653) {
+                    newMatch$652.patternEnv = _$213.extend({}, oldMatch$653.patternEnv, newMatch$652.patternEnv);
+                    return newMatch$652;
                 }
             });
-        return macroFn$644;
+        return macroFn$650;
     }
-    function cloneSyntaxArray$383(arr$648) {
-        return arr$648.map(function (stx$649) {
-            var o$650 = syntaxFromToken$321(_$213.clone(stx$649.token), stx$649);
-            if (o$650.token.type === parser$214.Token.Delimiter) {
-                o$650.token.inner = cloneSyntaxArray$383(o$650.token.inner);
+    function cloneSyntaxArray$383(arr$654) {
+        return arr$654.map(function (stx$655) {
+            var o$656 = syntaxFromToken$321(_$213.clone(stx$655.token), stx$655);
+            if (o$656.token.type === parser$214.Token.Delimiter) {
+                o$656.token.inner = cloneSyntaxArray$383(o$656.token.inner);
             }
-            return o$650;
+            return o$656;
         });
     }
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
-    function expandToTermTree$384(stx$651, context$652) {
-        assert$221(context$652, 'expander context is required');
+    function expandToTermTree$384(stx$657, context$658) {
+        assert$221(context$658, 'expander context is required');
         // short circuit when syntax array is empty
-        if (stx$651.length === 0) {
+        if (stx$657.length === 0) {
             return {
                 terms: [],
-                context: context$652
+                context: context$658
             };
         }
-        assert$221(stx$651[0].token, 'expecting a syntax object');
-        var f$653 = enforest$379(stx$651, context$652);
+        assert$221(stx$657[0].token, 'expecting a syntax object');
+        var f$659 = enforest$379(stx$657, context$658);
         // head :: TermTree
-        var head$654 = f$653.result;
+        var head$660 = f$659.result;
         // rest :: [Syntax]
-        var rest$655 = f$653.rest;
-        if (head$654.hasPrototype(Macro$360) && expandCount$324 < maxExpands$325) {
+        var rest$661 = f$659.rest;
+        var macroDefinition$662;
+        if (head$660.hasPrototype(Macro$360) && expandCount$324 < maxExpands$325) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition$657 = loadMacroDef$382(head$654, context$652);
-            addToDefinitionCtx$385([head$654.name], context$652.defscope, false);
-            context$652.env.set(resolve$328(head$654.name), {
-                fn: macroDefinition$657,
+            macroDefinition$662 = loadMacroDef$382(head$660, context$658);
+            addToDefinitionCtx$385([head$660.name], context$658.defscope, false);
+            context$658.env.set(resolve$328(head$660.name), {
+                fn: macroDefinition$662,
                 builtin: builtinMode$323
             });
-            return expandToTermTree$384(rest$655, context$652);
+            return expandToTermTree$384(rest$661, context$658);
         }
-        if (head$654.hasPrototype(LetMacro$359) && expandCount$324 < maxExpands$325) {
+        if (head$660.hasPrototype(LetMacro$359) && expandCount$324 < maxExpands$325) {
             // load the macro definition into the environment and continue expanding
-            var macroDefinition$657 = loadMacroDef$382(head$654, context$652);
-            var freshName$658 = fresh$334();
-            var renamedName$659 = head$654.name.rename(head$654.name, freshName$658);
-            rest$655 = _$213.map(rest$655, function (stx$660) {
-                return stx$660.rename(head$654.name, freshName$658);
+            macroDefinition$662 = loadMacroDef$382(head$660, context$658);
+            var freshName$664 = fresh$334();
+            var renamedName$665 = head$660.name.rename(head$660.name, freshName$664);
+            rest$661 = _$213.map(rest$661, function (stx$666) {
+                return stx$666.rename(head$660.name, freshName$664);
             });
-            head$654.name = renamedName$659;
-            context$652.env.set(resolve$328(head$654.name), {
-                fn: macroDefinition$657,
+            head$660.name = renamedName$665;
+            context$658.env.set(resolve$328(head$660.name), {
+                fn: macroDefinition$662,
                 builtin: builtinMode$323
             });
-            return expandToTermTree$384(rest$655, context$652);
+            return expandToTermTree$384(rest$661, context$658);
         }
-        if (head$654.hasPrototype(NamedFun$356)) {
-            addToDefinitionCtx$385([head$654.name], context$652.defscope, true);
+        if (head$660.hasPrototype(NamedFun$356)) {
+            addToDefinitionCtx$385([head$660.name], context$658.defscope, true);
         }
-        if (head$654.hasPrototype(VariableStatement$367)) {
-            addToDefinitionCtx$385(_$213.map(head$654.decls, function (decl$661) {
-                return decl$661.ident;
-            }), context$652.defscope, true);
+        if (head$660.hasPrototype(VariableStatement$367)) {
+            addToDefinitionCtx$385(_$213.map(head$660.decls, function (decl$667) {
+                return decl$667.ident;
+            }), context$658.defscope, true);
         }
-        if (head$654.hasPrototype(Block$345) && head$654.body.hasPrototype(Delimiter$354)) {
-            head$654.body.delim.token.inner.forEach(function (term$662) {
-                if (term$662.hasPrototype(VariableStatement$367)) {
-                    addToDefinitionCtx$385(_$213.map(term$662.decls, function (decl$663) {
-                        return decl$663.ident;
-                    }), context$652.defscope, true);
+        if (head$660.hasPrototype(Block$345) && head$660.body.hasPrototype(Delimiter$354)) {
+            head$660.body.delim.token.inner.forEach(function (term$668) {
+                if (term$668.hasPrototype(VariableStatement$367)) {
+                    addToDefinitionCtx$385(_$213.map(term$668.decls, function (decl$669) {
+                        return decl$669.ident;
+                    }), context$658.defscope, true);
                 }
             });
         }
-        if (head$654.hasPrototype(Delimiter$354)) {
-            head$654.delim.token.inner.forEach(function (term$664) {
-                if (term$664.hasPrototype(VariableStatement$367)) {
-                    addToDefinitionCtx$385(_$213.map(term$664.decls, function (decl$665) {
-                        return decl$665.ident;
-                    }), context$652.defscope, true);
+        if (head$660.hasPrototype(Delimiter$354)) {
+            head$660.delim.token.inner.forEach(function (term$670) {
+                if (term$670.hasPrototype(VariableStatement$367)) {
+                    addToDefinitionCtx$385(_$213.map(term$670.decls, function (decl$671) {
+                        return decl$671.ident;
+                    }), context$658.defscope, true);
                 }
             });
         }
-        if (head$654.hasPrototype(ForStatement$374)) {
-            head$654.cond.expose();
-            var forCond$666 = head$654.cond.token.inner;
-            if (forCond$666[0] && resolve$328(forCond$666[0]) === 'let' && forCond$666[1] && forCond$666[1].token.type === parser$214.Token.Identifier) {
-                var letNew$667 = fresh$334();
-                var letId$668 = forCond$666[1];
-                forCond$666 = forCond$666.map(function (stx$669) {
-                    return stx$669.rename(letId$668, letNew$667);
+        if (head$660.hasPrototype(ForStatement$374)) {
+            head$660.cond.expose();
+            var forCond$672 = head$660.cond.token.inner;
+            if (forCond$672[0] && resolve$328(forCond$672[0]) === 'let' && forCond$672[1] && forCond$672[1].token.type === parser$214.Token.Identifier) {
+                var letNew$673 = fresh$334();
+                var letId$674 = forCond$672[1];
+                forCond$672 = forCond$672.map(function (stx$675) {
+                    return stx$675.rename(letId$674, letNew$673);
                 });
                 // hack: we want to do the let renaming here, not
                 // in the expansion of `for (...)` so just remove the `let`
                 // keyword
-                head$654.cond.token.inner = expand$387([forCond$666[0]], context$652).concat(expand$387(forCond$666.slice(1), context$652));
+                head$660.cond.token.inner = expand$387([forCond$672[0]], context$658).concat(expand$387(forCond$672.slice(1), context$658));
                 // nice and easy case: `for (...) { ... }`
-                if (rest$655[0] && rest$655[0].token.value === '{}') {
-                    rest$655[0] = rest$655[0].rename(letId$668, letNew$667);
+                if (rest$661[0] && rest$661[0].token.value === '{}') {
+                    rest$661[0] = rest$661[0].rename(letId$674, letNew$673);
                 } else {
                     // need to deal with things like `for (...) if (...) log(...)`
-                    var bodyEnf$670 = enforest$379(rest$655, context$652);
-                    var renamedBodyTerm$671 = bodyEnf$670.result.rename(letId$668, letNew$667);
-                    var forTrees$672 = expandToTermTree$384(bodyEnf$670.rest, context$652);
+                    var bodyEnf$676 = enforest$379(rest$661, context$658);
+                    var renamedBodyTerm$677 = bodyEnf$676.result.rename(letId$674, letNew$673);
+                    var forTrees$678 = expandToTermTree$384(bodyEnf$676.rest, context$658);
                     return {
                         terms: [
-                            head$654,
-                            renamedBodyTerm$671
-                        ].concat(forTrees$672.terms),
-                        context: forTrees$672.context
+                            head$660,
+                            renamedBodyTerm$677
+                        ].concat(forTrees$678.terms),
+                        context: forTrees$678.context
                     };
                 }
             } else {
-                head$654.cond.token.inner = expand$387(head$654.cond.token.inner, context$652);
+                head$660.cond.token.inner = expand$387(head$660.cond.token.inner, context$658);
             }
         }
-        var trees$656 = expandToTermTree$384(rest$655, context$652);
+        var trees$663 = expandToTermTree$384(rest$661, context$658);
         return {
-            terms: [head$654].concat(trees$656.terms),
-            context: trees$656.context
+            terms: [head$660].concat(trees$663.terms),
+            context: trees$663.context
         };
     }
-    function addToDefinitionCtx$385(idents$673, defscope$674, skipRep$675) {
-        assert$221(idents$673 && idents$673.length > 0, 'expecting some variable identifiers');
-        skipRep$675 = skipRep$675 || false;
-        _$213.each(idents$673, function (id$676) {
-            var skip$677 = false;
-            if (skipRep$675) {
-                var declRepeat$678 = _$213.find(defscope$674, function (def$679) {
-                        return def$679.id.token.value === id$676.token.value && arraysEqual$329(marksof$327(def$679.id.context), marksof$327(id$676.context));
+    function addToDefinitionCtx$385(idents$679, defscope$680, skipRep$681) {
+        assert$221(idents$679 && idents$679.length > 0, 'expecting some variable identifiers');
+        skipRep$681 = skipRep$681 || false;
+        _$213.each(idents$679, function (id$682) {
+            var skip$683 = false;
+            if (skipRep$681) {
+                var declRepeat$684 = _$213.find(defscope$680, function (def$685) {
+                        return def$685.id.token.value === id$682.token.value && arraysEqual$329(marksof$327(def$685.id.context), marksof$327(id$682.context));
                     });
-                skip$677 = typeof declRepeat$678 !== 'undefined';
+                skip$683 = typeof declRepeat$684 !== 'undefined';
             }
             /* 
                When var declarations repeat in the same function scope:
@@ -1293,11 +1295,11 @@
                we just need to use the first renaming and leave the
                definition context as is.
             */
-            if (!skip$677) {
-                var name$680 = fresh$334();
-                defscope$674.push({
-                    id: id$676,
-                    name: name$680
+            if (!skip$683) {
+                var name$686 = fresh$334();
+                defscope$680.push({
+                    id: id$682,
+                    name: name$686
                 });
             }
         });
@@ -1305,162 +1307,165 @@
     // similar to `parse2` in the honu paper except here we
     // don't generate an AST yet
     // (TermTree, Map, Map) -> TermTree
-    function expandTermTreeToFinal$386(term$681, context$682) {
-        assert$221(context$682 && context$682.env, 'environment map is required');
-        if (term$681.hasPrototype(ArrayLiteral$346)) {
-            term$681.array.delim.token.inner = expand$387(term$681.array.delim.expose().token.inner, context$682);
-            return term$681;
-        } else if (term$681.hasPrototype(Block$345)) {
-            term$681.body.delim.token.inner = expand$387(term$681.body.delim.expose().token.inner, context$682);
-            return term$681;
-        } else if (term$681.hasPrototype(ParenExpression$347)) {
-            term$681.expr.delim.token.inner = expand$387(term$681.expr.delim.expose().token.inner, context$682);
-            return term$681;
-        } else if (term$681.hasPrototype(Call$363)) {
-            term$681.fun = expandTermTreeToFinal$386(term$681.fun, context$682);
-            term$681.args = _$213.map(term$681.args, function (arg$683) {
-                return expandTermTreeToFinal$386(arg$683, context$682);
+    function expandTermTreeToFinal$386(term$687, context$688) {
+        assert$221(context$688 && context$688.env, 'environment map is required');
+        if (term$687.hasPrototype(ArrayLiteral$346)) {
+            term$687.array.delim.token.inner = expand$387(term$687.array.delim.expose().token.inner, context$688);
+            return term$687;
+        } else if (term$687.hasPrototype(Block$345)) {
+            term$687.body.delim.token.inner = expand$387(term$687.body.delim.expose().token.inner, context$688);
+            return term$687;
+        } else if (term$687.hasPrototype(ParenExpression$347)) {
+            term$687.expr.delim.token.inner = expand$387(term$687.expr.delim.expose().token.inner, context$688);
+            return term$687;
+        } else if (term$687.hasPrototype(Call$363)) {
+            term$687.fun = expandTermTreeToFinal$386(term$687.fun, context$688);
+            term$687.args = _$213.map(term$687.args, function (arg$689) {
+                return expandTermTreeToFinal$386(arg$689, context$688);
             });
-            return term$681;
-        } else if (term$681.hasPrototype(UnaryOp$348)) {
-            term$681.expr = expandTermTreeToFinal$386(term$681.expr, context$682);
-            return term$681;
-        } else if (term$681.hasPrototype(BinOp$350)) {
-            term$681.left = expandTermTreeToFinal$386(term$681.left, context$682);
-            term$681.right = expandTermTreeToFinal$386(term$681.right, context$682);
-            return term$681;
-        } else if (term$681.hasPrototype(ObjGet$365)) {
-            term$681.right.delim.token.inner = expand$387(term$681.right.delim.expose().token.inner, context$682);
-            return term$681;
-        } else if (term$681.hasPrototype(ObjDotGet$364)) {
-            term$681.left = expandTermTreeToFinal$386(term$681.left, context$682);
-            term$681.right = expandTermTreeToFinal$386(term$681.right, context$682);
-            return term$681;
-        } else if (term$681.hasPrototype(VariableDeclaration$366)) {
-            if (term$681.init) {
-                term$681.init = expandTermTreeToFinal$386(term$681.init, context$682);
+            return term$687;
+        } else if (term$687.hasPrototype(UnaryOp$348)) {
+            term$687.expr = expandTermTreeToFinal$386(term$687.expr, context$688);
+            return term$687;
+        } else if (term$687.hasPrototype(BinOp$350)) {
+            term$687.left = expandTermTreeToFinal$386(term$687.left, context$688);
+            term$687.right = expandTermTreeToFinal$386(term$687.right, context$688);
+            return term$687;
+        } else if (term$687.hasPrototype(ObjGet$365)) {
+            term$687.right.delim.token.inner = expand$387(term$687.right.delim.expose().token.inner, context$688);
+            return term$687;
+        } else if (term$687.hasPrototype(ObjDotGet$364)) {
+            term$687.left = expandTermTreeToFinal$386(term$687.left, context$688);
+            term$687.right = expandTermTreeToFinal$386(term$687.right, context$688);
+            return term$687;
+        } else if (term$687.hasPrototype(VariableDeclaration$366)) {
+            if (term$687.init) {
+                term$687.init = expandTermTreeToFinal$386(term$687.init, context$688);
             }
-            return term$681;
-        } else if (term$681.hasPrototype(VariableStatement$367)) {
-            term$681.decls = _$213.map(term$681.decls, function (decl$684) {
-                return expandTermTreeToFinal$386(decl$684, context$682);
+            return term$687;
+        } else if (term$687.hasPrototype(VariableStatement$367)) {
+            term$687.decls = _$213.map(term$687.decls, function (decl$690) {
+                return expandTermTreeToFinal$386(decl$690, context$688);
             });
-            return term$681;
-        } else if (term$681.hasPrototype(Delimiter$354)) {
+            return term$687;
+        } else if (term$687.hasPrototype(Delimiter$354)) {
             // expand inside the delimiter and then continue on
-            term$681.delim.token.inner = expand$387(term$681.delim.expose().token.inner, context$682);
-            return term$681;
-        } else if (term$681.hasPrototype(NamedFun$356) || term$681.hasPrototype(AnonFun$357) || term$681.hasPrototype(CatchClause$370) || term$681.hasPrototype(ArrowFun$358) || term$681.hasPrototype(Module$371)) {
+            term$687.delim.token.inner = expand$387(term$687.delim.expose().token.inner, context$688);
+            return term$687;
+        } else if (term$687.hasPrototype(NamedFun$356) || term$687.hasPrototype(AnonFun$357) || term$687.hasPrototype(CatchClause$370) || term$687.hasPrototype(ArrowFun$358) || term$687.hasPrototype(Module$371)) {
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
-            var newDef$685 = [];
-            var bodyContext$686 = makeExpanderContext$388(_$213.defaults({ defscope: newDef$685 }, context$682));
-            var paramSingleIdent$687 = term$681.params && term$681.params.token.type === parser$214.Token.Identifier;
-            if (term$681.params && term$681.params.token.type === parser$214.Token.Delimiter) {
-                var params$694 = term$681.params.expose();
-            } else if (paramSingleIdent$687) {
-                var params$694 = term$681.params;
+            var newDef$691 = [];
+            var bodyContext$692 = makeExpanderContext$388(_$213.defaults({ defscope: newDef$691 }, context$688));
+            var paramSingleIdent$693 = term$687.params && term$687.params.token.type === parser$214.Token.Identifier;
+            var params$694;
+            if (term$687.params && term$687.params.token.type === parser$214.Token.Delimiter) {
+                params$694 = term$687.params.expose();
+            } else if (paramSingleIdent$693) {
+                params$694 = term$687.params;
             } else {
-                var params$694 = syn$215.makeDelim('()', [], null);
+                params$694 = syn$215.makeDelim('()', [], null);
             }
-            if (Array.isArray(term$681.body)) {
-                var bodies$695 = syn$215.makeDelim('{}', term$681.body, null);
+            var bodies$695;
+            if (Array.isArray(term$687.body)) {
+                bodies$695 = syn$215.makeDelim('{}', term$687.body, null);
             } else {
-                var bodies$695 = term$681.body;
+                bodies$695 = term$687.body;
             }
-            bodies$695 = bodies$695.addDefCtx(newDef$685);
-            var paramNames$688 = _$213.map(getParamIdentifiers$336(params$694), function (param$696) {
-                    var freshName$697 = fresh$334();
+            bodies$695 = bodies$695.addDefCtx(newDef$691);
+            var paramNames$696 = _$213.map(getParamIdentifiers$336(params$694), function (param$703) {
+                    var freshName$704 = fresh$334();
                     return {
-                        freshName: freshName$697,
-                        originalParam: param$696,
-                        renamedParam: param$696.rename(param$696, freshName$697)
+                        freshName: freshName$704,
+                        originalParam: param$703,
+                        renamedParam: param$703.rename(param$703, freshName$704)
                     };
                 });
             // rename the function body for each of the parameters
-            var renamedBody$689 = _$213.reduce(paramNames$688, function (accBody$698, p$699) {
-                    return accBody$698.rename(p$699.originalParam, p$699.freshName);
+            var renamedBody$697 = _$213.reduce(paramNames$696, function (accBody$705, p$706) {
+                    return accBody$705.rename(p$706.originalParam, p$706.freshName);
                 }, bodies$695);
-            renamedBody$689 = renamedBody$689.expose();
-            var expandedResult$690 = expandToTermTree$384(renamedBody$689.token.inner, bodyContext$686);
-            var bodyTerms$691 = expandedResult$690.terms;
-            var renamedParams$692 = _$213.map(paramNames$688, function (p$700) {
-                    return p$700.renamedParam;
+            renamedBody$697 = renamedBody$697.expose();
+            var expandedResult$698 = expandToTermTree$384(renamedBody$697.token.inner, bodyContext$692);
+            var bodyTerms$699 = expandedResult$698.terms;
+            var renamedParams$700 = _$213.map(paramNames$696, function (p$707) {
+                    return p$707.renamedParam;
                 });
-            if (paramSingleIdent$687) {
-                var flatArgs$701 = renamedParams$692[0];
+            var flatArgs$701;
+            if (paramSingleIdent$693) {
+                flatArgs$701 = renamedParams$700[0];
             } else {
-                var flatArgs$701 = syn$215.makeDelim('()', joinSyntax$322(renamedParams$692, ','), term$681.params);
+                flatArgs$701 = syn$215.makeDelim('()', joinSyntax$322(renamedParams$700, ','), term$687.params);
             }
-            var expandedArgs$693 = expand$387([flatArgs$701], bodyContext$686);
-            assert$221(expandedArgs$693.length === 1, 'should only get back one result');
+            var expandedArgs$702 = expand$387([flatArgs$701], bodyContext$692);
+            assert$221(expandedArgs$702.length === 1, 'should only get back one result');
             // stitch up the function with all the renamings
-            if (term$681.params) {
-                term$681.params = expandedArgs$693[0];
+            if (term$687.params) {
+                term$687.params = expandedArgs$702[0];
             }
-            bodyTerms$691 = _$213.map(bodyTerms$691, function (bodyTerm$702) {
+            bodyTerms$699 = _$213.map(bodyTerms$699, function (bodyTerm$708) {
                 // add the definition context to the result of
                 // expansion (this makes sure that syntax objects
                 // introduced by expansion have the def context)
-                var termWithCtx$703 = bodyTerm$702.addDefCtx(newDef$685);
+                var termWithCtx$709 = bodyTerm$708.addDefCtx(newDef$691);
                 // finish expansion
-                return expandTermTreeToFinal$386(termWithCtx$703, expandedResult$690.context);
+                return expandTermTreeToFinal$386(termWithCtx$709, expandedResult$698.context);
             });
-            if (term$681.hasPrototype(Module$371)) {
-                bodyTerms$691 = _$213.filter(bodyTerms$691, function (bodyTerm$704) {
-                    if (bodyTerm$704.hasPrototype(Export$373)) {
-                        term$681.exports.push(bodyTerm$704);
+            if (term$687.hasPrototype(Module$371)) {
+                bodyTerms$699 = _$213.filter(bodyTerms$699, function (bodyTerm$710) {
+                    if (bodyTerm$710.hasPrototype(Export$373)) {
+                        term$687.exports.push(bodyTerm$710);
                         return false;
                     } else {
                         return true;
                     }
                 });
             }
-            renamedBody$689.token.inner = bodyTerms$691;
-            if (Array.isArray(term$681.body)) {
-                term$681.body = renamedBody$689.token.inner;
+            renamedBody$697.token.inner = bodyTerms$699;
+            if (Array.isArray(term$687.body)) {
+                term$687.body = renamedBody$697.token.inner;
             } else {
-                term$681.body = renamedBody$689;
+                term$687.body = renamedBody$697;
             }
             // and continue expand the rest
-            return term$681;
+            return term$687;
         }
         // the term is fine as is
-        return term$681;
+        return term$687;
     }
     // similar to `parse` in the honu paper
     // ([Syntax], Map, Map) -> [TermTree]
-    function expand$387(stx$705, context$706) {
-        assert$221(context$706, 'must provide an expander context');
-        var trees$707 = expandToTermTree$384(stx$705, context$706);
-        return _$213.map(trees$707.terms, function (term$708) {
-            return expandTermTreeToFinal$386(term$708, trees$707.context);
+    function expand$387(stx$711, context$712) {
+        assert$221(context$712, 'must provide an expander context');
+        var trees$713 = expandToTermTree$384(stx$711, context$712);
+        return _$213.map(trees$713.terms, function (term$714) {
+            return expandTermTreeToFinal$386(term$714, trees$713.context);
         });
     }
-    function makeExpanderContext$388(o$709) {
-        o$709 = o$709 || {};
+    function makeExpanderContext$388(o$715) {
+        o$715 = o$715 || {};
         // read-only but can enumerate
         return Object.create(Object.prototype, {
             env: {
-                value: o$709.env || new Map(),
+                value: o$715.env || new Map(),
                 writable: false,
                 enumerable: true,
                 configurable: false
             },
             defscope: {
-                value: o$709.defscope,
+                value: o$715.defscope,
                 writable: false,
                 enumerable: true,
                 configurable: false
             },
             templateMap: {
-                value: o$709.templateMap || new Map(),
+                value: o$715.templateMap || new Map(),
                 writable: false,
                 enumerable: true,
                 configurable: false
             },
             mark: {
-                value: o$709.mark,
+                value: o$715.mark,
                 writable: false,
                 enumerable: true,
                 configurable: false
@@ -1468,79 +1473,79 @@
         });
     }
     // a hack to make the top level hygiene work out
-    function expandTopLevel$389(stx$710, builtinSource$711, _maxExpands$712) {
-        var env$713 = new Map();
-        var params$714 = [];
-        var context$715, builtInContext$716 = makeExpanderContext$388({ env: env$713 });
-        maxExpands$325 = _maxExpands$712 || Infinity;
+    function expandTopLevel$389(stx$716, builtinSource$717, _maxExpands$718) {
+        var env$719 = new Map();
+        var params$720 = [];
+        var context$721, builtInContext$722 = makeExpanderContext$388({ env: env$719 });
+        maxExpands$325 = _maxExpands$718 || Infinity;
         expandCount$324 = 0;
-        if (builtinSource$711) {
-            var builtinRead$719 = parser$214.read(builtinSource$711);
-            builtinRead$719 = [
+        if (builtinSource$717) {
+            var builtinRead$725 = parser$214.read(builtinSource$717);
+            builtinRead$725 = [
                 syn$215.makeIdent('module', null),
-                syn$215.makeDelim('{}', builtinRead$719, null)
+                syn$215.makeDelim('{}', builtinRead$725, null)
             ];
             builtinMode$323 = true;
-            var builtinRes$720 = expand$387(builtinRead$719, builtInContext$716);
+            var builtinRes$726 = expand$387(builtinRead$725, builtInContext$722);
             builtinMode$323 = false;
-            params$714 = _$213.map(builtinRes$720[0].exports, function (term$721) {
+            params$720 = _$213.map(builtinRes$726[0].exports, function (term$727) {
                 return {
-                    oldExport: term$721.name,
-                    newParam: syn$215.makeIdent(term$721.name.token.value, null)
+                    oldExport: term$727.name,
+                    newParam: syn$215.makeIdent(term$727.name.token.value, null)
                 };
             });
         }
-        var modBody$717 = syn$215.makeDelim('{}', stx$710, null);
-        modBody$717 = _$213.reduce(params$714, function (acc$722, param$723) {
-            var newName$724 = fresh$334();
-            env$713.set(resolve$328(param$723.newParam.rename(param$723.newParam, newName$724)), env$713.get(resolve$328(param$723.oldExport)));
-            return acc$722.rename(param$723.newParam, newName$724);
-        }, modBody$717);
-        context$715 = makeExpanderContext$388({ env: env$713 });
-        var res$718 = expand$387([
+        var modBody$723 = syn$215.makeDelim('{}', stx$716, null);
+        modBody$723 = _$213.reduce(params$720, function (acc$728, param$729) {
+            var newName$730 = fresh$334();
+            env$719.set(resolve$328(param$729.newParam.rename(param$729.newParam, newName$730)), env$719.get(resolve$328(param$729.oldExport)));
+            return acc$728.rename(param$729.newParam, newName$730);
+        }, modBody$723);
+        context$721 = makeExpanderContext$388({ env: env$719 });
+        var res$724 = expand$387([
                 syn$215.makeIdent('module', null),
-                modBody$717
-            ], context$715);
-        res$718 = res$718[0].destruct();
-        return flatten$390(res$718[0].token.inner);
+                modBody$723
+            ], context$721);
+        res$724 = res$724[0].destruct();
+        return flatten$390(res$724[0].token.inner);
     }
     // break delimiter tree structure down to flat array of syntax objects
-    function flatten$390(stx$725) {
-        return _$213.reduce(stx$725, function (acc$726, stx$727) {
-            if (stx$727.token.type === parser$214.Token.Delimiter) {
-                var exposed$728 = stx$727.expose();
-                var openParen$729 = syntaxFromToken$321({
+    function flatten$390(stx$731) {
+        return _$213.reduce(stx$731, function (acc$732, stx$733) {
+            if (stx$733.token.type === parser$214.Token.Delimiter) {
+                var exposed$734 = stx$733.expose();
+                var openParen$735 = syntaxFromToken$321({
                         type: parser$214.Token.Punctuator,
-                        value: stx$727.token.value[0],
-                        range: stx$727.token.startRange,
-                        sm_range: typeof stx$727.token.sm_startRange == 'undefined' ? stx$727.token.startRange : stx$727.token.sm_startRange,
-                        lineNumber: stx$727.token.startLineNumber,
-                        sm_lineNumber: typeof stx$727.token.sm_startLineNumber == 'undefined' ? stx$727.token.startLineNumber : stx$727.token.sm_startLineNumber,
-                        lineStart: stx$727.token.startLineStart,
-                        sm_lineStart: typeof stx$727.token.sm_startLineStart == 'undefined' ? stx$727.token.startLineStart : stx$727.token.sm_startLineStart
-                    }, exposed$728);
-                var closeParen$730 = syntaxFromToken$321({
+                        value: stx$733.token.value[0],
+                        range: stx$733.token.startRange,
+                        sm_range: typeof stx$733.token.sm_startRange == 'undefined' ? stx$733.token.startRange : stx$733.token.sm_startRange,
+                        lineNumber: stx$733.token.startLineNumber,
+                        sm_lineNumber: typeof stx$733.token.sm_startLineNumber == 'undefined' ? stx$733.token.startLineNumber : stx$733.token.sm_startLineNumber,
+                        lineStart: stx$733.token.startLineStart,
+                        sm_lineStart: typeof stx$733.token.sm_startLineStart == 'undefined' ? stx$733.token.startLineStart : stx$733.token.sm_startLineStart
+                    }, exposed$734);
+                var closeParen$736 = syntaxFromToken$321({
                         type: parser$214.Token.Punctuator,
-                        value: stx$727.token.value[1],
-                        range: stx$727.token.endRange,
-                        sm_range: typeof stx$727.token.sm_endRange == 'undefined' ? stx$727.token.endRange : stx$727.token.sm_endRange,
-                        lineNumber: stx$727.token.endLineNumber,
-                        sm_lineNumber: typeof stx$727.token.sm_endLineNumber == 'undefined' ? stx$727.token.endLineNumber : stx$727.token.sm_endLineNumber,
-                        lineStart: stx$727.token.endLineStart,
-                        sm_lineStart: typeof stx$727.token.sm_endLineStart == 'undefined' ? stx$727.token.endLineStart : stx$727.token.sm_endLineStart
-                    }, exposed$728);
-                if (stx$727.token.leadingComments) {
-                    openParen$729.token.leadingComments = stx$727.token.leadingComments;
+                        value: stx$733.token.value[1],
+                        range: stx$733.token.endRange,
+                        sm_range: typeof stx$733.token.sm_endRange == 'undefined' ? stx$733.token.endRange : stx$733.token.sm_endRange,
+                        lineNumber: stx$733.token.endLineNumber,
+                        sm_lineNumber: typeof stx$733.token.sm_endLineNumber == 'undefined' ? stx$733.token.endLineNumber : stx$733.token.sm_endLineNumber,
+                        lineStart: stx$733.token.endLineStart,
+                        sm_lineStart: typeof stx$733.token.sm_endLineStart == 'undefined' ? stx$733.token.endLineStart : stx$733.token.sm_endLineStart
+                    }, exposed$734);
+                if (stx$733.token.leadingComments) {
+                    openParen$735.token.leadingComments = stx$733.token.leadingComments;
                 }
-                if (stx$727.token.trailingComments) {
-                    openParen$729.token.trailingComments = stx$727.token.trailingComments;
+                if (stx$733.token.trailingComments) {
+                    openParen$735.token.trailingComments = stx$733.token.trailingComments;
                 }
-                return acc$726.concat(openParen$729).concat(flatten$390(exposed$728.token.inner)).concat(closeParen$730);
+                return acc$732.concat(openParen$735).concat(flatten$390(exposed$734.token.inner)).concat(closeParen$736);
             }
-            stx$727.token.sm_lineNumber = stx$727.token.sm_lineNumber ? stx$727.token.sm_lineNumber : stx$727.token.lineNumber;
-            stx$727.token.sm_lineStart = stx$727.token.sm_lineStart ? stx$727.token.sm_lineStart : stx$727.token.lineStart;
-            stx$727.token.sm_range = stx$727.token.sm_range ? stx$727.token.sm_range : stx$727.token.range;
-            return acc$726.concat(stx$727);
+            stx$733.token.sm_lineNumber = stx$733.token.sm_lineNumber ? stx$733.token.sm_lineNumber : stx$733.token.lineNumber;
+            stx$733.token.sm_lineStart = stx$733.token.sm_lineStart ? stx$733.token.sm_lineStart : stx$733.token.lineStart;
+            stx$733.token.sm_range = stx$733.token.sm_range ? stx$733.token.sm_range : stx$733.token.range;
+            return acc$732.concat(stx$733);
         }, []);
     }
     exports$212.enforest = enforest$379;
