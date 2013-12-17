@@ -136,8 +136,8 @@ let syntaxCase = macro {
                     if (separator) {
                         rhs.push(pattern[j]);
                     } else {
-                        if (pattern[i].token.type === parser.Token.Punctuator &&
-                            pattern[i].token.value === '|') {
+                        if (pattern[j].token.type === parser.Token.Punctuator &&
+                            pattern[j].token.value === '|') {
                             separator = pattern[j];
                         } else {
                             lhs.push(pattern[j]);
