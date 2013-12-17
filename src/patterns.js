@@ -160,6 +160,22 @@
         return next;
     }
 
+    function reversePattern(patterns) {
+        var len = patterns.length;
+        var res = [];
+        var pat;
+        return _.reduceRight(patterns, function(acc, pat) {
+            if (pat.class === "pattern_group") {
+                pat.token.inner = reversePattern(pat.token.inner);
+            }
+            if (pat.repeat) {
+                pat.leading = !pat.leading;
+            }
+            acc.push(pat);
+            return acc;
+        }, []);
+    }
+
     function loadLiteralGroup(patterns) {
         _.forEach(patterns, function(patStx) {
             if (patStx.token.type === parser.Token.Delimiter) {
@@ -171,9 +187,8 @@
         return patterns;
     }
 
-    function loadPattern(patterns) {
-
-        return _.chain(patterns)
+    function loadPattern(patterns, reverse) {
+        var patts = _.chain(patterns)
         // first pass to merge the pattern variables together
             .reduce(function(acc, patStx, idx) {
                 var last = patterns[idx-1];
@@ -249,6 +264,22 @@
                 patStx.separator = separator;
                 return acc.concat(patStx);
             }, []).value();
+
+        return reverse ? reversePattern(patts) : patts;
+    }
+
+    function cachedTermMatch(stx, term) {
+        var res = [];
+        var i = 0;
+        while (stx[i] && stx[i].term === term) {
+            res.push(stx[i]);
+            i++;
+        }
+        return {
+            result: term,
+            destructed: res,
+            rest: stx.slice(res.length)
+        };
     }
 
 
@@ -269,21 +300,25 @@
             result = [stx[0]];
             rest = stx.slice(1);
         } else if (stx.length > 0 && patternClass === "VariableStatement") {
-            var match = expander.enforest(stx, expander.makeExpanderContext({env: env}));
+            var match = stx[0].term
+                ? cachedTermMatch(stx, stx[0].term)
+                : expander.enforest(stx, expander.makeExpanderContext({env: env}));
             if (match.result && match.result.hasPrototype(expander.VariableStatement)) {
-                result = match.result.destruct(false);
+                result = match.destructed || match.result.destruct(false);
                 rest = match.rest;
             } else {
                 result = null;
                 rest = stx;
             }
         } else if (stx.length > 0 && patternClass === "expr") {
-            var match = expander.get_expression(stx, expander.makeExpanderContext({env: env}));
+            var match = stx[0].term
+                ? cachedTermMatch(stx, stx[0].term)
+                : expander.get_expression(stx, expander.makeExpanderContext({env: env}));
             if (match.result === null || (!match.result.hasPrototype(expander.Expr))) {
                 result = null;
                 rest = stx;
             } else {
-                result = match.result.destruct(false);
+                result = match.destructed || match.result.destruct(false);
                 rest = match.rest;
             }
         } else {
@@ -296,7 +331,6 @@
             rest: rest
         };
     }
-    
 
     
     // attempt to match patterns against stx
@@ -324,6 +358,7 @@
         var pattern;
         var rest = stx;
         var success = true;
+        var inLeading;
 
         patternLoop:
         for (var i = 0; i < patterns.length; i++) {
@@ -331,6 +366,7 @@
                 break;
             }
             pattern = patterns[i];
+            inLeading = false;
             do {
                 // handles cases where patterns trail a repeated pattern like `$x ... ;`
                 if (pattern.repeat && i + 1 < patterns.length) {
@@ -344,8 +380,22 @@
                         break patternLoop;
                     }
                 }
+                if (pattern.repeat && pattern.leading && pattern.separator !== " ") {
+                    if (rest[0].token.value === pattern.repeat) {
+                        if (!inLeading) {
+                            inLeading = true;
+                        }
+                        rest = rest.slice(1);
+                    } else {
+                        // If we are in a leading repeat, the separator is required.
+                        if (inLeading) {
+                            success = false;
+                            break;
+                        }
+                    }
+                }
                 match = matchPattern(pattern, rest, env, patternEnv);
-                if ((!match.success) && pattern.repeat) {
+                if (!match.success && pattern.repeat) {
                     // a repeat can match zero tokens and still be a
                     // "success" so break out of the inner loop and
                     // try the next pattern
@@ -368,7 +418,7 @@
                     }
                 }
 
-                if (pattern.repeat && success) {
+                if (pattern.repeat && !pattern.leading && success) {
                     // if (i < patterns.length - 1 && rest.length > 0) {
                     //     var restMatch = matchPatterns(patterns.slice(i+1), rest, env, topLevel);
                     //     if (restMatch.success) {
@@ -401,8 +451,10 @@
                 }
             } while (pattern.repeat && success && rest.length > 0);
         }
+
         return {
             success: success,
+            result: success ? stx.slice(rest.length) : [],
             rest: rest,
             patternEnv: patternEnv
         };
@@ -539,11 +591,45 @@
     }
 
     function matchLookbehind(patterns, stx, terms, env) {
+        var success, patternEnv, prevStx, prevTerms;
+        // No lookbehind, noop.
+        if (!patterns.length) {
+            success = true,
+            patternEnv = {},
+            prevStx = stx,
+            prevTerms = terms
+        } else {
+            var match = matchPatterns(patterns, stx, env, true);
+            var last = match.result[match.result.length - 1];
+            success = match.success;
+            patternEnv = match.patternEnv;
+            if (success) {
+                if (match.rest.length) {
+                    if (last && last.term === match.rest[0].term) {
+                        // The term tree was split, so its a failed match;
+                        success = false;
+                    } else {
+                        prevStx = match.rest;
+                        // Find where to slice the prevTerms to match up with
+                        // the state of prevStx.
+                        for (var i = 0, len = terms.length; i < len; i++) {
+                            if (terms[i] === prevStx[0].term) {
+                                prevTerms = terms.slice(i);
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    prevTerms = [];
+                    prevStx = [];
+                }
+            }
+        }
         return {
-            success: true,
-            patternEnv: {},
-            prevStx: null,
-            prevTerms: null
+            success: success,
+            patternEnv: patternEnv,
+            prevStx: prevStx,
+            prevTerms: prevTerms
         };
     }
 
