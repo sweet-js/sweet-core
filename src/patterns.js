@@ -454,7 +454,7 @@
 
         return {
             success: success,
-            result: success ? stx.slice(rest.length) : [],
+            result: success ? stx.slice(0, -rest.length) : [],
             rest: rest,
             patternEnv: patternEnv
         };
@@ -594,10 +594,10 @@
         var success, patternEnv, prevStx, prevTerms;
         // No lookbehind, noop.
         if (!patterns.length) {
-            success = true,
-            patternEnv = {},
-            prevStx = stx,
-            prevTerms = terms
+            success = true;
+            patternEnv = {};
+            prevStx = stx;
+            prevTerms = terms;
         } else {
             var match = matchPatterns(patterns, stx, env, true);
             var last = match.result[match.result.length - 1];
