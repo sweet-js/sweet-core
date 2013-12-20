@@ -272,7 +272,7 @@
         var res = [];
         var i = 0;
         while (stx[i] && stx[i].term === term) {
-            res.push(stx[i]);
+            res.unshift(stx[i]);
             i++;
         }
         return {

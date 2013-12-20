@@ -812,94 +812,89 @@
         return _.contains(staticOperators, unwrapSyntax(stx));
     }
 
-    // ([Syntax], Map) -> {result: [VariableDeclaration], rest: [Syntax]}
-    // assumes stx starts at the identifier. ie:
-    // var x = ...
-    //     ^
-    function enforestVarStatement (stx, context, prevStx, prevTerms, isLet) {
+    function enforestVarStatement(stx, context, varStx) {
+        var isLet = /^(?:let|const)$/.test(varStx.token.value);
         var decls = [];
+        var rest = stx;
+        var rhs;
 
-        var res = enforest(stx, context, prevStx, prevTerms);
-        var result = res.result;
-        var rest = res.rest;
+        if (!rest.length) {
+            throwSyntaxError("enforest", "Unexpected end of input", varStx);
+        }
 
-        prevStx = res.prevStx;
-        prevTerms = res.prevTerms;
-
-        if (rest[0]) {
-            if (isLet && result.hasPrototype(Id)) {
-                var freshName = fresh();
-                var renamedId = result.id.rename(result.id, freshName);
-                rest = rest.map(function(stx) {
-                    return stx.rename(result.id, freshName);
-                });
-                result.id = renamedId;
-            }
-            var nextRes = enforest(rest, context, res.prevStx, res.prevTerms);
-
-            // x = ...
-            if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === "=") {
-                var initializerRes = enforest(nextRes.rest, context, nextRes.prevStx, nextRes.prevTerms);
-
-                // x = y + z, ...
-                if (initializerRes.rest[0] && initializerRes.rest[0].token.value === ",") {
-
-                    decls.push(VariableDeclaration.create(result.id,
-                                                          nextRes.result.punc,
-                                                          initializerRes.result,
-                                                          initializerRes.rest[0]));
-                    var subRes = enforestVarStatement(initializerRes.rest.slice(1),
-                                                      context,
-                                                      initializerRes.prevStx,
-                                                      initializerRes.prevTerms, 
-                                                      isLet);
-                    decls = decls.concat(subRes.result);
-                    rest = subRes.rest;
-                    prevStx = subRes.prevStx;
-                    prevTerms = subRes.prevTerms;
-                // x = y ...
-                } else {
-                    decls.push(VariableDeclaration.create(result.id,
-                                                          nextRes.result.punc,
-                                                          initializerRes.result));
-                    rest = initializerRes.rest;
-                    prevStx = initializerRes.prevStx;
-                    prevTerms = initializerRes.prevTerms;
+        while (rest.length) {
+            if (rest[0].token.type === parser.Token.Identifier) {
+                if (isLet) {
+                    var freshName = fresh();
+                    var renamedId = rest[0].rename(rest[0], freshName);
+                    rest = rest.map(function(stx) {
+                        return stx.rename(rest[0], freshName);
+                    });
+                    rest[0] = renamedId;
                 }
-            // x ,...;
-            } else if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === ",") {
-                decls.push(VariableDeclaration.create(result.id, null, null, nextRes.result.punc));
-                var subRes = enforestVarStatement(nextRes.rest, context, isLet);
-                decls = decls.concat(subRes.result);
-                rest = subRes.rest;
-                prevStx = subRes.prevStx;
-                prevTerms = subRes.prevTerms;
-            } else {
-                if (result.hasPrototype(Id)) {
-                    decls.push(VariableDeclaration.create(result.id));
+                if (rest[1].token.type === parser.Token.Punctuator &&
+                    rest[1].token.value === "=") {
+                    rhs = enforestRhsExpression(rest.slice(2), context);
+                    if (rhs.rest[0].token.type === parser.Token.Punctuator &&
+                        rhs.rest[0].token.value === ",") {
+                        decls.push(VariableDeclaration.create(rest[0], rest[1], rhs.result, rhs.rest[0]));
+                        rest = rhs.rest.slice(1);
+                        continue;
+                    } else {
+                        decls.push(VariableDeclaration.create(rest[0], rest[1], rhs.result, null));
+                        rest = rhs.rest;
+                        break;
+                    }
+                } else if (rest[1].token.type === parser.Token.Punctuator &&
+                           rest[1].token.value === ",") {
+                    decls.push(VariableDeclaration.create(rest[0], null, null, rest[1]));
+                    rest = rest.slice(2);
                 } else {
-                    throwSyntaxError("enforest", "Expecting an identifier in variable declaration", rest);
+                    decls.push(VariableDeclaration.create(rest[0], null, null, null));
+                    rest = rest.slice(1);
+                    break;
                 }
-            }
-        // x EOF
-        } else {
-            if (result.hasPrototype(Id)) {
-                decls.push(VariableDeclaration.create(result.id));
-            } else if (result.hasPrototype(BinOp) && result.op.token.value === "in") {
-                decls.push(VariableDeclaration.create(result.left.id,
-                                                      result.op,
-                                                      result.right));
             } else {
-                throwSyntaxError("enforest", "Expecting an identifier in variable declaration", stx);
+                throwSyntaxError("enforest", "Unexpected token", rest[0]);
             }
         }
-        
+
         return {
             result: decls,
+            destructed: rest.length ? stx.slice(0, 0 - rest.length) : stx,
             rest: rest,
-            prevStx: prevStx,
-            prevTerms: prevTerms
-        };
+        }
+    }
+
+    function enforestRhsExpression(stx, context) {
+        var res = enforest(stx, context);
+        var next = res;
+        var peek;
+        var prevStx;
+
+        if (!next.result.hasPrototype(Expr)) {
+            throwSyntaxError("enforest", "Unexpected token", next.destructed[0]);
+        }
+
+        while (next.rest.length) {
+            prevStx = next.destructed.slice().reverse();
+            peek = enforest(next.rest, context, prevStx, [next.result]);
+
+            if (peek.prevTerms.length === 1) {
+                // We need to run this through enforest again with next to see if we
+                // had a macro that extended the expression.
+                peek = enforest([next.result].concat(peek.destructed, peek.rest), context);
+            }
+
+            if (peek.result === next.result) {
+                break;
+            }
+
+            // We still have an expression, so loop back around and try it all again.
+            next = peek;
+        }
+
+        return next;
     }
 
     function adjustLineContext(stx, original, current) {
@@ -1223,7 +1218,7 @@
 
                     // VariableStatement
                     Keyword(keyword) | (unwrapSyntax(keyword) === "var" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, context, prevStx, prevTerms, false);
+                        var vsRes = enforestVarStatement(rest, context, keyword);
                         if (vsRes) {
                             return step(VariableStatement.create(head, vsRes.result),
                                         vsRes.rest);
@@ -1231,7 +1226,7 @@
                     }
                     // Let Statement
                     Keyword(keyword) | (unwrapSyntax(keyword) === "let" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, context, prevStx, prevTerms, true);
+                        var vsRes = enforestVarStatement(rest, context, keyword);
                         if (vsRes) {
                             return step(LetStatement.create(head, vsRes.result),
                                         vsRes.rest);
@@ -1239,7 +1234,7 @@
                     }
                     // Const Statement
                     Keyword(keyword) | (unwrapSyntax(keyword) === "const" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, context, prevStx, prevTerms, true);
+                        var vsRes = enforestVarStatement(rest, context, keyword);
                         if (vsRes) {
                             return step(ConstStatement.create(head, vsRes.result),
                                         vsRes.rest);
@@ -1471,7 +1466,7 @@
             // we're done stepping
             return {
                 result: head,
-                destructed: rest.length ? toks.slice(0, 0 - rest.length) : toks.slice(),
+                destructed: rest.length ? toks.slice(0, 0 - rest.length) : toks,
                 rest: rest,
                 prevStx: prevStx,
                 prevTerms: prevTerms
