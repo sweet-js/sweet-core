@@ -1631,11 +1631,11 @@
 
         // We build the newPrevTerms/Stx here (instead of at the beginning) so
         // that macro definitions don't get added to it.
+        f.destructed.forEach(function(stx) {
+            stx.term = head;
+        });
         var newPrevTerms = [head].concat(f.prevTerms);
-        var newPrevStx = f.destructed.reverse().map(function(s) {
-            s.term = head;
-            return s;
-        }).concat(f.prevStx);
+        var newPrevStx = f.destructed.reverse().concat(f.prevStx);
 
         if (head.hasPrototype(NamedFun)) {
             addToDefinitionCtx([head.name], context.defscope, true);
@@ -1694,11 +1694,13 @@
                     // need to deal with things like `for (...) if (...) log(...)`
                     var bodyEnf = enforest(rest, context);
                     var renamedBodyTerm = bodyEnf.result.rename(letId, letNew);
-                    var forTrees = expandToTermTree(bodyEnf.rest, context);
-                    return {
-                        terms: [head, renamedBodyTerm].concat(forTrees.terms),
-                        context: forTrees.context
-                    };
+                    bodyEnf.destructed.forEach(function(stx) {
+                        stx.term = renamedBodyTerm;
+                    });
+                    return expandToTermTree(bodyEnf.rest, 
+                                            context,
+                                            bodyEnf.destructed.reverse().concat(newPrevStx),
+                                            [renamedBodyTerm].concat(newPrevTerms));
                 }
 
             } else {
