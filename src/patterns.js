@@ -452,9 +452,16 @@
             } while (pattern.repeat && success && rest.length > 0);
         }
 
+        var result;
+        if (success) {
+            result = rest.length ? stx.slice(0, -rest.length): stx;
+        } else {
+            result = [];
+        }
+
         return {
             success: success,
-            result: success ? stx.slice(0, -rest.length) : [],
+            result: result,
             rest: rest,
             patternEnv: patternEnv
         };
