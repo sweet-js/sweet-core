@@ -877,20 +877,23 @@
         }
 
         while (next.rest.length) {
-            prevStx = next.destructed.slice().reverse();
-            peek = enforest(next.rest, context, prevStx, [next.result]);
+            // Enforest the next term tree since it might be an infix macro that
+            // consumes the initial expression.
+            peek = enforest(next.rest, context, next.destructed, [next.result]);
 
+            // If it has prev terms it wasn't infix, but it we need to run it
+            // through enforest together with the initial expression to see if
+            // it extends it into a longer expression.
             if (peek.prevTerms.length === 1) {
-                // We need to run this through enforest again with next to see if we
-                // had a macro that extended the expression.
                 peek = enforest([next.result].concat(peek.destructed, peek.rest), context);
             }
 
+            // No new expression was created, so we've reached the end.
             if (peek.result === next.result) {
                 break;
             }
 
-            // We still have an expression, so loop back around and try it all again.
+            // A new expression was created, so loop back around and keep going.
             next = peek;
         }
 
