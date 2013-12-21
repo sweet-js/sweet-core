@@ -145,7 +145,7 @@ let syntaxCase = macro {
                     }
                 }
                 if (!separator) {
-                    throwNewSyntaxError("syntaxCase", "Infix macros require a `|` separator", casePattern);
+                    throwSyntaxError("syntaxCase", "Infix macros require a `|` separator", casePattern);
                 }
                 cases.push({
                     lookbehind: loadPattern(lhs, true),
@@ -402,17 +402,17 @@ let syntaxCase = macro {
             throw new SyntaxCaseError("Could not match any cases");
         });
 
-        var res = [
-            makeDelim("()", makeFunc([makeIdent("stx", name_stx),
-                                      makePunc(",", here),
-                                      makeIdent("context", name_stx),
-                                      makePunc(",", here),
-                                      makeIdent("prevStx", name_stx),
-                                      makePunc(",", here),
-                                      makeIdent("prevTerms", name_stx),
-                                      makePunc(",", here),
-                                      makeIdent("parentMatch", name_stx)], body),
-                      here),
+        var res = makeFunc([
+            makeIdent("stx", name_stx),
+            makePunc(",", here),
+            makeIdent("context", name_stx),
+            makePunc(",", here),
+            makeIdent("prevStx", name_stx),
+            makePunc(",", here),
+            makeIdent("prevTerms", name_stx),
+            makePunc(",", here),
+            makeIdent("parentMatch", name_stx)
+        ], body).concat([
             makeDelim("()", arg_stx.concat([
                 makePunc(",", here),
                 makeKeyword("typeof", here),
@@ -424,7 +424,7 @@ let syntaxCase = macro {
                 makePunc(":", here),
                 makeDelim("{}", [], here)
             ]), here)
-        ];
+        ]);
 
         return {
             result: res,
