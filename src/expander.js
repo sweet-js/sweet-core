@@ -1401,7 +1401,7 @@
                             head.token.value === "()") ||
                             head.token.type === parser.Token.Identifier) &&
                             rest[0] && rest[0].token.type === parser.Token.Punctuator &&
-                            rest[0].token.value === "=>" &&
+                            resolve(rest[0]) === "=>" &&
                             rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                             rest[1].token.value === "{}") {
                     return step(ArrowFun.create(head, rest[0], rest[1]),
