@@ -1296,6 +1296,11 @@
                         prevTerms = rt.prevTerms;
                     }
                     if (rt.prevStx) {
+                        // Adjust toks if lookbehind was matched so we can calculate
+                        // the correct destructed syntax.
+                        if (rt.prevStx.length < prevStx.length) {
+                            toks = rt.result.concat(rt.rest);
+                        }
                         prevStx = rt.prevStx;
                     }
 
