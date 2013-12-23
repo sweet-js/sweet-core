@@ -42,7 +42,7 @@ parseSpreadOrAssignmentExpression: true,
 parseStatement: true, parseSourceElement: true, parseModuleBlock: true, parseConciseBody: true,
 parseYieldExpression: true
 */
-(function (root$947, factory$948) {
+(function (root$943, factory$944) {
     'use strict';
     // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js,
     // Rhino, and plain browser loading.
@@ -50,16 +50,16 @@ parseYieldExpression: true
         define([
             'exports',
             'expander'
-        ], factory$948);
+        ], factory$944);
     } else if (typeof exports !== 'undefined') {
-        factory$948(exports, require('./expander'));
+        factory$944(exports, require('./expander'));
     } else {
-        factory$948(root$947.esprima = {});
+        factory$944(root$943.esprima = {});
     }
-}(this, function (exports$949, expander$950) {
+}(this, function (exports$945, expander$946) {
     'use strict';
-    var Token$951, TokenName$952, FnExprTokens$953, Syntax$954, PropertyKind$955, Messages$956, Regex$957, SyntaxTreeDelegate$958, ClassPropertyType$959, source$960, strict$961, index$962, lineNumber$963, lineStart$964, sm_lineNumber$965, sm_lineStart$966, sm_range$967, sm_index$968, length$969, delegate$970, tokenStream$971, streamIndex$972, lookahead$973, lookaheadIndex$974, state$975, extra$976;
-    Token$951 = {
+    var Token$947, TokenName$948, FnExprTokens$949, Syntax$950, PropertyKind$951, Messages$952, Regex$953, SyntaxTreeDelegate$954, ClassPropertyType$955, source$956, strict$957, index$958, lineNumber$959, lineStart$960, sm_lineNumber$961, sm_lineStart$962, sm_range$963, sm_index$964, length$965, delegate$966, tokenStream$967, streamIndex$968, lookahead$969, lookaheadIndex$970, state$971, extra$972;
+    Token$947 = {
         BooleanLiteral: 1,
         EOF: 2,
         Identifier: 3,
@@ -72,19 +72,19 @@ parseYieldExpression: true
         Template: 10,
         Delimiter: 11
     };
-    TokenName$952 = {};
-    TokenName$952[Token$951.BooleanLiteral] = 'Boolean';
-    TokenName$952[Token$951.EOF] = '<end>';
-    TokenName$952[Token$951.Identifier] = 'Identifier';
-    TokenName$952[Token$951.Keyword] = 'Keyword';
-    TokenName$952[Token$951.NullLiteral] = 'Null';
-    TokenName$952[Token$951.NumericLiteral] = 'Numeric';
-    TokenName$952[Token$951.Punctuator] = 'Punctuator';
-    TokenName$952[Token$951.StringLiteral] = 'String';
-    TokenName$952[Token$951.RegularExpression] = 'RegularExpression';
-    TokenName$952[Token$951.Delimiter] = 'Delimiter';
+    TokenName$948 = {};
+    TokenName$948[Token$947.BooleanLiteral] = 'Boolean';
+    TokenName$948[Token$947.EOF] = '<end>';
+    TokenName$948[Token$947.Identifier] = 'Identifier';
+    TokenName$948[Token$947.Keyword] = 'Keyword';
+    TokenName$948[Token$947.NullLiteral] = 'Null';
+    TokenName$948[Token$947.NumericLiteral] = 'Numeric';
+    TokenName$948[Token$947.Punctuator] = 'Punctuator';
+    TokenName$948[Token$947.StringLiteral] = 'String';
+    TokenName$948[Token$947.RegularExpression] = 'RegularExpression';
+    TokenName$948[Token$947.Delimiter] = 'Delimiter';
     // A function following one of those tokens is an expression.
-    FnExprTokens$953 = [
+    FnExprTokens$949 = [
         '(',
         '{',
         '[',
@@ -138,7 +138,7 @@ parseYieldExpression: true
         '!=',
         '!=='
     ];
-    Syntax$954 = {
+    Syntax$950 = {
         ArrayExpression: 'ArrayExpression',
         ArrayPattern: 'ArrayPattern',
         ArrowFunctionExpression: 'ArrowFunctionExpression',
@@ -202,17 +202,17 @@ parseYieldExpression: true
         WithStatement: 'WithStatement',
         YieldExpression: 'YieldExpression'
     };
-    PropertyKind$955 = {
+    PropertyKind$951 = {
         Data: 1,
         Get: 2,
         Set: 4
     };
-    ClassPropertyType$959 = {
+    ClassPropertyType$955 = {
         'static': 'static',
         prototype: 'prototype'
     };
     // Error messages should be identical to V8.
-    Messages$956 = {
+    Messages$952 = {
         UnexpectedToken: 'Unexpected token %0',
         UnexpectedNumber: 'Unexpected number',
         UnexpectedString: 'Unexpected string',
@@ -268,7 +268,7 @@ parseYieldExpression: true
         UnmatchedDelimiter: 'Unmatched Delimiter'
     };
     // See also tools/generate-unicode-regex.py.
-    Regex$957 = {
+    Regex$953 = {
         NonAsciiIdentifierStart: new RegExp('[\xaa\xb5\xba\xc0-\xd6\xd8-\xf6\xf8-\u02c1\u02c6-\u02d1\u02e0-\u02e4\u02ec\u02ee\u0370-\u0374\u0376\u0377\u037a-\u037d\u0386\u0388-\u038a\u038c\u038e-\u03a1\u03a3-\u03f5\u03f7-\u0481\u048a-\u0527\u0531-\u0556\u0559\u0561-\u0587\u05d0-\u05ea\u05f0-\u05f2\u0620-\u064a\u066e\u066f\u0671-\u06d3\u06d5\u06e5\u06e6\u06ee\u06ef\u06fa-\u06fc\u06ff\u0710\u0712-\u072f\u074d-\u07a5\u07b1\u07ca-\u07ea\u07f4\u07f5\u07fa\u0800-\u0815\u081a\u0824\u0828\u0840-\u0858\u08a0\u08a2-\u08ac\u0904-\u0939\u093d\u0950\u0958-\u0961\u0971-\u0977\u0979-\u097f\u0985-\u098c\u098f\u0990\u0993-\u09a8\u09aa-\u09b0\u09b2\u09b6-\u09b9\u09bd\u09ce\u09dc\u09dd\u09df-\u09e1\u09f0\u09f1\u0a05-\u0a0a\u0a0f\u0a10\u0a13-\u0a28\u0a2a-\u0a30\u0a32\u0a33\u0a35\u0a36\u0a38\u0a39\u0a59-\u0a5c\u0a5e\u0a72-\u0a74\u0a85-\u0a8d\u0a8f-\u0a91\u0a93-\u0aa8\u0aaa-\u0ab0\u0ab2\u0ab3\u0ab5-\u0ab9\u0abd\u0ad0\u0ae0\u0ae1\u0b05-\u0b0c\u0b0f\u0b10\u0b13-\u0b28\u0b2a-\u0b30\u0b32\u0b33\u0b35-\u0b39\u0b3d\u0b5c\u0b5d\u0b5f-\u0b61\u0b71\u0b83\u0b85-\u0b8a\u0b8e-\u0b90\u0b92-\u0b95\u0b99\u0b9a\u0b9c\u0b9e\u0b9f\u0ba3\u0ba4\u0ba8-\u0baa\u0bae-\u0bb9\u0bd0\u0c05-\u0c0c\u0c0e-\u0c10\u0c12-\u0c28\u0c2a-\u0c33\u0c35-\u0c39\u0c3d\u0c58\u0c59\u0c60\u0c61\u0c85-\u0c8c\u0c8e-\u0c90\u0c92-\u0ca8\u0caa-\u0cb3\u0cb5-\u0cb9\u0cbd\u0cde\u0ce0\u0ce1\u0cf1\u0cf2\u0d05-\u0d0c\u0d0e-\u0d10\u0d12-\u0d3a\u0d3d\u0d4e\u0d60\u0d61\u0d7a-\u0d7f\u0d85-\u0d96\u0d9a-\u0db1\u0db3-\u0dbb\u0dbd\u0dc0-\u0dc6\u0e01-\u0e30\u0e32\u0e33\u0e40-\u0e46\u0e81\u0e82\u0e84\u0e87\u0e88\u0e8a\u0e8d\u0e94-\u0e97\u0e99-\u0e9f\u0ea1-\u0ea3\u0ea5\u0ea7\u0eaa\u0eab\u0ead-\u0eb0\u0eb2\u0eb3\u0ebd\u0ec0-\u0ec4\u0ec6\u0edc-\u0edf\u0f00\u0f40-\u0f47\u0f49-\u0f6c\u0f88-\u0f8c\u1000-\u102a\u103f\u1050-\u1055\u105a-\u105d\u1061\u1065\u1066\u106e-\u1070\u1075-\u1081\u108e\u10a0-\u10c5\u10c7\u10cd\u10d0-\u10fa\u10fc-\u1248\u124a-\u124d\u1250-\u1256\u1258\u125a-\u125d\u1260-\u1288\u128a-\u128d\u1290-\u12b0\u12b2-\u12b5\u12b8-\u12be\u12c0\u12c2-\u12c5\u12c8-\u12d6\u12d8-\u1310\u1312-\u1315\u1318-\u135a\u1380-\u138f\u13a0-\u13f4\u1401-\u166c\u166f-\u167f\u1681-\u169a\u16a0-\u16ea\u16ee-\u16f0\u1700-\u170c\u170e-\u1711\u1720-\u1731\u1740-\u1751\u1760-\u176c\u176e-\u1770\u1780-\u17b3\u17d7\u17dc\u1820-\u1877\u1880-\u18a8\u18aa\u18b0-\u18f5\u1900-\u191c\u1950-\u196d\u1970-\u1974\u1980-\u19ab\u19c1-\u19c7\u1a00-\u1a16\u1a20-\u1a54\u1aa7\u1b05-\u1b33\u1b45-\u1b4b\u1b83-\u1ba0\u1bae\u1baf\u1bba-\u1be5\u1c00-\u1c23\u1c4d-\u1c4f\u1c5a-\u1c7d\u1ce9-\u1cec\u1cee-\u1cf1\u1cf5\u1cf6\u1d00-\u1dbf\u1e00-\u1f15\u1f18-\u1f1d\u1f20-\u1f45\u1f48-\u1f4d\u1f50-\u1f57\u1f59\u1f5b\u1f5d\u1f5f-\u1f7d\u1f80-\u1fb4\u1fb6-\u1fbc\u1fbe\u1fc2-\u1fc4\u1fc6-\u1fcc\u1fd0-\u1fd3\u1fd6-\u1fdb\u1fe0-\u1fec\u1ff2-\u1ff4\u1ff6-\u1ffc\u2071\u207f\u2090-\u209c\u2102\u2107\u210a-\u2113\u2115\u2119-\u211d\u2124\u2126\u2128\u212a-\u212d\u212f-\u2139\u213c-\u213f\u2145-\u2149\u214e\u2160-\u2188\u2c00-\u2c2e\u2c30-\u2c5e\u2c60-\u2ce4\u2ceb-\u2cee\u2cf2\u2cf3\u2d00-\u2d25\u2d27\u2d2d\u2d30-\u2d67\u2d6f\u2d80-\u2d96\u2da0-\u2da6\u2da8-\u2dae\u2db0-\u2db6\u2db8-\u2dbe\u2dc0-\u2dc6\u2dc8-\u2dce\u2dd0-\u2dd6\u2dd8-\u2dde\u2e2f\u3005-\u3007\u3021-\u3029\u3031-\u3035\u3038-\u303c\u3041-\u3096\u309d-\u309f\u30a1-\u30fa\u30fc-\u30ff\u3105-\u312d\u3131-\u318e\u31a0-\u31ba\u31f0-\u31ff\u3400-\u4db5\u4e00-\u9fcc\ua000-\ua48c\ua4d0-\ua4fd\ua500-\ua60c\ua610-\ua61f\ua62a\ua62b\ua640-\ua66e\ua67f-\ua697\ua6a0-\ua6ef\ua717-\ua71f\ua722-\ua788\ua78b-\ua78e\ua790-\ua793\ua7a0-\ua7aa\ua7f8-\ua801\ua803-\ua805\ua807-\ua80a\ua80c-\ua822\ua840-\ua873\ua882-\ua8b3\ua8f2-\ua8f7\ua8fb\ua90a-\ua925\ua930-\ua946\ua960-\ua97c\ua984-\ua9b2\ua9cf\uaa00-\uaa28\uaa40-\uaa42\uaa44-\uaa4b\uaa60-\uaa76\uaa7a\uaa80-\uaaaf\uaab1\uaab5\uaab6\uaab9-\uaabd\uaac0\uaac2\uaadb-\uaadd\uaae0-\uaaea\uaaf2-\uaaf4\uab01-\uab06\uab09-\uab0e\uab11-\uab16\uab20-\uab26\uab28-\uab2e\uabc0-\uabe2\uac00-\ud7a3\ud7b0-\ud7c6\ud7cb-\ud7fb\uf900-\ufa6d\ufa70-\ufad9\ufb00-\ufb06\ufb13-\ufb17\ufb1d\ufb1f-\ufb28\ufb2a-\ufb36\ufb38-\ufb3c\ufb3e\ufb40\ufb41\ufb43\ufb44\ufb46-\ufbb1\ufbd3-\ufd3d\ufd50-\ufd8f\ufd92-\ufdc7\ufdf0-\ufdfb\ufe70-\ufe74\ufe76-\ufefc\uff21-\uff3a\uff41-\uff5a\uff66-\uffbe\uffc2-\uffc7\uffca-\uffcf\uffd2-\uffd7\uffda-\uffdc]'),
         NonAsciiIdentifierPart: new RegExp('[\xaa\xb5\xba\xc0-\xd6\xd8-\xf6\xf8-\u02c1\u02c6-\u02d1\u02e0-\u02e4\u02ec\u02ee\u0300-\u0374\u0376\u0377\u037a-\u037d\u0386\u0388-\u038a\u038c\u038e-\u03a1\u03a3-\u03f5\u03f7-\u0481\u0483-\u0487\u048a-\u0527\u0531-\u0556\u0559\u0561-\u0587\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7\u05d0-\u05ea\u05f0-\u05f2\u0610-\u061a\u0620-\u0669\u066e-\u06d3\u06d5-\u06dc\u06df-\u06e8\u06ea-\u06fc\u06ff\u0710-\u074a\u074d-\u07b1\u07c0-\u07f5\u07fa\u0800-\u082d\u0840-\u085b\u08a0\u08a2-\u08ac\u08e4-\u08fe\u0900-\u0963\u0966-\u096f\u0971-\u0977\u0979-\u097f\u0981-\u0983\u0985-\u098c\u098f\u0990\u0993-\u09a8\u09aa-\u09b0\u09b2\u09b6-\u09b9\u09bc-\u09c4\u09c7\u09c8\u09cb-\u09ce\u09d7\u09dc\u09dd\u09df-\u09e3\u09e6-\u09f1\u0a01-\u0a03\u0a05-\u0a0a\u0a0f\u0a10\u0a13-\u0a28\u0a2a-\u0a30\u0a32\u0a33\u0a35\u0a36\u0a38\u0a39\u0a3c\u0a3e-\u0a42\u0a47\u0a48\u0a4b-\u0a4d\u0a51\u0a59-\u0a5c\u0a5e\u0a66-\u0a75\u0a81-\u0a83\u0a85-\u0a8d\u0a8f-\u0a91\u0a93-\u0aa8\u0aaa-\u0ab0\u0ab2\u0ab3\u0ab5-\u0ab9\u0abc-\u0ac5\u0ac7-\u0ac9\u0acb-\u0acd\u0ad0\u0ae0-\u0ae3\u0ae6-\u0aef\u0b01-\u0b03\u0b05-\u0b0c\u0b0f\u0b10\u0b13-\u0b28\u0b2a-\u0b30\u0b32\u0b33\u0b35-\u0b39\u0b3c-\u0b44\u0b47\u0b48\u0b4b-\u0b4d\u0b56\u0b57\u0b5c\u0b5d\u0b5f-\u0b63\u0b66-\u0b6f\u0b71\u0b82\u0b83\u0b85-\u0b8a\u0b8e-\u0b90\u0b92-\u0b95\u0b99\u0b9a\u0b9c\u0b9e\u0b9f\u0ba3\u0ba4\u0ba8-\u0baa\u0bae-\u0bb9\u0bbe-\u0bc2\u0bc6-\u0bc8\u0bca-\u0bcd\u0bd0\u0bd7\u0be6-\u0bef\u0c01-\u0c03\u0c05-\u0c0c\u0c0e-\u0c10\u0c12-\u0c28\u0c2a-\u0c33\u0c35-\u0c39\u0c3d-\u0c44\u0c46-\u0c48\u0c4a-\u0c4d\u0c55\u0c56\u0c58\u0c59\u0c60-\u0c63\u0c66-\u0c6f\u0c82\u0c83\u0c85-\u0c8c\u0c8e-\u0c90\u0c92-\u0ca8\u0caa-\u0cb3\u0cb5-\u0cb9\u0cbc-\u0cc4\u0cc6-\u0cc8\u0cca-\u0ccd\u0cd5\u0cd6\u0cde\u0ce0-\u0ce3\u0ce6-\u0cef\u0cf1\u0cf2\u0d02\u0d03\u0d05-\u0d0c\u0d0e-\u0d10\u0d12-\u0d3a\u0d3d-\u0d44\u0d46-\u0d48\u0d4a-\u0d4e\u0d57\u0d60-\u0d63\u0d66-\u0d6f\u0d7a-\u0d7f\u0d82\u0d83\u0d85-\u0d96\u0d9a-\u0db1\u0db3-\u0dbb\u0dbd\u0dc0-\u0dc6\u0dca\u0dcf-\u0dd4\u0dd6\u0dd8-\u0ddf\u0df2\u0df3\u0e01-\u0e3a\u0e40-\u0e4e\u0e50-\u0e59\u0e81\u0e82\u0e84\u0e87\u0e88\u0e8a\u0e8d\u0e94-\u0e97\u0e99-\u0e9f\u0ea1-\u0ea3\u0ea5\u0ea7\u0eaa\u0eab\u0ead-\u0eb9\u0ebb-\u0ebd\u0ec0-\u0ec4\u0ec6\u0ec8-\u0ecd\u0ed0-\u0ed9\u0edc-\u0edf\u0f00\u0f18\u0f19\u0f20-\u0f29\u0f35\u0f37\u0f39\u0f3e-\u0f47\u0f49-\u0f6c\u0f71-\u0f84\u0f86-\u0f97\u0f99-\u0fbc\u0fc6\u1000-\u1049\u1050-\u109d\u10a0-\u10c5\u10c7\u10cd\u10d0-\u10fa\u10fc-\u1248\u124a-\u124d\u1250-\u1256\u1258\u125a-\u125d\u1260-\u1288\u128a-\u128d\u1290-\u12b0\u12b2-\u12b5\u12b8-\u12be\u12c0\u12c2-\u12c5\u12c8-\u12d6\u12d8-\u1310\u1312-\u1315\u1318-\u135a\u135d-\u135f\u1380-\u138f\u13a0-\u13f4\u1401-\u166c\u166f-\u167f\u1681-\u169a\u16a0-\u16ea\u16ee-\u16f0\u1700-\u170c\u170e-\u1714\u1720-\u1734\u1740-\u1753\u1760-\u176c\u176e-\u1770\u1772\u1773\u1780-\u17d3\u17d7\u17dc\u17dd\u17e0-\u17e9\u180b-\u180d\u1810-\u1819\u1820-\u1877\u1880-\u18aa\u18b0-\u18f5\u1900-\u191c\u1920-\u192b\u1930-\u193b\u1946-\u196d\u1970-\u1974\u1980-\u19ab\u19b0-\u19c9\u19d0-\u19d9\u1a00-\u1a1b\u1a20-\u1a5e\u1a60-\u1a7c\u1a7f-\u1a89\u1a90-\u1a99\u1aa7\u1b00-\u1b4b\u1b50-\u1b59\u1b6b-\u1b73\u1b80-\u1bf3\u1c00-\u1c37\u1c40-\u1c49\u1c4d-\u1c7d\u1cd0-\u1cd2\u1cd4-\u1cf6\u1d00-\u1de6\u1dfc-\u1f15\u1f18-\u1f1d\u1f20-\u1f45\u1f48-\u1f4d\u1f50-\u1f57\u1f59\u1f5b\u1f5d\u1f5f-\u1f7d\u1f80-\u1fb4\u1fb6-\u1fbc\u1fbe\u1fc2-\u1fc4\u1fc6-\u1fcc\u1fd0-\u1fd3\u1fd6-\u1fdb\u1fe0-\u1fec\u1ff2-\u1ff4\u1ff6-\u1ffc\u200c\u200d\u203f\u2040\u2054\u2071\u207f\u2090-\u209c\u20d0-\u20dc\u20e1\u20e5-\u20f0\u2102\u2107\u210a-\u2113\u2115\u2119-\u211d\u2124\u2126\u2128\u212a-\u212d\u212f-\u2139\u213c-\u213f\u2145-\u2149\u214e\u2160-\u2188\u2c00-\u2c2e\u2c30-\u2c5e\u2c60-\u2ce4\u2ceb-\u2cf3\u2d00-\u2d25\u2d27\u2d2d\u2d30-\u2d67\u2d6f\u2d7f-\u2d96\u2da0-\u2da6\u2da8-\u2dae\u2db0-\u2db6\u2db8-\u2dbe\u2dc0-\u2dc6\u2dc8-\u2dce\u2dd0-\u2dd6\u2dd8-\u2dde\u2de0-\u2dff\u2e2f\u3005-\u3007\u3021-\u302f\u3031-\u3035\u3038-\u303c\u3041-\u3096\u3099\u309a\u309d-\u309f\u30a1-\u30fa\u30fc-\u30ff\u3105-\u312d\u3131-\u318e\u31a0-\u31ba\u31f0-\u31ff\u3400-\u4db5\u4e00-\u9fcc\ua000-\ua48c\ua4d0-\ua4fd\ua500-\ua60c\ua610-\ua62b\ua640-\ua66f\ua674-\ua67d\ua67f-\ua697\ua69f-\ua6f1\ua717-\ua71f\ua722-\ua788\ua78b-\ua78e\ua790-\ua793\ua7a0-\ua7aa\ua7f8-\ua827\ua840-\ua873\ua880-\ua8c4\ua8d0-\ua8d9\ua8e0-\ua8f7\ua8fb\ua900-\ua92d\ua930-\ua953\ua960-\ua97c\ua980-\ua9c0\ua9cf-\ua9d9\uaa00-\uaa36\uaa40-\uaa4d\uaa50-\uaa59\uaa60-\uaa76\uaa7a\uaa7b\uaa80-\uaac2\uaadb-\uaadd\uaae0-\uaaef\uaaf2-\uaaf6\uab01-\uab06\uab09-\uab0e\uab11-\uab16\uab20-\uab26\uab28-\uab2e\uabc0-\uabea\uabec\uabed\uabf0-\uabf9\uac00-\ud7a3\ud7b0-\ud7c6\ud7cb-\ud7fb\uf900-\ufa6d\ufa70-\ufad9\ufb00-\ufb06\ufb13-\ufb17\ufb1d-\ufb28\ufb2a-\ufb36\ufb38-\ufb3c\ufb3e\ufb40\ufb41\ufb43\ufb44\ufb46-\ufbb1\ufbd3-\ufd3d\ufd50-\ufd8f\ufd92-\ufdc7\ufdf0-\ufdfb\ufe00-\ufe0f\ufe20-\ufe26\ufe33\ufe34\ufe4d-\ufe4f\ufe70-\ufe74\ufe76-\ufefc\uff10-\uff19\uff21-\uff3a\uff3f\uff41-\uff5a\uff66-\uffbe\uffc2-\uffc7\uffca-\uffcf\uffd2-\uffd7\uffda-\uffdc]')
     };
@@ -276,41 +276,41 @@ parseYieldExpression: true
     // This is only to have a better contract semantic, i.e. another safety net
     // to catch a logic error. The condition shall be fulfilled in normal case.
     // Do NOT use this to enforce a certain condition on any user input.
-    function assert$977(condition$1126, message$1127) {
-        if (!condition$1126) {
-            throw new Error('ASSERT: ' + message$1127);
+    function assert$973(condition$1122, message$1123) {
+        if (!condition$1122) {
+            throw new Error('ASSERT: ' + message$1123);
         }
     }
-    function isIn$978(el$1128, list$1129) {
-        return list$1129.indexOf(el$1128) !== -1;
+    function isIn$974(el$1124, list$1125) {
+        return list$1125.indexOf(el$1124) !== -1;
     }
-    function isDecimalDigit$979(ch$1130) {
-        return ch$1130 >= 48 && ch$1130 <= 57;
+    function isDecimalDigit$975(ch$1126) {
+        return ch$1126 >= 48 && ch$1126 <= 57;
     }    // 0..9
-    function isHexDigit$980(ch$1131) {
-        return '0123456789abcdefABCDEF'.indexOf(ch$1131) >= 0;
+    function isHexDigit$976(ch$1127) {
+        return '0123456789abcdefABCDEF'.indexOf(ch$1127) >= 0;
     }
-    function isOctalDigit$981(ch$1132) {
-        return '01234567'.indexOf(ch$1132) >= 0;
+    function isOctalDigit$977(ch$1128) {
+        return '01234567'.indexOf(ch$1128) >= 0;
     }
     // 7.2 White Space
-    function isWhiteSpace$982(ch$1133) {
-        return ch$1133 === 32 || ch$1133 === 9 || ch$1133 === 11 || ch$1133 === 12 || ch$1133 === 160 || ch$1133 >= 5760 && '\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\ufeff'.indexOf(String.fromCharCode(ch$1133)) > 0;
+    function isWhiteSpace$978(ch$1129) {
+        return ch$1129 === 32 || ch$1129 === 9 || ch$1129 === 11 || ch$1129 === 12 || ch$1129 === 160 || ch$1129 >= 5760 && '\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\ufeff'.indexOf(String.fromCharCode(ch$1129)) > 0;
     }
     // 7.3 Line Terminators
-    function isLineTerminator$983(ch$1134) {
-        return ch$1134 === 10 || ch$1134 === 13 || ch$1134 === 8232 || ch$1134 === 8233;
+    function isLineTerminator$979(ch$1130) {
+        return ch$1130 === 10 || ch$1130 === 13 || ch$1130 === 8232 || ch$1130 === 8233;
     }
     // 7.6 Identifier Names and Identifiers
-    function isIdentifierStart$984(ch$1135) {
-        return ch$1135 === 36 || ch$1135 === 95 || ch$1135 >= 65 && ch$1135 <= 90 || ch$1135 >= 97 && ch$1135 <= 122 || ch$1135 === 92 || ch$1135 >= 128 && Regex$957.NonAsciiIdentifierStart.test(String.fromCharCode(ch$1135));
+    function isIdentifierStart$980(ch$1131) {
+        return ch$1131 === 36 || ch$1131 === 95 || ch$1131 >= 65 && ch$1131 <= 90 || ch$1131 >= 97 && ch$1131 <= 122 || ch$1131 === 92 || ch$1131 >= 128 && Regex$953.NonAsciiIdentifierStart.test(String.fromCharCode(ch$1131));
     }
-    function isIdentifierPart$985(ch$1136) {
-        return ch$1136 === 36 || ch$1136 === 95 || ch$1136 >= 65 && ch$1136 <= 90 || ch$1136 >= 97 && ch$1136 <= 122 || ch$1136 >= 48 && ch$1136 <= 57 || ch$1136 === 92 || ch$1136 >= 128 && Regex$957.NonAsciiIdentifierPart.test(String.fromCharCode(ch$1136));
+    function isIdentifierPart$981(ch$1132) {
+        return ch$1132 === 36 || ch$1132 === 95 || ch$1132 >= 65 && ch$1132 <= 90 || ch$1132 >= 97 && ch$1132 <= 122 || ch$1132 >= 48 && ch$1132 <= 57 || ch$1132 === 92 || ch$1132 >= 128 && Regex$953.NonAsciiIdentifierPart.test(String.fromCharCode(ch$1132));
     }
     // 7.6.1.2 Future Reserved Words
-    function isFutureReservedWord$986(id$1137) {
-        switch (id$1137) {
+    function isFutureReservedWord$982(id$1133) {
+        switch (id$1133) {
         case 'class':
         case 'enum':
         case 'export':
@@ -322,8 +322,8 @@ parseYieldExpression: true
             return false;
         }
     }
-    function isStrictModeReservedWord$987(id$1138) {
-        switch (id$1138) {
+    function isStrictModeReservedWord$983(id$1134) {
+        switch (id$1134) {
         case 'implements':
         case 'interface':
         case 'package':
@@ -338,239 +338,239 @@ parseYieldExpression: true
             return false;
         }
     }
-    function isRestrictedWord$988(id$1139) {
-        return id$1139 === 'eval' || id$1139 === 'arguments';
+    function isRestrictedWord$984(id$1135) {
+        return id$1135 === 'eval' || id$1135 === 'arguments';
     }
     // 7.6.1.1 Keywords
-    function isKeyword$989(id$1140) {
-        if (strict$961 && isStrictModeReservedWord$987(id$1140)) {
+    function isKeyword$985(id$1136) {
+        if (strict$957 && isStrictModeReservedWord$983(id$1136)) {
             return true;
         }
         // 'const' is specialized as Keyword in V8.
         // 'yield' and 'let' are for compatiblity with SpiderMonkey and ES.next.
         // Some others are from future reserved words.
-        switch (id$1140.length) {
+        switch (id$1136.length) {
         case 2:
-            return id$1140 === 'if' || id$1140 === 'in' || id$1140 === 'do';
+            return id$1136 === 'if' || id$1136 === 'in' || id$1136 === 'do';
         case 3:
-            return id$1140 === 'var' || id$1140 === 'for' || id$1140 === 'new' || id$1140 === 'try' || id$1140 === 'let';
+            return id$1136 === 'var' || id$1136 === 'for' || id$1136 === 'new' || id$1136 === 'try' || id$1136 === 'let';
         case 4:
-            return id$1140 === 'this' || id$1140 === 'else' || id$1140 === 'case' || id$1140 === 'void' || id$1140 === 'with' || id$1140 === 'enum';
+            return id$1136 === 'this' || id$1136 === 'else' || id$1136 === 'case' || id$1136 === 'void' || id$1136 === 'with' || id$1136 === 'enum';
         case 5:
-            return id$1140 === 'while' || id$1140 === 'break' || id$1140 === 'catch' || id$1140 === 'throw' || id$1140 === 'const' || id$1140 === 'yield' || id$1140 === 'class' || id$1140 === 'super';
+            return id$1136 === 'while' || id$1136 === 'break' || id$1136 === 'catch' || id$1136 === 'throw' || id$1136 === 'const' || id$1136 === 'yield' || id$1136 === 'class' || id$1136 === 'super';
         case 6:
-            return id$1140 === 'return' || id$1140 === 'typeof' || id$1140 === 'delete' || id$1140 === 'switch' || id$1140 === 'export' || id$1140 === 'import';
+            return id$1136 === 'return' || id$1136 === 'typeof' || id$1136 === 'delete' || id$1136 === 'switch' || id$1136 === 'export' || id$1136 === 'import';
         case 7:
-            return id$1140 === 'default' || id$1140 === 'finally' || id$1140 === 'extends';
+            return id$1136 === 'default' || id$1136 === 'finally' || id$1136 === 'extends';
         case 8:
-            return id$1140 === 'function' || id$1140 === 'continue' || id$1140 === 'debugger';
+            return id$1136 === 'function' || id$1136 === 'continue' || id$1136 === 'debugger';
         case 10:
-            return id$1140 === 'instanceof';
+            return id$1136 === 'instanceof';
         default:
             return false;
         }
     }
     // 7.4 Comments
-    function skipComment$990() {
-        var ch$1141, blockComment$1142, lineComment$1143;
-        blockComment$1142 = false;
-        lineComment$1143 = false;
-        while (index$962 < length$969) {
-            ch$1141 = source$960.charCodeAt(index$962);
-            if (lineComment$1143) {
-                ++index$962;
-                if (isLineTerminator$983(ch$1141)) {
-                    lineComment$1143 = false;
-                    if (ch$1141 === 13 && source$960.charCodeAt(index$962) === 10) {
-                        ++index$962;
+    function skipComment$986() {
+        var ch$1137, blockComment$1138, lineComment$1139;
+        blockComment$1138 = false;
+        lineComment$1139 = false;
+        while (index$958 < length$965) {
+            ch$1137 = source$956.charCodeAt(index$958);
+            if (lineComment$1139) {
+                ++index$958;
+                if (isLineTerminator$979(ch$1137)) {
+                    lineComment$1139 = false;
+                    if (ch$1137 === 13 && source$956.charCodeAt(index$958) === 10) {
+                        ++index$958;
                     }
-                    ++lineNumber$963;
-                    lineStart$964 = index$962;
+                    ++lineNumber$959;
+                    lineStart$960 = index$958;
                 }
-            } else if (blockComment$1142) {
-                if (isLineTerminator$983(ch$1141)) {
-                    if (ch$1141 === 13 && source$960.charCodeAt(index$962 + 1) === 10) {
-                        ++index$962;
+            } else if (blockComment$1138) {
+                if (isLineTerminator$979(ch$1137)) {
+                    if (ch$1137 === 13 && source$956.charCodeAt(index$958 + 1) === 10) {
+                        ++index$958;
                     }
-                    ++lineNumber$963;
-                    ++index$962;
-                    lineStart$964 = index$962;
-                    if (index$962 >= length$969) {
-                        throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                    ++lineNumber$959;
+                    ++index$958;
+                    lineStart$960 = index$958;
+                    if (index$958 >= length$965) {
+                        throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                     }
                 } else {
-                    ch$1141 = source$960.charCodeAt(index$962++);
-                    if (index$962 >= length$969) {
-                        throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                    ch$1137 = source$956.charCodeAt(index$958++);
+                    if (index$958 >= length$965) {
+                        throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                     }
                     // Block comment ends with '*/' (char #42, char #47).
-                    if (ch$1141 === 42) {
-                        ch$1141 = source$960.charCodeAt(index$962);
-                        if (ch$1141 === 47) {
-                            ++index$962;
-                            blockComment$1142 = false;
+                    if (ch$1137 === 42) {
+                        ch$1137 = source$956.charCodeAt(index$958);
+                        if (ch$1137 === 47) {
+                            ++index$958;
+                            blockComment$1138 = false;
                         }
                     }
                 }
-            } else if (ch$1141 === 47) {
-                ch$1141 = source$960.charCodeAt(index$962 + 1);
+            } else if (ch$1137 === 47) {
+                ch$1137 = source$956.charCodeAt(index$958 + 1);
                 // Line comment starts with '//' (char #47, char #47).
-                if (ch$1141 === 47) {
-                    index$962 += 2;
-                    lineComment$1143 = true;
-                } else if (ch$1141 === 42) {
+                if (ch$1137 === 47) {
+                    index$958 += 2;
+                    lineComment$1139 = true;
+                } else if (ch$1137 === 42) {
                     // Block comment starts with '/*' (char #47, char #42).
-                    index$962 += 2;
-                    blockComment$1142 = true;
-                    if (index$962 >= length$969) {
-                        throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                    index$958 += 2;
+                    blockComment$1138 = true;
+                    if (index$958 >= length$965) {
+                        throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                     }
                 } else {
                     break;
                 }
-            } else if (isWhiteSpace$982(ch$1141)) {
-                ++index$962;
-            } else if (isLineTerminator$983(ch$1141)) {
-                ++index$962;
-                if (ch$1141 === 13 && source$960.charCodeAt(index$962) === 10) {
-                    ++index$962;
+            } else if (isWhiteSpace$978(ch$1137)) {
+                ++index$958;
+            } else if (isLineTerminator$979(ch$1137)) {
+                ++index$958;
+                if (ch$1137 === 13 && source$956.charCodeAt(index$958) === 10) {
+                    ++index$958;
                 }
-                ++lineNumber$963;
-                lineStart$964 = index$962;
+                ++lineNumber$959;
+                lineStart$960 = index$958;
             } else {
                 break;
             }
         }
     }
-    function scanHexEscape$991(prefix$1144) {
-        var i$1145, len$1146, ch$1147, code$1148 = 0;
-        len$1146 = prefix$1144 === 'u' ? 4 : 2;
-        for (i$1145 = 0; i$1145 < len$1146; ++i$1145) {
-            if (index$962 < length$969 && isHexDigit$980(source$960[index$962])) {
-                ch$1147 = source$960[index$962++];
-                code$1148 = code$1148 * 16 + '0123456789abcdef'.indexOf(ch$1147.toLowerCase());
+    function scanHexEscape$987(prefix$1140) {
+        var i$1141, len$1142, ch$1143, code$1144 = 0;
+        len$1142 = prefix$1140 === 'u' ? 4 : 2;
+        for (i$1141 = 0; i$1141 < len$1142; ++i$1141) {
+            if (index$958 < length$965 && isHexDigit$976(source$956[index$958])) {
+                ch$1143 = source$956[index$958++];
+                code$1144 = code$1144 * 16 + '0123456789abcdef'.indexOf(ch$1143.toLowerCase());
             } else {
                 return '';
             }
         }
-        return String.fromCharCode(code$1148);
+        return String.fromCharCode(code$1144);
     }
-    function scanUnicodeCodePointEscape$992() {
-        var ch$1149, code$1150, cu1$1151, cu2$1152;
-        ch$1149 = source$960[index$962];
-        code$1150 = 0;
+    function scanUnicodeCodePointEscape$988() {
+        var ch$1145, code$1146, cu1$1147, cu2$1148;
+        ch$1145 = source$956[index$958];
+        code$1146 = 0;
         // At least, one hex digit is required.
-        if (ch$1149 === '}') {
-            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+        if (ch$1145 === '}') {
+            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
         }
-        while (index$962 < length$969) {
-            ch$1149 = source$960[index$962++];
-            if (!isHexDigit$980(ch$1149)) {
+        while (index$958 < length$965) {
+            ch$1145 = source$956[index$958++];
+            if (!isHexDigit$976(ch$1145)) {
                 break;
             }
-            code$1150 = code$1150 * 16 + '0123456789abcdef'.indexOf(ch$1149.toLowerCase());
+            code$1146 = code$1146 * 16 + '0123456789abcdef'.indexOf(ch$1145.toLowerCase());
         }
-        if (code$1150 > 1114111 || ch$1149 !== '}') {
-            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+        if (code$1146 > 1114111 || ch$1145 !== '}') {
+            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
         }
         // UTF-16 Encoding
-        if (code$1150 <= 65535) {
-            return String.fromCharCode(code$1150);
+        if (code$1146 <= 65535) {
+            return String.fromCharCode(code$1146);
         }
-        cu1$1151 = (code$1150 - 65536 >> 10) + 55296;
-        cu2$1152 = (code$1150 - 65536 & 1023) + 56320;
-        return String.fromCharCode(cu1$1151, cu2$1152);
+        cu1$1147 = (code$1146 - 65536 >> 10) + 55296;
+        cu2$1148 = (code$1146 - 65536 & 1023) + 56320;
+        return String.fromCharCode(cu1$1147, cu2$1148);
     }
-    function getEscapedIdentifier$993() {
-        var ch$1153, id$1154;
-        ch$1153 = source$960.charCodeAt(index$962++);
-        id$1154 = String.fromCharCode(ch$1153);
+    function getEscapedIdentifier$989() {
+        var ch$1149, id$1150;
+        ch$1149 = source$956.charCodeAt(index$958++);
+        id$1150 = String.fromCharCode(ch$1149);
         // '\u' (char #92, char #117) denotes an escaped character.
-        if (ch$1153 === 92) {
-            if (source$960.charCodeAt(index$962) !== 117) {
-                throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+        if (ch$1149 === 92) {
+            if (source$956.charCodeAt(index$958) !== 117) {
+                throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
             }
-            ++index$962;
-            ch$1153 = scanHexEscape$991('u');
-            if (!ch$1153 || ch$1153 === '\\' || !isIdentifierStart$984(ch$1153.charCodeAt(0))) {
-                throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+            ++index$958;
+            ch$1149 = scanHexEscape$987('u');
+            if (!ch$1149 || ch$1149 === '\\' || !isIdentifierStart$980(ch$1149.charCodeAt(0))) {
+                throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
             }
-            id$1154 = ch$1153;
+            id$1150 = ch$1149;
         }
-        while (index$962 < length$969) {
-            ch$1153 = source$960.charCodeAt(index$962);
-            if (!isIdentifierPart$985(ch$1153)) {
+        while (index$958 < length$965) {
+            ch$1149 = source$956.charCodeAt(index$958);
+            if (!isIdentifierPart$981(ch$1149)) {
                 break;
             }
-            ++index$962;
-            id$1154 += String.fromCharCode(ch$1153);
+            ++index$958;
+            id$1150 += String.fromCharCode(ch$1149);
             // '\u' (char #92, char #117) denotes an escaped character.
-            if (ch$1153 === 92) {
-                id$1154 = id$1154.substr(0, id$1154.length - 1);
-                if (source$960.charCodeAt(index$962) !== 117) {
-                    throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+            if (ch$1149 === 92) {
+                id$1150 = id$1150.substr(0, id$1150.length - 1);
+                if (source$956.charCodeAt(index$958) !== 117) {
+                    throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                 }
-                ++index$962;
-                ch$1153 = scanHexEscape$991('u');
-                if (!ch$1153 || ch$1153 === '\\' || !isIdentifierPart$985(ch$1153.charCodeAt(0))) {
-                    throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                ++index$958;
+                ch$1149 = scanHexEscape$987('u');
+                if (!ch$1149 || ch$1149 === '\\' || !isIdentifierPart$981(ch$1149.charCodeAt(0))) {
+                    throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                 }
-                id$1154 += ch$1153;
+                id$1150 += ch$1149;
             }
         }
-        return id$1154;
+        return id$1150;
     }
-    function getIdentifier$994() {
-        var start$1155, ch$1156;
-        start$1155 = index$962++;
-        while (index$962 < length$969) {
-            ch$1156 = source$960.charCodeAt(index$962);
-            if (ch$1156 === 92) {
+    function getIdentifier$990() {
+        var start$1151, ch$1152;
+        start$1151 = index$958++;
+        while (index$958 < length$965) {
+            ch$1152 = source$956.charCodeAt(index$958);
+            if (ch$1152 === 92) {
                 // Blackslash (char #92) marks Unicode escape sequence.
-                index$962 = start$1155;
-                return getEscapedIdentifier$993();
+                index$958 = start$1151;
+                return getEscapedIdentifier$989();
             }
-            if (isIdentifierPart$985(ch$1156)) {
-                ++index$962;
+            if (isIdentifierPart$981(ch$1152)) {
+                ++index$958;
             } else {
                 break;
             }
         }
-        return source$960.slice(start$1155, index$962);
+        return source$956.slice(start$1151, index$958);
     }
-    function scanIdentifier$995() {
-        var start$1157, id$1158, type$1159;
-        start$1157 = index$962;
+    function scanIdentifier$991() {
+        var start$1153, id$1154, type$1155;
+        start$1153 = index$958;
         // Backslash (char #92) starts an escaped character.
-        id$1158 = source$960.charCodeAt(index$962) === 92 ? getEscapedIdentifier$993() : getIdentifier$994();
+        id$1154 = source$956.charCodeAt(index$958) === 92 ? getEscapedIdentifier$989() : getIdentifier$990();
         // There is no keyword or literal with only one character.
         // Thus, it must be an identifier.
-        if (id$1158.length === 1) {
-            type$1159 = Token$951.Identifier;
-        } else if (isKeyword$989(id$1158)) {
-            type$1159 = Token$951.Keyword;
-        } else if (id$1158 === 'null') {
-            type$1159 = Token$951.NullLiteral;
-        } else if (id$1158 === 'true' || id$1158 === 'false') {
-            type$1159 = Token$951.BooleanLiteral;
+        if (id$1154.length === 1) {
+            type$1155 = Token$947.Identifier;
+        } else if (isKeyword$985(id$1154)) {
+            type$1155 = Token$947.Keyword;
+        } else if (id$1154 === 'null') {
+            type$1155 = Token$947.NullLiteral;
+        } else if (id$1154 === 'true' || id$1154 === 'false') {
+            type$1155 = Token$947.BooleanLiteral;
         } else {
-            type$1159 = Token$951.Identifier;
+            type$1155 = Token$947.Identifier;
         }
         return {
-            type: type$1159,
-            value: id$1158,
-            lineNumber: lineNumber$963,
-            lineStart: lineStart$964,
+            type: type$1155,
+            value: id$1154,
+            lineNumber: lineNumber$959,
+            lineStart: lineStart$960,
             range: [
-                start$1157,
-                index$962
+                start$1153,
+                index$958
             ]
         };
     }
     // 7.7 Punctuators
-    function scanPunctuator$996() {
-        var start$1160 = index$962, code$1161 = source$960.charCodeAt(index$962), code2$1162, ch1$1163 = source$960[index$962], ch2$1164, ch3$1165, ch4$1166;
-        switch (code$1161) {
+    function scanPunctuator$992() {
+        var start$1156 = index$958, code$1157 = source$956.charCodeAt(index$958), code2$1158, ch1$1159 = source$956[index$958], ch2$1160, ch3$1161, ch4$1162;
+        switch (code$1157) {
         // Check for most common single-character punctuators.
         case 40:
         // ( open bracket
@@ -594,29 +594,29 @@ parseYieldExpression: true
         // ?
         case 126:
             // ~
-            ++index$962;
-            if (extra$976.tokenize) {
-                if (code$1161 === 40) {
-                    extra$976.openParenToken = extra$976.tokens.length;
-                } else if (code$1161 === 123) {
-                    extra$976.openCurlyToken = extra$976.tokens.length;
+            ++index$958;
+            if (extra$972.tokenize) {
+                if (code$1157 === 40) {
+                    extra$972.openParenToken = extra$972.tokens.length;
+                } else if (code$1157 === 123) {
+                    extra$972.openCurlyToken = extra$972.tokens.length;
                 }
             }
             return {
-                type: Token$951.Punctuator,
-                value: String.fromCharCode(code$1161),
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                type: Token$947.Punctuator,
+                value: String.fromCharCode(code$1157),
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    start$1160,
-                    index$962
+                    start$1156,
+                    index$958
                 ]
             };
         default:
-            code2$1162 = source$960.charCodeAt(index$962 + 1);
+            code2$1158 = source$956.charCodeAt(index$958 + 1);
             // '=' (char #61) marks an assignment or comparison operator.
-            if (code2$1162 === 61) {
-                switch (code$1161) {
+            if (code2$1158 === 61) {
+                switch (code$1157) {
                 case 37:
                 // %
                 case 38:
@@ -637,34 +637,34 @@ parseYieldExpression: true
                 // ^
                 case 124:
                     // |
-                    index$962 += 2;
+                    index$958 += 2;
                     return {
-                        type: Token$951.Punctuator,
-                        value: String.fromCharCode(code$1161) + String.fromCharCode(code2$1162),
-                        lineNumber: lineNumber$963,
-                        lineStart: lineStart$964,
+                        type: Token$947.Punctuator,
+                        value: String.fromCharCode(code$1157) + String.fromCharCode(code2$1158),
+                        lineNumber: lineNumber$959,
+                        lineStart: lineStart$960,
                         range: [
-                            start$1160,
-                            index$962
+                            start$1156,
+                            index$958
                         ]
                     };
                 case 33:
                 // !
                 case 61:
                     // =
-                    index$962 += 2;
+                    index$958 += 2;
                     // !== and ===
-                    if (source$960.charCodeAt(index$962) === 61) {
-                        ++index$962;
+                    if (source$956.charCodeAt(index$958) === 61) {
+                        ++index$958;
                     }
                     return {
-                        type: Token$951.Punctuator,
-                        value: source$960.slice(start$1160, index$962),
-                        lineNumber: lineNumber$963,
-                        lineStart: lineStart$964,
+                        type: Token$947.Punctuator,
+                        value: source$956.slice(start$1156, index$958),
+                        lineNumber: lineNumber$959,
+                        lineStart: lineStart$960,
                         range: [
-                            start$1160,
-                            index$962
+                            start$1156,
+                            index$958
                         ]
                     };
                 default:
@@ -674,1813 +674,1813 @@ parseYieldExpression: true
             break;
         }
         // Peek more characters.
-        ch2$1164 = source$960[index$962 + 1];
-        ch3$1165 = source$960[index$962 + 2];
-        ch4$1166 = source$960[index$962 + 3];
+        ch2$1160 = source$956[index$958 + 1];
+        ch3$1161 = source$956[index$958 + 2];
+        ch4$1162 = source$956[index$958 + 3];
         // 4-character punctuator: >>>=
-        if (ch1$1163 === '>' && ch2$1164 === '>' && ch3$1165 === '>') {
-            if (ch4$1166 === '=') {
-                index$962 += 4;
+        if (ch1$1159 === '>' && ch2$1160 === '>' && ch3$1161 === '>') {
+            if (ch4$1162 === '=') {
+                index$958 += 4;
                 return {
-                    type: Token$951.Punctuator,
+                    type: Token$947.Punctuator,
                     value: '>>>=',
-                    lineNumber: lineNumber$963,
-                    lineStart: lineStart$964,
+                    lineNumber: lineNumber$959,
+                    lineStart: lineStart$960,
                     range: [
-                        start$1160,
-                        index$962
+                        start$1156,
+                        index$958
                     ]
                 };
             }
         }
         // 3-character punctuators: === !== >>> <<= >>=
-        if (ch1$1163 === '>' && ch2$1164 === '>' && ch3$1165 === '>') {
-            index$962 += 3;
+        if (ch1$1159 === '>' && ch2$1160 === '>' && ch3$1161 === '>') {
+            index$958 += 3;
             return {
-                type: Token$951.Punctuator,
+                type: Token$947.Punctuator,
                 value: '>>>',
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    start$1160,
-                    index$962
+                    start$1156,
+                    index$958
                 ]
             };
         }
-        if (ch1$1163 === '<' && ch2$1164 === '<' && ch3$1165 === '=') {
-            index$962 += 3;
+        if (ch1$1159 === '<' && ch2$1160 === '<' && ch3$1161 === '=') {
+            index$958 += 3;
             return {
-                type: Token$951.Punctuator,
+                type: Token$947.Punctuator,
                 value: '<<=',
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    start$1160,
-                    index$962
+                    start$1156,
+                    index$958
                 ]
             };
         }
-        if (ch1$1163 === '>' && ch2$1164 === '>' && ch3$1165 === '=') {
-            index$962 += 3;
+        if (ch1$1159 === '>' && ch2$1160 === '>' && ch3$1161 === '=') {
+            index$958 += 3;
             return {
-                type: Token$951.Punctuator,
+                type: Token$947.Punctuator,
                 value: '>>=',
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    start$1160,
-                    index$962
+                    start$1156,
+                    index$958
                 ]
             };
         }
-        if (ch1$1163 === '.' && ch2$1164 === '.' && ch3$1165 === '.') {
-            index$962 += 3;
+        if (ch1$1159 === '.' && ch2$1160 === '.' && ch3$1161 === '.') {
+            index$958 += 3;
             return {
-                type: Token$951.Punctuator,
+                type: Token$947.Punctuator,
                 value: '...',
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    start$1160,
-                    index$962
+                    start$1156,
+                    index$958
                 ]
             };
         }
         // Other 2-character punctuators: ++ -- << >> && ||
-        if (ch1$1163 === ch2$1164 && '+-<>&|'.indexOf(ch1$1163) >= 0) {
-            index$962 += 2;
+        if (ch1$1159 === ch2$1160 && '+-<>&|'.indexOf(ch1$1159) >= 0) {
+            index$958 += 2;
             return {
-                type: Token$951.Punctuator,
-                value: ch1$1163 + ch2$1164,
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                type: Token$947.Punctuator,
+                value: ch1$1159 + ch2$1160,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    start$1160,
-                    index$962
+                    start$1156,
+                    index$958
                 ]
             };
         }
-        if (ch1$1163 === '=' && ch2$1164 === '>') {
-            index$962 += 2;
+        if (ch1$1159 === '=' && ch2$1160 === '>') {
+            index$958 += 2;
             return {
-                type: Token$951.Punctuator,
+                type: Token$947.Punctuator,
                 value: '=>',
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    start$1160,
-                    index$962
+                    start$1156,
+                    index$958
                 ]
             };
         }
-        if ('<>=!+-*%&|^/'.indexOf(ch1$1163) >= 0) {
-            ++index$962;
+        if ('<>=!+-*%&|^/'.indexOf(ch1$1159) >= 0) {
+            ++index$958;
             return {
-                type: Token$951.Punctuator,
-                value: ch1$1163,
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                type: Token$947.Punctuator,
+                value: ch1$1159,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    start$1160,
-                    index$962
+                    start$1156,
+                    index$958
                 ]
             };
         }
-        if (ch1$1163 === '.') {
-            ++index$962;
+        if (ch1$1159 === '.') {
+            ++index$958;
             return {
-                type: Token$951.Punctuator,
-                value: ch1$1163,
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                type: Token$947.Punctuator,
+                value: ch1$1159,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    start$1160,
-                    index$962
+                    start$1156,
+                    index$958
                 ]
             };
         }
-        throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+        throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
     }
     // 7.8.3 Numeric Literals
-    function scanHexLiteral$997(start$1167) {
-        var number$1168 = '';
-        while (index$962 < length$969) {
-            if (!isHexDigit$980(source$960[index$962])) {
+    function scanHexLiteral$993(start$1163) {
+        var number$1164 = '';
+        while (index$958 < length$965) {
+            if (!isHexDigit$976(source$956[index$958])) {
                 break;
             }
-            number$1168 += source$960[index$962++];
+            number$1164 += source$956[index$958++];
         }
-        if (number$1168.length === 0) {
-            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+        if (number$1164.length === 0) {
+            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
         }
-        if (isIdentifierStart$984(source$960.charCodeAt(index$962))) {
-            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+        if (isIdentifierStart$980(source$956.charCodeAt(index$958))) {
+            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
         }
         return {
-            type: Token$951.NumericLiteral,
-            value: parseInt('0x' + number$1168, 16),
-            lineNumber: lineNumber$963,
-            lineStart: lineStart$964,
+            type: Token$947.NumericLiteral,
+            value: parseInt('0x' + number$1164, 16),
+            lineNumber: lineNumber$959,
+            lineStart: lineStart$960,
             range: [
-                start$1167,
-                index$962
+                start$1163,
+                index$958
             ]
         };
     }
-    function scanOctalLiteral$998(prefix$1169, start$1170) {
-        var number$1171, octal$1172;
-        if (isOctalDigit$981(prefix$1169)) {
-            octal$1172 = true;
-            number$1171 = '0' + source$960[index$962++];
+    function scanOctalLiteral$994(prefix$1165, start$1166) {
+        var number$1167, octal$1168;
+        if (isOctalDigit$977(prefix$1165)) {
+            octal$1168 = true;
+            number$1167 = '0' + source$956[index$958++];
         } else {
-            octal$1172 = false;
-            ++index$962;
-            number$1171 = '';
+            octal$1168 = false;
+            ++index$958;
+            number$1167 = '';
         }
-        while (index$962 < length$969) {
-            if (!isOctalDigit$981(source$960[index$962])) {
+        while (index$958 < length$965) {
+            if (!isOctalDigit$977(source$956[index$958])) {
                 break;
             }
-            number$1171 += source$960[index$962++];
+            number$1167 += source$956[index$958++];
         }
-        if (!octal$1172 && number$1171.length === 0) {
+        if (!octal$1168 && number$1167.length === 0) {
             // only 0o or 0O
-            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
         }
-        if (isIdentifierStart$984(source$960.charCodeAt(index$962)) || isDecimalDigit$979(source$960.charCodeAt(index$962))) {
-            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+        if (isIdentifierStart$980(source$956.charCodeAt(index$958)) || isDecimalDigit$975(source$956.charCodeAt(index$958))) {
+            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
         }
         return {
-            type: Token$951.NumericLiteral,
-            value: parseInt(number$1171, 8),
-            octal: octal$1172,
-            lineNumber: lineNumber$963,
-            lineStart: lineStart$964,
+            type: Token$947.NumericLiteral,
+            value: parseInt(number$1167, 8),
+            octal: octal$1168,
+            lineNumber: lineNumber$959,
+            lineStart: lineStart$960,
             range: [
-                start$1170,
-                index$962
+                start$1166,
+                index$958
             ]
         };
     }
-    function scanNumericLiteral$999() {
-        var number$1173, start$1174, ch$1175, octal$1176;
-        ch$1175 = source$960[index$962];
-        assert$977(isDecimalDigit$979(ch$1175.charCodeAt(0)) || ch$1175 === '.', 'Numeric literal must start with a decimal digit or a decimal point');
-        start$1174 = index$962;
-        number$1173 = '';
-        if (ch$1175 !== '.') {
-            number$1173 = source$960[index$962++];
-            ch$1175 = source$960[index$962];
+    function scanNumericLiteral$995() {
+        var number$1169, start$1170, ch$1171, octal$1172;
+        ch$1171 = source$956[index$958];
+        assert$973(isDecimalDigit$975(ch$1171.charCodeAt(0)) || ch$1171 === '.', 'Numeric literal must start with a decimal digit or a decimal point');
+        start$1170 = index$958;
+        number$1169 = '';
+        if (ch$1171 !== '.') {
+            number$1169 = source$956[index$958++];
+            ch$1171 = source$956[index$958];
             // Hex number starts with '0x'.
             // Octal number starts with '0'.
             // Octal number in ES6 starts with '0o'.
             // Binary number in ES6 starts with '0b'.
-            if (number$1173 === '0') {
-                if (ch$1175 === 'x' || ch$1175 === 'X') {
-                    ++index$962;
-                    return scanHexLiteral$997(start$1174);
+            if (number$1169 === '0') {
+                if (ch$1171 === 'x' || ch$1171 === 'X') {
+                    ++index$958;
+                    return scanHexLiteral$993(start$1170);
                 }
-                if (ch$1175 === 'b' || ch$1175 === 'B') {
-                    ++index$962;
-                    number$1173 = '';
-                    while (index$962 < length$969) {
-                        ch$1175 = source$960[index$962];
-                        if (ch$1175 !== '0' && ch$1175 !== '1') {
+                if (ch$1171 === 'b' || ch$1171 === 'B') {
+                    ++index$958;
+                    number$1169 = '';
+                    while (index$958 < length$965) {
+                        ch$1171 = source$956[index$958];
+                        if (ch$1171 !== '0' && ch$1171 !== '1') {
                             break;
                         }
-                        number$1173 += source$960[index$962++];
+                        number$1169 += source$956[index$958++];
                     }
-                    if (number$1173.length === 0) {
+                    if (number$1169.length === 0) {
                         // only 0b or 0B
-                        throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                        throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                     }
-                    if (index$962 < length$969) {
-                        ch$1175 = source$960.charCodeAt(index$962);
-                        if (isIdentifierStart$984(ch$1175) || isDecimalDigit$979(ch$1175)) {
-                            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                    if (index$958 < length$965) {
+                        ch$1171 = source$956.charCodeAt(index$958);
+                        if (isIdentifierStart$980(ch$1171) || isDecimalDigit$975(ch$1171)) {
+                            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                         }
                     }
                     return {
-                        type: Token$951.NumericLiteral,
-                        value: parseInt(number$1173, 2),
-                        lineNumber: lineNumber$963,
-                        lineStart: lineStart$964,
+                        type: Token$947.NumericLiteral,
+                        value: parseInt(number$1169, 2),
+                        lineNumber: lineNumber$959,
+                        lineStart: lineStart$960,
                         range: [
-                            start$1174,
-                            index$962
+                            start$1170,
+                            index$958
                         ]
                     };
                 }
-                if (ch$1175 === 'o' || ch$1175 === 'O' || isOctalDigit$981(ch$1175)) {
-                    return scanOctalLiteral$998(ch$1175, start$1174);
+                if (ch$1171 === 'o' || ch$1171 === 'O' || isOctalDigit$977(ch$1171)) {
+                    return scanOctalLiteral$994(ch$1171, start$1170);
                 }
                 // decimal number starts with '0' such as '09' is illegal.
-                if (ch$1175 && isDecimalDigit$979(ch$1175.charCodeAt(0))) {
-                    throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                if (ch$1171 && isDecimalDigit$975(ch$1171.charCodeAt(0))) {
+                    throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                 }
             }
-            while (isDecimalDigit$979(source$960.charCodeAt(index$962))) {
-                number$1173 += source$960[index$962++];
+            while (isDecimalDigit$975(source$956.charCodeAt(index$958))) {
+                number$1169 += source$956[index$958++];
             }
-            ch$1175 = source$960[index$962];
+            ch$1171 = source$956[index$958];
         }
-        if (ch$1175 === '.') {
-            number$1173 += source$960[index$962++];
-            while (isDecimalDigit$979(source$960.charCodeAt(index$962))) {
-                number$1173 += source$960[index$962++];
+        if (ch$1171 === '.') {
+            number$1169 += source$956[index$958++];
+            while (isDecimalDigit$975(source$956.charCodeAt(index$958))) {
+                number$1169 += source$956[index$958++];
             }
-            ch$1175 = source$960[index$962];
+            ch$1171 = source$956[index$958];
         }
-        if (ch$1175 === 'e' || ch$1175 === 'E') {
-            number$1173 += source$960[index$962++];
-            ch$1175 = source$960[index$962];
-            if (ch$1175 === '+' || ch$1175 === '-') {
-                number$1173 += source$960[index$962++];
+        if (ch$1171 === 'e' || ch$1171 === 'E') {
+            number$1169 += source$956[index$958++];
+            ch$1171 = source$956[index$958];
+            if (ch$1171 === '+' || ch$1171 === '-') {
+                number$1169 += source$956[index$958++];
             }
-            if (isDecimalDigit$979(source$960.charCodeAt(index$962))) {
-                while (isDecimalDigit$979(source$960.charCodeAt(index$962))) {
-                    number$1173 += source$960[index$962++];
+            if (isDecimalDigit$975(source$956.charCodeAt(index$958))) {
+                while (isDecimalDigit$975(source$956.charCodeAt(index$958))) {
+                    number$1169 += source$956[index$958++];
                 }
             } else {
-                throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
             }
         }
-        if (isIdentifierStart$984(source$960.charCodeAt(index$962))) {
-            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+        if (isIdentifierStart$980(source$956.charCodeAt(index$958))) {
+            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
         }
         return {
-            type: Token$951.NumericLiteral,
-            value: parseFloat(number$1173),
-            lineNumber: lineNumber$963,
-            lineStart: lineStart$964,
+            type: Token$947.NumericLiteral,
+            value: parseFloat(number$1169),
+            lineNumber: lineNumber$959,
+            lineStart: lineStart$960,
             range: [
-                start$1174,
-                index$962
+                start$1170,
+                index$958
             ]
         };
     }
     // 7.8.4 String Literals
-    function scanStringLiteral$1000() {
-        var str$1177 = '', quote$1178, start$1179, ch$1180, code$1181, unescaped$1182, restore$1183, octal$1184 = false;
-        quote$1178 = source$960[index$962];
-        assert$977(quote$1178 === '\'' || quote$1178 === '"', 'String literal must starts with a quote');
-        start$1179 = index$962;
-        ++index$962;
-        while (index$962 < length$969) {
-            ch$1180 = source$960[index$962++];
-            if (ch$1180 === quote$1178) {
-                quote$1178 = '';
+    function scanStringLiteral$996() {
+        var str$1173 = '', quote$1174, start$1175, ch$1176, code$1177, unescaped$1178, restore$1179, octal$1180 = false;
+        quote$1174 = source$956[index$958];
+        assert$973(quote$1174 === '\'' || quote$1174 === '"', 'String literal must starts with a quote');
+        start$1175 = index$958;
+        ++index$958;
+        while (index$958 < length$965) {
+            ch$1176 = source$956[index$958++];
+            if (ch$1176 === quote$1174) {
+                quote$1174 = '';
                 break;
-            } else if (ch$1180 === '\\') {
-                ch$1180 = source$960[index$962++];
-                if (!ch$1180 || !isLineTerminator$983(ch$1180.charCodeAt(0))) {
-                    switch (ch$1180) {
+            } else if (ch$1176 === '\\') {
+                ch$1176 = source$956[index$958++];
+                if (!ch$1176 || !isLineTerminator$979(ch$1176.charCodeAt(0))) {
+                    switch (ch$1176) {
                     case 'n':
-                        str$1177 += '\n';
+                        str$1173 += '\n';
                         break;
                     case 'r':
-                        str$1177 += '\r';
+                        str$1173 += '\r';
                         break;
                     case 't':
-                        str$1177 += '\t';
+                        str$1173 += '\t';
                         break;
                     case 'u':
                     case 'x':
-                        if (source$960[index$962] === '{') {
-                            ++index$962;
-                            str$1177 += scanUnicodeCodePointEscape$992();
+                        if (source$956[index$958] === '{') {
+                            ++index$958;
+                            str$1173 += scanUnicodeCodePointEscape$988();
                         } else {
-                            restore$1183 = index$962;
-                            unescaped$1182 = scanHexEscape$991(ch$1180);
-                            if (unescaped$1182) {
-                                str$1177 += unescaped$1182;
+                            restore$1179 = index$958;
+                            unescaped$1178 = scanHexEscape$987(ch$1176);
+                            if (unescaped$1178) {
+                                str$1173 += unescaped$1178;
                             } else {
-                                index$962 = restore$1183;
-                                str$1177 += ch$1180;
+                                index$958 = restore$1179;
+                                str$1173 += ch$1176;
                             }
                         }
                         break;
                     case 'b':
-                        str$1177 += '\b';
+                        str$1173 += '\b';
                         break;
                     case 'f':
-                        str$1177 += '\f';
+                        str$1173 += '\f';
                         break;
                     case 'v':
-                        str$1177 += '\x0B';
+                        str$1173 += '\x0B';
                         break;
                     default:
-                        if (isOctalDigit$981(ch$1180)) {
-                            code$1181 = '01234567'.indexOf(ch$1180);
+                        if (isOctalDigit$977(ch$1176)) {
+                            code$1177 = '01234567'.indexOf(ch$1176);
                             // \0 is not octal escape sequence
-                            if (code$1181 !== 0) {
-                                octal$1184 = true;
+                            if (code$1177 !== 0) {
+                                octal$1180 = true;
                             }
-                            if (index$962 < length$969 && isOctalDigit$981(source$960[index$962])) {
-                                octal$1184 = true;
-                                code$1181 = code$1181 * 8 + '01234567'.indexOf(source$960[index$962++]);
+                            if (index$958 < length$965 && isOctalDigit$977(source$956[index$958])) {
+                                octal$1180 = true;
+                                code$1177 = code$1177 * 8 + '01234567'.indexOf(source$956[index$958++]);
                                 // 3 digits are only allowed when string starts
                                 // with 0, 1, 2, 3
-                                if ('0123'.indexOf(ch$1180) >= 0 && index$962 < length$969 && isOctalDigit$981(source$960[index$962])) {
-                                    code$1181 = code$1181 * 8 + '01234567'.indexOf(source$960[index$962++]);
+                                if ('0123'.indexOf(ch$1176) >= 0 && index$958 < length$965 && isOctalDigit$977(source$956[index$958])) {
+                                    code$1177 = code$1177 * 8 + '01234567'.indexOf(source$956[index$958++]);
                                 }
                             }
-                            str$1177 += String.fromCharCode(code$1181);
+                            str$1173 += String.fromCharCode(code$1177);
                         } else {
-                            str$1177 += ch$1180;
+                            str$1173 += ch$1176;
                         }
                         break;
                     }
                 } else {
-                    ++lineNumber$963;
-                    if (ch$1180 === '\r' && source$960[index$962] === '\n') {
-                        ++index$962;
+                    ++lineNumber$959;
+                    if (ch$1176 === '\r' && source$956[index$958] === '\n') {
+                        ++index$958;
                     }
                 }
-            } else if (isLineTerminator$983(ch$1180.charCodeAt(0))) {
+            } else if (isLineTerminator$979(ch$1176.charCodeAt(0))) {
                 break;
             } else {
-                str$1177 += ch$1180;
+                str$1173 += ch$1176;
             }
         }
-        if (quote$1178 !== '') {
-            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+        if (quote$1174 !== '') {
+            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
         }
         return {
-            type: Token$951.StringLiteral,
-            value: str$1177,
-            octal: octal$1184,
-            lineNumber: lineNumber$963,
-            lineStart: lineStart$964,
+            type: Token$947.StringLiteral,
+            value: str$1173,
+            octal: octal$1180,
+            lineNumber: lineNumber$959,
+            lineStart: lineStart$960,
             range: [
-                start$1179,
-                index$962
+                start$1175,
+                index$958
             ]
         };
     }
-    function scanTemplate$1001() {
-        var cooked$1185 = '', ch$1186, start$1187, terminated$1188, tail$1189, restore$1190, unescaped$1191, code$1192, octal$1193;
-        terminated$1188 = false;
-        tail$1189 = false;
-        start$1187 = index$962;
-        ++index$962;
-        while (index$962 < length$969) {
-            ch$1186 = source$960[index$962++];
-            if (ch$1186 === '`') {
-                tail$1189 = true;
-                terminated$1188 = true;
+    function scanTemplate$997() {
+        var cooked$1181 = '', ch$1182, start$1183, terminated$1184, tail$1185, restore$1186, unescaped$1187, code$1188, octal$1189;
+        terminated$1184 = false;
+        tail$1185 = false;
+        start$1183 = index$958;
+        ++index$958;
+        while (index$958 < length$965) {
+            ch$1182 = source$956[index$958++];
+            if (ch$1182 === '`') {
+                tail$1185 = true;
+                terminated$1184 = true;
                 break;
-            } else if (ch$1186 === '$') {
-                if (source$960[index$962] === '{') {
-                    ++index$962;
-                    terminated$1188 = true;
+            } else if (ch$1182 === '$') {
+                if (source$956[index$958] === '{') {
+                    ++index$958;
+                    terminated$1184 = true;
                     break;
                 }
-                cooked$1185 += ch$1186;
-            } else if (ch$1186 === '\\') {
-                ch$1186 = source$960[index$962++];
-                if (!isLineTerminator$983(ch$1186.charCodeAt(0))) {
-                    switch (ch$1186) {
+                cooked$1181 += ch$1182;
+            } else if (ch$1182 === '\\') {
+                ch$1182 = source$956[index$958++];
+                if (!isLineTerminator$979(ch$1182.charCodeAt(0))) {
+                    switch (ch$1182) {
                     case 'n':
-                        cooked$1185 += '\n';
+                        cooked$1181 += '\n';
                         break;
                     case 'r':
-                        cooked$1185 += '\r';
+                        cooked$1181 += '\r';
                         break;
                     case 't':
-                        cooked$1185 += '\t';
+                        cooked$1181 += '\t';
                         break;
                     case 'u':
                     case 'x':
-                        if (source$960[index$962] === '{') {
-                            ++index$962;
-                            cooked$1185 += scanUnicodeCodePointEscape$992();
+                        if (source$956[index$958] === '{') {
+                            ++index$958;
+                            cooked$1181 += scanUnicodeCodePointEscape$988();
                         } else {
-                            restore$1190 = index$962;
-                            unescaped$1191 = scanHexEscape$991(ch$1186);
-                            if (unescaped$1191) {
-                                cooked$1185 += unescaped$1191;
+                            restore$1186 = index$958;
+                            unescaped$1187 = scanHexEscape$987(ch$1182);
+                            if (unescaped$1187) {
+                                cooked$1181 += unescaped$1187;
                             } else {
-                                index$962 = restore$1190;
-                                cooked$1185 += ch$1186;
+                                index$958 = restore$1186;
+                                cooked$1181 += ch$1182;
                             }
                         }
                         break;
                     case 'b':
-                        cooked$1185 += '\b';
+                        cooked$1181 += '\b';
                         break;
                     case 'f':
-                        cooked$1185 += '\f';
+                        cooked$1181 += '\f';
                         break;
                     case 'v':
-                        cooked$1185 += '\x0B';
+                        cooked$1181 += '\x0B';
                         break;
                     default:
-                        if (isOctalDigit$981(ch$1186)) {
-                            code$1192 = '01234567'.indexOf(ch$1186);
+                        if (isOctalDigit$977(ch$1182)) {
+                            code$1188 = '01234567'.indexOf(ch$1182);
                             // \0 is not octal escape sequence
-                            if (code$1192 !== 0) {
-                                octal$1193 = true;
+                            if (code$1188 !== 0) {
+                                octal$1189 = true;
                             }
-                            if (index$962 < length$969 && isOctalDigit$981(source$960[index$962])) {
-                                octal$1193 = true;
-                                code$1192 = code$1192 * 8 + '01234567'.indexOf(source$960[index$962++]);
+                            if (index$958 < length$965 && isOctalDigit$977(source$956[index$958])) {
+                                octal$1189 = true;
+                                code$1188 = code$1188 * 8 + '01234567'.indexOf(source$956[index$958++]);
                                 // 3 digits are only allowed when string starts
                                 // with 0, 1, 2, 3
-                                if ('0123'.indexOf(ch$1186) >= 0 && index$962 < length$969 && isOctalDigit$981(source$960[index$962])) {
-                                    code$1192 = code$1192 * 8 + '01234567'.indexOf(source$960[index$962++]);
+                                if ('0123'.indexOf(ch$1182) >= 0 && index$958 < length$965 && isOctalDigit$977(source$956[index$958])) {
+                                    code$1188 = code$1188 * 8 + '01234567'.indexOf(source$956[index$958++]);
                                 }
                             }
-                            cooked$1185 += String.fromCharCode(code$1192);
+                            cooked$1181 += String.fromCharCode(code$1188);
                         } else {
-                            cooked$1185 += ch$1186;
+                            cooked$1181 += ch$1182;
                         }
                         break;
                     }
                 } else {
-                    ++lineNumber$963;
-                    if (ch$1186 === '\r' && source$960[index$962] === '\n') {
-                        ++index$962;
+                    ++lineNumber$959;
+                    if (ch$1182 === '\r' && source$956[index$958] === '\n') {
+                        ++index$958;
                     }
                 }
-            } else if (isLineTerminator$983(ch$1186.charCodeAt(0))) {
-                ++lineNumber$963;
-                if (ch$1186 === '\r' && source$960[index$962] === '\n') {
-                    ++index$962;
+            } else if (isLineTerminator$979(ch$1182.charCodeAt(0))) {
+                ++lineNumber$959;
+                if (ch$1182 === '\r' && source$956[index$958] === '\n') {
+                    ++index$958;
                 }
-                cooked$1185 += '\n';
+                cooked$1181 += '\n';
             } else {
-                cooked$1185 += ch$1186;
+                cooked$1181 += ch$1182;
             }
         }
-        if (!terminated$1188) {
-            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+        if (!terminated$1184) {
+            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
         }
         return {
-            type: Token$951.Template,
+            type: Token$947.Template,
             value: {
-                cooked: cooked$1185,
-                raw: source$960.slice(start$1187 + 1, index$962 - (tail$1189 ? 1 : 2))
+                cooked: cooked$1181,
+                raw: source$956.slice(start$1183 + 1, index$958 - (tail$1185 ? 1 : 2))
             },
-            tail: tail$1189,
-            octal: octal$1193,
-            lineNumber: lineNumber$963,
-            lineStart: lineStart$964,
+            tail: tail$1185,
+            octal: octal$1189,
+            lineNumber: lineNumber$959,
+            lineStart: lineStart$960,
             range: [
-                start$1187,
-                index$962
+                start$1183,
+                index$958
             ]
         };
     }
-    function scanTemplateElement$1002(option$1194) {
-        var startsWith$1195, template$1196;
-        lookahead$973 = null;
-        skipComment$990();
-        startsWith$1195 = option$1194.head ? '`' : '}';
-        if (source$960[index$962] !== startsWith$1195) {
-            throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+    function scanTemplateElement$998(option$1190) {
+        var startsWith$1191, template$1192;
+        lookahead$969 = null;
+        skipComment$986();
+        startsWith$1191 = option$1190.head ? '`' : '}';
+        if (source$956[index$958] !== startsWith$1191) {
+            throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
         }
-        template$1196 = scanTemplate$1001();
-        peek$1008();
-        return template$1196;
+        template$1192 = scanTemplate$997();
+        peek$1004();
+        return template$1192;
     }
-    function scanRegExp$1003() {
-        var str$1197, ch$1198, start$1199, pattern$1200, flags$1201, value$1202, classMarker$1203 = false, restore$1204, terminated$1205 = false;
-        lookahead$973 = null;
-        skipComment$990();
-        start$1199 = index$962;
-        ch$1198 = source$960[index$962];
-        assert$977(ch$1198 === '/', 'Regular expression literal must start with a slash');
-        str$1197 = source$960[index$962++];
-        while (index$962 < length$969) {
-            ch$1198 = source$960[index$962++];
-            str$1197 += ch$1198;
-            if (classMarker$1203) {
-                if (ch$1198 === ']') {
-                    classMarker$1203 = false;
+    function scanRegExp$999() {
+        var str$1193, ch$1194, start$1195, pattern$1196, flags$1197, value$1198, classMarker$1199 = false, restore$1200, terminated$1201 = false;
+        lookahead$969 = null;
+        skipComment$986();
+        start$1195 = index$958;
+        ch$1194 = source$956[index$958];
+        assert$973(ch$1194 === '/', 'Regular expression literal must start with a slash');
+        str$1193 = source$956[index$958++];
+        while (index$958 < length$965) {
+            ch$1194 = source$956[index$958++];
+            str$1193 += ch$1194;
+            if (classMarker$1199) {
+                if (ch$1194 === ']') {
+                    classMarker$1199 = false;
                 }
             } else {
-                if (ch$1198 === '\\') {
-                    ch$1198 = source$960[index$962++];
+                if (ch$1194 === '\\') {
+                    ch$1194 = source$956[index$958++];
                     // ECMA-262 7.8.5
-                    if (isLineTerminator$983(ch$1198.charCodeAt(0))) {
-                        throwError$1011({}, Messages$956.UnterminatedRegExp);
+                    if (isLineTerminator$979(ch$1194.charCodeAt(0))) {
+                        throwError$1007({}, Messages$952.UnterminatedRegExp);
                     }
-                    str$1197 += ch$1198;
-                } else if (ch$1198 === '/') {
-                    terminated$1205 = true;
+                    str$1193 += ch$1194;
+                } else if (ch$1194 === '/') {
+                    terminated$1201 = true;
                     break;
-                } else if (ch$1198 === '[') {
-                    classMarker$1203 = true;
-                } else if (isLineTerminator$983(ch$1198.charCodeAt(0))) {
-                    throwError$1011({}, Messages$956.UnterminatedRegExp);
+                } else if (ch$1194 === '[') {
+                    classMarker$1199 = true;
+                } else if (isLineTerminator$979(ch$1194.charCodeAt(0))) {
+                    throwError$1007({}, Messages$952.UnterminatedRegExp);
                 }
             }
         }
-        if (!terminated$1205) {
-            throwError$1011({}, Messages$956.UnterminatedRegExp);
+        if (!terminated$1201) {
+            throwError$1007({}, Messages$952.UnterminatedRegExp);
         }
         // Exclude leading and trailing slash.
-        pattern$1200 = str$1197.substr(1, str$1197.length - 2);
-        flags$1201 = '';
-        while (index$962 < length$969) {
-            ch$1198 = source$960[index$962];
-            if (!isIdentifierPart$985(ch$1198.charCodeAt(0))) {
+        pattern$1196 = str$1193.substr(1, str$1193.length - 2);
+        flags$1197 = '';
+        while (index$958 < length$965) {
+            ch$1194 = source$956[index$958];
+            if (!isIdentifierPart$981(ch$1194.charCodeAt(0))) {
                 break;
             }
-            ++index$962;
-            if (ch$1198 === '\\' && index$962 < length$969) {
-                ch$1198 = source$960[index$962];
-                if (ch$1198 === 'u') {
-                    ++index$962;
-                    restore$1204 = index$962;
-                    ch$1198 = scanHexEscape$991('u');
-                    if (ch$1198) {
-                        flags$1201 += ch$1198;
-                        for (str$1197 += '\\u'; restore$1204 < index$962; ++restore$1204) {
-                            str$1197 += source$960[restore$1204];
+            ++index$958;
+            if (ch$1194 === '\\' && index$958 < length$965) {
+                ch$1194 = source$956[index$958];
+                if (ch$1194 === 'u') {
+                    ++index$958;
+                    restore$1200 = index$958;
+                    ch$1194 = scanHexEscape$987('u');
+                    if (ch$1194) {
+                        flags$1197 += ch$1194;
+                        for (str$1193 += '\\u'; restore$1200 < index$958; ++restore$1200) {
+                            str$1193 += source$956[restore$1200];
                         }
                     } else {
-                        index$962 = restore$1204;
-                        flags$1201 += 'u';
-                        str$1197 += '\\u';
+                        index$958 = restore$1200;
+                        flags$1197 += 'u';
+                        str$1193 += '\\u';
                     }
                 } else {
-                    str$1197 += '\\';
+                    str$1193 += '\\';
                 }
             } else {
-                flags$1201 += ch$1198;
-                str$1197 += ch$1198;
+                flags$1197 += ch$1194;
+                str$1193 += ch$1194;
             }
         }
         try {
-            value$1202 = new RegExp(pattern$1200, flags$1201);
-        } catch (e$1206) {
-            throwError$1011({}, Messages$956.InvalidRegExp);
+            value$1198 = new RegExp(pattern$1196, flags$1197);
+        } catch (e$1202) {
+            throwError$1007({}, Messages$952.InvalidRegExp);
         }
         // peek();
-        if (extra$976.tokenize) {
+        if (extra$972.tokenize) {
             return {
-                type: Token$951.RegularExpression,
-                value: value$1202,
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                type: Token$947.RegularExpression,
+                value: value$1198,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    start$1199,
-                    index$962
+                    start$1195,
+                    index$958
                 ]
             };
         }
         return {
-            type: Token$951.RegularExpression,
-            literal: str$1197,
-            value: value$1202,
+            type: Token$947.RegularExpression,
+            literal: str$1193,
+            value: value$1198,
             range: [
-                start$1199,
-                index$962
+                start$1195,
+                index$958
             ]
         };
     }
-    function isIdentifierName$1004(token$1207) {
-        return token$1207.type === Token$951.Identifier || token$1207.type === Token$951.Keyword || token$1207.type === Token$951.BooleanLiteral || token$1207.type === Token$951.NullLiteral;
+    function isIdentifierName$1000(token$1203) {
+        return token$1203.type === Token$947.Identifier || token$1203.type === Token$947.Keyword || token$1203.type === Token$947.BooleanLiteral || token$1203.type === Token$947.NullLiteral;
     }
-    function advanceSlash$1005() {
-        var prevToken$1208, checkToken$1209;
+    function advanceSlash$1001() {
+        var prevToken$1204, checkToken$1205;
         // Using the following algorithm:
         // https://github.com/mozilla/sweet.js/wiki/design
-        prevToken$1208 = extra$976.tokens[extra$976.tokens.length - 1];
-        if (!prevToken$1208) {
+        prevToken$1204 = extra$972.tokens[extra$972.tokens.length - 1];
+        if (!prevToken$1204) {
             // Nothing before that: it cannot be a division.
-            return scanRegExp$1003();
+            return scanRegExp$999();
         }
-        if (prevToken$1208.type === 'Punctuator') {
-            if (prevToken$1208.value === ')') {
-                checkToken$1209 = extra$976.tokens[extra$976.openParenToken - 1];
-                if (checkToken$1209 && checkToken$1209.type === 'Keyword' && (checkToken$1209.value === 'if' || checkToken$1209.value === 'while' || checkToken$1209.value === 'for' || checkToken$1209.value === 'with')) {
-                    return scanRegExp$1003();
+        if (prevToken$1204.type === 'Punctuator') {
+            if (prevToken$1204.value === ')') {
+                checkToken$1205 = extra$972.tokens[extra$972.openParenToken - 1];
+                if (checkToken$1205 && checkToken$1205.type === 'Keyword' && (checkToken$1205.value === 'if' || checkToken$1205.value === 'while' || checkToken$1205.value === 'for' || checkToken$1205.value === 'with')) {
+                    return scanRegExp$999();
                 }
-                return scanPunctuator$996();
+                return scanPunctuator$992();
             }
-            if (prevToken$1208.value === '}') {
+            if (prevToken$1204.value === '}') {
                 // Dividing a function by anything makes little sense,
                 // but we have to check for that.
-                if (extra$976.tokens[extra$976.openCurlyToken - 3] && extra$976.tokens[extra$976.openCurlyToken - 3].type === 'Keyword') {
+                if (extra$972.tokens[extra$972.openCurlyToken - 3] && extra$972.tokens[extra$972.openCurlyToken - 3].type === 'Keyword') {
                     // Anonymous function.
-                    checkToken$1209 = extra$976.tokens[extra$976.openCurlyToken - 4];
-                    if (!checkToken$1209) {
-                        return scanPunctuator$996();
+                    checkToken$1205 = extra$972.tokens[extra$972.openCurlyToken - 4];
+                    if (!checkToken$1205) {
+                        return scanPunctuator$992();
                     }
-                } else if (extra$976.tokens[extra$976.openCurlyToken - 4] && extra$976.tokens[extra$976.openCurlyToken - 4].type === 'Keyword') {
+                } else if (extra$972.tokens[extra$972.openCurlyToken - 4] && extra$972.tokens[extra$972.openCurlyToken - 4].type === 'Keyword') {
                     // Named function.
-                    checkToken$1209 = extra$976.tokens[extra$976.openCurlyToken - 5];
-                    if (!checkToken$1209) {
-                        return scanRegExp$1003();
+                    checkToken$1205 = extra$972.tokens[extra$972.openCurlyToken - 5];
+                    if (!checkToken$1205) {
+                        return scanRegExp$999();
                     }
                 } else {
-                    return scanPunctuator$996();
+                    return scanPunctuator$992();
                 }
                 // checkToken determines whether the function is
                 // a declaration or an expression.
-                if (FnExprTokens$953.indexOf(checkToken$1209.value) >= 0) {
+                if (FnExprTokens$949.indexOf(checkToken$1205.value) >= 0) {
                     // It is an expression.
-                    return scanPunctuator$996();
+                    return scanPunctuator$992();
                 }
                 // It is a declaration.
-                return scanRegExp$1003();
+                return scanRegExp$999();
             }
-            return scanRegExp$1003();
+            return scanRegExp$999();
         }
-        if (prevToken$1208.type === 'Keyword') {
-            return scanRegExp$1003();
+        if (prevToken$1204.type === 'Keyword') {
+            return scanRegExp$999();
         }
-        return scanPunctuator$996();
+        return scanPunctuator$992();
     }
-    function advance$1006() {
-        var ch$1210;
-        skipComment$990();
-        if (index$962 >= length$969) {
+    function advance$1002() {
+        var ch$1206;
+        skipComment$986();
+        if (index$958 >= length$965) {
             return {
-                type: Token$951.EOF,
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                type: Token$947.EOF,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    index$962,
-                    index$962
+                    index$958,
+                    index$958
                 ]
             };
         }
-        ch$1210 = source$960.charCodeAt(index$962);
+        ch$1206 = source$956.charCodeAt(index$958);
         // Very common: ( and ) and ;
-        if (ch$1210 === 40 || ch$1210 === 41 || ch$1210 === 58) {
-            return scanPunctuator$996();
+        if (ch$1206 === 40 || ch$1206 === 41 || ch$1206 === 58) {
+            return scanPunctuator$992();
         }
         // String literal starts with single quote (#39) or double quote (#34).
-        if (ch$1210 === 39 || ch$1210 === 34) {
-            return scanStringLiteral$1000();
+        if (ch$1206 === 39 || ch$1206 === 34) {
+            return scanStringLiteral$996();
         }
-        if (ch$1210 === 96) {
-            return scanTemplate$1001();
+        if (ch$1206 === 96) {
+            return scanTemplate$997();
         }
-        if (isIdentifierStart$984(ch$1210)) {
-            return scanIdentifier$995();
+        if (isIdentifierStart$980(ch$1206)) {
+            return scanIdentifier$991();
         }
         // # and @ are allowed for sweet.js
-        if (ch$1210 === 35 || ch$1210 === 64) {
-            ++index$962;
+        if (ch$1206 === 35 || ch$1206 === 64) {
+            ++index$958;
             return {
-                type: Token$951.Punctuator,
-                value: String.fromCharCode(ch$1210),
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                type: Token$947.Punctuator,
+                value: String.fromCharCode(ch$1206),
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    index$962 - 1,
-                    index$962
+                    index$958 - 1,
+                    index$958
                 ]
             };
         }
         // Dot (.) char #46 can also start a floating-point number, hence the need
         // to check the next character.
-        if (ch$1210 === 46) {
-            if (isDecimalDigit$979(source$960.charCodeAt(index$962 + 1))) {
-                return scanNumericLiteral$999();
+        if (ch$1206 === 46) {
+            if (isDecimalDigit$975(source$956.charCodeAt(index$958 + 1))) {
+                return scanNumericLiteral$995();
             }
-            return scanPunctuator$996();
+            return scanPunctuator$992();
         }
-        if (isDecimalDigit$979(ch$1210)) {
-            return scanNumericLiteral$999();
+        if (isDecimalDigit$975(ch$1206)) {
+            return scanNumericLiteral$995();
         }
         // Slash (/) char #47 can also start a regex.
-        if (extra$976.tokenize && ch$1210 === 47) {
-            return advanceSlash$1005();
+        if (extra$972.tokenize && ch$1206 === 47) {
+            return advanceSlash$1001();
         }
-        return scanPunctuator$996();
+        return scanPunctuator$992();
     }
-    function lex$1007() {
-        var token$1211;
-        token$1211 = lookahead$973;
-        streamIndex$972 = lookaheadIndex$974;
-        lineNumber$963 = token$1211.lineNumber;
-        lineStart$964 = token$1211.lineStart;
-        sm_lineNumber$965 = lookahead$973.sm_lineNumber;
-        sm_lineStart$966 = lookahead$973.sm_lineStart;
-        sm_range$967 = lookahead$973.sm_range;
-        sm_index$968 = lookahead$973.sm_range[0];
-        lookahead$973 = tokenStream$971[++streamIndex$972].token;
-        lookaheadIndex$974 = streamIndex$972;
-        index$962 = lookahead$973.range[0];
-        return token$1211;
+    function lex$1003() {
+        var token$1207;
+        token$1207 = lookahead$969;
+        streamIndex$968 = lookaheadIndex$970;
+        lineNumber$959 = token$1207.lineNumber;
+        lineStart$960 = token$1207.lineStart;
+        sm_lineNumber$961 = lookahead$969.sm_lineNumber;
+        sm_lineStart$962 = lookahead$969.sm_lineStart;
+        sm_range$963 = lookahead$969.sm_range;
+        sm_index$964 = lookahead$969.sm_range[0];
+        lookahead$969 = tokenStream$967[++streamIndex$968].token;
+        lookaheadIndex$970 = streamIndex$968;
+        index$958 = lookahead$969.range[0];
+        return token$1207;
     }
-    function peek$1008() {
-        lookaheadIndex$974 = streamIndex$972 + 1;
-        if (lookaheadIndex$974 >= length$969) {
-            lookahead$973 = {
-                type: Token$951.EOF,
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+    function peek$1004() {
+        lookaheadIndex$970 = streamIndex$968 + 1;
+        if (lookaheadIndex$970 >= length$965) {
+            lookahead$969 = {
+                type: Token$947.EOF,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    index$962,
-                    index$962
+                    index$958,
+                    index$958
                 ]
             };
             return;
         }
-        lookahead$973 = tokenStream$971[lookaheadIndex$974].token;
-        index$962 = lookahead$973.range[0];
+        lookahead$969 = tokenStream$967[lookaheadIndex$970].token;
+        index$958 = lookahead$969.range[0];
     }
-    function lookahead2$1009() {
-        var adv$1212, pos$1213, line$1214, start$1215, result$1216;
-        if (streamIndex$972 + 1 >= length$969 || streamIndex$972 + 2 >= length$969) {
+    function lookahead2$1005() {
+        var adv$1208, pos$1209, line$1210, start$1211, result$1212;
+        if (streamIndex$968 + 1 >= length$965 || streamIndex$968 + 2 >= length$965) {
             return {
-                type: Token$951.EOF,
-                lineNumber: lineNumber$963,
-                lineStart: lineStart$964,
+                type: Token$947.EOF,
+                lineNumber: lineNumber$959,
+                lineStart: lineStart$960,
                 range: [
-                    index$962,
-                    index$962
+                    index$958,
+                    index$958
                 ]
             };
         }
         // Scan for the next immediate token.
-        if (lookahead$973 === null) {
-            lookaheadIndex$974 = streamIndex$972 + 1;
-            lookahead$973 = tokenStream$971[lookaheadIndex$974].token;
-            index$962 = lookahead$973.range[0];
+        if (lookahead$969 === null) {
+            lookaheadIndex$970 = streamIndex$968 + 1;
+            lookahead$969 = tokenStream$967[lookaheadIndex$970].token;
+            index$958 = lookahead$969.range[0];
         }
-        result$1216 = tokenStream$971[lookaheadIndex$974 + 1].token;
-        return result$1216;
+        result$1212 = tokenStream$967[lookaheadIndex$970 + 1].token;
+        return result$1212;
     }
-    SyntaxTreeDelegate$958 = {
+    SyntaxTreeDelegate$954 = {
         name: 'SyntaxTree',
-        postProcess: function (node$1217) {
-            return node$1217;
+        postProcess: function (node$1213) {
+            return node$1213;
         },
-        createArrayExpression: function (elements$1218) {
+        createArrayExpression: function (elements$1214) {
             return {
-                type: Syntax$954.ArrayExpression,
-                elements: elements$1218
+                type: Syntax$950.ArrayExpression,
+                elements: elements$1214
             };
         },
-        createAssignmentExpression: function (operator$1219, left$1220, right$1221) {
+        createAssignmentExpression: function (operator$1215, left$1216, right$1217) {
             return {
-                type: Syntax$954.AssignmentExpression,
-                operator: operator$1219,
-                left: left$1220,
-                right: right$1221
+                type: Syntax$950.AssignmentExpression,
+                operator: operator$1215,
+                left: left$1216,
+                right: right$1217
             };
         },
-        createBinaryExpression: function (operator$1222, left$1223, right$1224) {
-            var type$1225 = operator$1222 === '||' || operator$1222 === '&&' ? Syntax$954.LogicalExpression : Syntax$954.BinaryExpression;
+        createBinaryExpression: function (operator$1218, left$1219, right$1220) {
+            var type$1221 = operator$1218 === '||' || operator$1218 === '&&' ? Syntax$950.LogicalExpression : Syntax$950.BinaryExpression;
             return {
-                type: type$1225,
-                operator: operator$1222,
-                left: left$1223,
-                right: right$1224
+                type: type$1221,
+                operator: operator$1218,
+                left: left$1219,
+                right: right$1220
             };
         },
-        createBlockStatement: function (body$1226) {
+        createBlockStatement: function (body$1222) {
             return {
-                type: Syntax$954.BlockStatement,
-                body: body$1226
+                type: Syntax$950.BlockStatement,
+                body: body$1222
             };
         },
-        createBreakStatement: function (label$1227) {
+        createBreakStatement: function (label$1223) {
             return {
-                type: Syntax$954.BreakStatement,
-                label: label$1227
+                type: Syntax$950.BreakStatement,
+                label: label$1223
             };
         },
-        createCallExpression: function (callee$1228, args$1229) {
+        createCallExpression: function (callee$1224, args$1225) {
             return {
-                type: Syntax$954.CallExpression,
-                callee: callee$1228,
-                'arguments': args$1229
+                type: Syntax$950.CallExpression,
+                callee: callee$1224,
+                'arguments': args$1225
             };
         },
-        createCatchClause: function (param$1230, body$1231) {
+        createCatchClause: function (param$1226, body$1227) {
             return {
-                type: Syntax$954.CatchClause,
-                param: param$1230,
-                body: body$1231
+                type: Syntax$950.CatchClause,
+                param: param$1226,
+                body: body$1227
             };
         },
-        createConditionalExpression: function (test$1232, consequent$1233, alternate$1234) {
+        createConditionalExpression: function (test$1228, consequent$1229, alternate$1230) {
             return {
-                type: Syntax$954.ConditionalExpression,
-                test: test$1232,
-                consequent: consequent$1233,
-                alternate: alternate$1234
+                type: Syntax$950.ConditionalExpression,
+                test: test$1228,
+                consequent: consequent$1229,
+                alternate: alternate$1230
             };
         },
-        createContinueStatement: function (label$1235) {
+        createContinueStatement: function (label$1231) {
             return {
-                type: Syntax$954.ContinueStatement,
-                label: label$1235
+                type: Syntax$950.ContinueStatement,
+                label: label$1231
             };
         },
         createDebuggerStatement: function () {
-            return { type: Syntax$954.DebuggerStatement };
+            return { type: Syntax$950.DebuggerStatement };
         },
-        createDoWhileStatement: function (body$1236, test$1237) {
+        createDoWhileStatement: function (body$1232, test$1233) {
             return {
-                type: Syntax$954.DoWhileStatement,
-                body: body$1236,
-                test: test$1237
+                type: Syntax$950.DoWhileStatement,
+                body: body$1232,
+                test: test$1233
             };
         },
         createEmptyStatement: function () {
-            return { type: Syntax$954.EmptyStatement };
+            return { type: Syntax$950.EmptyStatement };
         },
-        createExpressionStatement: function (expression$1238) {
+        createExpressionStatement: function (expression$1234) {
             return {
-                type: Syntax$954.ExpressionStatement,
-                expression: expression$1238
+                type: Syntax$950.ExpressionStatement,
+                expression: expression$1234
             };
         },
-        createForStatement: function (init$1239, test$1240, update$1241, body$1242) {
+        createForStatement: function (init$1235, test$1236, update$1237, body$1238) {
             return {
-                type: Syntax$954.ForStatement,
-                init: init$1239,
-                test: test$1240,
-                update: update$1241,
-                body: body$1242
+                type: Syntax$950.ForStatement,
+                init: init$1235,
+                test: test$1236,
+                update: update$1237,
+                body: body$1238
             };
         },
-        createForInStatement: function (left$1243, right$1244, body$1245) {
+        createForInStatement: function (left$1239, right$1240, body$1241) {
             return {
-                type: Syntax$954.ForInStatement,
-                left: left$1243,
-                right: right$1244,
-                body: body$1245,
+                type: Syntax$950.ForInStatement,
+                left: left$1239,
+                right: right$1240,
+                body: body$1241,
                 each: false
             };
         },
-        createForOfStatement: function (left$1246, right$1247, body$1248) {
+        createForOfStatement: function (left$1242, right$1243, body$1244) {
             return {
-                type: Syntax$954.ForOfStatement,
-                left: left$1246,
-                right: right$1247,
-                body: body$1248
+                type: Syntax$950.ForOfStatement,
+                left: left$1242,
+                right: right$1243,
+                body: body$1244
             };
         },
-        createFunctionDeclaration: function (id$1249, params$1250, defaults$1251, body$1252, rest$1253, generator$1254, expression$1255) {
+        createFunctionDeclaration: function (id$1245, params$1246, defaults$1247, body$1248, rest$1249, generator$1250, expression$1251) {
             return {
-                type: Syntax$954.FunctionDeclaration,
-                id: id$1249,
-                params: params$1250,
-                defaults: defaults$1251,
-                body: body$1252,
-                rest: rest$1253,
-                generator: generator$1254,
-                expression: expression$1255
+                type: Syntax$950.FunctionDeclaration,
+                id: id$1245,
+                params: params$1246,
+                defaults: defaults$1247,
+                body: body$1248,
+                rest: rest$1249,
+                generator: generator$1250,
+                expression: expression$1251
             };
         },
-        createFunctionExpression: function (id$1256, params$1257, defaults$1258, body$1259, rest$1260, generator$1261, expression$1262) {
+        createFunctionExpression: function (id$1252, params$1253, defaults$1254, body$1255, rest$1256, generator$1257, expression$1258) {
             return {
-                type: Syntax$954.FunctionExpression,
-                id: id$1256,
-                params: params$1257,
-                defaults: defaults$1258,
-                body: body$1259,
-                rest: rest$1260,
-                generator: generator$1261,
-                expression: expression$1262
+                type: Syntax$950.FunctionExpression,
+                id: id$1252,
+                params: params$1253,
+                defaults: defaults$1254,
+                body: body$1255,
+                rest: rest$1256,
+                generator: generator$1257,
+                expression: expression$1258
             };
         },
-        createIdentifier: function (name$1263) {
+        createIdentifier: function (name$1259) {
             return {
-                type: Syntax$954.Identifier,
-                name: name$1263
+                type: Syntax$950.Identifier,
+                name: name$1259
             };
         },
-        createIfStatement: function (test$1264, consequent$1265, alternate$1266) {
+        createIfStatement: function (test$1260, consequent$1261, alternate$1262) {
             return {
-                type: Syntax$954.IfStatement,
-                test: test$1264,
-                consequent: consequent$1265,
-                alternate: alternate$1266
+                type: Syntax$950.IfStatement,
+                test: test$1260,
+                consequent: consequent$1261,
+                alternate: alternate$1262
             };
         },
-        createLabeledStatement: function (label$1267, body$1268) {
+        createLabeledStatement: function (label$1263, body$1264) {
             return {
-                type: Syntax$954.LabeledStatement,
-                label: label$1267,
-                body: body$1268
+                type: Syntax$950.LabeledStatement,
+                label: label$1263,
+                body: body$1264
             };
         },
-        createLiteral: function (token$1269) {
+        createLiteral: function (token$1265) {
             return {
-                type: Syntax$954.Literal,
-                value: token$1269.value,
-                raw: String(token$1269.value)
+                type: Syntax$950.Literal,
+                value: token$1265.value,
+                raw: String(token$1265.value)
             };
         },
-        createMemberExpression: function (accessor$1270, object$1271, property$1272) {
+        createMemberExpression: function (accessor$1266, object$1267, property$1268) {
             return {
-                type: Syntax$954.MemberExpression,
-                computed: accessor$1270 === '[',
-                object: object$1271,
-                property: property$1272
+                type: Syntax$950.MemberExpression,
+                computed: accessor$1266 === '[',
+                object: object$1267,
+                property: property$1268
             };
         },
-        createNewExpression: function (callee$1273, args$1274) {
+        createNewExpression: function (callee$1269, args$1270) {
             return {
-                type: Syntax$954.NewExpression,
-                callee: callee$1273,
-                'arguments': args$1274
+                type: Syntax$950.NewExpression,
+                callee: callee$1269,
+                'arguments': args$1270
             };
         },
-        createObjectExpression: function (properties$1275) {
+        createObjectExpression: function (properties$1271) {
             return {
-                type: Syntax$954.ObjectExpression,
-                properties: properties$1275
+                type: Syntax$950.ObjectExpression,
+                properties: properties$1271
             };
         },
-        createPostfixExpression: function (operator$1276, argument$1277) {
+        createPostfixExpression: function (operator$1272, argument$1273) {
             return {
-                type: Syntax$954.UpdateExpression,
-                operator: operator$1276,
-                argument: argument$1277,
+                type: Syntax$950.UpdateExpression,
+                operator: operator$1272,
+                argument: argument$1273,
                 prefix: false
             };
         },
-        createProgram: function (body$1278) {
+        createProgram: function (body$1274) {
             return {
-                type: Syntax$954.Program,
-                body: body$1278
+                type: Syntax$950.Program,
+                body: body$1274
             };
         },
-        createProperty: function (kind$1279, key$1280, value$1281, method$1282, shorthand$1283) {
+        createProperty: function (kind$1275, key$1276, value$1277, method$1278, shorthand$1279) {
             return {
-                type: Syntax$954.Property,
-                key: key$1280,
-                value: value$1281,
-                kind: kind$1279,
-                method: method$1282,
-                shorthand: shorthand$1283
+                type: Syntax$950.Property,
+                key: key$1276,
+                value: value$1277,
+                kind: kind$1275,
+                method: method$1278,
+                shorthand: shorthand$1279
             };
         },
-        createReturnStatement: function (argument$1284) {
+        createReturnStatement: function (argument$1280) {
             return {
-                type: Syntax$954.ReturnStatement,
-                argument: argument$1284
+                type: Syntax$950.ReturnStatement,
+                argument: argument$1280
             };
         },
-        createSequenceExpression: function (expressions$1285) {
+        createSequenceExpression: function (expressions$1281) {
             return {
-                type: Syntax$954.SequenceExpression,
-                expressions: expressions$1285
+                type: Syntax$950.SequenceExpression,
+                expressions: expressions$1281
             };
         },
-        createSwitchCase: function (test$1286, consequent$1287) {
+        createSwitchCase: function (test$1282, consequent$1283) {
             return {
-                type: Syntax$954.SwitchCase,
-                test: test$1286,
-                consequent: consequent$1287
+                type: Syntax$950.SwitchCase,
+                test: test$1282,
+                consequent: consequent$1283
             };
         },
-        createSwitchStatement: function (discriminant$1288, cases$1289) {
+        createSwitchStatement: function (discriminant$1284, cases$1285) {
             return {
-                type: Syntax$954.SwitchStatement,
-                discriminant: discriminant$1288,
-                cases: cases$1289
+                type: Syntax$950.SwitchStatement,
+                discriminant: discriminant$1284,
+                cases: cases$1285
             };
         },
         createThisExpression: function () {
-            return { type: Syntax$954.ThisExpression };
+            return { type: Syntax$950.ThisExpression };
         },
-        createThrowStatement: function (argument$1290) {
+        createThrowStatement: function (argument$1286) {
             return {
-                type: Syntax$954.ThrowStatement,
-                argument: argument$1290
+                type: Syntax$950.ThrowStatement,
+                argument: argument$1286
             };
         },
-        createTryStatement: function (block$1291, guardedHandlers$1292, handlers$1293, finalizer$1294) {
+        createTryStatement: function (block$1287, guardedHandlers$1288, handlers$1289, finalizer$1290) {
             return {
-                type: Syntax$954.TryStatement,
-                block: block$1291,
-                guardedHandlers: guardedHandlers$1292,
-                handlers: handlers$1293,
-                finalizer: finalizer$1294
+                type: Syntax$950.TryStatement,
+                block: block$1287,
+                guardedHandlers: guardedHandlers$1288,
+                handlers: handlers$1289,
+                finalizer: finalizer$1290
             };
         },
-        createUnaryExpression: function (operator$1295, argument$1296) {
-            if (operator$1295 === '++' || operator$1295 === '--') {
+        createUnaryExpression: function (operator$1291, argument$1292) {
+            if (operator$1291 === '++' || operator$1291 === '--') {
                 return {
-                    type: Syntax$954.UpdateExpression,
-                    operator: operator$1295,
-                    argument: argument$1296,
+                    type: Syntax$950.UpdateExpression,
+                    operator: operator$1291,
+                    argument: argument$1292,
                     prefix: true
                 };
             }
             return {
-                type: Syntax$954.UnaryExpression,
-                operator: operator$1295,
-                argument: argument$1296
+                type: Syntax$950.UnaryExpression,
+                operator: operator$1291,
+                argument: argument$1292
             };
         },
-        createVariableDeclaration: function (declarations$1297, kind$1298) {
+        createVariableDeclaration: function (declarations$1293, kind$1294) {
             return {
-                type: Syntax$954.VariableDeclaration,
-                declarations: declarations$1297,
-                kind: kind$1298
+                type: Syntax$950.VariableDeclaration,
+                declarations: declarations$1293,
+                kind: kind$1294
             };
         },
-        createVariableDeclarator: function (id$1299, init$1300) {
+        createVariableDeclarator: function (id$1295, init$1296) {
             return {
-                type: Syntax$954.VariableDeclarator,
-                id: id$1299,
-                init: init$1300
+                type: Syntax$950.VariableDeclarator,
+                id: id$1295,
+                init: init$1296
             };
         },
-        createWhileStatement: function (test$1301, body$1302) {
+        createWhileStatement: function (test$1297, body$1298) {
             return {
-                type: Syntax$954.WhileStatement,
-                test: test$1301,
-                body: body$1302
+                type: Syntax$950.WhileStatement,
+                test: test$1297,
+                body: body$1298
             };
         },
-        createWithStatement: function (object$1303, body$1304) {
+        createWithStatement: function (object$1299, body$1300) {
             return {
-                type: Syntax$954.WithStatement,
-                object: object$1303,
-                body: body$1304
+                type: Syntax$950.WithStatement,
+                object: object$1299,
+                body: body$1300
             };
         },
-        createTemplateElement: function (value$1305, tail$1306) {
+        createTemplateElement: function (value$1301, tail$1302) {
             return {
-                type: Syntax$954.TemplateElement,
-                value: value$1305,
-                tail: tail$1306
+                type: Syntax$950.TemplateElement,
+                value: value$1301,
+                tail: tail$1302
             };
         },
-        createTemplateLiteral: function (quasis$1307, expressions$1308) {
+        createTemplateLiteral: function (quasis$1303, expressions$1304) {
             return {
-                type: Syntax$954.TemplateLiteral,
-                quasis: quasis$1307,
-                expressions: expressions$1308
+                type: Syntax$950.TemplateLiteral,
+                quasis: quasis$1303,
+                expressions: expressions$1304
             };
         },
-        createSpreadElement: function (argument$1309) {
+        createSpreadElement: function (argument$1305) {
             return {
-                type: Syntax$954.SpreadElement,
-                argument: argument$1309
+                type: Syntax$950.SpreadElement,
+                argument: argument$1305
             };
         },
-        createTaggedTemplateExpression: function (tag$1310, quasi$1311) {
+        createTaggedTemplateExpression: function (tag$1306, quasi$1307) {
             return {
-                type: Syntax$954.TaggedTemplateExpression,
-                tag: tag$1310,
-                quasi: quasi$1311
+                type: Syntax$950.TaggedTemplateExpression,
+                tag: tag$1306,
+                quasi: quasi$1307
             };
         },
-        createArrowFunctionExpression: function (params$1312, defaults$1313, body$1314, rest$1315, expression$1316) {
+        createArrowFunctionExpression: function (params$1308, defaults$1309, body$1310, rest$1311, expression$1312) {
             return {
-                type: Syntax$954.ArrowFunctionExpression,
+                type: Syntax$950.ArrowFunctionExpression,
                 id: null,
-                params: params$1312,
-                defaults: defaults$1313,
-                body: body$1314,
-                rest: rest$1315,
+                params: params$1308,
+                defaults: defaults$1309,
+                body: body$1310,
+                rest: rest$1311,
                 generator: false,
-                expression: expression$1316
+                expression: expression$1312
             };
         },
-        createMethodDefinition: function (propertyType$1317, kind$1318, key$1319, value$1320) {
+        createMethodDefinition: function (propertyType$1313, kind$1314, key$1315, value$1316) {
             return {
-                type: Syntax$954.MethodDefinition,
-                key: key$1319,
-                value: value$1320,
-                kind: kind$1318,
-                'static': propertyType$1317 === ClassPropertyType$959.static
+                type: Syntax$950.MethodDefinition,
+                key: key$1315,
+                value: value$1316,
+                kind: kind$1314,
+                'static': propertyType$1313 === ClassPropertyType$955.static
             };
         },
-        createClassBody: function (body$1321) {
+        createClassBody: function (body$1317) {
             return {
-                type: Syntax$954.ClassBody,
-                body: body$1321
+                type: Syntax$950.ClassBody,
+                body: body$1317
             };
         },
-        createClassExpression: function (id$1322, superClass$1323, body$1324) {
+        createClassExpression: function (id$1318, superClass$1319, body$1320) {
             return {
-                type: Syntax$954.ClassExpression,
-                id: id$1322,
-                superClass: superClass$1323,
-                body: body$1324
+                type: Syntax$950.ClassExpression,
+                id: id$1318,
+                superClass: superClass$1319,
+                body: body$1320
             };
         },
-        createClassDeclaration: function (id$1325, superClass$1326, body$1327) {
+        createClassDeclaration: function (id$1321, superClass$1322, body$1323) {
             return {
-                type: Syntax$954.ClassDeclaration,
-                id: id$1325,
-                superClass: superClass$1326,
-                body: body$1327
+                type: Syntax$950.ClassDeclaration,
+                id: id$1321,
+                superClass: superClass$1322,
+                body: body$1323
             };
         },
-        createExportSpecifier: function (id$1328, name$1329) {
+        createExportSpecifier: function (id$1324, name$1325) {
             return {
-                type: Syntax$954.ExportSpecifier,
-                id: id$1328,
-                name: name$1329
+                type: Syntax$950.ExportSpecifier,
+                id: id$1324,
+                name: name$1325
             };
         },
         createExportBatchSpecifier: function () {
-            return { type: Syntax$954.ExportBatchSpecifier };
+            return { type: Syntax$950.ExportBatchSpecifier };
         },
-        createExportDeclaration: function (declaration$1330, specifiers$1331, source$1332) {
+        createExportDeclaration: function (declaration$1326, specifiers$1327, source$1328) {
             return {
-                type: Syntax$954.ExportDeclaration,
-                declaration: declaration$1330,
+                type: Syntax$950.ExportDeclaration,
+                declaration: declaration$1326,
+                specifiers: specifiers$1327,
+                source: source$1328
+            };
+        },
+        createImportSpecifier: function (id$1329, name$1330) {
+            return {
+                type: Syntax$950.ImportSpecifier,
+                id: id$1329,
+                name: name$1330
+            };
+        },
+        createImportDeclaration: function (specifiers$1331, kind$1332, source$1333) {
+            return {
+                type: Syntax$950.ImportDeclaration,
                 specifiers: specifiers$1331,
-                source: source$1332
+                kind: kind$1332,
+                source: source$1333
             };
         },
-        createImportSpecifier: function (id$1333, name$1334) {
+        createYieldExpression: function (argument$1334, delegate$1335) {
             return {
-                type: Syntax$954.ImportSpecifier,
-                id: id$1333,
-                name: name$1334
+                type: Syntax$950.YieldExpression,
+                argument: argument$1334,
+                delegate: delegate$1335
             };
         },
-        createImportDeclaration: function (specifiers$1335, kind$1336, source$1337) {
+        createModuleDeclaration: function (id$1336, source$1337, body$1338) {
             return {
-                type: Syntax$954.ImportDeclaration,
-                specifiers: specifiers$1335,
-                kind: kind$1336,
-                source: source$1337
-            };
-        },
-        createYieldExpression: function (argument$1338, delegate$1339) {
-            return {
-                type: Syntax$954.YieldExpression,
-                argument: argument$1338,
-                delegate: delegate$1339
-            };
-        },
-        createModuleDeclaration: function (id$1340, source$1341, body$1342) {
-            return {
-                type: Syntax$954.ModuleDeclaration,
-                id: id$1340,
-                source: source$1341,
-                body: body$1342
+                type: Syntax$950.ModuleDeclaration,
+                id: id$1336,
+                source: source$1337,
+                body: body$1338
             };
         }
     };
     // Return true if there is a line terminator before the next token.
-    function peekLineTerminator$1010() {
-        return lookahead$973.lineNumber !== lineNumber$963;
+    function peekLineTerminator$1006() {
+        return lookahead$969.lineNumber !== lineNumber$959;
     }
     // Throw an exception
-    function throwError$1011(token$1343, messageFormat$1344) {
-        var error$1345, args$1346 = Array.prototype.slice.call(arguments, 2), msg$1347 = messageFormat$1344.replace(/%(\d)/g, function (whole$1351, index$1352) {
-                assert$977(index$1352 < args$1346.length, 'Message reference must be in range');
-                return args$1346[index$1352];
+    function throwError$1007(token$1339, messageFormat$1340) {
+        var error$1341, args$1342 = Array.prototype.slice.call(arguments, 2), msg$1343 = messageFormat$1340.replace(/%(\d)/g, function (whole$1347, index$1348) {
+                assert$973(index$1348 < args$1342.length, 'Message reference must be in range');
+                return args$1342[index$1348];
             });
-        var startIndex$1348 = streamIndex$972 > 3 ? streamIndex$972 - 3 : 0;
-        var toks$1349 = tokenStream$971.slice(startIndex$1348, streamIndex$972 + 3).map(function (stx$1353) {
-                return stx$1353.token.value;
+        var startIndex$1344 = streamIndex$968 > 3 ? streamIndex$968 - 3 : 0;
+        var toks$1345 = tokenStream$967.slice(startIndex$1344, streamIndex$968 + 3).map(function (stx$1349) {
+                return stx$1349.token.value;
             }).join(' ');
-        var tailingMsg$1350 = '\n[... ' + toks$1349 + ' ...]';
-        if (typeof token$1343.lineNumber === 'number') {
-            error$1345 = new Error('Line ' + token$1343.lineNumber + ': ' + msg$1347 + tailingMsg$1350);
-            error$1345.index = token$1343.range[0];
-            error$1345.lineNumber = token$1343.lineNumber;
-            error$1345.column = token$1343.range[0] - lineStart$964 + 1;
+        var tailingMsg$1346 = '\n[... ' + toks$1345 + ' ...]';
+        if (typeof token$1339.lineNumber === 'number') {
+            error$1341 = new Error('Line ' + token$1339.lineNumber + ': ' + msg$1343 + tailingMsg$1346);
+            error$1341.index = token$1339.range[0];
+            error$1341.lineNumber = token$1339.lineNumber;
+            error$1341.column = token$1339.range[0] - lineStart$960 + 1;
         } else {
-            error$1345 = new Error('Line ' + lineNumber$963 + ': ' + msg$1347 + tailingMsg$1350);
-            error$1345.index = index$962;
-            error$1345.lineNumber = lineNumber$963;
-            error$1345.column = index$962 - lineStart$964 + 1;
+            error$1341 = new Error('Line ' + lineNumber$959 + ': ' + msg$1343 + tailingMsg$1346);
+            error$1341.index = index$958;
+            error$1341.lineNumber = lineNumber$959;
+            error$1341.column = index$958 - lineStart$960 + 1;
         }
-        error$1345.description = msg$1347;
-        throw error$1345;
+        error$1341.description = msg$1343;
+        throw error$1341;
     }
-    function throwErrorTolerant$1012() {
+    function throwErrorTolerant$1008() {
         try {
-            throwError$1011.apply(null, arguments);
-        } catch (e$1354) {
-            if (extra$976.errors) {
-                extra$976.errors.push(e$1354);
+            throwError$1007.apply(null, arguments);
+        } catch (e$1350) {
+            if (extra$972.errors) {
+                extra$972.errors.push(e$1350);
             } else {
-                throw e$1354;
+                throw e$1350;
             }
         }
     }
     // Throw an exception because of the token.
-    function throwUnexpected$1013(token$1355) {
-        if (token$1355.type === Token$951.EOF) {
-            throwError$1011(token$1355, Messages$956.UnexpectedEOS);
+    function throwUnexpected$1009(token$1351) {
+        if (token$1351.type === Token$947.EOF) {
+            throwError$1007(token$1351, Messages$952.UnexpectedEOS);
         }
-        if (token$1355.type === Token$951.NumericLiteral) {
-            throwError$1011(token$1355, Messages$956.UnexpectedNumber);
+        if (token$1351.type === Token$947.NumericLiteral) {
+            throwError$1007(token$1351, Messages$952.UnexpectedNumber);
         }
-        if (token$1355.type === Token$951.StringLiteral) {
-            throwError$1011(token$1355, Messages$956.UnexpectedString);
+        if (token$1351.type === Token$947.StringLiteral) {
+            throwError$1007(token$1351, Messages$952.UnexpectedString);
         }
-        if (token$1355.type === Token$951.Identifier) {
-            throwError$1011(token$1355, Messages$956.UnexpectedIdentifier);
+        if (token$1351.type === Token$947.Identifier) {
+            throwError$1007(token$1351, Messages$952.UnexpectedIdentifier);
         }
-        if (token$1355.type === Token$951.Keyword) {
-            if (isFutureReservedWord$986(token$1355.value)) {
+        if (token$1351.type === Token$947.Keyword) {
+            if (isFutureReservedWord$982(token$1351.value)) {
             }    // sweet.js allows future reserved words
                  // throwError(token, Messages.UnexpectedReserved);
-            else if (strict$961 && isStrictModeReservedWord$987(token$1355.value)) {
-                throwErrorTolerant$1012(token$1355, Messages$956.StrictReservedWord);
+            else if (strict$957 && isStrictModeReservedWord$983(token$1351.value)) {
+                throwErrorTolerant$1008(token$1351, Messages$952.StrictReservedWord);
                 return;
             }
-            throwError$1011(token$1355, Messages$956.UnexpectedToken, token$1355.value);
+            throwError$1007(token$1351, Messages$952.UnexpectedToken, token$1351.value);
         }
-        if (token$1355.type === Token$951.Template) {
-            throwError$1011(token$1355, Messages$956.UnexpectedTemplate, token$1355.value.raw);
+        if (token$1351.type === Token$947.Template) {
+            throwError$1007(token$1351, Messages$952.UnexpectedTemplate, token$1351.value.raw);
         }
         // BooleanLiteral, NullLiteral, or Punctuator.
-        throwError$1011(token$1355, Messages$956.UnexpectedToken, token$1355.value);
+        throwError$1007(token$1351, Messages$952.UnexpectedToken, token$1351.value);
     }
     // Expect the next token to match the specified punctuator.
     // If not, an exception will be thrown.
-    function expect$1014(value$1356) {
-        var token$1357 = lex$1007();
-        if (token$1357.type !== Token$951.Punctuator || token$1357.value !== value$1356) {
-            throwUnexpected$1013(token$1357);
+    function expect$1010(value$1352) {
+        var token$1353 = lex$1003();
+        if (token$1353.type !== Token$947.Punctuator || token$1353.value !== value$1352) {
+            throwUnexpected$1009(token$1353);
         }
     }
     // Expect the next token to match the specified keyword.
     // If not, an exception will be thrown.
-    function expectKeyword$1015(keyword$1358) {
-        var token$1359 = lex$1007();
-        if (token$1359.type !== Token$951.Keyword || token$1359.value !== keyword$1358) {
-            throwUnexpected$1013(token$1359);
+    function expectKeyword$1011(keyword$1354) {
+        var token$1355 = lex$1003();
+        if (token$1355.type !== Token$947.Keyword || token$1355.value !== keyword$1354) {
+            throwUnexpected$1009(token$1355);
         }
     }
     // Return true if the next token matches the specified punctuator.
-    function match$1016(value$1360) {
-        return lookahead$973.type === Token$951.Punctuator && lookahead$973.value === value$1360;
+    function match$1012(value$1356) {
+        return lookahead$969.type === Token$947.Punctuator && lookahead$969.value === value$1356;
     }
     // Return true if the next token matches the specified keyword
-    function matchKeyword$1017(keyword$1361) {
-        return lookahead$973.type === Token$951.Keyword && lookahead$973.value === keyword$1361;
+    function matchKeyword$1013(keyword$1357) {
+        return lookahead$969.type === Token$947.Keyword && lookahead$969.value === keyword$1357;
     }
     // Return true if the next token matches the specified contextual keyword
-    function matchContextualKeyword$1018(keyword$1362) {
-        return lookahead$973.type === Token$951.Identifier && lookahead$973.value === keyword$1362;
+    function matchContextualKeyword$1014(keyword$1358) {
+        return lookahead$969.type === Token$947.Identifier && lookahead$969.value === keyword$1358;
     }
     // Return true if the next token is an assignment operator
-    function matchAssign$1019() {
-        var op$1363;
-        if (lookahead$973.type !== Token$951.Punctuator) {
+    function matchAssign$1015() {
+        var op$1359;
+        if (lookahead$969.type !== Token$947.Punctuator) {
             return false;
         }
-        op$1363 = lookahead$973.value;
-        return op$1363 === '=' || op$1363 === '*=' || op$1363 === '/=' || op$1363 === '%=' || op$1363 === '+=' || op$1363 === '-=' || op$1363 === '<<=' || op$1363 === '>>=' || op$1363 === '>>>=' || op$1363 === '&=' || op$1363 === '^=' || op$1363 === '|=';
+        op$1359 = lookahead$969.value;
+        return op$1359 === '=' || op$1359 === '*=' || op$1359 === '/=' || op$1359 === '%=' || op$1359 === '+=' || op$1359 === '-=' || op$1359 === '<<=' || op$1359 === '>>=' || op$1359 === '>>>=' || op$1359 === '&=' || op$1359 === '^=' || op$1359 === '|=';
     }
-    function consumeSemicolon$1020() {
-        var line$1364, ch$1365;
-        ch$1365 = lookahead$973.value ? String(lookahead$973.value).charCodeAt(0) : -1;
+    function consumeSemicolon$1016() {
+        var line$1360, ch$1361;
+        ch$1361 = lookahead$969.value ? String(lookahead$969.value).charCodeAt(0) : -1;
         // Catch the very common case first: immediately a semicolon (char #59).
-        if (ch$1365 === 59) {
-            lex$1007();
+        if (ch$1361 === 59) {
+            lex$1003();
             return;
         }
-        if (lookahead$973.lineNumber !== lineNumber$963) {
+        if (lookahead$969.lineNumber !== lineNumber$959) {
             return;
         }
-        if (match$1016(';')) {
-            lex$1007();
+        if (match$1012(';')) {
+            lex$1003();
             return;
         }
-        if (lookahead$973.type !== Token$951.EOF && !match$1016('}')) {
-            throwUnexpected$1013(lookahead$973);
+        if (lookahead$969.type !== Token$947.EOF && !match$1012('}')) {
+            throwUnexpected$1009(lookahead$969);
         }
     }
     // Return true if provided expression is LeftHandSideExpression
-    function isLeftHandSide$1021(expr$1366) {
-        return expr$1366.type === Syntax$954.Identifier || expr$1366.type === Syntax$954.MemberExpression;
+    function isLeftHandSide$1017(expr$1362) {
+        return expr$1362.type === Syntax$950.Identifier || expr$1362.type === Syntax$950.MemberExpression;
     }
-    function isAssignableLeftHandSide$1022(expr$1367) {
-        return isLeftHandSide$1021(expr$1367) || expr$1367.type === Syntax$954.ObjectPattern || expr$1367.type === Syntax$954.ArrayPattern;
+    function isAssignableLeftHandSide$1018(expr$1363) {
+        return isLeftHandSide$1017(expr$1363) || expr$1363.type === Syntax$950.ObjectPattern || expr$1363.type === Syntax$950.ArrayPattern;
     }
     // 11.1.4 Array Initialiser
-    function parseArrayInitialiser$1023() {
-        var elements$1368 = [], blocks$1369 = [], filter$1370 = null, tmp$1371, possiblecomprehension$1372 = true, body$1373;
-        expect$1014('[');
-        while (!match$1016(']')) {
-            if (lookahead$973.value === 'for' && lookahead$973.type === Token$951.Keyword) {
-                if (!possiblecomprehension$1372) {
-                    throwError$1011({}, Messages$956.ComprehensionError);
+    function parseArrayInitialiser$1019() {
+        var elements$1364 = [], blocks$1365 = [], filter$1366 = null, tmp$1367, possiblecomprehension$1368 = true, body$1369;
+        expect$1010('[');
+        while (!match$1012(']')) {
+            if (lookahead$969.value === 'for' && lookahead$969.type === Token$947.Keyword) {
+                if (!possiblecomprehension$1368) {
+                    throwError$1007({}, Messages$952.ComprehensionError);
                 }
-                matchKeyword$1017('for');
-                tmp$1371 = parseForStatement$1071({ ignoreBody: true });
-                tmp$1371.of = tmp$1371.type === Syntax$954.ForOfStatement;
-                tmp$1371.type = Syntax$954.ComprehensionBlock;
-                if (tmp$1371.left.kind) {
+                matchKeyword$1013('for');
+                tmp$1367 = parseForStatement$1067({ ignoreBody: true });
+                tmp$1367.of = tmp$1367.type === Syntax$950.ForOfStatement;
+                tmp$1367.type = Syntax$950.ComprehensionBlock;
+                if (tmp$1367.left.kind) {
                     // can't be let or const
-                    throwError$1011({}, Messages$956.ComprehensionError);
+                    throwError$1007({}, Messages$952.ComprehensionError);
                 }
-                blocks$1369.push(tmp$1371);
-            } else if (lookahead$973.value === 'if' && lookahead$973.type === Token$951.Keyword) {
-                if (!possiblecomprehension$1372) {
-                    throwError$1011({}, Messages$956.ComprehensionError);
+                blocks$1365.push(tmp$1367);
+            } else if (lookahead$969.value === 'if' && lookahead$969.type === Token$947.Keyword) {
+                if (!possiblecomprehension$1368) {
+                    throwError$1007({}, Messages$952.ComprehensionError);
                 }
-                expectKeyword$1015('if');
-                expect$1014('(');
-                filter$1370 = parseExpression$1051();
-                expect$1014(')');
-            } else if (lookahead$973.value === ',' && lookahead$973.type === Token$951.Punctuator) {
-                possiblecomprehension$1372 = false;
+                expectKeyword$1011('if');
+                expect$1010('(');
+                filter$1366 = parseExpression$1047();
+                expect$1010(')');
+            } else if (lookahead$969.value === ',' && lookahead$969.type === Token$947.Punctuator) {
+                possiblecomprehension$1368 = false;
                 // no longer allowed.
-                lex$1007();
-                elements$1368.push(null);
+                lex$1003();
+                elements$1364.push(null);
             } else {
-                tmp$1371 = parseSpreadOrAssignmentExpression$1034();
-                elements$1368.push(tmp$1371);
-                if (tmp$1371 && tmp$1371.type === Syntax$954.SpreadElement) {
-                    if (!match$1016(']')) {
-                        throwError$1011({}, Messages$956.ElementAfterSpreadElement);
+                tmp$1367 = parseSpreadOrAssignmentExpression$1030();
+                elements$1364.push(tmp$1367);
+                if (tmp$1367 && tmp$1367.type === Syntax$950.SpreadElement) {
+                    if (!match$1012(']')) {
+                        throwError$1007({}, Messages$952.ElementAfterSpreadElement);
                     }
-                } else if (!(match$1016(']') || matchKeyword$1017('for') || matchKeyword$1017('if'))) {
-                    expect$1014(',');
+                } else if (!(match$1012(']') || matchKeyword$1013('for') || matchKeyword$1013('if'))) {
+                    expect$1010(',');
                     // this lexes.
-                    possiblecomprehension$1372 = false;
+                    possiblecomprehension$1368 = false;
                 }
             }
         }
-        expect$1014(']');
-        if (filter$1370 && !blocks$1369.length) {
-            throwError$1011({}, Messages$956.ComprehensionRequiresBlock);
+        expect$1010(']');
+        if (filter$1366 && !blocks$1365.length) {
+            throwError$1007({}, Messages$952.ComprehensionRequiresBlock);
         }
-        if (blocks$1369.length) {
-            if (elements$1368.length !== 1) {
-                throwError$1011({}, Messages$956.ComprehensionError);
+        if (blocks$1365.length) {
+            if (elements$1364.length !== 1) {
+                throwError$1007({}, Messages$952.ComprehensionError);
             }
             return {
-                type: Syntax$954.ComprehensionExpression,
-                filter: filter$1370,
-                blocks: blocks$1369,
-                body: elements$1368[0]
+                type: Syntax$950.ComprehensionExpression,
+                filter: filter$1366,
+                blocks: blocks$1365,
+                body: elements$1364[0]
             };
         }
-        return delegate$970.createArrayExpression(elements$1368);
+        return delegate$966.createArrayExpression(elements$1364);
     }
     // 11.1.5 Object Initialiser
-    function parsePropertyFunction$1024(options$1374) {
-        var previousStrict$1375, previousYieldAllowed$1376, params$1377, defaults$1378, body$1379;
-        previousStrict$1375 = strict$961;
-        previousYieldAllowed$1376 = state$975.yieldAllowed;
-        state$975.yieldAllowed = options$1374.generator;
-        params$1377 = options$1374.params || [];
-        defaults$1378 = options$1374.defaults || [];
-        body$1379 = parseConciseBody$1083();
-        if (options$1374.name && strict$961 && isRestrictedWord$988(params$1377[0].name)) {
-            throwErrorTolerant$1012(options$1374.name, Messages$956.StrictParamName);
+    function parsePropertyFunction$1020(options$1370) {
+        var previousStrict$1371, previousYieldAllowed$1372, params$1373, defaults$1374, body$1375;
+        previousStrict$1371 = strict$957;
+        previousYieldAllowed$1372 = state$971.yieldAllowed;
+        state$971.yieldAllowed = options$1370.generator;
+        params$1373 = options$1370.params || [];
+        defaults$1374 = options$1370.defaults || [];
+        body$1375 = parseConciseBody$1079();
+        if (options$1370.name && strict$957 && isRestrictedWord$984(params$1373[0].name)) {
+            throwErrorTolerant$1008(options$1370.name, Messages$952.StrictParamName);
         }
-        if (state$975.yieldAllowed && !state$975.yieldFound) {
-            throwErrorTolerant$1012({}, Messages$956.NoYieldInGenerator);
+        if (state$971.yieldAllowed && !state$971.yieldFound) {
+            throwErrorTolerant$1008({}, Messages$952.NoYieldInGenerator);
         }
-        strict$961 = previousStrict$1375;
-        state$975.yieldAllowed = previousYieldAllowed$1376;
-        return delegate$970.createFunctionExpression(null, params$1377, defaults$1378, body$1379, options$1374.rest || null, options$1374.generator, body$1379.type !== Syntax$954.BlockStatement);
+        strict$957 = previousStrict$1371;
+        state$971.yieldAllowed = previousYieldAllowed$1372;
+        return delegate$966.createFunctionExpression(null, params$1373, defaults$1374, body$1375, options$1370.rest || null, options$1370.generator, body$1375.type !== Syntax$950.BlockStatement);
     }
-    function parsePropertyMethodFunction$1025(options$1380) {
-        var previousStrict$1381, tmp$1382, method$1383;
-        previousStrict$1381 = strict$961;
-        strict$961 = true;
-        tmp$1382 = parseParams$1087();
-        if (tmp$1382.stricted) {
-            throwErrorTolerant$1012(tmp$1382.stricted, tmp$1382.message);
+    function parsePropertyMethodFunction$1021(options$1376) {
+        var previousStrict$1377, tmp$1378, method$1379;
+        previousStrict$1377 = strict$957;
+        strict$957 = true;
+        tmp$1378 = parseParams$1083();
+        if (tmp$1378.stricted) {
+            throwErrorTolerant$1008(tmp$1378.stricted, tmp$1378.message);
         }
-        method$1383 = parsePropertyFunction$1024({
-            params: tmp$1382.params,
-            defaults: tmp$1382.defaults,
-            rest: tmp$1382.rest,
-            generator: options$1380.generator
+        method$1379 = parsePropertyFunction$1020({
+            params: tmp$1378.params,
+            defaults: tmp$1378.defaults,
+            rest: tmp$1378.rest,
+            generator: options$1376.generator
         });
-        strict$961 = previousStrict$1381;
-        return method$1383;
+        strict$957 = previousStrict$1377;
+        return method$1379;
     }
-    function parseObjectPropertyKey$1026() {
-        var token$1384 = lex$1007();
+    function parseObjectPropertyKey$1022() {
+        var token$1380 = lex$1003();
         // Note: This function is called only from parseObjectProperty(), where
         // EOF and Punctuator tokens are already filtered out.
-        if (token$1384.type === Token$951.StringLiteral || token$1384.type === Token$951.NumericLiteral) {
-            if (strict$961 && token$1384.octal) {
-                throwErrorTolerant$1012(token$1384, Messages$956.StrictOctalLiteral);
+        if (token$1380.type === Token$947.StringLiteral || token$1380.type === Token$947.NumericLiteral) {
+            if (strict$957 && token$1380.octal) {
+                throwErrorTolerant$1008(token$1380, Messages$952.StrictOctalLiteral);
             }
-            return delegate$970.createLiteral(token$1384);
+            return delegate$966.createLiteral(token$1380);
         }
         // SWEET.JS: object keys are not resolved
-        return delegate$970.createIdentifier(token$1384.value);
+        return delegate$966.createIdentifier(token$1380.value);
     }
-    function parseObjectProperty$1027() {
-        var token$1385, key$1386, id$1387, value$1388, param$1389;
-        token$1385 = lookahead$973;
-        if (token$1385.type === Token$951.Identifier) {
-            id$1387 = parseObjectPropertyKey$1026();
+    function parseObjectProperty$1023() {
+        var token$1381, key$1382, id$1383, value$1384, param$1385;
+        token$1381 = lookahead$969;
+        if (token$1381.type === Token$947.Identifier) {
+            id$1383 = parseObjectPropertyKey$1022();
             // Property Assignment: Getter and Setter.
-            if (token$1385.value === 'get' && !(match$1016(':') || match$1016('('))) {
-                key$1386 = parseObjectPropertyKey$1026();
-                expect$1014('(');
-                expect$1014(')');
-                return delegate$970.createProperty('get', key$1386, parsePropertyFunction$1024({ generator: false }), false, false);
+            if (token$1381.value === 'get' && !(match$1012(':') || match$1012('('))) {
+                key$1382 = parseObjectPropertyKey$1022();
+                expect$1010('(');
+                expect$1010(')');
+                return delegate$966.createProperty('get', key$1382, parsePropertyFunction$1020({ generator: false }), false, false);
             }
-            if (token$1385.value === 'set' && !(match$1016(':') || match$1016('('))) {
-                key$1386 = parseObjectPropertyKey$1026();
-                expect$1014('(');
-                token$1385 = lookahead$973;
-                param$1389 = [parseVariableIdentifier$1054()];
-                expect$1014(')');
-                return delegate$970.createProperty('set', key$1386, parsePropertyFunction$1024({
-                    params: param$1389,
+            if (token$1381.value === 'set' && !(match$1012(':') || match$1012('('))) {
+                key$1382 = parseObjectPropertyKey$1022();
+                expect$1010('(');
+                token$1381 = lookahead$969;
+                param$1385 = [parseVariableIdentifier$1050()];
+                expect$1010(')');
+                return delegate$966.createProperty('set', key$1382, parsePropertyFunction$1020({
+                    params: param$1385,
                     generator: false,
-                    name: token$1385
+                    name: token$1381
                 }), false, false);
             }
-            if (match$1016(':')) {
-                lex$1007();
-                return delegate$970.createProperty('init', id$1387, parseAssignmentExpression$1050(), false, false);
+            if (match$1012(':')) {
+                lex$1003();
+                return delegate$966.createProperty('init', id$1383, parseAssignmentExpression$1046(), false, false);
             }
-            if (match$1016('(')) {
-                return delegate$970.createProperty('init', id$1387, parsePropertyMethodFunction$1025({ generator: false }), true, false);
+            if (match$1012('(')) {
+                return delegate$966.createProperty('init', id$1383, parsePropertyMethodFunction$1021({ generator: false }), true, false);
             }
-            return delegate$970.createProperty('init', id$1387, id$1387, false, true);
+            return delegate$966.createProperty('init', id$1383, id$1383, false, true);
         }
-        if (token$1385.type === Token$951.EOF || token$1385.type === Token$951.Punctuator) {
-            if (!match$1016('*')) {
-                throwUnexpected$1013(token$1385);
+        if (token$1381.type === Token$947.EOF || token$1381.type === Token$947.Punctuator) {
+            if (!match$1012('*')) {
+                throwUnexpected$1009(token$1381);
             }
-            lex$1007();
-            id$1387 = parseObjectPropertyKey$1026();
-            if (!match$1016('(')) {
-                throwUnexpected$1013(lex$1007());
+            lex$1003();
+            id$1383 = parseObjectPropertyKey$1022();
+            if (!match$1012('(')) {
+                throwUnexpected$1009(lex$1003());
             }
-            return delegate$970.createProperty('init', id$1387, parsePropertyMethodFunction$1025({ generator: true }), true, false);
+            return delegate$966.createProperty('init', id$1383, parsePropertyMethodFunction$1021({ generator: true }), true, false);
         }
-        key$1386 = parseObjectPropertyKey$1026();
-        if (match$1016(':')) {
-            lex$1007();
-            return delegate$970.createProperty('init', key$1386, parseAssignmentExpression$1050(), false, false);
+        key$1382 = parseObjectPropertyKey$1022();
+        if (match$1012(':')) {
+            lex$1003();
+            return delegate$966.createProperty('init', key$1382, parseAssignmentExpression$1046(), false, false);
         }
-        if (match$1016('(')) {
-            return delegate$970.createProperty('init', key$1386, parsePropertyMethodFunction$1025({ generator: false }), true, false);
+        if (match$1012('(')) {
+            return delegate$966.createProperty('init', key$1382, parsePropertyMethodFunction$1021({ generator: false }), true, false);
         }
-        throwUnexpected$1013(lex$1007());
+        throwUnexpected$1009(lex$1003());
     }
-    function parseObjectInitialiser$1028() {
-        var properties$1390 = [], property$1391, name$1392, key$1393, kind$1394, map$1395 = {}, toString$1396 = String;
-        expect$1014('{');
-        while (!match$1016('}')) {
-            property$1391 = parseObjectProperty$1027();
-            if (property$1391.key.type === Syntax$954.Identifier) {
-                name$1392 = property$1391.key.name;
+    function parseObjectInitialiser$1024() {
+        var properties$1386 = [], property$1387, name$1388, key$1389, kind$1390, map$1391 = {}, toString$1392 = String;
+        expect$1010('{');
+        while (!match$1012('}')) {
+            property$1387 = parseObjectProperty$1023();
+            if (property$1387.key.type === Syntax$950.Identifier) {
+                name$1388 = property$1387.key.name;
             } else {
-                name$1392 = toString$1396(property$1391.key.value);
+                name$1388 = toString$1392(property$1387.key.value);
             }
-            kind$1394 = property$1391.kind === 'init' ? PropertyKind$955.Data : property$1391.kind === 'get' ? PropertyKind$955.Get : PropertyKind$955.Set;
-            key$1393 = '$' + name$1392;
-            if (Object.prototype.hasOwnProperty.call(map$1395, key$1393)) {
-                if (map$1395[key$1393] === PropertyKind$955.Data) {
-                    if (strict$961 && kind$1394 === PropertyKind$955.Data) {
-                        throwErrorTolerant$1012({}, Messages$956.StrictDuplicateProperty);
-                    } else if (kind$1394 !== PropertyKind$955.Data) {
-                        throwErrorTolerant$1012({}, Messages$956.AccessorDataProperty);
+            kind$1390 = property$1387.kind === 'init' ? PropertyKind$951.Data : property$1387.kind === 'get' ? PropertyKind$951.Get : PropertyKind$951.Set;
+            key$1389 = '$' + name$1388;
+            if (Object.prototype.hasOwnProperty.call(map$1391, key$1389)) {
+                if (map$1391[key$1389] === PropertyKind$951.Data) {
+                    if (strict$957 && kind$1390 === PropertyKind$951.Data) {
+                        throwErrorTolerant$1008({}, Messages$952.StrictDuplicateProperty);
+                    } else if (kind$1390 !== PropertyKind$951.Data) {
+                        throwErrorTolerant$1008({}, Messages$952.AccessorDataProperty);
                     }
                 } else {
-                    if (kind$1394 === PropertyKind$955.Data) {
-                        throwErrorTolerant$1012({}, Messages$956.AccessorDataProperty);
-                    } else if (map$1395[key$1393] & kind$1394) {
-                        throwErrorTolerant$1012({}, Messages$956.AccessorGetSet);
+                    if (kind$1390 === PropertyKind$951.Data) {
+                        throwErrorTolerant$1008({}, Messages$952.AccessorDataProperty);
+                    } else if (map$1391[key$1389] & kind$1390) {
+                        throwErrorTolerant$1008({}, Messages$952.AccessorGetSet);
                     }
                 }
-                map$1395[key$1393] |= kind$1394;
+                map$1391[key$1389] |= kind$1390;
             } else {
-                map$1395[key$1393] = kind$1394;
+                map$1391[key$1389] = kind$1390;
             }
-            properties$1390.push(property$1391);
-            if (!match$1016('}')) {
-                expect$1014(',');
+            properties$1386.push(property$1387);
+            if (!match$1012('}')) {
+                expect$1010(',');
             }
         }
-        expect$1014('}');
-        return delegate$970.createObjectExpression(properties$1390);
+        expect$1010('}');
+        return delegate$966.createObjectExpression(properties$1386);
     }
-    function parseTemplateElement$1029(option$1397) {
-        var token$1398 = scanTemplateElement$1002(option$1397);
-        if (strict$961 && token$1398.octal) {
-            throwError$1011(token$1398, Messages$956.StrictOctalLiteral);
+    function parseTemplateElement$1025(option$1393) {
+        var token$1394 = scanTemplateElement$998(option$1393);
+        if (strict$957 && token$1394.octal) {
+            throwError$1007(token$1394, Messages$952.StrictOctalLiteral);
         }
-        return delegate$970.createTemplateElement({
-            raw: token$1398.value.raw,
-            cooked: token$1398.value.cooked
-        }, token$1398.tail);
+        return delegate$966.createTemplateElement({
+            raw: token$1394.value.raw,
+            cooked: token$1394.value.cooked
+        }, token$1394.tail);
     }
-    function parseTemplateLiteral$1030() {
-        var quasi$1399, quasis$1400, expressions$1401;
-        quasi$1399 = parseTemplateElement$1029({ head: true });
-        quasis$1400 = [quasi$1399];
-        expressions$1401 = [];
-        while (!quasi$1399.tail) {
-            expressions$1401.push(parseExpression$1051());
-            quasi$1399 = parseTemplateElement$1029({ head: false });
-            quasis$1400.push(quasi$1399);
+    function parseTemplateLiteral$1026() {
+        var quasi$1395, quasis$1396, expressions$1397;
+        quasi$1395 = parseTemplateElement$1025({ head: true });
+        quasis$1396 = [quasi$1395];
+        expressions$1397 = [];
+        while (!quasi$1395.tail) {
+            expressions$1397.push(parseExpression$1047());
+            quasi$1395 = parseTemplateElement$1025({ head: false });
+            quasis$1396.push(quasi$1395);
         }
-        return delegate$970.createTemplateLiteral(quasis$1400, expressions$1401);
+        return delegate$966.createTemplateLiteral(quasis$1396, expressions$1397);
     }
     // 11.1.6 The Grouping Operator
-    function parseGroupExpression$1031() {
-        var expr$1402;
-        expect$1014('(');
-        ++state$975.parenthesizedCount;
-        expr$1402 = parseExpression$1051();
-        expect$1014(')');
-        return expr$1402;
+    function parseGroupExpression$1027() {
+        var expr$1398;
+        expect$1010('(');
+        ++state$971.parenthesizedCount;
+        expr$1398 = parseExpression$1047();
+        expect$1010(')');
+        return expr$1398;
     }
     // 11.1 Primary Expressions
-    function parsePrimaryExpression$1032() {
-        var type$1403, token$1404, resolvedIdent$1405;
-        token$1404 = lookahead$973;
-        type$1403 = lookahead$973.type;
-        if (type$1403 === Token$951.Identifier) {
-            resolvedIdent$1405 = expander$950.resolve(tokenStream$971[lookaheadIndex$974]);
-            lex$1007();
-            return delegate$970.createIdentifier(resolvedIdent$1405);
+    function parsePrimaryExpression$1028() {
+        var type$1399, token$1400, resolvedIdent$1401;
+        token$1400 = lookahead$969;
+        type$1399 = lookahead$969.type;
+        if (type$1399 === Token$947.Identifier) {
+            resolvedIdent$1401 = expander$946.resolve(tokenStream$967[lookaheadIndex$970]);
+            lex$1003();
+            return delegate$966.createIdentifier(resolvedIdent$1401);
         }
-        if (type$1403 === Token$951.StringLiteral || type$1403 === Token$951.NumericLiteral) {
-            if (strict$961 && lookahead$973.octal) {
-                throwErrorTolerant$1012(lookahead$973, Messages$956.StrictOctalLiteral);
+        if (type$1399 === Token$947.StringLiteral || type$1399 === Token$947.NumericLiteral) {
+            if (strict$957 && lookahead$969.octal) {
+                throwErrorTolerant$1008(lookahead$969, Messages$952.StrictOctalLiteral);
             }
-            return delegate$970.createLiteral(lex$1007());
+            return delegate$966.createLiteral(lex$1003());
         }
-        if (type$1403 === Token$951.Keyword) {
-            if (matchKeyword$1017('this')) {
-                lex$1007();
-                return delegate$970.createThisExpression();
+        if (type$1399 === Token$947.Keyword) {
+            if (matchKeyword$1013('this')) {
+                lex$1003();
+                return delegate$966.createThisExpression();
             }
-            if (matchKeyword$1017('function')) {
-                return parseFunctionExpression$1089();
+            if (matchKeyword$1013('function')) {
+                return parseFunctionExpression$1085();
             }
-            if (matchKeyword$1017('class')) {
-                return parseClassExpression$1094();
+            if (matchKeyword$1013('class')) {
+                return parseClassExpression$1090();
             }
-            if (matchKeyword$1017('super')) {
-                lex$1007();
-                return delegate$970.createIdentifier('super');
+            if (matchKeyword$1013('super')) {
+                lex$1003();
+                return delegate$966.createIdentifier('super');
             }
         }
-        if (type$1403 === Token$951.BooleanLiteral) {
-            token$1404 = lex$1007();
-            token$1404.value = token$1404.value === 'true';
-            return delegate$970.createLiteral(token$1404);
+        if (type$1399 === Token$947.BooleanLiteral) {
+            token$1400 = lex$1003();
+            token$1400.value = token$1400.value === 'true';
+            return delegate$966.createLiteral(token$1400);
         }
-        if (type$1403 === Token$951.NullLiteral) {
-            token$1404 = lex$1007();
-            token$1404.value = null;
-            return delegate$970.createLiteral(token$1404);
+        if (type$1399 === Token$947.NullLiteral) {
+            token$1400 = lex$1003();
+            token$1400.value = null;
+            return delegate$966.createLiteral(token$1400);
         }
-        if (match$1016('[')) {
-            return parseArrayInitialiser$1023();
+        if (match$1012('[')) {
+            return parseArrayInitialiser$1019();
         }
-        if (match$1016('{')) {
-            return parseObjectInitialiser$1028();
+        if (match$1012('{')) {
+            return parseObjectInitialiser$1024();
         }
-        if (match$1016('(')) {
-            return parseGroupExpression$1031();
+        if (match$1012('(')) {
+            return parseGroupExpression$1027();
         }
-        if (lookahead$973.type === Token$951.RegularExpression) {
-            return delegate$970.createLiteral(lex$1007());
+        if (lookahead$969.type === Token$947.RegularExpression) {
+            return delegate$966.createLiteral(lex$1003());
         }
-        if (type$1403 === Token$951.Template) {
-            return parseTemplateLiteral$1030();
+        if (type$1399 === Token$947.Template) {
+            return parseTemplateLiteral$1026();
         }
-        return throwUnexpected$1013(lex$1007());
+        return throwUnexpected$1009(lex$1003());
     }
     // 11.2 Left-Hand-Side Expressions
-    function parseArguments$1033() {
-        var args$1406 = [], arg$1407;
-        expect$1014('(');
-        if (!match$1016(')')) {
-            while (streamIndex$972 < length$969) {
-                arg$1407 = parseSpreadOrAssignmentExpression$1034();
-                args$1406.push(arg$1407);
-                if (match$1016(')')) {
+    function parseArguments$1029() {
+        var args$1402 = [], arg$1403;
+        expect$1010('(');
+        if (!match$1012(')')) {
+            while (streamIndex$968 < length$965) {
+                arg$1403 = parseSpreadOrAssignmentExpression$1030();
+                args$1402.push(arg$1403);
+                if (match$1012(')')) {
                     break;
-                } else if (arg$1407.type === Syntax$954.SpreadElement) {
-                    throwError$1011({}, Messages$956.ElementAfterSpreadElement);
+                } else if (arg$1403.type === Syntax$950.SpreadElement) {
+                    throwError$1007({}, Messages$952.ElementAfterSpreadElement);
                 }
-                expect$1014(',');
+                expect$1010(',');
             }
         }
-        expect$1014(')');
-        return args$1406;
+        expect$1010(')');
+        return args$1402;
     }
-    function parseSpreadOrAssignmentExpression$1034() {
-        if (match$1016('...')) {
-            lex$1007();
-            return delegate$970.createSpreadElement(parseAssignmentExpression$1050());
+    function parseSpreadOrAssignmentExpression$1030() {
+        if (match$1012('...')) {
+            lex$1003();
+            return delegate$966.createSpreadElement(parseAssignmentExpression$1046());
         }
-        return parseAssignmentExpression$1050();
+        return parseAssignmentExpression$1046();
     }
-    function parseNonComputedProperty$1035() {
-        var token$1408 = lex$1007();
-        if (!isIdentifierName$1004(token$1408)) {
-            throwUnexpected$1013(token$1408);
+    function parseNonComputedProperty$1031() {
+        var token$1404 = lex$1003();
+        if (!isIdentifierName$1000(token$1404)) {
+            throwUnexpected$1009(token$1404);
         }
-        return delegate$970.createIdentifier(token$1408.value);
+        return delegate$966.createIdentifier(token$1404.value);
     }
-    function parseNonComputedMember$1036() {
-        expect$1014('.');
-        return parseNonComputedProperty$1035();
+    function parseNonComputedMember$1032() {
+        expect$1010('.');
+        return parseNonComputedProperty$1031();
     }
-    function parseComputedMember$1037() {
-        var expr$1409;
-        expect$1014('[');
-        expr$1409 = parseExpression$1051();
-        expect$1014(']');
-        return expr$1409;
+    function parseComputedMember$1033() {
+        var expr$1405;
+        expect$1010('[');
+        expr$1405 = parseExpression$1047();
+        expect$1010(']');
+        return expr$1405;
     }
-    function parseNewExpression$1038() {
-        var callee$1410, args$1411;
-        expectKeyword$1015('new');
-        callee$1410 = parseLeftHandSideExpression$1040();
-        args$1411 = match$1016('(') ? parseArguments$1033() : [];
-        return delegate$970.createNewExpression(callee$1410, args$1411);
+    function parseNewExpression$1034() {
+        var callee$1406, args$1407;
+        expectKeyword$1011('new');
+        callee$1406 = parseLeftHandSideExpression$1036();
+        args$1407 = match$1012('(') ? parseArguments$1029() : [];
+        return delegate$966.createNewExpression(callee$1406, args$1407);
     }
-    function parseLeftHandSideExpressionAllowCall$1039() {
-        var expr$1412, args$1413, property$1414;
-        expr$1412 = matchKeyword$1017('new') ? parseNewExpression$1038() : parsePrimaryExpression$1032();
-        while (match$1016('.') || match$1016('[') || match$1016('(') || lookahead$973.type === Token$951.Template) {
-            if (match$1016('(')) {
-                args$1413 = parseArguments$1033();
-                expr$1412 = delegate$970.createCallExpression(expr$1412, args$1413);
-            } else if (match$1016('[')) {
-                expr$1412 = delegate$970.createMemberExpression('[', expr$1412, parseComputedMember$1037());
-            } else if (match$1016('.')) {
-                expr$1412 = delegate$970.createMemberExpression('.', expr$1412, parseNonComputedMember$1036());
+    function parseLeftHandSideExpressionAllowCall$1035() {
+        var expr$1408, args$1409, property$1410;
+        expr$1408 = matchKeyword$1013('new') ? parseNewExpression$1034() : parsePrimaryExpression$1028();
+        while (match$1012('.') || match$1012('[') || match$1012('(') || lookahead$969.type === Token$947.Template) {
+            if (match$1012('(')) {
+                args$1409 = parseArguments$1029();
+                expr$1408 = delegate$966.createCallExpression(expr$1408, args$1409);
+            } else if (match$1012('[')) {
+                expr$1408 = delegate$966.createMemberExpression('[', expr$1408, parseComputedMember$1033());
+            } else if (match$1012('.')) {
+                expr$1408 = delegate$966.createMemberExpression('.', expr$1408, parseNonComputedMember$1032());
             } else {
-                expr$1412 = delegate$970.createTaggedTemplateExpression(expr$1412, parseTemplateLiteral$1030());
+                expr$1408 = delegate$966.createTaggedTemplateExpression(expr$1408, parseTemplateLiteral$1026());
             }
         }
-        return expr$1412;
+        return expr$1408;
     }
-    function parseLeftHandSideExpression$1040() {
-        var expr$1415, property$1416;
-        expr$1415 = matchKeyword$1017('new') ? parseNewExpression$1038() : parsePrimaryExpression$1032();
-        while (match$1016('.') || match$1016('[') || lookahead$973.type === Token$951.Template) {
-            if (match$1016('[')) {
-                expr$1415 = delegate$970.createMemberExpression('[', expr$1415, parseComputedMember$1037());
-            } else if (match$1016('.')) {
-                expr$1415 = delegate$970.createMemberExpression('.', expr$1415, parseNonComputedMember$1036());
+    function parseLeftHandSideExpression$1036() {
+        var expr$1411, property$1412;
+        expr$1411 = matchKeyword$1013('new') ? parseNewExpression$1034() : parsePrimaryExpression$1028();
+        while (match$1012('.') || match$1012('[') || lookahead$969.type === Token$947.Template) {
+            if (match$1012('[')) {
+                expr$1411 = delegate$966.createMemberExpression('[', expr$1411, parseComputedMember$1033());
+            } else if (match$1012('.')) {
+                expr$1411 = delegate$966.createMemberExpression('.', expr$1411, parseNonComputedMember$1032());
             } else {
-                expr$1415 = delegate$970.createTaggedTemplateExpression(expr$1415, parseTemplateLiteral$1030());
+                expr$1411 = delegate$966.createTaggedTemplateExpression(expr$1411, parseTemplateLiteral$1026());
             }
         }
-        return expr$1415;
+        return expr$1411;
     }
     // 11.3 Postfix Expressions
-    function parsePostfixExpression$1041() {
-        var expr$1417 = parseLeftHandSideExpressionAllowCall$1039(), token$1418 = lookahead$973;
-        if (lookahead$973.type !== Token$951.Punctuator) {
-            return expr$1417;
+    function parsePostfixExpression$1037() {
+        var expr$1413 = parseLeftHandSideExpressionAllowCall$1035(), token$1414 = lookahead$969;
+        if (lookahead$969.type !== Token$947.Punctuator) {
+            return expr$1413;
         }
-        if ((match$1016('++') || match$1016('--')) && !peekLineTerminator$1010()) {
+        if ((match$1012('++') || match$1012('--')) && !peekLineTerminator$1006()) {
             // 11.3.1, 11.3.2
-            if (strict$961 && expr$1417.type === Syntax$954.Identifier && isRestrictedWord$988(expr$1417.name)) {
-                throwErrorTolerant$1012({}, Messages$956.StrictLHSPostfix);
+            if (strict$957 && expr$1413.type === Syntax$950.Identifier && isRestrictedWord$984(expr$1413.name)) {
+                throwErrorTolerant$1008({}, Messages$952.StrictLHSPostfix);
             }
-            if (!isLeftHandSide$1021(expr$1417)) {
-                throwError$1011({}, Messages$956.InvalidLHSInAssignment);
+            if (!isLeftHandSide$1017(expr$1413)) {
+                throwError$1007({}, Messages$952.InvalidLHSInAssignment);
             }
-            token$1418 = lex$1007();
-            expr$1417 = delegate$970.createPostfixExpression(token$1418.value, expr$1417);
+            token$1414 = lex$1003();
+            expr$1413 = delegate$966.createPostfixExpression(token$1414.value, expr$1413);
         }
-        return expr$1417;
+        return expr$1413;
     }
     // 11.4 Unary Operators
-    function parseUnaryExpression$1042() {
-        var token$1419, expr$1420;
-        if (lookahead$973.type !== Token$951.Punctuator && lookahead$973.type !== Token$951.Keyword) {
-            return parsePostfixExpression$1041();
+    function parseUnaryExpression$1038() {
+        var token$1415, expr$1416;
+        if (lookahead$969.type !== Token$947.Punctuator && lookahead$969.type !== Token$947.Keyword) {
+            return parsePostfixExpression$1037();
         }
-        if (match$1016('++') || match$1016('--')) {
-            token$1419 = lex$1007();
-            expr$1420 = parseUnaryExpression$1042();
+        if (match$1012('++') || match$1012('--')) {
+            token$1415 = lex$1003();
+            expr$1416 = parseUnaryExpression$1038();
             // 11.4.4, 11.4.5
-            if (strict$961 && expr$1420.type === Syntax$954.Identifier && isRestrictedWord$988(expr$1420.name)) {
-                throwErrorTolerant$1012({}, Messages$956.StrictLHSPrefix);
+            if (strict$957 && expr$1416.type === Syntax$950.Identifier && isRestrictedWord$984(expr$1416.name)) {
+                throwErrorTolerant$1008({}, Messages$952.StrictLHSPrefix);
             }
-            if (!isLeftHandSide$1021(expr$1420)) {
-                throwError$1011({}, Messages$956.InvalidLHSInAssignment);
+            if (!isLeftHandSide$1017(expr$1416)) {
+                throwError$1007({}, Messages$952.InvalidLHSInAssignment);
             }
-            return delegate$970.createUnaryExpression(token$1419.value, expr$1420);
+            return delegate$966.createUnaryExpression(token$1415.value, expr$1416);
         }
-        if (match$1016('+') || match$1016('-') || match$1016('~') || match$1016('!')) {
-            token$1419 = lex$1007();
-            expr$1420 = parseUnaryExpression$1042();
-            return delegate$970.createUnaryExpression(token$1419.value, expr$1420);
+        if (match$1012('+') || match$1012('-') || match$1012('~') || match$1012('!')) {
+            token$1415 = lex$1003();
+            expr$1416 = parseUnaryExpression$1038();
+            return delegate$966.createUnaryExpression(token$1415.value, expr$1416);
         }
-        if (matchKeyword$1017('delete') || matchKeyword$1017('void') || matchKeyword$1017('typeof')) {
-            token$1419 = lex$1007();
-            expr$1420 = parseUnaryExpression$1042();
-            expr$1420 = delegate$970.createUnaryExpression(token$1419.value, expr$1420);
-            if (strict$961 && expr$1420.operator === 'delete' && expr$1420.argument.type === Syntax$954.Identifier) {
-                throwErrorTolerant$1012({}, Messages$956.StrictDelete);
+        if (matchKeyword$1013('delete') || matchKeyword$1013('void') || matchKeyword$1013('typeof')) {
+            token$1415 = lex$1003();
+            expr$1416 = parseUnaryExpression$1038();
+            expr$1416 = delegate$966.createUnaryExpression(token$1415.value, expr$1416);
+            if (strict$957 && expr$1416.operator === 'delete' && expr$1416.argument.type === Syntax$950.Identifier) {
+                throwErrorTolerant$1008({}, Messages$952.StrictDelete);
             }
-            return expr$1420;
+            return expr$1416;
         }
-        return parsePostfixExpression$1041();
+        return parsePostfixExpression$1037();
     }
-    function binaryPrecedence$1043(token$1421, allowIn$1422) {
-        var prec$1423 = 0;
-        if (token$1421.type !== Token$951.Punctuator && token$1421.type !== Token$951.Keyword) {
+    function binaryPrecedence$1039(token$1417, allowIn$1418) {
+        var prec$1419 = 0;
+        if (token$1417.type !== Token$947.Punctuator && token$1417.type !== Token$947.Keyword) {
             return 0;
         }
-        switch (token$1421.value) {
+        switch (token$1417.value) {
         case '||':
-            prec$1423 = 1;
+            prec$1419 = 1;
             break;
         case '&&':
-            prec$1423 = 2;
+            prec$1419 = 2;
             break;
         case '|':
-            prec$1423 = 3;
+            prec$1419 = 3;
             break;
         case '^':
-            prec$1423 = 4;
+            prec$1419 = 4;
             break;
         case '&':
-            prec$1423 = 5;
+            prec$1419 = 5;
             break;
         case '==':
         case '!=':
         case '===':
         case '!==':
-            prec$1423 = 6;
+            prec$1419 = 6;
             break;
         case '<':
         case '>':
         case '<=':
         case '>=':
         case 'instanceof':
-            prec$1423 = 7;
+            prec$1419 = 7;
             break;
         case 'in':
-            prec$1423 = allowIn$1422 ? 7 : 0;
+            prec$1419 = allowIn$1418 ? 7 : 0;
             break;
         case '<<':
         case '>>':
         case '>>>':
-            prec$1423 = 8;
+            prec$1419 = 8;
             break;
         case '+':
         case '-':
-            prec$1423 = 9;
+            prec$1419 = 9;
             break;
         case '*':
         case '/':
         case '%':
-            prec$1423 = 11;
+            prec$1419 = 11;
             break;
         default:
             break;
         }
-        return prec$1423;
+        return prec$1419;
     }
     // 11.5 Multiplicative Operators
     // 11.6 Additive Operators
@@ -2489,1662 +2489,1662 @@ parseYieldExpression: true
     // 11.9 Equality Operators
     // 11.10 Binary Bitwise Operators
     // 11.11 Binary Logical Operators
-    function parseBinaryExpression$1044() {
-        var expr$1424, token$1425, prec$1426, previousAllowIn$1427, stack$1428, right$1429, operator$1430, left$1431, i$1432;
-        previousAllowIn$1427 = state$975.allowIn;
-        state$975.allowIn = true;
-        expr$1424 = parseUnaryExpression$1042();
-        token$1425 = lookahead$973;
-        prec$1426 = binaryPrecedence$1043(token$1425, previousAllowIn$1427);
-        if (prec$1426 === 0) {
-            return expr$1424;
+    function parseBinaryExpression$1040() {
+        var expr$1420, token$1421, prec$1422, previousAllowIn$1423, stack$1424, right$1425, operator$1426, left$1427, i$1428;
+        previousAllowIn$1423 = state$971.allowIn;
+        state$971.allowIn = true;
+        expr$1420 = parseUnaryExpression$1038();
+        token$1421 = lookahead$969;
+        prec$1422 = binaryPrecedence$1039(token$1421, previousAllowIn$1423);
+        if (prec$1422 === 0) {
+            return expr$1420;
         }
-        token$1425.prec = prec$1426;
-        lex$1007();
-        stack$1428 = [
-            expr$1424,
-            token$1425,
-            parseUnaryExpression$1042()
+        token$1421.prec = prec$1422;
+        lex$1003();
+        stack$1424 = [
+            expr$1420,
+            token$1421,
+            parseUnaryExpression$1038()
         ];
-        while ((prec$1426 = binaryPrecedence$1043(lookahead$973, previousAllowIn$1427)) > 0) {
+        while ((prec$1422 = binaryPrecedence$1039(lookahead$969, previousAllowIn$1423)) > 0) {
             // Reduce: make a binary expression from the three topmost entries.
-            while (stack$1428.length > 2 && prec$1426 <= stack$1428[stack$1428.length - 2].prec) {
-                right$1429 = stack$1428.pop();
-                operator$1430 = stack$1428.pop().value;
-                left$1431 = stack$1428.pop();
-                stack$1428.push(delegate$970.createBinaryExpression(operator$1430, left$1431, right$1429));
+            while (stack$1424.length > 2 && prec$1422 <= stack$1424[stack$1424.length - 2].prec) {
+                right$1425 = stack$1424.pop();
+                operator$1426 = stack$1424.pop().value;
+                left$1427 = stack$1424.pop();
+                stack$1424.push(delegate$966.createBinaryExpression(operator$1426, left$1427, right$1425));
             }
             // Shift.
-            token$1425 = lex$1007();
-            token$1425.prec = prec$1426;
-            stack$1428.push(token$1425);
-            stack$1428.push(parseUnaryExpression$1042());
+            token$1421 = lex$1003();
+            token$1421.prec = prec$1422;
+            stack$1424.push(token$1421);
+            stack$1424.push(parseUnaryExpression$1038());
         }
-        state$975.allowIn = previousAllowIn$1427;
+        state$971.allowIn = previousAllowIn$1423;
         // Final reduce to clean-up the stack.
-        i$1432 = stack$1428.length - 1;
-        expr$1424 = stack$1428[i$1432];
-        while (i$1432 > 1) {
-            expr$1424 = delegate$970.createBinaryExpression(stack$1428[i$1432 - 1].value, stack$1428[i$1432 - 2], expr$1424);
-            i$1432 -= 2;
+        i$1428 = stack$1424.length - 1;
+        expr$1420 = stack$1424[i$1428];
+        while (i$1428 > 1) {
+            expr$1420 = delegate$966.createBinaryExpression(stack$1424[i$1428 - 1].value, stack$1424[i$1428 - 2], expr$1420);
+            i$1428 -= 2;
         }
-        return expr$1424;
+        return expr$1420;
     }
     // 11.12 Conditional Operator
-    function parseConditionalExpression$1045() {
-        var expr$1433, previousAllowIn$1434, consequent$1435, alternate$1436;
-        expr$1433 = parseBinaryExpression$1044();
-        if (match$1016('?')) {
-            lex$1007();
-            previousAllowIn$1434 = state$975.allowIn;
-            state$975.allowIn = true;
-            consequent$1435 = parseAssignmentExpression$1050();
-            state$975.allowIn = previousAllowIn$1434;
-            expect$1014(':');
-            alternate$1436 = parseAssignmentExpression$1050();
-            expr$1433 = delegate$970.createConditionalExpression(expr$1433, consequent$1435, alternate$1436);
+    function parseConditionalExpression$1041() {
+        var expr$1429, previousAllowIn$1430, consequent$1431, alternate$1432;
+        expr$1429 = parseBinaryExpression$1040();
+        if (match$1012('?')) {
+            lex$1003();
+            previousAllowIn$1430 = state$971.allowIn;
+            state$971.allowIn = true;
+            consequent$1431 = parseAssignmentExpression$1046();
+            state$971.allowIn = previousAllowIn$1430;
+            expect$1010(':');
+            alternate$1432 = parseAssignmentExpression$1046();
+            expr$1429 = delegate$966.createConditionalExpression(expr$1429, consequent$1431, alternate$1432);
         }
-        return expr$1433;
+        return expr$1429;
     }
     // 11.13 Assignment Operators
-    function reinterpretAsAssignmentBindingPattern$1046(expr$1437) {
-        var i$1438, len$1439, property$1440, element$1441;
-        if (expr$1437.type === Syntax$954.ObjectExpression) {
-            expr$1437.type = Syntax$954.ObjectPattern;
-            for (i$1438 = 0, len$1439 = expr$1437.properties.length; i$1438 < len$1439; i$1438 += 1) {
-                property$1440 = expr$1437.properties[i$1438];
-                if (property$1440.kind !== 'init') {
-                    throwError$1011({}, Messages$956.InvalidLHSInAssignment);
+    function reinterpretAsAssignmentBindingPattern$1042(expr$1433) {
+        var i$1434, len$1435, property$1436, element$1437;
+        if (expr$1433.type === Syntax$950.ObjectExpression) {
+            expr$1433.type = Syntax$950.ObjectPattern;
+            for (i$1434 = 0, len$1435 = expr$1433.properties.length; i$1434 < len$1435; i$1434 += 1) {
+                property$1436 = expr$1433.properties[i$1434];
+                if (property$1436.kind !== 'init') {
+                    throwError$1007({}, Messages$952.InvalidLHSInAssignment);
                 }
-                reinterpretAsAssignmentBindingPattern$1046(property$1440.value);
+                reinterpretAsAssignmentBindingPattern$1042(property$1436.value);
             }
-        } else if (expr$1437.type === Syntax$954.ArrayExpression) {
-            expr$1437.type = Syntax$954.ArrayPattern;
-            for (i$1438 = 0, len$1439 = expr$1437.elements.length; i$1438 < len$1439; i$1438 += 1) {
-                element$1441 = expr$1437.elements[i$1438];
-                if (element$1441) {
-                    reinterpretAsAssignmentBindingPattern$1046(element$1441);
+        } else if (expr$1433.type === Syntax$950.ArrayExpression) {
+            expr$1433.type = Syntax$950.ArrayPattern;
+            for (i$1434 = 0, len$1435 = expr$1433.elements.length; i$1434 < len$1435; i$1434 += 1) {
+                element$1437 = expr$1433.elements[i$1434];
+                if (element$1437) {
+                    reinterpretAsAssignmentBindingPattern$1042(element$1437);
                 }
             }
-        } else if (expr$1437.type === Syntax$954.Identifier) {
-            if (isRestrictedWord$988(expr$1437.name)) {
-                throwError$1011({}, Messages$956.InvalidLHSInAssignment);
+        } else if (expr$1433.type === Syntax$950.Identifier) {
+            if (isRestrictedWord$984(expr$1433.name)) {
+                throwError$1007({}, Messages$952.InvalidLHSInAssignment);
             }
-        } else if (expr$1437.type === Syntax$954.SpreadElement) {
-            reinterpretAsAssignmentBindingPattern$1046(expr$1437.argument);
-            if (expr$1437.argument.type === Syntax$954.ObjectPattern) {
-                throwError$1011({}, Messages$956.ObjectPatternAsSpread);
+        } else if (expr$1433.type === Syntax$950.SpreadElement) {
+            reinterpretAsAssignmentBindingPattern$1042(expr$1433.argument);
+            if (expr$1433.argument.type === Syntax$950.ObjectPattern) {
+                throwError$1007({}, Messages$952.ObjectPatternAsSpread);
             }
         } else {
-            if (expr$1437.type !== Syntax$954.MemberExpression && expr$1437.type !== Syntax$954.CallExpression && expr$1437.type !== Syntax$954.NewExpression) {
-                throwError$1011({}, Messages$956.InvalidLHSInAssignment);
+            if (expr$1433.type !== Syntax$950.MemberExpression && expr$1433.type !== Syntax$950.CallExpression && expr$1433.type !== Syntax$950.NewExpression) {
+                throwError$1007({}, Messages$952.InvalidLHSInAssignment);
             }
         }
     }
-    function reinterpretAsDestructuredParameter$1047(options$1442, expr$1443) {
-        var i$1444, len$1445, property$1446, element$1447;
-        if (expr$1443.type === Syntax$954.ObjectExpression) {
-            expr$1443.type = Syntax$954.ObjectPattern;
-            for (i$1444 = 0, len$1445 = expr$1443.properties.length; i$1444 < len$1445; i$1444 += 1) {
-                property$1446 = expr$1443.properties[i$1444];
-                if (property$1446.kind !== 'init') {
-                    throwError$1011({}, Messages$956.InvalidLHSInFormalsList);
+    function reinterpretAsDestructuredParameter$1043(options$1438, expr$1439) {
+        var i$1440, len$1441, property$1442, element$1443;
+        if (expr$1439.type === Syntax$950.ObjectExpression) {
+            expr$1439.type = Syntax$950.ObjectPattern;
+            for (i$1440 = 0, len$1441 = expr$1439.properties.length; i$1440 < len$1441; i$1440 += 1) {
+                property$1442 = expr$1439.properties[i$1440];
+                if (property$1442.kind !== 'init') {
+                    throwError$1007({}, Messages$952.InvalidLHSInFormalsList);
                 }
-                reinterpretAsDestructuredParameter$1047(options$1442, property$1446.value);
+                reinterpretAsDestructuredParameter$1043(options$1438, property$1442.value);
             }
-        } else if (expr$1443.type === Syntax$954.ArrayExpression) {
-            expr$1443.type = Syntax$954.ArrayPattern;
-            for (i$1444 = 0, len$1445 = expr$1443.elements.length; i$1444 < len$1445; i$1444 += 1) {
-                element$1447 = expr$1443.elements[i$1444];
-                if (element$1447) {
-                    reinterpretAsDestructuredParameter$1047(options$1442, element$1447);
+        } else if (expr$1439.type === Syntax$950.ArrayExpression) {
+            expr$1439.type = Syntax$950.ArrayPattern;
+            for (i$1440 = 0, len$1441 = expr$1439.elements.length; i$1440 < len$1441; i$1440 += 1) {
+                element$1443 = expr$1439.elements[i$1440];
+                if (element$1443) {
+                    reinterpretAsDestructuredParameter$1043(options$1438, element$1443);
                 }
             }
-        } else if (expr$1443.type === Syntax$954.Identifier) {
-            validateParam$1085(options$1442, expr$1443, expr$1443.name);
+        } else if (expr$1439.type === Syntax$950.Identifier) {
+            validateParam$1081(options$1438, expr$1439, expr$1439.name);
         } else {
-            if (expr$1443.type !== Syntax$954.MemberExpression) {
-                throwError$1011({}, Messages$956.InvalidLHSInFormalsList);
+            if (expr$1439.type !== Syntax$950.MemberExpression) {
+                throwError$1007({}, Messages$952.InvalidLHSInFormalsList);
             }
         }
     }
-    function reinterpretAsCoverFormalsList$1048(expressions$1448) {
-        var i$1449, len$1450, param$1451, params$1452, defaults$1453, defaultCount$1454, options$1455, rest$1456;
-        params$1452 = [];
-        defaults$1453 = [];
-        defaultCount$1454 = 0;
-        rest$1456 = null;
-        options$1455 = { paramSet: {} };
-        for (i$1449 = 0, len$1450 = expressions$1448.length; i$1449 < len$1450; i$1449 += 1) {
-            param$1451 = expressions$1448[i$1449];
-            if (param$1451.type === Syntax$954.Identifier) {
-                params$1452.push(param$1451);
-                defaults$1453.push(null);
-                validateParam$1085(options$1455, param$1451, param$1451.name);
-            } else if (param$1451.type === Syntax$954.ObjectExpression || param$1451.type === Syntax$954.ArrayExpression) {
-                reinterpretAsDestructuredParameter$1047(options$1455, param$1451);
-                params$1452.push(param$1451);
-                defaults$1453.push(null);
-            } else if (param$1451.type === Syntax$954.SpreadElement) {
-                assert$977(i$1449 === len$1450 - 1, 'It is guaranteed that SpreadElement is last element by parseExpression');
-                reinterpretAsDestructuredParameter$1047(options$1455, param$1451.argument);
-                rest$1456 = param$1451.argument;
-            } else if (param$1451.type === Syntax$954.AssignmentExpression) {
-                params$1452.push(param$1451.left);
-                defaults$1453.push(param$1451.right);
-                ++defaultCount$1454;
-                validateParam$1085(options$1455, param$1451.left, param$1451.left.name);
+    function reinterpretAsCoverFormalsList$1044(expressions$1444) {
+        var i$1445, len$1446, param$1447, params$1448, defaults$1449, defaultCount$1450, options$1451, rest$1452;
+        params$1448 = [];
+        defaults$1449 = [];
+        defaultCount$1450 = 0;
+        rest$1452 = null;
+        options$1451 = { paramSet: {} };
+        for (i$1445 = 0, len$1446 = expressions$1444.length; i$1445 < len$1446; i$1445 += 1) {
+            param$1447 = expressions$1444[i$1445];
+            if (param$1447.type === Syntax$950.Identifier) {
+                params$1448.push(param$1447);
+                defaults$1449.push(null);
+                validateParam$1081(options$1451, param$1447, param$1447.name);
+            } else if (param$1447.type === Syntax$950.ObjectExpression || param$1447.type === Syntax$950.ArrayExpression) {
+                reinterpretAsDestructuredParameter$1043(options$1451, param$1447);
+                params$1448.push(param$1447);
+                defaults$1449.push(null);
+            } else if (param$1447.type === Syntax$950.SpreadElement) {
+                assert$973(i$1445 === len$1446 - 1, 'It is guaranteed that SpreadElement is last element by parseExpression');
+                reinterpretAsDestructuredParameter$1043(options$1451, param$1447.argument);
+                rest$1452 = param$1447.argument;
+            } else if (param$1447.type === Syntax$950.AssignmentExpression) {
+                params$1448.push(param$1447.left);
+                defaults$1449.push(param$1447.right);
+                ++defaultCount$1450;
+                validateParam$1081(options$1451, param$1447.left, param$1447.left.name);
             } else {
                 return null;
             }
         }
-        if (options$1455.message === Messages$956.StrictParamDupe) {
-            throwError$1011(strict$961 ? options$1455.stricted : options$1455.firstRestricted, options$1455.message);
+        if (options$1451.message === Messages$952.StrictParamDupe) {
+            throwError$1007(strict$957 ? options$1451.stricted : options$1451.firstRestricted, options$1451.message);
         }
-        if (defaultCount$1454 === 0) {
-            defaults$1453 = [];
+        if (defaultCount$1450 === 0) {
+            defaults$1449 = [];
         }
         return {
-            params: params$1452,
-            defaults: defaults$1453,
-            rest: rest$1456,
-            stricted: options$1455.stricted,
-            firstRestricted: options$1455.firstRestricted,
-            message: options$1455.message
+            params: params$1448,
+            defaults: defaults$1449,
+            rest: rest$1452,
+            stricted: options$1451.stricted,
+            firstRestricted: options$1451.firstRestricted,
+            message: options$1451.message
         };
     }
-    function parseArrowFunctionExpression$1049(options$1457) {
-        var previousStrict$1458, previousYieldAllowed$1459, body$1460;
-        expect$1014('=>');
-        previousStrict$1458 = strict$961;
-        previousYieldAllowed$1459 = state$975.yieldAllowed;
-        state$975.yieldAllowed = false;
-        body$1460 = parseConciseBody$1083();
-        if (strict$961 && options$1457.firstRestricted) {
-            throwError$1011(options$1457.firstRestricted, options$1457.message);
+    function parseArrowFunctionExpression$1045(options$1453) {
+        var previousStrict$1454, previousYieldAllowed$1455, body$1456;
+        expect$1010('=>');
+        previousStrict$1454 = strict$957;
+        previousYieldAllowed$1455 = state$971.yieldAllowed;
+        state$971.yieldAllowed = false;
+        body$1456 = parseConciseBody$1079();
+        if (strict$957 && options$1453.firstRestricted) {
+            throwError$1007(options$1453.firstRestricted, options$1453.message);
         }
-        if (strict$961 && options$1457.stricted) {
-            throwErrorTolerant$1012(options$1457.stricted, options$1457.message);
+        if (strict$957 && options$1453.stricted) {
+            throwErrorTolerant$1008(options$1453.stricted, options$1453.message);
         }
-        strict$961 = previousStrict$1458;
-        state$975.yieldAllowed = previousYieldAllowed$1459;
-        return delegate$970.createArrowFunctionExpression(options$1457.params, options$1457.defaults, body$1460, options$1457.rest, body$1460.type !== Syntax$954.BlockStatement);
+        strict$957 = previousStrict$1454;
+        state$971.yieldAllowed = previousYieldAllowed$1455;
+        return delegate$966.createArrowFunctionExpression(options$1453.params, options$1453.defaults, body$1456, options$1453.rest, body$1456.type !== Syntax$950.BlockStatement);
     }
-    function parseAssignmentExpression$1050() {
-        var expr$1461, token$1462, params$1463, oldParenthesizedCount$1464;
-        if (matchKeyword$1017('yield')) {
-            return parseYieldExpression$1090();
+    function parseAssignmentExpression$1046() {
+        var expr$1457, token$1458, params$1459, oldParenthesizedCount$1460;
+        if (matchKeyword$1013('yield')) {
+            return parseYieldExpression$1086();
         }
-        oldParenthesizedCount$1464 = state$975.parenthesizedCount;
-        if (match$1016('(')) {
-            token$1462 = lookahead2$1009();
-            if (token$1462.type === Token$951.Punctuator && token$1462.value === ')' || token$1462.value === '...') {
-                params$1463 = parseParams$1087();
-                if (!match$1016('=>')) {
-                    throwUnexpected$1013(lex$1007());
+        oldParenthesizedCount$1460 = state$971.parenthesizedCount;
+        if (match$1012('(')) {
+            token$1458 = lookahead2$1005();
+            if (token$1458.type === Token$947.Punctuator && token$1458.value === ')' || token$1458.value === '...') {
+                params$1459 = parseParams$1083();
+                if (!match$1012('=>')) {
+                    throwUnexpected$1009(lex$1003());
                 }
-                return parseArrowFunctionExpression$1049(params$1463);
+                return parseArrowFunctionExpression$1045(params$1459);
             }
         }
-        token$1462 = lookahead$973;
-        expr$1461 = parseConditionalExpression$1045();
-        if (match$1016('=>') && (state$975.parenthesizedCount === oldParenthesizedCount$1464 || state$975.parenthesizedCount === oldParenthesizedCount$1464 + 1)) {
-            if (expr$1461.type === Syntax$954.Identifier) {
-                params$1463 = reinterpretAsCoverFormalsList$1048([expr$1461]);
-            } else if (expr$1461.type === Syntax$954.SequenceExpression) {
-                params$1463 = reinterpretAsCoverFormalsList$1048(expr$1461.expressions);
+        token$1458 = lookahead$969;
+        expr$1457 = parseConditionalExpression$1041();
+        if (match$1012('=>') && (state$971.parenthesizedCount === oldParenthesizedCount$1460 || state$971.parenthesizedCount === oldParenthesizedCount$1460 + 1)) {
+            if (expr$1457.type === Syntax$950.Identifier) {
+                params$1459 = reinterpretAsCoverFormalsList$1044([expr$1457]);
+            } else if (expr$1457.type === Syntax$950.SequenceExpression) {
+                params$1459 = reinterpretAsCoverFormalsList$1044(expr$1457.expressions);
             }
-            if (params$1463) {
-                return parseArrowFunctionExpression$1049(params$1463);
+            if (params$1459) {
+                return parseArrowFunctionExpression$1045(params$1459);
             }
         }
-        if (matchAssign$1019()) {
+        if (matchAssign$1015()) {
             // 11.13.1
-            if (strict$961 && expr$1461.type === Syntax$954.Identifier && isRestrictedWord$988(expr$1461.name)) {
-                throwErrorTolerant$1012(token$1462, Messages$956.StrictLHSAssignment);
+            if (strict$957 && expr$1457.type === Syntax$950.Identifier && isRestrictedWord$984(expr$1457.name)) {
+                throwErrorTolerant$1008(token$1458, Messages$952.StrictLHSAssignment);
             }
             // ES.next draf 11.13 Runtime Semantics step 1
-            if (match$1016('=') && (expr$1461.type === Syntax$954.ObjectExpression || expr$1461.type === Syntax$954.ArrayExpression)) {
-                reinterpretAsAssignmentBindingPattern$1046(expr$1461);
-            } else if (!isLeftHandSide$1021(expr$1461)) {
-                throwError$1011({}, Messages$956.InvalidLHSInAssignment);
+            if (match$1012('=') && (expr$1457.type === Syntax$950.ObjectExpression || expr$1457.type === Syntax$950.ArrayExpression)) {
+                reinterpretAsAssignmentBindingPattern$1042(expr$1457);
+            } else if (!isLeftHandSide$1017(expr$1457)) {
+                throwError$1007({}, Messages$952.InvalidLHSInAssignment);
             }
-            expr$1461 = delegate$970.createAssignmentExpression(lex$1007().value, expr$1461, parseAssignmentExpression$1050());
+            expr$1457 = delegate$966.createAssignmentExpression(lex$1003().value, expr$1457, parseAssignmentExpression$1046());
         }
-        return expr$1461;
+        return expr$1457;
     }
     // 11.14 Comma Operator
-    function parseExpression$1051() {
-        var expr$1465, expressions$1466, sequence$1467, coverFormalsList$1468, spreadFound$1469, oldParenthesizedCount$1470;
-        oldParenthesizedCount$1470 = state$975.parenthesizedCount;
-        expr$1465 = parseAssignmentExpression$1050();
-        expressions$1466 = [expr$1465];
-        if (match$1016(',')) {
-            while (streamIndex$972 < length$969) {
-                if (!match$1016(',')) {
+    function parseExpression$1047() {
+        var expr$1461, expressions$1462, sequence$1463, coverFormalsList$1464, spreadFound$1465, oldParenthesizedCount$1466;
+        oldParenthesizedCount$1466 = state$971.parenthesizedCount;
+        expr$1461 = parseAssignmentExpression$1046();
+        expressions$1462 = [expr$1461];
+        if (match$1012(',')) {
+            while (streamIndex$968 < length$965) {
+                if (!match$1012(',')) {
                     break;
                 }
-                lex$1007();
-                expr$1465 = parseSpreadOrAssignmentExpression$1034();
-                expressions$1466.push(expr$1465);
-                if (expr$1465.type === Syntax$954.SpreadElement) {
-                    spreadFound$1469 = true;
-                    if (!match$1016(')')) {
-                        throwError$1011({}, Messages$956.ElementAfterSpreadElement);
+                lex$1003();
+                expr$1461 = parseSpreadOrAssignmentExpression$1030();
+                expressions$1462.push(expr$1461);
+                if (expr$1461.type === Syntax$950.SpreadElement) {
+                    spreadFound$1465 = true;
+                    if (!match$1012(')')) {
+                        throwError$1007({}, Messages$952.ElementAfterSpreadElement);
                     }
                     break;
                 }
             }
-            sequence$1467 = delegate$970.createSequenceExpression(expressions$1466);
+            sequence$1463 = delegate$966.createSequenceExpression(expressions$1462);
         }
-        if (match$1016('=>')) {
+        if (match$1012('=>')) {
             // Do not allow nested parentheses on the LHS of the =>.
-            if (state$975.parenthesizedCount === oldParenthesizedCount$1470 || state$975.parenthesizedCount === oldParenthesizedCount$1470 + 1) {
-                expr$1465 = expr$1465.type === Syntax$954.SequenceExpression ? expr$1465.expressions : expressions$1466;
-                coverFormalsList$1468 = reinterpretAsCoverFormalsList$1048(expr$1465);
-                if (coverFormalsList$1468) {
-                    return parseArrowFunctionExpression$1049(coverFormalsList$1468);
+            if (state$971.parenthesizedCount === oldParenthesizedCount$1466 || state$971.parenthesizedCount === oldParenthesizedCount$1466 + 1) {
+                expr$1461 = expr$1461.type === Syntax$950.SequenceExpression ? expr$1461.expressions : expressions$1462;
+                coverFormalsList$1464 = reinterpretAsCoverFormalsList$1044(expr$1461);
+                if (coverFormalsList$1464) {
+                    return parseArrowFunctionExpression$1045(coverFormalsList$1464);
                 }
             }
-            throwUnexpected$1013(lex$1007());
+            throwUnexpected$1009(lex$1003());
         }
-        if (spreadFound$1469 && lookahead2$1009().value !== '=>') {
-            throwError$1011({}, Messages$956.IllegalSpread);
+        if (spreadFound$1465 && lookahead2$1005().value !== '=>') {
+            throwError$1007({}, Messages$952.IllegalSpread);
         }
-        return sequence$1467 || expr$1465;
+        return sequence$1463 || expr$1461;
     }
     // 12.1 Block
-    function parseStatementList$1052() {
-        var list$1471 = [], statement$1472;
-        while (streamIndex$972 < length$969) {
-            if (match$1016('}')) {
+    function parseStatementList$1048() {
+        var list$1467 = [], statement$1468;
+        while (streamIndex$968 < length$965) {
+            if (match$1012('}')) {
                 break;
             }
-            statement$1472 = parseSourceElement$1097();
-            if (typeof statement$1472 === 'undefined') {
+            statement$1468 = parseSourceElement$1093();
+            if (typeof statement$1468 === 'undefined') {
                 break;
             }
-            list$1471.push(statement$1472);
+            list$1467.push(statement$1468);
         }
-        return list$1471;
+        return list$1467;
     }
-    function parseBlock$1053() {
-        var block$1473;
-        expect$1014('{');
-        block$1473 = parseStatementList$1052();
-        expect$1014('}');
-        return delegate$970.createBlockStatement(block$1473);
+    function parseBlock$1049() {
+        var block$1469;
+        expect$1010('{');
+        block$1469 = parseStatementList$1048();
+        expect$1010('}');
+        return delegate$966.createBlockStatement(block$1469);
     }
     // 12.2 Variable Statement
-    function parseVariableIdentifier$1054() {
-        var token$1474 = lookahead$973, resolvedIdent$1475;
-        if (token$1474.type !== Token$951.Identifier) {
-            throwUnexpected$1013(token$1474);
+    function parseVariableIdentifier$1050() {
+        var token$1470 = lookahead$969, resolvedIdent$1471;
+        if (token$1470.type !== Token$947.Identifier) {
+            throwUnexpected$1009(token$1470);
         }
-        resolvedIdent$1475 = expander$950.resolve(tokenStream$971[lookaheadIndex$974]);
-        lex$1007();
-        return delegate$970.createIdentifier(resolvedIdent$1475);
+        resolvedIdent$1471 = expander$946.resolve(tokenStream$967[lookaheadIndex$970]);
+        lex$1003();
+        return delegate$966.createIdentifier(resolvedIdent$1471);
     }
-    function parseVariableDeclaration$1055(kind$1476) {
-        var id$1477, init$1478 = null;
-        if (match$1016('{')) {
-            id$1477 = parseObjectInitialiser$1028();
-            reinterpretAsAssignmentBindingPattern$1046(id$1477);
-        } else if (match$1016('[')) {
-            id$1477 = parseArrayInitialiser$1023();
-            reinterpretAsAssignmentBindingPattern$1046(id$1477);
+    function parseVariableDeclaration$1051(kind$1472) {
+        var id$1473, init$1474 = null;
+        if (match$1012('{')) {
+            id$1473 = parseObjectInitialiser$1024();
+            reinterpretAsAssignmentBindingPattern$1042(id$1473);
+        } else if (match$1012('[')) {
+            id$1473 = parseArrayInitialiser$1019();
+            reinterpretAsAssignmentBindingPattern$1042(id$1473);
         } else {
-            id$1477 = state$975.allowKeyword ? parseNonComputedProperty$1035() : parseVariableIdentifier$1054();
+            id$1473 = state$971.allowKeyword ? parseNonComputedProperty$1031() : parseVariableIdentifier$1050();
             // 12.2.1
-            if (strict$961 && isRestrictedWord$988(id$1477.name)) {
-                throwErrorTolerant$1012({}, Messages$956.StrictVarName);
+            if (strict$957 && isRestrictedWord$984(id$1473.name)) {
+                throwErrorTolerant$1008({}, Messages$952.StrictVarName);
             }
         }
-        if (kind$1476 === 'const') {
-            if (!match$1016('=')) {
-                throwError$1011({}, Messages$956.NoUnintializedConst);
+        if (kind$1472 === 'const') {
+            if (!match$1012('=')) {
+                throwError$1007({}, Messages$952.NoUnintializedConst);
             }
-            expect$1014('=');
-            init$1478 = parseAssignmentExpression$1050();
-        } else if (match$1016('=')) {
-            lex$1007();
-            init$1478 = parseAssignmentExpression$1050();
+            expect$1010('=');
+            init$1474 = parseAssignmentExpression$1046();
+        } else if (match$1012('=')) {
+            lex$1003();
+            init$1474 = parseAssignmentExpression$1046();
         }
-        return delegate$970.createVariableDeclarator(id$1477, init$1478);
+        return delegate$966.createVariableDeclarator(id$1473, init$1474);
     }
-    function parseVariableDeclarationList$1056(kind$1479) {
-        var list$1480 = [];
+    function parseVariableDeclarationList$1052(kind$1475) {
+        var list$1476 = [];
         do {
-            list$1480.push(parseVariableDeclaration$1055(kind$1479));
-            if (!match$1016(',')) {
+            list$1476.push(parseVariableDeclaration$1051(kind$1475));
+            if (!match$1012(',')) {
                 break;
             }
-            lex$1007();
-        } while (streamIndex$972 < length$969);
-        return list$1480;
+            lex$1003();
+        } while (streamIndex$968 < length$965);
+        return list$1476;
     }
-    function parseVariableStatement$1057() {
-        var declarations$1481;
-        expectKeyword$1015('var');
-        declarations$1481 = parseVariableDeclarationList$1056();
-        consumeSemicolon$1020();
-        return delegate$970.createVariableDeclaration(declarations$1481, 'var');
+    function parseVariableStatement$1053() {
+        var declarations$1477;
+        expectKeyword$1011('var');
+        declarations$1477 = parseVariableDeclarationList$1052();
+        consumeSemicolon$1016();
+        return delegate$966.createVariableDeclaration(declarations$1477, 'var');
     }
     // kind may be `const` or `let`
     // Both are experimental and not in the specification yet.
     // see http://wiki.ecmascript.org/doku.php?id=harmony:const
     // and http://wiki.ecmascript.org/doku.php?id=harmony:let
-    function parseConstLetDeclaration$1058(kind$1482) {
-        var declarations$1483;
-        expectKeyword$1015(kind$1482);
-        declarations$1483 = parseVariableDeclarationList$1056(kind$1482);
-        consumeSemicolon$1020();
-        return delegate$970.createVariableDeclaration(declarations$1483, kind$1482);
+    function parseConstLetDeclaration$1054(kind$1478) {
+        var declarations$1479;
+        expectKeyword$1011(kind$1478);
+        declarations$1479 = parseVariableDeclarationList$1052(kind$1478);
+        consumeSemicolon$1016();
+        return delegate$966.createVariableDeclaration(declarations$1479, kind$1478);
     }
     // http://wiki.ecmascript.org/doku.php?id=harmony:modules
-    function parseModuleDeclaration$1059() {
-        var id$1484, src$1485, body$1486;
-        lex$1007();
+    function parseModuleDeclaration$1055() {
+        var id$1480, src$1481, body$1482;
+        lex$1003();
         // 'module'
-        if (peekLineTerminator$1010()) {
-            throwError$1011({}, Messages$956.NewlineAfterModule);
+        if (peekLineTerminator$1006()) {
+            throwError$1007({}, Messages$952.NewlineAfterModule);
         }
-        switch (lookahead$973.type) {
-        case Token$951.StringLiteral:
-            id$1484 = parsePrimaryExpression$1032();
-            body$1486 = parseModuleBlock$1102();
-            src$1485 = null;
+        switch (lookahead$969.type) {
+        case Token$947.StringLiteral:
+            id$1480 = parsePrimaryExpression$1028();
+            body$1482 = parseModuleBlock$1098();
+            src$1481 = null;
             break;
-        case Token$951.Identifier:
-            id$1484 = parseVariableIdentifier$1054();
-            body$1486 = null;
-            if (!matchContextualKeyword$1018('from')) {
-                throwUnexpected$1013(lex$1007());
+        case Token$947.Identifier:
+            id$1480 = parseVariableIdentifier$1050();
+            body$1482 = null;
+            if (!matchContextualKeyword$1014('from')) {
+                throwUnexpected$1009(lex$1003());
             }
-            lex$1007();
-            src$1485 = parsePrimaryExpression$1032();
-            if (src$1485.type !== Syntax$954.Literal) {
-                throwError$1011({}, Messages$956.InvalidModuleSpecifier);
+            lex$1003();
+            src$1481 = parsePrimaryExpression$1028();
+            if (src$1481.type !== Syntax$950.Literal) {
+                throwError$1007({}, Messages$952.InvalidModuleSpecifier);
             }
             break;
         }
-        consumeSemicolon$1020();
-        return delegate$970.createModuleDeclaration(id$1484, src$1485, body$1486);
+        consumeSemicolon$1016();
+        return delegate$966.createModuleDeclaration(id$1480, src$1481, body$1482);
     }
-    function parseExportBatchSpecifier$1060() {
-        expect$1014('*');
-        return delegate$970.createExportBatchSpecifier();
+    function parseExportBatchSpecifier$1056() {
+        expect$1010('*');
+        return delegate$966.createExportBatchSpecifier();
     }
-    function parseExportSpecifier$1061() {
-        var id$1487, name$1488 = null;
-        id$1487 = parseVariableIdentifier$1054();
-        if (matchContextualKeyword$1018('as')) {
-            lex$1007();
-            name$1488 = parseNonComputedProperty$1035();
+    function parseExportSpecifier$1057() {
+        var id$1483, name$1484 = null;
+        id$1483 = parseVariableIdentifier$1050();
+        if (matchContextualKeyword$1014('as')) {
+            lex$1003();
+            name$1484 = parseNonComputedProperty$1031();
         }
-        return delegate$970.createExportSpecifier(id$1487, name$1488);
+        return delegate$966.createExportSpecifier(id$1483, name$1484);
     }
-    function parseExportDeclaration$1062() {
-        var previousAllowKeyword$1489, decl$1490, def$1491, src$1492, specifiers$1493;
-        expectKeyword$1015('export');
-        if (lookahead$973.type === Token$951.Keyword) {
-            switch (lookahead$973.value) {
+    function parseExportDeclaration$1058() {
+        var previousAllowKeyword$1485, decl$1486, def$1487, src$1488, specifiers$1489;
+        expectKeyword$1011('export');
+        if (lookahead$969.type === Token$947.Keyword) {
+            switch (lookahead$969.value) {
             case 'let':
             case 'const':
             case 'var':
             case 'class':
             case 'function':
-                return delegate$970.createExportDeclaration(parseSourceElement$1097(), null, null);
+                return delegate$966.createExportDeclaration(parseSourceElement$1093(), null, null);
             }
         }
-        if (isIdentifierName$1004(lookahead$973)) {
-            previousAllowKeyword$1489 = state$975.allowKeyword;
-            state$975.allowKeyword = true;
-            decl$1490 = parseVariableDeclarationList$1056('let');
-            state$975.allowKeyword = previousAllowKeyword$1489;
-            return delegate$970.createExportDeclaration(decl$1490, null, null);
+        if (isIdentifierName$1000(lookahead$969)) {
+            previousAllowKeyword$1485 = state$971.allowKeyword;
+            state$971.allowKeyword = true;
+            decl$1486 = parseVariableDeclarationList$1052('let');
+            state$971.allowKeyword = previousAllowKeyword$1485;
+            return delegate$966.createExportDeclaration(decl$1486, null, null);
         }
-        specifiers$1493 = [];
-        src$1492 = null;
-        if (match$1016('*')) {
-            specifiers$1493.push(parseExportBatchSpecifier$1060());
+        specifiers$1489 = [];
+        src$1488 = null;
+        if (match$1012('*')) {
+            specifiers$1489.push(parseExportBatchSpecifier$1056());
         } else {
-            expect$1014('{');
+            expect$1010('{');
             do {
-                specifiers$1493.push(parseExportSpecifier$1061());
-            } while (match$1016(',') && lex$1007());
-            expect$1014('}');
+                specifiers$1489.push(parseExportSpecifier$1057());
+            } while (match$1012(',') && lex$1003());
+            expect$1010('}');
         }
-        if (matchContextualKeyword$1018('from')) {
-            lex$1007();
-            src$1492 = parsePrimaryExpression$1032();
-            if (src$1492.type !== Syntax$954.Literal) {
-                throwError$1011({}, Messages$956.InvalidModuleSpecifier);
+        if (matchContextualKeyword$1014('from')) {
+            lex$1003();
+            src$1488 = parsePrimaryExpression$1028();
+            if (src$1488.type !== Syntax$950.Literal) {
+                throwError$1007({}, Messages$952.InvalidModuleSpecifier);
             }
         }
-        consumeSemicolon$1020();
-        return delegate$970.createExportDeclaration(null, specifiers$1493, src$1492);
+        consumeSemicolon$1016();
+        return delegate$966.createExportDeclaration(null, specifiers$1489, src$1488);
     }
-    function parseImportDeclaration$1063() {
-        var specifiers$1494, kind$1495, src$1496;
-        expectKeyword$1015('import');
-        specifiers$1494 = [];
-        if (isIdentifierName$1004(lookahead$973)) {
-            kind$1495 = 'default';
-            specifiers$1494.push(parseImportSpecifier$1064());
-            if (!matchContextualKeyword$1018('from')) {
-                throwError$1011({}, Messages$956.NoFromAfterImport);
+    function parseImportDeclaration$1059() {
+        var specifiers$1490, kind$1491, src$1492;
+        expectKeyword$1011('import');
+        specifiers$1490 = [];
+        if (isIdentifierName$1000(lookahead$969)) {
+            kind$1491 = 'default';
+            specifiers$1490.push(parseImportSpecifier$1060());
+            if (!matchContextualKeyword$1014('from')) {
+                throwError$1007({}, Messages$952.NoFromAfterImport);
             }
-            lex$1007();
-        } else if (match$1016('{')) {
-            kind$1495 = 'named';
-            lex$1007();
+            lex$1003();
+        } else if (match$1012('{')) {
+            kind$1491 = 'named';
+            lex$1003();
             do {
-                specifiers$1494.push(parseImportSpecifier$1064());
-            } while (match$1016(',') && lex$1007());
-            expect$1014('}');
-            if (!matchContextualKeyword$1018('from')) {
-                throwError$1011({}, Messages$956.NoFromAfterImport);
+                specifiers$1490.push(parseImportSpecifier$1060());
+            } while (match$1012(',') && lex$1003());
+            expect$1010('}');
+            if (!matchContextualKeyword$1014('from')) {
+                throwError$1007({}, Messages$952.NoFromAfterImport);
             }
-            lex$1007();
+            lex$1003();
         }
-        src$1496 = parsePrimaryExpression$1032();
-        if (src$1496.type !== Syntax$954.Literal) {
-            throwError$1011({}, Messages$956.InvalidModuleSpecifier);
+        src$1492 = parsePrimaryExpression$1028();
+        if (src$1492.type !== Syntax$950.Literal) {
+            throwError$1007({}, Messages$952.InvalidModuleSpecifier);
         }
-        consumeSemicolon$1020();
-        return delegate$970.createImportDeclaration(specifiers$1494, kind$1495, src$1496);
+        consumeSemicolon$1016();
+        return delegate$966.createImportDeclaration(specifiers$1490, kind$1491, src$1492);
     }
-    function parseImportSpecifier$1064() {
-        var id$1497, name$1498 = null;
-        id$1497 = parseNonComputedProperty$1035();
-        if (matchContextualKeyword$1018('as')) {
-            lex$1007();
-            name$1498 = parseVariableIdentifier$1054();
+    function parseImportSpecifier$1060() {
+        var id$1493, name$1494 = null;
+        id$1493 = parseNonComputedProperty$1031();
+        if (matchContextualKeyword$1014('as')) {
+            lex$1003();
+            name$1494 = parseVariableIdentifier$1050();
         }
-        return delegate$970.createImportSpecifier(id$1497, name$1498);
+        return delegate$966.createImportSpecifier(id$1493, name$1494);
     }
     // 12.3 Empty Statement
-    function parseEmptyStatement$1065() {
-        expect$1014(';');
-        return delegate$970.createEmptyStatement();
+    function parseEmptyStatement$1061() {
+        expect$1010(';');
+        return delegate$966.createEmptyStatement();
     }
     // 12.4 Expression Statement
-    function parseExpressionStatement$1066() {
-        var expr$1499 = parseExpression$1051();
-        consumeSemicolon$1020();
-        return delegate$970.createExpressionStatement(expr$1499);
+    function parseExpressionStatement$1062() {
+        var expr$1495 = parseExpression$1047();
+        consumeSemicolon$1016();
+        return delegate$966.createExpressionStatement(expr$1495);
     }
     // 12.5 If statement
-    function parseIfStatement$1067() {
-        var test$1500, consequent$1501, alternate$1502;
-        expectKeyword$1015('if');
-        expect$1014('(');
-        test$1500 = parseExpression$1051();
-        expect$1014(')');
-        consequent$1501 = parseStatement$1082();
-        if (matchKeyword$1017('else')) {
-            lex$1007();
-            alternate$1502 = parseStatement$1082();
+    function parseIfStatement$1063() {
+        var test$1496, consequent$1497, alternate$1498;
+        expectKeyword$1011('if');
+        expect$1010('(');
+        test$1496 = parseExpression$1047();
+        expect$1010(')');
+        consequent$1497 = parseStatement$1078();
+        if (matchKeyword$1013('else')) {
+            lex$1003();
+            alternate$1498 = parseStatement$1078();
         } else {
-            alternate$1502 = null;
+            alternate$1498 = null;
         }
-        return delegate$970.createIfStatement(test$1500, consequent$1501, alternate$1502);
+        return delegate$966.createIfStatement(test$1496, consequent$1497, alternate$1498);
     }
     // 12.6 Iteration Statements
-    function parseDoWhileStatement$1068() {
-        var body$1503, test$1504, oldInIteration$1505;
-        expectKeyword$1015('do');
-        oldInIteration$1505 = state$975.inIteration;
-        state$975.inIteration = true;
-        body$1503 = parseStatement$1082();
-        state$975.inIteration = oldInIteration$1505;
-        expectKeyword$1015('while');
-        expect$1014('(');
-        test$1504 = parseExpression$1051();
-        expect$1014(')');
-        if (match$1016(';')) {
-            lex$1007();
+    function parseDoWhileStatement$1064() {
+        var body$1499, test$1500, oldInIteration$1501;
+        expectKeyword$1011('do');
+        oldInIteration$1501 = state$971.inIteration;
+        state$971.inIteration = true;
+        body$1499 = parseStatement$1078();
+        state$971.inIteration = oldInIteration$1501;
+        expectKeyword$1011('while');
+        expect$1010('(');
+        test$1500 = parseExpression$1047();
+        expect$1010(')');
+        if (match$1012(';')) {
+            lex$1003();
         }
-        return delegate$970.createDoWhileStatement(body$1503, test$1504);
+        return delegate$966.createDoWhileStatement(body$1499, test$1500);
     }
-    function parseWhileStatement$1069() {
-        var test$1506, body$1507, oldInIteration$1508;
-        expectKeyword$1015('while');
-        expect$1014('(');
-        test$1506 = parseExpression$1051();
-        expect$1014(')');
-        oldInIteration$1508 = state$975.inIteration;
-        state$975.inIteration = true;
-        body$1507 = parseStatement$1082();
-        state$975.inIteration = oldInIteration$1508;
-        return delegate$970.createWhileStatement(test$1506, body$1507);
+    function parseWhileStatement$1065() {
+        var test$1502, body$1503, oldInIteration$1504;
+        expectKeyword$1011('while');
+        expect$1010('(');
+        test$1502 = parseExpression$1047();
+        expect$1010(')');
+        oldInIteration$1504 = state$971.inIteration;
+        state$971.inIteration = true;
+        body$1503 = parseStatement$1078();
+        state$971.inIteration = oldInIteration$1504;
+        return delegate$966.createWhileStatement(test$1502, body$1503);
     }
-    function parseForVariableDeclaration$1070() {
-        var token$1509 = lex$1007(), declarations$1510 = parseVariableDeclarationList$1056();
-        return delegate$970.createVariableDeclaration(declarations$1510, token$1509.value);
+    function parseForVariableDeclaration$1066() {
+        var token$1505 = lex$1003(), declarations$1506 = parseVariableDeclarationList$1052();
+        return delegate$966.createVariableDeclaration(declarations$1506, token$1505.value);
     }
-    function parseForStatement$1071(opts$1511) {
-        var init$1512, test$1513, update$1514, left$1515, right$1516, body$1517, operator$1518, oldInIteration$1519;
-        init$1512 = test$1513 = update$1514 = null;
-        expectKeyword$1015('for');
+    function parseForStatement$1067(opts$1507) {
+        var init$1508, test$1509, update$1510, left$1511, right$1512, body$1513, operator$1514, oldInIteration$1515;
+        init$1508 = test$1509 = update$1510 = null;
+        expectKeyword$1011('for');
         // http://wiki.ecmascript.org/doku.php?id=proposals:iterators_and_generators&s=each
-        if (matchContextualKeyword$1018('each')) {
-            throwError$1011({}, Messages$956.EachNotAllowed);
+        if (matchContextualKeyword$1014('each')) {
+            throwError$1007({}, Messages$952.EachNotAllowed);
         }
-        expect$1014('(');
-        if (match$1016(';')) {
-            lex$1007();
+        expect$1010('(');
+        if (match$1012(';')) {
+            lex$1003();
         } else {
-            if (matchKeyword$1017('var') || matchKeyword$1017('let') || matchKeyword$1017('const')) {
-                state$975.allowIn = false;
-                init$1512 = parseForVariableDeclaration$1070();
-                state$975.allowIn = true;
-                if (init$1512.declarations.length === 1) {
-                    if (matchKeyword$1017('in') || matchContextualKeyword$1018('of')) {
-                        operator$1518 = lookahead$973;
-                        if (!((operator$1518.value === 'in' || init$1512.kind !== 'var') && init$1512.declarations[0].init)) {
-                            lex$1007();
-                            left$1515 = init$1512;
-                            right$1516 = parseExpression$1051();
-                            init$1512 = null;
+            if (matchKeyword$1013('var') || matchKeyword$1013('let') || matchKeyword$1013('const')) {
+                state$971.allowIn = false;
+                init$1508 = parseForVariableDeclaration$1066();
+                state$971.allowIn = true;
+                if (init$1508.declarations.length === 1) {
+                    if (matchKeyword$1013('in') || matchContextualKeyword$1014('of')) {
+                        operator$1514 = lookahead$969;
+                        if (!((operator$1514.value === 'in' || init$1508.kind !== 'var') && init$1508.declarations[0].init)) {
+                            lex$1003();
+                            left$1511 = init$1508;
+                            right$1512 = parseExpression$1047();
+                            init$1508 = null;
                         }
                     }
                 }
             } else {
-                state$975.allowIn = false;
-                init$1512 = parseExpression$1051();
-                state$975.allowIn = true;
-                if (matchContextualKeyword$1018('of')) {
-                    operator$1518 = lex$1007();
-                    left$1515 = init$1512;
-                    right$1516 = parseExpression$1051();
-                    init$1512 = null;
-                } else if (matchKeyword$1017('in')) {
+                state$971.allowIn = false;
+                init$1508 = parseExpression$1047();
+                state$971.allowIn = true;
+                if (matchContextualKeyword$1014('of')) {
+                    operator$1514 = lex$1003();
+                    left$1511 = init$1508;
+                    right$1512 = parseExpression$1047();
+                    init$1508 = null;
+                } else if (matchKeyword$1013('in')) {
                     // LeftHandSideExpression
-                    if (!isAssignableLeftHandSide$1022(init$1512)) {
-                        throwError$1011({}, Messages$956.InvalidLHSInForIn);
+                    if (!isAssignableLeftHandSide$1018(init$1508)) {
+                        throwError$1007({}, Messages$952.InvalidLHSInForIn);
                     }
-                    operator$1518 = lex$1007();
-                    left$1515 = init$1512;
-                    right$1516 = parseExpression$1051();
-                    init$1512 = null;
+                    operator$1514 = lex$1003();
+                    left$1511 = init$1508;
+                    right$1512 = parseExpression$1047();
+                    init$1508 = null;
                 }
             }
-            if (typeof left$1515 === 'undefined') {
-                expect$1014(';');
+            if (typeof left$1511 === 'undefined') {
+                expect$1010(';');
             }
         }
-        if (typeof left$1515 === 'undefined') {
-            if (!match$1016(';')) {
-                test$1513 = parseExpression$1051();
+        if (typeof left$1511 === 'undefined') {
+            if (!match$1012(';')) {
+                test$1509 = parseExpression$1047();
             }
-            expect$1014(';');
-            if (!match$1016(')')) {
-                update$1514 = parseExpression$1051();
+            expect$1010(';');
+            if (!match$1012(')')) {
+                update$1510 = parseExpression$1047();
             }
         }
-        expect$1014(')');
-        oldInIteration$1519 = state$975.inIteration;
-        state$975.inIteration = true;
-        if (!(opts$1511 !== undefined && opts$1511.ignoreBody)) {
-            body$1517 = parseStatement$1082();
+        expect$1010(')');
+        oldInIteration$1515 = state$971.inIteration;
+        state$971.inIteration = true;
+        if (!(opts$1507 !== undefined && opts$1507.ignoreBody)) {
+            body$1513 = parseStatement$1078();
         }
-        state$975.inIteration = oldInIteration$1519;
-        if (typeof left$1515 === 'undefined') {
-            return delegate$970.createForStatement(init$1512, test$1513, update$1514, body$1517);
+        state$971.inIteration = oldInIteration$1515;
+        if (typeof left$1511 === 'undefined') {
+            return delegate$966.createForStatement(init$1508, test$1509, update$1510, body$1513);
         }
-        if (operator$1518.value === 'in') {
-            return delegate$970.createForInStatement(left$1515, right$1516, body$1517);
+        if (operator$1514.value === 'in') {
+            return delegate$966.createForInStatement(left$1511, right$1512, body$1513);
         }
-        return delegate$970.createForOfStatement(left$1515, right$1516, body$1517);
+        return delegate$966.createForOfStatement(left$1511, right$1512, body$1513);
     }
     // 12.7 The continue statement
-    function parseContinueStatement$1072() {
-        var label$1520 = null, key$1521;
-        expectKeyword$1015('continue');
+    function parseContinueStatement$1068() {
+        var label$1516 = null, key$1517;
+        expectKeyword$1011('continue');
         // Optimize the most common form: 'continue;'.
-        if (lookahead$973.value.charCodeAt(0) === 59) {
-            lex$1007();
-            if (!state$975.inIteration) {
-                throwError$1011({}, Messages$956.IllegalContinue);
+        if (lookahead$969.value.charCodeAt(0) === 59) {
+            lex$1003();
+            if (!state$971.inIteration) {
+                throwError$1007({}, Messages$952.IllegalContinue);
             }
-            return delegate$970.createContinueStatement(null);
+            return delegate$966.createContinueStatement(null);
         }
-        if (peekLineTerminator$1010()) {
-            if (!state$975.inIteration) {
-                throwError$1011({}, Messages$956.IllegalContinue);
+        if (peekLineTerminator$1006()) {
+            if (!state$971.inIteration) {
+                throwError$1007({}, Messages$952.IllegalContinue);
             }
-            return delegate$970.createContinueStatement(null);
+            return delegate$966.createContinueStatement(null);
         }
-        if (lookahead$973.type === Token$951.Identifier) {
-            label$1520 = parseVariableIdentifier$1054();
-            key$1521 = '$' + label$1520.name;
-            if (!Object.prototype.hasOwnProperty.call(state$975.labelSet, key$1521)) {
-                throwError$1011({}, Messages$956.UnknownLabel, label$1520.name);
+        if (lookahead$969.type === Token$947.Identifier) {
+            label$1516 = parseVariableIdentifier$1050();
+            key$1517 = '$' + label$1516.name;
+            if (!Object.prototype.hasOwnProperty.call(state$971.labelSet, key$1517)) {
+                throwError$1007({}, Messages$952.UnknownLabel, label$1516.name);
             }
         }
-        consumeSemicolon$1020();
-        if (label$1520 === null && !state$975.inIteration) {
-            throwError$1011({}, Messages$956.IllegalContinue);
+        consumeSemicolon$1016();
+        if (label$1516 === null && !state$971.inIteration) {
+            throwError$1007({}, Messages$952.IllegalContinue);
         }
-        return delegate$970.createContinueStatement(label$1520);
+        return delegate$966.createContinueStatement(label$1516);
     }
     // 12.8 The break statement
-    function parseBreakStatement$1073() {
-        var label$1522 = null, key$1523;
-        expectKeyword$1015('break');
+    function parseBreakStatement$1069() {
+        var label$1518 = null, key$1519;
+        expectKeyword$1011('break');
         // Catch the very common case first: immediately a semicolon (char #59).
-        if (lookahead$973.value.charCodeAt(0) === 59) {
-            lex$1007();
-            if (!(state$975.inIteration || state$975.inSwitch)) {
-                throwError$1011({}, Messages$956.IllegalBreak);
+        if (lookahead$969.value.charCodeAt(0) === 59) {
+            lex$1003();
+            if (!(state$971.inIteration || state$971.inSwitch)) {
+                throwError$1007({}, Messages$952.IllegalBreak);
             }
-            return delegate$970.createBreakStatement(null);
+            return delegate$966.createBreakStatement(null);
         }
-        if (peekLineTerminator$1010()) {
-            if (!(state$975.inIteration || state$975.inSwitch)) {
-                throwError$1011({}, Messages$956.IllegalBreak);
+        if (peekLineTerminator$1006()) {
+            if (!(state$971.inIteration || state$971.inSwitch)) {
+                throwError$1007({}, Messages$952.IllegalBreak);
             }
-            return delegate$970.createBreakStatement(null);
+            return delegate$966.createBreakStatement(null);
         }
-        if (lookahead$973.type === Token$951.Identifier) {
-            label$1522 = parseVariableIdentifier$1054();
-            key$1523 = '$' + label$1522.name;
-            if (!Object.prototype.hasOwnProperty.call(state$975.labelSet, key$1523)) {
-                throwError$1011({}, Messages$956.UnknownLabel, label$1522.name);
+        if (lookahead$969.type === Token$947.Identifier) {
+            label$1518 = parseVariableIdentifier$1050();
+            key$1519 = '$' + label$1518.name;
+            if (!Object.prototype.hasOwnProperty.call(state$971.labelSet, key$1519)) {
+                throwError$1007({}, Messages$952.UnknownLabel, label$1518.name);
             }
         }
-        consumeSemicolon$1020();
-        if (label$1522 === null && !(state$975.inIteration || state$975.inSwitch)) {
-            throwError$1011({}, Messages$956.IllegalBreak);
+        consumeSemicolon$1016();
+        if (label$1518 === null && !(state$971.inIteration || state$971.inSwitch)) {
+            throwError$1007({}, Messages$952.IllegalBreak);
         }
-        return delegate$970.createBreakStatement(label$1522);
+        return delegate$966.createBreakStatement(label$1518);
     }
     // 12.9 The return statement
-    function parseReturnStatement$1074() {
-        var argument$1524 = null;
-        expectKeyword$1015('return');
-        if (!state$975.inFunctionBody) {
-            throwErrorTolerant$1012({}, Messages$956.IllegalReturn);
+    function parseReturnStatement$1070() {
+        var argument$1520 = null;
+        expectKeyword$1011('return');
+        if (!state$971.inFunctionBody) {
+            throwErrorTolerant$1008({}, Messages$952.IllegalReturn);
         }
         // 'return' followed by a space and an identifier is very common.
-        if (isIdentifierStart$984(String(lookahead$973.value).charCodeAt(0))) {
-            argument$1524 = parseExpression$1051();
-            consumeSemicolon$1020();
-            return delegate$970.createReturnStatement(argument$1524);
+        if (isIdentifierStart$980(String(lookahead$969.value).charCodeAt(0))) {
+            argument$1520 = parseExpression$1047();
+            consumeSemicolon$1016();
+            return delegate$966.createReturnStatement(argument$1520);
         }
-        if (peekLineTerminator$1010()) {
-            return delegate$970.createReturnStatement(null);
+        if (peekLineTerminator$1006()) {
+            return delegate$966.createReturnStatement(null);
         }
-        if (!match$1016(';')) {
-            if (!match$1016('}') && lookahead$973.type !== Token$951.EOF) {
-                argument$1524 = parseExpression$1051();
+        if (!match$1012(';')) {
+            if (!match$1012('}') && lookahead$969.type !== Token$947.EOF) {
+                argument$1520 = parseExpression$1047();
             }
         }
-        consumeSemicolon$1020();
-        return delegate$970.createReturnStatement(argument$1524);
+        consumeSemicolon$1016();
+        return delegate$966.createReturnStatement(argument$1520);
     }
     // 12.10 The with statement
-    function parseWithStatement$1075() {
-        var object$1525, body$1526;
-        if (strict$961) {
-            throwErrorTolerant$1012({}, Messages$956.StrictModeWith);
+    function parseWithStatement$1071() {
+        var object$1521, body$1522;
+        if (strict$957) {
+            throwErrorTolerant$1008({}, Messages$952.StrictModeWith);
         }
-        expectKeyword$1015('with');
-        expect$1014('(');
-        object$1525 = parseExpression$1051();
-        expect$1014(')');
-        body$1526 = parseStatement$1082();
-        return delegate$970.createWithStatement(object$1525, body$1526);
+        expectKeyword$1011('with');
+        expect$1010('(');
+        object$1521 = parseExpression$1047();
+        expect$1010(')');
+        body$1522 = parseStatement$1078();
+        return delegate$966.createWithStatement(object$1521, body$1522);
     }
     // 12.10 The swith statement
-    function parseSwitchCase$1076() {
-        var test$1527, consequent$1528 = [], sourceElement$1529;
-        if (matchKeyword$1017('default')) {
-            lex$1007();
-            test$1527 = null;
+    function parseSwitchCase$1072() {
+        var test$1523, consequent$1524 = [], sourceElement$1525;
+        if (matchKeyword$1013('default')) {
+            lex$1003();
+            test$1523 = null;
         } else {
-            expectKeyword$1015('case');
-            test$1527 = parseExpression$1051();
+            expectKeyword$1011('case');
+            test$1523 = parseExpression$1047();
         }
-        expect$1014(':');
-        while (streamIndex$972 < length$969) {
-            if (match$1016('}') || matchKeyword$1017('default') || matchKeyword$1017('case')) {
+        expect$1010(':');
+        while (streamIndex$968 < length$965) {
+            if (match$1012('}') || matchKeyword$1013('default') || matchKeyword$1013('case')) {
                 break;
             }
-            sourceElement$1529 = parseSourceElement$1097();
-            if (typeof sourceElement$1529 === 'undefined') {
+            sourceElement$1525 = parseSourceElement$1093();
+            if (typeof sourceElement$1525 === 'undefined') {
                 break;
             }
-            consequent$1528.push(sourceElement$1529);
+            consequent$1524.push(sourceElement$1525);
         }
-        return delegate$970.createSwitchCase(test$1527, consequent$1528);
+        return delegate$966.createSwitchCase(test$1523, consequent$1524);
     }
-    function parseSwitchStatement$1077() {
-        var discriminant$1530, cases$1531, clause$1532, oldInSwitch$1533, defaultFound$1534;
-        expectKeyword$1015('switch');
-        expect$1014('(');
-        discriminant$1530 = parseExpression$1051();
-        expect$1014(')');
-        expect$1014('{');
-        cases$1531 = [];
-        if (match$1016('}')) {
-            lex$1007();
-            return delegate$970.createSwitchStatement(discriminant$1530, cases$1531);
+    function parseSwitchStatement$1073() {
+        var discriminant$1526, cases$1527, clause$1528, oldInSwitch$1529, defaultFound$1530;
+        expectKeyword$1011('switch');
+        expect$1010('(');
+        discriminant$1526 = parseExpression$1047();
+        expect$1010(')');
+        expect$1010('{');
+        cases$1527 = [];
+        if (match$1012('}')) {
+            lex$1003();
+            return delegate$966.createSwitchStatement(discriminant$1526, cases$1527);
         }
-        oldInSwitch$1533 = state$975.inSwitch;
-        state$975.inSwitch = true;
-        defaultFound$1534 = false;
-        while (streamIndex$972 < length$969) {
-            if (match$1016('}')) {
+        oldInSwitch$1529 = state$971.inSwitch;
+        state$971.inSwitch = true;
+        defaultFound$1530 = false;
+        while (streamIndex$968 < length$965) {
+            if (match$1012('}')) {
                 break;
             }
-            clause$1532 = parseSwitchCase$1076();
-            if (clause$1532.test === null) {
-                if (defaultFound$1534) {
-                    throwError$1011({}, Messages$956.MultipleDefaultsInSwitch);
+            clause$1528 = parseSwitchCase$1072();
+            if (clause$1528.test === null) {
+                if (defaultFound$1530) {
+                    throwError$1007({}, Messages$952.MultipleDefaultsInSwitch);
                 }
-                defaultFound$1534 = true;
+                defaultFound$1530 = true;
             }
-            cases$1531.push(clause$1532);
+            cases$1527.push(clause$1528);
         }
-        state$975.inSwitch = oldInSwitch$1533;
-        expect$1014('}');
-        return delegate$970.createSwitchStatement(discriminant$1530, cases$1531);
+        state$971.inSwitch = oldInSwitch$1529;
+        expect$1010('}');
+        return delegate$966.createSwitchStatement(discriminant$1526, cases$1527);
     }
     // 12.13 The throw statement
-    function parseThrowStatement$1078() {
-        var argument$1535;
-        expectKeyword$1015('throw');
-        if (peekLineTerminator$1010()) {
-            throwError$1011({}, Messages$956.NewlineAfterThrow);
+    function parseThrowStatement$1074() {
+        var argument$1531;
+        expectKeyword$1011('throw');
+        if (peekLineTerminator$1006()) {
+            throwError$1007({}, Messages$952.NewlineAfterThrow);
         }
-        argument$1535 = parseExpression$1051();
-        consumeSemicolon$1020();
-        return delegate$970.createThrowStatement(argument$1535);
+        argument$1531 = parseExpression$1047();
+        consumeSemicolon$1016();
+        return delegate$966.createThrowStatement(argument$1531);
     }
     // 12.14 The try statement
-    function parseCatchClause$1079() {
-        var param$1536, body$1537;
-        expectKeyword$1015('catch');
-        expect$1014('(');
-        if (match$1016(')')) {
-            throwUnexpected$1013(lookahead$973);
+    function parseCatchClause$1075() {
+        var param$1532, body$1533;
+        expectKeyword$1011('catch');
+        expect$1010('(');
+        if (match$1012(')')) {
+            throwUnexpected$1009(lookahead$969);
         }
-        param$1536 = parseExpression$1051();
+        param$1532 = parseExpression$1047();
         // 12.14.1
-        if (strict$961 && param$1536.type === Syntax$954.Identifier && isRestrictedWord$988(param$1536.name)) {
-            throwErrorTolerant$1012({}, Messages$956.StrictCatchVariable);
+        if (strict$957 && param$1532.type === Syntax$950.Identifier && isRestrictedWord$984(param$1532.name)) {
+            throwErrorTolerant$1008({}, Messages$952.StrictCatchVariable);
         }
-        expect$1014(')');
-        body$1537 = parseBlock$1053();
-        return delegate$970.createCatchClause(param$1536, body$1537);
+        expect$1010(')');
+        body$1533 = parseBlock$1049();
+        return delegate$966.createCatchClause(param$1532, body$1533);
     }
-    function parseTryStatement$1080() {
-        var block$1538, handlers$1539 = [], finalizer$1540 = null;
-        expectKeyword$1015('try');
-        block$1538 = parseBlock$1053();
-        if (matchKeyword$1017('catch')) {
-            handlers$1539.push(parseCatchClause$1079());
+    function parseTryStatement$1076() {
+        var block$1534, handlers$1535 = [], finalizer$1536 = null;
+        expectKeyword$1011('try');
+        block$1534 = parseBlock$1049();
+        if (matchKeyword$1013('catch')) {
+            handlers$1535.push(parseCatchClause$1075());
         }
-        if (matchKeyword$1017('finally')) {
-            lex$1007();
-            finalizer$1540 = parseBlock$1053();
+        if (matchKeyword$1013('finally')) {
+            lex$1003();
+            finalizer$1536 = parseBlock$1049();
         }
-        if (handlers$1539.length === 0 && !finalizer$1540) {
-            throwError$1011({}, Messages$956.NoCatchOrFinally);
+        if (handlers$1535.length === 0 && !finalizer$1536) {
+            throwError$1007({}, Messages$952.NoCatchOrFinally);
         }
-        return delegate$970.createTryStatement(block$1538, [], handlers$1539, finalizer$1540);
+        return delegate$966.createTryStatement(block$1534, [], handlers$1535, finalizer$1536);
     }
     // 12.15 The debugger statement
-    function parseDebuggerStatement$1081() {
-        expectKeyword$1015('debugger');
-        consumeSemicolon$1020();
-        return delegate$970.createDebuggerStatement();
+    function parseDebuggerStatement$1077() {
+        expectKeyword$1011('debugger');
+        consumeSemicolon$1016();
+        return delegate$966.createDebuggerStatement();
     }
     // 12 Statements
-    function parseStatement$1082() {
-        var type$1541 = lookahead$973.type, expr$1542, labeledBody$1543, key$1544;
-        if (type$1541 === Token$951.EOF) {
-            throwUnexpected$1013(lookahead$973);
+    function parseStatement$1078() {
+        var type$1537 = lookahead$969.type, expr$1538, labeledBody$1539, key$1540;
+        if (type$1537 === Token$947.EOF) {
+            throwUnexpected$1009(lookahead$969);
         }
-        if (type$1541 === Token$951.Punctuator) {
-            switch (lookahead$973.value) {
+        if (type$1537 === Token$947.Punctuator) {
+            switch (lookahead$969.value) {
             case ';':
-                return parseEmptyStatement$1065();
+                return parseEmptyStatement$1061();
             case '{':
-                return parseBlock$1053();
+                return parseBlock$1049();
             case '(':
-                return parseExpressionStatement$1066();
+                return parseExpressionStatement$1062();
             default:
                 break;
             }
         }
-        if (type$1541 === Token$951.Keyword) {
-            switch (lookahead$973.value) {
+        if (type$1537 === Token$947.Keyword) {
+            switch (lookahead$969.value) {
             case 'break':
-                return parseBreakStatement$1073();
+                return parseBreakStatement$1069();
             case 'continue':
-                return parseContinueStatement$1072();
+                return parseContinueStatement$1068();
             case 'debugger':
-                return parseDebuggerStatement$1081();
+                return parseDebuggerStatement$1077();
             case 'do':
-                return parseDoWhileStatement$1068();
+                return parseDoWhileStatement$1064();
             case 'for':
-                return parseForStatement$1071();
+                return parseForStatement$1067();
             case 'function':
-                return parseFunctionDeclaration$1088();
+                return parseFunctionDeclaration$1084();
             case 'class':
-                return parseClassDeclaration$1095();
+                return parseClassDeclaration$1091();
             case 'if':
-                return parseIfStatement$1067();
+                return parseIfStatement$1063();
             case 'return':
-                return parseReturnStatement$1074();
+                return parseReturnStatement$1070();
             case 'switch':
-                return parseSwitchStatement$1077();
+                return parseSwitchStatement$1073();
             case 'throw':
-                return parseThrowStatement$1078();
+                return parseThrowStatement$1074();
             case 'try':
-                return parseTryStatement$1080();
+                return parseTryStatement$1076();
             case 'var':
-                return parseVariableStatement$1057();
+                return parseVariableStatement$1053();
             case 'while':
-                return parseWhileStatement$1069();
+                return parseWhileStatement$1065();
             case 'with':
-                return parseWithStatement$1075();
+                return parseWithStatement$1071();
             default:
                 break;
             }
         }
-        expr$1542 = parseExpression$1051();
+        expr$1538 = parseExpression$1047();
         // 12.12 Labelled Statements
-        if (expr$1542.type === Syntax$954.Identifier && match$1016(':')) {
-            lex$1007();
-            key$1544 = '$' + expr$1542.name;
-            if (Object.prototype.hasOwnProperty.call(state$975.labelSet, key$1544)) {
-                throwError$1011({}, Messages$956.Redeclaration, 'Label', expr$1542.name);
+        if (expr$1538.type === Syntax$950.Identifier && match$1012(':')) {
+            lex$1003();
+            key$1540 = '$' + expr$1538.name;
+            if (Object.prototype.hasOwnProperty.call(state$971.labelSet, key$1540)) {
+                throwError$1007({}, Messages$952.Redeclaration, 'Label', expr$1538.name);
             }
-            state$975.labelSet[key$1544] = true;
-            labeledBody$1543 = parseStatement$1082();
-            delete state$975.labelSet[key$1544];
-            return delegate$970.createLabeledStatement(expr$1542, labeledBody$1543);
+            state$971.labelSet[key$1540] = true;
+            labeledBody$1539 = parseStatement$1078();
+            delete state$971.labelSet[key$1540];
+            return delegate$966.createLabeledStatement(expr$1538, labeledBody$1539);
         }
-        consumeSemicolon$1020();
-        return delegate$970.createExpressionStatement(expr$1542);
+        consumeSemicolon$1016();
+        return delegate$966.createExpressionStatement(expr$1538);
     }
     // 13 Function Definition
-    function parseConciseBody$1083() {
-        if (match$1016('{')) {
-            return parseFunctionSourceElements$1084();
+    function parseConciseBody$1079() {
+        if (match$1012('{')) {
+            return parseFunctionSourceElements$1080();
         }
-        return parseAssignmentExpression$1050();
+        return parseAssignmentExpression$1046();
     }
-    function parseFunctionSourceElements$1084() {
-        var sourceElement$1545, sourceElements$1546 = [], token$1547, directive$1548, firstRestricted$1549, oldLabelSet$1550, oldInIteration$1551, oldInSwitch$1552, oldInFunctionBody$1553, oldParenthesizedCount$1554;
-        expect$1014('{');
-        while (streamIndex$972 < length$969) {
-            if (lookahead$973.type !== Token$951.StringLiteral) {
+    function parseFunctionSourceElements$1080() {
+        var sourceElement$1541, sourceElements$1542 = [], token$1543, directive$1544, firstRestricted$1545, oldLabelSet$1546, oldInIteration$1547, oldInSwitch$1548, oldInFunctionBody$1549, oldParenthesizedCount$1550;
+        expect$1010('{');
+        while (streamIndex$968 < length$965) {
+            if (lookahead$969.type !== Token$947.StringLiteral) {
                 break;
             }
-            token$1547 = lookahead$973;
-            sourceElement$1545 = parseSourceElement$1097();
-            sourceElements$1546.push(sourceElement$1545);
-            if (sourceElement$1545.expression.type !== Syntax$954.Literal) {
+            token$1543 = lookahead$969;
+            sourceElement$1541 = parseSourceElement$1093();
+            sourceElements$1542.push(sourceElement$1541);
+            if (sourceElement$1541.expression.type !== Syntax$950.Literal) {
                 // this is not directive
                 break;
             }
-            directive$1548 = token$1547.value;
-            if (directive$1548 === 'use strict') {
-                strict$961 = true;
-                if (firstRestricted$1549) {
-                    throwErrorTolerant$1012(firstRestricted$1549, Messages$956.StrictOctalLiteral);
+            directive$1544 = token$1543.value;
+            if (directive$1544 === 'use strict') {
+                strict$957 = true;
+                if (firstRestricted$1545) {
+                    throwErrorTolerant$1008(firstRestricted$1545, Messages$952.StrictOctalLiteral);
                 }
             } else {
-                if (!firstRestricted$1549 && token$1547.octal) {
-                    firstRestricted$1549 = token$1547;
+                if (!firstRestricted$1545 && token$1543.octal) {
+                    firstRestricted$1545 = token$1543;
                 }
             }
         }
-        oldLabelSet$1550 = state$975.labelSet;
-        oldInIteration$1551 = state$975.inIteration;
-        oldInSwitch$1552 = state$975.inSwitch;
-        oldInFunctionBody$1553 = state$975.inFunctionBody;
-        oldParenthesizedCount$1554 = state$975.parenthesizedCount;
-        state$975.labelSet = {};
-        state$975.inIteration = false;
-        state$975.inSwitch = false;
-        state$975.inFunctionBody = true;
-        state$975.parenthesizedCount = 0;
-        while (streamIndex$972 < length$969) {
-            if (match$1016('}')) {
+        oldLabelSet$1546 = state$971.labelSet;
+        oldInIteration$1547 = state$971.inIteration;
+        oldInSwitch$1548 = state$971.inSwitch;
+        oldInFunctionBody$1549 = state$971.inFunctionBody;
+        oldParenthesizedCount$1550 = state$971.parenthesizedCount;
+        state$971.labelSet = {};
+        state$971.inIteration = false;
+        state$971.inSwitch = false;
+        state$971.inFunctionBody = true;
+        state$971.parenthesizedCount = 0;
+        while (streamIndex$968 < length$965) {
+            if (match$1012('}')) {
                 break;
             }
-            sourceElement$1545 = parseSourceElement$1097();
-            if (typeof sourceElement$1545 === 'undefined') {
+            sourceElement$1541 = parseSourceElement$1093();
+            if (typeof sourceElement$1541 === 'undefined') {
                 break;
             }
-            sourceElements$1546.push(sourceElement$1545);
+            sourceElements$1542.push(sourceElement$1541);
         }
-        expect$1014('}');
-        state$975.labelSet = oldLabelSet$1550;
-        state$975.inIteration = oldInIteration$1551;
-        state$975.inSwitch = oldInSwitch$1552;
-        state$975.inFunctionBody = oldInFunctionBody$1553;
-        state$975.parenthesizedCount = oldParenthesizedCount$1554;
-        return delegate$970.createBlockStatement(sourceElements$1546);
+        expect$1010('}');
+        state$971.labelSet = oldLabelSet$1546;
+        state$971.inIteration = oldInIteration$1547;
+        state$971.inSwitch = oldInSwitch$1548;
+        state$971.inFunctionBody = oldInFunctionBody$1549;
+        state$971.parenthesizedCount = oldParenthesizedCount$1550;
+        return delegate$966.createBlockStatement(sourceElements$1542);
     }
-    function validateParam$1085(options$1555, param$1556, name$1557) {
-        var key$1558 = '$' + name$1557;
-        if (strict$961) {
-            if (isRestrictedWord$988(name$1557)) {
-                options$1555.stricted = param$1556;
-                options$1555.message = Messages$956.StrictParamName;
+    function validateParam$1081(options$1551, param$1552, name$1553) {
+        var key$1554 = '$' + name$1553;
+        if (strict$957) {
+            if (isRestrictedWord$984(name$1553)) {
+                options$1551.stricted = param$1552;
+                options$1551.message = Messages$952.StrictParamName;
             }
-            if (Object.prototype.hasOwnProperty.call(options$1555.paramSet, key$1558)) {
-                options$1555.stricted = param$1556;
-                options$1555.message = Messages$956.StrictParamDupe;
+            if (Object.prototype.hasOwnProperty.call(options$1551.paramSet, key$1554)) {
+                options$1551.stricted = param$1552;
+                options$1551.message = Messages$952.StrictParamDupe;
             }
-        } else if (!options$1555.firstRestricted) {
-            if (isRestrictedWord$988(name$1557)) {
-                options$1555.firstRestricted = param$1556;
-                options$1555.message = Messages$956.StrictParamName;
-            } else if (isStrictModeReservedWord$987(name$1557)) {
-                options$1555.firstRestricted = param$1556;
-                options$1555.message = Messages$956.StrictReservedWord;
-            } else if (Object.prototype.hasOwnProperty.call(options$1555.paramSet, key$1558)) {
-                options$1555.firstRestricted = param$1556;
-                options$1555.message = Messages$956.StrictParamDupe;
+        } else if (!options$1551.firstRestricted) {
+            if (isRestrictedWord$984(name$1553)) {
+                options$1551.firstRestricted = param$1552;
+                options$1551.message = Messages$952.StrictParamName;
+            } else if (isStrictModeReservedWord$983(name$1553)) {
+                options$1551.firstRestricted = param$1552;
+                options$1551.message = Messages$952.StrictReservedWord;
+            } else if (Object.prototype.hasOwnProperty.call(options$1551.paramSet, key$1554)) {
+                options$1551.firstRestricted = param$1552;
+                options$1551.message = Messages$952.StrictParamDupe;
             }
         }
-        options$1555.paramSet[key$1558] = true;
+        options$1551.paramSet[key$1554] = true;
     }
-    function parseParam$1086(options$1559) {
-        var token$1560, rest$1561, param$1562, def$1563;
-        token$1560 = lookahead$973;
-        if (token$1560.value === '...') {
-            token$1560 = lex$1007();
-            rest$1561 = true;
+    function parseParam$1082(options$1555) {
+        var token$1556, rest$1557, param$1558, def$1559;
+        token$1556 = lookahead$969;
+        if (token$1556.value === '...') {
+            token$1556 = lex$1003();
+            rest$1557 = true;
         }
-        if (match$1016('[')) {
-            param$1562 = parseArrayInitialiser$1023();
-            reinterpretAsDestructuredParameter$1047(options$1559, param$1562);
-        } else if (match$1016('{')) {
-            if (rest$1561) {
-                throwError$1011({}, Messages$956.ObjectPatternAsRestParameter);
+        if (match$1012('[')) {
+            param$1558 = parseArrayInitialiser$1019();
+            reinterpretAsDestructuredParameter$1043(options$1555, param$1558);
+        } else if (match$1012('{')) {
+            if (rest$1557) {
+                throwError$1007({}, Messages$952.ObjectPatternAsRestParameter);
             }
-            param$1562 = parseObjectInitialiser$1028();
-            reinterpretAsDestructuredParameter$1047(options$1559, param$1562);
+            param$1558 = parseObjectInitialiser$1024();
+            reinterpretAsDestructuredParameter$1043(options$1555, param$1558);
         } else {
-            param$1562 = parseVariableIdentifier$1054();
-            validateParam$1085(options$1559, token$1560, token$1560.value);
-            if (match$1016('=')) {
-                if (rest$1561) {
-                    throwErrorTolerant$1012(lookahead$973, Messages$956.DefaultRestParameter);
+            param$1558 = parseVariableIdentifier$1050();
+            validateParam$1081(options$1555, token$1556, token$1556.value);
+            if (match$1012('=')) {
+                if (rest$1557) {
+                    throwErrorTolerant$1008(lookahead$969, Messages$952.DefaultRestParameter);
                 }
-                lex$1007();
-                def$1563 = parseAssignmentExpression$1050();
-                ++options$1559.defaultCount;
+                lex$1003();
+                def$1559 = parseAssignmentExpression$1046();
+                ++options$1555.defaultCount;
             }
         }
-        if (rest$1561) {
-            if (!match$1016(')')) {
-                throwError$1011({}, Messages$956.ParameterAfterRestParameter);
+        if (rest$1557) {
+            if (!match$1012(')')) {
+                throwError$1007({}, Messages$952.ParameterAfterRestParameter);
             }
-            options$1559.rest = param$1562;
+            options$1555.rest = param$1558;
             return false;
         }
-        options$1559.params.push(param$1562);
-        options$1559.defaults.push(def$1563);
-        return !match$1016(')');
+        options$1555.params.push(param$1558);
+        options$1555.defaults.push(def$1559);
+        return !match$1012(')');
     }
-    function parseParams$1087(firstRestricted$1564) {
-        var options$1565;
-        options$1565 = {
+    function parseParams$1083(firstRestricted$1560) {
+        var options$1561;
+        options$1561 = {
             params: [],
             defaultCount: 0,
             defaults: [],
             rest: null,
-            firstRestricted: firstRestricted$1564
+            firstRestricted: firstRestricted$1560
         };
-        expect$1014('(');
-        if (!match$1016(')')) {
-            options$1565.paramSet = {};
-            while (streamIndex$972 < length$969) {
-                if (!parseParam$1086(options$1565)) {
+        expect$1010('(');
+        if (!match$1012(')')) {
+            options$1561.paramSet = {};
+            while (streamIndex$968 < length$965) {
+                if (!parseParam$1082(options$1561)) {
                     break;
                 }
-                expect$1014(',');
+                expect$1010(',');
             }
         }
-        expect$1014(')');
-        if (options$1565.defaultCount === 0) {
-            options$1565.defaults = [];
+        expect$1010(')');
+        if (options$1561.defaultCount === 0) {
+            options$1561.defaults = [];
         }
-        return options$1565;
+        return options$1561;
     }
-    function parseFunctionDeclaration$1088() {
-        var id$1566, body$1567, token$1568, tmp$1569, firstRestricted$1570, message$1571, previousStrict$1572, previousYieldAllowed$1573, generator$1574, expression$1575;
-        expectKeyword$1015('function');
-        generator$1574 = false;
-        if (match$1016('*')) {
-            lex$1007();
-            generator$1574 = true;
+    function parseFunctionDeclaration$1084() {
+        var id$1562, body$1563, token$1564, tmp$1565, firstRestricted$1566, message$1567, previousStrict$1568, previousYieldAllowed$1569, generator$1570, expression$1571;
+        expectKeyword$1011('function');
+        generator$1570 = false;
+        if (match$1012('*')) {
+            lex$1003();
+            generator$1570 = true;
         }
-        token$1568 = lookahead$973;
-        id$1566 = parseVariableIdentifier$1054();
-        if (strict$961) {
-            if (isRestrictedWord$988(token$1568.value)) {
-                throwErrorTolerant$1012(token$1568, Messages$956.StrictFunctionName);
+        token$1564 = lookahead$969;
+        id$1562 = parseVariableIdentifier$1050();
+        if (strict$957) {
+            if (isRestrictedWord$984(token$1564.value)) {
+                throwErrorTolerant$1008(token$1564, Messages$952.StrictFunctionName);
             }
         } else {
-            if (isRestrictedWord$988(token$1568.value)) {
-                firstRestricted$1570 = token$1568;
-                message$1571 = Messages$956.StrictFunctionName;
-            } else if (isStrictModeReservedWord$987(token$1568.value)) {
-                firstRestricted$1570 = token$1568;
-                message$1571 = Messages$956.StrictReservedWord;
+            if (isRestrictedWord$984(token$1564.value)) {
+                firstRestricted$1566 = token$1564;
+                message$1567 = Messages$952.StrictFunctionName;
+            } else if (isStrictModeReservedWord$983(token$1564.value)) {
+                firstRestricted$1566 = token$1564;
+                message$1567 = Messages$952.StrictReservedWord;
             }
         }
-        tmp$1569 = parseParams$1087(firstRestricted$1570);
-        firstRestricted$1570 = tmp$1569.firstRestricted;
-        if (tmp$1569.message) {
-            message$1571 = tmp$1569.message;
+        tmp$1565 = parseParams$1083(firstRestricted$1566);
+        firstRestricted$1566 = tmp$1565.firstRestricted;
+        if (tmp$1565.message) {
+            message$1567 = tmp$1565.message;
         }
-        previousStrict$1572 = strict$961;
-        previousYieldAllowed$1573 = state$975.yieldAllowed;
-        state$975.yieldAllowed = generator$1574;
+        previousStrict$1568 = strict$957;
+        previousYieldAllowed$1569 = state$971.yieldAllowed;
+        state$971.yieldAllowed = generator$1570;
         // here we redo some work in order to set 'expression'
-        expression$1575 = !match$1016('{');
-        body$1567 = parseConciseBody$1083();
-        if (strict$961 && firstRestricted$1570) {
-            throwError$1011(firstRestricted$1570, message$1571);
+        expression$1571 = !match$1012('{');
+        body$1563 = parseConciseBody$1079();
+        if (strict$957 && firstRestricted$1566) {
+            throwError$1007(firstRestricted$1566, message$1567);
         }
-        if (strict$961 && tmp$1569.stricted) {
-            throwErrorTolerant$1012(tmp$1569.stricted, message$1571);
+        if (strict$957 && tmp$1565.stricted) {
+            throwErrorTolerant$1008(tmp$1565.stricted, message$1567);
         }
-        if (state$975.yieldAllowed && !state$975.yieldFound) {
-            throwErrorTolerant$1012({}, Messages$956.NoYieldInGenerator);
+        if (state$971.yieldAllowed && !state$971.yieldFound) {
+            throwErrorTolerant$1008({}, Messages$952.NoYieldInGenerator);
         }
-        strict$961 = previousStrict$1572;
-        state$975.yieldAllowed = previousYieldAllowed$1573;
-        return delegate$970.createFunctionDeclaration(id$1566, tmp$1569.params, tmp$1569.defaults, body$1567, tmp$1569.rest, generator$1574, expression$1575);
+        strict$957 = previousStrict$1568;
+        state$971.yieldAllowed = previousYieldAllowed$1569;
+        return delegate$966.createFunctionDeclaration(id$1562, tmp$1565.params, tmp$1565.defaults, body$1563, tmp$1565.rest, generator$1570, expression$1571);
     }
-    function parseFunctionExpression$1089() {
-        var token$1576, id$1577 = null, firstRestricted$1578, message$1579, tmp$1580, body$1581, previousStrict$1582, previousYieldAllowed$1583, generator$1584, expression$1585;
-        expectKeyword$1015('function');
-        generator$1584 = false;
-        if (match$1016('*')) {
-            lex$1007();
-            generator$1584 = true;
+    function parseFunctionExpression$1085() {
+        var token$1572, id$1573 = null, firstRestricted$1574, message$1575, tmp$1576, body$1577, previousStrict$1578, previousYieldAllowed$1579, generator$1580, expression$1581;
+        expectKeyword$1011('function');
+        generator$1580 = false;
+        if (match$1012('*')) {
+            lex$1003();
+            generator$1580 = true;
         }
-        if (!match$1016('(')) {
-            token$1576 = lookahead$973;
-            id$1577 = parseVariableIdentifier$1054();
-            if (strict$961) {
-                if (isRestrictedWord$988(token$1576.value)) {
-                    throwErrorTolerant$1012(token$1576, Messages$956.StrictFunctionName);
+        if (!match$1012('(')) {
+            token$1572 = lookahead$969;
+            id$1573 = parseVariableIdentifier$1050();
+            if (strict$957) {
+                if (isRestrictedWord$984(token$1572.value)) {
+                    throwErrorTolerant$1008(token$1572, Messages$952.StrictFunctionName);
                 }
             } else {
-                if (isRestrictedWord$988(token$1576.value)) {
-                    firstRestricted$1578 = token$1576;
-                    message$1579 = Messages$956.StrictFunctionName;
-                } else if (isStrictModeReservedWord$987(token$1576.value)) {
-                    firstRestricted$1578 = token$1576;
-                    message$1579 = Messages$956.StrictReservedWord;
+                if (isRestrictedWord$984(token$1572.value)) {
+                    firstRestricted$1574 = token$1572;
+                    message$1575 = Messages$952.StrictFunctionName;
+                } else if (isStrictModeReservedWord$983(token$1572.value)) {
+                    firstRestricted$1574 = token$1572;
+                    message$1575 = Messages$952.StrictReservedWord;
                 }
             }
         }
-        tmp$1580 = parseParams$1087(firstRestricted$1578);
-        firstRestricted$1578 = tmp$1580.firstRestricted;
-        if (tmp$1580.message) {
-            message$1579 = tmp$1580.message;
+        tmp$1576 = parseParams$1083(firstRestricted$1574);
+        firstRestricted$1574 = tmp$1576.firstRestricted;
+        if (tmp$1576.message) {
+            message$1575 = tmp$1576.message;
         }
-        previousStrict$1582 = strict$961;
-        previousYieldAllowed$1583 = state$975.yieldAllowed;
-        state$975.yieldAllowed = generator$1584;
+        previousStrict$1578 = strict$957;
+        previousYieldAllowed$1579 = state$971.yieldAllowed;
+        state$971.yieldAllowed = generator$1580;
         // here we redo some work in order to set 'expression'
-        expression$1585 = !match$1016('{');
-        body$1581 = parseConciseBody$1083();
-        if (strict$961 && firstRestricted$1578) {
-            throwError$1011(firstRestricted$1578, message$1579);
+        expression$1581 = !match$1012('{');
+        body$1577 = parseConciseBody$1079();
+        if (strict$957 && firstRestricted$1574) {
+            throwError$1007(firstRestricted$1574, message$1575);
         }
-        if (strict$961 && tmp$1580.stricted) {
-            throwErrorTolerant$1012(tmp$1580.stricted, message$1579);
+        if (strict$957 && tmp$1576.stricted) {
+            throwErrorTolerant$1008(tmp$1576.stricted, message$1575);
         }
-        if (state$975.yieldAllowed && !state$975.yieldFound) {
-            throwErrorTolerant$1012({}, Messages$956.NoYieldInGenerator);
+        if (state$971.yieldAllowed && !state$971.yieldFound) {
+            throwErrorTolerant$1008({}, Messages$952.NoYieldInGenerator);
         }
-        strict$961 = previousStrict$1582;
-        state$975.yieldAllowed = previousYieldAllowed$1583;
-        return delegate$970.createFunctionExpression(id$1577, tmp$1580.params, tmp$1580.defaults, body$1581, tmp$1580.rest, generator$1584, expression$1585);
+        strict$957 = previousStrict$1578;
+        state$971.yieldAllowed = previousYieldAllowed$1579;
+        return delegate$966.createFunctionExpression(id$1573, tmp$1576.params, tmp$1576.defaults, body$1577, tmp$1576.rest, generator$1580, expression$1581);
     }
-    function parseYieldExpression$1090() {
-        var delegateFlag$1586, expr$1587, previousYieldAllowed$1588;
-        expectKeyword$1015('yield');
-        if (!state$975.yieldAllowed) {
-            throwErrorTolerant$1012({}, Messages$956.IllegalYield);
+    function parseYieldExpression$1086() {
+        var delegateFlag$1582, expr$1583, previousYieldAllowed$1584;
+        expectKeyword$1011('yield');
+        if (!state$971.yieldAllowed) {
+            throwErrorTolerant$1008({}, Messages$952.IllegalYield);
         }
-        delegateFlag$1586 = false;
-        if (match$1016('*')) {
-            lex$1007();
-            delegateFlag$1586 = true;
+        delegateFlag$1582 = false;
+        if (match$1012('*')) {
+            lex$1003();
+            delegateFlag$1582 = true;
         }
         // It is a Syntax Error if any AssignmentExpression Contains YieldExpression.
-        previousYieldAllowed$1588 = state$975.yieldAllowed;
-        state$975.yieldAllowed = false;
-        expr$1587 = parseAssignmentExpression$1050();
-        state$975.yieldAllowed = previousYieldAllowed$1588;
-        state$975.yieldFound = true;
-        return delegate$970.createYieldExpression(expr$1587, delegateFlag$1586);
+        previousYieldAllowed$1584 = state$971.yieldAllowed;
+        state$971.yieldAllowed = false;
+        expr$1583 = parseAssignmentExpression$1046();
+        state$971.yieldAllowed = previousYieldAllowed$1584;
+        state$971.yieldFound = true;
+        return delegate$966.createYieldExpression(expr$1583, delegateFlag$1582);
     }
     // 14 Classes
-    function parseMethodDefinition$1091(existingPropNames$1589) {
-        var token$1590, key$1591, param$1592, propType$1593, isValidDuplicateProp$1594 = false;
-        if (lookahead$973.value === 'static') {
-            propType$1593 = ClassPropertyType$959.static;
-            lex$1007();
+    function parseMethodDefinition$1087(existingPropNames$1585) {
+        var token$1586, key$1587, param$1588, propType$1589, isValidDuplicateProp$1590 = false;
+        if (lookahead$969.value === 'static') {
+            propType$1589 = ClassPropertyType$955.static;
+            lex$1003();
         } else {
-            propType$1593 = ClassPropertyType$959.prototype;
+            propType$1589 = ClassPropertyType$955.prototype;
         }
-        if (match$1016('*')) {
-            lex$1007();
-            return delegate$970.createMethodDefinition(propType$1593, '', parseObjectPropertyKey$1026(), parsePropertyMethodFunction$1025({ generator: true }));
+        if (match$1012('*')) {
+            lex$1003();
+            return delegate$966.createMethodDefinition(propType$1589, '', parseObjectPropertyKey$1022(), parsePropertyMethodFunction$1021({ generator: true }));
         }
-        token$1590 = lookahead$973;
-        key$1591 = parseObjectPropertyKey$1026();
-        if (token$1590.value === 'get' && !match$1016('(')) {
-            key$1591 = parseObjectPropertyKey$1026();
+        token$1586 = lookahead$969;
+        key$1587 = parseObjectPropertyKey$1022();
+        if (token$1586.value === 'get' && !match$1012('(')) {
+            key$1587 = parseObjectPropertyKey$1022();
             // It is a syntax error if any other properties have a name
             // duplicating this one unless they are a setter
-            if (existingPropNames$1589[propType$1593].hasOwnProperty(key$1591.name)) {
-                isValidDuplicateProp$1594 = existingPropNames$1589[propType$1593][key$1591.name].get === undefined && existingPropNames$1589[propType$1593][key$1591.name].data === undefined && existingPropNames$1589[propType$1593][key$1591.name].set !== undefined;
-                if (!isValidDuplicateProp$1594) {
-                    throwError$1011(key$1591, Messages$956.IllegalDuplicateClassProperty);
+            if (existingPropNames$1585[propType$1589].hasOwnProperty(key$1587.name)) {
+                isValidDuplicateProp$1590 = existingPropNames$1585[propType$1589][key$1587.name].get === undefined && existingPropNames$1585[propType$1589][key$1587.name].data === undefined && existingPropNames$1585[propType$1589][key$1587.name].set !== undefined;
+                if (!isValidDuplicateProp$1590) {
+                    throwError$1007(key$1587, Messages$952.IllegalDuplicateClassProperty);
                 }
             } else {
-                existingPropNames$1589[propType$1593][key$1591.name] = {};
+                existingPropNames$1585[propType$1589][key$1587.name] = {};
             }
-            existingPropNames$1589[propType$1593][key$1591.name].get = true;
-            expect$1014('(');
-            expect$1014(')');
-            return delegate$970.createMethodDefinition(propType$1593, 'get', key$1591, parsePropertyFunction$1024({ generator: false }));
+            existingPropNames$1585[propType$1589][key$1587.name].get = true;
+            expect$1010('(');
+            expect$1010(')');
+            return delegate$966.createMethodDefinition(propType$1589, 'get', key$1587, parsePropertyFunction$1020({ generator: false }));
         }
-        if (token$1590.value === 'set' && !match$1016('(')) {
-            key$1591 = parseObjectPropertyKey$1026();
+        if (token$1586.value === 'set' && !match$1012('(')) {
+            key$1587 = parseObjectPropertyKey$1022();
             // It is a syntax error if any other properties have a name
             // duplicating this one unless they are a getter
-            if (existingPropNames$1589[propType$1593].hasOwnProperty(key$1591.name)) {
-                isValidDuplicateProp$1594 = existingPropNames$1589[propType$1593][key$1591.name].set === undefined && existingPropNames$1589[propType$1593][key$1591.name].data === undefined && existingPropNames$1589[propType$1593][key$1591.name].get !== undefined;
-                if (!isValidDuplicateProp$1594) {
-                    throwError$1011(key$1591, Messages$956.IllegalDuplicateClassProperty);
+            if (existingPropNames$1585[propType$1589].hasOwnProperty(key$1587.name)) {
+                isValidDuplicateProp$1590 = existingPropNames$1585[propType$1589][key$1587.name].set === undefined && existingPropNames$1585[propType$1589][key$1587.name].data === undefined && existingPropNames$1585[propType$1589][key$1587.name].get !== undefined;
+                if (!isValidDuplicateProp$1590) {
+                    throwError$1007(key$1587, Messages$952.IllegalDuplicateClassProperty);
                 }
             } else {
-                existingPropNames$1589[propType$1593][key$1591.name] = {};
+                existingPropNames$1585[propType$1589][key$1587.name] = {};
             }
-            existingPropNames$1589[propType$1593][key$1591.name].set = true;
-            expect$1014('(');
-            token$1590 = lookahead$973;
-            param$1592 = [parseVariableIdentifier$1054()];
-            expect$1014(')');
-            return delegate$970.createMethodDefinition(propType$1593, 'set', key$1591, parsePropertyFunction$1024({
-                params: param$1592,
+            existingPropNames$1585[propType$1589][key$1587.name].set = true;
+            expect$1010('(');
+            token$1586 = lookahead$969;
+            param$1588 = [parseVariableIdentifier$1050()];
+            expect$1010(')');
+            return delegate$966.createMethodDefinition(propType$1589, 'set', key$1587, parsePropertyFunction$1020({
+                params: param$1588,
                 generator: false,
-                name: token$1590
+                name: token$1586
             }));
         }
         // It is a syntax error if any other properties have the same name as a
         // non-getter, non-setter method
-        if (existingPropNames$1589[propType$1593].hasOwnProperty(key$1591.name)) {
-            throwError$1011(key$1591, Messages$956.IllegalDuplicateClassProperty);
+        if (existingPropNames$1585[propType$1589].hasOwnProperty(key$1587.name)) {
+            throwError$1007(key$1587, Messages$952.IllegalDuplicateClassProperty);
         } else {
-            existingPropNames$1589[propType$1593][key$1591.name] = {};
+            existingPropNames$1585[propType$1589][key$1587.name] = {};
         }
-        existingPropNames$1589[propType$1593][key$1591.name].data = true;
-        return delegate$970.createMethodDefinition(propType$1593, '', key$1591, parsePropertyMethodFunction$1025({ generator: false }));
+        existingPropNames$1585[propType$1589][key$1587.name].data = true;
+        return delegate$966.createMethodDefinition(propType$1589, '', key$1587, parsePropertyMethodFunction$1021({ generator: false }));
     }
-    function parseClassElement$1092(existingProps$1595) {
-        if (match$1016(';')) {
-            lex$1007();
+    function parseClassElement$1088(existingProps$1591) {
+        if (match$1012(';')) {
+            lex$1003();
             return;
         }
-        return parseMethodDefinition$1091(existingProps$1595);
+        return parseMethodDefinition$1087(existingProps$1591);
     }
-    function parseClassBody$1093() {
-        var classElement$1596, classElements$1597 = [], existingProps$1598 = {};
-        existingProps$1598[ClassPropertyType$959.static] = {};
-        existingProps$1598[ClassPropertyType$959.prototype] = {};
-        expect$1014('{');
-        while (streamIndex$972 < length$969) {
-            if (match$1016('}')) {
+    function parseClassBody$1089() {
+        var classElement$1592, classElements$1593 = [], existingProps$1594 = {};
+        existingProps$1594[ClassPropertyType$955.static] = {};
+        existingProps$1594[ClassPropertyType$955.prototype] = {};
+        expect$1010('{');
+        while (streamIndex$968 < length$965) {
+            if (match$1012('}')) {
                 break;
             }
-            classElement$1596 = parseClassElement$1092(existingProps$1598);
-            if (typeof classElement$1596 !== 'undefined') {
-                classElements$1597.push(classElement$1596);
+            classElement$1592 = parseClassElement$1088(existingProps$1594);
+            if (typeof classElement$1592 !== 'undefined') {
+                classElements$1593.push(classElement$1592);
             }
         }
-        expect$1014('}');
-        return delegate$970.createClassBody(classElements$1597);
+        expect$1010('}');
+        return delegate$966.createClassBody(classElements$1593);
     }
-    function parseClassExpression$1094() {
-        var id$1599, previousYieldAllowed$1600, superClass$1601 = null;
-        expectKeyword$1015('class');
-        if (!matchKeyword$1017('extends') && !match$1016('{')) {
-            id$1599 = parseVariableIdentifier$1054();
+    function parseClassExpression$1090() {
+        var id$1595, previousYieldAllowed$1596, superClass$1597 = null;
+        expectKeyword$1011('class');
+        if (!matchKeyword$1013('extends') && !match$1012('{')) {
+            id$1595 = parseVariableIdentifier$1050();
         }
-        if (matchKeyword$1017('extends')) {
-            expectKeyword$1015('extends');
-            previousYieldAllowed$1600 = state$975.yieldAllowed;
-            state$975.yieldAllowed = false;
-            superClass$1601 = parseAssignmentExpression$1050();
-            state$975.yieldAllowed = previousYieldAllowed$1600;
+        if (matchKeyword$1013('extends')) {
+            expectKeyword$1011('extends');
+            previousYieldAllowed$1596 = state$971.yieldAllowed;
+            state$971.yieldAllowed = false;
+            superClass$1597 = parseAssignmentExpression$1046();
+            state$971.yieldAllowed = previousYieldAllowed$1596;
         }
-        return delegate$970.createClassExpression(id$1599, superClass$1601, parseClassBody$1093());
+        return delegate$966.createClassExpression(id$1595, superClass$1597, parseClassBody$1089());
     }
-    function parseClassDeclaration$1095() {
-        var id$1602, previousYieldAllowed$1603, superClass$1604 = null;
-        expectKeyword$1015('class');
-        id$1602 = parseVariableIdentifier$1054();
-        if (matchKeyword$1017('extends')) {
-            expectKeyword$1015('extends');
-            previousYieldAllowed$1603 = state$975.yieldAllowed;
-            state$975.yieldAllowed = false;
-            superClass$1604 = parseAssignmentExpression$1050();
-            state$975.yieldAllowed = previousYieldAllowed$1603;
+    function parseClassDeclaration$1091() {
+        var id$1598, previousYieldAllowed$1599, superClass$1600 = null;
+        expectKeyword$1011('class');
+        id$1598 = parseVariableIdentifier$1050();
+        if (matchKeyword$1013('extends')) {
+            expectKeyword$1011('extends');
+            previousYieldAllowed$1599 = state$971.yieldAllowed;
+            state$971.yieldAllowed = false;
+            superClass$1600 = parseAssignmentExpression$1046();
+            state$971.yieldAllowed = previousYieldAllowed$1599;
         }
-        return delegate$970.createClassDeclaration(id$1602, superClass$1604, parseClassBody$1093());
+        return delegate$966.createClassDeclaration(id$1598, superClass$1600, parseClassBody$1089());
     }
     // 15 Program
-    function matchModuleDeclaration$1096() {
-        var id$1605;
-        if (matchContextualKeyword$1018('module')) {
-            id$1605 = lookahead2$1009();
-            return id$1605.type === Token$951.StringLiteral || id$1605.type === Token$951.Identifier;
+    function matchModuleDeclaration$1092() {
+        var id$1601;
+        if (matchContextualKeyword$1014('module')) {
+            id$1601 = lookahead2$1005();
+            return id$1601.type === Token$947.StringLiteral || id$1601.type === Token$947.Identifier;
         }
         return false;
     }
-    function parseSourceElement$1097() {
-        if (lookahead$973.type === Token$951.Keyword) {
-            switch (lookahead$973.value) {
+    function parseSourceElement$1093() {
+        if (lookahead$969.type === Token$947.Keyword) {
+            switch (lookahead$969.value) {
             case 'const':
             case 'let':
-                return parseConstLetDeclaration$1058(lookahead$973.value);
+                return parseConstLetDeclaration$1054(lookahead$969.value);
             case 'function':
-                return parseFunctionDeclaration$1088();
+                return parseFunctionDeclaration$1084();
             case 'export':
-                return parseExportDeclaration$1062();
+                return parseExportDeclaration$1058();
             case 'import':
-                return parseImportDeclaration$1063();
+                return parseImportDeclaration$1059();
             default:
-                return parseStatement$1082();
+                return parseStatement$1078();
             }
         }
-        if (matchModuleDeclaration$1096()) {
-            throwError$1011({}, Messages$956.NestedModule);
+        if (matchModuleDeclaration$1092()) {
+            throwError$1007({}, Messages$952.NestedModule);
         }
-        if (lookahead$973.type !== Token$951.EOF) {
-            return parseStatement$1082();
+        if (lookahead$969.type !== Token$947.EOF) {
+            return parseStatement$1078();
         }
     }
-    function parseProgramElement$1098() {
-        if (lookahead$973.type === Token$951.Keyword) {
-            switch (lookahead$973.value) {
+    function parseProgramElement$1094() {
+        if (lookahead$969.type === Token$947.Keyword) {
+            switch (lookahead$969.value) {
             case 'export':
-                return parseExportDeclaration$1062();
+                return parseExportDeclaration$1058();
             case 'import':
-                return parseImportDeclaration$1063();
+                return parseImportDeclaration$1059();
             }
         }
-        if (matchModuleDeclaration$1096()) {
-            return parseModuleDeclaration$1059();
+        if (matchModuleDeclaration$1092()) {
+            return parseModuleDeclaration$1055();
         }
-        return parseSourceElement$1097();
+        return parseSourceElement$1093();
     }
-    function parseProgramElements$1099() {
-        var sourceElement$1606, sourceElements$1607 = [], token$1608, directive$1609, firstRestricted$1610;
-        while (streamIndex$972 < length$969) {
-            token$1608 = lookahead$973;
-            if (token$1608.type !== Token$951.StringLiteral) {
+    function parseProgramElements$1095() {
+        var sourceElement$1602, sourceElements$1603 = [], token$1604, directive$1605, firstRestricted$1606;
+        while (streamIndex$968 < length$965) {
+            token$1604 = lookahead$969;
+            if (token$1604.type !== Token$947.StringLiteral) {
                 break;
             }
-            sourceElement$1606 = parseProgramElement$1098();
-            sourceElements$1607.push(sourceElement$1606);
-            if (sourceElement$1606.expression.type !== Syntax$954.Literal) {
+            sourceElement$1602 = parseProgramElement$1094();
+            sourceElements$1603.push(sourceElement$1602);
+            if (sourceElement$1602.expression.type !== Syntax$950.Literal) {
                 // this is not directive
                 break;
             }
-            directive$1609 = token$1608.value;
-            if (directive$1609 === 'use strict') {
-                strict$961 = true;
-                if (firstRestricted$1610) {
-                    throwErrorTolerant$1012(firstRestricted$1610, Messages$956.StrictOctalLiteral);
+            directive$1605 = token$1604.value;
+            if (directive$1605 === 'use strict') {
+                strict$957 = true;
+                if (firstRestricted$1606) {
+                    throwErrorTolerant$1008(firstRestricted$1606, Messages$952.StrictOctalLiteral);
                 }
             } else {
-                if (!firstRestricted$1610 && token$1608.octal) {
-                    firstRestricted$1610 = token$1608;
+                if (!firstRestricted$1606 && token$1604.octal) {
+                    firstRestricted$1606 = token$1604;
                 }
             }
         }
-        while (streamIndex$972 < length$969) {
-            sourceElement$1606 = parseProgramElement$1098();
-            if (typeof sourceElement$1606 === 'undefined') {
+        while (streamIndex$968 < length$965) {
+            sourceElement$1602 = parseProgramElement$1094();
+            if (typeof sourceElement$1602 === 'undefined') {
                 break;
             }
-            sourceElements$1607.push(sourceElement$1606);
+            sourceElements$1603.push(sourceElement$1602);
         }
-        return sourceElements$1607;
+        return sourceElements$1603;
     }
-    function parseModuleElement$1100() {
-        return parseSourceElement$1097();
+    function parseModuleElement$1096() {
+        return parseSourceElement$1093();
     }
-    function parseModuleElements$1101() {
-        var list$1611 = [], statement$1612;
-        while (streamIndex$972 < length$969) {
-            if (match$1016('}')) {
+    function parseModuleElements$1097() {
+        var list$1607 = [], statement$1608;
+        while (streamIndex$968 < length$965) {
+            if (match$1012('}')) {
                 break;
             }
-            statement$1612 = parseModuleElement$1100();
-            if (typeof statement$1612 === 'undefined') {
+            statement$1608 = parseModuleElement$1096();
+            if (typeof statement$1608 === 'undefined') {
                 break;
             }
-            list$1611.push(statement$1612);
+            list$1607.push(statement$1608);
         }
-        return list$1611;
+        return list$1607;
     }
-    function parseModuleBlock$1102() {
-        var block$1613;
-        expect$1014('{');
-        block$1613 = parseModuleElements$1101();
-        expect$1014('}');
-        return delegate$970.createBlockStatement(block$1613);
+    function parseModuleBlock$1098() {
+        var block$1609;
+        expect$1010('{');
+        block$1609 = parseModuleElements$1097();
+        expect$1010('}');
+        return delegate$966.createBlockStatement(block$1609);
     }
-    function parseProgram$1103() {
-        var body$1614;
-        strict$961 = false;
-        peek$1008();
-        body$1614 = parseProgramElements$1099();
-        return delegate$970.createProgram(body$1614);
+    function parseProgram$1099() {
+        var body$1610;
+        strict$957 = false;
+        peek$1004();
+        body$1610 = parseProgramElements$1095();
+        return delegate$966.createProgram(body$1610);
     }
     // The following functions are needed only when the option to preserve
     // the comments is active.
-    function addComment$1104(type$1615, value$1616, start$1617, end$1618, loc$1619) {
-        assert$977(typeof start$1617 === 'number', 'Comment must have valid position');
+    function addComment$1100(type$1611, value$1612, start$1613, end$1614, loc$1615) {
+        assert$973(typeof start$1613 === 'number', 'Comment must have valid position');
         // Because the way the actual token is scanned, often the comments
         // (if any) are skipped twice during the lexical analysis.
         // Thus, we need to skip adding a comment if the comment array already
         // handled it.
-        if (extra$976.comments.length > 0) {
-            if (extra$976.comments[extra$976.comments.length - 1].range[1] > start$1617) {
+        if (extra$972.comments.length > 0) {
+            if (extra$972.comments[extra$972.comments.length - 1].range[1] > start$1613) {
                 return;
             }
         }
-        extra$976.comments.push({
-            type: type$1615,
-            value: value$1616,
+        extra$972.comments.push({
+            type: type$1611,
+            value: value$1612,
             range: [
-                start$1617,
-                end$1618
+                start$1613,
+                end$1614
             ],
-            loc: loc$1619
+            loc: loc$1615
         });
     }
-    function scanComment$1105() {
-        var comment$1620, ch$1621, loc$1622, start$1623, blockComment$1624, lineComment$1625;
-        comment$1620 = '';
-        blockComment$1624 = false;
-        lineComment$1625 = false;
-        while (index$962 < length$969) {
-            ch$1621 = source$960[index$962];
-            if (lineComment$1625) {
-                ch$1621 = source$960[index$962++];
-                if (isLineTerminator$983(ch$1621.charCodeAt(0))) {
-                    loc$1622.end = {
-                        line: lineNumber$963,
-                        column: index$962 - lineStart$964 - 1
+    function scanComment$1101() {
+        var comment$1616, ch$1617, loc$1618, start$1619, blockComment$1620, lineComment$1621;
+        comment$1616 = '';
+        blockComment$1620 = false;
+        lineComment$1621 = false;
+        while (index$958 < length$965) {
+            ch$1617 = source$956[index$958];
+            if (lineComment$1621) {
+                ch$1617 = source$956[index$958++];
+                if (isLineTerminator$979(ch$1617.charCodeAt(0))) {
+                    loc$1618.end = {
+                        line: lineNumber$959,
+                        column: index$958 - lineStart$960 - 1
                     };
-                    lineComment$1625 = false;
-                    addComment$1104('Line', comment$1620, start$1623, index$962 - 1, loc$1622);
-                    if (ch$1621 === '\r' && source$960[index$962] === '\n') {
-                        ++index$962;
+                    lineComment$1621 = false;
+                    addComment$1100('Line', comment$1616, start$1619, index$958 - 1, loc$1618);
+                    if (ch$1617 === '\r' && source$956[index$958] === '\n') {
+                        ++index$958;
                     }
-                    ++lineNumber$963;
-                    lineStart$964 = index$962;
-                    comment$1620 = '';
-                } else if (index$962 >= length$969) {
-                    lineComment$1625 = false;
-                    comment$1620 += ch$1621;
-                    loc$1622.end = {
-                        line: lineNumber$963,
-                        column: length$969 - lineStart$964
+                    ++lineNumber$959;
+                    lineStart$960 = index$958;
+                    comment$1616 = '';
+                } else if (index$958 >= length$965) {
+                    lineComment$1621 = false;
+                    comment$1616 += ch$1617;
+                    loc$1618.end = {
+                        line: lineNumber$959,
+                        column: length$965 - lineStart$960
                     };
-                    addComment$1104('Line', comment$1620, start$1623, length$969, loc$1622);
+                    addComment$1100('Line', comment$1616, start$1619, length$965, loc$1618);
                 } else {
-                    comment$1620 += ch$1621;
+                    comment$1616 += ch$1617;
                 }
-            } else if (blockComment$1624) {
-                if (isLineTerminator$983(ch$1621.charCodeAt(0))) {
-                    if (ch$1621 === '\r' && source$960[index$962 + 1] === '\n') {
-                        ++index$962;
-                        comment$1620 += '\r\n';
+            } else if (blockComment$1620) {
+                if (isLineTerminator$979(ch$1617.charCodeAt(0))) {
+                    if (ch$1617 === '\r' && source$956[index$958 + 1] === '\n') {
+                        ++index$958;
+                        comment$1616 += '\r\n';
                     } else {
-                        comment$1620 += ch$1621;
+                        comment$1616 += ch$1617;
                     }
-                    ++lineNumber$963;
-                    ++index$962;
-                    lineStart$964 = index$962;
-                    if (index$962 >= length$969) {
-                        throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                    ++lineNumber$959;
+                    ++index$958;
+                    lineStart$960 = index$958;
+                    if (index$958 >= length$965) {
+                        throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                     }
                 } else {
-                    ch$1621 = source$960[index$962++];
-                    if (index$962 >= length$969) {
-                        throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                    ch$1617 = source$956[index$958++];
+                    if (index$958 >= length$965) {
+                        throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                     }
-                    comment$1620 += ch$1621;
-                    if (ch$1621 === '*') {
-                        ch$1621 = source$960[index$962];
-                        if (ch$1621 === '/') {
-                            comment$1620 = comment$1620.substr(0, comment$1620.length - 1);
-                            blockComment$1624 = false;
-                            ++index$962;
-                            loc$1622.end = {
-                                line: lineNumber$963,
-                                column: index$962 - lineStart$964
+                    comment$1616 += ch$1617;
+                    if (ch$1617 === '*') {
+                        ch$1617 = source$956[index$958];
+                        if (ch$1617 === '/') {
+                            comment$1616 = comment$1616.substr(0, comment$1616.length - 1);
+                            blockComment$1620 = false;
+                            ++index$958;
+                            loc$1618.end = {
+                                line: lineNumber$959,
+                                column: index$958 - lineStart$960
                             };
-                            addComment$1104('Block', comment$1620, start$1623, index$962, loc$1622);
-                            comment$1620 = '';
+                            addComment$1100('Block', comment$1616, start$1619, index$958, loc$1618);
+                            comment$1616 = '';
                         }
                     }
                 }
-            } else if (ch$1621 === '/') {
-                ch$1621 = source$960[index$962 + 1];
-                if (ch$1621 === '/') {
-                    loc$1622 = {
+            } else if (ch$1617 === '/') {
+                ch$1617 = source$956[index$958 + 1];
+                if (ch$1617 === '/') {
+                    loc$1618 = {
                         start: {
-                            line: lineNumber$963,
-                            column: index$962 - lineStart$964
+                            line: lineNumber$959,
+                            column: index$958 - lineStart$960
                         }
                     };
-                    start$1623 = index$962;
-                    index$962 += 2;
-                    lineComment$1625 = true;
-                    if (index$962 >= length$969) {
-                        loc$1622.end = {
-                            line: lineNumber$963,
-                            column: index$962 - lineStart$964
+                    start$1619 = index$958;
+                    index$958 += 2;
+                    lineComment$1621 = true;
+                    if (index$958 >= length$965) {
+                        loc$1618.end = {
+                            line: lineNumber$959,
+                            column: index$958 - lineStart$960
                         };
-                        lineComment$1625 = false;
-                        addComment$1104('Line', comment$1620, start$1623, index$962, loc$1622);
+                        lineComment$1621 = false;
+                        addComment$1100('Line', comment$1616, start$1619, index$958, loc$1618);
                     }
-                } else if (ch$1621 === '*') {
-                    start$1623 = index$962;
-                    index$962 += 2;
-                    blockComment$1624 = true;
-                    loc$1622 = {
+                } else if (ch$1617 === '*') {
+                    start$1619 = index$958;
+                    index$958 += 2;
+                    blockComment$1620 = true;
+                    loc$1618 = {
                         start: {
-                            line: lineNumber$963,
-                            column: index$962 - lineStart$964 - 2
+                            line: lineNumber$959,
+                            column: index$958 - lineStart$960 - 2
                         }
                     };
-                    if (index$962 >= length$969) {
-                        throwError$1011({}, Messages$956.UnexpectedToken, 'ILLEGAL');
+                    if (index$958 >= length$965) {
+                        throwError$1007({}, Messages$952.UnexpectedToken, 'ILLEGAL');
                     }
                 } else {
                     break;
                 }
-            } else if (isWhiteSpace$982(ch$1621.charCodeAt(0))) {
-                ++index$962;
-            } else if (isLineTerminator$983(ch$1621.charCodeAt(0))) {
-                ++index$962;
-                if (ch$1621 === '\r' && source$960[index$962] === '\n') {
-                    ++index$962;
+            } else if (isWhiteSpace$978(ch$1617.charCodeAt(0))) {
+                ++index$958;
+            } else if (isLineTerminator$979(ch$1617.charCodeAt(0))) {
+                ++index$958;
+                if (ch$1617 === '\r' && source$956[index$958] === '\n') {
+                    ++index$958;
                 }
-                ++lineNumber$963;
-                lineStart$964 = index$962;
+                ++lineNumber$959;
+                lineStart$960 = index$958;
             } else {
                 break;
             }
         }
     }
-    function filterCommentLocation$1106() {
-        var i$1626, entry$1627, comment$1628, comments$1629 = [];
-        for (i$1626 = 0; i$1626 < extra$976.comments.length; ++i$1626) {
-            entry$1627 = extra$976.comments[i$1626];
-            comment$1628 = {
-                type: entry$1627.type,
-                value: entry$1627.value
+    function filterCommentLocation$1102() {
+        var i$1622, entry$1623, comment$1624, comments$1625 = [];
+        for (i$1622 = 0; i$1622 < extra$972.comments.length; ++i$1622) {
+            entry$1623 = extra$972.comments[i$1622];
+            comment$1624 = {
+                type: entry$1623.type,
+                value: entry$1623.value
             };
-            if (extra$976.range) {
-                comment$1628.range = entry$1627.range;
+            if (extra$972.range) {
+                comment$1624.range = entry$1623.range;
             }
-            if (extra$976.loc) {
-                comment$1628.loc = entry$1627.loc;
+            if (extra$972.loc) {
+                comment$1624.loc = entry$1623.loc;
             }
-            comments$1629.push(comment$1628);
+            comments$1625.push(comment$1624);
         }
-        extra$976.comments = comments$1629;
+        extra$972.comments = comments$1625;
     }
-    function collectToken$1107() {
-        var start$1630, loc$1631, token$1632, range$1633, value$1634;
-        skipComment$990();
-        start$1630 = index$962;
-        loc$1631 = {
+    function collectToken$1103() {
+        var start$1626, loc$1627, token$1628, range$1629, value$1630;
+        skipComment$986();
+        start$1626 = index$958;
+        loc$1627 = {
             start: {
-                line: lineNumber$963,
-                column: index$962 - lineStart$964
+                line: lineNumber$959,
+                column: index$958 - lineStart$960
             }
         };
-        token$1632 = extra$976.advance();
-        loc$1631.end = {
-            line: lineNumber$963,
-            column: index$962 - lineStart$964
+        token$1628 = extra$972.advance();
+        loc$1627.end = {
+            line: lineNumber$959,
+            column: index$958 - lineStart$960
         };
-        if (token$1632.type !== Token$951.EOF) {
-            range$1633 = [
-                token$1632.range[0],
-                token$1632.range[1]
+        if (token$1628.type !== Token$947.EOF) {
+            range$1629 = [
+                token$1628.range[0],
+                token$1628.range[1]
             ];
-            value$1634 = source$960.slice(token$1632.range[0], token$1632.range[1]);
-            extra$976.tokens.push({
-                type: TokenName$952[token$1632.type],
-                value: value$1634,
-                range: range$1633,
-                loc: loc$1631
+            value$1630 = source$956.slice(token$1628.range[0], token$1628.range[1]);
+            extra$972.tokens.push({
+                type: TokenName$948[token$1628.type],
+                value: value$1630,
+                range: range$1629,
+                loc: loc$1627
             });
         }
-        return token$1632;
+        return token$1628;
     }
-    function collectRegex$1108() {
-        var pos$1635, loc$1636, regex$1637, token$1638;
-        skipComment$990();
-        pos$1635 = index$962;
-        loc$1636 = {
+    function collectRegex$1104() {
+        var pos$1631, loc$1632, regex$1633, token$1634;
+        skipComment$986();
+        pos$1631 = index$958;
+        loc$1632 = {
             start: {
-                line: lineNumber$963,
-                column: index$962 - lineStart$964
+                line: lineNumber$959,
+                column: index$958 - lineStart$960
             }
         };
-        regex$1637 = extra$976.scanRegExp();
-        loc$1636.end = {
-            line: lineNumber$963,
-            column: index$962 - lineStart$964
+        regex$1633 = extra$972.scanRegExp();
+        loc$1632.end = {
+            line: lineNumber$959,
+            column: index$958 - lineStart$960
         };
-        if (!extra$976.tokenize) {
+        if (!extra$972.tokenize) {
             // Pop the previous token, which is likely '/' or '/='
-            if (extra$976.tokens.length > 0) {
-                token$1638 = extra$976.tokens[extra$976.tokens.length - 1];
-                if (token$1638.range[0] === pos$1635 && token$1638.type === 'Punctuator') {
-                    if (token$1638.value === '/' || token$1638.value === '/=') {
-                        extra$976.tokens.pop();
+            if (extra$972.tokens.length > 0) {
+                token$1634 = extra$972.tokens[extra$972.tokens.length - 1];
+                if (token$1634.range[0] === pos$1631 && token$1634.type === 'Punctuator') {
+                    if (token$1634.value === '/' || token$1634.value === '/=') {
+                        extra$972.tokens.pop();
                     }
                 }
             }
-            extra$976.tokens.push({
+            extra$972.tokens.push({
                 type: 'RegularExpression',
-                value: regex$1637.literal,
+                value: regex$1633.literal,
                 range: [
-                    pos$1635,
-                    index$962
+                    pos$1631,
+                    index$958
                 ],
-                loc: loc$1636
+                loc: loc$1632
             });
         }
-        return regex$1637;
+        return regex$1633;
     }
-    function filterTokenLocation$1109() {
-        var i$1639, entry$1640, token$1641, tokens$1642 = [];
-        for (i$1639 = 0; i$1639 < extra$976.tokens.length; ++i$1639) {
-            entry$1640 = extra$976.tokens[i$1639];
-            token$1641 = {
-                type: entry$1640.type,
-                value: entry$1640.value
+    function filterTokenLocation$1105() {
+        var i$1635, entry$1636, token$1637, tokens$1638 = [];
+        for (i$1635 = 0; i$1635 < extra$972.tokens.length; ++i$1635) {
+            entry$1636 = extra$972.tokens[i$1635];
+            token$1637 = {
+                type: entry$1636.type,
+                value: entry$1636.value
             };
-            if (extra$976.range) {
-                token$1641.range = entry$1640.range;
+            if (extra$972.range) {
+                token$1637.range = entry$1636.range;
             }
-            if (extra$976.loc) {
-                token$1641.loc = entry$1640.loc;
+            if (extra$972.loc) {
+                token$1637.loc = entry$1636.loc;
             }
-            tokens$1642.push(token$1641);
+            tokens$1638.push(token$1637);
         }
-        extra$976.tokens = tokens$1642;
+        extra$972.tokens = tokens$1638;
     }
-    function LocationMarker$1110() {
-        var sm_index$1643 = lookahead$973 ? lookahead$973.sm_range[0] : 0;
-        var sm_lineStart$1644 = lookahead$973 ? lookahead$973.sm_lineStart : 0;
-        var sm_lineNumber$1645 = lookahead$973 ? lookahead$973.sm_lineNumber : 1;
+    function LocationMarker$1106() {
+        var sm_index$1639 = lookahead$969 ? lookahead$969.sm_range[0] : 0;
+        var sm_lineStart$1640 = lookahead$969 ? lookahead$969.sm_lineStart : 0;
+        var sm_lineNumber$1641 = lookahead$969 ? lookahead$969.sm_lineNumber : 1;
         this.range = [
-            sm_index$1643,
-            sm_index$1643
+            sm_index$1639,
+            sm_index$1639
         ];
         this.loc = {
             start: {
-                line: sm_lineNumber$1645,
-                column: sm_index$1643 - sm_lineStart$1644
+                line: sm_lineNumber$1641,
+                column: sm_index$1639 - sm_lineStart$1640
             },
             end: {
-                line: sm_lineNumber$1645,
-                column: sm_index$1643 - sm_lineStart$1644
+                line: sm_lineNumber$1641,
+                column: sm_index$1639 - sm_lineStart$1640
             }
         };
     }
-    LocationMarker$1110.prototype = {
-        constructor: LocationMarker$1110,
+    LocationMarker$1106.prototype = {
+        constructor: LocationMarker$1106,
         end: function () {
-            this.range[1] = sm_index$968;
-            this.loc.end.line = sm_lineNumber$965;
-            this.loc.end.column = sm_index$968 - sm_lineStart$966;
+            this.range[1] = sm_index$964;
+            this.loc.end.line = sm_lineNumber$961;
+            this.loc.end.column = sm_index$964 - sm_lineStart$962;
         },
-        applyGroup: function (node$1646) {
-            if (extra$976.range) {
-                node$1646.groupRange = [
+        applyGroup: function (node$1642) {
+            if (extra$972.range) {
+                node$1642.groupRange = [
                     this.range[0],
                     this.range[1]
                 ];
             }
-            if (extra$976.loc) {
-                node$1646.groupLoc = {
+            if (extra$972.loc) {
+                node$1642.groupLoc = {
                     start: {
                         line: this.loc.start.line,
                         column: this.loc.start.column
@@ -4154,20 +4154,20 @@ parseYieldExpression: true
                         column: this.loc.end.column
                     }
                 };
-                node$1646 = delegate$970.postProcess(node$1646);
+                node$1642 = delegate$966.postProcess(node$1642);
             }
         },
-        apply: function (node$1647) {
-            var nodeType$1648 = typeof node$1647;
-            assert$977(nodeType$1648 === 'object', 'Applying location marker to an unexpected node type: ' + nodeType$1648);
-            if (extra$976.range) {
-                node$1647.range = [
+        apply: function (node$1643) {
+            var nodeType$1644 = typeof node$1643;
+            assert$973(nodeType$1644 === 'object', 'Applying location marker to an unexpected node type: ' + nodeType$1644);
+            if (extra$972.range) {
+                node$1643.range = [
                     this.range[0],
                     this.range[1]
                 ];
             }
-            if (extra$976.loc) {
-                node$1647.loc = {
+            if (extra$972.loc) {
+                node$1643.loc = {
                     start: {
                         line: this.loc.start.line,
                         column: this.loc.start.column
@@ -4177,353 +4177,353 @@ parseYieldExpression: true
                         column: this.loc.end.column
                     }
                 };
-                node$1647 = delegate$970.postProcess(node$1647);
+                node$1643 = delegate$966.postProcess(node$1643);
             }
         }
     };
-    function createLocationMarker$1111() {
-        return new LocationMarker$1110();
+    function createLocationMarker$1107() {
+        return new LocationMarker$1106();
     }
-    function trackGroupExpression$1112() {
-        var marker$1649, expr$1650;
-        marker$1649 = createLocationMarker$1111();
-        expect$1014('(');
-        ++state$975.parenthesizedCount;
-        expr$1650 = parseExpression$1051();
-        expect$1014(')');
-        marker$1649.end();
-        marker$1649.applyGroup(expr$1650);
+    function trackGroupExpression$1108() {
+        var marker$1645, expr$1646;
+        marker$1645 = createLocationMarker$1107();
+        expect$1010('(');
+        ++state$971.parenthesizedCount;
+        expr$1646 = parseExpression$1047();
+        expect$1010(')');
+        marker$1645.end();
+        marker$1645.applyGroup(expr$1646);
+        return expr$1646;
+    }
+    function trackLeftHandSideExpression$1109() {
+        var marker$1647, expr$1648;
+        // skipComment();
+        marker$1647 = createLocationMarker$1107();
+        expr$1648 = matchKeyword$1013('new') ? parseNewExpression$1034() : parsePrimaryExpression$1028();
+        while (match$1012('.') || match$1012('[') || lookahead$969.type === Token$947.Template) {
+            if (match$1012('[')) {
+                expr$1648 = delegate$966.createMemberExpression('[', expr$1648, parseComputedMember$1033());
+                marker$1647.end();
+                marker$1647.apply(expr$1648);
+            } else if (match$1012('.')) {
+                expr$1648 = delegate$966.createMemberExpression('.', expr$1648, parseNonComputedMember$1032());
+                marker$1647.end();
+                marker$1647.apply(expr$1648);
+            } else {
+                expr$1648 = delegate$966.createTaggedTemplateExpression(expr$1648, parseTemplateLiteral$1026());
+                marker$1647.end();
+                marker$1647.apply(expr$1648);
+            }
+        }
+        return expr$1648;
+    }
+    function trackLeftHandSideExpressionAllowCall$1110() {
+        var marker$1649, expr$1650, args$1651;
+        // skipComment();
+        marker$1649 = createLocationMarker$1107();
+        expr$1650 = matchKeyword$1013('new') ? parseNewExpression$1034() : parsePrimaryExpression$1028();
+        while (match$1012('.') || match$1012('[') || match$1012('(') || lookahead$969.type === Token$947.Template) {
+            if (match$1012('(')) {
+                args$1651 = parseArguments$1029();
+                expr$1650 = delegate$966.createCallExpression(expr$1650, args$1651);
+                marker$1649.end();
+                marker$1649.apply(expr$1650);
+            } else if (match$1012('[')) {
+                expr$1650 = delegate$966.createMemberExpression('[', expr$1650, parseComputedMember$1033());
+                marker$1649.end();
+                marker$1649.apply(expr$1650);
+            } else if (match$1012('.')) {
+                expr$1650 = delegate$966.createMemberExpression('.', expr$1650, parseNonComputedMember$1032());
+                marker$1649.end();
+                marker$1649.apply(expr$1650);
+            } else {
+                expr$1650 = delegate$966.createTaggedTemplateExpression(expr$1650, parseTemplateLiteral$1026());
+                marker$1649.end();
+                marker$1649.apply(expr$1650);
+            }
+        }
         return expr$1650;
     }
-    function trackLeftHandSideExpression$1113() {
-        var marker$1651, expr$1652;
-        // skipComment();
-        marker$1651 = createLocationMarker$1111();
-        expr$1652 = matchKeyword$1017('new') ? parseNewExpression$1038() : parsePrimaryExpression$1032();
-        while (match$1016('.') || match$1016('[') || lookahead$973.type === Token$951.Template) {
-            if (match$1016('[')) {
-                expr$1652 = delegate$970.createMemberExpression('[', expr$1652, parseComputedMember$1037());
-                marker$1651.end();
-                marker$1651.apply(expr$1652);
-            } else if (match$1016('.')) {
-                expr$1652 = delegate$970.createMemberExpression('.', expr$1652, parseNonComputedMember$1036());
-                marker$1651.end();
-                marker$1651.apply(expr$1652);
-            } else {
-                expr$1652 = delegate$970.createTaggedTemplateExpression(expr$1652, parseTemplateLiteral$1030());
-                marker$1651.end();
-                marker$1651.apply(expr$1652);
-            }
-        }
-        return expr$1652;
-    }
-    function trackLeftHandSideExpressionAllowCall$1114() {
-        var marker$1653, expr$1654, args$1655;
-        // skipComment();
-        marker$1653 = createLocationMarker$1111();
-        expr$1654 = matchKeyword$1017('new') ? parseNewExpression$1038() : parsePrimaryExpression$1032();
-        while (match$1016('.') || match$1016('[') || match$1016('(') || lookahead$973.type === Token$951.Template) {
-            if (match$1016('(')) {
-                args$1655 = parseArguments$1033();
-                expr$1654 = delegate$970.createCallExpression(expr$1654, args$1655);
-                marker$1653.end();
-                marker$1653.apply(expr$1654);
-            } else if (match$1016('[')) {
-                expr$1654 = delegate$970.createMemberExpression('[', expr$1654, parseComputedMember$1037());
-                marker$1653.end();
-                marker$1653.apply(expr$1654);
-            } else if (match$1016('.')) {
-                expr$1654 = delegate$970.createMemberExpression('.', expr$1654, parseNonComputedMember$1036());
-                marker$1653.end();
-                marker$1653.apply(expr$1654);
-            } else {
-                expr$1654 = delegate$970.createTaggedTemplateExpression(expr$1654, parseTemplateLiteral$1030());
-                marker$1653.end();
-                marker$1653.apply(expr$1654);
-            }
-        }
-        return expr$1654;
-    }
-    function filterGroup$1115(node$1656) {
-        var n$1657, i$1658, entry$1659;
-        n$1657 = Object.prototype.toString.apply(node$1656) === '[object Array]' ? [] : {};
-        for (i$1658 in node$1656) {
-            if (node$1656.hasOwnProperty(i$1658) && i$1658 !== 'groupRange' && i$1658 !== 'groupLoc') {
-                entry$1659 = node$1656[i$1658];
-                if (entry$1659 === null || typeof entry$1659 !== 'object' || entry$1659 instanceof RegExp) {
-                    n$1657[i$1658] = entry$1659;
+    function filterGroup$1111(node$1652) {
+        var n$1653, i$1654, entry$1655;
+        n$1653 = Object.prototype.toString.apply(node$1652) === '[object Array]' ? [] : {};
+        for (i$1654 in node$1652) {
+            if (node$1652.hasOwnProperty(i$1654) && i$1654 !== 'groupRange' && i$1654 !== 'groupLoc') {
+                entry$1655 = node$1652[i$1654];
+                if (entry$1655 === null || typeof entry$1655 !== 'object' || entry$1655 instanceof RegExp) {
+                    n$1653[i$1654] = entry$1655;
                 } else {
-                    n$1657[i$1658] = filterGroup$1115(entry$1659);
+                    n$1653[i$1654] = filterGroup$1111(entry$1655);
                 }
             }
         }
-        return n$1657;
+        return n$1653;
     }
-    function wrapTrackingFunction$1116(range$1660, loc$1661) {
-        return function (parseFunction$1662) {
-            function isBinary$1663(node$1665) {
-                return node$1665.type === Syntax$954.LogicalExpression || node$1665.type === Syntax$954.BinaryExpression;
+    function wrapTrackingFunction$1112(range$1656, loc$1657) {
+        return function (parseFunction$1658) {
+            function isBinary$1659(node$1661) {
+                return node$1661.type === Syntax$950.LogicalExpression || node$1661.type === Syntax$950.BinaryExpression;
             }
-            function visit$1664(node$1666) {
-                var start$1667, end$1668;
-                if (isBinary$1663(node$1666.left)) {
-                    visit$1664(node$1666.left);
+            function visit$1660(node$1662) {
+                var start$1663, end$1664;
+                if (isBinary$1659(node$1662.left)) {
+                    visit$1660(node$1662.left);
                 }
-                if (isBinary$1663(node$1666.right)) {
-                    visit$1664(node$1666.right);
+                if (isBinary$1659(node$1662.right)) {
+                    visit$1660(node$1662.right);
                 }
-                if (range$1660) {
-                    if (node$1666.left.groupRange || node$1666.right.groupRange) {
-                        start$1667 = node$1666.left.groupRange ? node$1666.left.groupRange[0] : node$1666.left.range[0];
-                        end$1668 = node$1666.right.groupRange ? node$1666.right.groupRange[1] : node$1666.right.range[1];
-                        node$1666.range = [
-                            start$1667,
-                            end$1668
+                if (range$1656) {
+                    if (node$1662.left.groupRange || node$1662.right.groupRange) {
+                        start$1663 = node$1662.left.groupRange ? node$1662.left.groupRange[0] : node$1662.left.range[0];
+                        end$1664 = node$1662.right.groupRange ? node$1662.right.groupRange[1] : node$1662.right.range[1];
+                        node$1662.range = [
+                            start$1663,
+                            end$1664
                         ];
-                    } else if (typeof node$1666.range === 'undefined') {
-                        start$1667 = node$1666.left.range[0];
-                        end$1668 = node$1666.right.range[1];
-                        node$1666.range = [
-                            start$1667,
-                            end$1668
+                    } else if (typeof node$1662.range === 'undefined') {
+                        start$1663 = node$1662.left.range[0];
+                        end$1664 = node$1662.right.range[1];
+                        node$1662.range = [
+                            start$1663,
+                            end$1664
                         ];
                     }
                 }
-                if (loc$1661) {
-                    if (node$1666.left.groupLoc || node$1666.right.groupLoc) {
-                        start$1667 = node$1666.left.groupLoc ? node$1666.left.groupLoc.start : node$1666.left.loc.start;
-                        end$1668 = node$1666.right.groupLoc ? node$1666.right.groupLoc.end : node$1666.right.loc.end;
-                        node$1666.loc = {
-                            start: start$1667,
-                            end: end$1668
+                if (loc$1657) {
+                    if (node$1662.left.groupLoc || node$1662.right.groupLoc) {
+                        start$1663 = node$1662.left.groupLoc ? node$1662.left.groupLoc.start : node$1662.left.loc.start;
+                        end$1664 = node$1662.right.groupLoc ? node$1662.right.groupLoc.end : node$1662.right.loc.end;
+                        node$1662.loc = {
+                            start: start$1663,
+                            end: end$1664
                         };
-                        node$1666 = delegate$970.postProcess(node$1666);
-                    } else if (typeof node$1666.loc === 'undefined') {
-                        node$1666.loc = {
-                            start: node$1666.left.loc.start,
-                            end: node$1666.right.loc.end
+                        node$1662 = delegate$966.postProcess(node$1662);
+                    } else if (typeof node$1662.loc === 'undefined') {
+                        node$1662.loc = {
+                            start: node$1662.left.loc.start,
+                            end: node$1662.right.loc.end
                         };
-                        node$1666 = delegate$970.postProcess(node$1666);
+                        node$1662 = delegate$966.postProcess(node$1662);
                     }
                 }
             }
             return function () {
-                var marker$1669, node$1670, curr$1671 = lookahead$973;
-                marker$1669 = createLocationMarker$1111();
-                node$1670 = parseFunction$1662.apply(null, arguments);
-                marker$1669.end();
-                if (node$1670.type !== Syntax$954.Program) {
-                    if (curr$1671.leadingComments) {
-                        node$1670.leadingComments = curr$1671.leadingComments;
+                var marker$1665, node$1666, curr$1667 = lookahead$969;
+                marker$1665 = createLocationMarker$1107();
+                node$1666 = parseFunction$1658.apply(null, arguments);
+                marker$1665.end();
+                if (node$1666.type !== Syntax$950.Program) {
+                    if (curr$1667.leadingComments) {
+                        node$1666.leadingComments = curr$1667.leadingComments;
                     }
-                    if (curr$1671.trailingComments) {
-                        node$1670.trailingComments = curr$1671.trailingComments;
+                    if (curr$1667.trailingComments) {
+                        node$1666.trailingComments = curr$1667.trailingComments;
                     }
                 }
-                if (range$1660 && typeof node$1670.range === 'undefined') {
-                    marker$1669.apply(node$1670);
+                if (range$1656 && typeof node$1666.range === 'undefined') {
+                    marker$1665.apply(node$1666);
                 }
-                if (loc$1661 && typeof node$1670.loc === 'undefined') {
-                    marker$1669.apply(node$1670);
+                if (loc$1657 && typeof node$1666.loc === 'undefined') {
+                    marker$1665.apply(node$1666);
                 }
-                if (isBinary$1663(node$1670)) {
-                    visit$1664(node$1670);
+                if (isBinary$1659(node$1666)) {
+                    visit$1660(node$1666);
                 }
-                return node$1670;
+                return node$1666;
             };
         };
     }
-    function patch$1117() {
-        var wrapTracking$1672;
-        if (extra$976.comments) {
-            extra$976.skipComment = skipComment$990;
-            skipComment$990 = scanComment$1105;
+    function patch$1113() {
+        var wrapTracking$1668;
+        if (extra$972.comments) {
+            extra$972.skipComment = skipComment$986;
+            skipComment$986 = scanComment$1101;
         }
-        if (extra$976.range || extra$976.loc) {
-            extra$976.parseGroupExpression = parseGroupExpression$1031;
-            extra$976.parseLeftHandSideExpression = parseLeftHandSideExpression$1040;
-            extra$976.parseLeftHandSideExpressionAllowCall = parseLeftHandSideExpressionAllowCall$1039;
-            parseGroupExpression$1031 = trackGroupExpression$1112;
-            parseLeftHandSideExpression$1040 = trackLeftHandSideExpression$1113;
-            parseLeftHandSideExpressionAllowCall$1039 = trackLeftHandSideExpressionAllowCall$1114;
-            wrapTracking$1672 = wrapTrackingFunction$1116(extra$976.range, extra$976.loc);
-            extra$976.parseArrayInitialiser = parseArrayInitialiser$1023;
-            extra$976.parseAssignmentExpression = parseAssignmentExpression$1050;
-            extra$976.parseBinaryExpression = parseBinaryExpression$1044;
-            extra$976.parseBlock = parseBlock$1053;
-            extra$976.parseFunctionSourceElements = parseFunctionSourceElements$1084;
-            extra$976.parseCatchClause = parseCatchClause$1079;
-            extra$976.parseComputedMember = parseComputedMember$1037;
-            extra$976.parseConditionalExpression = parseConditionalExpression$1045;
-            extra$976.parseConstLetDeclaration = parseConstLetDeclaration$1058;
-            extra$976.parseExportBatchSpecifier = parseExportBatchSpecifier$1060;
-            extra$976.parseExportDeclaration = parseExportDeclaration$1062;
-            extra$976.parseExportSpecifier = parseExportSpecifier$1061;
-            extra$976.parseExpression = parseExpression$1051;
-            extra$976.parseForVariableDeclaration = parseForVariableDeclaration$1070;
-            extra$976.parseFunctionDeclaration = parseFunctionDeclaration$1088;
-            extra$976.parseFunctionExpression = parseFunctionExpression$1089;
-            extra$976.parseParams = parseParams$1087;
-            extra$976.parseImportDeclaration = parseImportDeclaration$1063;
-            extra$976.parseImportSpecifier = parseImportSpecifier$1064;
-            extra$976.parseModuleDeclaration = parseModuleDeclaration$1059;
-            extra$976.parseModuleBlock = parseModuleBlock$1102;
-            extra$976.parseNewExpression = parseNewExpression$1038;
-            extra$976.parseNonComputedProperty = parseNonComputedProperty$1035;
-            extra$976.parseObjectInitialiser = parseObjectInitialiser$1028;
-            extra$976.parseObjectProperty = parseObjectProperty$1027;
-            extra$976.parseObjectPropertyKey = parseObjectPropertyKey$1026;
-            extra$976.parsePostfixExpression = parsePostfixExpression$1041;
-            extra$976.parsePrimaryExpression = parsePrimaryExpression$1032;
-            extra$976.parseProgram = parseProgram$1103;
-            extra$976.parsePropertyFunction = parsePropertyFunction$1024;
-            extra$976.parseSpreadOrAssignmentExpression = parseSpreadOrAssignmentExpression$1034;
-            extra$976.parseTemplateElement = parseTemplateElement$1029;
-            extra$976.parseTemplateLiteral = parseTemplateLiteral$1030;
-            extra$976.parseStatement = parseStatement$1082;
-            extra$976.parseSwitchCase = parseSwitchCase$1076;
-            extra$976.parseUnaryExpression = parseUnaryExpression$1042;
-            extra$976.parseVariableDeclaration = parseVariableDeclaration$1055;
-            extra$976.parseVariableIdentifier = parseVariableIdentifier$1054;
-            extra$976.parseMethodDefinition = parseMethodDefinition$1091;
-            extra$976.parseClassDeclaration = parseClassDeclaration$1095;
-            extra$976.parseClassExpression = parseClassExpression$1094;
-            extra$976.parseClassBody = parseClassBody$1093;
-            parseArrayInitialiser$1023 = wrapTracking$1672(extra$976.parseArrayInitialiser);
-            parseAssignmentExpression$1050 = wrapTracking$1672(extra$976.parseAssignmentExpression);
-            parseBinaryExpression$1044 = wrapTracking$1672(extra$976.parseBinaryExpression);
-            parseBlock$1053 = wrapTracking$1672(extra$976.parseBlock);
-            parseFunctionSourceElements$1084 = wrapTracking$1672(extra$976.parseFunctionSourceElements);
-            parseCatchClause$1079 = wrapTracking$1672(extra$976.parseCatchClause);
-            parseComputedMember$1037 = wrapTracking$1672(extra$976.parseComputedMember);
-            parseConditionalExpression$1045 = wrapTracking$1672(extra$976.parseConditionalExpression);
-            parseConstLetDeclaration$1058 = wrapTracking$1672(extra$976.parseConstLetDeclaration);
-            parseExportBatchSpecifier$1060 = wrapTracking$1672(parseExportBatchSpecifier$1060);
-            parseExportDeclaration$1062 = wrapTracking$1672(parseExportDeclaration$1062);
-            parseExportSpecifier$1061 = wrapTracking$1672(parseExportSpecifier$1061);
-            parseExpression$1051 = wrapTracking$1672(extra$976.parseExpression);
-            parseForVariableDeclaration$1070 = wrapTracking$1672(extra$976.parseForVariableDeclaration);
-            parseFunctionDeclaration$1088 = wrapTracking$1672(extra$976.parseFunctionDeclaration);
-            parseFunctionExpression$1089 = wrapTracking$1672(extra$976.parseFunctionExpression);
-            parseParams$1087 = wrapTracking$1672(extra$976.parseParams);
-            parseImportDeclaration$1063 = wrapTracking$1672(extra$976.parseImportDeclaration);
-            parseImportSpecifier$1064 = wrapTracking$1672(extra$976.parseImportSpecifier);
-            parseModuleDeclaration$1059 = wrapTracking$1672(extra$976.parseModuleDeclaration);
-            parseModuleBlock$1102 = wrapTracking$1672(extra$976.parseModuleBlock);
-            parseLeftHandSideExpression$1040 = wrapTracking$1672(parseLeftHandSideExpression$1040);
-            parseNewExpression$1038 = wrapTracking$1672(extra$976.parseNewExpression);
-            parseNonComputedProperty$1035 = wrapTracking$1672(extra$976.parseNonComputedProperty);
-            parseObjectInitialiser$1028 = wrapTracking$1672(extra$976.parseObjectInitialiser);
-            parseObjectProperty$1027 = wrapTracking$1672(extra$976.parseObjectProperty);
-            parseObjectPropertyKey$1026 = wrapTracking$1672(extra$976.parseObjectPropertyKey);
-            parsePostfixExpression$1041 = wrapTracking$1672(extra$976.parsePostfixExpression);
-            parsePrimaryExpression$1032 = wrapTracking$1672(extra$976.parsePrimaryExpression);
-            parseProgram$1103 = wrapTracking$1672(extra$976.parseProgram);
-            parsePropertyFunction$1024 = wrapTracking$1672(extra$976.parsePropertyFunction);
-            parseTemplateElement$1029 = wrapTracking$1672(extra$976.parseTemplateElement);
-            parseTemplateLiteral$1030 = wrapTracking$1672(extra$976.parseTemplateLiteral);
-            parseSpreadOrAssignmentExpression$1034 = wrapTracking$1672(extra$976.parseSpreadOrAssignmentExpression);
-            parseStatement$1082 = wrapTracking$1672(extra$976.parseStatement);
-            parseSwitchCase$1076 = wrapTracking$1672(extra$976.parseSwitchCase);
-            parseUnaryExpression$1042 = wrapTracking$1672(extra$976.parseUnaryExpression);
-            parseVariableDeclaration$1055 = wrapTracking$1672(extra$976.parseVariableDeclaration);
-            parseVariableIdentifier$1054 = wrapTracking$1672(extra$976.parseVariableIdentifier);
-            parseMethodDefinition$1091 = wrapTracking$1672(extra$976.parseMethodDefinition);
-            parseClassDeclaration$1095 = wrapTracking$1672(extra$976.parseClassDeclaration);
-            parseClassExpression$1094 = wrapTracking$1672(extra$976.parseClassExpression);
-            parseClassBody$1093 = wrapTracking$1672(extra$976.parseClassBody);
+        if (extra$972.range || extra$972.loc) {
+            extra$972.parseGroupExpression = parseGroupExpression$1027;
+            extra$972.parseLeftHandSideExpression = parseLeftHandSideExpression$1036;
+            extra$972.parseLeftHandSideExpressionAllowCall = parseLeftHandSideExpressionAllowCall$1035;
+            parseGroupExpression$1027 = trackGroupExpression$1108;
+            parseLeftHandSideExpression$1036 = trackLeftHandSideExpression$1109;
+            parseLeftHandSideExpressionAllowCall$1035 = trackLeftHandSideExpressionAllowCall$1110;
+            wrapTracking$1668 = wrapTrackingFunction$1112(extra$972.range, extra$972.loc);
+            extra$972.parseArrayInitialiser = parseArrayInitialiser$1019;
+            extra$972.parseAssignmentExpression = parseAssignmentExpression$1046;
+            extra$972.parseBinaryExpression = parseBinaryExpression$1040;
+            extra$972.parseBlock = parseBlock$1049;
+            extra$972.parseFunctionSourceElements = parseFunctionSourceElements$1080;
+            extra$972.parseCatchClause = parseCatchClause$1075;
+            extra$972.parseComputedMember = parseComputedMember$1033;
+            extra$972.parseConditionalExpression = parseConditionalExpression$1041;
+            extra$972.parseConstLetDeclaration = parseConstLetDeclaration$1054;
+            extra$972.parseExportBatchSpecifier = parseExportBatchSpecifier$1056;
+            extra$972.parseExportDeclaration = parseExportDeclaration$1058;
+            extra$972.parseExportSpecifier = parseExportSpecifier$1057;
+            extra$972.parseExpression = parseExpression$1047;
+            extra$972.parseForVariableDeclaration = parseForVariableDeclaration$1066;
+            extra$972.parseFunctionDeclaration = parseFunctionDeclaration$1084;
+            extra$972.parseFunctionExpression = parseFunctionExpression$1085;
+            extra$972.parseParams = parseParams$1083;
+            extra$972.parseImportDeclaration = parseImportDeclaration$1059;
+            extra$972.parseImportSpecifier = parseImportSpecifier$1060;
+            extra$972.parseModuleDeclaration = parseModuleDeclaration$1055;
+            extra$972.parseModuleBlock = parseModuleBlock$1098;
+            extra$972.parseNewExpression = parseNewExpression$1034;
+            extra$972.parseNonComputedProperty = parseNonComputedProperty$1031;
+            extra$972.parseObjectInitialiser = parseObjectInitialiser$1024;
+            extra$972.parseObjectProperty = parseObjectProperty$1023;
+            extra$972.parseObjectPropertyKey = parseObjectPropertyKey$1022;
+            extra$972.parsePostfixExpression = parsePostfixExpression$1037;
+            extra$972.parsePrimaryExpression = parsePrimaryExpression$1028;
+            extra$972.parseProgram = parseProgram$1099;
+            extra$972.parsePropertyFunction = parsePropertyFunction$1020;
+            extra$972.parseSpreadOrAssignmentExpression = parseSpreadOrAssignmentExpression$1030;
+            extra$972.parseTemplateElement = parseTemplateElement$1025;
+            extra$972.parseTemplateLiteral = parseTemplateLiteral$1026;
+            extra$972.parseStatement = parseStatement$1078;
+            extra$972.parseSwitchCase = parseSwitchCase$1072;
+            extra$972.parseUnaryExpression = parseUnaryExpression$1038;
+            extra$972.parseVariableDeclaration = parseVariableDeclaration$1051;
+            extra$972.parseVariableIdentifier = parseVariableIdentifier$1050;
+            extra$972.parseMethodDefinition = parseMethodDefinition$1087;
+            extra$972.parseClassDeclaration = parseClassDeclaration$1091;
+            extra$972.parseClassExpression = parseClassExpression$1090;
+            extra$972.parseClassBody = parseClassBody$1089;
+            parseArrayInitialiser$1019 = wrapTracking$1668(extra$972.parseArrayInitialiser);
+            parseAssignmentExpression$1046 = wrapTracking$1668(extra$972.parseAssignmentExpression);
+            parseBinaryExpression$1040 = wrapTracking$1668(extra$972.parseBinaryExpression);
+            parseBlock$1049 = wrapTracking$1668(extra$972.parseBlock);
+            parseFunctionSourceElements$1080 = wrapTracking$1668(extra$972.parseFunctionSourceElements);
+            parseCatchClause$1075 = wrapTracking$1668(extra$972.parseCatchClause);
+            parseComputedMember$1033 = wrapTracking$1668(extra$972.parseComputedMember);
+            parseConditionalExpression$1041 = wrapTracking$1668(extra$972.parseConditionalExpression);
+            parseConstLetDeclaration$1054 = wrapTracking$1668(extra$972.parseConstLetDeclaration);
+            parseExportBatchSpecifier$1056 = wrapTracking$1668(parseExportBatchSpecifier$1056);
+            parseExportDeclaration$1058 = wrapTracking$1668(parseExportDeclaration$1058);
+            parseExportSpecifier$1057 = wrapTracking$1668(parseExportSpecifier$1057);
+            parseExpression$1047 = wrapTracking$1668(extra$972.parseExpression);
+            parseForVariableDeclaration$1066 = wrapTracking$1668(extra$972.parseForVariableDeclaration);
+            parseFunctionDeclaration$1084 = wrapTracking$1668(extra$972.parseFunctionDeclaration);
+            parseFunctionExpression$1085 = wrapTracking$1668(extra$972.parseFunctionExpression);
+            parseParams$1083 = wrapTracking$1668(extra$972.parseParams);
+            parseImportDeclaration$1059 = wrapTracking$1668(extra$972.parseImportDeclaration);
+            parseImportSpecifier$1060 = wrapTracking$1668(extra$972.parseImportSpecifier);
+            parseModuleDeclaration$1055 = wrapTracking$1668(extra$972.parseModuleDeclaration);
+            parseModuleBlock$1098 = wrapTracking$1668(extra$972.parseModuleBlock);
+            parseLeftHandSideExpression$1036 = wrapTracking$1668(parseLeftHandSideExpression$1036);
+            parseNewExpression$1034 = wrapTracking$1668(extra$972.parseNewExpression);
+            parseNonComputedProperty$1031 = wrapTracking$1668(extra$972.parseNonComputedProperty);
+            parseObjectInitialiser$1024 = wrapTracking$1668(extra$972.parseObjectInitialiser);
+            parseObjectProperty$1023 = wrapTracking$1668(extra$972.parseObjectProperty);
+            parseObjectPropertyKey$1022 = wrapTracking$1668(extra$972.parseObjectPropertyKey);
+            parsePostfixExpression$1037 = wrapTracking$1668(extra$972.parsePostfixExpression);
+            parsePrimaryExpression$1028 = wrapTracking$1668(extra$972.parsePrimaryExpression);
+            parseProgram$1099 = wrapTracking$1668(extra$972.parseProgram);
+            parsePropertyFunction$1020 = wrapTracking$1668(extra$972.parsePropertyFunction);
+            parseTemplateElement$1025 = wrapTracking$1668(extra$972.parseTemplateElement);
+            parseTemplateLiteral$1026 = wrapTracking$1668(extra$972.parseTemplateLiteral);
+            parseSpreadOrAssignmentExpression$1030 = wrapTracking$1668(extra$972.parseSpreadOrAssignmentExpression);
+            parseStatement$1078 = wrapTracking$1668(extra$972.parseStatement);
+            parseSwitchCase$1072 = wrapTracking$1668(extra$972.parseSwitchCase);
+            parseUnaryExpression$1038 = wrapTracking$1668(extra$972.parseUnaryExpression);
+            parseVariableDeclaration$1051 = wrapTracking$1668(extra$972.parseVariableDeclaration);
+            parseVariableIdentifier$1050 = wrapTracking$1668(extra$972.parseVariableIdentifier);
+            parseMethodDefinition$1087 = wrapTracking$1668(extra$972.parseMethodDefinition);
+            parseClassDeclaration$1091 = wrapTracking$1668(extra$972.parseClassDeclaration);
+            parseClassExpression$1090 = wrapTracking$1668(extra$972.parseClassExpression);
+            parseClassBody$1089 = wrapTracking$1668(extra$972.parseClassBody);
         }
-        if (typeof extra$976.tokens !== 'undefined') {
-            extra$976.advance = advance$1006;
-            extra$976.scanRegExp = scanRegExp$1003;
-            advance$1006 = collectToken$1107;
-            scanRegExp$1003 = collectRegex$1108;
+        if (typeof extra$972.tokens !== 'undefined') {
+            extra$972.advance = advance$1002;
+            extra$972.scanRegExp = scanRegExp$999;
+            advance$1002 = collectToken$1103;
+            scanRegExp$999 = collectRegex$1104;
         }
     }
-    function unpatch$1118() {
-        if (typeof extra$976.skipComment === 'function') {
-            skipComment$990 = extra$976.skipComment;
+    function unpatch$1114() {
+        if (typeof extra$972.skipComment === 'function') {
+            skipComment$986 = extra$972.skipComment;
         }
-        if (extra$976.range || extra$976.loc) {
-            parseArrayInitialiser$1023 = extra$976.parseArrayInitialiser;
-            parseAssignmentExpression$1050 = extra$976.parseAssignmentExpression;
-            parseBinaryExpression$1044 = extra$976.parseBinaryExpression;
-            parseBlock$1053 = extra$976.parseBlock;
-            parseFunctionSourceElements$1084 = extra$976.parseFunctionSourceElements;
-            parseCatchClause$1079 = extra$976.parseCatchClause;
-            parseComputedMember$1037 = extra$976.parseComputedMember;
-            parseConditionalExpression$1045 = extra$976.parseConditionalExpression;
-            parseConstLetDeclaration$1058 = extra$976.parseConstLetDeclaration;
-            parseExportBatchSpecifier$1060 = extra$976.parseExportBatchSpecifier;
-            parseExportDeclaration$1062 = extra$976.parseExportDeclaration;
-            parseExportSpecifier$1061 = extra$976.parseExportSpecifier;
-            parseExpression$1051 = extra$976.parseExpression;
-            parseForVariableDeclaration$1070 = extra$976.parseForVariableDeclaration;
-            parseFunctionDeclaration$1088 = extra$976.parseFunctionDeclaration;
-            parseFunctionExpression$1089 = extra$976.parseFunctionExpression;
-            parseImportDeclaration$1063 = extra$976.parseImportDeclaration;
-            parseImportSpecifier$1064 = extra$976.parseImportSpecifier;
-            parseGroupExpression$1031 = extra$976.parseGroupExpression;
-            parseLeftHandSideExpression$1040 = extra$976.parseLeftHandSideExpression;
-            parseLeftHandSideExpressionAllowCall$1039 = extra$976.parseLeftHandSideExpressionAllowCall;
-            parseModuleDeclaration$1059 = extra$976.parseModuleDeclaration;
-            parseModuleBlock$1102 = extra$976.parseModuleBlock;
-            parseNewExpression$1038 = extra$976.parseNewExpression;
-            parseNonComputedProperty$1035 = extra$976.parseNonComputedProperty;
-            parseObjectInitialiser$1028 = extra$976.parseObjectInitialiser;
-            parseObjectProperty$1027 = extra$976.parseObjectProperty;
-            parseObjectPropertyKey$1026 = extra$976.parseObjectPropertyKey;
-            parsePostfixExpression$1041 = extra$976.parsePostfixExpression;
-            parsePrimaryExpression$1032 = extra$976.parsePrimaryExpression;
-            parseProgram$1103 = extra$976.parseProgram;
-            parsePropertyFunction$1024 = extra$976.parsePropertyFunction;
-            parseTemplateElement$1029 = extra$976.parseTemplateElement;
-            parseTemplateLiteral$1030 = extra$976.parseTemplateLiteral;
-            parseSpreadOrAssignmentExpression$1034 = extra$976.parseSpreadOrAssignmentExpression;
-            parseStatement$1082 = extra$976.parseStatement;
-            parseSwitchCase$1076 = extra$976.parseSwitchCase;
-            parseUnaryExpression$1042 = extra$976.parseUnaryExpression;
-            parseVariableDeclaration$1055 = extra$976.parseVariableDeclaration;
-            parseVariableIdentifier$1054 = extra$976.parseVariableIdentifier;
-            parseMethodDefinition$1091 = extra$976.parseMethodDefinition;
-            parseClassDeclaration$1095 = extra$976.parseClassDeclaration;
-            parseClassExpression$1094 = extra$976.parseClassExpression;
-            parseClassBody$1093 = extra$976.parseClassBody;
+        if (extra$972.range || extra$972.loc) {
+            parseArrayInitialiser$1019 = extra$972.parseArrayInitialiser;
+            parseAssignmentExpression$1046 = extra$972.parseAssignmentExpression;
+            parseBinaryExpression$1040 = extra$972.parseBinaryExpression;
+            parseBlock$1049 = extra$972.parseBlock;
+            parseFunctionSourceElements$1080 = extra$972.parseFunctionSourceElements;
+            parseCatchClause$1075 = extra$972.parseCatchClause;
+            parseComputedMember$1033 = extra$972.parseComputedMember;
+            parseConditionalExpression$1041 = extra$972.parseConditionalExpression;
+            parseConstLetDeclaration$1054 = extra$972.parseConstLetDeclaration;
+            parseExportBatchSpecifier$1056 = extra$972.parseExportBatchSpecifier;
+            parseExportDeclaration$1058 = extra$972.parseExportDeclaration;
+            parseExportSpecifier$1057 = extra$972.parseExportSpecifier;
+            parseExpression$1047 = extra$972.parseExpression;
+            parseForVariableDeclaration$1066 = extra$972.parseForVariableDeclaration;
+            parseFunctionDeclaration$1084 = extra$972.parseFunctionDeclaration;
+            parseFunctionExpression$1085 = extra$972.parseFunctionExpression;
+            parseImportDeclaration$1059 = extra$972.parseImportDeclaration;
+            parseImportSpecifier$1060 = extra$972.parseImportSpecifier;
+            parseGroupExpression$1027 = extra$972.parseGroupExpression;
+            parseLeftHandSideExpression$1036 = extra$972.parseLeftHandSideExpression;
+            parseLeftHandSideExpressionAllowCall$1035 = extra$972.parseLeftHandSideExpressionAllowCall;
+            parseModuleDeclaration$1055 = extra$972.parseModuleDeclaration;
+            parseModuleBlock$1098 = extra$972.parseModuleBlock;
+            parseNewExpression$1034 = extra$972.parseNewExpression;
+            parseNonComputedProperty$1031 = extra$972.parseNonComputedProperty;
+            parseObjectInitialiser$1024 = extra$972.parseObjectInitialiser;
+            parseObjectProperty$1023 = extra$972.parseObjectProperty;
+            parseObjectPropertyKey$1022 = extra$972.parseObjectPropertyKey;
+            parsePostfixExpression$1037 = extra$972.parsePostfixExpression;
+            parsePrimaryExpression$1028 = extra$972.parsePrimaryExpression;
+            parseProgram$1099 = extra$972.parseProgram;
+            parsePropertyFunction$1020 = extra$972.parsePropertyFunction;
+            parseTemplateElement$1025 = extra$972.parseTemplateElement;
+            parseTemplateLiteral$1026 = extra$972.parseTemplateLiteral;
+            parseSpreadOrAssignmentExpression$1030 = extra$972.parseSpreadOrAssignmentExpression;
+            parseStatement$1078 = extra$972.parseStatement;
+            parseSwitchCase$1072 = extra$972.parseSwitchCase;
+            parseUnaryExpression$1038 = extra$972.parseUnaryExpression;
+            parseVariableDeclaration$1051 = extra$972.parseVariableDeclaration;
+            parseVariableIdentifier$1050 = extra$972.parseVariableIdentifier;
+            parseMethodDefinition$1087 = extra$972.parseMethodDefinition;
+            parseClassDeclaration$1091 = extra$972.parseClassDeclaration;
+            parseClassExpression$1090 = extra$972.parseClassExpression;
+            parseClassBody$1089 = extra$972.parseClassBody;
         }
-        if (typeof extra$976.scanRegExp === 'function') {
-            advance$1006 = extra$976.advance;
-            scanRegExp$1003 = extra$976.scanRegExp;
+        if (typeof extra$972.scanRegExp === 'function') {
+            advance$1002 = extra$972.advance;
+            scanRegExp$999 = extra$972.scanRegExp;
         }
     }
     // This is used to modify the delegate.
-    function extend$1119(object$1673, properties$1674) {
-        var entry$1675, result$1676 = {};
-        for (entry$1675 in object$1673) {
-            if (object$1673.hasOwnProperty(entry$1675)) {
-                result$1676[entry$1675] = object$1673[entry$1675];
+    function extend$1115(object$1669, properties$1670) {
+        var entry$1671, result$1672 = {};
+        for (entry$1671 in object$1669) {
+            if (object$1669.hasOwnProperty(entry$1671)) {
+                result$1672[entry$1671] = object$1669[entry$1671];
             }
         }
-        for (entry$1675 in properties$1674) {
-            if (properties$1674.hasOwnProperty(entry$1675)) {
-                result$1676[entry$1675] = properties$1674[entry$1675];
+        for (entry$1671 in properties$1670) {
+            if (properties$1670.hasOwnProperty(entry$1671)) {
+                result$1672[entry$1671] = properties$1670[entry$1671];
             }
         }
-        return result$1676;
+        return result$1672;
     }
-    function tokenize$1120(code$1677, options$1678) {
-        var toString$1679, token$1680, tokens$1681;
-        toString$1679 = String;
-        if (typeof code$1677 !== 'string' && !(code$1677 instanceof String)) {
-            code$1677 = toString$1679(code$1677);
+    function tokenize$1116(code$1673, options$1674) {
+        var toString$1675, token$1676, tokens$1677;
+        toString$1675 = String;
+        if (typeof code$1673 !== 'string' && !(code$1673 instanceof String)) {
+            code$1673 = toString$1675(code$1673);
         }
-        delegate$970 = SyntaxTreeDelegate$958;
-        source$960 = code$1677;
-        index$962 = 0;
-        lineNumber$963 = source$960.length > 0 ? 1 : 0;
-        lineStart$964 = 0;
-        length$969 = source$960.length;
-        lookahead$973 = null;
-        state$975 = {
+        delegate$966 = SyntaxTreeDelegate$954;
+        source$956 = code$1673;
+        index$958 = 0;
+        lineNumber$959 = source$956.length > 0 ? 1 : 0;
+        lineStart$960 = 0;
+        length$965 = source$956.length;
+        lookahead$969 = null;
+        state$971 = {
             allowKeyword: true,
             allowIn: true,
             labelSet: {},
@@ -4531,76 +4531,76 @@ parseYieldExpression: true
             inIteration: false,
             inSwitch: false
         };
-        extra$976 = {};
+        extra$972 = {};
         // Options matching.
-        options$1678 = options$1678 || {};
+        options$1674 = options$1674 || {};
         // Of course we collect tokens here.
-        options$1678.tokens = true;
-        extra$976.tokens = [];
-        extra$976.tokenize = true;
+        options$1674.tokens = true;
+        extra$972.tokens = [];
+        extra$972.tokenize = true;
         // The following two fields are necessary to compute the Regex tokens.
-        extra$976.openParenToken = -1;
-        extra$976.openCurlyToken = -1;
-        extra$976.range = typeof options$1678.range === 'boolean' && options$1678.range;
-        extra$976.loc = typeof options$1678.loc === 'boolean' && options$1678.loc;
-        if (typeof options$1678.comment === 'boolean' && options$1678.comment) {
-            extra$976.comments = [];
+        extra$972.openParenToken = -1;
+        extra$972.openCurlyToken = -1;
+        extra$972.range = typeof options$1674.range === 'boolean' && options$1674.range;
+        extra$972.loc = typeof options$1674.loc === 'boolean' && options$1674.loc;
+        if (typeof options$1674.comment === 'boolean' && options$1674.comment) {
+            extra$972.comments = [];
         }
-        if (typeof options$1678.tolerant === 'boolean' && options$1678.tolerant) {
-            extra$976.errors = [];
+        if (typeof options$1674.tolerant === 'boolean' && options$1674.tolerant) {
+            extra$972.errors = [];
         }
-        if (length$969 > 0) {
-            if (typeof source$960[0] === 'undefined') {
+        if (length$965 > 0) {
+            if (typeof source$956[0] === 'undefined') {
                 // Try first to convert to a string. This is good as fast path
                 // for old IE which understands string indexing for string
                 // literals only and not for string object.
-                if (code$1677 instanceof String) {
-                    source$960 = code$1677.valueOf();
+                if (code$1673 instanceof String) {
+                    source$956 = code$1673.valueOf();
                 }
             }
         }
-        patch$1117();
+        patch$1113();
         try {
-            peek$1008();
-            if (lookahead$973.type === Token$951.EOF) {
-                return extra$976.tokens;
+            peek$1004();
+            if (lookahead$969.type === Token$947.EOF) {
+                return extra$972.tokens;
             }
-            token$1680 = lex$1007();
-            while (lookahead$973.type !== Token$951.EOF) {
+            token$1676 = lex$1003();
+            while (lookahead$969.type !== Token$947.EOF) {
                 try {
-                    token$1680 = lex$1007();
-                } catch (lexError$1682) {
-                    token$1680 = lookahead$973;
-                    if (extra$976.errors) {
-                        extra$976.errors.push(lexError$1682);
+                    token$1676 = lex$1003();
+                } catch (lexError$1678) {
+                    token$1676 = lookahead$969;
+                    if (extra$972.errors) {
+                        extra$972.errors.push(lexError$1678);
                         // We have to break on the first error
                         // to avoid infinite loops.
                         break;
                     } else {
-                        throw lexError$1682;
+                        throw lexError$1678;
                     }
                 }
             }
-            filterTokenLocation$1109();
-            tokens$1681 = extra$976.tokens;
-            if (typeof extra$976.comments !== 'undefined') {
-                filterCommentLocation$1106();
-                tokens$1681.comments = extra$976.comments;
+            filterTokenLocation$1105();
+            tokens$1677 = extra$972.tokens;
+            if (typeof extra$972.comments !== 'undefined') {
+                filterCommentLocation$1102();
+                tokens$1677.comments = extra$972.comments;
             }
-            if (typeof extra$976.errors !== 'undefined') {
-                tokens$1681.errors = extra$976.errors;
+            if (typeof extra$972.errors !== 'undefined') {
+                tokens$1677.errors = extra$972.errors;
             }
-        } catch (e$1683) {
-            throw e$1683;
+        } catch (e$1679) {
+            throw e$1679;
         } finally {
-            unpatch$1118();
-            extra$976 = {};
+            unpatch$1114();
+            extra$972 = {};
         }
-        return tokens$1681;
+        return tokens$1677;
     }
     // Determines if the {} delimiter is a block or an expression.
-    function blockAllowed$1121(toks$1684, start$1685, inExprDelim$1686, parentIsBlock$1687) {
-        var assignOps$1688 = [
+    function blockAllowed$1117(toks$1680, start$1681, inExprDelim$1682, parentIsBlock$1683) {
+        var assignOps$1684 = [
                 '=',
                 '+=',
                 '-=',
@@ -4615,7 +4615,7 @@ parseYieldExpression: true
                 '^=',
                 ','
             ];
-        var binaryOps$1689 = [
+        var binaryOps$1685 = [
                 '+',
                 '-',
                 '*',
@@ -4641,7 +4641,7 @@ parseYieldExpression: true
                 '!==',
                 'instanceof'
             ];
-        var unaryOps$1690 = [
+        var unaryOps$1686 = [
                 '++',
                 '--',
                 '~',
@@ -4653,20 +4653,20 @@ parseYieldExpression: true
                 'throw',
                 'new'
             ];
-        function back$1691(n$1692) {
-            var idx$1693 = toks$1684.length - n$1692 > 0 ? toks$1684.length - n$1692 : 0;
-            return toks$1684[idx$1693];
+        function back$1687(n$1688) {
+            var idx$1689 = toks$1680.length - n$1688 > 0 ? toks$1680.length - n$1688 : 0;
+            return toks$1680[idx$1689];
         }
-        if (inExprDelim$1686 && toks$1684.length - (start$1685 + 2) <= 0) {
+        if (inExprDelim$1682 && toks$1680.length - (start$1681 + 2) <= 0) {
             // ... ({...} ...)
             return false;
-        } else if (back$1691(start$1685 + 2).value === ':' && parentIsBlock$1687) {
+        } else if (back$1687(start$1681 + 2).value === ':' && parentIsBlock$1683) {
             // ...{a:{b:{...}}}
             return true;
-        } else if (isIn$978(back$1691(start$1685 + 2).value, unaryOps$1690.concat(binaryOps$1689).concat(assignOps$1688))) {
+        } else if (isIn$974(back$1687(start$1681 + 2).value, unaryOps$1686.concat(binaryOps$1685).concat(assignOps$1684))) {
             // ... + {...}
             return false;
-        } else if (back$1691(start$1685 + 2).value === 'return') {
+        } else if (back$1687(start$1681 + 2).value === 'return') {
             // ASI makes `{}` a block in:
             //
             //    return
@@ -4674,13 +4674,13 @@ parseYieldExpression: true
             //
             // otherwise an object literal, so it's an
             // expression and thus / is divide
-            var currLineNumber$1694 = typeof back$1691(start$1685 + 1).startLineNumber !== 'undefined' ? back$1691(start$1685 + 1).startLineNumber : back$1691(start$1685 + 1).lineNumber;
-            if (back$1691(start$1685 + 2).lineNumber !== currLineNumber$1694) {
+            var currLineNumber$1690 = typeof back$1687(start$1681 + 1).startLineNumber !== 'undefined' ? back$1687(start$1681 + 1).startLineNumber : back$1687(start$1681 + 1).lineNumber;
+            if (back$1687(start$1681 + 2).lineNumber !== currLineNumber$1690) {
                 return true;
             } else {
                 return false;
             }
-        } else if (isIn$978(back$1691(start$1685 + 2).value, [
+        } else if (isIn$974(back$1687(start$1681 + 2).value, [
                 'void',
                 'typeof',
                 'in',
@@ -4696,167 +4696,167 @@ parseYieldExpression: true
     // Read the next token. Takes the previously read tokens, a
     // boolean indicating if the parent delimiter is () or [], and a
     // boolean indicating if the parent delimiter is {} a block
-    function readToken$1122(toks$1695, inExprDelim$1696, parentIsBlock$1697) {
-        var delimiters$1698 = [
+    function readToken$1118(toks$1691, inExprDelim$1692, parentIsBlock$1693) {
+        var delimiters$1694 = [
                 '(',
                 '{',
                 '['
             ];
-        var parenIdents$1699 = [
+        var parenIdents$1695 = [
                 'if',
                 'while',
                 'for',
                 'with'
             ];
-        var last$1700 = toks$1695.length - 1;
-        var comments$1701, commentsLen$1702 = extra$976.comments.length;
-        function back$1703(n$1707) {
-            var idx$1708 = toks$1695.length - n$1707 > 0 ? toks$1695.length - n$1707 : 0;
-            return toks$1695[idx$1708];
+        var last$1696 = toks$1691.length - 1;
+        var comments$1697, commentsLen$1698 = extra$972.comments.length;
+        function back$1699(n$1703) {
+            var idx$1704 = toks$1691.length - n$1703 > 0 ? toks$1691.length - n$1703 : 0;
+            return toks$1691[idx$1704];
         }
-        function attachComments$1704(token$1709) {
-            if (comments$1701) {
-                token$1709.leadingComments = comments$1701;
+        function attachComments$1700(token$1705) {
+            if (comments$1697) {
+                token$1705.leadingComments = comments$1697;
             }
-            return token$1709;
+            return token$1705;
         }
-        function _advance$1705() {
-            return attachComments$1704(advance$1006());
+        function _advance$1701() {
+            return attachComments$1700(advance$1002());
         }
-        function _scanRegExp$1706() {
-            return attachComments$1704(scanRegExp$1003());
+        function _scanRegExp$1702() {
+            return attachComments$1700(scanRegExp$999());
         }
-        skipComment$990();
-        if (extra$976.comments.length > commentsLen$1702) {
-            comments$1701 = extra$976.comments.slice(commentsLen$1702);
+        skipComment$986();
+        if (extra$972.comments.length > commentsLen$1698) {
+            comments$1697 = extra$972.comments.slice(commentsLen$1698);
         }
-        if (isIn$978(source$960[index$962], delimiters$1698)) {
-            return attachComments$1704(readDelim$1123(toks$1695, inExprDelim$1696, parentIsBlock$1697));
+        if (isIn$974(source$956[index$958], delimiters$1694)) {
+            return attachComments$1700(readDelim$1119(toks$1691, inExprDelim$1692, parentIsBlock$1693));
         }
-        if (source$960[index$962] === '/') {
-            var prev$1710 = back$1703(1);
-            if (prev$1710) {
-                if (prev$1710.value === '()') {
-                    if (isIn$978(back$1703(2).value, parenIdents$1699)) {
+        if (source$956[index$958] === '/') {
+            var prev$1706 = back$1699(1);
+            if (prev$1706) {
+                if (prev$1706.value === '()') {
+                    if (isIn$974(back$1699(2).value, parenIdents$1695)) {
                         // ... if (...) / ...
-                        return _scanRegExp$1706();
+                        return _scanRegExp$1702();
                     }
                     // ... (...) / ...
-                    return _advance$1705();
+                    return _advance$1701();
                 }
-                if (prev$1710.value === '{}') {
-                    if (blockAllowed$1121(toks$1695, 0, inExprDelim$1696, parentIsBlock$1697)) {
-                        if (back$1703(2).value === '()') {
+                if (prev$1706.value === '{}') {
+                    if (blockAllowed$1117(toks$1691, 0, inExprDelim$1692, parentIsBlock$1693)) {
+                        if (back$1699(2).value === '()') {
                             // named function
-                            if (back$1703(4).value === 'function') {
-                                if (!blockAllowed$1121(toks$1695, 3, inExprDelim$1696, parentIsBlock$1697)) {
+                            if (back$1699(4).value === 'function') {
+                                if (!blockAllowed$1117(toks$1691, 3, inExprDelim$1692, parentIsBlock$1693)) {
                                     // new function foo (...) {...} / ...
-                                    return _advance$1705();
+                                    return _advance$1701();
                                 }
-                                if (toks$1695.length - 5 <= 0 && inExprDelim$1696) {
+                                if (toks$1691.length - 5 <= 0 && inExprDelim$1692) {
                                     // (function foo (...) {...} /...)
                                     // [function foo (...) {...} /...]
-                                    return _advance$1705();
+                                    return _advance$1701();
                                 }
                             }
                             // unnamed function
-                            if (back$1703(3).value === 'function') {
-                                if (!blockAllowed$1121(toks$1695, 2, inExprDelim$1696, parentIsBlock$1697)) {
+                            if (back$1699(3).value === 'function') {
+                                if (!blockAllowed$1117(toks$1691, 2, inExprDelim$1692, parentIsBlock$1693)) {
                                     // new function (...) {...} / ...
-                                    return _advance$1705();
+                                    return _advance$1701();
                                 }
-                                if (toks$1695.length - 4 <= 0 && inExprDelim$1696) {
+                                if (toks$1691.length - 4 <= 0 && inExprDelim$1692) {
                                     // (function (...) {...} /...)
                                     // [function (...) {...} /...]
-                                    return _advance$1705();
+                                    return _advance$1701();
                                 }
                             }
                         }
                         // ...; {...} /...
-                        return _scanRegExp$1706();
+                        return _scanRegExp$1702();
                     } else {
                         // ... + {...} / ...
-                        return _advance$1705();
+                        return _advance$1701();
                     }
                 }
-                if (prev$1710.type === Token$951.Punctuator) {
+                if (prev$1706.type === Token$947.Punctuator) {
                     // ... + /...
-                    return _scanRegExp$1706();
+                    return _scanRegExp$1702();
                 }
-                if (isKeyword$989(prev$1710.value)) {
+                if (isKeyword$985(prev$1706.value)) {
                     // typeof /...
-                    return _scanRegExp$1706();
+                    return _scanRegExp$1702();
                 }
-                return _advance$1705();
+                return _advance$1701();
             }
-            return _scanRegExp$1706();
+            return _scanRegExp$1702();
         }
-        return _advance$1705();
+        return _advance$1701();
     }
-    function readDelim$1123(toks$1711, inExprDelim$1712, parentIsBlock$1713) {
-        var startDelim$1714 = advance$1006(), matchDelim$1715 = {
+    function readDelim$1119(toks$1707, inExprDelim$1708, parentIsBlock$1709) {
+        var startDelim$1710 = advance$1002(), matchDelim$1711 = {
                 '(': ')',
                 '{': '}',
                 '[': ']'
-            }, inner$1716 = [];
-        var delimiters$1717 = [
+            }, inner$1712 = [];
+        var delimiters$1713 = [
                 '(',
                 '{',
                 '['
             ];
-        assert$977(delimiters$1717.indexOf(startDelim$1714.value) !== -1, 'Need to begin at the delimiter');
-        var token$1718 = startDelim$1714;
-        var startLineNumber$1719 = token$1718.lineNumber;
-        var startLineStart$1720 = token$1718.lineStart;
-        var startRange$1721 = token$1718.range;
-        var delimToken$1722 = {};
-        delimToken$1722.type = Token$951.Delimiter;
-        delimToken$1722.value = startDelim$1714.value + matchDelim$1715[startDelim$1714.value];
-        delimToken$1722.startLineNumber = startLineNumber$1719;
-        delimToken$1722.startLineStart = startLineStart$1720;
-        delimToken$1722.startRange = startRange$1721;
-        var delimIsBlock$1723 = false;
-        if (startDelim$1714.value === '{') {
-            delimIsBlock$1723 = blockAllowed$1121(toks$1711.concat(delimToken$1722), 0, inExprDelim$1712, parentIsBlock$1713);
+        assert$973(delimiters$1713.indexOf(startDelim$1710.value) !== -1, 'Need to begin at the delimiter');
+        var token$1714 = startDelim$1710;
+        var startLineNumber$1715 = token$1714.lineNumber;
+        var startLineStart$1716 = token$1714.lineStart;
+        var startRange$1717 = token$1714.range;
+        var delimToken$1718 = {};
+        delimToken$1718.type = Token$947.Delimiter;
+        delimToken$1718.value = startDelim$1710.value + matchDelim$1711[startDelim$1710.value];
+        delimToken$1718.startLineNumber = startLineNumber$1715;
+        delimToken$1718.startLineStart = startLineStart$1716;
+        delimToken$1718.startRange = startRange$1717;
+        var delimIsBlock$1719 = false;
+        if (startDelim$1710.value === '{') {
+            delimIsBlock$1719 = blockAllowed$1117(toks$1707.concat(delimToken$1718), 0, inExprDelim$1708, parentIsBlock$1709);
         }
-        while (index$962 <= length$969) {
-            token$1718 = readToken$1122(inner$1716, startDelim$1714.value === '(' || startDelim$1714.value === '[', delimIsBlock$1723);
-            if (token$1718.type === Token$951.Punctuator && token$1718.value === matchDelim$1715[startDelim$1714.value]) {
-                if (token$1718.leadingComments) {
-                    delimToken$1722.trailingComments = token$1718.leadingComments;
+        while (index$958 <= length$965) {
+            token$1714 = readToken$1118(inner$1712, startDelim$1710.value === '(' || startDelim$1710.value === '[', delimIsBlock$1719);
+            if (token$1714.type === Token$947.Punctuator && token$1714.value === matchDelim$1711[startDelim$1710.value]) {
+                if (token$1714.leadingComments) {
+                    delimToken$1718.trailingComments = token$1714.leadingComments;
                 }
                 break;
-            } else if (token$1718.type === Token$951.EOF) {
-                throwError$1011({}, Messages$956.UnexpectedEOS);
+            } else if (token$1714.type === Token$947.EOF) {
+                throwError$1007({}, Messages$952.UnexpectedEOS);
             } else {
-                inner$1716.push(token$1718);
+                inner$1712.push(token$1714);
             }
         }
         // at the end of the stream but the very last char wasn't the closing delimiter
-        if (index$962 >= length$969 && matchDelim$1715[startDelim$1714.value] !== source$960[length$969 - 1]) {
-            throwError$1011({}, Messages$956.UnexpectedEOS);
+        if (index$958 >= length$965 && matchDelim$1711[startDelim$1710.value] !== source$956[length$965 - 1]) {
+            throwError$1007({}, Messages$952.UnexpectedEOS);
         }
-        var endLineNumber$1724 = token$1718.lineNumber;
-        var endLineStart$1725 = token$1718.lineStart;
-        var endRange$1726 = token$1718.range;
-        delimToken$1722.inner = inner$1716;
-        delimToken$1722.endLineNumber = endLineNumber$1724;
-        delimToken$1722.endLineStart = endLineStart$1725;
-        delimToken$1722.endRange = endRange$1726;
-        return delimToken$1722;
+        var endLineNumber$1720 = token$1714.lineNumber;
+        var endLineStart$1721 = token$1714.lineStart;
+        var endRange$1722 = token$1714.range;
+        delimToken$1718.inner = inner$1712;
+        delimToken$1718.endLineNumber = endLineNumber$1720;
+        delimToken$1718.endLineStart = endLineStart$1721;
+        delimToken$1718.endRange = endRange$1722;
+        return delimToken$1718;
     }
     // (Str) -> [...CSyntax]
-    function read$1124(code$1727) {
-        var token$1728, tokenTree$1729 = [];
-        extra$976 = {};
-        extra$976.comments = [];
-        patch$1117();
-        source$960 = code$1727;
-        index$962 = 0;
-        lineNumber$963 = source$960.length > 0 ? 1 : 0;
-        lineStart$964 = 0;
-        length$969 = source$960.length;
-        state$975 = {
+    function read$1120(code$1723) {
+        var token$1724, tokenTree$1725 = [];
+        extra$972 = {};
+        extra$972.comments = [];
+        patch$1113();
+        source$956 = code$1723;
+        index$958 = 0;
+        lineNumber$959 = source$956.length > 0 ? 1 : 0;
+        lineStart$960 = 0;
+        length$965 = source$956.length;
+        state$971 = {
             allowIn: true,
             labelSet: {},
             lastParenthesized: null,
@@ -4864,55 +4864,55 @@ parseYieldExpression: true
             inIteration: false,
             inSwitch: false
         };
-        while (index$962 < length$969) {
-            tokenTree$1729.push(readToken$1122(tokenTree$1729, false, false));
+        while (index$958 < length$965) {
+            tokenTree$1725.push(readToken$1118(tokenTree$1725, false, false));
         }
-        var last$1730 = tokenTree$1729[tokenTree$1729.length - 1];
-        if (last$1730 && last$1730.type !== Token$951.EOF) {
-            tokenTree$1729.push({
-                type: Token$951.EOF,
+        var last$1726 = tokenTree$1725[tokenTree$1725.length - 1];
+        if (last$1726 && last$1726.type !== Token$947.EOF) {
+            tokenTree$1725.push({
+                type: Token$947.EOF,
                 value: '',
-                lineNumber: last$1730.lineNumber,
-                lineStart: last$1730.lineStart,
+                lineNumber: last$1726.lineNumber,
+                lineStart: last$1726.lineStart,
                 range: [
-                    index$962,
-                    index$962
+                    index$958,
+                    index$958
                 ]
             });
         }
-        return expander$950.tokensToSyntax(tokenTree$1729);
+        return expander$946.tokensToSyntax(tokenTree$1725);
     }
-    function parse$1125(code$1731, options$1732) {
-        var program$1733, toString$1734;
-        extra$976 = {};
+    function parse$1121(code$1727, options$1728) {
+        var program$1729, toString$1730;
+        extra$972 = {};
         // given an array of tokens instead of a string
-        if (Array.isArray(code$1731)) {
-            tokenStream$971 = code$1731;
-            length$969 = tokenStream$971.length;
-            lineNumber$963 = tokenStream$971.length > 0 ? 1 : 0;
-            source$960 = undefined;
+        if (Array.isArray(code$1727)) {
+            tokenStream$967 = code$1727;
+            length$965 = tokenStream$967.length;
+            lineNumber$959 = tokenStream$967.length > 0 ? 1 : 0;
+            source$956 = undefined;
         } else {
-            toString$1734 = String;
-            if (typeof code$1731 !== 'string' && !(code$1731 instanceof String)) {
-                code$1731 = toString$1734(code$1731);
+            toString$1730 = String;
+            if (typeof code$1727 !== 'string' && !(code$1727 instanceof String)) {
+                code$1727 = toString$1730(code$1727);
             }
-            source$960 = code$1731;
-            length$969 = source$960.length;
-            lineNumber$963 = source$960.length > 0 ? 1 : 0;
+            source$956 = code$1727;
+            length$965 = source$956.length;
+            lineNumber$959 = source$956.length > 0 ? 1 : 0;
         }
-        delegate$970 = SyntaxTreeDelegate$958;
-        streamIndex$972 = -1;
-        index$962 = 0;
-        lineStart$964 = 0;
-        sm_lineStart$966 = 0;
-        sm_lineNumber$965 = lineNumber$963;
-        sm_index$968 = 0;
-        sm_range$967 = [
+        delegate$966 = SyntaxTreeDelegate$954;
+        streamIndex$968 = -1;
+        index$958 = 0;
+        lineStart$960 = 0;
+        sm_lineStart$962 = 0;
+        sm_lineNumber$961 = lineNumber$959;
+        sm_index$964 = 0;
+        sm_range$963 = [
             0,
             0
         ];
-        lookahead$973 = null;
-        state$975 = {
+        lookahead$969 = null;
+        state$971 = {
             allowKeyword: false,
             allowIn: true,
             labelSet: {},
@@ -4923,82 +4923,82 @@ parseYieldExpression: true
             yieldAllowed: false,
             yieldFound: false
         };
-        if (typeof options$1732 !== 'undefined') {
-            extra$976.range = typeof options$1732.range === 'boolean' && options$1732.range;
-            extra$976.loc = typeof options$1732.loc === 'boolean' && options$1732.loc;
-            if (extra$976.loc && options$1732.source !== null && options$1732.source !== undefined) {
-                delegate$970 = extend$1119(delegate$970, {
-                    'postProcess': function (node$1735) {
-                        node$1735.loc.source = toString$1734(options$1732.source);
-                        return node$1735;
+        if (typeof options$1728 !== 'undefined') {
+            extra$972.range = typeof options$1728.range === 'boolean' && options$1728.range;
+            extra$972.loc = typeof options$1728.loc === 'boolean' && options$1728.loc;
+            if (extra$972.loc && options$1728.source !== null && options$1728.source !== undefined) {
+                delegate$966 = extend$1115(delegate$966, {
+                    'postProcess': function (node$1731) {
+                        node$1731.loc.source = toString$1730(options$1728.source);
+                        return node$1731;
                     }
                 });
             }
-            if (typeof options$1732.tokens === 'boolean' && options$1732.tokens) {
-                extra$976.tokens = [];
+            if (typeof options$1728.tokens === 'boolean' && options$1728.tokens) {
+                extra$972.tokens = [];
             }
-            if (typeof options$1732.comment === 'boolean' && options$1732.comment) {
-                extra$976.comments = [];
+            if (typeof options$1728.comment === 'boolean' && options$1728.comment) {
+                extra$972.comments = [];
             }
-            if (typeof options$1732.tolerant === 'boolean' && options$1732.tolerant) {
-                extra$976.errors = [];
+            if (typeof options$1728.tolerant === 'boolean' && options$1728.tolerant) {
+                extra$972.errors = [];
             }
         }
-        if (length$969 > 0) {
-            if (source$960 && typeof source$960[0] === 'undefined') {
+        if (length$965 > 0) {
+            if (source$956 && typeof source$956[0] === 'undefined') {
                 // Try first to convert to a string. This is good as fast path
                 // for old IE which understands string indexing for string
                 // literals only and not for string object.
-                if (code$1731 instanceof String) {
-                    source$960 = code$1731.valueOf();
+                if (code$1727 instanceof String) {
+                    source$956 = code$1727.valueOf();
                 }
             }
         }
-        extra$976 = { loc: true };
-        patch$1117();
+        extra$972 = { loc: true };
+        patch$1113();
         try {
-            program$1733 = parseProgram$1103();
-            if (typeof extra$976.comments !== 'undefined') {
-                filterCommentLocation$1106();
-                program$1733.comments = extra$976.comments;
+            program$1729 = parseProgram$1099();
+            if (typeof extra$972.comments !== 'undefined') {
+                filterCommentLocation$1102();
+                program$1729.comments = extra$972.comments;
             }
-            if (typeof extra$976.tokens !== 'undefined') {
-                filterTokenLocation$1109();
-                program$1733.tokens = extra$976.tokens;
+            if (typeof extra$972.tokens !== 'undefined') {
+                filterTokenLocation$1105();
+                program$1729.tokens = extra$972.tokens;
             }
-            if (typeof extra$976.errors !== 'undefined') {
-                program$1733.errors = extra$976.errors;
+            if (typeof extra$972.errors !== 'undefined') {
+                program$1729.errors = extra$972.errors;
             }
-            if (extra$976.range || extra$976.loc) {
-                program$1733.body = filterGroup$1115(program$1733.body);
+            if (extra$972.range || extra$972.loc) {
+                program$1729.body = filterGroup$1111(program$1729.body);
             }
-        } catch (e$1736) {
-            throw e$1736;
+        } catch (e$1732) {
+            throw e$1732;
         } finally {
-            unpatch$1118();
-            extra$976 = {};
+            unpatch$1114();
+            extra$972 = {};
         }
-        return program$1733;
+        return program$1729;
     }
-    exports$949.tokenize = tokenize$1120;
-    exports$949.read = read$1124;
-    exports$949.Token = Token$951;
-    exports$949.parse = parse$1125;
+    exports$945.tokenize = tokenize$1116;
+    exports$945.read = read$1120;
+    exports$945.Token = Token$947;
+    exports$945.parse = parse$1121;
     // Deep copy.
-    exports$949.Syntax = function () {
-        var name$1737, types$1738 = {};
+    exports$945.Syntax = function () {
+        var name$1733, types$1734 = {};
         if (typeof Object.create === 'function') {
-            types$1738 = Object.create(null);
+            types$1734 = Object.create(null);
         }
-        for (name$1737 in Syntax$954) {
-            if (Syntax$954.hasOwnProperty(name$1737)) {
-                types$1738[name$1737] = Syntax$954[name$1737];
+        for (name$1733 in Syntax$950) {
+            if (Syntax$950.hasOwnProperty(name$1733)) {
+                types$1734[name$1733] = Syntax$950[name$1733];
             }
         }
         if (typeof Object.freeze === 'function') {
-            Object.freeze(types$1738);
+            Object.freeze(types$1734);
         }
-        return types$1738;
+        return types$1734;
     }();
 }));
 //# sourceMappingURL=parser.js.map
