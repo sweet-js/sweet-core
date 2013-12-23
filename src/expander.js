@@ -41,7 +41,7 @@
                 'underscore',
                 'parser',
                 'syntax',
-                'es6-collections', 
+                'es6-collections',
                 'scopedEval',
                 'patterns'], factory);
     }
@@ -352,7 +352,7 @@
     var nextFresh = 0;
 
     // fun () -> Num
-    function fresh() { return nextFresh++; };
+    function fresh() { return nextFresh++; }
 
 
 
@@ -423,7 +423,7 @@
         },
 
         addDefCtx: function(def) {
-            for (var i = 0; i < this.properties.length; i++) {
+            _.each(_.range(this.properties.length), _.bind(function(i) {
                 var prop = this.properties[i];
                 if (Array.isArray(this[prop])) {
                     this[prop] = _.map(this[prop], function (item) {
@@ -432,11 +432,11 @@
                 } else if (this[prop]) {
                     this[prop] = this[prop].addDefCtx(def);
                 }
-            }
+            }, this));
             return this;
         },
         rename: function(id, name) {
-            for (var i = 0; i < this.properties.length; i++) {
+            _.each(_.range(this.properties.length), _.bind(function(i) {
                 var prop = this.properties[i];
                 if (Array.isArray(this[prop])) {
                     this[prop] = _.map(this[prop], function (item) {
@@ -445,7 +445,7 @@
                 } else if (this[prop]) {
                     this[prop] = this[prop].rename(id, name);
                 }
-            }
+            }, this));
             return this;
         }
     };

@@ -83,7 +83,8 @@ module.exports = function(grunt) {
                 eqnull: true,
                 evil: true,
                 boss: true,
-                laxcomma: true
+                laxcomma: true,
+                shadow: true
             },
             all: ["build/lib/*.js"]
         }
