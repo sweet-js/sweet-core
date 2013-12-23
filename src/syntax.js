@@ -17,47 +17,24 @@
     // (CSyntax, Str) -> CContext
     function Rename(id, name, ctx, defctx) {
         defctx = defctx || null;
-        return {
-            id: id,
-            name: name,
-            context: ctx,
-            def: defctx
-        };
+
+        this.id = id;
+        this.name = name;
+        this.context = ctx;
+        this.def = defctx;
     }
     
     // (Num) -> CContext
     function Mark(mark, ctx) {
-        return {
-            mark: mark,
-            context: ctx
-        };
+        this.mark = mark;
+        this.context = ctx;
     }
 
     function Def(defctx, ctx) {
-        return {
-            defctx: defctx,
-            context: ctx
-        };
+        this.defctx = defctx;
+        this.context = ctx;
     }
     
-    function Var(id) {
-        return {
-            id: id
-        };
-    }
-    
-    function isRename(r) {
-        return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
-    }
-
-    function isMark(m) {
-        return m && (typeof m.mark !== 'undefined');
-    }
-
-    function isDef(ctx) {
-        return ctx && (typeof ctx.defctx !== 'undefined');
-    }
-
     function Syntax(token, oldstx) {
         this.token = token;
         this.context = (oldstx && oldstx.context) ? oldstx.context : null;
@@ -70,10 +47,10 @@
         mark: function(newMark) {
             if (this.token.inner) {
                 var next = syntaxFromToken(this.token, this);
-                next.deferredContext = Mark(newMark, this.deferredContext);
+                next.deferredContext = new Mark(newMark, this.deferredContext);
                 return next;
             }
-            return syntaxFromToken(this.token, {context: Mark(newMark, this.context)});
+            return syntaxFromToken(this.token, {context: new Mark(newMark, this.context)});
         },
 
         // (CSyntax or [...CSyntax], Str) -> CSyntax
@@ -82,14 +59,14 @@
             // deferr renaming of delimiters
             if (this.token.inner) {
                 var next = syntaxFromToken(this.token, this);
-                next.deferredContext = Rename(id, name, this.deferredContext, defctx);
+                next.deferredContext = new Rename(id, name, this.deferredContext, defctx);
                 return next;
             }
 
             if (this.token.type === parser.Token.Identifier ||
                 this.token.type === parser.Token.Keyword ||
                 this.token.type === parser.Token.Punctuator) {
-                return syntaxFromToken(this.token, {context: Rename(id, name, this.context, defctx)});
+                return syntaxFromToken(this.token, {context: new Rename(id, name, this.context, defctx)});
             } else {
                 return this;
             }
@@ -98,16 +75,16 @@
         addDefCtx: function(defctx) {
             if (this.token.inner) {
                 var next = syntaxFromToken(this.token, this);
-                next.deferredContext = Def(defctx, this.deferredContext);
+                next.deferredContext = new Def(defctx, this.deferredContext);
                 return next;
             }
-            return syntaxFromToken(this.token, {context: Def(defctx, this.context)});
+            return syntaxFromToken(this.token, {context: new Def(defctx, this.context)});
         },
 
         getDefCtx: function() {
             var ctx = this.context;
             while(ctx !== null) {
-                if (isDef(ctx)) {
+                if (ctx instanceof Def) {
                     return ctx.defctx;
                 }
                 ctx = ctx.context;
@@ -122,15 +99,15 @@
             function applyContext(stxCtx, ctx) {
                 if (ctx == null) {
                     return stxCtx;
-                } else if (isRename(ctx)) {
-                    return Rename(ctx.id,
+                } else if (ctx instanceof Rename) {
+                    return new Rename(ctx.id,
                                   ctx.name,
                                   applyContext(stxCtx, ctx.context),
                                   ctx.def);
-                } else if (isMark(ctx)) {
-                    return Mark(ctx.mark, applyContext(stxCtx, ctx.context));
-                } else if (isDef(ctx)) {
-                    return Def(ctx.defctx, applyContext(stxCtx, ctx.context));
+                } else if (ctx instanceof Mark) {
+                    return new Mark(ctx.mark, applyContext(stxCtx, ctx.context));
+                } else if (ctx instanceof Def) {
+                    return new Def(ctx.defctx, applyContext(stxCtx, ctx.context));
                 } else {
                     assert(false, "unknown context type");
                 }
@@ -427,11 +404,7 @@
 
     exports.Rename = Rename;
     exports.Mark = Mark;
-    exports.Var = Var;
     exports.Def = Def;
-    exports.isDef = isDef;
-    exports.isMark = isMark;
-    exports.isRename = isRename;
 
     exports.syntaxFromToken = syntaxFromToken;
     exports.tokensToSyntax = tokensToSyntax;

@@ -231,11 +231,7 @@
 
     var Rename = syn.Rename;
     var Mark = syn.Mark;
-    var Var = syn.Var;
     var Def = syn.Def;
-    var isDef = syn.isDef;
-    var isMark = syn.isMark;
-    var isRename = syn.isRename;
 
     var syntaxFromToken = syn.syntaxFromToken;
     var joinSyntax = syn.joinSyntax;
@@ -255,15 +251,15 @@
     function marksof(ctx, stopName, originalName) {
         var mark, submarks;
 
-        if (isMark(ctx)) {
+        if (ctx instanceof Mark) {
             mark = ctx.mark;
             submarks = marksof(ctx.context, stopName, originalName);
             return remdup(mark, submarks);
         }
-        if(isDef(ctx)) {
+        if(ctx instanceof Def) {
             return marksof(ctx.context, stopName, originalName);
         }
-        if (isRename(ctx)) {
+        if (ctx instanceof Rename) {
             if(stopName === originalName + "$" + ctx.name) {
                 return [];
             }
@@ -293,7 +289,7 @@
         var acc = oldctx;
         for (var i = 0; i < defctx.length; i++) {
             if (defctx[i].id.token.value === originalName) {
-                acc = Rename(defctx[i].id, defctx[i].name, acc, defctx);
+                acc = new Rename(defctx[i].id, defctx[i].name, acc, defctx);
             }
         }
         return acc;
@@ -310,10 +306,10 @@
 
     // (Syntax) -> String
     function resolveCtx(originalName, ctx, stop_spine, stop_branch) {
-        if (isMark(ctx)) {
+        if (ctx instanceof Mark) {
             return resolveCtx(originalName, ctx.context, stop_spine, stop_branch);
         }
-        if (isDef(ctx)) {
+        if (ctx instanceof Def) {
             if (stop_spine.indexOf(ctx.defctx) !== -1) {
                 return resolveCtx(originalName, ctx.context, stop_spine, stop_branch);   
             } else {
@@ -323,7 +319,7 @@
                                   unionEl(stop_branch, ctx.defctx));
             }
         }
-        if (isRename(ctx)) {
+        if (ctx instanceof Rename) {
             if (originalName === ctx.id.token.value) {
                 var idName = resolveCtx(ctx.id.token.value, 
                                         ctx.id.context, 
