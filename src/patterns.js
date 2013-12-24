@@ -86,8 +86,8 @@
 
     // (CSyntax, CSyntax) -> CSyntax
     function takeLine(from, to) {
+        var next;
         if (to.token.type === parser.Token.Delimiter) {
-            var next;
             if (from.token.type === parser.Token.Delimiter) {
                 next = syntaxFromToken({
                     type: parser.Token.Delimiter,
@@ -285,7 +285,7 @@
 
     // (Str, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
     function matchPatternClass (patternClass, stx, env) {
-        var result, rest;
+        var result, rest, match;
         // pattern has no parse class
         if (patternClass === "token" &&
             stx[0] && stx[0].token.type !== parser.Token.EOF) {
@@ -300,7 +300,7 @@
             result = [stx[0]];
             rest = stx.slice(1);
         } else if (stx.length > 0 && patternClass === "VariableStatement") {
-            var match = stx[0].term
+            match = stx[0].term
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.enforest(stx, expander.makeExpanderContext({env: env}));
             if (match.result && match.result.hasPrototype(expander.VariableStatement)) {
@@ -311,7 +311,7 @@
                 rest = stx;
             }
         } else if (stx.length > 0 && patternClass === "expr") {
-            var match = stx[0].term
+            match = stx[0].term
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.get_expression(stx, expander.makeExpanderContext({env: env}));
             if (match.result === null || (!match.result.hasPrototype(expander.Expr))) {
@@ -577,7 +577,7 @@
                 if (pattern.repeat) {
                     if (patternEnv[pattern.value] && success) {
                         patternEnv[pattern.value].match.push(matchEnv);
-                    } else if (patternEnv[pattern.value] == undefined){
+                    } else if (patternEnv[pattern.value] === undefined){
                         // initialize if necessary
                         patternEnv[pattern.value] = {
                             level: 1,

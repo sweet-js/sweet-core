@@ -30,7 +30,6 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/*jslint bitwise:true plusplus:true */
 /*global esprima:true, define:true, exports:true, window: true,
 throwError: true, generateStatement: true, peek: true,
 parseAssignmentExpression: true, parseBlock: true,
@@ -5655,7 +5654,7 @@ parseYieldExpression: true
         delimToken.endLineStart = endLineStart;
         delimToken.endRange = endRange;
         return delimToken;
-    };
+    }
     
     
     
