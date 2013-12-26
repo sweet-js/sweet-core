@@ -1133,7 +1133,16 @@
                     Expr(emp) | (rest[0] && rest[1] && stxIsBinOp(rest[0])) => {
                         var op = rest[0];
                         var left = head;
-                        var bopRes = enforest(rest.slice(1), context);
+                        var rightStx = rest.slice(1);
+                        var bopPrevStx = getHeadStx(toks, rightStx).reverse().concat(prevStx);
+                        var bopPrevTerms = [Punc.create(rest[0]), head].concat(prevTerms);
+                        var bopRes = enforest(rightStx, context, bopPrevStx, bopPrevTerms);
+
+                        // Lookbehind was matched, so it may not even be a binop anymore.
+                        if (bopRes.prevTerms.length < bopPrevTerms.length) {
+                            return bopRes;
+                        }
+
                         var right = bopRes.result;
                         // only a binop if the right is a real expression
                         // so 2+2++ will only match 2+2
@@ -1144,7 +1153,15 @@
 
                     // UnaryOp (via punctuation)
                     Punc(punc) | (stxIsUnaryOp(punc)) => {
-                        var unopRes = enforest(rest, context);
+                        var unopPrevStx = [punc].concat(prevStx);
+                        var unopPrevTerms = [head].concat(prevTerms);
+                        var unopRes = enforest(rest, context, unopPrevStx, unopPrevTerms);
+
+                        // Lookbehind was matched, so it may not even be a unop anymore
+                        if (unopRes.prevTerms.length < unopPrevTerms.length) {
+                            return unopRes;
+                        }
+
                         if (unopRes.result.hasPrototype(Expr)) {
                             return step(UnaryOp.create(punc, unopRes.result),
                                         unopRes.rest);
@@ -1153,7 +1170,15 @@
 
                     // UnaryOp (via keyword)
                     Keyword(keyword) | (stxIsUnaryOp(keyword)) => {
-                        var unopKeyres = enforest(rest, context);
+                        var unopKeyPrevStx = [keyword].concat(prevStx);
+                        var unopKeyPrevTerms = [head].concat(prevTerms);
+                        var unopKeyres = enforest(rest, context, unopKeyPrevStx, unopKeyPrevTerms);
+
+                        // Lookbehind was matched, so it may not even be a unop anymore
+                        if (unopKeyres.prevTerms.length < unopKeyPrevTerms.length) {
+                            return unopKeyres;
+                        }
+
                         if (unopKeyres.result.hasPrototype(Expr)) {
                             return step(UnaryOp.create(keyword, unopKeyres.result),
                                         unopKeyres.rest);
@@ -1471,7 +1496,7 @@
             // we're done stepping
             return {
                 result: head,
-                destructed: rest.length ? toks.slice(0, 0 - rest.length) : toks,
+                destructed: getHeadStx(toks, rest),
                 rest: rest,
                 prevStx: prevStx,
                 prevTerms: prevTerms
@@ -1480,6 +1505,10 @@
         }
 
         return step(toks[0], toks.slice(1));
+    }
+
+    function getHeadStx(before, after) {
+        return after.length ? before.slice(0, -after.length) : before;
     }
 
     function get_expression(stx, context) {
