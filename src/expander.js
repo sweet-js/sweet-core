@@ -830,7 +830,10 @@
                 }
                 if (rest[1].token.type === parser.Token.Punctuator &&
                     rest[1].token.value === "=") {
-                    rhs = enforestRhsExpression(rest.slice(2), context);
+                    rhs = get_expression(rest.slice(2), context);
+                    if (rhs.result == null) {
+                        throwSyntaxError("enforest", "Unexpected token", rhs.rest[0]);
+                    }
                     if (rhs.rest[0].token.type === parser.Token.Punctuator &&
                         rhs.rest[0].token.value === ",") {
                         decls.push(VariableDeclaration.create(rest[0], rest[1], rhs.result, rhs.rest[0]));
@@ -860,40 +863,6 @@
             destructed: rest.length ? stx.slice(0, 0 - rest.length) : stx,
             rest: rest,
         }
-    }
-
-    function enforestRhsExpression(stx, context) {
-        var res = enforest(stx, context);
-        var next = res;
-        var peek;
-        var prevStx;
-
-        if (!next.result.hasPrototype(Expr)) {
-            throwSyntaxError("enforest", "Unexpected token", next.destructed[0]);
-        }
-
-        while (next.rest.length) {
-            // Enforest the next term tree since it might be an infix macro that
-            // consumes the initial expression.
-            peek = enforest(next.rest, context, next.destructed, [next.result]);
-
-            // If it has prev terms it wasn't infix, but it we need to run it
-            // through enforest together with the initial expression to see if
-            // it extends it into a longer expression.
-            if (peek.prevTerms.length === 1) {
-                peek = enforest([next.result].concat(peek.destructed, peek.rest), context);
-            }
-
-            // No new expression was created, so we've reached the end.
-            if (peek.result === next.result) {
-                break;
-            }
-
-            // A new expression was created, so loop back around and keep going.
-            next = peek;
-        }
-
-        return next;
     }
 
     function adjustLineContext(stx, original, current) {
@@ -1513,13 +1482,39 @@
 
     function get_expression(stx, context) {
         var res = enforest(stx, context);
-        if (!res.result.hasPrototype(Expr)) {
+        var next = res;
+        var peek;
+        var prevStx;
+
+        if (!next.result.hasPrototype(Expr)) {
             return {
                 result: null,
                 rest: stx
-            };
+            }
         }
-        return res;
+
+        while (next.rest.length) {
+            // Enforest the next term tree since it might be an infix macro that
+            // consumes the initial expression.
+            peek = enforest(next.rest, context, next.destructed, [next.result]);
+
+            // If it has prev terms it wasn't infix, but it we need to run it
+            // through enforest together with the initial expression to see if
+            // it extends it into a longer expression.
+            if (peek.prevTerms.length === 1) {
+                peek = enforest([next.result].concat(peek.destructed, peek.rest), context);
+            }
+
+            // No new expression was created, so we've reached the end.
+            if (peek.result === next.result) {
+                break;
+            }
+
+            // A new expression was created, so loop back around and keep going.
+            next = peek;
+        }
+
+        return next;
     }
 
 
