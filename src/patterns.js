@@ -381,7 +381,7 @@
                     }
                 }
                 if (pattern.repeat && pattern.leading && pattern.separator !== " ") {
-                    if (rest[0].token.value === pattern.repeat) {
+                    if (rest[0].token.value === pattern.separator) {
                         if (!inLeading) {
                             inLeading = true;
                         }
@@ -632,6 +632,15 @@
                 }
             }
         }
+
+        // We need to reverse the matches for any top level repeaters because
+        // they match in reverse, and thus put their results in backwards.
+        _.forEach(patternEnv, function(val, key) {
+            if (val.level && val.match) {
+                val.match.reverse();
+            }
+        });
+
         return {
             success: success,
             patternEnv: patternEnv,
