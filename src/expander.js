@@ -808,79 +808,61 @@
         return _.contains(staticOperators, unwrapSyntax(stx));
     }
 
-    // ([Syntax], Map) -> {result: [VariableDeclaration], rest: [Syntax]}
-    // assumes stx starts at the identifier. ie:
-    // var x = ...
-    //     ^
-    function enforestVarStatement (stx, context, isLet) {
+    function enforestVarStatement(stx, context, varStx) {
+        var isLet = /^(?:let|const)$/.test(varStx.token.value);
         var decls = [];
+        var rest = stx;
+        var rhs;
 
-        var res = enforest(stx, context);
-        var result = res.result;
-        var rest = res.rest;
+        if (!rest.length) {
+            throwSyntaxError("enforest", "Unexpected end of input", varStx);
+        }
 
-        if (rest[0]) {
-            if (isLet && result.hasPrototype(Id)) {
-                var freshName = fresh();
-                var renamedId = result.id.rename(result.id, freshName);
-                rest = rest.map(function(stx) {
-                    return stx.rename(result.id, freshName);
-                });
-                result.id = renamedId;
-            }
-            var nextRes = enforest(rest, context);
-
-            // x = ...
-            if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === "=") {
-                var initializerRes = enforest(nextRes.rest, context);
-
-                // x = y + z, ...
-                if (initializerRes.rest[0] && initializerRes.rest[0].token.value === ",") {
-
-                    decls.push(VariableDeclaration.create(result.id,
-                                                          nextRes.result.punc,
-                                                          initializerRes.result,
-                                                          initializerRes.rest[0]));
-                    var subRes = enforestVarStatement(initializerRes.rest.slice(1), context, isLet);
-                    decls = decls.concat(subRes.result);
-                    rest = subRes.rest;
-                // x = y ...
-                } else {
-                    decls.push(VariableDeclaration.create(result.id,
-                                                          nextRes.result.punc,
-                                                          initializerRes.result));
-                    rest = initializerRes.rest;
+        while (rest.length) {
+            if (rest[0].token.type === parser.Token.Identifier) {
+                if (isLet) {
+                    var freshName = fresh();
+                    var renamedId = rest[0].rename(rest[0], freshName);
+                    rest = rest.map(function(stx) {
+                        return stx.rename(rest[0], freshName);
+                    });
+                    rest[0] = renamedId;
                 }
-            // x ,...;
-            } else if (nextRes.result.hasPrototype(Punc) && nextRes.result.punc.token.value === ",") {
-                decls.push(VariableDeclaration.create(result.id, null, null, nextRes.result.punc));
-                var subRes = enforestVarStatement(nextRes.rest, context, isLet);
-                decls = decls.concat(subRes.result);
-                rest = subRes.rest;
-            } else {
-                if (result.hasPrototype(Id)) {
-                    decls.push(VariableDeclaration.create(result.id));
+                if (rest[1].token.type === parser.Token.Punctuator &&
+                    rest[1].token.value === "=") {
+                    rhs = get_expression(rest.slice(2), context);
+                    if (rhs.result == null) {
+                        throwSyntaxError("enforest", "Unexpected token", rhs.rest[0]);
+                    }
+                    if (rhs.rest[0].token.type === parser.Token.Punctuator &&
+                        rhs.rest[0].token.value === ",") {
+                        decls.push(VariableDeclaration.create(rest[0], rest[1], rhs.result, rhs.rest[0]));
+                        rest = rhs.rest.slice(1);
+                        continue;
+                    } else {
+                        decls.push(VariableDeclaration.create(rest[0], rest[1], rhs.result, null));
+                        rest = rhs.rest;
+                        break;
+                    }
+                } else if (rest[1].token.type === parser.Token.Punctuator &&
+                           rest[1].token.value === ",") {
+                    decls.push(VariableDeclaration.create(rest[0], null, null, rest[1]));
+                    rest = rest.slice(2);
                 } else {
-                    throwSyntaxError("enforest", "Expecting an identifier in variable declaration", rest);
+                    decls.push(VariableDeclaration.create(rest[0], null, null, null));
+                    rest = rest.slice(1);
+                    break;
                 }
-            }
-        // x EOF
-        } else {
-            if (result.hasPrototype(Id)) {
-                decls.push(VariableDeclaration.create(result.id));
-            } else if (result.hasPrototype(BinOp) && result.op.token.value === "in") {
-                decls.push(VariableDeclaration.create(result.left.id,
-                                                      result.op,
-                                                      result.right));
             } else {
-                throwSyntaxError("enforest", "Expecting an identifier in variable declaration", stx);
+                throwSyntaxError("enforest", "Unexpected token", rest[0]);
             }
         }
-        
+
         return {
             result: decls,
-            rest: rest
-        };
+            destructed: rest.length ? stx.slice(0, 0 - rest.length) : stx,
+            rest: rest,
+        }
     }
 
     function adjustLineContext(stx, original, current) {
@@ -987,8 +969,11 @@
 
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
-    function enforest(toks, context) {
+    function enforest(toks, context, prevStx, prevTerms) {
         assert(toks.length > 0, "enforest assumes there are tokens to work with");
+
+        prevStx = prevStx || [];
+        prevTerms = prevTerms || [];
 
         function step(head, rest) {
             var innerTokens;
@@ -1071,7 +1056,7 @@
                     Delimiter(delim) | (delim.token.value === "()" &&
                                          rest[0] &&
                                          rest[0].token.type === parser.Token.Punctuator &&
-                                         unwrapSyntax(rest[0]) === "=>") => {
+                                         resolve(rest[0]) === "=>") => {
                         var arrowRes = enforest(rest.slice(1), context);
                         if (arrowRes.result.hasPrototype(Expr)) {
                             return step(ArrowFun.create(delim, rest[0], arrowRes.result.destruct()), 
@@ -1084,7 +1069,7 @@
                     // Arrow functions with expression bodies
                     Id(id) | (rest[0] &&
                                  rest[0].token.type === parser.Token.Punctuator &&
-                                 unwrapSyntax(rest[0]) === "=>") => {
+                                 resolve(rest[0]) === "=>") => {
                         var res = enforest(rest.slice(1), context);
                         if (res.result.hasPrototype(Expr)) {
                             return step(ArrowFun.create(id, rest[0], res.result.destruct()), 
@@ -1117,7 +1102,16 @@
                     Expr(emp) | (rest[0] && rest[1] && stxIsBinOp(rest[0])) => {
                         var op = rest[0];
                         var left = head;
-                        var bopRes = enforest(rest.slice(1), context);
+                        var rightStx = rest.slice(1);
+                        var bopPrevStx = getHeadStx(toks, rightStx).reverse().concat(prevStx);
+                        var bopPrevTerms = [Punc.create(rest[0]), head].concat(prevTerms);
+                        var bopRes = enforest(rightStx, context, bopPrevStx, bopPrevTerms);
+
+                        // Lookbehind was matched, so it may not even be a binop anymore.
+                        if (bopRes.prevTerms.length < bopPrevTerms.length) {
+                            return bopRes;
+                        }
+
                         var right = bopRes.result;
                         // only a binop if the right is a real expression
                         // so 2+2++ will only match 2+2
@@ -1128,7 +1122,15 @@
 
                     // UnaryOp (via punctuation)
                     Punc(punc) | (stxIsUnaryOp(punc)) => {
-                        var unopRes = enforest(rest, context);
+                        var unopPrevStx = [punc].concat(prevStx);
+                        var unopPrevTerms = [head].concat(prevTerms);
+                        var unopRes = enforest(rest, context, unopPrevStx, unopPrevTerms);
+
+                        // Lookbehind was matched, so it may not even be a unop anymore
+                        if (unopRes.prevTerms.length < unopPrevTerms.length) {
+                            return unopRes;
+                        }
+
                         if (unopRes.result.hasPrototype(Expr)) {
                             return step(UnaryOp.create(punc, unopRes.result),
                                         unopRes.rest);
@@ -1137,7 +1139,15 @@
 
                     // UnaryOp (via keyword)
                     Keyword(keyword) | (stxIsUnaryOp(keyword)) => {
-                        var unopKeyres = enforest(rest, context);
+                        var unopKeyPrevStx = [keyword].concat(prevStx);
+                        var unopKeyPrevTerms = [head].concat(prevTerms);
+                        var unopKeyres = enforest(rest, context, unopKeyPrevStx, unopKeyPrevTerms);
+
+                        // Lookbehind was matched, so it may not even be a unop anymore
+                        if (unopKeyres.prevTerms.length < unopKeyPrevTerms.length) {
+                            return unopKeyres;
+                        }
+
                         if (unopKeyres.result.hasPrototype(Expr)) {
                             return step(UnaryOp.create(keyword, unopKeyres.result),
                                         unopKeyres.rest);
@@ -1201,7 +1211,7 @@
 
                     // VariableStatement
                     Keyword(keyword) | (unwrapSyntax(keyword) === "var" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, context, false);
+                        var vsRes = enforestVarStatement(rest, context, keyword);
                         if (vsRes) {
                             return step(VariableStatement.create(head, vsRes.result),
                                         vsRes.rest);
@@ -1209,7 +1219,7 @@
                     }
                     // Let Statement
                     Keyword(keyword) | (unwrapSyntax(keyword) === "let" && rest[0]) => {
-                        var lsRes = enforestVarStatement(rest, context, true);
+                        var lsRes = enforestVarStatement(rest, context, keyword);
                         if (lsRes) {
                             return step(LetStatement.create(head, lsRes.result),
                                         lsRes.rest);
@@ -1217,7 +1227,7 @@
                     }
                     // Const Statement
                     Keyword(keyword) | (unwrapSyntax(keyword) === "const" && rest[0]) => {
-                        var csRes = enforestVarStatement(rest, context, true);
+                        var csRes = enforestVarStatement(rest, context, keyword);
                         if (csRes) {
                             return step(ConstStatement.create(head, csRes.result),
                                         csRes.rest);
@@ -1258,7 +1268,7 @@
                     // apply the transformer
                     var rt;
                     try {
-                        rt = transformer([head].concat(rest), transformerContext);
+                        rt = transformer([head].concat(rest), transformerContext, prevStx, prevTerms);
                     } catch (e) {
                         if (e.type && e.type === "SyntaxCaseError") {
                             // add a nicer error for syntax case
@@ -1275,9 +1285,23 @@
                             throw e;
                         } 
                     }
+
+                    if (rt.prevTerms) {
+                        prevTerms = rt.prevTerms;
+                    }
+                    if (rt.prevStx) {
+                        // Adjust toks if lookbehind was matched so we can calculate
+                        // the correct destructed syntax.
+                        if (rt.prevStx.length < prevStx.length) {
+                            toks = rt.result.concat(rt.rest);
+                        }
+                        prevStx = rt.prevStx;
+                    }
+
                     if(!Array.isArray(rt.result)) {
                         throwSyntaxError("enforest", "Macro must return a syntax array", head);
                     }
+
                     if(rt.result.length > 0) {
                         var adjustedResult = adjustLineContext(rt.result, head);
                         adjustedResult[0].token.leadingComments = head.token.leadingComments;
@@ -1376,7 +1400,7 @@
                             head.token.value === "()") ||
                             head.token.type === parser.Token.Identifier) &&
                             rest[0] && rest[0].token.type === parser.Token.Punctuator &&
-                            rest[0].token.value === "=>" &&
+                            resolve(rest[0]) === "=>" &&
                             rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                             rest[1].token.value === "{}") {
                     return step(ArrowFun.create(head, rest[0], rest[1]),
@@ -1441,7 +1465,10 @@
             // we're done stepping
             return {
                 result: head,
-                rest: rest
+                destructed: getHeadStx(toks, rest),
+                rest: rest,
+                prevStx: prevStx,
+                prevTerms: prevTerms
             };
 
         }
@@ -1449,15 +1476,45 @@
         return step(toks[0], toks.slice(1));
     }
 
+    function getHeadStx(before, after) {
+        return after.length ? before.slice(0, -after.length) : before;
+    }
+
     function get_expression(stx, context) {
         var res = enforest(stx, context);
-        if (!res.result.hasPrototype(Expr)) {
+        var next = res;
+        var peek;
+        var prevStx;
+
+        if (!next.result.hasPrototype(Expr)) {
             return {
                 result: null,
                 rest: stx
-            };
+            }
         }
-        return res;
+
+        while (next.rest.length) {
+            // Enforest the next term tree since it might be an infix macro that
+            // consumes the initial expression.
+            peek = enforest(next.rest, context, next.destructed, [next.result]);
+
+            // If it has prev terms it wasn't infix, but it we need to run it
+            // through enforest together with the initial expression to see if
+            // it extends it into a longer expression.
+            if (peek.prevTerms.length === 1) {
+                peek = enforest([next.result].concat(peek.destructed, peek.rest), context);
+            }
+
+            // No new expression was created, so we've reached the end.
+            if (peek.result === next.result) {
+                break;
+            }
+
+            // A new expression was created, so loop back around and keep going.
+            next = peek;
+        }
+
+        return next;
     }
 
 
@@ -1549,20 +1606,22 @@
 
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
-    function expandToTermTree (stx, context) {
+    function expandToTermTree (stx, context, prevStx, prevTerms) {
         assert(context, "expander context is required");
 
         // short circuit when syntax array is empty
         if (stx.length === 0) {
             return {
-                terms: [],
-                context: context
+                // prevTerms are stored in reverse for the purposes of infix
+                // lookbehind matching, so we need to re-reverse them.
+                terms: prevTerms ? prevTerms.reverse() : [],
+                context: context,
             };
         }
 
         assert(stx[0].token, "expecting a syntax object");
 
-        var f = enforest(stx, context);
+        var f = enforest(stx, context, prevStx, prevTerms);
         // head :: TermTree
         var head = f.result;
         // rest :: [Syntax]
@@ -1579,7 +1638,7 @@
                 builtin: builtinMode
             });
 
-            return expandToTermTree(rest, context);
+            return expandToTermTree(rest, context, prevStx, prevTerms);
         }
 
         if (head.hasPrototype(LetMacro) && expandCount < maxExpands) {
@@ -1597,8 +1656,16 @@
                 builtin: builtinMode
             });
 
-            return expandToTermTree(rest, context);
+            return expandToTermTree(rest, context, prevStx, prevTerms);
         }
+
+        // We build the newPrevTerms/Stx here (instead of at the beginning) so
+        // that macro definitions don't get added to it.
+        f.destructed.forEach(function(stx) {
+            stx.term = head;
+        });
+        var newPrevTerms = [head].concat(f.prevTerms);
+        var newPrevStx = f.destructed.reverse().concat(f.prevStx);
 
         if (head.hasPrototype(NamedFun)) {
             addToDefinitionCtx([head.name], context.defscope, true);
@@ -1657,11 +1724,13 @@
                     // need to deal with things like `for (...) if (...) log(...)`
                     var bodyEnf = enforest(rest, context);
                     var renamedBodyTerm = bodyEnf.result.rename(letId, letNew);
-                    var forTrees = expandToTermTree(bodyEnf.rest, context);
-                    return {
-                        terms: [head, renamedBodyTerm].concat(forTrees.terms),
-                        context: forTrees.context
-                    };
+                    bodyEnf.destructed.forEach(function(stx) {
+                        stx.term = renamedBodyTerm;
+                    });
+                    return expandToTermTree(bodyEnf.rest, 
+                                            context,
+                                            bodyEnf.destructed.reverse().concat(newPrevStx),
+                                            [renamedBodyTerm].concat(newPrevTerms));
                 }
 
             } else {
@@ -1669,11 +1738,7 @@
             }
         }
 
-        var trees = expandToTermTree(rest, context);
-        return {
-            terms: [head].concat(trees.terms),
-            context: trees.context
-        };
+        return expandToTermTree(rest, context, newPrevStx, newPrevTerms);
     }
 
     function addToDefinitionCtx(idents, defscope, skipRep) {
