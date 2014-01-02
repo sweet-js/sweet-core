@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/mozilla/sweet.js.png)](https://travis-ci.org/mozilla/sweet.js)
+
 # sweet.js
 
 Hygienic Macros for JavaScript!
