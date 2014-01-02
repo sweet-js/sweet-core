@@ -131,13 +131,13 @@ let syntaxCase = macro {
                 var pattern = casePattern.token.inner;
                 var lhs = [];
                 var rhs = [];
-                var separator;
+                var separator = null;
                 for (var j = 0; j < pattern.length; j++) {
                     if (separator) {
                         rhs.push(pattern[j]);
                     } else {
-                        if (pattern[i].token.type === parser.Token.Punctuator &&
-                            pattern[i].token.value === '|') {
+                        if (pattern[j].token.type === parser.Token.Punctuator &&
+                            pattern[j].token.value === '|') {
                             separator = pattern[j];
                         } else {
                             lhs.push(pattern[j]);
@@ -145,7 +145,7 @@ let syntaxCase = macro {
                     }
                 }
                 if (!separator) {
-                    throwNewSyntaxError("syntaxCase", "Infix macros require a `|` separator", casePattern);
+                    throwSyntaxError("syntaxCase", "Infix macros require a `|` separator", casePattern);
                 }
                 cases.push({
                     lookbehind: loadPattern(lhs, true),
@@ -233,9 +233,9 @@ let syntaxCase = macro {
                 makeDelim("()", [
                     makeIdent("lhs", name_stx),
                     makePunc(",", here),
-                    makeIdent("context", name_stx), makePunc(".", here), makeIdent("prevStx", name_stx),
+                    makeIdent("prevStx", name_stx),
                     makePunc(",", here),
-                    makeIdent("context", name_stx), makePunc(".", here), makeIdent("prevTerms", name_stx),
+                    makeIdent("prevTerms", name_stx),
                     makePunc(",", here),
                     makeIdent("context", name_stx), makePunc(".", here), makeIdent("env", name_stx)
                 ], here)
@@ -402,13 +402,17 @@ let syntaxCase = macro {
             throw new SyntaxCaseError("Could not match any cases");
         });
 
-        var res = [
-            makeDelim("()", makeFunc([makeIdent("stx", name_stx),
-                                      makePunc(",", here),
-                                      makeIdent("context", name_stx),
-                                      makePunc(",", here),
-                                      makeIdent("parentMatch", name_stx)], body),
-                      here),
+        var res = makeFunc([
+            makeIdent("stx", name_stx),
+            makePunc(",", here),
+            makeIdent("context", name_stx),
+            makePunc(",", here),
+            makeIdent("prevStx", name_stx),
+            makePunc(",", here),
+            makeIdent("prevTerms", name_stx),
+            makePunc(",", here),
+            makeIdent("parentMatch", name_stx)
+        ], body).concat([
             makeDelim("()", arg_stx.concat([
                 makePunc(",", here),
                 makeKeyword("typeof", here),
@@ -420,7 +424,7 @@ let syntaxCase = macro {
                 makePunc(":", here),
                 makeDelim("{}", [], here)
             ]), here)
-        ];
+        ]);
 
         return {
             result: res,
@@ -537,12 +541,20 @@ let macro = macro {
             : [makeIdent("macro", here)];
         res = res.concat(makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
                                                    makePunc(",", here),
-                                                   makeIdent("context", name_stx)],
+                                                   makeIdent("context", name_stx),
+                                                   makePunc(",", here),
+                                                   makeIdent("prevStx", name_stx),
+                                                   makePunc(",", here),
+                                                   makeIdent("prevTerms", name_stx)],
                                                    [makeKeyword("return", here),
                                                     stxSyntaxCase,
                                                     makeDelim("()", [makeIdent("stx", name_stx),
                                                                      makePunc(",", here),
-                                                                     makeIdent("context", name_stx)], here),
+                                                                     makeIdent("context", name_stx),
+                                                                     makePunc(",", here),
+                                                                     makeIdent("prevStx", name_stx),
+                                                                     makePunc(",", here),
+                                                                     makeIdent("prevTerms", name_stx)], here),
                                                     rules]),
                                     here));
 
@@ -610,7 +622,11 @@ macro withSyntax_unzip {
                     makePunc(",", here),
                     makeIdent("context", name)
                 ], here)     
-            ], here)
+            ], here),
+            makePunc(",", here),
+            makeIdent("prevStx", name),
+            makePunc(",", here),
+            makeIdent("prevTerms", name)
         ];
         args = args.concat(withContext);
 
