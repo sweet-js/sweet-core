@@ -240,6 +240,8 @@
     var expandCount = 0;
     var maxExpands;
 
+    var push = Array.prototype.push;
+
     function remdup(mark, mlist) {
         if (mark === _.first(mlist)) {
             return _.rest(mlist, 1);
@@ -398,24 +400,33 @@
         destruct: function() {
             return _.reduce(this.properties, _.bind(function(acc, prop) {
                 if (this[prop] && this[prop].hasPrototype(TermTree)) {
-                    return acc.concat(this[prop].destruct());
+                    push.apply(acc, this[prop].destruct());
+                    return acc;
                 } else if (this[prop] && this[prop].token && this[prop].token.inner) {
                     this[prop].token.inner = _.reduce(this[prop].token.inner, function(acc, t) {
                         if (t.hasPrototype(TermTree)) {
-                            return acc.concat(t.destruct());
+                            push.apply(acc, t.destruct());
+                            return acc;
                         }
-                        return acc.concat(t);
+                        acc.push(t);
+                        return acc;
                     }, []);
-                    return acc.concat(this[prop]);
+                    acc.push(this[prop]);
+                    return acc;
                 } else if (Array.isArray(this[prop])) {
-                    return acc.concat(_.reduce(this[prop], function(acc, t) {
+                    var destArr = _.reduce(this[prop], function(acc, t) {
                         if (t.hasPrototype(TermTree)) {
-                            return acc.concat(t.destruct());
+                            push.apply(acc, t.destruct());
+                            return acc;
                         } 
-                        return acc.concat(t);
-                    }, []));
+                        acc.push(t);
+                        return acc;
+                    }, []);
+                    push.apply(acc, destArr);
+                    return acc;
                 } else if (this[prop]) {
-                    return acc.concat(this[prop]);
+                    acc.push(this[prop]);
+                    return acc;
                 } else {
                     return acc;
                 }
@@ -643,17 +654,18 @@
             this.delim.token.inner = _.reduce(this.args, function(acc, term) {
                 assert(term && term.hasPrototype(TermTree),
                               "expecting term trees in destruct of Call");
-                var dst = acc.concat(term.destruct());
+                push.apply(acc, term.destruct());
                 // add all commas except for the last one
                 if (that.commas.length > 0) {
-                    dst = dst.concat(that.commas.shift());
+                    acc.push(that.commas.shift());
                 }
-                return dst;
+                return acc;
             }, []);
-
-            return this.fun.destruct().concat(Delimiter
-                                              .create(this.delim)
-                                              .destruct());
+            var res = this.fun.destruct();
+            push.apply(res, Delimiter
+                              .create(this.delim)
+                              .destruct())
+            return res;
         },
 
         construct: function(funn, args, delim, commas) {
@@ -706,7 +718,8 @@
             return this.varkw
                 .destruct()
                 .concat(_.reduce(this.decls, function(acc, decl) {
-                    return acc.concat(decl.destruct());
+                    push.apply(acc, decl.destruct());
+                    return acc;
                 }, []));
         },
 
@@ -724,7 +737,8 @@
             return this.letkw
                 .destruct()
                 .concat(_.reduce(this.decls, function(acc, decl) {
-                    return acc.concat(decl.destruct());
+                    push.apply(acc, decl.destruct());
+                    return acc;
                 }, []));
         },
 
@@ -742,7 +756,8 @@
             return this.constkw
                 .destruct()
                 .concat(_.reduce(this.decls, function(acc, decl) {
-                    return acc.concat(decl.destruct());
+                    push.apply(acc, decl.destruct());
+                    return acc;
                 }, []));
         },
 
@@ -2031,10 +2046,10 @@
                 if (stx.token.trailingComments) {
                     openParen.token.trailingComments = stx.token.trailingComments;
                 }
-                return acc
-                    .concat(openParen)
-                    .concat(flatten(exposed.token.inner))
-                    .concat(closeParen);
+                acc.push(openParen);
+                push.apply(acc, flatten(exposed.token.inner));
+                acc.push(closeParen);
+                return acc;
             }
             stx.token.sm_lineNumber = stx.token.sm_lineNumber 
                                     ? stx.token.sm_lineNumber 
@@ -2045,7 +2060,8 @@
             stx.token.sm_range = stx.token.sm_range
                                     ? stx.token.sm_range
                                     : stx.token.range;
-            return acc.concat(stx);
+            acc.push(stx);                        
+            return acc;
         }, []);
     }
 

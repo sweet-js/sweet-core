@@ -293,7 +293,8 @@
         if (punc === " ") { return tojoin; }
 
         return _.reduce(_.rest(tojoin, 1), function (acc, join) {
-            return acc.concat(makePunc(punc, join), join);
+            acc.push(makePunc(punc, join), join);
+            return acc;
         }, [_.first(tojoin)]);
     }
 
@@ -306,8 +307,9 @@
         }
 
         return _.reduce(_.rest(tojoin, 1), function (acc, join){
-            return acc.concat(makePunc(punc, _.first(join)),
-                              join);
+            acc.push(makePunc(punc, _.first(join)));
+            Array.prototype.push.apply(acc, join);
+            return acc;
         }, _.first(tojoin));
     }
 

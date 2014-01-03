@@ -18,6 +18,8 @@
     var assert = syntax.assert;
     var throwSyntaxError = syntax.throwSyntaxError;
 
+    var push = Array.prototype.push;
+
 
     // ([...CSyntax]) -> [...Str]
     function freeVarsInPattern(pattern) {
@@ -27,7 +29,7 @@
             if (isPatternVar(pat)) {
                 fv.push(pat.token.value);
             } else if (pat.token.type === parser.Token.Delimiter) {
-                fv = fv.concat(freeVarsInPattern(pat.token.inner));
+                push.apply(fv, freeVarsInPattern(pat.token.inner));
             }
         });
 
@@ -162,7 +164,6 @@
 
     function reversePattern(patterns) {
         var len = patterns.length;
-        var res = [];
         var pat;
         return _.reduceRight(patterns, function(acc, pat) {
             if (pat.class === "pattern_group") {
@@ -236,7 +237,8 @@
                 } else {
                     patStx.class = "pattern_literal";
                 }
-                return acc.concat(patStx);
+                acc.push(patStx);
+                return acc;
                 // then second pass to mark repeat and separator
             }, []).reduce(function(acc, patStx, idx, patterns) {
                 var separator = patStx.separator || " ";
@@ -262,7 +264,8 @@
                 }
                 patStx.repeat = repeat;
                 patStx.separator = separator;
-                return acc.concat(patStx);
+                acc.push(patStx);
+                return acc;
             }, []).value();
 
         return reverse ? reversePattern(patts) : patts;
@@ -720,7 +723,8 @@
                         bodyStx.separator = next.token.inner[0].token.value;
                     }
 
-                    return acc.concat(bodyStx);
+                    acc.push(bodyStx);
+                    return acc;
                 }, []).reduce(function(acc, bodyStx, idx) {
                 // then do the actual transcription
                 if (bodyStx.repeat) {
@@ -791,8 +795,8 @@
                         } else {
                             joined = joinSyntax(transcribed, bodyStx.separator);
                         }
-
-                        return acc.concat(joined);
+                        push.apply(acc, joined);
+                        return acc;
                     }
 
                     if (!env[bodyStx.token.value]) {
@@ -800,9 +804,9 @@
                     } else if (env[bodyStx.token.value].level !== 1) {
                         throwSyntaxError("patterns", "Ellipses level does not match in the template", bodyStx);
                     } 
-
-                    return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match,
-                                                        bodyStx.separator));
+                    push.apply(acc, joinRepeatedMatch(env[bodyStx.token.value].match,
+                                                      bodyStx.separator))
+                    return acc;
                 } else {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
                         bodyStx.expose();
@@ -810,7 +814,8 @@
                                                       macroBody);
                         newBody.token.inner = transcribe(bodyStx.token.inner,
                                                          macroNameStx, env);
-                        return acc.concat([newBody]);
+                        acc.push(newBody);
+                        return acc;
                     }
                     if (isPatternVar(bodyStx) &&
                         Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
@@ -819,9 +824,11 @@
                         } else if (env[bodyStx.token.value].level !== 0) {
                             throwSyntaxError("patterns", "Ellipses level does not match in the template", bodyStx);
                         } 
-                        return acc.concat(takeLineContext(bodyStx, env[bodyStx.token.value].match) );
+                        push.apply(acc, takeLineContext(bodyStx, env[bodyStx.token.value].match));
+                        return acc;
                     }
-                    return acc.concat([bodyStx]);
+                    acc.push(bodyStx);
+                    return acc;
                 }
             }, []).value();
     }
