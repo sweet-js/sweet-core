@@ -1893,7 +1893,7 @@
                 flatArgs = renamedParams[0];
             } else {
                 flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","),
-                                             term.params);
+                                             (term.params || null));
             }
 
             var expandedArgs = expand([flatArgs], bodyContext);

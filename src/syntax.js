@@ -143,6 +143,8 @@
             stx = stx[0];
         } else if (stx && Array.isArray(stx)) {
             throwSyntaxError("mkSyntax", "Expecting a syntax object or an array with a single syntax object");
+        } else if (stx === undefined) {
+            throwSyntaxError("mkSyntax", "You must provide an old syntax object context (or null) when creating a new syntax object.");
         }
 
         if (type === parser.Token.Delimiter) {

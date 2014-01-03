@@ -602,7 +602,7 @@ macro withSyntax_unzip {
         var name = #{$name};
         var here = #{here};
 
-        var args = #{[$(makeDelim("()", $es)) (,) ...],};
+        var args = #{[$(makeDelim("()", $es, null)) (,) ...],};
         // since withSyntax runs within a macro invocation
         // it needs to make it's own mark rather than reuse the calling
         // macro mark
