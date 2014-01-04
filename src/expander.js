@@ -1606,7 +1606,7 @@
                     rest: r.rest
                 };
             },
-            getId: function(stx) {
+            getIdent: function(stx) {
                 if (stx[0] && stx[0].token.type === parser.Token.Identifier) {
                     return {
                         success: true,

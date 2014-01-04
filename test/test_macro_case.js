@@ -226,7 +226,7 @@ describe "procedural (syntax-case) macros" {
     it "should handle getId/getLit" {
         let m = macro {
             case {_ ($id ...) ($lit ...) } => {
-                var i = getId(#{$id ...});
+                var i = getIdent(#{$id ...});
                 var l = getLit(#{$lit ...});
                 if (i.success && l.success) {
                     return #{"idlit"}
