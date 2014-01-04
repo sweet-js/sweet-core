@@ -1590,6 +1590,50 @@
             makeKeyword: syn.makeKeyword,
             makePunc: syn.makePunc,
             makeDelim: syn.makeDelim,
+            getExpr: function(stx) {
+                var r;
+                if (stx.length === 0) {
+                    return {
+                        success: false,
+                        result: [],
+                        rest: []
+                    };
+                }
+                r = get_expression(stx, context);
+                return {
+                    success: r.result !== null,
+                    result: r.result === null ? [] : r.result.destruct(),
+                    rest: r.rest
+                };
+            },
+            getId: function(stx) {
+                if (stx[0] && stx[0].token.type === parser.Token.Identifier) {
+                    return {
+                        success: true,
+                        result: [stx[0]],
+                        rest: stx.slice(1)
+                    };
+                }
+                return {
+                    success: false,
+                    result: [],
+                    rest: stx
+                };
+            },
+            getLit: function(stx) {
+                if (stx[0] && patternModule.typeIsLiteral(stx[0].token.type)) {
+                    return {
+                        success: true,
+                        result: [stx[0]],
+                        rest: stx.slice(1)
+                    };
+                }
+                return {
+                    success: false,
+                    result: [],
+                    rest: stx
+                };
+            },
             unwrapSyntax: syn.unwrapSyntax,
             throwSyntaxError: throwSyntaxError,
             prettyPrint: syn.prettyPrint,

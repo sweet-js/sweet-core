@@ -201,4 +201,48 @@ describe "procedural (syntax-case) macros" {
         expect(l 5).to.be(65);
     }
 
+    it "should handle getExpr" {
+        let m = macro {
+            case {_ ($e ...) } => {
+                var e = getExpr(#{$e ...});
+                if (e.success && unwrapSyntax(e.result[0]) === 2) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m (2 + 2)).to.be(true);
+        expect(m (5 + 2)).to.be(false);
+        expect(m ()).to.be(false);
+        expect(m (function ())).to.be(false);
+
+        (function() {
+            // make sure the locally scoped macro `id` expands in the getExpr
+            let id = macro { rule { $x } => { $x } }
+            expect(m (id 2 + 2)).to.be(true);
+        })();
+    }
+
+    it "should handle getId/getLit" {
+        let m = macro {
+            case {_ ($id ...) ($lit ...) } => {
+                var i = getId(#{$id ...});
+                var l = getLit(#{$lit ...});
+                if (i.success && l.success) {
+                    return #{"idlit"}
+                } else if (i.success && !l.success) {
+                    return #{"id"}
+                } else if (l.success) {
+                    return #{"lit"}
+                } else {
+                    return #{"other"}
+                }
+            }
+        }
+        expect (m (id foo) (100 200)).to.be("idlit")
+        expect (m (id foo) (id 200)).to.be("id")
+        expect (m (100 foo) (100 200)).to.be("lit")
+        expect (m (100 foo) (id 200)).to.be("other")
+    }
+
 }

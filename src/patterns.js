@@ -840,4 +840,5 @@
     exports.matchPatternClass = matchPatternClass;
     exports.takeLineContext = takeLineContext;
     exports.takeLine = takeLine;
+    exports.typeIsLiteral = typeIsLiteral;
 }))
