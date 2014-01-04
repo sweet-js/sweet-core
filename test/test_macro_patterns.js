@@ -771,6 +771,19 @@ describe("macro expander", function() {
         expect(delete m 2).to.be(4);
     });
 
+    it("should not raise an assertion when the rhs has a pattern class and the syntax is an op", function() {
+        macro m {
+            rule infix { $lhs:expr | $rhs:expr } => {
+                $lhs + $rhs
+            }
+            rule infix { $lhs | $rhs } => {
+                $lhs $rhs
+            }
+        }
+        expect(1 m 2).to.be(3);
+        expect(typeof m 2).to.be('number');
+    });
+
     it("should allow infix matching of repeaters", function() {
         macro m {
             rule infix { $num ... | } => {
