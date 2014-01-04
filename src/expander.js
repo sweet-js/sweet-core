@@ -403,7 +403,8 @@
                     push.apply(acc, this[prop].destruct());
                     return acc;
                 } else if (this[prop] && this[prop].token && this[prop].token.inner) {
-                    this[prop].token.inner = _.reduce(this[prop].token.inner, function(acc, t) {
+                    var clone = syntaxFromToken(_.clone(this[prop].token), this[prop]);
+                    clone.token.inner = _.reduce(clone.token.inner, function(acc, t) {
                         if (t.hasPrototype(TermTree)) {
                             push.apply(acc, t.destruct());
                             return acc;
@@ -411,7 +412,7 @@
                         acc.push(t);
                         return acc;
                     }, []);
-                    acc.push(this[prop]);
+                    acc.push(clone);
                     return acc;
                 } else if (Array.isArray(this[prop])) {
                     var destArr = _.reduce(this[prop], function(acc, t) {
@@ -649,22 +650,20 @@
         destruct: function() {
             assert(this.fun.hasPrototype(TermTree),
                 "expecting a term tree in destruct of call");
-            var that = this;
-            this.delim = syntaxFromToken(_.clone(this.delim.token), this.delim);
-            this.delim.token.inner = _.reduce(this.args, function(acc, term) {
+            var commas = this.commas.slice();
+            var delim = syntaxFromToken(_.clone(this.delim.token), this.delim);
+            delim.token.inner = _.reduce(this.args, function(acc, term) {
                 assert(term && term.hasPrototype(TermTree),
-                              "expecting term trees in destruct of Call");
+                       "expecting term trees in destruct of Call");
                 push.apply(acc, term.destruct());
                 // add all commas except for the last one
-                if (that.commas.length > 0) {
-                    acc.push(that.commas.shift());
+                if (commas.length > 0) {
+                    acc.push(commas.shift());
                 }
                 return acc;
             }, []);
             var res = this.fun.destruct();
-            push.apply(res, Delimiter
-                              .create(this.delim)
-                              .destruct())
+            push.apply(res, Delimiter.create(delim).destruct());
             return res;
         },
 
@@ -875,8 +874,7 @@
 
         return {
             result: decls,
-            destructed: rest.length ? stx.slice(0, 0 - rest.length) : stx,
-            rest: rest,
+            rest: rest
         }
     }
 
@@ -1118,7 +1116,7 @@
                         var op = rest[0];
                         var left = head;
                         var rightStx = rest.slice(1);
-                        var bopPrevStx = getHeadStx(toks, rightStx).reverse().concat(prevStx);
+                        var bopPrevStx = [rest[0]].concat(head.destruct().reverse(), prevStx);
                         var bopPrevTerms = [Punc.create(rest[0]), head].concat(prevTerms);
                         var bopRes = enforest(rightStx, context, bopPrevStx, bopPrevTerms);
 
@@ -1305,11 +1303,6 @@
                         prevTerms = rt.prevTerms;
                     }
                     if (rt.prevStx) {
-                        // Adjust toks if lookbehind was matched so we can calculate
-                        // the correct destructed syntax.
-                        if (rt.prevStx.length < prevStx.length) {
-                            toks = rt.result.concat(rt.rest);
-                        }
                         prevStx = rt.prevStx;
                     }
 
@@ -1480,7 +1473,6 @@
             // we're done stepping
             return {
                 result: head,
-                destructed: getHeadStx(toks, rest),
                 rest: rest,
                 prevStx: prevStx,
                 prevTerms: prevTerms
@@ -1489,10 +1481,6 @@
         }
 
         return step(toks[0], toks.slice(1));
-    }
-
-    function getHeadStx(before, after) {
-        return after.length ? before.slice(0, -after.length) : before;
     }
 
     function get_expression(stx, context) {
@@ -1511,13 +1499,13 @@
         while (next.rest.length) {
             // Enforest the next term tree since it might be an infix macro that
             // consumes the initial expression.
-            peek = enforest(next.rest, context, next.destructed, [next.result]);
+            peek = enforest(next.rest, context, next.result.destruct(), [next.result]);
 
             // If it has prev terms it wasn't infix, but it we need to run it
             // through enforest together with the initial expression to see if
             // it extends it into a longer expression.
             if (peek.prevTerms.length === 1) {
-                peek = enforest([next.result].concat(peek.destructed, peek.rest), context);
+                peek = enforest([next.result].concat(peek.result.destruct(), peek.rest), context);
             }
 
             // No new expression was created, so we've reached the end.
@@ -1720,11 +1708,12 @@
 
         // We build the newPrevTerms/Stx here (instead of at the beginning) so
         // that macro definitions don't get added to it.
-        f.destructed.forEach(function(stx) {
+        var destructed = f.result.destruct();
+        destructed.forEach(function(stx) {
             stx.term = head;
         });
         var newPrevTerms = [head].concat(f.prevTerms);
-        var newPrevStx = f.destructed.reverse().concat(f.prevStx);
+        var newPrevStx = destructed.reverse().concat(f.prevStx);
 
         if (head.hasPrototype(NamedFun)) {
             addToDefinitionCtx([head.name], context.defscope, true);
@@ -1782,13 +1771,14 @@
                 } else {
                     // need to deal with things like `for (...) if (...) log(...)`
                     var bodyEnf = enforest(rest, context);
+                    var bodyDestructed = bodyEnf.result.destruct();
                     var renamedBodyTerm = bodyEnf.result.rename(letId, letNew);
-                    bodyEnf.destructed.forEach(function(stx) {
+                    bodyDestructed.forEach(function(stx) {
                         stx.term = renamedBodyTerm;
                     });
                     return expandToTermTree(bodyEnf.rest, 
                                             context,
-                                            bodyEnf.destructed.reverse().concat(newPrevStx),
+                                            bodyDestructed.reverse().concat(newPrevStx),
                                             [renamedBodyTerm].concat(newPrevTerms));
                 }
 
