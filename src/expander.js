@@ -1118,8 +1118,13 @@
                         var op = rest[0];
                         var left = head;
                         var rightStx = rest.slice(1);
+
+                        // Reference the term on the syntax object for lookbehind.
+                        var bopPuncTerm = Punc.create(op);
+                        op.term = bopPuncTerm;
+
                         var bopPrevStx = getHeadStx(toks, rightStx).reverse().concat(prevStx);
-                        var bopPrevTerms = [Punc.create(rest[0]), head].concat(prevTerms);
+                        var bopPrevTerms = [bopPuncTerm, head].concat(prevTerms);
                         var bopRes = enforest(rightStx, context, bopPrevStx, bopPrevTerms);
 
                         // Lookbehind was matched, so it may not even be a binop anymore.
@@ -1137,6 +1142,9 @@
 
                     // UnaryOp (via punctuation)
                     Punc(punc) | (stxIsUnaryOp(punc)) => {
+                        // Reference the term on the syntax object for lookbehind.
+                        head.punc.term = head;
+
                         var unopPrevStx = [punc].concat(prevStx);
                         var unopPrevTerms = [head].concat(prevTerms);
                         var unopRes = enforest(rest, context, unopPrevStx, unopPrevTerms);
@@ -1154,6 +1162,9 @@
 
                     // UnaryOp (via keyword)
                     Keyword(keyword) | (stxIsUnaryOp(keyword)) => {
+                        // Reference the term on the syntax object for lookbehind.
+                        head.keyword.term = head;
+
                         var unopKeyPrevStx = [keyword].concat(prevStx);
                         var unopKeyPrevTerms = [head].concat(prevTerms);
                         var unopKeyres = enforest(rest, context, unopKeyPrevStx, unopKeyPrevTerms);
