@@ -90,6 +90,19 @@
     function takeLine(from, to) {
         var next;
         if (to.token.type === parser.Token.Delimiter) {
+            var sm_startLineNumber = typeof to.token.sm_startLineNumber !== 'undefined' 
+                                        ? to.token.sm_startLineNumber : to.token.startLineNumber;
+            var sm_endLineNumber = typeof to.token.sm_endLineNumber !== 'undefined' 
+                                        ? to.token.sm_endLineNumber : to.token.endLineNumber;
+            var sm_startLineStart = typeof to.token.sm_startLineStart !== 'undefined' 
+                                        ? to.token.sm_startLineStart : to.token.startLineStart;
+            var sm_endLineStart = typeof to.token.sm_endLineStart !== 'undefined' 
+                                        ? to.token.sm_endLineStart : to.token.endLineStart;
+            var sm_startRange = typeof to.token.sm_startRange !== 'undefined' 
+                                        ? to.token.sm_startRange : to.token.startRange;
+            var sm_endRange = typeof to.token.sm_endRange !== 'undefined' 
+                                        ? to.token.sm_endRange : to.token.endRange;
+
             if (from.token.type === parser.Token.Delimiter) {
                 next = syntaxFromToken({
                     type: parser.Token.Delimiter,
@@ -101,12 +114,12 @@
                     startLineStart: from.token.startLineStart,
                     endLineNumber: from.token.endLineNumber,
                     endLineStart: from.token.endLineStart,
-                    sm_startLineNumber: to.token.startLineNumber,
-                    sm_endLineNumber: to.token.endLineNumber,
-                    sm_startLineStart: to.token.startLineStart,
-                    sm_endLineStart: to.token.endLineStart,
-                    sm_startRange: to.token.startRange,
-                    sm_endRange: to.token.endRange
+                    sm_startLineNumber: sm_startLineNumber,
+                    sm_endLineNumber: sm_endLineNumber,
+                    sm_startLineStart: sm_startLineStart,
+                    sm_endLineStart: sm_endLineStart,
+                    sm_startRange: sm_startRange,
+                    sm_endRange: sm_endRange
                 }, to);
 
             } else {
@@ -120,15 +133,21 @@
                     startLineStart: from.token.lineStart,
                     endLineNumber: from.token.lineNumber,
                     endLineStart: from.token.lineStart,
-                    sm_startLineNumber: to.token.startLineNumber,
-                    sm_endLineNumber: to.token.endLineNumber,
-                    sm_startLineStart: to.token.startLineStart,
-                    sm_endLineStart: to.token.endLineStart,
-                    sm_startRange: to.token.startRange,
-                    sm_endRange: to.token.endRange
+                    sm_startLineNumber: sm_startLineNumber,
+                    sm_endLineNumber: sm_endLineNumber,
+                    sm_startLineStart: sm_startLineStart,
+                    sm_endLineStart: sm_endLineStart,
+                    sm_startRange: sm_startRange,
+                    sm_endRange: sm_endRange
                 }, to);
             }
         } else {
+            var sm_lineNumber = typeof to.token.sm_lineNumber !== 'undefined' 
+                                        ? to.token.sm_lineNumber : to.token.lineNumber;
+            var sm_lineStart = typeof to.token.sm_lineStart !== 'undefined' 
+                                        ? to.token.sm_lineStart : to.token.lineStart;
+            var sm_range = typeof to.token.sm_range !== 'undefined' 
+                                        ? to.token.sm_range : to.token.range;
             if (from.token.type === parser.Token.Delimiter) {
                 next = syntaxFromToken({
                     value: to.token.value,
@@ -136,9 +155,9 @@
                     lineNumber: from.token.startLineNumber,
                     lineStart: from.token.startLineStart,
                     range: from.token.startRange,
-                    sm_lineNumber: to.token.lineNumber,
-                    sm_lineStart: to.token.lineStart,
-                    sm_range: to.token.range
+                    sm_lineNumber: sm_lineNumber,
+                    sm_lineStart: sm_lineStart,
+                    sm_range: sm_range
                 }, to);
             } else {
                 next = syntaxFromToken({
@@ -147,9 +166,9 @@
                     lineNumber: from.token.lineNumber,
                     lineStart: from.token.lineStart,
                     range: from.token.range,
-                    sm_lineNumber: to.token.lineNumber,
-                    sm_lineStart: to.token.lineStart,
-                    sm_range: to.token.range
+                    sm_lineNumber: sm_lineNumber,
+                    sm_lineStart: sm_lineStart,
+                    sm_range: sm_range
                 }, to);
             }
         }
