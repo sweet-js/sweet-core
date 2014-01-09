@@ -2053,10 +2053,13 @@ parseYieldExpression: true
             );
 
         var startIndex = streamIndex > 3 ? streamIndex - 3 : 0;
-        var toks = tokenStream.slice(startIndex, streamIndex + 3).map(function(stx) {
-            return stx.token.value;
-        }).join(' ');
-        var tailingMsg = "\n[... " + toks + " ...]";
+        var toks = "", tailingMsg = "";
+        if (tokenStream) {
+            toks = tokenStream.slice(startIndex, streamIndex + 3).map(function(stx) {
+                return stx.token.value;
+            }).join(' ');
+            tailingMsg = "\n[... " + toks + " ...]";
+        }
         if (typeof token.lineNumber === 'number') {
             error = new Error('Line ' + token.lineNumber + ': ' + msg + tailingMsg);
             error.index = token.range[0];
