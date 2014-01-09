@@ -232,7 +232,7 @@
 
     StringMap.prototype = {
         has: function(key) {
-            return this.__data.hasOwnProperty(key);
+            return Object.prototype.hasOwnProperty.call(this.__data, key);
         },
         get: function(key) {
             return this.has(key) ? this.__data[key] : void 0;
