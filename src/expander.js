@@ -1266,6 +1266,7 @@
                 if ((head.token.type === parser.Token.Identifier ||
                      head.token.type === parser.Token.Keyword ||
                      head.token.type === parser.Token.Punctuator) && 
+                    (expandCount < maxExpands) &&
                     context.env.has(resolve(head))) {
 
                     // create a new mark to be used for the input to
@@ -1277,10 +1278,7 @@
                     var macroObj = context.env.get(resolve(head));
                     var transformer = macroObj.fn;
 
-                    if(expandCount >= maxExpands) {
-                        return { result: head, rest: rest };
-                    }
-                    else if(!builtinMode && !macroObj.builtin) {
+                    if(!builtinMode && !macroObj.builtin) {
                         expandCount++;
                     }
 
