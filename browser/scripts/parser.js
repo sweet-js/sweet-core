@@ -1876,10 +1876,13 @@ parseYieldExpression: true
                 return args$1474[index$1480];
             });
         var startIndex$1476 = streamIndex$1100 > 3 ? streamIndex$1100 - 3 : 0;
-        var toks$1477 = tokenStream$1099.slice(startIndex$1476, streamIndex$1100 + 3).map(function (stx$1481) {
+        var toks$1477 = '', tailingMsg$1478 = '';
+        if (tokenStream$1099) {
+            toks$1477 = tokenStream$1099.slice(startIndex$1476, streamIndex$1100 + 3).map(function (stx$1481) {
                 return stx$1481.token.value;
             }).join(' ');
-        var tailingMsg$1478 = '\n[... ' + toks$1477 + ' ...]';
+            tailingMsg$1478 = '\n[... ' + toks$1477 + ' ...]';
+        }
         if (typeof token$1471.lineNumber === 'number') {
             error$1473 = new Error('Line ' + token$1471.lineNumber + ': ' + msg$1475 + tailingMsg$1478);
             error$1473.index = token$1471.range[0];
