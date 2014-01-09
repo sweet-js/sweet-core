@@ -100,7 +100,7 @@ exports.run = function() {
                              "utf8");
             fs.writeFileSync(outfile + ".map", result.sourceMap, "utf8");
         } else {
-            fs.writeFileSync(outfile, sweet.compile(file).code, "utf8");
+            fs.writeFileSync(outfile, sweet.compile(file, {macros: globalMacros}).code, "utf8");
         }
     } else if (tokens) {
         console.log(sweet.expand(file, globalMacros, numexpands));
