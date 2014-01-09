@@ -986,7 +986,7 @@
             } else {
                 assert$265(head$610 && head$610.token, 'assuming head is a syntax object');
                 // macro invocation
-                if ((head$610.token.type === parser$258.Token.Identifier || head$610.token.type === parser$258.Token.Keyword || head$610.token.type === parser$258.Token.Punctuator) && context$606.env.has(resolve$390(head$610))) {
+                if ((head$610.token.type === parser$258.Token.Identifier || head$610.token.type === parser$258.Token.Keyword || head$610.token.type === parser$258.Token.Punctuator) && expandCount$385 < maxExpands$386 && context$606.env.has(resolve$390(head$610))) {
                     // create a new mark to be used for the input to
                     // the macro
                     var newMark$695 = fresh$396();
@@ -994,12 +994,7 @@
                     // pull the macro transformer out the environment
                     var macroObj$697 = context$606.env.get(resolve$390(head$610));
                     var transformer$698 = macroObj$697.fn;
-                    if (expandCount$385 >= maxExpands$386) {
-                        return {
-                            result: head$610,
-                            rest: rest$611
-                        };
-                    } else if (!builtinMode$384 && !macroObj$697.builtin) {
+                    if (!builtinMode$384 && !macroObj$697.builtin) {
                         expandCount$385++;
                     }
                     // apply the transformer
