@@ -226,6 +226,29 @@
         }
     });
 
+    function StringMap(o) {
+        this.__data = o || {};
+    }
+
+    StringMap.prototype = {
+        has: function(key) {
+            return this.__data.hasOwnProperty(key);
+        },
+        get: function(key) {
+            return this.has(key) ? this.__data[key] : void 0;
+        },
+        set: function(key, value) {
+            this.__data[key] = value;
+        },
+        extend: function() {
+            var args = _.map(_.toArray(arguments), function(x) {
+                return x.__data;
+            });
+            _.extend.apply(_, [this.__data].concat(args));
+            return this;
+        }
+    }
+
 
     var scopedEval = se.scopedEval;
 
@@ -1991,7 +2014,7 @@
         o = o || {};
         // read-only but can enumerate
         return Object.create(Object.prototype, {
-            env: {value: o.env || new Map(),
+            env: {value: o.env || new StringMap(),
                   writable: false, enumerable: true, configurable: false},
             defscope: {value: o.defscope,
                        writable: false, enumerable: true, configurable: false},
@@ -2003,42 +2026,56 @@
     }
 
     // a hack to make the top level hygiene work out
-    function expandTopLevel (stx, builtinSource, _maxExpands) {
-        var env = new Map();
-        var params = [];
-        var context, builtInContext = makeExpanderContext({env: env});
+    function expandTopLevel(stx, moduleContexts, _maxExpands) {
+        moduleContexts = moduleContexts || [];
         maxExpands = _maxExpands || Infinity;
         expandCount = 0;
 
-        if (builtinSource) {
-            var builtinRead = parser.read(builtinSource);
-
-            builtinRead = [syn.makeIdent("module", null),
-                            syn.makeDelim("{}", builtinRead, null)];
-
-            builtinMode = true;
-            var builtinRes = expand(builtinRead, builtInContext);
-            builtinMode = false;
-
-            params = _.map(builtinRes[0].exports, function(term) {
-                return {
-                    oldExport: term.name,
-                    newParam: syn.makeIdent(term.name.token.value, null)
-                }
-            });
-        }
+        var context = makeExpanderContext();
         var modBody = syn.makeDelim("{}", stx, null);
-        modBody = _.reduce(params, function(acc, param) {
-            var newName = fresh();
-            env.set(resolve(param.newParam.rename(param.newParam, newName)), 
-                    env.get(resolve(param.oldExport)));
-            return acc.rename(param.newParam, newName);
+        modBody = _.reduce(moduleContexts, function(acc, mod) {
+            context.env.extend(mod.env);
+            return loadModuleExports(acc, context.env, mod.exports, mod.env);
         }, modBody);
-        context = makeExpanderContext({env: env});
 
         var res = expand([syn.makeIdent("module", null), modBody], context);
         res = res[0].destruct();
         return flatten(res[0].token.inner);
+    }
+
+    function expandModule(stx, moduleContexts) {
+        moduleContexts = moduleContexts || [];
+        maxExpands = Infinity;
+        expandCount = 0;
+
+        var context = makeExpanderContext();
+        var modBody = syn.makeDelim("{}", stx, null);
+        modBody = _.reduce(moduleContexts, function(acc, mod) {
+            context.env.extend(mod.env);
+            return loadModuleExports(acc, context.env, mod.exports, mod.env);
+        }, modBody);
+
+        builtinMode = true;
+        var moduleRes = expand([syn.makeIdent("module", null), modBody], context);
+        builtinMode = false;
+
+        context.exports = _.map(moduleRes[0].exports, function(term) {
+            return {
+                oldExport: term.name,
+                newParam: syn.makeIdent(term.name.token.value, null)
+            }
+        });
+
+        return context;
+    }
+
+    function loadModuleExports(stx, newEnv, exports, oldEnv) {
+        return _.reduce(exports, function(acc, param) {
+            var newName = fresh();
+            newEnv.set(resolve(param.newParam.rename(param.newParam, newName)), 
+                       oldEnv.get(resolve(param.oldExport)));
+            return acc.rename(param.newParam, newName);
+        }, stx);
     }
 
     // break delimiter tree structure down to flat array of syntax objects
@@ -2105,6 +2142,7 @@
 
     exports.enforest = enforest;
     exports.expand = expandTopLevel;
+    exports.expandModule = expandModule;
 
     exports.resolve = resolve;
     exports.get_expression = get_expression;
