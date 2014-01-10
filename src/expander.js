@@ -1134,6 +1134,13 @@
 
                     // BinOp
                     Expr(emp) | (rest[0] && rest[1] && stxIsBinOp(rest[0])) => {
+                        // Check if the operator is a macro first.
+                        if (context.env.has(resolve(rest[0]))) {
+                            var headStx = tagWithTerm(head, head.destruct().reverse());
+                            prevStx = headStx.concat(prevStx);
+                            prevTerms = [head].concat(prevTerms);
+                            return step(rest[0], rest.slice(1));
+                        }
                         var op = rest[0];
                         var left = head;
                         var rightStx = rest.slice(1);
@@ -1197,6 +1204,13 @@
                     // Postfix
                     Expr(emp) | (rest[0] && (unwrapSyntax(rest[0]) === "++" || 
                                             unwrapSyntax(rest[0]) === "--")) => {
+                        // Check if the operator is a macro first.
+                        if (context.env.has(resolve(rest[0]))) {
+                            var headStx = tagWithTerm(head, head.destruct().reverse());
+                            prevStx = headStx.concat(prevStx);
+                            prevTerms = [head].concat(prevTerms);
+                            return step(rest[0], rest.slice(1));
+                        }
                         return step(PostfixOp.create(head, rest[0]), rest.slice(1));
                     }
 
@@ -1545,6 +1559,13 @@
         return next;
     }
 
+    function tagWithTerm(term, stx) {
+        _.forEach(stx, function(s) {
+            s.term = term;
+        });
+        return stx;
+    }
+
 
     // mark each syntax object in the pattern environment,
     // mutating the environment
@@ -1733,10 +1754,7 @@
 
         // We build the newPrevTerms/Stx here (instead of at the beginning) so
         // that macro definitions don't get added to it.
-        var destructed = f.result.destruct();
-        destructed.forEach(function(stx) {
-            stx.term = head;
-        });
+        var destructed = tagWithTerm(head, f.result.destruct());
         var newPrevTerms = [head].concat(f.prevTerms);
         var newPrevStx = destructed.reverse().concat(f.prevStx);
 
@@ -1798,9 +1816,7 @@
                     var bodyEnf = enforest(rest, context);
                     var bodyDestructed = bodyEnf.result.destruct();
                     var renamedBodyTerm = bodyEnf.result.rename(letId, letNew);
-                    bodyDestructed.forEach(function(stx) {
-                        stx.term = renamedBodyTerm;
-                    });
+                    tagWithTerm(renamedBodyTerm, bodyDestructed);
                     return expandToTermTree(bodyEnf.rest, 
                                             context,
                                             bodyDestructed.reverse().concat(newPrevStx),
