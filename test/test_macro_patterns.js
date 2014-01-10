@@ -802,4 +802,26 @@ describe("macro expander", function() {
         expect(3, 2, 1 m).to.be(0)
     });
 
+    it("should work with multi punctuator macro names", function() {
+        macro -> {
+            rule { $x } => { $x }
+        } 
+
+        expect(-> 100).to.be(100);
+
+        macro function? {
+            rule { ($x ...) } => {
+                typeof $x ... === "function"
+            }
+        }
+        expect(function? (100)).to.be(false);
+    });
+
+    it("should work with multi punctuator macro names and let macros", function() {
+        let -> = macro {
+            rule { $x } => { $x }
+        } 
+        expect(-> 100).to.be(100);
+    });
+
 });

@@ -440,15 +440,27 @@ let macro = macro {
         var name_stx = stx[0];
         var here = quoteSyntax{here};
         var mac_name_stx;
+        var body_inner_stx;
         var body_stx;
         var takeLine = patternModule.takeLine;
+        var rest;
         
         if (stx[1].token.inner) {
             mac_name_stx = null;
-            body_stx = stx[1].expose().token.inner;
+            body_stx = stx[1];
+            body_inner_stx = stx[1].expose().token.inner;
+            rest = stx.slice(2);
         } else {
-            mac_name_stx = stx[1];
-            body_stx = stx[2].expose().token.inner;
+            mac_name_stx = [];
+            for (var i = 1; i < stx.length; i++) {
+                if (stx[i].token.inner) {
+                    body_stx = stx[i];
+                    body_inner_stx = stx[i].expose().token.inner;
+                    rest = stx.slice(i + 1);
+                    break;
+                }
+                mac_name_stx.push(stx[i]);
+            }
         }
 
         function makeFunc(params, body) {
@@ -490,54 +502,48 @@ let macro = macro {
             );
         }
 
-        if (body_stx[0] && body_stx[0].token.value === "function") {
+        if (body_inner_stx[0] && body_inner_stx[0].token.value === "function") {
 
             if (mac_name_stx) {
-                var res = [
-                    makeIdent("macro", here),
-                    mac_name_stx,
-                    stx[2]
-                ];
+                var res = [makeIdent("macro", here)].concat(mac_name_stx).concat(body_stx)
                 return {
                     result: res,
-                    rest: stx.slice(3)
+                    rest: rest
                 };
             } else {
                 var res = [
                     makeIdent("macro", here),
-                    stx[2]
+                    body_stx
                 ];
                 return {
                     result: res,
-                    rest: stx.slice(2)
+                    rest: rest
                 };
             }
 
         }
 
         var rules = [];
-        if (body_stx[0] && body_stx[0].token.value === "rule") {
-            var rule_body = mac_name_stx ? stx[2].token.inner : stx[1].token.inner;
+        if (body_inner_stx[0] && body_inner_stx[0].token.value === "rule") {
             var rules = [];
-            for (var i = 0; i < rule_body.length; i += 4) {
-                var isInfix = rule_body[i + 1].token.value === 'infix';
+            for (var i = 0; i < body_inner_stx.length; i += 4) {
+                var isInfix = body_inner_stx[i + 1].token.value === 'infix';
                 if (isInfix) {
                     i += 1;
                 }
-                var rule_pattern = rule_body[i + 1].token.inner;
-                var rule_def = rule_body[i + 3].expose().token.inner;
+                var rule_pattern = body_inner_stx[i + 1].token.inner;
+                var rule_def = body_inner_stx[i + 3].expose().token.inner;
                 rules = rules.concat(translateRule(rule_pattern, rule_def, isInfix));
             }
             rules = makeDelim("{}", rules, here);
 
         } else {
-            rules = mac_name_stx ? stx[2] : stx[1]; 
+            rules = body_stx;
         }
         
         var stxSyntaxCase = takeLine(here[0], makeIdent("syntaxCase", name_stx));
-        var rest = mac_name_stx ? stx.slice(3) : stx.slice(2);
         var res = mac_name_stx
-            ? [makeIdent("macro", here), mac_name_stx]
+            ? [makeIdent("macro", here)].concat(mac_name_stx)
             : [makeIdent("macro", here)];
         res = res.concat(makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
                                                    makePunc(",", here),

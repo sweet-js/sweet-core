@@ -1001,6 +1001,18 @@
         });
     }
 
+    function tokenValuesArePrefix(first, second) {
+        // short circuit 
+        if (second.length < first.length) { return false; }
+
+        for (var i = 0; i < first.length; i++) {
+            if (unwrapSyntax(first[i]) !== unwrapSyntax(second[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, context, prevStx, prevTerms) {
@@ -1235,34 +1247,44 @@
 
 
                     
-                    Keyword(keyword) | (unwrapSyntax(keyword) === "let" && 
-                                        (rest[0] && rest[0].token.type === parser.Token.Identifier || 
-                                         rest[0] && rest[0].token.type === parser.Token.Keyword ||
-                                         rest[0] && rest[0].token.type === parser.Token.Punctuator) &&
-                                        rest[1] && unwrapSyntax(rest[1]) === "=" &&
-                                        rest[2] && rest[2].token.value === "macro") => {
-                        var mac = enforest(rest.slice(2), context);
-                        if (!mac.result.hasPrototype(AnonMacro)) {
-                            throwSyntaxError("enforest", "expecting an anonymous macro definition in syntax let binding", rest.slice(2));
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "let") => {
+                        var nameTokens = [];
+                        for (var i = 0; i < rest.length; i++) {
+                            if (rest[i].token.type === parser.Token.Punctuator && rest[i].token.value === "=") {
+                                break;
+                            } else if (rest[i].token.type === parser.Token.Keyword ||
+                                       rest[i].token.type === parser.Token.Punctuator ||
+                                       rest[i].token.type === parser.Token.Identifier) {
+                                nameTokens.push(rest[i]);
+                            } else {
+                                throwSyntaxError("enforest", "Macro name must be a legal identifier or punctuator", rest[i]);
+                            }
                         }
-                        return step(LetMacro.create(rest[0], mac.result.body), mac.rest);
+
+                        // Let macro
+                        if (rest[i + 1] && rest[i + 1].token.value === "macro") {
+                            var mac = enforest(rest.slice(i + 1), context);
+                            if (!mac.result.hasPrototype(AnonMacro)) {
+                                throwSyntaxError("enforest", "expecting an anonymous macro definition in syntax let binding", rest.slice(i + 1));
+                            }
+                            return step(LetMacro.create(nameTokens, mac.result.body), mac.rest);
+                        // Let statement
+                        } else {
+                            var lsRes = enforestVarStatement(rest, context, keyword);
+                            if (lsRes) {
+                                return step(LetStatement.create(head, lsRes.result),
+                                            lsRes.rest);
+                            }
+                        }
+
                                   
                     }
-
                     // VariableStatement
                     Keyword(keyword) | (unwrapSyntax(keyword) === "var" && rest[0]) => {
                         var vsRes = enforestVarStatement(rest, context, keyword);
                         if (vsRes) {
                             return step(VariableStatement.create(head, vsRes.result),
                                         vsRes.rest);
-                        }
-                    }
-                    // Let Statement
-                    Keyword(keyword) | (unwrapSyntax(keyword) === "let" && rest[0]) => {
-                        var lsRes = enforestVarStatement(rest, context, keyword);
-                        if (lsRes) {
-                            return step(LetStatement.create(head, lsRes.result),
-                                        lsRes.rest);
                         }
                     }
                     // Const Statement
@@ -1288,16 +1310,19 @@
                      head.token.type === parser.Token.Keyword ||
                      head.token.type === parser.Token.Punctuator) && 
                     (expandCount < maxExpands) &&
-                    context.env.has(resolve(head))) {
+                    context.env.has(resolve(head)) &&
+                    tokenValuesArePrefix(context.env.get(resolve(head)).fullName,
+                                         [head].concat(rest))) {
+
+                    // pull the macro transformer out the environment
+                    var macroObj = context.env.get(resolve(head));
+                    var transformer = macroObj.fn;
 
                     // create a new mark to be used for the input to
                     // the macro
                     var newMark = fresh();
                     var transformerContext = makeExpanderContext(_.defaults({mark: newMark}, context));
 
-                    // pull the macro transformer out the environment
-                    var macroObj = context.env.get(resolve(head));
-                    var transformer = macroObj.fn;
 
                     if(!builtinMode && !macroObj.builtin) {
                         expandCount++;
@@ -1306,7 +1331,7 @@
                     // apply the transformer
                     var rt;
                     try {
-                        rt = transformer([head].concat(rest), transformerContext, prevStx, prevTerms);
+                        rt = transformer([head].concat(rest.slice(macroObj.fullName.length - 1)), transformerContext, prevStx, prevTerms);
                     } catch (e) {
                         if (e.type && e.type === "SyntaxCaseError") {
                             // add a nicer error for syntax case
@@ -1351,15 +1376,27 @@
                                 rest.slice(1));
                 // macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
-                           head.token.value === "macro" && rest[0] &&
-                           (rest[0].token.type === parser.Token.Identifier ||
-                            rest[0].token.type === parser.Token.Keyword ||
-                            rest[0].token.type === parser.Token.Punctuator) &&
-                           rest[1] && rest[1].token.type === parser.Token.Delimiter &&
-                           rest[1].token.value === "{}") {
+                           head.token.value === "macro") {
+                    var nameTokens = [];
+                    for (var i = 0; i < rest.length; i++) {
+                        // done with the name once we find the delimiter
+                        if (rest[i].token.type === parser.Token.Delimiter) {
+                            break;
+                        } else if (rest[i].token.type === parser.Token.Identifier ||
+                                   rest[i].token.type === parser.Token.Keyword ||
+                                   rest[i].token.type === parser.Token.Punctuator) {
+                            nameTokens.push(rest[i]);
+                        } else {
+                            throwSyntaxError("enforest", "Macro name must be a legal identifier or punctuator", rest[i]);
+                        }
 
-                    return step(Macro.create(rest[0], rest[1].expose().token.inner),
-                                rest.slice(2));
+                    }
+                    if (rest[i] && rest[i].token.type === parser.Token.Delimiter) {
+                        return step(Macro.create(nameTokens, rest[i].expose().token.inner),
+                                    rest.slice(i + 1));
+                    } else {
+                        throwSyntaxError("enforest", "Macro declaration must include body", rest[i]);
+                    }
                 // module definition
                 } else if (unwrapSyntax(head) === "module" && 
                             rest[0] && rest[0].token.value === "{}") {
@@ -1704,10 +1741,11 @@
             // load the macro definition into the environment and continue expanding
             macroDefinition = loadMacroDef(head, context);
 
-            addToDefinitionCtx([head.name], context.defscope, false);
-            context.env.set(resolve(head.name), {
+            addToDefinitionCtx([head.name[0]], context.defscope, false);
+            context.env.set(resolve(head.name[0]), {
                 fn: macroDefinition,
-                builtin: builtinMode
+                builtin: builtinMode,
+                fullName: head.name
             });
 
             return expandToTermTree(rest, context, prevStx, prevTerms);
@@ -1717,15 +1755,17 @@
             // load the macro definition into the environment and continue expanding
             macroDefinition = loadMacroDef(head, context);
             var freshName = fresh();
-            var renamedName = head.name.rename(head.name, freshName);
+            var name = head.name[0];
+            var renamedName = name.rename(name, freshName);
             rest = _.map(rest, function(stx) {
-                return stx.rename(head.name, freshName);
+                return stx.rename(name, freshName);
             });
-            head.name = renamedName;
+            head.name[0] = renamedName;
 
-            context.env.set(resolve(head.name), {
+            context.env.set(resolve(renamedName), {
                 fn: macroDefinition,
-                builtin: builtinMode
+                builtin: builtinMode,
+                fullName: head.name
             });
 
             return expandToTermTree(rest, context, prevStx, prevTerms);
