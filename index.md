@@ -8,6 +8,7 @@ Sweet.js brings the hygienic macros of languages like Scheme and Rust to
 JavaScript. Macros allow you to sweeten the syntax of JavaScript and
 craft the language you've always wanted.
 
+
 Do you want to use class syntax but don't want to wait for ES6? Add
 them yourself with just a couple lines of code!
 
