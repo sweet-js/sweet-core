@@ -21,22 +21,22 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-(function (root$1846, factory$1847) {
+(function (root$1851, factory$1852) {
     if (typeof exports === 'object') {
         // CommonJS
-        var parser$1848 = require('./parser');
-        var expander$1849 = require('./expander');
-        var syn$1850 = require('./syntax');
-        var codegen$1851 = require('escodegen');
-        var path$1852 = require('path');
-        var fs$1853 = require('fs');
-        var lib$1854 = path$1852.join(path$1852.dirname(fs$1853.realpathSync(__filename)), '../macros');
-        var stxcaseModule$1855 = fs$1853.readFileSync(lib$1854 + '/stxcase.js', 'utf8');
-        factory$1847(exports, parser$1848, expander$1849, syn$1850, stxcaseModule$1855, codegen$1851, fs$1853);
+        var parser$1853 = require('./parser');
+        var expander$1854 = require('./expander');
+        var syn$1855 = require('./syntax');
+        var codegen$1856 = require('escodegen');
+        var path$1857 = require('path');
+        var fs$1858 = require('fs');
+        var lib$1859 = path$1857.join(path$1857.dirname(fs$1858.realpathSync(__filename)), '../macros');
+        var stxcaseModule$1860 = fs$1858.readFileSync(lib$1859 + '/stxcase.js', 'utf8');
+        factory$1852(exports, parser$1853, expander$1854, syn$1855, stxcaseModule$1860, codegen$1856, fs$1858);
         // Alow require('./example') for an example.sjs file.
-        require.extensions['.sjs'] = function (module$1856, filename$1857) {
-            var content$1858 = require('fs').readFileSync(filename$1857, 'utf8');
-            module$1856._compile(codegen$1851.generate(exports.parse(content$1858)), filename$1857);
+        require.extensions['.sjs'] = function (module$1861, filename$1862) {
+            var content$1863 = require('fs').readFileSync(filename$1862, 'utf8');
+            module$1861._compile(codegen$1856.generate(exports.parse(content$1863)), filename$1862);
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
@@ -46,94 +46,94 @@
             './expander',
             './syntax',
             'text!./stxcase.js'
-        ], factory$1847);
+        ], factory$1852);
     }
-}(this, function (exports$1859, parser$1860, expander$1861, syn$1862, stxcaseModule$1863, gen$1864, fs$1865) {
-    var codegen$1866 = gen$1864 || escodegen;
-    var expand$1867 = makeExpand$1870(expander$1861.expand);
-    var expandModule$1868 = makeExpand$1870(expander$1861.expandModule);
-    var stxcaseCtx$1869;
-    function makeExpand$1870(expandFn$1874) {
+}(this, function (exports$1864, parser$1865, expander$1866, syn$1867, stxcaseModule$1868, gen$1869, fs$1870) {
+    var codegen$1871 = gen$1869 || escodegen;
+    var expand$1872 = makeExpand$1875(expander$1866.expand);
+    var expandModule$1873 = makeExpand$1875(expander$1866.expandModule);
+    var stxcaseCtx$1874;
+    function makeExpand$1875(expandFn$1879) {
         // fun (Str) -> [...CSyntax]
-        return function expand$1875(code$1876, modules$1877, maxExpands$1878) {
-            var program$1879, toString$1880;
-            modules$1877 = modules$1877 || [];
-            if (!stxcaseCtx$1869) {
-                stxcaseCtx$1869 = expander$1861.expandModule(parser$1860.read(stxcaseModule$1863));
+        return function expand$1880(code$1881, modules$1882, maxExpands$1883) {
+            var program$1884, toString$1885;
+            modules$1882 = modules$1882 || [];
+            if (!stxcaseCtx$1874) {
+                stxcaseCtx$1874 = expander$1866.expandModule(parser$1865.read(stxcaseModule$1868));
             }
-            toString$1880 = String;
-            if (typeof code$1876 !== 'string' && !(code$1876 instanceof String)) {
-                code$1876 = toString$1880(code$1876);
+            toString$1885 = String;
+            if (typeof code$1881 !== 'string' && !(code$1881 instanceof String)) {
+                code$1881 = toString$1885(code$1881);
             }
-            var source$1881 = code$1876;
-            if (source$1881.length > 0) {
-                if (typeof source$1881[0] === 'undefined') {
+            var source$1886 = code$1881;
+            if (source$1886.length > 0) {
+                if (typeof source$1886[0] === 'undefined') {
                     // Try first to convert to a string. This is good as fast path
                     // for old IE which understands string indexing for string
                     // literals only and not for string object.
-                    if (code$1876 instanceof String) {
-                        source$1881 = code$1876.valueOf();
+                    if (code$1881 instanceof String) {
+                        source$1886 = code$1881.valueOf();
                     }
                     // Force accessing the characters via an array.
-                    if (typeof source$1881[0] === 'undefined') {
-                        source$1881 = stringToArray(code$1876);
+                    if (typeof source$1886[0] === 'undefined') {
+                        source$1886 = stringToArray(code$1881);
                     }
                 }
             }
-            var readTree$1882 = parser$1860.read(source$1881);
+            var readTree$1887 = parser$1865.read(source$1886);
             try {
-                return expandFn$1874(readTree$1882, [stxcaseCtx$1869].concat(modules$1877), maxExpands$1878);
-            } catch (err$1883) {
-                if (err$1883 instanceof syn$1862.MacroSyntaxError) {
-                    throw new SyntaxError(syn$1862.printSyntaxError(source$1881, err$1883));
+                return expandFn$1879(readTree$1887, [stxcaseCtx$1874].concat(modules$1882), maxExpands$1883);
+            } catch (err$1888) {
+                if (err$1888 instanceof syn$1867.MacroSyntaxError) {
+                    throw new SyntaxError(syn$1867.printSyntaxError(source$1886, err$1888));
                 } else {
-                    throw err$1883;
+                    throw err$1888;
                 }
             }
         };
     }
     // fun (Str, {}) -> AST
-    function parse$1871(code$1884, modules$1885, maxExpands$1886) {
-        if (code$1884 === '') {
+    function parse$1876(code$1889, modules$1890, maxExpands$1891) {
+        if (code$1889 === '') {
             // old version of esprima doesn't play nice with the empty string
             // and loc/range info so until we can upgrade hack in a single space
-            code$1884 = ' ';
+            code$1889 = ' ';
         }
-        return parser$1860.parse(expand$1867(code$1884, modules$1885, maxExpands$1886));
+        return parser$1865.parse(expand$1872(code$1889, modules$1890, maxExpands$1891));
     }
     // (Str, {sourceMap: ?Bool, filename: ?Str})
     //    -> { code: Str, sourceMap: ?Str }
-    function compile$1872(code$1887, options$1888) {
-        var output$1889;
-        options$1888 = options$1888 || {};
-        var ast$1890 = parse$1871(code$1887, options$1888.modules || [], options$1888.maxExpands);
-        if (options$1888.sourceMap) {
-            output$1889 = codegen$1866.generate(ast$1890, {
+    function compile$1877(code$1892, options$1893) {
+        var output$1894;
+        options$1893 = options$1893 || {};
+        var ast$1895 = parse$1876(code$1892, options$1893.modules || [], options$1893.maxExpands);
+        if (options$1893.sourceMap) {
+            output$1894 = codegen$1871.generate(ast$1895, {
                 comment: true,
-                sourceMap: options$1888.filename,
+                sourceMap: options$1893.filename,
                 sourceMapWithCode: true
             });
             return {
-                code: output$1889.code,
-                sourceMap: output$1889.map.toString()
+                code: output$1894.code,
+                sourceMap: output$1894.map.toString()
             };
         }
-        return { code: codegen$1866.generate(ast$1890, { comment: true }) };
+        return { code: codegen$1871.generate(ast$1895, { comment: true }) };
     }
-    function loadNodeModule$1873(root$1891, moduleName$1892) {
-        var Module$1893 = module.constructor;
-        var mock$1894 = {
-                id: root$1891 + '/$sweet-loader.js',
+    function loadNodeModule$1878(root$1896, moduleName$1897) {
+        var Module$1898 = module.constructor;
+        var mock$1899 = {
+                id: root$1896 + '/$sweet-loader.js',
                 filename: '$sweet-loader.js',
-                paths: /^\.\/|\.\./.test(root$1891) ? [root$1891] : Module$1893._nodeModulePaths(root$1891)
+                paths: /^\.\/|\.\./.test(root$1896) ? [root$1896] : Module$1898._nodeModulePaths(root$1896)
             };
-        var path$1895 = Module$1893._resolveFilename(moduleName$1892, mock$1894);
-        return expandModule$1868(fs$1865.readFileSync(path$1895, 'utf8'));
+        var path$1900 = Module$1898._resolveFilename(moduleName$1897, mock$1899);
+        return expandModule$1873(fs$1870.readFileSync(path$1900, 'utf8'));
     }
-    exports$1859.expand = expand$1867;
-    exports$1859.parse = parse$1871;
-    exports$1859.compile = compile$1872;
-    exports$1859.loadModule = expandModule$1868;
-    exports$1859.loadNodeModule = loadNodeModule$1873;
+    exports$1864.expand = expand$1872;
+    exports$1864.parse = parse$1876;
+    exports$1864.compile = compile$1877;
+    exports$1864.loadModule = expandModule$1873;
+    exports$1864.loadNodeModule = loadNodeModule$1878;
 }));
 //# sourceMappingURL=sweet.js.map
