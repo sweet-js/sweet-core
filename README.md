@@ -7,6 +7,7 @@ Hygienic Macros for JavaScript!
 * Read the documentation at [sweetjs.org](http://sweetjs.org).
 * Play with the [editor](http://sweetjs.org/browser/editor.html)
 * Hang out on IRC #sweet.js at irc.mozilla.org.
+* Try out other [macros](https://npmjs.org/browse/keyword/sweet-macros)
 
 ## Getting started
 
@@ -21,6 +22,31 @@ And compile your sweet macro enhanced code:
 ```sh
 $ sjs --output compiled.js my_sweet_code.js
 ```
+
+## Sharing 
+
+You can collect your macros into a single module file to share with your other code or on npm. Full details [here](https://github.com/mozilla/sweet.js/wiki/modules) but the basic idea is to define your macros in a file `macros.js` and use the `export` keyword:
+
+```js
+// macros.js
+macro m { ... }
+export m;
+```
+
+Then compile using the `--module` flag:
+
+```sh
+sjs --module /macros.js my_sweet_code.js
+```
+
+The `--module` also looks up along the `npm` path so you can install macro modules from `npm` (using [lambda-chop](https://github.com/natefaubion/lambda-chop) as an example):
+
+```sh
+npm install lambda-chop
+sjs --module lambda-chop/macros my_sweet_code.js
+```
+
+If you want to share your macros on npm we recommend using the [sweet-macros](https://npmjs.org/browse/keyword/sweet-macros) keyword to make macros easy to find.
 
 ## Hacking
 
