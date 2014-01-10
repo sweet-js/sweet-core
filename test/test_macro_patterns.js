@@ -824,4 +824,24 @@ describe("macro expander", function() {
         expect(-> 100).to.be(100);
     });
 
+    it("should allow macros to override binary operators", function() {
+        macro + {
+            rule infix { $lhs:expr | $rhs:expr } => {
+                $lhs - $rhs
+            }
+        }
+        expect(3 + 2 + 1).to.be(0)
+    })
+
+    it("should allow macros to override postfix operators", function() {
+        macro ++ {
+            rule infix { $lhs:expr | } => {
+                $lhs--
+            }
+        }
+        var a = 1;
+        a++;
+        expect(a).to.be(0)
+    })
+
 });
