@@ -2,6 +2,7 @@ var fs = require("fs");
 var path = require("path");
 
 var sweet = require("./sweet.js");
+var syn = require("./syntax.js");
 
 var argv = require("optimist")
     .usage("Usage: sjs [options] path/to/file.js")
@@ -25,6 +26,8 @@ var argv = require("optimist")
     .boolean("sourcemap")
     .alias('n', 'num-expands')
     .describe('n', 'the maximum number of expands to perform')
+    .alias('h', 'step-hygiene')
+    .describe('h', 'display hygienic renames when stepping with "--num-expands"')
     .argv;
 
 exports.run = function() {
@@ -35,10 +38,10 @@ exports.run = function() {
     var sourcemap = argv.sourcemap;
     var noparse = argv['no-parse'];
     var numexpands = argv['num-expands'];
+    var displayHygiene = argv['step-hygiene']
 
     var file;
-    var globalMacros;
-    if(infile) {
+    if (infile) {
         file = fs.readFileSync(infile, "utf8");
     } else if (argv.stdin) {
         file = fs.readFileSync("/dev/stdin", "utf8");
@@ -48,65 +51,44 @@ exports.run = function() {
     }
 
 
-    var mod = argv.module;
     var cwd = process.cwd();
-    var Module = module.constructor;
-    var modulemock;
+    var modules = typeof argv.module === 'string' ? [argv.module] : argv.module;
 
+    modules = (modules || []).map(function(path) {
+        return sweet.loadNodeModule(cwd, path);
+    });
 
-    if (mod) {
-        modulemock = {
-          id: cwd + '/$sweet-loader.js',
-          filename: '$sweet-loader.js',
-          paths: /^\.\/|\.\./.test(cwd) ? [cwd] : Module._nodeModulePaths(cwd)
-        };
-        if (typeof mod === "string") {
-            mod = [mod];
-        }
-        globalMacros = mod.reduceRight(function(f, m) {
-            var modulepath = Module._resolveFilename(m, modulemock);
-            var modulefile = fs.readFileSync(modulepath, "utf8");
-            return modulefile + "\n" + f;
-        }, '');
-    }
+    var options = {
+        filename: infile,
+        modules: modules
+    };
     
-	if (watch && outfile) {
-		fs.watch(infile, function(){
-			file = fs.readFileSync(infile, "utf8");
-			try {
-				fs.writeFileSync(outfile,
-                                 sweet.compile(file, {
-                                     macros: globalMacros
-                                 }).code,
-                                 "utf8");
-			} catch (e) {
-				console.log(e);
-			}
-		});
-	} else if(outfile) {
+    if (watch && outfile) {
+        fs.watch(infile, function(){
+            file = fs.readFileSync(infile, "utf8");
+            try {
+                fs.writeFileSync(outfile, sweet.compile(file, options).code, "utf8");
+            } catch (e) {
+                console.log(e);
+            }
+        });
+    } else if (outfile) {
         if (sourcemap) {
-            var result = sweet.compile(file, {
-                sourceMap: true,
-                filename: infile,
-                macros: globalMacros
-            });
+            options.sourceMap = true;
+            var result = sweet.compile(file, options);
             var mapfile = path.basename(outfile) + ".map";
-            fs.writeFileSync(outfile,
-                             result.code + "\n//# sourceMappingURL=" + mapfile,
-                             "utf8");
+            fs.writeFileSync(outfile, result.code + "\n//# sourceMappingURL=" + mapfile, "utf8");
             fs.writeFileSync(outfile + ".map", result.sourceMap, "utf8");
         } else {
-            fs.writeFileSync(outfile, sweet.compile(file).code, "utf8");
+            fs.writeFileSync(outfile, sweet.compile(file, options).code, "utf8");
         }
     } else if (tokens) {
-        console.log(sweet.expand(file, globalMacros, numexpands));
+        console.log(sweet.expand(file, modules, numexpands));
     } else if (noparse) {
-        var unparsedString = sweet.prettyPrint(sweet.expand(file, globalMacros, numexpands));        
+        var unparsedString = syn.prettyPrint(sweet.expand(file, modules, numexpands), displayHygiene);        
         console.log(unparsedString);
     } else {
-        console.log(sweet.compile(file, {
-            macros: globalMacros,
-            numExpands: numexpands
-        }).code);
+        options.numExpands = numexpands;
+        console.log(sweet.compile(file, options).code);
     }
 };

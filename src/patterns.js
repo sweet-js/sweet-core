@@ -1,14 +1,14 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require("es6-collections"),
+        factory(exports, require('underscore'),
                 require("./parser"), require("./expander"), require("./syntax"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'es6-collections',
+        define(['exports', 'underscore',
                 'parser', 'expander', 'syntax'], factory);
     }
-}(this, function(exports, _, es6, parser, expander, syntax) {
+}(this, function(exports, _, parser, expander, syntax) {
 
     var get_expression = expander.get_expression;
     var syntaxFromToken = syntax.syntaxFromToken;
@@ -17,6 +17,8 @@
     var joinSyntaxArr = syntax.joinSyntaxArr;
     var assert = syntax.assert;
     var throwSyntaxError = syntax.throwSyntaxError;
+
+    var push = Array.prototype.push;
 
 
     // ([...CSyntax]) -> [...Str]
@@ -27,7 +29,7 @@
             if (isPatternVar(pat)) {
                 fv.push(pat.token.value);
             } else if (pat.token.type === parser.Token.Delimiter) {
-                fv = fv.concat(freeVarsInPattern(pat.token.inner));
+                push.apply(fv, freeVarsInPattern(pat.token.inner));
             }
         });
 
@@ -86,8 +88,21 @@
 
     // (CSyntax, CSyntax) -> CSyntax
     function takeLine(from, to) {
+        var next;
         if (to.token.type === parser.Token.Delimiter) {
-            var next;
+            var sm_startLineNumber = typeof to.token.sm_startLineNumber !== 'undefined' 
+                                        ? to.token.sm_startLineNumber : to.token.startLineNumber;
+            var sm_endLineNumber = typeof to.token.sm_endLineNumber !== 'undefined' 
+                                        ? to.token.sm_endLineNumber : to.token.endLineNumber;
+            var sm_startLineStart = typeof to.token.sm_startLineStart !== 'undefined' 
+                                        ? to.token.sm_startLineStart : to.token.startLineStart;
+            var sm_endLineStart = typeof to.token.sm_endLineStart !== 'undefined' 
+                                        ? to.token.sm_endLineStart : to.token.endLineStart;
+            var sm_startRange = typeof to.token.sm_startRange !== 'undefined' 
+                                        ? to.token.sm_startRange : to.token.startRange;
+            var sm_endRange = typeof to.token.sm_endRange !== 'undefined' 
+                                        ? to.token.sm_endRange : to.token.endRange;
+
             if (from.token.type === parser.Token.Delimiter) {
                 next = syntaxFromToken({
                     type: parser.Token.Delimiter,
@@ -99,12 +114,12 @@
                     startLineStart: from.token.startLineStart,
                     endLineNumber: from.token.endLineNumber,
                     endLineStart: from.token.endLineStart,
-                    sm_startLineNumber: to.token.startLineNumber,
-                    sm_endLineNumber: to.token.endLineNumber,
-                    sm_startLineStart: to.token.startLineStart,
-                    sm_endLineStart: to.token.endLineStart,
-                    sm_startRange: to.token.startRange,
-                    sm_endRange: to.token.endRange
+                    sm_startLineNumber: sm_startLineNumber,
+                    sm_endLineNumber: sm_endLineNumber,
+                    sm_startLineStart: sm_startLineStart,
+                    sm_endLineStart: sm_endLineStart,
+                    sm_startRange: sm_startRange,
+                    sm_endRange: sm_endRange
                 }, to);
 
             } else {
@@ -118,15 +133,21 @@
                     startLineStart: from.token.lineStart,
                     endLineNumber: from.token.lineNumber,
                     endLineStart: from.token.lineStart,
-                    sm_startLineNumber: to.token.startLineNumber,
-                    sm_endLineNumber: to.token.endLineNumber,
-                    sm_startLineStart: to.token.startLineStart,
-                    sm_endLineStart: to.token.endLineStart,
-                    sm_startRange: to.token.startRange,
-                    sm_endRange: to.token.endRange
+                    sm_startLineNumber: sm_startLineNumber,
+                    sm_endLineNumber: sm_endLineNumber,
+                    sm_startLineStart: sm_startLineStart,
+                    sm_endLineStart: sm_endLineStart,
+                    sm_startRange: sm_startRange,
+                    sm_endRange: sm_endRange
                 }, to);
             }
         } else {
+            var sm_lineNumber = typeof to.token.sm_lineNumber !== 'undefined' 
+                                        ? to.token.sm_lineNumber : to.token.lineNumber;
+            var sm_lineStart = typeof to.token.sm_lineStart !== 'undefined' 
+                                        ? to.token.sm_lineStart : to.token.lineStart;
+            var sm_range = typeof to.token.sm_range !== 'undefined' 
+                                        ? to.token.sm_range : to.token.range;
             if (from.token.type === parser.Token.Delimiter) {
                 next = syntaxFromToken({
                     value: to.token.value,
@@ -134,9 +155,9 @@
                     lineNumber: from.token.startLineNumber,
                     lineStart: from.token.startLineStart,
                     range: from.token.startRange,
-                    sm_lineNumber: to.token.lineNumber,
-                    sm_lineStart: to.token.lineStart,
-                    sm_range: to.token.range
+                    sm_lineNumber: sm_lineNumber,
+                    sm_lineStart: sm_lineStart,
+                    sm_range: sm_range
                 }, to);
             } else {
                 next = syntaxFromToken({
@@ -145,9 +166,9 @@
                     lineNumber: from.token.lineNumber,
                     lineStart: from.token.lineStart,
                     range: from.token.range,
-                    sm_lineNumber: to.token.lineNumber,
-                    sm_lineStart: to.token.lineStart,
-                    sm_range: to.token.range
+                    sm_lineNumber: sm_lineNumber,
+                    sm_lineStart: sm_lineStart,
+                    sm_range: sm_range
                 }, to);
             }
         }
@@ -158,6 +179,21 @@
             next.token.trailingComments = to.token.trailingComments;
         }
         return next;
+    }
+
+    function reversePattern(patterns) {
+        var len = patterns.length;
+        var pat;
+        return _.reduceRight(patterns, function(acc, pat) {
+            if (pat.class === "pattern_group") {
+                pat.token.inner = reversePattern(pat.token.inner);
+            }
+            if (pat.repeat) {
+                pat.leading = !pat.leading;
+            }
+            acc.push(pat);
+            return acc;
+        }, []);
     }
 
     function loadLiteralGroup(patterns) {
@@ -171,9 +207,8 @@
         return patterns;
     }
 
-    function loadPattern(patterns) {
-
-        return _.chain(patterns)
+    function loadPattern(patterns, reverse) {
+        var patts = _.chain(patterns)
         // first pass to merge the pattern variables together
             .reduce(function(acc, patStx, idx) {
                 var last = patterns[idx-1];
@@ -221,7 +256,8 @@
                 } else {
                     patStx.class = "pattern_literal";
                 }
-                return acc.concat(patStx);
+                acc.push(patStx);
+                return acc;
                 // then second pass to mark repeat and separator
             }, []).reduce(function(acc, patStx, idx, patterns) {
                 var separator = patStx.separator || " ";
@@ -247,14 +283,31 @@
                 }
                 patStx.repeat = repeat;
                 patStx.separator = separator;
-                return acc.concat(patStx);
+                acc.push(patStx);
+                return acc;
             }, []).value();
+
+        return reverse ? reversePattern(patts) : patts;
+    }
+
+    function cachedTermMatch(stx, term) {
+        var res = [];
+        var i = 0;
+        while (stx[i] && stx[i].term === term) {
+            res.unshift(stx[i]);
+            i++;
+        }
+        return {
+            result: term,
+            destructed: res,
+            rest: stx.slice(res.length)
+        };
     }
 
 
     // (Str, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
     function matchPatternClass (patternClass, stx, env) {
-        var result, rest;
+        var result, rest, match;
         // pattern has no parse class
         if (patternClass === "token" &&
             stx[0] && stx[0].token.type !== parser.Token.EOF) {
@@ -269,21 +322,25 @@
             result = [stx[0]];
             rest = stx.slice(1);
         } else if (stx.length > 0 && patternClass === "VariableStatement") {
-            var match = expander.enforest(stx, expander.makeExpanderContext({env: env}));
+            match = stx[0].term
+                ? cachedTermMatch(stx, stx[0].term)
+                : expander.enforest(stx, expander.makeExpanderContext({env: env}));
             if (match.result && match.result.hasPrototype(expander.VariableStatement)) {
-                result = match.result.destruct(false);
+                result = match.destructed || match.result.destruct(false);
                 rest = match.rest;
             } else {
                 result = null;
                 rest = stx;
             }
         } else if (stx.length > 0 && patternClass === "expr") {
-            var match = expander.get_expression(stx, expander.makeExpanderContext({env: env}));
+            match = stx[0].term
+                ? cachedTermMatch(stx, stx[0].term)
+                : expander.get_expression(stx, expander.makeExpanderContext({env: env}));
             if (match.result === null || (!match.result.hasPrototype(expander.Expr))) {
                 result = null;
                 rest = stx;
             } else {
-                result = match.result.destruct(false);
+                result = match.destructed || match.result.destruct(false);
                 rest = match.rest;
             }
         } else {
@@ -296,7 +353,6 @@
             rest: rest
         };
     }
-    
 
     
     // attempt to match patterns against stx
@@ -324,6 +380,7 @@
         var pattern;
         var rest = stx;
         var success = true;
+        var inLeading;
 
         patternLoop:
         for (var i = 0; i < patterns.length; i++) {
@@ -331,6 +388,7 @@
                 break;
             }
             pattern = patterns[i];
+            inLeading = false;
             do {
                 // handles cases where patterns trail a repeated pattern like `$x ... ;`
                 if (pattern.repeat && i + 1 < patterns.length) {
@@ -344,8 +402,22 @@
                         break patternLoop;
                     }
                 }
+                if (pattern.repeat && pattern.leading && pattern.separator !== " ") {
+                    if (rest[0].token.value === pattern.separator) {
+                        if (!inLeading) {
+                            inLeading = true;
+                        }
+                        rest = rest.slice(1);
+                    } else {
+                        // If we are in a leading repeat, the separator is required.
+                        if (inLeading) {
+                            success = false;
+                            break;
+                        }
+                    }
+                }
                 match = matchPattern(pattern, rest, env, patternEnv);
-                if ((!match.success) && pattern.repeat) {
+                if (!match.success && pattern.repeat) {
                     // a repeat can match zero tokens and still be a
                     // "success" so break out of the inner loop and
                     // try the next pattern
@@ -368,7 +440,7 @@
                     }
                 }
 
-                if (pattern.repeat && success) {
+                if (pattern.repeat && !pattern.leading && success) {
                     // if (i < patterns.length - 1 && rest.length > 0) {
                     //     var restMatch = matchPatterns(patterns.slice(i+1), rest, env, topLevel);
                     //     if (restMatch.success) {
@@ -401,8 +473,17 @@
                 }
             } while (pattern.repeat && success && rest.length > 0);
         }
+
+        var result;
+        if (success) {
+            result = rest.length ? stx.slice(0, -rest.length): stx;
+        } else {
+            result = [];
+        }
+
         return {
             success: success,
+            result: result,
             rest: rest,
             patternEnv: patternEnv
         };
@@ -518,7 +599,7 @@
                 if (pattern.repeat) {
                     if (patternEnv[pattern.value] && success) {
                         patternEnv[pattern.value].match.push(matchEnv);
-                    } else if (patternEnv[pattern.value] == undefined){
+                    } else if (patternEnv[pattern.value] === undefined){
                         // initialize if necessary
                         patternEnv[pattern.value] = {
                             level: 1,
@@ -536,6 +617,58 @@
             patternEnv: patternEnv
         };
 
+    }
+
+    function matchLookbehind(patterns, stx, terms, env) {
+        var success, patternEnv, prevStx, prevTerms;
+        // No lookbehind, noop.
+        if (!patterns.length) {
+            success = true;
+            patternEnv = {};
+            prevStx = stx;
+            prevTerms = terms;
+        } else {
+            var match = matchPatterns(patterns, stx, env, true);
+            var last = match.result[match.result.length - 1];
+            success = match.success;
+            patternEnv = match.patternEnv;
+            if (success) {
+                if (match.rest.length) {
+                    if (last && last.term === match.rest[0].term) {
+                        // The term tree was split, so its a failed match;
+                        success = false;
+                    } else {
+                        prevStx = match.rest;
+                        // Find where to slice the prevTerms to match up with
+                        // the state of prevStx.
+                        for (var i = 0, len = terms.length; i < len; i++) {
+                            if (terms[i] === prevStx[0].term) {
+                                prevTerms = terms.slice(i);
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    prevTerms = [];
+                    prevStx = [];
+                }
+            }
+        }
+
+        // We need to reverse the matches for any top level repeaters because
+        // they match in reverse, and thus put their results in backwards.
+        _.forEach(patternEnv, function(val, key) {
+            if (val.level && val.match) {
+                val.match.reverse();
+            }
+        });
+
+        return {
+            success: success,
+            patternEnv: patternEnv,
+            prevStx: prevStx,
+            prevTerms: prevTerms
+        };
     }
 
     function hasMatch(m) {
@@ -609,7 +742,8 @@
                         bodyStx.separator = next.token.inner[0].token.value;
                     }
 
-                    return acc.concat(bodyStx);
+                    acc.push(bodyStx);
+                    return acc;
                 }, []).reduce(function(acc, bodyStx, idx) {
                 // then do the actual transcription
                 if (bodyStx.repeat) {
@@ -680,8 +814,8 @@
                         } else {
                             joined = joinSyntax(transcribed, bodyStx.separator);
                         }
-
-                        return acc.concat(joined);
+                        push.apply(acc, joined);
+                        return acc;
                     }
 
                     if (!env[bodyStx.token.value]) {
@@ -689,9 +823,9 @@
                     } else if (env[bodyStx.token.value].level !== 1) {
                         throwSyntaxError("patterns", "Ellipses level does not match in the template", bodyStx);
                     } 
-
-                    return acc.concat(joinRepeatedMatch(env[bodyStx.token.value].match,
-                                                        bodyStx.separator));
+                    push.apply(acc, joinRepeatedMatch(env[bodyStx.token.value].match,
+                                                      bodyStx.separator))
+                    return acc;
                 } else {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
                         bodyStx.expose();
@@ -699,7 +833,8 @@
                                                       macroBody);
                         newBody.token.inner = transcribe(bodyStx.token.inner,
                                                          macroNameStx, env);
-                        return acc.concat([newBody]);
+                        acc.push(newBody);
+                        return acc;
                     }
                     if (isPatternVar(bodyStx) &&
                         Object.prototype.hasOwnProperty.bind(env)(bodyStx.token.value)) {
@@ -708,17 +843,21 @@
                         } else if (env[bodyStx.token.value].level !== 0) {
                             throwSyntaxError("patterns", "Ellipses level does not match in the template", bodyStx);
                         } 
-                        return acc.concat(takeLineContext(bodyStx, env[bodyStx.token.value].match) );
+                        push.apply(acc, takeLineContext(bodyStx, env[bodyStx.token.value].match));
+                        return acc;
                     }
-                    return acc.concat([bodyStx]);
+                    acc.push(bodyStx);
+                    return acc;
                 }
             }, []).value();
     }
 
     exports.loadPattern = loadPattern;
     exports.matchPatterns = matchPatterns;
+    exports.matchLookbehind = matchLookbehind;
     exports.transcribe = transcribe;
     exports.matchPatternClass = matchPatternClass;
     exports.takeLineContext = takeLineContext;
     exports.takeLine = takeLine;
+    exports.typeIsLiteral = typeIsLiteral;
 }))

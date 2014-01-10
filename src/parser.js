@@ -30,7 +30,6 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/*jslint bitwise:true plusplus:true */
 /*global esprima:true, define:true, exports:true, window: true,
 throwError: true, generateStatement: true, peek: true,
 parseAssignmentExpression: true, parseBlock: true,
@@ -2054,10 +2053,13 @@ parseYieldExpression: true
             );
 
         var startIndex = streamIndex > 3 ? streamIndex - 3 : 0;
-        var toks = tokenStream.slice(startIndex, streamIndex + 3).map(function(stx) {
-            return stx.token.value;
-        }).join(' ');
-        var tailingMsg = "\n[... " + toks + " ...]";
+        var toks = "", tailingMsg = "";
+        if (tokenStream) {
+            toks = tokenStream.slice(startIndex, streamIndex + 3).map(function(stx) {
+                return stx.token.value;
+            }).join(' ');
+            tailingMsg = "\n[... " + toks + " ...]";
+        }
         if (typeof token.lineNumber === 'number') {
             error = new Error('Line ' + token.lineNumber + ': ' + msg + tailingMsg);
             error.index = token.range[0];
@@ -5655,7 +5657,7 @@ parseYieldExpression: true
         delimToken.endLineStart = endLineStart;
         delimToken.endRange = endRange;
         return delimToken;
-    };
+    }
     
     
     

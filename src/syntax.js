@@ -1,12 +1,12 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require("es6-collections"),  require("./parser"));
+        factory(exports, require('underscore'),  require("./parser"), require("./expander"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'es6-collections', 'parser'], factory);
+        define(['exports', 'underscore', 'parser', 'expander'], factory);
     }
-}(this, function(exports, _, es6, parser) {
+}(this, function(exports, _, parser, expander) {
 
     function assert(condition, message) {
         if (!condition) {
@@ -17,47 +17,24 @@
     // (CSyntax, Str) -> CContext
     function Rename(id, name, ctx, defctx) {
         defctx = defctx || null;
-        return {
-            id: id,
-            name: name,
-            context: ctx,
-            def: defctx
-        };
+
+        this.id = id;
+        this.name = name;
+        this.context = ctx;
+        this.def = defctx;
     }
     
     // (Num) -> CContext
     function Mark(mark, ctx) {
-        return {
-            mark: mark,
-            context: ctx
-        };
+        this.mark = mark;
+        this.context = ctx;
     }
 
     function Def(defctx, ctx) {
-        return {
-            defctx: defctx,
-            context: ctx
-        };
+        this.defctx = defctx;
+        this.context = ctx;
     }
     
-    function Var(id) {
-        return {
-            id: id
-        };
-    }
-    
-    function isRename(r) {
-        return r && (typeof r.id !== 'undefined') && (typeof r.name !== 'undefined');
-    };
-
-    function isMark(m) {
-        return m && (typeof m.mark !== 'undefined');
-    };
-
-    function isDef(ctx) {
-        return ctx && (typeof ctx.defctx !== 'undefined');
-    }
-
     function Syntax(token, oldstx) {
         this.token = token;
         this.context = (oldstx && oldstx.context) ? oldstx.context : null;
@@ -70,10 +47,10 @@
         mark: function(newMark) {
             if (this.token.inner) {
                 var next = syntaxFromToken(this.token, this);
-                next.deferredContext = Mark(newMark, this.deferredContext);
+                next.deferredContext = new Mark(newMark, this.deferredContext);
                 return next;
             }
-            return syntaxFromToken(this.token, {context: Mark(newMark, this.context)});
+            return syntaxFromToken(this.token, {context: new Mark(newMark, this.context)});
         },
 
         // (CSyntax or [...CSyntax], Str) -> CSyntax
@@ -82,14 +59,14 @@
             // deferr renaming of delimiters
             if (this.token.inner) {
                 var next = syntaxFromToken(this.token, this);
-                next.deferredContext = Rename(id, name, this.deferredContext, defctx);
+                next.deferredContext = new Rename(id, name, this.deferredContext, defctx);
                 return next;
             }
 
             if (this.token.type === parser.Token.Identifier ||
                 this.token.type === parser.Token.Keyword ||
                 this.token.type === parser.Token.Punctuator) {
-                return syntaxFromToken(this.token, {context: Rename(id, name, this.context, defctx)});
+                return syntaxFromToken(this.token, {context: new Rename(id, name, this.context, defctx)});
             } else {
                 return this;
             }
@@ -98,16 +75,16 @@
         addDefCtx: function(defctx) {
             if (this.token.inner) {
                 var next = syntaxFromToken(this.token, this);
-                next.deferredContext = Def(defctx, this.deferredContext);
+                next.deferredContext = new Def(defctx, this.deferredContext);
                 return next;
             }
-            return syntaxFromToken(this.token, {context: Def(defctx, this.context)});
+            return syntaxFromToken(this.token, {context: new Def(defctx, this.context)});
         },
 
         getDefCtx: function() {
             var ctx = this.context;
             while(ctx !== null) {
-                if (isDef(ctx)) {
+                if (ctx instanceof Def) {
                     return ctx.defctx;
                 }
                 ctx = ctx.context;
@@ -122,15 +99,15 @@
             function applyContext(stxCtx, ctx) {
                 if (ctx == null) {
                     return stxCtx;
-                } else if (isRename(ctx)) {
-                    return Rename(ctx.id,
+                } else if (ctx instanceof Rename) {
+                    return new Rename(ctx.id,
                                   ctx.name,
                                   applyContext(stxCtx, ctx.context),
                                   ctx.def);
-                } else if (isMark(ctx)) {
-                    return Mark(ctx.mark, applyContext(stxCtx, ctx.context));
-                } else if (isDef(ctx)) {
-                    return Def(ctx.defctx, applyContext(stxCtx, ctx.context));
+                } else if (ctx instanceof Mark) {
+                    return new Mark(ctx.mark, applyContext(stxCtx, ctx.context));
+                } else if (ctx instanceof Def) {
+                    return new Def(ctx.defctx, applyContext(stxCtx, ctx.context));
                 } else {
                     assert(false, "unknown context type");
                 }
@@ -165,14 +142,14 @@
         if (stx && Array.isArray(stx) && stx.length === 1) {
             stx = stx[0];
         } else if (stx && Array.isArray(stx)) {
-            throw new Error();
             throwSyntaxError("mkSyntax", "Expecting a syntax object or an array with a single syntax object");
+        } else if (stx === undefined) {
+            throwSyntaxError("mkSyntax", "You must provide an old syntax object context (or null) when creating a new syntax object.");
         }
 
         if (type === parser.Token.Delimiter) {
             var startLineNumber, startLineStart, endLineNumber, endLineStart, startRange, endRange;
             if (!Array.isArray(inner)) {
-                throw new Error("Must provide inner array of syntax objects when creating a delimiter");
                 throwSyntaxError("mkSyntax", "Must provide inner array of syntax objects when creating a delimiter");
             }
 
@@ -318,7 +295,8 @@
         if (punc === " ") { return tojoin; }
 
         return _.reduce(_.rest(tojoin, 1), function (acc, join) {
-            return acc.concat(makePunc(punc, join), join);
+            acc.push(makePunc(punc, join), join);
+            return acc;
         }, [_.first(tojoin)]);
     }
 
@@ -331,8 +309,9 @@
         }
 
         return _.reduce(_.rest(tojoin, 1), function (acc, join){
-            return acc.concat(makePunc(punc, _.first(join)),
-                              join);
+            acc.push(makePunc(punc, _.first(join)));
+            Array.prototype.push.apply(acc, join);
+            return acc;
         }, _.first(tojoin));
     }
 
@@ -363,7 +342,7 @@
         var pre = lineNumber + ': ';
         var ch;
 
-        while (ch = code.charAt(lineStart++)) {
+        while ((ch = code.charAt(lineStart++))) {
             if (ch == '\r' || ch == '\n') { 
                 break;
             }
@@ -373,6 +352,48 @@
         return '[' + err.name + '] ' + err.message + '\n' +
                pre + line + '\n' +
                (Array(offset + pre.length).join(' ')) + ' ^';
+    }
+
+    // fun ([...CSyntax]) -> String
+    function prettyPrint(stxarr, shouldResolve) {
+        var indent = 0;
+        var unparsedLines = stxarr.reduce(function(acc, stx) {
+            var s = shouldResolve ? expander.resolve(stx) : stx.token.value;
+            // skip the end of file token
+            if (stx.token.type === parser.Token.EOF) { return acc; }
+
+            if(stx.token.type === parser.Token.StringLiteral) {
+                s = '"' + s + '"';
+            }
+
+            if(s == '{') {
+                acc[0].str += ' ' + s;
+                indent++;
+                acc.unshift({ indent: indent, str: '' });
+            }
+            else if(s == '}') {
+                indent--;
+                acc.unshift({ indent: indent, str: s });
+                acc.unshift({ indent: indent, str: '' });
+            }
+            else if(s == ';') {
+                acc[0].str += s;
+                acc.unshift({ indent: indent, str: '' });
+            }
+            else {
+                acc[0].str += (acc[0].str ? ' ' : '') + s;
+            }
+
+            return acc;
+        }, [{ indent: 0, str: '' }]);
+
+        return unparsedLines.reduce(function(acc, line) {
+            var ind = '';
+            while(ind.length < line.indent * 2) {
+                ind += ' ';
+            }
+            return ind + line.str + '\n' + acc;
+        }, '');
     }
 
     exports.assert = assert;
@@ -387,11 +408,7 @@
 
     exports.Rename = Rename;
     exports.Mark = Mark;
-    exports.Var = Var;
     exports.Def = Def;
-    exports.isDef = isDef;
-    exports.isMark = isMark;
-    exports.isRename = isRename;
 
     exports.syntaxFromToken = syntaxFromToken;
     exports.tokensToSyntax = tokensToSyntax;
@@ -399,6 +416,8 @@
 
     exports.joinSyntax = joinSyntax;
     exports.joinSyntaxArr = joinSyntaxArr;
+
+    exports.prettyPrint = prettyPrint;
 
     exports.MacroSyntaxError = MacroSyntaxError;
     exports.throwSyntaxError = throwSyntaxError;

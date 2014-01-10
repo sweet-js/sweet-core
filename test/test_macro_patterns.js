@@ -701,4 +701,147 @@ describe("macro expander", function() {
         expect(m 1 ()).to.be(undefined);
     });
 
+    it("should allow infix matching", function() {
+        macro swapm {
+            rule infix { $lhs:expr | $rhs:expr } => {
+                $rhs - $lhs
+            }
+        }
+        expect(1 swapm 2).to.be(1);
+        expect(1 swapm 2 swapm 3 swapm 4).to.be(-2);
+    });
+
+    it("should allow infix matching using a case pattern", function() {
+        macro swapm {
+            case infix { $lhs:expr | _ $rhs:expr } => {
+                return #{ $rhs - $lhs }
+            }
+        }
+        expect(1 swapm 2).to.be(1);
+        expect(1 swapm 2 swapm 3 swapm 4).to.be(-2);
+    });
+
+    it("should allow infix matching in a var statement", function() {
+        macro swapm {
+            rule infix { $lhs:expr | $rhs:expr } => {
+                $rhs - $lhs
+            }
+        }
+        var foo = 1 swapm 2 swapm 3 swapm 4;
+        expect(foo).to.be(-2);
+    });
+
+    it("should allow mixing of infix and prefix patterns", function() {
+        macro m {
+            rule infix { $lhs:expr | $rhs:expr } => {
+                $lhs + $rhs
+            }
+            rule { $rhs:expr } => {
+                ($rhs).toString()
+            }
+        }
+        expect(1 m 2).to.be(3);
+        expect(m 42).to.be("42");
+    });
+
+    it("should allow infix matching on the rhs of a binop", function() {
+        macro m {
+            rule infix { $lhs:expr - | $rhs:expr } => {
+                $lhs + $rhs
+            }
+        }
+        expect(1 - m 2).to.be(3);
+    });
+
+    it("should allow infix matching on the rhs of a unary op", function() {
+        macro m {
+            rule infix { - | $rhs:expr } => {
+                $rhs + $rhs
+            }
+        }
+        expect(- m 2).to.be(4);
+    });
+
+    it("should allow infix matching on the rhs of a keyword unary op", function() {
+        macro m {
+            rule infix { delete | $rhs:expr } => {
+                $rhs + $rhs
+            }
+        }
+        expect(delete m 2).to.be(4);
+    });
+
+    it("should not raise an assertion when the rhs has a pattern class and the syntax is an op", function() {
+        macro m {
+            rule infix { $lhs:expr | $rhs:expr } => {
+                $lhs + $rhs
+            }
+            rule infix { $lhs | $rhs } => {
+                $lhs $rhs
+            }
+        }
+        expect(1 m 2).to.be(3);
+        expect(typeof m 2).to.be('number');
+    });
+
+    it("should allow infix matching of repeaters", function() {
+        macro m {
+            rule infix { $num ... | } => {
+                $num (-) ...
+            }
+        }
+        expect(3 2 1 m).to.be(0)
+    });
+
+    it("should allow infix matching of repeaters with separators", function() {
+        macro m {
+            rule infix { $num (,) ... | } => {
+                $num (-) ...
+            }
+        }
+        expect(3, 2, 1 m).to.be(0)
+    });
+
+    it("should work with multi punctuator macro names", function() {
+        macro -> {
+            rule { $x } => { $x }
+        } 
+
+        expect(-> 100).to.be(100);
+
+        macro function? {
+            rule { ($x ...) } => {
+                typeof $x ... === "function"
+            }
+        }
+        expect(function? (100)).to.be(false);
+    });
+
+    it("should work with multi punctuator macro names and let macros", function() {
+        let -> = macro {
+            rule { $x } => { $x }
+        } 
+        expect(-> 100).to.be(100);
+    });
+
+    it("should allow macros to override binary operators", function() {
+        macro + {
+            rule infix { $lhs:expr | $rhs:expr } => {
+                $lhs - $rhs
+            }
+        }
+        expect(3 + 2 + 1).to.be(0)
+    })
+
+    it("should allow macros to override postfix operators", function() {
+        macro ++ {
+            rule infix { $lhs:expr | } => {
+                $lhs--
+            }
+        }
+        var a = 1;
+        a++;
+        expect(a).to.be(0)
+    })
+
 });

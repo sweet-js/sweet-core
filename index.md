@@ -446,3 +446,56 @@ form:
 
 This binds `function` to the macro in the rest of the code but not in
 the body of the `function` macro. 
+
+## Macros with Lookbehind -- Watch Your Back
+
+Sweet.js also lets you match on previous syntax using `infix` rules. Use a
+vertical bar (`|`) to separate your left-hand-side from your right-hand-side.
+
+    macro unless {
+      rule infix { return $value:expr | $guard:expr } => {
+        if (!($guard)) {
+          return $value;
+        }
+      }
+    }
+
+    function foo(x) {
+      return true unless x > 42;
+      return false;
+    }
+
+You can use the `infix` keyword with procedural macros, too. The macro name is
+just the first token on the right-hand-side.
+
+    macro m {
+      case infix { $lhs | $name $rhs } => { ... }
+    }
+
+Infix rules can be mixed and matched with normal rules:
+
+    macro m {
+      rule infix { $lhs | $rhs } => { ... }
+      rule { $rhs } => { ... }
+    }
+
+You can even leave off the right-hand-side for a postfix macro:
+
+    macro m {
+      rule infix { $lhs | } => { ... }
+    }
+
+Sweet.js does its best to keep you from clobbering previous syntax.
+  
+    macro m {
+      rule infix { ($args ...) | $call:expr } => {
+        $call($args ...)
+      }
+    }
+
+    (42) m foo; // This works
+    bar(42) m foo; // This is a match error
+
+The second example fails to match because you'd be splitting the good function
+call on the left-hand-side in half. The result would have been nonsense, giving
+you a nasty parse error.

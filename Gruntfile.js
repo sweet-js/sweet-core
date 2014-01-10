@@ -79,6 +79,14 @@ module.exports = function(grunt) {
             }
         },
         jshint: {
+            options: {
+                eqnull: true,
+                evil: true,
+                boss: true,
+                laxcomma: true,
+                shadow: true,
+                loopfunc: true
+            },
             all: ["build/lib/*.js"]
         }
     });
@@ -136,7 +144,8 @@ module.exports = function(grunt) {
                                    "copy:browserSrc",
                                    "copy:browserMacros",
                                    "copy:scopedEvalBrowser",
-                                   "mochaTest"]);
+                                   "mochaTest",
+                                   "jshint"]);
 
     function readModule(mod) {
         var path = require.resolve(mod);

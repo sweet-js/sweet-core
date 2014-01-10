@@ -6,7 +6,7 @@ requirejs.config({
     }
 });
 
-require(["./sweet"], function(sweet) {
+require(["./sweet", "./syntax"], function(sweet, syn) {
     var storage_code = 'editor_code';
     var storage_mode = 'editor_mode';
 
@@ -16,7 +16,7 @@ require(["./sweet"], function(sweet) {
     var editor = CodeMirror.fromTextArea($('#editor')[0], {
         lineNumbers: true,
         smartIndent: false,
-        indentWithTabs: false,
+        indentWithTabs: true,
         tabSize: 4,
         autofocus: true,
         theme: 'solarized dark'
@@ -51,7 +51,7 @@ require(["./sweet"], function(sweet) {
     });
 
     $('#btn-step').click(function() {
-        var unparsedString = sweet.prettyPrint(
+        var unparsedString = syn.prettyPrint(
             sweet.expand(editor.getValue(), 
                          undefined, 
                          currentStep++),
