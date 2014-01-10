@@ -23,7 +23,7 @@ function tokValues (stxArray) {
 
 
 
-var emptyMacroMap = new Map();
+var emptyMacroMap = new expander.StringMap();
 
 describe("matchPatternClass", function() {
     it("should give null when pattern doesn't match", function() {

@@ -37,7 +37,7 @@
 
         var stxcaseModule = fs.readFileSync(lib + "/stxcase.js", 'utf8');
 
-        factory(exports, parser, expander, syn, stxcaseModule, codegen);
+        factory(exports, parser, expander, syn, stxcaseModule, codegen, fs);
 
         // Alow require('./example') for an example.sjs file.
         require.extensions['.sjs'] = function(module, filename) {
@@ -48,72 +48,78 @@
         // AMD. Register as an anonymous module.
         define(['exports', './parser', './expander', './syntax', 'text!./stxcase.js'], factory);
     }
-}(this, function (exports, parser, expander, syn, stxcaseModule, gen) {
+}(this, function (exports, parser, expander, syn, stxcaseModule, gen, fs) {
     var codegen = gen || escodegen;
+    var expand = makeExpand(expander.expand);
+    var expandModule = makeExpand(expander.expandModule);
+    var stxcaseCtx;
 
-    // fun (Str) -> [...CSyntax]
-    function expand(code, globalMacros, maxExpands) {
-        var program, toString;
-        globalMacros = globalMacros || '';
+    function makeExpand(expandFn) {
+        // fun (Str) -> [...CSyntax]
+        return function expand(code, modules, maxExpands) {
+            var program, toString;
+            modules = modules || [];
 
-        toString = String;
-        if (typeof code !== 'string' && !(code instanceof String)) {
-            code = toString(code);
-        }
-        
-        var source = code;
+            if (!stxcaseCtx) {
+                stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
+            }
 
-        if (source.length > 0) {
-            if (typeof source[0] === 'undefined') {
-                // Try first to convert to a string. This is good as fast path
-                // for old IE which understands string indexing for string
-                // literals only and not for string object.
-                if (code instanceof String) {
-                    source = code.valueOf();
-                }
+            toString = String;
+            if (typeof code !== 'string' && !(code instanceof String)) {
+                code = toString(code);
+            }
+            
+            var source = code;
 
-                // Force accessing the characters via an array.
+            if (source.length > 0) {
                 if (typeof source[0] === 'undefined') {
-                    source = stringToArray(code);
+                    // Try first to convert to a string. This is good as fast path
+                    // for old IE which understands string indexing for string
+                    // literals only and not for string object.
+                    if (code instanceof String) {
+                        source = code.valueOf();
+                    }
+
+                    // Force accessing the characters via an array.
+                    if (typeof source[0] === 'undefined') {
+                        source = stringToArray(code);
+                    }
                 }
             }
-        }
 
-        var readTree = parser.read(source);
-        try {
-            return expander.expand(readTree, stxcaseModule + '\n' + globalMacros, maxExpands);
-        } catch(err) {
-            if (err instanceof syn.MacroSyntaxError) {
-                throw new SyntaxError(syn.printSyntaxError(source, err));
-            } else {
-                throw err;
+            var readTree = parser.read(source);
+            try {
+                return expandFn(readTree, [stxcaseCtx].concat(modules), maxExpands);
+            } catch(err) {
+                if (err instanceof syn.MacroSyntaxError) {
+                    throw new SyntaxError(syn.printSyntaxError(source, err));
+                } else {
+                    throw err;
+                }
             }
         }
     }
 
     // fun (Str, {}) -> AST
-    function parse(code, globalMacros, maxExpands) {
+    function parse(code, modules, maxExpands) {
         if (code === "") {
             // old version of esprima doesn't play nice with the empty string
             // and loc/range info so until we can upgrade hack in a single space
             code = " ";
         }
 
-        return parser.parse(expand(code, globalMacros, maxExpands));
+        return parser.parse(expand(code, modules, maxExpands));
     }
-
-
-
-    exports.expand = expand;
-    exports.parse = parse;
 
     // (Str, {sourceMap: ?Bool, filename: ?Str})
     //    -> { code: Str, sourceMap: ?Str }
-    exports.compile = function compile(code, options) {
+    function compile(code, options) {
         var output;
         options = options || {};
 
-        var ast = parse(code, options.macros);
+        var ast = parse(code, 
+                        options.modules || [],
+                        options.maxExpands);
 
         if (options.sourceMap) {
             output = codegen.generate(ast, {
@@ -133,4 +139,23 @@
             })
         };
     }
+
+    function loadNodeModule(root, moduleName) {
+        var Module = module.constructor;
+        var mock = {
+            id: root + "/$sweet-loader.js",
+            filename: "$sweet-loader.js",
+            paths: /^\.\/|\.\./.test(root) ? [root] : Module._nodeModulePaths(root)
+        };
+        var path = Module._resolveFilename(moduleName, mock);
+        return expandModule(fs.readFileSync(path, "utf8"));
+    }
+
+    exports.expand = expand;
+    exports.parse = parse;
+    exports.compile = compile;
+    exports.loadModule = expandModule;
+    exports.loadNodeModule = loadNodeModule;
 }));
+
+
