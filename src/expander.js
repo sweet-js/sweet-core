@@ -31,7 +31,6 @@
                 require('underscore'),
                 require('./parser'),
                 require('./syntax'),
-                require("es6-collections"),
                 require('./scopedEval'),
                 require("./patterns"),
                 require('escodegen'));
@@ -41,11 +40,10 @@
                 'underscore',
                 'parser',
                 'syntax',
-                'es6-collections',
                 'scopedEval',
                 'patterns'], factory);
     }
-}(this, function(exports, _, parser, syn, es6, se, patternModule, gen) {
+}(this, function(exports, _, parser, syn, se, patternModule, gen) {
     'use strict';
     var codegen = gen || escodegen;
     var assert = syn.assert;
@@ -2020,7 +2018,7 @@
                   writable: false, enumerable: true, configurable: false},
             defscope: {value: o.defscope,
                        writable: false, enumerable: true, configurable: false},
-            templateMap: {value: o.templateMap || new Map(),
+            templateMap: {value: o.templateMap || new StringMap(),
                           writable: false, enumerable: true, configurable: false},
             mark: {value: o.mark,
                           writable: false, enumerable: true, configurable: false}
@@ -2142,6 +2140,7 @@
         }, []);
     }
 
+    exports.StringMap = StringMap;
     exports.enforest = enforest;
     exports.expand = expandTopLevel;
     exports.expandModule = expandModule;

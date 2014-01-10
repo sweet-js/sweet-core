@@ -1,12 +1,12 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require("es6-collections"),  require("./parser"), require("./expander"));
+        factory(exports, require('underscore'),  require("./parser"), require("./expander"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', 'underscore', 'es6-collections', 'parser', 'expander'], factory);
+        define(['exports', 'underscore', 'parser', 'expander'], factory);
     }
-}(this, function(exports, _, es6, parser, expander) {
+}(this, function(exports, _, parser, expander) {
 
     function assert(condition, message) {
         if (!condition) {
