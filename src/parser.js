@@ -790,7 +790,7 @@ parseYieldExpression: true
             };
         }
 
-        if (ch1 === '=' && ch2 === '>') {
+        if ((ch1 === '=' || ch1 === '-') && ch2 === '>') {
             index += 2;
             return {
                 type: Token.Punctuator,
