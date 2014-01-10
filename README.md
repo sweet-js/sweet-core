@@ -12,35 +12,45 @@ Hygienic Macros for JavaScript!
 
 Install sweet.js with npm:
 
-    $ npm install -g sweet.js
+```sh
+$ npm install -g sweet.js
+```
 
 And compile your sweet macro enhanced code:
 
-    $ sjs --output compiled.js my_sweet_code.js
+```sh
+$ sjs --output compiled.js my_sweet_code.js
+```
 
 ## Hacking
 
 Install the dev dependencies:
 
-    $ npm install
+```sh
+$ npm install
+```
 
 Build and run the tests:
 
-    $ grunt
+```sh
+$ grunt
+```
 
 Sweet.js is self hosted so you hack on the files in `src/` using the version of sweet.js already built in `lib/`. When you are happy with your hacking, `grunt dist` will build a new version of sweet.js and put it into `lib/`.
 
 Slightly confusing but the process goes like this:
 
-    <hack hack hack>
-    $ grunt
-    <tests fail!>
-    <hack hack hack>
-    $ grunt
-    <tests pass!>
-    $ grunt dist
-    $ git add lib/
-    $ git commit -m "sweet!"
+```sh
+<hack hack hack>
+$ grunt
+<tests fail!>
+<hack hack hack>
+$ grunt
+<tests pass!>
+$ grunt dist
+$ git add lib/
+$ git commit -m "sweet!"
+```
     
 
 ## Credits
