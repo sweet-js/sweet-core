@@ -844,4 +844,14 @@ describe("macro expander", function() {
         expect(a).to.be(0)
     })
 
+    it("should only reverse top-level repeater patterns", function() {
+        macro m {
+            rule infix { ($num ...) | } => {
+                $num (-) ...
+            }
+        }
+
+        expect((3 2 1) m).to.be(0);
+    })
+
 });
