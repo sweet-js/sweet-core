@@ -1234,8 +1234,26 @@
 
                     // ObjectGet
                     Expr(emp) | (rest[0] && unwrapSyntax(rest[0]) === "." &&
+                                 !context.env.has(resolve(rest[0])) &&
                                  rest[1] &&
                                  rest[1].token.type === parser.Token.Identifier) => {
+                        // Check if the identifier is a macro first.
+                        if (context.env.has(resolve(rest[1]))) {
+                            var headStx = tagWithTerm(head, head.destruct().reverse());
+                            var dotTerm = Punc.create(rest[0]);
+                            var dotTerms = [dotTerm].concat(head, prevTerms);
+                            var dotStx = tagWithTerm(dotTerm, [rest[0]]).concat(headStx, prevStx);
+                            var dotRes = enforest(rest.slice(1), context, dotStx, dotTerms);
+
+                            if (dotRes.prevTerms.length < dotTerms.length) {
+                                return dotRes;
+                            } else {
+                                return step(head,
+                                            [rest[0]].concat(dotRes.result.destruct(), dotRes.rest),
+                                            prevStx,
+                                            prevTerms);
+                            }
+                        }
                         return step(ObjDotGet.create(head, rest[0], rest[1]),
                                     rest.slice(2));
                     }
