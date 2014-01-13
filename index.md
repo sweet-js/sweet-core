@@ -132,7 +132,7 @@ To make things slightly more interesting, let's say we want to write a
 macro that swaps the values stored in two variables.
 
     macro swap {
-      rule { ($a, $b) } => {
+      rule { {$a <=> $b} } => {
         var tmp = $a;
         $a = $b;
         $b = tmp;
@@ -142,7 +142,7 @@ macro that swaps the values stored in two variables.
     var a = 10;
     var b = 20;
 
-    swap (a, b)
+    swap {a <=> b}
 
 After running this through sweet.js we get the expanded code:
 
@@ -165,7 +165,7 @@ wrong thing:
     var tmp = 10;
     var b = 20;
 
-    swap (tmp, b)
+    swap {tmp <=> b}
 
     // --> naive expansion
     var tmp = 10;
@@ -181,7 +181,7 @@ renamed:
     var tmp = 10;
     var b = 20;
 
-    swap (tmp, b)
+    swap {tmp <=> b}
 
     // --> hygienic expansion
     var tmp$1 = 10;
