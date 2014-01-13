@@ -2467,7 +2467,7 @@ parseYieldExpression: true
     }
 
     function parseTemplateElement(option) {
-        var token = scanTemplateElement(option);
+        var token = lex();
         if (strict && token.octal) {
             throwError(token, Messages.StrictOctalLiteral);
         }

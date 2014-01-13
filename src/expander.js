@@ -828,6 +828,14 @@
         }
     });
 
+    var Template = Expr.extend({
+        properties: ["template"],
+        
+        construct: function(template) {
+            this.template = template;
+        }
+    })
+
     function stxIsUnaryOp (stx) {
         var staticOperators = ["+", "-", "~", "!",
                                 "delete", "void", "typeof",
@@ -1553,6 +1561,8 @@
                 // Delimiter
                 } else if (head.token.type === parser.Token.Delimiter) {
                     return step(Delimiter.create(head.expose()), rest);
+                } else if (head.token.type === parser.Token.Template) {
+                    return step(Template.create(head), rest);
                 // end of file
                 } else if (head.token.type === parser.Token.EOF) {
                     assert(rest.length === 0, "nothing should be after an EOF");
