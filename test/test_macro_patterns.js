@@ -831,7 +831,7 @@ describe("macro expander", function() {
             }
         }
         expect(3 + 2 + 1).to.be(0)
-    })
+    });
 
     it("should allow macros to override postfix operators", function() {
         macro ++ {
@@ -842,6 +842,39 @@ describe("macro expander", function() {
         var a = 1;
         a++;
         expect(a).to.be(0)
+    });
+
+    it("should allow infix matching of object dot", function() {
+        macro m {
+            rule infix { $lhs:ident . | } => {
+                $lhs
+            }
+        }
+
+        macro m2 {
+            rule { $tok } => {
+                $tok
+            }
+        }
+
+        var a = 42;
+        expect(a.m).to.be(42);
+
+        var b = { foo: 42 };
+        expect(b.m2 foo).to.be(42);
+    })
+
+    it("should allow a dot as a macro after an expression", function() {
+        let . = macro {
+            rule infix { foo | } => {
+                42
+            }
+            rule {} => { . }
+        }
+
+        var a = { foo: 12 };
+        expect(a.foo).to.be(12);
+        expect(foo.).to.be(42);
     })
 
     it("should only reverse top-level repeater patterns", function() {
