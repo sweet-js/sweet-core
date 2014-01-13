@@ -849,7 +849,7 @@
                         push.apply(acc, takeLineContext(bodyStx, env[bodyStx.token.value].match));
                         return acc;
                     }
-                    acc.push(bodyStx);
+                    acc.push(syntaxFromToken(_.clone(bodyStx.token), bodyStx));
                     return acc;
                 }
             }, []).value();

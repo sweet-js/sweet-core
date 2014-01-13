@@ -885,6 +885,25 @@ describe("macro expander", function() {
         }
 
         expect((3 2 1) m).to.be(0);
-    })
+    });
+
+    it("should not flip boolean literals", function() {
+        let setToTrue = macro {
+            rule { $name ... } => {
+                $($name: true) (,)...
+            }
+        }
+
+        // esprima uses mutation when parsing object properties
+        // and we had been reusing the `true` token from the macro
+        // template instead creating a fresh copy so the `true` was being
+        // flipped to false. This test just test for that regression.
+        var x = {
+            setToTrue x y z
+        }
+        expect(x.x).to.be(true);
+        expect(x.y).to.be(true);
+        expect(x.z).to.be(true);
+    });
 
 });
