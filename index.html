@@ -239,7 +239,7 @@ bob.say(&quot;Macros are sweet!&quot;);</code></pre>
 <p>To make things slightly more interesting, let&#8217;s say we want to write a macro that swaps the values stored in two variables.</p>
 
 <pre><code>macro swap {
-  rule { ($a, $b) } =&gt; {
+  rule { {$a &lt;=&gt; $b} } =&gt; {
     var tmp = $a;
     $a = $b;
     $b = tmp;
@@ -249,7 +249,7 @@ bob.say(&quot;Macros are sweet!&quot;);</code></pre>
 var a = 10;
 var b = 20;
 
-swap (a, b)</code></pre>
+swap {a &lt;=&gt; b}</code></pre>
 
 <p>After running this through sweet.js we get the expanded code:</p>
 
@@ -267,7 +267,7 @@ b$2 = tmp$3;</code></pre>
 <pre><code>var tmp = 10;
 var b = 20;
 
-swap (tmp, b)
+swap {tmp &lt;=&gt; b}
 
 // --&gt; naive expansion
 var tmp = 10;
@@ -282,7 +282,7 @@ b = tmp;</code></pre>
 <pre><code>var tmp = 10;
 var b = 20;
 
-swap (tmp, b)
+swap {tmp &lt;=&gt; b}
 
 // --&gt; hygienic expansion
 var tmp$1 = 10;
