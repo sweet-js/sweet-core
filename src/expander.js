@@ -828,6 +828,15 @@
         }
     });
 
+    var YieldExpression = Expr.extend({
+        properties: ["yieldkw", "expr"],
+
+        construct: function(yieldkw, expr) {
+            this.yieldkw = yieldkw;
+            this.expr = expr;
+        }
+    })
+
     var Template = Expr.extend({
         properties: ["template"],
         
@@ -1340,6 +1349,15 @@
                                         rest[0] && rest[0].token.value === "()") => {
                         return step(ForStatement.create(keyword, rest[0]), 
                                     rest.slice(1));
+                    }
+
+                    Keyword(keyword) | (unwrapSyntax(keyword) === "yield") => {
+                        var yieldExprRes = enforest(rest, context);
+
+                        if (yieldExprRes.result.hasPrototype(Expr)) {
+                            return step(YieldExpression.create(keyword, yieldExprRes.result),
+                                        yieldExprRes.rest);
+                        }
                     }
                 }
             } else {
