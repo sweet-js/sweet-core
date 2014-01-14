@@ -1026,6 +1026,10 @@
             if (unwrapSyntax(first[i]) !== unwrapSyntax(second[i])) {
                 return false;
             }
+            // make sure multi token macros do not have any whitespace between the tokens
+            if (i > 0 && second[i - 1].token.range[1] !== second[i].token.range[0]) {
+                return false;
+            }
         }
         return true;
     }
@@ -1304,6 +1308,9 @@
                         for (var i = 0; i < rest.length; i++) {
                             if (rest[i].token.type === parser.Token.Punctuator && rest[i].token.value === "=") {
                                 break;
+                                
+                            } else if (i > 0 && rest[i - 1].token.range[1] !== rest[i].token.range[0]) {
+                                throwSyntaxError("enforest", "Multi token macro names must not contain spaces between tokens", rest[i]);
                             } else if (rest[i].token.type === parser.Token.Keyword ||
                                        rest[i].token.type === parser.Token.Punctuator ||
                                        rest[i].token.type === parser.Token.Identifier) {
@@ -1443,6 +1450,8 @@
                         // done with the name once we find the delimiter
                         if (rest[i].token.type === parser.Token.Delimiter) {
                             break;
+                        } else if (i > 0 && rest[i - 1].token.range[1] !== rest[i].token.range[0]) {
+                            throwSyntaxError("enforest", "Multi token macro names must not contain spaces between tokens", rest[i]);
                         } else if (rest[i].token.type === parser.Token.Identifier ||
                                    rest[i].token.type === parser.Token.Keyword ||
                                    rest[i].token.type === parser.Token.Punctuator) {
