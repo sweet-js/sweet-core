@@ -548,7 +548,7 @@ let macro = macro {
                 var rule_pattern = body_inner_stx[i + 1].token.inner;
 
                 if (!(body_inner_stx[i + 3] && body_inner_stx[i + 3].token && body_inner_stx[i + 3].token.inner)) {
-                    throwSyntaxError("macro", "Macro `quoteSyntax` could not be matched" , body_inner_stx[i + 3]);
+                    throwSyntaxError("macro", "Macro `macro` could not be matched" , body_inner_stx[i + 3]);
                 }
                 var rule_def = body_inner_stx[i + 3].expose().token.inner;
                 rules = rules.concat(translateRule(rule_pattern, rule_def, isInfix));
