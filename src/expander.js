@@ -1164,7 +1164,10 @@
                     // BinOp
                     Expr(emp) | (rest[0] && rest[1] && stxIsBinOp(rest[0])) => {
                         // Check if the operator is a macro first.
-                        if (context.env.has(resolve(rest[0]))) {
+                        if (context.env.has(resolve(rest[0])) &&
+                            tokenValuesArePrefix(context.env.get(resolve(rest[0])).fullName,
+                                                 rest)) {
+
                             var headStx = tagWithTerm(head, head.destruct().reverse());
                             prevStx = headStx.concat(prevStx);
                             prevTerms = [head].concat(prevTerms);

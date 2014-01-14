@@ -824,6 +824,21 @@ describe("macro expander", function() {
         expect(-> 100).to.be(100);
     });
 
+    it("should work with multi punctuator infix macros", function() {
+        let -> = macro {
+            rule infix { $arg:ident | $body:expr } => {
+                function($arg) { return $body }
+            }
+        }
+
+        var a = x -> x - 1;
+        expect(a(10)).to.be(9);
+        var b = x -> x + 2;
+        expect(b(10)).to.be(12);
+        var c = x -> x - 3; 
+        expect(c(10)).to.be(7);
+    })
+
     it("should allow macros to override binary operators", function() {
         macro + {
             rule infix { $lhs:expr | $rhs:expr } => {
