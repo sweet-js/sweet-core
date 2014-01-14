@@ -5777,7 +5777,7 @@ parseYieldExpression: true
             }
         }
 
-        extra = {loc: true};
+        extra = {loc: true, errors: []};
         patch();
         try {
             program = parseProgram();
