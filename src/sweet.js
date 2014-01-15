@@ -25,19 +25,21 @@
 
 (function (root, factory) {
     if (typeof exports === 'object') {
-        // CommonJS
-        var parser = require("./parser");
-        var expander = require("./expander");
-        var syn = require("./syntax");
-        var codegen = require("escodegen");
-
         var path = require('path');
         var fs   = require('fs');
         var lib  = path.join(path.dirname(fs.realpathSync(__filename)), "../macros");
 
         var stxcaseModule = fs.readFileSync(lib + "/stxcase.js", 'utf8');
 
-        factory(exports, parser, expander, syn, stxcaseModule, codegen, fs);
+        factory(exports,
+                require("underscore"),
+                require("./parser"),
+                require("./expander"),
+                require("./syntax"),
+                stxcaseModule,
+                require("escodegen"),
+                require("escope"),
+                fs);
 
         // Alow require('./example') for an example.sjs file.
         require.extensions['.sjs'] = function(module, filename) {
@@ -46,10 +48,16 @@
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['exports', './parser', './expander', './syntax', 'text!./stxcase.js'], factory);
+        define(['exports',
+                'underscore',
+                './parser',
+                './expander',
+                './syntax',
+                'text!./stxcase.js'], factory);
     }
-}(this, function (exports, parser, expander, syn, stxcaseModule, gen, fs) {
+}(this, function (exports, _, parser, expander, syn, stxcaseModule, gen, scope, fs) {
     var codegen = gen || escodegen;
+    var escope = scope || escope;
     var expand = makeExpand(expander.expand);
     var expandModule = makeExpand(expander.expandModule);
     var stxcaseCtx;
@@ -121,12 +129,20 @@
                         options.modules || [],
                         options.maxExpands);
 
+        if (options.betterHygiene) {
+            ast = optimizeHygiene(ast);
+        }
+
+        if (options.ast) {
+            return ast;
+        }
+
         if (options.sourceMap) {
-            output = codegen.generate(ast, {
+            output = codegen.generate(ast, _.extend({
                 comment: true,
                 sourceMap: options.filename,
                 sourceMapWithCode: true
-            });
+            }, options.escodegen));
 
             return {
                 code: output.code,
@@ -134,9 +150,9 @@
             };
         } 
         return {
-            code: codegen.generate(ast, {
+            code: codegen.generate(ast, _.extend({
                 comment: true
-            })
+            }, options.escodegen))
         };
     }
 
@@ -149,6 +165,57 @@
         };
         var path = Module._resolveFilename(moduleName, mock);
         return expandModule(fs.readFileSync(path, "utf8"));
+    }
+
+    function optimizeHygiene(ast) {
+        // escope hack: sweet doesn't rename global vars. We wrap in a closure
+        // to create a 'static` scope for all of the vars sweet renamed.
+        var wrapper = parse('(function(){})()');
+        wrapper.body[0].expression.callee.body.body = ast.body;
+
+        function sansUnique(name) {
+            var match = name.match(/^(.+)\$[\d]+$/);
+            return match ? match[1] : null;
+        }
+
+        function wouldShadow(name, scope) {
+            while (scope) {
+                if (scope.scrubbed && scope.scrubbed.has(name)) {
+                    return scope.scrubbed.get(name);
+                }
+                scope = scope.upper;
+            }
+            return 0;
+        }
+
+        escope.analyze(wrapper).scopes.forEach(function(scope) {
+            if (!scope.isStatic()) {
+                return;
+            }
+            scope.scrubbed = new expander.StringMap();
+            scope.variables.forEach(function(variable) {
+                var name = sansUnique(variable.name);
+                if (!name) {
+                    return;
+                }
+
+                var level = wouldShadow(name, scope);
+                if (level) {
+                    scope.scrubbed.set(name, level + 1);
+                    name = name + '$' + (level + 1);
+                } else {
+                    scope.scrubbed.set(name, 1);
+                }
+                variable.identifiers.forEach(function(i) {
+                    i.name = name;
+                });
+                variable.references.forEach(function(r) {
+                    r.identifier.name = name;
+                });
+            });
+        });
+
+        return ast;
     }
 
     exports.expand = expand;

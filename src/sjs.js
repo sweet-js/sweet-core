@@ -15,6 +15,8 @@ var argv = require("optimist")
     .boolean('watch')
     .alias('t', 'tokens')
     .describe('t', 'just emit the expanded tokens without parsing an AST')
+    .alias('a', 'ast')
+    .describe('a', 'just emit the expanded AST')
     .alias('p', 'no-parse')
     .describe('p', 'print out the expanded result but do not run through the parser (or apply hygienic renamings)')
     .boolean("no-parse")
@@ -28,6 +30,9 @@ var argv = require("optimist")
     .describe('n', 'the maximum number of expands to perform')
     .alias('h', 'step-hygiene')
     .describe('h', 'display hygienic renames when stepping with "--num-expands"')
+    .alias('b', 'better-hygiene')
+    .describe('b', 'remove as many hygienic renames as possible (ES5 code only!)')
+    .describe('format-indent', 'number of spaces for indentation')
     .argv;
 
 exports.run = function() {
@@ -35,10 +40,16 @@ exports.run = function() {
     var outfile = argv.output;
     var watch = argv.watch;
     var tokens = argv.tokens;
+    var ast = argv.ast;
     var sourcemap = argv.sourcemap;
     var noparse = argv['no-parse'];
     var numexpands = argv['num-expands'];
-    var displayHygiene = argv['step-hygiene']
+    var displayHygiene = argv['step-hygiene'];
+    var betterHygiene = argv['better-hygiene'];
+    var formatIndent = parseInt(argv['format-indent'], 10);
+    if (formatIndent !== formatIndent) {
+        formatIndent = 4;
+    }
 
     var file;
     if (infile) {
@@ -60,7 +71,16 @@ exports.run = function() {
 
     var options = {
         filename: infile,
-        modules: modules
+        modules: modules,
+        ast: ast,
+        betterHygiene: betterHygiene,
+        escodegen: {
+            format: {
+                indent: {
+                    style: Array(formatIndent + 1).join(' ')
+                }
+            }
+        }
     };
     
     if (watch && outfile) {
@@ -84,6 +104,8 @@ exports.run = function() {
         }
     } else if (tokens) {
         console.log(sweet.expand(file, modules, numexpands));
+    } else if (ast) {
+        console.log(JSON.stringify(sweet.compile(file, options), null, formatIndent));
     } else if (noparse) {
         var unparsedString = syn.prettyPrint(sweet.expand(file, modules, numexpands), displayHygiene);        
         console.log(unparsedString);
