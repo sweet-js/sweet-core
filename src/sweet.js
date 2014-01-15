@@ -129,7 +129,7 @@
                         options.modules || [],
                         options.maxExpands);
 
-        if (options.betterHygiene) {
+        if (options.readableNames) {
             ast = optimizeHygiene(ast);
         }
 
