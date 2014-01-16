@@ -188,17 +188,44 @@
             return 0;
         }
 
-        escope.analyze(wrapper).scopes.forEach(function(scope) {
+        var scopes = escope.analyze(wrapper).scopes;
+        var globalScope;
+
+        // The first pass over the scope collects any non-static references,
+        // which means references from the global scope. We need to make these
+        // verboten so we don't accidently mangle a name to match. This could
+        // cause seriously hard to find bugs if you were just testing with
+        // --readable-names on.
+        scopes.forEach(function(scope) {
+            scope.scrubbed = new expander.StringMap();
+
+            // There aren't any references declared in the global scope since
+            // we wrapped our input in a static closure.
+            if (!scope.isStatic()) {
+                globalScope = scope;
+                return;
+            }
+
+            scope.references.forEach(function(ref) {
+                if (!ref.isStatic()) {
+                    globalScope.scrubbed.set(ref.identifier.name, 1);
+                }
+            });
+        });
+
+        // The second pass mangles the names to get rid of the hygiene tag
+        // wherever possible.
+        scopes.forEach(function(scope) {
+            // No need to rename things in the global scope.
             if (!scope.isStatic()) {
                 return;
             }
-            scope.scrubbed = new expander.StringMap();
+
             scope.variables.forEach(function(variable) {
                 var name = sansUnique(variable.name);
                 if (!name) {
                     return;
                 }
-
                 var level = wouldShadow(name, scope);
                 if (level) {
                     scope.scrubbed.set(name, level + 1);

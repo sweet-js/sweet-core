@@ -1,4 +1,5 @@
 var expect = require("expect.js");
+var sweet = require("../build/lib/sweet.js");
 
 let describe = macro {
     case {_ $description:lit { $body ... }} => {
@@ -348,5 +349,70 @@ describe "macro hygiene" {
         m bar 200
         expect(foo).to.be(100);
         expect(bar).to.be(200);
+    }
+
+    it "should rename uniquely by scope when using readableNames" {
+        var before = [
+            'var i = 1;',
+            'function foo() {',
+            '    var i = 2;',
+            '    function foo() {',
+            '        var i = 3;',
+            '    }',
+            '}',
+            'function bar() {',
+            '    var i = 2;',
+            '}'
+        ].join('\n');
+
+        var after = [
+            'var i = 1;',
+            'function foo() {',
+            '    var i$2 = 2;',
+            '    function foo$2() {',
+            '        var i$3 = 3;',
+            '    }',
+            '}',
+            'function bar() {',
+            '    var i$2 = 2;',
+            '}'
+        ].join('\n');
+
+        var compiled = sweet.compile(before, {
+            readableNames: true
+        }).code;
+
+        expect(compiled).to.be(after);
+    }
+
+    it "should account for global leaks when using readableNames" {
+        var before = [
+            'macro clobber {',
+            '    case { _ $tok } => {',
+            '        var tok = #{ $tok };',
+            '        tok[0].context = null;',
+            '        return tok;',
+            '    }',
+            '}',
+            'var i = 1;',
+            'function foo() {',
+            '    var i = 2;',
+            '    var j = clobber i;',
+            '}'
+        ].join('\n');
+
+        var after = [
+            'var i$2 = 1;',
+            'function foo() {',
+            '    var i$3 = 2;',
+            '    var j = i;',
+            '}'
+        ].join('\n');
+
+        var compiled = sweet.compile(before, {
+            readableNames: true
+        }).code;
+
+        expect(compiled).to.be(after);
     }
 }
