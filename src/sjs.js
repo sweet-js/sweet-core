@@ -32,6 +32,7 @@ var argv = require("optimist")
     .describe('h', 'display hygienic renames when stepping with "--num-expands"')
     .alias('r', 'readable-names')
     .describe('r', 'remove as many hygienic renames as possible (ES5 code only!)')
+    .boolean('readable-names')
     .describe('format-indent', 'number of spaces for indentation')
     .argv;
 
