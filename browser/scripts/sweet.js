@@ -138,41 +138,64 @@
         // to create a 'static` scope for all of the vars sweet renamed.
         var wrapper$1921 = parse$1894('(function(){})()');
         wrapper$1921.body[0].expression.callee.body.body = ast$1920.body;
-        function sansUnique$1922(name$1924) {
-            var match$1925 = name$1924.match(/^(.+)\$[\d]+$/);
-            return match$1925 ? match$1925[1] : null;
+        function sansUnique$1922(name$1926) {
+            var match$1927 = name$1926.match(/^(.+)\$[\d]+$/);
+            return match$1927 ? match$1927[1] : null;
         }
-        function wouldShadow$1923(name$1926, scope$1927) {
-            while (scope$1927) {
-                if (scope$1927.scrubbed && scope$1927.scrubbed.has(name$1926)) {
-                    return scope$1927.scrubbed.get(name$1926);
+        function wouldShadow$1923(name$1928, scope$1929) {
+            while (scope$1929) {
+                if (scope$1929.scrubbed && scope$1929.scrubbed.has(name$1928)) {
+                    return scope$1929.scrubbed.get(name$1928);
                 }
-                scope$1927 = scope$1927.upper;
+                scope$1929 = scope$1929.upper;
             }
             return 0;
         }
-        escope$1889.analyze(wrapper$1921).scopes.forEach(function (scope$1928) {
-            if (!scope$1928.isStatic()) {
+        var scopes$1924 = escope$1889.analyze(wrapper$1921).scopes;
+        var globalScope$1925;
+        // The first pass over the scope collects any non-static references,
+        // which means references from the global scope. We need to make these
+        // verboten so we don't accidently mangle a name to match. This could
+        // cause seriously hard to find bugs if you were just testing with
+        // --readable-names on.
+        scopes$1924.forEach(function (scope$1930) {
+            scope$1930.scrubbed = new expander$1882.StringMap();
+            // There aren't any references declared in the global scope since
+            // we wrapped our input in a static closure.
+            if (!scope$1930.isStatic()) {
+                globalScope$1925 = scope$1930;
                 return;
             }
-            scope$1928.scrubbed = new expander$1882.StringMap();
-            scope$1928.variables.forEach(function (variable$1929) {
-                var name$1930 = sansUnique$1922(variable$1929.name);
-                if (!name$1930) {
+            scope$1930.references.forEach(function (ref$1931) {
+                if (!ref$1931.isStatic()) {
+                    globalScope$1925.scrubbed.set(ref$1931.identifier.name, 1);
+                }
+            });
+        });
+        // The second pass mangles the names to get rid of the hygiene tag
+        // wherever possible.
+        scopes$1924.forEach(function (scope$1932) {
+            // No need to rename things in the global scope.
+            if (!scope$1932.isStatic()) {
+                return;
+            }
+            scope$1932.variables.forEach(function (variable$1933) {
+                var name$1934 = sansUnique$1922(variable$1933.name);
+                if (!name$1934) {
                     return;
                 }
-                var level$1931 = wouldShadow$1923(name$1930, scope$1928);
-                if (level$1931) {
-                    scope$1928.scrubbed.set(name$1930, level$1931 + 1);
-                    name$1930 = name$1930 + '$' + (level$1931 + 1);
+                var level$1935 = wouldShadow$1923(name$1934, scope$1932);
+                if (level$1935) {
+                    scope$1932.scrubbed.set(name$1934, level$1935 + 1);
+                    name$1934 = name$1934 + '$' + (level$1935 + 1);
                 } else {
-                    scope$1928.scrubbed.set(name$1930, 1);
+                    scope$1932.scrubbed.set(name$1934, 1);
                 }
-                variable$1929.identifiers.forEach(function (i$1932) {
-                    i$1932.name = name$1930;
+                variable$1933.identifiers.forEach(function (i$1936) {
+                    i$1936.name = name$1934;
                 });
-                variable$1929.references.forEach(function (r$1933) {
-                    r$1933.identifier.name = name$1930;
+                variable$1933.references.forEach(function (r$1937) {
+                    r$1937.identifier.name = name$1934;
                 });
             });
         });
