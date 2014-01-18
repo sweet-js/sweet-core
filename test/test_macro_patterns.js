@@ -921,4 +921,24 @@ describe("macro expander", function() {
         expect(x.z).to.be(true);
     });
 
+    it("should not drop tokens when overriding bin/post operators as prefix macros", function(){
+        let + = macro {
+            rule { $rest ... } => {
+              + $rest ...
+            }
+        }
+        let ++ = macro {
+            rule { $rest ... } => {
+              ++ $rest ...
+            }
+        }
+
+        expect(1 + 2 + 3 + 4).to.be(10);
+
+        var a = 1;
+        var b = a++;
+        expect(a).to.be(2);
+        expect(b).to.be(1);
+    });
+
 });

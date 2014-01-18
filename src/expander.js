@@ -1167,22 +1167,34 @@
 
                     // BinOp
                     Expr(emp) | (rest[0] && rest[1] && stxIsBinOp(rest[0])) => {
+                        var bopPrevStx, bopPrevTerms, bopRes;
+                        var bopName = resolve(rest[0]);
+
                         // Check if the operator is a macro first.
-                        if (context.env.has(resolve(rest[0])) &&
-                            tokenValuesArePrefix(context.env.get(resolve(rest[0])).fullName,
+                        if (context.env.has(bopName) &&
+                            tokenValuesArePrefix(context.env.get(bopName).fullName,
                                                  rest)) {
 
                             var headStx = tagWithTerm(head, head.destruct().reverse());
-                            prevStx = headStx.concat(prevStx);
-                            prevTerms = [head].concat(prevTerms);
-                            return step(rest[0], rest.slice(1));
+                            bopPrevStx = headStx.concat(prevStx);
+                            bopPrevTerms = [head].concat(prevTerms);
+                            bopRes = enforest(rest, context, bopPrevStx, bopPrevTerms);
+
+                            if (bopRes.prevTerms.length < bopPrevTerms.length) {
+                                return bopRes;
+                            } else {
+                                return step(head,
+                                            bopRes.result.destruct().concat(bopRes.rest));
+                            }
                         }
+
                         var op = rest[0];
                         var left = head;
                         var rightStx = rest.slice(1);
-                        var bopPrevStx = [rest[0]].concat(head.destruct().reverse(), prevStx);
-                        var bopPrevTerms = [Punc.create(rest[0]), head].concat(prevTerms);
-                        var bopRes = enforest(rightStx, context, bopPrevStx, bopPrevTerms);
+
+                        bopPrevStx = [rest[0]].concat(head.destruct().reverse(), prevStx);
+                        bopPrevTerms = [Punc.create(rest[0]), head].concat(prevTerms);
+                        bopRes = enforest(rightStx, context, bopPrevStx, bopPrevTerms);
 
                         // Lookbehind was matched, so it may not even be a binop anymore.
                         if (bopRes.prevTerms.length < bopPrevTerms.length) {
@@ -1243,9 +1255,16 @@
                         // Check if the operator is a macro first.
                         if (context.env.has(resolve(rest[0]))) {
                             var headStx = tagWithTerm(head, head.destruct().reverse());
-                            prevStx = headStx.concat(prevStx);
-                            prevTerms = [head].concat(prevTerms);
-                            return step(rest[0], rest.slice(1));
+                            var opPrevStx = headStx.concat(prevStx);
+                            var opPrevTerms = [head].concat(prevTerms);
+                            var opRes = enforest(rest, context, opPrevStx, opPrevTerms);
+                            
+                            if (opRes.prevTerms.length < opPrevTerms.length) {
+                                return opRes;
+                            } else {
+                                return step(head,
+                                            opRes.result.destruct().concat(opRes.rest));
+                            }
                         }
                         return step(PostfixOp.create(head, rest[0]), rest.slice(1));
                     }
@@ -1273,9 +1292,7 @@
                                 return dotRes;
                             } else {
                                 return step(head,
-                                            [rest[0]].concat(dotRes.result.destruct(), dotRes.rest),
-                                            prevStx,
-                                            prevTerms);
+                                            [rest[0]].concat(dotRes.result.destruct(), dotRes.rest));
                             }
                         }
                         return step(ObjDotGet.create(head, rest[0], rest[1]),
