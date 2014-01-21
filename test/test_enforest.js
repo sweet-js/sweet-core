@@ -32,5 +32,17 @@ describe("enforest", function() {
         var res = enforest(read("var x, y"), makeExpanderContext());
         expect(res.result.decls.length).to.be(2);
     });
+
+    // Currently disabled because it requires --harmony mode
+    // it("should maintain let hygiene when enforesting an expression with ASI", function() {
+    //     'use strict';
+    //     let a = 1 // No semicolons
+    //     let b = 2 
+    //     function test() {
+    //         // If the bug is present, this is a ReferenceError
+    //         return b;
+    //     }
+    //     expect(test()).to.be(2);
+    // });
 });
 

@@ -1647,7 +1647,11 @@
             }
         }
 
-        while (next.rest.length) {
+        while (next.rest.length &&
+               context.env.has(resolve(next.rest[0])) &&
+               tokenValuesArePrefix(context.env.get(resolve(next.rest[0])).fullName,
+                                    next.rest)) {
+
             // Enforest the next term tree since it might be an infix macro that
             // consumes the initial expression.
             peek = enforest(next.rest, context, next.result.destruct(), [next.result]);
@@ -1661,7 +1665,7 @@
 
             // No new expression was created, so we've reached the end.
             if (peek.result === next.result) {
-                break;
+                return peek;
             }
 
             // A new expression was created, so loop back around and keep going.
