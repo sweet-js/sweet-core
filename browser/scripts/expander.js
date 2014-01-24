@@ -171,31 +171,38 @@
     }
     // (Syntax) -> String
     function resolveCtx(originalName, ctx, stop_spine, stop_branch) {
-        if (ctx instanceof Mark) {
-            return resolveCtx(originalName, ctx.context, stop_spine, stop_branch);
-        }
-        if (ctx instanceof Def) {
-            if (stop_spine.indexOf(ctx.defctx) !== -1) {
-                return resolveCtx(originalName, ctx.context, stop_spine, stop_branch);
-            } else {
-                return resolveCtx(originalName, renames(ctx.defctx, ctx.context, originalName), stop_spine, unionEl(stop_branch, ctx.defctx));
+        while (true) {
+            if (ctx instanceof Mark) {
+                ctx = ctx.context;
+                continue;
             }
-        }
-        if (ctx instanceof Rename) {
-            if (originalName === ctx.id.token.value) {
-                var idName = resolveCtx(ctx.id.token.value, ctx.id.context, stop_branch, stop_branch);
-                var subName = resolveCtx(originalName, ctx.context, unionEl(stop_spine, ctx.def), stop_branch);
-                if (idName === subName) {
-                    var idMarks = marksof(ctx.id.context, originalName + '$' + ctx.name, originalName);
-                    var subMarks = marksof(ctx.context, originalName + '$' + ctx.name, originalName);
-                    if (arraysEqual(idMarks, subMarks)) {
-                        return originalName + '$' + ctx.name;
-                    }
+            if (ctx instanceof Def) {
+                if (stop_spine.indexOf(ctx.defctx) !== -1) {
+                    ctx = ctx.context;
+                    continue;
+                } else {
+                    stop_branch = unionEl(stop_branch, ctx.defctx);
+                    ctx = renames(ctx.defctx, ctx.context, originalName);
+                    continue;
                 }
             }
-            return resolveCtx(originalName, ctx.context, stop_spine, stop_branch);
+            if (ctx instanceof Rename) {
+                if (originalName === ctx.id.token.value) {
+                    var idName = resolveCtx(ctx.id.token.value, ctx.id.context, stop_branch, stop_branch);
+                    var subName = resolveCtx(originalName, ctx.context, unionEl(stop_spine, ctx.def), stop_branch);
+                    if (idName === subName) {
+                        var idMarks = marksof(ctx.id.context, originalName + '$' + ctx.name, originalName);
+                        var subMarks = marksof(ctx.context, originalName + '$' + ctx.name, originalName);
+                        if (arraysEqual(idMarks, subMarks)) {
+                            return originalName + '$' + ctx.name;
+                        }
+                    }
+                }
+                ctx = ctx.context;
+                continue;
+            }
+            return originalName;
         }
-        return originalName;
     }
     var nextFresh = 0;
     // fun () -> Num
