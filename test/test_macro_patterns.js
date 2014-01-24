@@ -837,7 +837,7 @@ describe("macro expander", function() {
         expect(b(10)).to.be(12);
         var c = x -> x - 3; 
         expect(c(10)).to.be(7);
-    })
+    });
 
     it("should allow macros to override binary operators", function() {
         macro + {
@@ -939,6 +939,19 @@ describe("macro expander", function() {
         var b = a++;
         expect(a).to.be(2);
         expect(b).to.be(1);
+    });
+
+    it("should allow multi token macros to share the same root token", function() {
+        macro @foo {
+            rule {} => { 12 }
+        }
+
+        macro @bar {
+            rule {} => { 42 }
+        }
+
+        expect(@foo).to.be(12);
+        expect(@bar).to.be(42);
     });
 
 });
