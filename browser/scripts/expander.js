@@ -837,21 +837,46 @@
             return stx$2;
         });
     }
-    function tokenValuesArePrefix(first, second) {
-        // short circuit 
-        if (second.length < first.length) {
-            return false;
-        }
-        for (var i = 0; i < first.length; i++) {
-            if (unwrapSyntax(first[i]) !== unwrapSyntax(second[i])) {
-                return false;
+    function getName(head, rest) {
+        var idx = 0;
+        var curr = head;
+        var next = rest[idx];
+        var name = [head];
+        while (true) {
+            if (next && (next.token.type === parser.Token.Punctuator || next.token.type === parser.Token.Identifier || next.token.type === parser.Token.Keyword) && curr.token.range[1] === next.token.range[0]) {
+                name.push(next);
+                curr = next;
+                next = rest[++idx];
+            } else {
+                return name;
             }
-            // make sure multi token macros do not have any whitespace between the tokens
-            if (i > 0 && second[i - 1].token.range[1] !== second[i].token.range[0]) {
-                return false;
-            }
         }
-        return true;
+    }
+    function getMacroInEnv(head, rest, context) {
+        var name = getName(head, rest);
+        // simple case, don't need to create a new syntax object
+        if (name.length === 1) {
+            var resolvedName = resolve(name[0]);
+            if (context.env.has(resolvedName)) {
+                return context.env.get(resolvedName);
+            }
+            return null;
+        } else {
+            while (name.length > 0) {
+                var nameStr = name.map(unwrapSyntax).join('');
+                var nameStx = syn.makeIdent(nameStr, name[0]);
+                var resolvedName = resolve(nameStx);
+                var inEnv = context.env.has(resolvedName);
+                if (inEnv) {
+                    return context.env.get(resolvedName);
+                }
+                name.pop();
+            }
+            return null;
+        }
+    }
+    function nameInEnv(head, rest, context) {
+        return getMacroInEnv(head, rest, context) !== null;
     }
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
@@ -962,7 +987,7 @@
                     var bopPrevStx, bopPrevTerms, bopRes;
                     var bopName = resolve(rest[0]);
                     // Check if the operator is a macro first.
-                    if (context.env.has(bopName) && tokenValuesArePrefix(context.env.get(bopName).fullName, rest)) {
+                    if (nameInEnv(rest[0], rest.slice(1), context)) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         bopPrevStx = headStx.concat(prevStx);
                         bopPrevTerms = [head].concat(prevTerms);
@@ -1105,9 +1130,9 @@
             } else {
                 assert(head && head.token, 'assuming head is a syntax object');
                 // macro invocation
-                if ((head.token.type === parser.Token.Identifier || head.token.type === parser.Token.Keyword || head.token.type === parser.Token.Punctuator) && expandCount < maxExpands && context.env.has(resolve(head)) && tokenValuesArePrefix(context.env.get(resolve(head)).fullName, [head].concat(rest))) {
+                if ((head.token.type === parser.Token.Identifier || head.token.type === parser.Token.Keyword || head.token.type === parser.Token.Punctuator) && expandCount < maxExpands && nameInEnv(head, rest, context)) {
                     // pull the macro transformer out the environment
-                    var macroObj = context.env.get(resolve(head));
+                    var macroObj = getMacroInEnv(head, rest, context);
                     var transformer = macroObj.fn;
                     // create a new mark to be used for the input to
                     // the macro
@@ -1257,7 +1282,7 @@
                 rest: stx
             };
         }
-        while (next.rest.length && context.env.has(resolve(next.rest[0])) && tokenValuesArePrefix(context.env.get(resolve(next.rest[0])).fullName, next.rest)) {
+        while (next.rest.length && nameInEnv(next.rest[0], next.rest.slice(1), context)) {
             // Enforest the next term tree since it might be an infix macro that
             // consumes the initial expression.
             peek = enforest(next.rest, context, next.result.destruct(), [next.result]);
@@ -1420,8 +1445,10 @@
             if (head.hasPrototype(Macro) && expandCount < maxExpands) {
                 // load the macro definition into the environment and continue expanding
                 macroDefinition = loadMacroDef(head, context);
-                addToDefinitionCtx([head.name[0]], context.defscope, false);
-                context.env.set(resolve(head.name[0]), {
+                var name = head.name.map(unwrapSyntax).join('');
+                var nameStx = syn.makeIdent(name, head.name[0]);
+                addToDefinitionCtx([nameStx], context.defscope, false);
+                context.env.set(resolve(nameStx), {
                     fn: macroDefinition,
                     builtin: builtinMode,
                     fullName: head.name
@@ -1432,12 +1459,12 @@
                 // load the macro definition into the environment and continue expanding
                 macroDefinition = loadMacroDef(head, context);
                 var freshName = fresh();
-                var name = head.name[0];
-                var renamedName = name.rename(name, freshName);
+                var name = head.name.map(unwrapSyntax).join('');
+                var nameStx = syn.makeIdent(name, head.name[0]);
+                var renamedName = nameStx.rename(nameStx, freshName);
                 rest = _.map(rest, function (stx$2) {
-                    return stx$2.rename(name, freshName);
+                    return stx$2.rename(nameStx, freshName);
                 });
-                head.name[0] = renamedName;
                 context.env.set(resolve(renamedName), {
                     fn: macroDefinition,
                     builtin: builtinMode,
