@@ -115,6 +115,7 @@ module.exports = function(grunt) {
                 var output = sweet.compile(code, {
                     sourceMap: options.sourceMap,
                     filename: file,
+                    readableNames: true,
                     macros: moduleSrc
                 });
 
