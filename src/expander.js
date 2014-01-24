@@ -1816,31 +1816,21 @@
 
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
-    function expandToTermTree (stx, context, prevStx, prevTerms) {
+    function expandToTermTree(stx, context) {
         assert(context, "expander context is required");
 
-        if (stx.length === 0) {
-            return {
-                // prevTerms are stored in reverse for the purposes of infix
-                // lookbehind matching, so we need to re-reverse them.
-                terms: prevTerms ? prevTerms.reverse() : [],
-                context: context,
-            };
-        }
-
-        assert(stx[0].token, "expecting a syntax object");
-
-        var f, head, prevStx, prevTerms;
+        var f, head, prevStx, prevTerms, macroDefinition;
         var rest = stx;
 
         while (rest.length > 0) {
+            assert(rest[0].token, "expecting a syntax object");
+
             f = enforest(rest, context, prevStx, prevTerms);
             // head :: TermTree
             head = f.result;
             // rest :: [Syntax]
             rest = f.rest;
 
-            var macroDefinition
             if (head.hasPrototype(Macro) && expandCount < maxExpands) {
                 // load the macro definition into the environment and continue expanding
                 macroDefinition = loadMacroDef(head, context);
