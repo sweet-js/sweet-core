@@ -1818,7 +1818,6 @@
     function expandToTermTree (stx, context, prevStx, prevTerms) {
         assert(context, "expander context is required");
 
-        // short circuit when syntax array is empty
         if (stx.length === 0) {
             return {
                 // prevTerms are stored in reverse for the purposes of infix
@@ -1830,124 +1829,135 @@
 
         assert(stx[0].token, "expecting a syntax object");
 
-        var f = enforest(stx, context, prevStx, prevTerms);
-        // head :: TermTree
-        var head = f.result;
-        // rest :: [Syntax]
-        var rest = f.rest;
+        var f, head, prevStx, prevTerms;
+        var rest = stx;
 
-        var macroDefinition
-        if (head.hasPrototype(Macro) && expandCount < maxExpands) {
-            // load the macro definition into the environment and continue expanding
-            macroDefinition = loadMacroDef(head, context);
+        while (rest.length > 0) {
+            f = enforest(rest, context, prevStx, prevTerms);
+            // head :: TermTree
+            head = f.result;
+            // rest :: [Syntax]
+            rest = f.rest;
 
-            addToDefinitionCtx([head.name[0]], context.defscope, false);
-            context.env.set(resolve(head.name[0]), {
-                fn: macroDefinition,
-                builtin: builtinMode,
-                fullName: head.name
-            });
+            var macroDefinition
+            if (head.hasPrototype(Macro) && expandCount < maxExpands) {
+                // load the macro definition into the environment and continue expanding
+                macroDefinition = loadMacroDef(head, context);
 
-            return expandToTermTree(rest, context, prevStx, prevTerms);
-        }
-
-        if (head.hasPrototype(LetMacro) && expandCount < maxExpands) {
-            // load the macro definition into the environment and continue expanding
-            macroDefinition = loadMacroDef(head, context);
-            var freshName = fresh();
-            var name = head.name[0];
-            var renamedName = name.rename(name, freshName);
-            rest = _.map(rest, function(stx) {
-                return stx.rename(name, freshName);
-            });
-            head.name[0] = renamedName;
-
-            context.env.set(resolve(renamedName), {
-                fn: macroDefinition,
-                builtin: builtinMode,
-                fullName: head.name
-            });
-
-            return expandToTermTree(rest, context, prevStx, prevTerms);
-        }
-
-        // We build the newPrevTerms/Stx here (instead of at the beginning) so
-        // that macro definitions don't get added to it.
-        var destructed = tagWithTerm(head, f.result.destruct());
-        var newPrevTerms = [head].concat(f.prevTerms);
-        var newPrevStx = destructed.reverse().concat(f.prevStx);
-
-        if (head.hasPrototype(NamedFun)) {
-            addToDefinitionCtx([head.name], context.defscope, true);
-        }
-
-        if (head.hasPrototype(VariableStatement)) {
-            addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
-                               context.defscope,
-                               true)
-        }
-
-        if(head.hasPrototype(Block) && head.body.hasPrototype(Delimiter)) {
-            head.body.delim.token.inner.forEach(function(term) {
-                if (term.hasPrototype(VariableStatement)) {
-                    addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
-                                       context.defscope,
-                                       true);
-                }
-            });
-
-        } 
-
-        if(head.hasPrototype(Delimiter)) {
-            head.delim.token.inner.forEach(function(term)  {
-                if (term.hasPrototype(VariableStatement)) {
-                    addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
-                                       context.defscope,
-                                       true);
-                                      
-                }
-            });
-        }
-
-        if (head.hasPrototype(ForStatement)) {
-            head.cond.expose();
-            var forCond = head.cond.token.inner;
-            if(forCond[0] && resolve(forCond[0]) === "let" &&
-               forCond[1] && forCond[1].token.type === parser.Token.Identifier) {
-                var letNew = fresh();
-                var letId = forCond[1];
-
-                forCond = forCond.map(function(stx) {
-                    return stx.rename(letId, letNew);
+                addToDefinitionCtx([head.name[0]], context.defscope, false);
+                context.env.set(resolve(head.name[0]), {
+                    fn: macroDefinition,
+                    builtin: builtinMode,
+                    fullName: head.name
                 });
 
-                // hack: we want to do the let renaming here, not
-                // in the expansion of `for (...)` so just remove the `let`
-                // keyword
-                head.cond.token.inner = expand([forCond[0]], context)
-                                        .concat(expand(forCond.slice(1), context));
+                continue;
+            }
 
-                // nice and easy case: `for (...) { ... }`
-                if (rest[0] && rest[0].token.value === "{}") {
-                    rest[0] = rest[0].rename(letId, letNew);
+            if (head.hasPrototype(LetMacro) && expandCount < maxExpands) {
+                // load the macro definition into the environment and continue expanding
+                macroDefinition = loadMacroDef(head, context);
+                var freshName = fresh();
+                var name = head.name[0];
+                var renamedName = name.rename(name, freshName);
+                rest = _.map(rest, function(stx) {
+                    return stx.rename(name, freshName);
+                });
+                head.name[0] = renamedName;
+
+                context.env.set(resolve(renamedName), {
+                    fn: macroDefinition,
+                    builtin: builtinMode,
+                    fullName: head.name
+                });
+
+                continue;
+            }
+
+
+
+            // We build the newPrevTerms/Stx here (instead of at the beginning) so
+            // that macro definitions don't get added to it.
+            var destructed = tagWithTerm(head, f.result.destruct());
+            prevTerms = [head].concat(f.prevTerms);
+            prevStx = destructed.reverse().concat(f.prevStx);
+
+            if (head.hasPrototype(NamedFun)) {
+                addToDefinitionCtx([head.name], context.defscope, true);
+            }
+
+            if (head.hasPrototype(VariableStatement)) {
+                addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
+                                   context.defscope,
+                                   true)
+            }
+
+            if(head.hasPrototype(Block) && head.body.hasPrototype(Delimiter)) {
+                head.body.delim.token.inner.forEach(function(term) {
+                    if (term.hasPrototype(VariableStatement)) {
+                        addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
+                                           context.defscope,
+                                           true);
+                    }
+                });
+
+            } 
+
+            if(head.hasPrototype(Delimiter)) {
+                head.delim.token.inner.forEach(function(term)  {
+                    if (term.hasPrototype(VariableStatement)) {
+                        addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
+                                           context.defscope,
+                                           true);
+                                          
+                    }
+                });
+            }
+
+            if (head.hasPrototype(ForStatement)) {
+                head.cond.expose();
+                var forCond = head.cond.token.inner;
+                if(forCond[0] && resolve(forCond[0]) === "let" &&
+                   forCond[1] && forCond[1].token.type === parser.Token.Identifier) {
+                    var letNew = fresh();
+                    var letId = forCond[1];
+
+                    forCond = forCond.map(function(stx) {
+                        return stx.rename(letId, letNew);
+                    });
+
+                    // hack: we want to do the let renaming here, not
+                    // in the expansion of `for (...)` so just remove the `let`
+                    // keyword
+                    head.cond.token.inner = expand([forCond[0]], context)
+                                            .concat(expand(forCond.slice(1), context));
+
+                    // nice and easy case: `for (...) { ... }`
+                    if (rest[0] && rest[0].token.value === "{}") {
+                        rest[0] = rest[0].rename(letId, letNew);
+                    } else {
+                        // need to deal with things like `for (...) if (...) log(...)`
+                        var bodyEnf = enforest(rest, context);
+                        var bodyDestructed = bodyEnf.result.destruct();
+                        var renamedBodyTerm = bodyEnf.result.rename(letId, letNew);
+                        tagWithTerm(renamedBodyTerm, bodyDestructed);
+                        rest = bodyEnf.rest;
+                        prevStx = bodyDestructed.reverse().concat(prevStx);
+                        prevTerms = [renamedBodyTerm].concat(prevTerms);
+                    }
+
                 } else {
-                    // need to deal with things like `for (...) if (...) log(...)`
-                    var bodyEnf = enforest(rest, context);
-                    var bodyDestructed = bodyEnf.result.destruct();
-                    var renamedBodyTerm = bodyEnf.result.rename(letId, letNew);
-                    tagWithTerm(renamedBodyTerm, bodyDestructed);
-                    return expandToTermTree(bodyEnf.rest, 
-                                            context,
-                                            bodyDestructed.reverse().concat(newPrevStx),
-                                            [renamedBodyTerm].concat(newPrevTerms));
+                    head.cond.token.inner = expand(head.cond.token.inner, context);
                 }
-
-            } else {
-                head.cond.token.inner = expand(head.cond.token.inner, context);
             }
         }
 
-        return expandToTermTree(rest, context, newPrevStx, newPrevTerms);
+        return {
+            // prevTerms are stored in reverse for the purposes of infix
+            // lookbehind matching, so we need to re-reverse them.
+            terms: prevTerms ? prevTerms.reverse() : [],
+            context: context,
+        };
     }
 
     function addToDefinitionCtx(idents, defscope, skipRep) {
