@@ -201,6 +201,54 @@ describe "procedural (syntax-case) macros" {
         expect(l 5).to.be(65);
     }
 
+    it "should handle letstx within a loop" {
+        let l = macro {
+            case {_ $x } => {
+                var res = [];
+                var i = 3;
+                while (i--) {
+                    letstx $y = [makeValue(i + 1, #{here})];
+                    res = res.concat(#{ $y });
+                }
+                letstx $ys ... = res;
+                return #{
+                    $x - $ys (-) ...
+                }
+            }
+        }
+        expect(l 6).to.be(0);
+    }
+
+    it "should handle letstx with shadowed pattern vars" {
+        let l = macro {
+            case {_ $x } => {
+                var res;
+                if (true) {
+                    letstx $x = [makeValue(100, #{here})];
+                    res = #{ $x + };
+                }
+                return res.concat(#{ $x });
+            }
+        }
+        expect(l 42).to.be(142);
+    }
+
+    it "should handle letstx with sparse declarations" {
+        let l = macro {
+            case {_ $x } => {
+                var res;
+                if (true) {
+                    letstx $x = [makeValue(100, #{here})];
+                    1; 2; 3;
+                    letstx $y = [makeValue(50, #{here})];
+                    res = #{ $x + $y + };
+                }
+                return res.concat(#{ $x });
+            }
+        }
+        expect(l 42).to.be(192);
+    }
+
     it "should handle getExpr" {
         let m = macro {
             case {_ ($e ...) } => {
