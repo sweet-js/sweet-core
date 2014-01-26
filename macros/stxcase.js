@@ -676,16 +676,99 @@ let withSyntax = macro {
 
 export withSyntax;
 
-let letstx = macro {
-    case {$letname $($pat ... = $e:expr) (,) ...; $rest ...} => {
-        // need to capture the lexical context
-        return withSyntax($withSyntax_name = [makeIdent("withSyntax", #{$letname})]) {
-            return #{
-                return $withSyntax_name ($($pat ... = $e) (,) ...) {
-                    $rest ...
-                }
+macro letstx_done {
+    case { _ $ctx ($vars ...) $rest ... } => {
+        var ctx = #{ $ctx };
+        var here = #{ here };
+        var vars = #{ $vars ... };
+        var rest = #{ $rest ... };
+
+        var res = [
+            makeIdent('match', ctx), makePunc('.', here), makeIdent('patternEnv', here), makePunc('=', here),
+            makeIdent('patternModule', here), makePunc('.', here), makeIdent('extendEnv', here),
+            makeDelim('()', [
+                makeIdent('match', ctx), makePunc('.', here), makeIdent('patternEnv', here),
+            ], here)
+        ];
+
+        for (var i = 0; i < vars.length; i += 3) {
+            var name = vars[i];
+            var repeat = !!vars[i + 1].token.inner.length;
+            var rhs = vars[i + 2];
+
+            if (repeat) {
+                res.push(
+                    makeIdent('match', ctx),
+                    makePunc('.', here),
+                    makeIdent('patternEnv', here),
+                    makeDelim('[]', [makeValue(name.token.value, here)], here),
+                    makePunc('=', here),
+                    makeDelim('{}', [
+                        makeIdent('level', here), makePunc(':', here), makeValue(1, here), makePunc(',', here),
+                        makeIdent('match', here), makePunc(':', here), makeDelim('()', #{
+                            (function(exp) {
+                                return exp.length
+                                    ? exp.map(function(t) { return { level: 0, match: [t] } })
+                                    : [{ level: 0, match: [] }];
+                            })
+                        }, here), makeDelim('()', [rhs], here)
+                    ], here),
+                    makePunc(';', here)
+                );
+            } else {
+                res.push(
+                    makeIdent('match', ctx),
+                    makePunc('.', here),
+                    makeIdent('patternEnv', here),
+                    makeDelim('[]', [makeValue(name.token.value, here)], here),
+                    makePunc('=', here),
+                    makeDelim('{}', [
+                        makeIdent('level', here), makePunc(':', here), makeValue(0, here), makePunc(',', here),
+                        makeIdent('match', here), makePunc(':', here), rhs
+                    ], here),
+                    makePunc(';', here)
+                );
             }
+        }
+
+        res = res.concat(rest);
+        res.push(
+            makeIdent('match', ctx), makePunc('.', here), makeIdent('patternEnv', here), makePunc('=', here),
+            makeIdent('match', ctx), makePunc('.', here), makeIdent('patternEnv', here), makePunc('.', here),
+            makeIdent('parent', here), makePunc(';', here)
+        );
+
+        return res;
+    }
+}
+
+macro letstx_collect {
+    rule { $ctx ($vars ...) $name:ident $[...] = $rhs:expr , $rest ... } => {
+        letstx_collect $ctx ($vars ... $name (true) ($rhs)) $rest ...
+    }
+    rule { $ctx ($vars ...) $name:ident $[...] = $rhs:expr ;... letstx $rest ... } => {
+        letstx_collect $ctx ($vars ... $name (true) ($rhs)) $rest ...
+    }
+    rule { $ctx ($vars ...) $name:ident $[...] = $rhs:expr $rest ... } => {
+        letstx_done $ctx ($vars ... $name (true) ($rhs)) $rest ...
+    }
+    rule { $ctx ($vars ...) $name:ident = $rhs:expr , $rest ... } => {
+        letstx_collect $ctx ($vars ... $name () ($rhs)) $rest ...
+    }
+    rule { $ctx ($vars ...) $name:ident = $rhs:expr ;... letstx $rest ... } => {
+        letstx_collect $ctx ($vars ... $name () ($rhs)) $rest ...
+    }
+    rule { $ctx ($vars ...) $name:ident = $rhs:expr $rest ... } => {
+        letstx_done $ctx ($vars ... $name () ($rhs)) $rest ...
+    }
+}
+
+let letstx = macro {
+    case { $name } => {
+        return #{
+            letstx_collect $name ()
         }
     }
 }
+
 export letstx;
