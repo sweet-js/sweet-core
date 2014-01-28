@@ -293,4 +293,16 @@ describe "procedural (syntax-case) macros" {
         expect (m (100 foo) (id 200)).to.be("other")
     }
 
+    it "should handle taking the lexical context from a delimiter" {
+        let m = macro {
+            case {_ $tok } => {
+                letstx $foo = [makeIdent("foo", #{$tok})];
+                return #{$foo}
+            }
+        }
+
+        var foo = 100;
+        expect(m ()).to.be(100);
+    }
+
 }

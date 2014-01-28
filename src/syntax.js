@@ -46,9 +46,8 @@
         // non mutating
         mark: function(newMark) {
             if (this.token.inner) {
-                var next = syntaxFromToken(this.token, this);
-                next.deferredContext = new Mark(newMark, this.deferredContext);
-                return next;
+                return syntaxFromToken(this.token, {deferredContext: new Mark(newMark, this.deferredContext),
+                                                    context: new Mark(newMark, this.context)});
             }
             return syntaxFromToken(this.token, {context: new Mark(newMark, this.context)});
         },
@@ -56,21 +55,22 @@
         // (CSyntax or [...CSyntax], Str) -> CSyntax
         // non mutating
         rename: function(id, name, defctx) {
-            // deferr renaming of delimiters
+            // defer renaming of delimiters
             if (this.token.inner) {
-                var next = syntaxFromToken(this.token, this);
-                next.deferredContext = new Rename(id, name, this.deferredContext, defctx);
-                return next;
+                return syntaxFromToken(this.token, 
+                                       {deferredContext: new Rename(id, name, this.deferredContext, defctx),
+                                        context: new Rename(id, name, this.context, defctx)});
             }
 
-            return syntaxFromToken(this.token, {context: new Rename(id, name, this.context, defctx)});
+            return syntaxFromToken(this.token, 
+                                   {context: new Rename(id, name, this.context, defctx)});
         },
 
         addDefCtx: function(defctx) {
             if (this.token.inner) {
-                var next = syntaxFromToken(this.token, this);
-                next.deferredContext = new Def(defctx, this.deferredContext);
-                return next;
+                return syntaxFromToken(this.token, 
+                                       {deferredContext: new Def(defctx, this.deferredContext),
+                                        context: new Def(defctx, this.context)});
             }
             return syntaxFromToken(this.token, {context: new Def(defctx, this.context)});
         },
@@ -109,9 +109,9 @@
 
             this.token.inner = _.map(this.token.inner, _.bind(function(stx) {
                 if (stx.token.inner) {
-                    var next = syntaxFromToken(stx.token, stx);
-                    next.deferredContext = applyContext(stx.deferredContext, this.deferredContext);
-                    return next;
+                    return syntaxFromToken(stx.token, 
+                                           {deferredContext: applyContext(stx.deferredContext, this.deferredContext),
+                                            context: applyContext(stx.context, this.deferredContext)});
                 } else {
                     return syntaxFromToken(stx.token,
                                            {context: applyContext(stx.context, this.deferredContext)});
