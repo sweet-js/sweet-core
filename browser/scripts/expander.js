@@ -876,7 +876,10 @@
         }
     }
     function nameInEnv(head, rest, context) {
-        return getMacroInEnv(head, rest, context) !== null;
+        if (head.token.type === parser.Token.Identifier || head.token.type === parser.Token.Keyword || head.token.type === parser.Token.Punctuator) {
+            return getMacroInEnv(head, rest, context) !== null;
+        }
+        return false;
     }
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
