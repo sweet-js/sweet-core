@@ -26,7 +26,8 @@
     "optimist": "~0.3.4",
     "underscore": "~1.3.3",
     "escodegen": "1.1.x",
-    "escope": "1.0.x"
+    "escope": "1.0.x",
+    "resolve": "~0.6.1"
   },
   "devDependencies": {
     "mocha": "~1.3.2",
