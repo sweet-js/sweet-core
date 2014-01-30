@@ -53,7 +53,9 @@
                 './parser',
                 './expander',
                 './syntax',
-                'text!./stxcase.js'], factory);
+                'text!./stxcase.js',
+                null,
+                './escope'], factory);
     }
 }(this, function (exports, _, parser, expander, syn, stxcaseModule, gen, scope, fs) {
     var codegen = gen || escodegen;
