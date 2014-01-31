@@ -855,12 +855,6 @@
             }, []).value();
     }
 
-    function extendEnv(env) {
-        var newEnv = _.clone(env);
-        newEnv.parent = env;
-        return newEnv;
-    }
-
     exports.loadPattern = loadPattern;
     exports.matchPatterns = matchPatterns;
     exports.matchLookbehind = matchLookbehind;
@@ -869,5 +863,4 @@
     exports.takeLineContext = takeLineContext;
     exports.takeLine = takeLine;
     exports.typeIsLiteral = typeIsLiteral;
-    exports.extendEnv = extendEnv;
 }))
