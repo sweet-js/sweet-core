@@ -1127,13 +1127,13 @@
                     }
 
                     // Conditional ( x ? true : false)
-                    Expr(emp) | (rest[0] && unwrapSyntax(rest[0]) === "?") => {
+                    Expr(emp) | (rest[0] && resolve(rest[0]) === "?") => {
                         var question = rest[0];
                         var condRes = enforest(rest.slice(1), context);
                         var truExpr = condRes.result;
                         var condRight = condRes.rest;
                         if(truExpr.hasPrototype(Expr) &&
-                           condRight[0] && unwrapSyntax(condRight[0]) === ":") {
+                           condRight[0] && resolve(condRight[0]) === ":") {
                             var colon = condRight[0];
                             var flsRes = enforest(condRight.slice(1), context);
                             var flsExpr = flsRes.result;
@@ -1149,7 +1149,7 @@
                     }
 
                     // Constructor
-                    Keyword(keyword) | (unwrapSyntax(keyword) === "new" && rest[0]) => {
+                    Keyword(keyword) | (resolve(keyword) === "new" && rest[0]) => {
                         var newCallRes = enforest(rest, context);
                         if(newCallRes.result.hasPrototype(Call)) {
                             return step(Const.create(head, newCallRes.result),
@@ -1355,7 +1355,7 @@
 
 
                     
-                    Keyword(keyword) | (unwrapSyntax(keyword) === "let") => {
+                    Keyword(keyword) | (resolve(keyword) === "let") => {
                         var nameTokens = [];
                         for (var i = 0; i < rest.length; i++) {
                             if (rest[i].token.type === parser.Token.Punctuator && rest[i].token.value === "=") {
@@ -1391,7 +1391,7 @@
                                   
                     }
                     // VariableStatement
-                    Keyword(keyword) | (unwrapSyntax(keyword) === "var" && rest[0]) => {
+                    Keyword(keyword) | (resolve(keyword) === "var" && rest[0]) => {
                         var vsRes = enforestVarStatement(rest, context, keyword);
                         if (vsRes) {
                             return step(VariableStatement.create(head, vsRes.result),
@@ -1399,7 +1399,7 @@
                         }
                     }
                     // Const Statement
-                    Keyword(keyword) | (unwrapSyntax(keyword) === "const" && rest[0]) => {
+                    Keyword(keyword) | (resolve(keyword) === "const" && rest[0]) => {
                         var csRes = enforestVarStatement(rest, context, keyword);
                         if (csRes) {
                             return step(ConstStatement.create(head, csRes.result),
@@ -1407,13 +1407,13 @@
                         }
                     }
 
-                    Keyword(keyword) | (unwrapSyntax(keyword) === "for" && 
+                    Keyword(keyword) | (resolve(keyword) === "for" && 
                                         rest[0] && rest[0].token.value === "()") => {
                         return step(ForStatement.create(keyword, rest[0]), 
                                     rest.slice(1));
                     }
 
-                    Keyword(keyword) | (unwrapSyntax(keyword) === "yield") => {
+                    Keyword(keyword) | (resolve(keyword) === "yield") => {
                         var yieldExprRes = enforest(rest, context);
 
                         if (yieldExprRes.result.hasPrototype(Expr)) {
