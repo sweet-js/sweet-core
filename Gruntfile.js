@@ -68,7 +68,16 @@ module.exports = function(grunt) {
                 flatten: true,
                 src: "build/lib/*.js",
                 dest: "lib/"
+            },
+
+            testFixtures: {
+                expand: true,
+                flatten: false,
+                cwd: "test/",
+                src: "fixtures/**",
+                dest: "build/"
             }
+
         },
         mochaTest: {
             test: {
@@ -138,6 +147,10 @@ module.exports = function(grunt) {
     });
 
     grunt.registerTask("dist", ["build:sweetjs", "copy:dist"]);
+
+    grunt.registerTask("test", ["build:test",
+                                "copy:testFixtures",
+                                "mochaTest"]);
 
     grunt.registerTask("default", ["copy:scopedEval",
                                    "copy:buildMacros",
