@@ -26,6 +26,12 @@
 
 (function (root, factory) {
     if (typeof exports === 'object') {
+        var path = require('path');
+        var fs = require('fs');
+
+        var lib  = path.join(path.dirname(fs.realpathSync(__filename)), "../macros");
+
+        var stxcaseModule = fs.readFileSync(lib + "/stxcase.js", 'utf8');
         // CommonJS
         factory(exports,
                 require('underscore'),
@@ -33,6 +39,7 @@
                 require('./syntax'),
                 require('./scopedEval'),
                 require("./patterns"),
+                stxcaseModule,
                 require('escodegen'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
@@ -41,14 +48,16 @@
                 'parser',
                 'syntax',
                 'scopedEval',
-                'patterns'], factory);
+                'patterns',
+                'text!./stxcase.js'], factory);
     }
-}(this, function(exports, _, parser, syn, se, patternModule, gen) {
+}(this, function(exports, _, parser, syn, se, patternModule, stxcaseModule, gen) {
     'use strict';
     var codegen = gen || escodegen;
     var assert = syn.assert;
     var throwSyntaxError = syn.throwSyntaxError;
     var unwrapSyntax = syn.unwrapSyntax;
+    var stxcaseCtx;
 
     macro _get_vars {
 	    case {_ $val { } } => { return #{} }
@@ -820,6 +829,14 @@
         }
     });
 
+    var ImportMacros = TermTree.extend({
+        properties: ["id", "names"],
+        construct: function(id, names) {
+            this.id = id;
+            this.names = names;
+        }
+    });
+
     var ForStatement = Statement.extend({
         properties: ["forkw", "cond"],
 
@@ -1344,6 +1361,27 @@
                         return step(Block.create(head), rest);
                     }
 
+                    ImportMacros(id, names) => {
+                        if (context.resolveModule) {
+                            if (!stxcaseCtx) {
+                                stxcaseCtx = expandModule(parser.read(stxcaseModule));
+                            }
+                            var desc = context.resolveModule(unwrapSyntax(id), context.filename);
+                            var mod = expandModule(parser.read(desc.source), [stxcaseCtx], {
+                                filename: desc.filename,
+                                requireModule: context.requireModule,
+                                resolveModule: context.resolveModule
+                            });
+                            context.env.extend(mod.env);
+                            rest = _.map(rest, function(stx) {
+                                return loadModuleExports(stx, context.env, mod.exports, mod.env);
+                            });
+                            return step(Empty.create(), rest);
+                        } else {
+                            throw new Error("cannot load macro modules");
+                        }
+                    }
+
                     Id(id) | (unwrapSyntax(id) === "#quoteSyntax" && 
                                 rest[0] && rest[0].token.value === "{}") => {
 
@@ -1619,6 +1657,18 @@
                     head.token.type === parser.Token.NullLiteral) {
 
                     return step(Lit.create(head), rest);
+                // import macros
+                } else if (head.token.type === parser.Token.Keyword &&
+                            unwrapSyntax(head) === "import" &&
+                            rest[0] &&
+                                rest[0].token.type === parser.Token.Identifier &&
+                                unwrapSyntax(rest[0]) === "macros" &&
+                            rest[1] &&
+                                rest[1].token.type === parser.Token.Identifier &&
+                                unwrapSyntax(rest[1]) === "from" &&
+                            rest[2] &&
+                                rest[2].token.type === parser.Token.StringLiteral) {
+                    return step(ImportMacros.create(rest[2]), rest.slice(3));
                 // export
                 } else if (head.token.type === parser.Token.Keyword && 
                             unwrapSyntax(head) === "export" && 
@@ -1771,6 +1821,12 @@
             makeKeyword: syn.makeKeyword,
             makePunc: syn.makePunc,
             makeDelim: syn.makeDelim,
+            require: function(id) {
+                if (context.requireModule) {
+                    return context.requireModule(id, context.filename);
+                }
+                return require(id);
+            },
             getExpr: function(stx) {
                 var r;
                 if (stx.length === 0) {
@@ -2179,6 +2235,12 @@
         o = o || {};
         // read-only but can enumerate
         return Object.create(Object.prototype, {
+            filename: {value: o.filename,
+                       writable: false, enumerable: true, configurable: false},
+            requireModule: {value: o.requireModule,
+                            writable: false, enumerable: true, configurable: false},
+            resolveModule: {value: o.resolveModule,
+                            writable: false, enumerable: true, configurable: false},
             env: {value: o.env || new StringMap(),
                   writable: false, enumerable: true, configurable: false},
             defscope: {value: o.defscope,
@@ -2190,13 +2252,24 @@
         });
     }
 
+    function makeTopLevelExpanderContext(options) {
+        var requireModule = options ? options.requireModule : undefined;
+        var resolveModule = options ? options.resolveModule : undefined;
+        var filename = options ? options.filename : undefined;
+        return makeExpanderContext({
+            filename: filename,
+            requireModule: requireModule,
+            resolveModule: resolveModule
+        });
+    }
+
     // a hack to make the top level hygiene work out
-    function expandTopLevel(stx, moduleContexts, _maxExpands) {
+    function expandTopLevel(stx, moduleContexts, options) {
         moduleContexts = moduleContexts || [];
-        maxExpands = _maxExpands || Infinity;
+        maxExpands = (_.isNumber(options) ? options : options && options._maxExpands) || Infinity;
         expandCount = 0;
 
-        var context = makeExpanderContext();
+        var context = makeTopLevelExpanderContext(options);
         var modBody = syn.makeDelim("{}", stx, null);
         modBody = _.reduce(moduleContexts, function(acc, mod) {
             context.env.extend(mod.env);
@@ -2208,12 +2281,12 @@
         return flatten(res[0].token.inner);
     }
 
-    function expandModule(stx, moduleContexts) {
+    function expandModule(stx, moduleContexts, options) {
         moduleContexts = moduleContexts || [];
         maxExpands = Infinity;
         expandCount = 0;
 
-        var context = makeExpanderContext();
+        var context = makeTopLevelExpanderContext(options);
         var modBody = syn.makeDelim("{}", stx, null);
         modBody = _.reduce(moduleContexts, function(acc, mod) {
             context.env.extend(mod.env);
