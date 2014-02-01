@@ -111,7 +111,7 @@ exports.run = function() {
         var unparsedString = syn.prettyPrint(sweet.expand(file, modules, numexpands), displayHygiene);        
         console.log(unparsedString);
     } else {
-        options.numExpands = numexpands;
+        options.maxExpands = numexpands;
         console.log(sweet.compile(file, options).code);
     }
 };
