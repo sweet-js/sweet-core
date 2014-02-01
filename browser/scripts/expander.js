@@ -940,12 +940,12 @@
                     if (innerTokens.length === 0 && argsAreExprs) {
                         return step(Call.create(head, enforestedArgs, rest[0], commas), rest.slice(1));
                     }
-                } else if (head.hasPrototype(Expr) && rest[0] && unwrapSyntax(rest[0]) === '?') {
+                } else if (head.hasPrototype(Expr) && rest[0] && resolve(rest[0]) === '?') {
                     var question = rest[0];
                     var condRes = enforest(rest.slice(1), context);
                     var truExpr = condRes.result;
                     var condRight = condRes.rest;
-                    if (truExpr.hasPrototype(Expr) && condRight[0] && unwrapSyntax(condRight[0]) === ':') {
+                    if (truExpr.hasPrototype(Expr) && condRight[0] && resolve(condRight[0]) === ':') {
                         var colon = condRight[0];
                         var flsRes = enforest(condRight.slice(1), context);
                         var flsExpr = flsRes.result;
@@ -953,7 +953,7 @@
                             return step(ConditionalExpression.create(head, question, truExpr, colon, flsExpr), flsRes.rest);
                         }
                     }
-                } else if (head.hasPrototype(Keyword) && unwrapSyntax(keyword) === 'new' && rest[0]) {
+                } else if (head.hasPrototype(Keyword) && resolve(keyword) === 'new' && rest[0]) {
                     var newCallRes = enforest(rest, context);
                     if (newCallRes.result.hasPrototype(Call)) {
                         return step(Const.create(head, newCallRes.result), newCallRes.rest);
@@ -1085,7 +1085,7 @@
                     var tempId = fresh();
                     context.templateMap.set(tempId, rest[0].token.inner);
                     return step(syn.makeIdent('getTemplate', id), [syn.makeDelim('()', [syn.makeValue(tempId, id)], id)].concat(rest.slice(1)));
-                } else if (head.hasPrototype(Keyword) && unwrapSyntax(keyword) === 'let') {
+                } else if (head.hasPrototype(Keyword) && resolve(keyword) === 'let') {
                     var nameTokens = [];
                     for (var i = 0; i < rest.length; i++) {
                         if (rest[i].token.type === parser.Token.Punctuator && rest[i].token.value === '=') {
@@ -1112,19 +1112,19 @@
                             return step(LetStatement.create(head, lsRes.result), lsRes.rest);
                         }
                     }
-                } else if (head.hasPrototype(Keyword) && unwrapSyntax(keyword) === 'var' && rest[0]) {
+                } else if (head.hasPrototype(Keyword) && resolve(keyword) === 'var' && rest[0]) {
                     var vsRes = enforestVarStatement(rest, context, keyword);
                     if (vsRes) {
                         return step(VariableStatement.create(head, vsRes.result), vsRes.rest);
                     }
-                } else if (head.hasPrototype(Keyword) && unwrapSyntax(keyword) === 'const' && rest[0]) {
+                } else if (head.hasPrototype(Keyword) && resolve(keyword) === 'const' && rest[0]) {
                     var csRes = enforestVarStatement(rest, context, keyword);
                     if (csRes) {
                         return step(ConstStatement.create(head, csRes.result), csRes.rest);
                     }
-                } else if (head.hasPrototype(Keyword) && unwrapSyntax(keyword) === 'for' && rest[0] && rest[0].token.value === '()') {
+                } else if (head.hasPrototype(Keyword) && resolve(keyword) === 'for' && rest[0] && rest[0].token.value === '()') {
                     return step(ForStatement.create(keyword, rest[0]), rest.slice(1));
-                } else if (head.hasPrototype(Keyword) && unwrapSyntax(keyword) === 'yield') {
+                } else if (head.hasPrototype(Keyword) && resolve(keyword) === 'yield') {
                     var yieldExprRes = enforest(rest, context);
                     if (yieldExprRes.result.hasPrototype(Expr)) {
                         return step(YieldExpression.create(keyword, yieldExprRes.result), yieldExprRes.rest);
