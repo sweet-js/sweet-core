@@ -672,6 +672,16 @@ let withSyntax = macro {
             withSyntax_unzip $name () () ($vars ...) {$body ...}
         }
     }
+    case { $name ($vars ...) #{$body ...} } => {
+        var here = #{ here };
+        return #{
+            withSyntax_unzip $name () () ($vars ...)
+        }.concat(makeDelim("{}", [
+            makeKeyword("return", here),
+            makePunc("#", #{ $name }),
+            makeDelim("{}", #{$body ...}, here)
+        ], here));
+    }
 }
 
 export withSyntax;

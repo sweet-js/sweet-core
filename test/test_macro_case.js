@@ -106,6 +106,17 @@ describe "procedural (syntax-case) macros" {
         }
         expect(m 5).to.be(65);
     }
+
+    it "should support shorthand withSyntax form" {
+        macro m {
+            case {_ $x } => {
+                return withSyntax($y = [makeValue(42, #{here})]) #{
+                    $x + $y
+                }
+            }
+        }
+        expect(m 100).to.be(142);
+    }
     
     it "should support let bound macros" {
         let m = macro {
