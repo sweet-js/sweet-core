@@ -75,11 +75,13 @@ require(["./sweet", "./syntax"], function(sweet, syn) {
             if (compileWithSourcemap) {
                 res = sweet.compile(code, {
                     sourceMap: true,
-                    filename: "test.js"
+                    filename: "test.js",
+                    readableNames: true
                 });
             } else {
                 res = sweet.compile(code, {
-                    sourceMap: false
+                    sourceMap: false,
+                    readableNames: true
                 });
             }
             compiled = res.code;
