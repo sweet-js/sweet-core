@@ -53,11 +53,14 @@
                 './parser',
                 './expander',
                 './syntax',
-                'text!./stxcase.js'], factory);
+                'text!./stxcase.js', 
+                'escodegen', 
+                'escope'], factory);
     }
-}(this, function (exports, _, parser, expander, syn, stxcaseModule, gen, scope, fs) {
-    var codegen = gen || escodegen;
-    var escope = scope || escope;
+}(this, function (exports, _, parser, expander, syn, stxcaseModule, gen, escope, fs) {
+    // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
+    var codegen = typeof window !== 'undefined' && window.escodegen ? window.escodegen : gen;
+    // var escope = scope || escope;
     var expand = makeExpand(expander.expand);
     var expandModule = makeExpand(expander.expandModule);
     var stxcaseCtx;

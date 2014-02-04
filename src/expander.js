@@ -41,11 +41,13 @@
                 'parser',
                 'syntax',
                 'scopedEval',
-                'patterns'], factory);
+                'patterns', 
+                'escodegen'], factory);
     }
 }(this, function(exports, _, parser, syn, se, patternModule, gen) {
     'use strict';
-    var codegen = gen || escodegen;
+    // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
+    var codegen = typeof window !== 'undefined' && window.escodegen ? window.escodegen : gen;
     var assert = syn.assert;
     var throwSyntaxError = syn.throwSyntaxError;
     var unwrapSyntax = syn.unwrapSyntax;
