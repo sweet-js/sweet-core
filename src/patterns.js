@@ -230,8 +230,8 @@
                     }
                 }
                 if (patStx.token.type == parser.Token.Delimiter &&
-                    lastLastLast && (lastLastLast.class === "withMacro" ||
-                                     lastLastLast.class === "withMacroRec")) {
+                    lastLastLast && (lastLastLast.class === "invoke" ||
+                                     lastLastLast.class === "invokeOnce")) {
                     return acc;
                 }
                 // skip over $
@@ -246,7 +246,7 @@
                             throwSyntaxError("patterns", "expecting a pattern class following a `:`", next);
                         }
                         patStx.class = nextNext.token.value;
-                        if (patStx.class === "withMacro" || patStx.class === "withMacroRec") {
+                        if (patStx.class === "invoke" || patStx.class === "invokeOnce") {
                             if (reverse) {
                                 throwSyntaxError(patStx.class, "Not allowed in top-level lookbehind", nextNext)
                             }
@@ -330,8 +330,7 @@
         var newContext = expander.makeExpanderContext({env: env});
 
         if (!macroObj) {
-            console.log(macroName[0], expander.resolve(macroName[0]), env);
-            throwSyntaxError("withMacro", "Macro not in scope", macroName[0]);
+            throwSyntaxError("invoke", "Macro not in scope", macroName[0]);
         }
 
         var next = macroName.slice(-1).concat(stx);
@@ -414,10 +413,10 @@
                 result = match.destructed || match.result.destruct(false);
                 rest = match.rest;
             }
-        } else if (stx.length > 0 && (patternObj.class === "withMacro" ||
-                                      patternObj.class === "withMacroRec")) {
+        } else if (stx.length > 0 && (patternObj.class === "invoke" ||
+                                      patternObj.class === "invokeOnce")) {
             match = expandWithMacro(patternObj.macroName, stx, env,
-                                    patternObj.class === "withMacroRec");
+                                    patternObj.class === "invoke");
             result = match.result;
             rest = match.result ? match.rest : stx;
         } else {
@@ -955,8 +954,8 @@
                         pat.push(tok2, tok3);
                         i += 2;
 
-                        if (tok3.token.value === "withMacro" ||
-                            tok3.token.value === "withMacroRec" && tok4) {
+                        if (tok3.token.value === "invoke" ||
+                            tok3.token.value === "invokeOnce" && tok4) {
                             pat.push(tok4);
                             i += 1;
                         }

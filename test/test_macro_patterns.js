@@ -954,14 +954,14 @@ describe("macro expander", function() {
         expect(@bar).to.be(42);
     });
 
-    it("should eagerly expand using withMacro", function() {
+    it("should eagerly expand using invoke", function() {
         macro a {
             rule { $num } => { 
                 $num + 42
             }
         }
         macro b {
-            rule { $num:withMacro(a) } => {
+            rule { $num:invoke(a) } => {
                 $num
             }
         }
@@ -969,7 +969,7 @@ describe("macro expander", function() {
         expect(b 100).to.be(142);
     });
 
-    it("should eagerly expand recursively using withMacroRec", function() {
+    it("should eagerly expand once using invokeOnce", function() {
         macro a {
             rule { $num } => {
                 3
@@ -981,35 +981,54 @@ describe("macro expander", function() {
             }
         }
         macro c {
-            case { _ $num:withMacroRec(b) } => {
-                return [makeValue(unwrapSyntax(#{ $num }) === 3, #{ here })];
+            case { _ $num:invokeOnce(b) } => {
+                return [makeValue(#{ $num }.length === 2, #{ here })];
             }
         }
         expect(c 1).to.be(true);
     });
 
-    it("should eagerly expand using withMacro in a repeater", function() {
+    it("should eagerly expand recursively using invoke", function() {
+        macro a {
+            rule { $num } => {
+                3
+            }
+        }
+        macro b {
+            rule { $num } => {
+                a 2
+            }
+        }
+        macro c {
+            case { _ $num:invoke(b) } => {
+                return [makeValue(#{ $num }.length === 1, #{ here })];
+            }
+        }
+        expect(c 1).to.be(true);
+    });
+
+    it("should eagerly expand using invoke in a repeater", function() {
         macro a {
             rule { $num } => {
                 $num - 1
             }
         }
         macro b {
-            rule { $num:withMacro(a) ... } => {
+            rule { $num:invoke(a) ... } => {
                 $num (+) ...
             }
         }
         expect(b 1 2 3).to.be(3);
     });
 
-    it("should fall through to the next rule when withMacro fails", function() {
+    it("should fall through to the next rule when invoke fails", function() {
         macro a {
             rule { $num:lit } => {
                 $num
             }
         }
         macro b {
-            rule { $num:withMacro(a) } => {
+            rule { $num:invoke(a) } => {
                 false
             }
             rule { $num } => {
@@ -1019,14 +1038,14 @@ describe("macro expander", function() {
         expect(b foo).to.be(true);
     });
 
-    it("should support withMacro inside delimiters", function() {
+    it("should support invoke inside delimiters", function() {
         macro a {
             rule { $num:lit } => {
                 $num + 42
             }
         }
         macro b {
-            rule { ($num:withMacro(a)) } => {
+            rule { ($num:invoke(a)) } => {
                $num
             }
         }
