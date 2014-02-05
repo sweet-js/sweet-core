@@ -932,6 +932,83 @@
             }, []).value();
     }
 
+    function makeIdentityRule(pattern, isInfix) {
+        var _s = 1;
+
+        function traverse(s, infix) {
+            var pat = [];
+            var stx = [];
+
+            for (var i = 0; i < s.length; i++) {
+                var tok1 = s[i];
+                var tok2 = s[i + 1];
+                var tok3 = s[i + 2];
+                var tok4 = s[i + 3];
+
+                // Pattern vars, ignore classes
+                if (isPatternVar(tok1)) {
+                    pat.push(tok1);
+                    stx.push(tok1);
+                    if (tok2 && tok2.token.type === parser.Token.Punctuator &&
+                        tok2.token.value === ":" &&
+                        tok3 && tok3.token.type === parser.Token.Identifier) {
+                        pat.push(tok2, tok3);
+                        i += 2;
+
+                        if (tok3.token.value === "withMacro" ||
+                            tok3.token.value === "withMacroRec" && tok4) {
+                            pat.push(tok4);
+                            i += 1;
+                        }
+                    }
+                }
+                // Rename wildcards
+                else if (tok1.token.type === parser.Token.Identifier &&
+                         tok1.token.value === "_") {
+                    var uident = syntax.makeIdent("$__wildcard" + (_s++), tok1);
+                    pat.push(uident);
+                    stx.push(uident);
+                }
+                // Don't traverse literal groups
+                else if (tok1.token.type === parser.Token.Identifier &&
+                         tok1.token.value === "$" &&
+                         tok2 && tok2.token.type === parser.Token.Delimiter &&
+                         tok2.token.value === "[]") {
+                    pat.push(tok1, tok2);
+                    stx.push(tok1, tok2);
+                    i += 1;
+                }
+                // Traverse delimiters
+                else if (tok1.token.type === parser.Token.Delimiter) {
+                    var sub = traverse(tok1.token.inner, false);
+                    var clone = syntaxFromToken(_.clone(tok1.token), tok1);
+                    tok1.token.inner = sub.pattern;
+                    clone.token.inner = sub.body;
+                    pat.push(tok1);
+                    stx.push(clone);
+                }
+                // Skip infix bar
+                else if (infix && tok1.token.type === parser.Token.Punctuator &&
+                         tok1.token.value === "|") {
+                    infix = false;
+                    pat.push(tok1);
+                }
+                // Tokens
+                else {
+                    pat.push(tok1);
+                    stx.push(tok1);
+                }
+            }
+
+            return {
+                pattern: pat,
+                body: stx
+            };
+        }
+
+        return traverse(pattern, isInfix);
+    }
+
     exports.loadPattern = loadPattern;
     exports.matchPatterns = matchPatterns;
     exports.matchLookbehind = matchLookbehind;
@@ -940,4 +1017,5 @@
     exports.takeLineContext = takeLineContext;
     exports.takeLine = takeLine;
     exports.typeIsLiteral = typeIsLiteral;
+    exports.makeIdentityRule = makeIdentityRule;
 }))

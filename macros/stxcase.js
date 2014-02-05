@@ -437,6 +437,7 @@ let macro = macro {
         var body_inner_stx;
         var body_stx;
         var takeLine = patternModule.takeLine;
+        var makeIdentityRule = patternModule.makeIdentityRule;
         var rest;
         
         if (stx[1].token.inner) {
@@ -519,19 +520,28 @@ let macro = macro {
 
         var rules = [];
         if (body_inner_stx[0] && body_inner_stx[0].token.value === "rule") {
-            var rules = [];
             for (var i = 0; i < body_inner_stx.length; i += 4) {
                 var isInfix = body_inner_stx[i + 1].token.value === 'infix';
                 if (isInfix) {
                     i += 1;
                 }
-                var rule_pattern = body_inner_stx[i + 1].expose().token.inner;
 
-                if (!(body_inner_stx[i + 3] && body_inner_stx[i + 3].token && body_inner_stx[i + 3].token.inner)) {
-                    throwSyntaxError("macro", "Macro `macro` could not be matched" , body_inner_stx[i + 3]);
+                var rule_pattern = body_inner_stx[i + 1];
+                var rule_arrow = body_inner_stx[i + 2];
+                var rule_def = body_inner_stx[i + 3];
+
+                if (rule_pattern && rule_arrow && rule_arrow.token.value === "=>" && rule_def) {
+                    if (rule_def.token.value === "...") {
+                        var idRule = makeIdentityRule(rule_pattern.expose().token.inner, isInfix);
+                        rules = rules.concat(translateRule(idRule.pattern, idRule.body, isInfix));
+                    } else {
+                        rules = rules.concat(translateRule(rule_pattern.expose().token.inner,
+                                                           rule_def.expose().token.inner,
+                                                           isInfix));
+                    }
+                    continue;
                 }
-                var rule_def = body_inner_stx[i + 3].expose().token.inner;
-                rules = rules.concat(translateRule(rule_pattern, rule_def, isInfix));
+                throwSyntaxError("macro", "Macro `macro` could not be matched" , rule_arrow);
             }
             rules = makeDelim("{}", rules, here);
 

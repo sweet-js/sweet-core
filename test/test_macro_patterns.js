@@ -1017,6 +1017,29 @@ describe("macro expander", function() {
             }
         }
         expect(b foo).to.be(true);
-    })
+    });
+
+    it("should support identity rules", function() {
+        macro m {
+          rule { 42 } => ...
+        }
+
+        expect(m 42).to.be(42);
+    });
+
+    it("should support complex identity rules", function() {
+        macro m {
+          rule { (1 + $a:lit) + 3 + $rest (+) ... } => ...
+        }
+
+        expect(m (1 + 2) + 3 + 4 + 5).to.be(15);
+    });
+
+    it("should support wildcards in identity rules", function() {
+      macro m {
+        rule { _ + _ + _ } => ...
+      }
+      expect(m 1 + 2 + 3).to.be(6);
+    });
 
 });
