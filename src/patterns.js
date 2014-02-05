@@ -270,7 +270,7 @@
                     if (patStx.class === "pattern_group" && patStx.token.value === '[]') {
                         patStx.token.inner = loadLiteralGroup(patStx.token.inner);
                     } else {
-                        patStx.token.inner = loadPattern(patStx.token.inner);
+                        patStx.token.inner = loadPattern(patStx.expose().token.inner);
                     }
                 } else {
                     patStx.class = "pattern_literal";

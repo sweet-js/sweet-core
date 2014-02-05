@@ -1019,6 +1019,20 @@ describe("macro expander", function() {
         expect(b foo).to.be(true);
     });
 
+    it("should support withMacro inside delimiters", function() {
+        macro a {
+            rule { $num:lit } => {
+                $num + 42
+            }
+        }
+        macro b {
+            rule { ($num:withMacro(a)) } => {
+               $num
+            }
+        }
+        expect(b(100)).to.be(142);
+    });
+
     it("should support identity rules", function() {
         macro m {
           rule { 42 } => ...

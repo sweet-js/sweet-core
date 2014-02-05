@@ -111,6 +111,14 @@ let syntaxCase = macro {
           ].concat(expr, makePunc(";", here));
         }
 
+        function cloneSyntax(stx) {
+            var clone = _.extend({}, stx, { token: _.clone(stx.token) });
+            if (clone.token.inner) {
+                clone.token.inner = clone.token.inner.map(cloneSyntax);
+            }
+            return clone;
+        }
+
         if (cases_stx.length == 0) {
             throw new Error("Must have at least one case")
         }
@@ -142,7 +150,7 @@ let syntaxCase = macro {
 
             // If infix, loop through the pattern separating the lhs and rhs.
             if (isInfix) {
-                var pattern = casePattern.expose().token.inner;
+                var pattern = cloneSyntax(casePattern).expose().token.inner;
                 var lhs = [];
                 var rhs = [];
                 var separator = null;
@@ -169,7 +177,7 @@ let syntaxCase = macro {
             } else {
                 cases.push({
                     lookbehind: [],
-                    pattern: loadPattern(casePattern.expose().token.inner),
+                    pattern: loadPattern(cloneSyntax(casePattern).expose().token.inner),
                     body: caseBody.expose().token.inner
                 });
             }
