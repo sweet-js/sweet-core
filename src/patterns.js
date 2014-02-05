@@ -213,8 +213,10 @@
             .reduce(function(acc, patStx, idx) {
                 var last = patterns[idx-1];
                 var lastLast = patterns[idx-2];
+                var lastLastLast = patterns[idx-3];
                 var next = patterns[idx+1];
                 var nextNext = patterns[idx+2];
+                var nextNextNext = patterns[idx+3];
 
                 // skip over the `:lit` part of `$x:lit`
                 if (patStx.token.value === ":") {
@@ -226,6 +228,11 @@
                     if (lastLast && isPatternVar(lastLast) && !isPatternVar(patStx)) {
                         return acc;
                     }
+                }
+                if (patStx.token.type == parser.Token.Delimiter &&
+                    lastLastLast && (lastLastLast.class === "withMacro" ||
+                                     lastLastLast.class === "withMacroRec")) {
+                    return acc;
                 }
                 // skip over $
                 if (patStx.token.value === "$" &&
@@ -239,10 +246,22 @@
                             throwSyntaxError("patterns", "expecting a pattern class following a `:`", next);
                         }
                         patStx.class = nextNext.token.value;
+                        if (patStx.class === "withMacro" || patStx.class === "withMacroRec") {
+                            if (reverse) {
+                                throwSyntaxError(patStx.class, "Not allowed in top-level lookbehind", nextNext)
+                            }
+                            if (nextNextNext.token.type === parser.Token.Delimiter &&
+                                nextNextNext.token.value === "()") {
+                                patStx.macroName = nextNextNext.expose().token.inner;
+                            } else {
+                                throwSyntaxError(patStx.class, "Expected macro name", nextNext);
+                            }
+                        }
                     } else {
                         patStx.class = "token";
                     }
                 } else if (patStx.token.type === parser.Token.Delimiter) {
+
                     if (last && last.token.value === "$") {
                         patStx.class = "pattern_group";
                     }
@@ -304,24 +323,76 @@
         };
     }
 
+    function expandWithMacro(macroName, stx, env, rec) {
+        var name = macroName.map(syntax.unwrapSyntax).join("");
+        var ident = syntax.makeIdent(name, macroName[0]);
+        var macroObj = env.get(expander.resolve(ident));
+        var newContext = expander.makeExpanderContext({env: env});
 
-    // (Str, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
-    function matchPatternClass (patternClass, stx, env) {
+        if (!macroObj) {
+            console.log(macroName[0], expander.resolve(macroName[0]), env);
+            throwSyntaxError("withMacro", "Macro not in scope", macroName[0]);
+        }
+
+        var next = macroName.slice(-1).concat(stx);
+        var rest, result, rt;
+
+        while (macroObj && next) {
+            try {
+                rt = macroObj.fn(next, newContext, [], []);
+                result = rt.result;
+                rest = rt.rest;
+            } catch (e) {
+                if (e.type && e.type === "SyntaxCaseError") {
+                    result = null;
+                    rest = stx;
+                    break;
+                } else {
+                    throw e;
+                }
+            }
+
+            if (rec && result.length >= 1) {
+                var resultHead = result[0];
+                var resultRest = result.slice(1);
+                var nextName = expander.getName(resultHead, resultRest);
+                var nextMacro = expander.getMacroInEnv(resultHead, resultRest, env);
+
+                if (nextName && nextMacro) {
+                    macroObj = nextMacro;
+                    next = result.concat(rest);
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+
+        return {
+            result: result,
+            rest: rest
+        };
+    }
+
+
+    // (Pattern, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
+    function matchPatternClass (patternObj, stx, env) {
         var result, rest, match;
         // pattern has no parse class
-        if (patternClass === "token" &&
+        if (patternObj.class === "token" &&
             stx[0] && stx[0].token.type !== parser.Token.EOF) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (patternClass === "lit" &&
+        } else if (patternObj.class === "lit" &&
                    stx[0] && typeIsLiteral(stx[0].token.type)) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (patternClass === "ident" &&
+        } else if (patternObj.class === "ident" &&
                    stx[0] && stx[0].token.type === parser.Token.Identifier) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (stx.length > 0 && patternClass === "VariableStatement") {
+        } else if (stx.length > 0 && patternObj.class === "VariableStatement") {
             match = stx[0].term
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.enforest(stx, expander.makeExpanderContext({env: env}));
@@ -332,7 +403,7 @@
                 result = null;
                 rest = stx;
             }
-        } else if (stx.length > 0 && patternClass === "expr") {
+        } else if (stx.length > 0 && patternObj.class === "expr") {
             match = stx[0].term
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.get_expression(stx, expander.makeExpanderContext({env: env}));
@@ -343,6 +414,12 @@
                 result = match.destructed || match.result.destruct(false);
                 rest = match.rest;
             }
+        } else if (stx.length > 0 && (patternObj.class === "withMacro" ||
+                                      patternObj.class === "withMacroRec")) {
+            match = expandWithMacro(patternObj.macroName, stx, env,
+                                    patternObj.class === "withMacroRec");
+            result = match.result;
+            rest = match.result ? match.rest : stx;
         } else {
             result = null;
             rest = stx;
@@ -587,7 +664,7 @@
                     rest = stx;
                 }
             } else {
-                match = matchPatternClass(pattern.class, stx, env);
+                match = matchPatternClass(pattern, stx, env);
 
                 success = match.result !== null;
                 rest = match.rest;

@@ -954,4 +954,69 @@ describe("macro expander", function() {
         expect(@bar).to.be(42);
     });
 
+    it("should eagerly expand using withMacro", function() {
+        macro a {
+            rule { $num } => { 
+                $num + 42
+            }
+        }
+        macro b {
+            rule { $num:withMacro(a) } => {
+                $num
+            }
+        }
+
+        expect(b 100).to.be(142);
+    });
+
+    it("should eagerly expand recursively using withMacroRec", function() {
+        macro a {
+            rule { $num } => {
+                3
+            }
+        }
+        macro b {
+            rule { $num } => {
+                a 2
+            }
+        }
+        macro c {
+            case { _ $num:withMacroRec(b) } => {
+                return [makeValue(unwrapSyntax(#{ $num }) === 3, #{ here })];
+            }
+        }
+        expect(c 1).to.be(true);
+    });
+
+    it("should eagerly expand using withMacro in a repeater", function() {
+        macro a {
+            rule { $num } => {
+                $num - 1
+            }
+        }
+        macro b {
+            rule { $num:withMacro(a) ... } => {
+                $num (+) ...
+            }
+        }
+        expect(b 1 2 3).to.be(3);
+    });
+
+    it("should fall through to the next rule when withMacro fails", function() {
+        macro a {
+            rule { $num:lit } => {
+                $num
+            }
+        }
+        macro b {
+            rule { $num:withMacro(a) } => {
+                false
+            }
+            rule { $num } => {
+                true
+            }
+        }
+        expect(b foo).to.be(true);
+    })
+
 });

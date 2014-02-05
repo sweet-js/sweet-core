@@ -70,7 +70,7 @@ export #
 
 
 let syntaxCase = macro {
-    function(stx) {
+    function(stx, context) {
         var name_stx = stx[0];
         var here = quoteSyntax{here};
 
@@ -142,7 +142,7 @@ let syntaxCase = macro {
 
             // If infix, loop through the pattern separating the lhs and rhs.
             if (isInfix) {
-                var pattern = casePattern.token.inner;
+                var pattern = casePattern.expose().token.inner;
                 var lhs = [];
                 var rhs = [];
                 var separator = null;
@@ -169,76 +169,56 @@ let syntaxCase = macro {
             } else {
                 cases.push({
                     lookbehind: [],
-                    pattern: loadPattern(casePattern.token.inner),
+                    pattern: loadPattern(casePattern.expose().token.inner),
                     body: caseBody.expose().token.inner
                 });
             }
         }
 
         function patternToObject(pat) {
-            var res = [
-                makeIdent("value", here),
-                makePunc(":", here),
-                makeValue(pat.token.value, here)
-            ];
+            var obj = {value: pat.token.value};
+
             if (pat.token.type === Token.Delimiter) {
-                res = res.concat([
-                    makePunc(",", here),
-                    makeIdent("inner", here),
-                    makePunc(":", here),
-                    patternsToObject(pat.token.inner)
-                ]);
+                obj.inner = pat.token.inner.map(patternToObject);
             }
-            if (typeof pat.class !== 'undefined') {
-                res = res.concat([
-                    makePunc(",", here),
-                    makeIdent("class", here),
-                    makePunc(":", here),
-                    makeValue(pat.class, here)
-                ]);
+            if (pat.class) {
+                obj.class = pat.class;
             }
-            if (typeof pat.repeat !== 'undefined') {
-                res = res.concat([
-                    makePunc(",", here),
-                    makeIdent("repeat", here),
-                    makePunc(":", here),
-                    makeValue(pat.repeat, here)
-                ]);
+            if (pat.repeat) {
+                obj.repeat = pat.repeat;
             }
-            if (typeof pat.separator !== 'undefined') {
-                res = res.concat([
-                    makePunc(",", here),
-                    makeIdent("separator", here),
-                    makePunc(":", here),
-                    makeValue(pat.separator, here)
-                ]);
+            if (pat.separator) {
+                obj.separator = pat.separator;
             }
-            if (typeof pat.leading !== 'undefined') {
-                res = res.concat([
-                    makePunc(",", here),
-                    makeIdent("leading", here),
-                    makePunc(":", here),
-                    makeValue(pat.leading, here)
-                ]);
+            if (pat.leading) {
+                obj.leading = pat.leading;
+            }
+            if (pat.macroName) {
+                obj.macroName = pat.macroName;
             }
 
-            return makeDelim("{}", res, here);
+            return obj;
         }
 
         function patternsToObject(pats) {
-            var res = [];
-            for (var i = 0; i < pats.length; i++) {
-                if (i !== 0) {
-                    res.push(makePunc(",", here));
-                }
-                res.push(patternToObject(pats[i]));
+            if (!pats.length) {
+                return makeDelim("[]", [], here);
             }
-            return makeDelim("[]", res, here);
+
+            var freshId = __fresh();
+            context.patternMap.set(freshId, pats.map(patternToObject));
+
+            return [
+                makeIdent("getPattern", here),
+                makeDelim("()", [
+                    makeValue(freshId, here)
+                ], here)
+            ];
         }
 
         function makeMatch(caseObj) {
-            var lhs = makeAssign("lhs", [patternsToObject(caseObj.lookbehind)]);
-            var rhs = makeAssign("rhs", [patternsToObject(caseObj.pattern)]);
+            var lhs = makeAssign("lhs", patternsToObject(caseObj.lookbehind));
+            var rhs = makeAssign("rhs", patternsToObject(caseObj.pattern));
 
             var lhsMatch = makeAssign("lhsMatch", [
                 makeIdent("patternModule", here),
@@ -545,7 +525,7 @@ let macro = macro {
                 if (isInfix) {
                     i += 1;
                 }
-                var rule_pattern = body_inner_stx[i + 1].token.inner;
+                var rule_pattern = body_inner_stx[i + 1].expose().token.inner;
 
                 if (!(body_inner_stx[i + 3] && body_inner_stx[i + 3].token && body_inner_stx[i + 3].token.inner)) {
                     throwSyntaxError("macro", "Macro `macro` could not be matched" , body_inner_stx[i + 3]);
