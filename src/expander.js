@@ -48,6 +48,8 @@
     var codegen = gen || escodegen;
     var assert = syn.assert;
     var throwSyntaxError = syn.throwSyntaxError;
+    var throwSyntaxCaseError = syn.throwSyntaxCaseError;
+    var SyntaxCaseError = syn.SyntaxCaseError;
     var unwrapSyntax = syn.unwrapSyntax;
 
     macro _get_vars {
@@ -246,7 +248,6 @@
             return this;
         }
     }
-
 
     var scopedEval = se.scopedEval;
 
@@ -1451,7 +1452,7 @@
                     try {
                         rt = transformer([head].concat(rest.slice(macroObj.fullName.length - 1)), transformerContext, prevStx, prevTerms);
                     } catch (e) {
-                        if (e.type && e.type === "SyntaxCaseError") {
+                        if (e instanceof SyntaxCaseError) {
                             // add a nicer error for syntax case
                             var argumentString = "`" + rest.slice(0, 5).map(function(stx) {
                                 return stx.token.value;
@@ -1817,6 +1818,7 @@
             },
             unwrapSyntax: syn.unwrapSyntax,
             throwSyntaxError: throwSyntaxError,
+            throwSyntaxCaseError: throwSyntaxCaseError,
             prettyPrint: syn.prettyPrint,
             parser: parser,
             __fresh: fresh,

@@ -397,11 +397,7 @@ let syntaxCase = macro {
         }
 
         body = body.concat(quoteSyntax {
-            function SyntaxCaseError(msg) {
-                this.type = "SyntaxCaseError";
-                this.msg = msg;
-            }
-            throw new SyntaxCaseError("Could not match any cases");
+            throwSyntaxCaseError("Could not match any cases");
         });
 
         var res = makeFunc([

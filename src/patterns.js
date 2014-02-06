@@ -342,7 +342,7 @@
                 result = rt.result;
                 rest = rt.rest;
             } catch (e) {
-                if (e.type && e.type === "SyntaxCaseError") {
+                if (e instanceof syntax.SyntaxCaseError) {
                     result = null;
                     rest = stx;
                     break;

@@ -322,6 +322,14 @@
         throw new MacroSyntaxError(name, message, stx);
     }
 
+    function SyntaxCaseError(message) {
+        this.message = message;
+    }
+
+    function throwSyntaxCaseError(message) {
+        throw new SyntaxCaseError(message);
+    }
+
     function printSyntaxError(code, err) {
         if (!err.stx) {
             return '[' + err.name + '] ' + err.message;
@@ -415,5 +423,7 @@
 
     exports.MacroSyntaxError = MacroSyntaxError;
     exports.throwSyntaxError = throwSyntaxError;
+    exports.SyntaxCaseError = SyntaxCaseError;
+    exports.throwSyntaxCaseError = throwSyntaxCaseError;
     exports.printSyntaxError = printSyntaxError;
 }));
