@@ -4,10 +4,11 @@
 
 Hygienic Macros for JavaScript!
 
+* Read a [tutorial](http://jlongster.com/Writing-Your-First-Sweet.js-Macro) on macros.
 * Read the documentation at [sweetjs.org](http://sweetjs.org).
-* Play with the [editor](http://sweetjs.org/browser/editor.html)
+* Play with the [editor](http://sweetjs.org/browser/editor.html).
 * Hang out on IRC #sweet.js at irc.mozilla.org.
-* Try out other [macros](https://npmjs.org/browse/keyword/sweet-macros)
+* Try out other [macros](https://npmjs.org/browse/keyword/sweet-macros).
 
 ## Getting started
 
