@@ -535,17 +535,16 @@ let macro = macro {
                 var rule_def = body_inner_stx[i + 3];
 
                 if (rule_pattern && rule_arrow && rule_arrow.token.value === "=>" && rule_def) {
-                    if (rule_def.token.value === "...") {
-                        var idRule = makeIdentityRule(rule_pattern.expose().token.inner, isInfix);
-                        rules = rules.concat(translateRule(idRule.pattern, idRule.body, isInfix));
-                    } else {
-                        rules = rules.concat(translateRule(rule_pattern.expose().token.inner,
-                                                           rule_def.expose().token.inner,
-                                                           isInfix));
-                    }
-                    continue;
+                    rules = rules.concat(translateRule(rule_pattern.expose().token.inner,
+                                                       rule_def.expose().token.inner,
+                                                       isInfix));
+                } else if (rule_pattern) {
+                    var idRule = makeIdentityRule(rule_pattern.expose().token.inner, isInfix);
+                    rules = rules.concat(translateRule(idRule.pattern, idRule.body, isInfix));
+                    i -= 2;
+                } else {
+                  throwSyntaxError("macro", "Macro `macro` could not be matched" , rule_arrow);
                 }
-                throwSyntaxError("macro", "Macro `macro` could not be matched" , rule_arrow);
             }
             rules = makeDelim("{}", rules, here);
 
