@@ -213,8 +213,10 @@
             .reduce(function(acc, patStx, idx) {
                 var last = patterns[idx-1];
                 var lastLast = patterns[idx-2];
+                var lastLastLast = patterns[idx-3];
                 var next = patterns[idx+1];
                 var nextNext = patterns[idx+2];
+                var nextNextNext = patterns[idx+3];
 
                 // skip over the `:lit` part of `$x:lit`
                 if (patStx.token.value === ":") {
@@ -226,6 +228,11 @@
                     if (lastLast && isPatternVar(lastLast) && !isPatternVar(patStx)) {
                         return acc;
                     }
+                }
+                if (patStx.token.type == parser.Token.Delimiter &&
+                    lastLastLast && (lastLastLast.class === "invoke" ||
+                                     lastLastLast.class === "invokeOnce")) {
+                    return acc;
                 }
                 // skip over $
                 if (patStx.token.value === "$" &&
@@ -239,10 +246,22 @@
                             throwSyntaxError("patterns", "expecting a pattern class following a `:`", next);
                         }
                         patStx.class = nextNext.token.value;
+                        if (patStx.class === "invoke" || patStx.class === "invokeOnce") {
+                            if (reverse) {
+                                throwSyntaxError(patStx.class, "Not allowed in top-level lookbehind", nextNext)
+                            }
+                            if (nextNextNext.token.type === parser.Token.Delimiter &&
+                                nextNextNext.token.value === "()") {
+                                patStx.macroName = nextNextNext.expose().token.inner;
+                            } else {
+                                throwSyntaxError(patStx.class, "Expected macro name", nextNext);
+                            }
+                        }
                     } else {
                         patStx.class = "token";
                     }
                 } else if (patStx.token.type === parser.Token.Delimiter) {
+
                     if (last && last.token.value === "$") {
                         patStx.class = "pattern_group";
                     }
@@ -251,7 +270,7 @@
                     if (patStx.class === "pattern_group" && patStx.token.value === '[]') {
                         patStx.token.inner = loadLiteralGroup(patStx.token.inner);
                     } else {
-                        patStx.token.inner = loadPattern(patStx.token.inner);
+                        patStx.token.inner = loadPattern(patStx.expose().token.inner);
                     }
                 } else {
                     patStx.class = "pattern_literal";
@@ -304,24 +323,75 @@
         };
     }
 
+    function expandWithMacro(macroName, stx, env, rec) {
+        var name = macroName.map(syntax.unwrapSyntax).join("");
+        var ident = syntax.makeIdent(name, macroName[0]);
+        var macroObj = env.get(expander.resolve(ident));
+        var newContext = expander.makeExpanderContext({env: env});
 
-    // (Str, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
-    function matchPatternClass (patternClass, stx, env) {
+        if (!macroObj) {
+            throwSyntaxError("invoke", "Macro not in scope", macroName[0]);
+        }
+
+        var next = macroName.slice(-1).concat(stx);
+        var rest, result, rt;
+
+        while (macroObj && next) {
+            try {
+                rt = macroObj.fn(next, newContext, [], []);
+                result = rt.result;
+                rest = rt.rest;
+            } catch (e) {
+                if (e instanceof syntax.SyntaxCaseError) {
+                    result = null;
+                    rest = stx;
+                    break;
+                } else {
+                    throw e;
+                }
+            }
+
+            if (rec && result.length >= 1) {
+                var resultHead = result[0];
+                var resultRest = result.slice(1);
+                var nextName = expander.getName(resultHead, resultRest);
+                var nextMacro = expander.getMacroInEnv(resultHead, resultRest, env);
+
+                if (nextName && nextMacro) {
+                    macroObj = nextMacro;
+                    next = result.concat(rest);
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+
+        return {
+            result: result,
+            rest: rest
+        };
+    }
+
+
+    // (Pattern, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
+    function matchPatternClass (patternObj, stx, env) {
         var result, rest, match;
         // pattern has no parse class
-        if (patternClass === "token" &&
+        if (patternObj.class === "token" &&
             stx[0] && stx[0].token.type !== parser.Token.EOF) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (patternClass === "lit" &&
+        } else if (patternObj.class === "lit" &&
                    stx[0] && typeIsLiteral(stx[0].token.type)) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (patternClass === "ident" &&
+        } else if (patternObj.class === "ident" &&
                    stx[0] && stx[0].token.type === parser.Token.Identifier) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (stx.length > 0 && patternClass === "VariableStatement") {
+        } else if (stx.length > 0 && patternObj.class === "VariableStatement") {
             match = stx[0].term
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.enforest(stx, expander.makeExpanderContext({env: env}));
@@ -332,7 +402,7 @@
                 result = null;
                 rest = stx;
             }
-        } else if (stx.length > 0 && patternClass === "expr") {
+        } else if (stx.length > 0 && patternObj.class === "expr") {
             match = stx[0].term
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.get_expression(stx, expander.makeExpanderContext({env: env}));
@@ -343,6 +413,12 @@
                 result = match.destructed || match.result.destruct(false);
                 rest = match.rest;
             }
+        } else if (stx.length > 0 && (patternObj.class === "invoke" ||
+                                      patternObj.class === "invokeOnce")) {
+            match = expandWithMacro(patternObj.macroName, stx, env,
+                                    patternObj.class === "invoke");
+            result = match.result;
+            rest = match.result ? match.rest : stx;
         } else {
             result = null;
             rest = stx;
@@ -587,7 +663,7 @@
                     rest = stx;
                 }
             } else {
-                match = matchPatternClass(pattern.class, stx, env);
+                match = matchPatternClass(pattern, stx, env);
 
                 success = match.result !== null;
                 rest = match.rest;
@@ -855,6 +931,83 @@
             }, []).value();
     }
 
+    function makeIdentityRule(pattern, isInfix) {
+        var _s = 1;
+
+        function traverse(s, infix) {
+            var pat = [];
+            var stx = [];
+
+            for (var i = 0; i < s.length; i++) {
+                var tok1 = s[i];
+                var tok2 = s[i + 1];
+                var tok3 = s[i + 2];
+                var tok4 = s[i + 3];
+
+                // Pattern vars, ignore classes
+                if (isPatternVar(tok1)) {
+                    pat.push(tok1);
+                    stx.push(tok1);
+                    if (tok2 && tok2.token.type === parser.Token.Punctuator &&
+                        tok2.token.value === ":" &&
+                        tok3 && tok3.token.type === parser.Token.Identifier) {
+                        pat.push(tok2, tok3);
+                        i += 2;
+
+                        if (tok3.token.value === "invoke" ||
+                            tok3.token.value === "invokeOnce" && tok4) {
+                            pat.push(tok4);
+                            i += 1;
+                        }
+                    }
+                }
+                // Rename wildcards
+                else if (tok1.token.type === parser.Token.Identifier &&
+                         tok1.token.value === "_") {
+                    var uident = syntax.makeIdent("$__wildcard" + (_s++), tok1);
+                    pat.push(uident);
+                    stx.push(uident);
+                }
+                // Don't traverse literal groups
+                else if (tok1.token.type === parser.Token.Identifier &&
+                         tok1.token.value === "$" &&
+                         tok2 && tok2.token.type === parser.Token.Delimiter &&
+                         tok2.token.value === "[]") {
+                    pat.push(tok1, tok2);
+                    stx.push(tok1, tok2);
+                    i += 1;
+                }
+                // Traverse delimiters
+                else if (tok1.token.type === parser.Token.Delimiter) {
+                    var sub = traverse(tok1.token.inner, false);
+                    var clone = syntaxFromToken(_.clone(tok1.token), tok1);
+                    tok1.token.inner = sub.pattern;
+                    clone.token.inner = sub.body;
+                    pat.push(tok1);
+                    stx.push(clone);
+                }
+                // Skip infix bar
+                else if (infix && tok1.token.type === parser.Token.Punctuator &&
+                         tok1.token.value === "|") {
+                    infix = false;
+                    pat.push(tok1);
+                }
+                // Tokens
+                else {
+                    pat.push(tok1);
+                    stx.push(tok1);
+                }
+            }
+
+            return {
+                pattern: pat,
+                body: stx
+            };
+        }
+
+        return traverse(pattern, isInfix);
+    }
+
     exports.loadPattern = loadPattern;
     exports.matchPatterns = matchPatterns;
     exports.matchLookbehind = matchLookbehind;
@@ -863,4 +1016,5 @@
     exports.takeLineContext = takeLineContext;
     exports.takeLine = takeLine;
     exports.typeIsLiteral = typeIsLiteral;
+    exports.makeIdentityRule = makeIdentityRule;
 }))

@@ -70,7 +70,7 @@ export #
 
 
 let syntaxCase = macro {
-    function(stx) {
+    function(stx, context) {
         var name_stx = stx[0];
         var here = quoteSyntax{here};
 
@@ -111,6 +111,14 @@ let syntaxCase = macro {
           ].concat(expr, makePunc(";", here));
         }
 
+        function cloneSyntax(stx) {
+            var clone = _.extend({}, stx, { token: _.clone(stx.token) });
+            if (clone.token.inner) {
+                clone.token.inner = clone.token.inner.map(cloneSyntax);
+            }
+            return clone;
+        }
+
         if (cases_stx.length == 0) {
             throw new Error("Must have at least one case")
         }
@@ -142,7 +150,7 @@ let syntaxCase = macro {
 
             // If infix, loop through the pattern separating the lhs and rhs.
             if (isInfix) {
-                var pattern = casePattern.token.inner;
+                var pattern = cloneSyntax(casePattern).expose().token.inner;
                 var lhs = [];
                 var rhs = [];
                 var separator = null;
@@ -169,76 +177,56 @@ let syntaxCase = macro {
             } else {
                 cases.push({
                     lookbehind: [],
-                    pattern: loadPattern(casePattern.token.inner),
+                    pattern: loadPattern(cloneSyntax(casePattern).expose().token.inner),
                     body: caseBody.expose().token.inner
                 });
             }
         }
 
         function patternToObject(pat) {
-            var res = [
-                makeIdent("value", here),
-                makePunc(":", here),
-                makeValue(pat.token.value, here)
-            ];
+            var obj = {value: pat.token.value};
+
             if (pat.token.type === Token.Delimiter) {
-                res = res.concat([
-                    makePunc(",", here),
-                    makeIdent("inner", here),
-                    makePunc(":", here),
-                    patternsToObject(pat.token.inner)
-                ]);
+                obj.inner = pat.token.inner.map(patternToObject);
             }
-            if (typeof pat.class !== 'undefined') {
-                res = res.concat([
-                    makePunc(",", here),
-                    makeIdent("class", here),
-                    makePunc(":", here),
-                    makeValue(pat.class, here)
-                ]);
+            if (pat.class) {
+                obj.class = pat.class;
             }
-            if (typeof pat.repeat !== 'undefined') {
-                res = res.concat([
-                    makePunc(",", here),
-                    makeIdent("repeat", here),
-                    makePunc(":", here),
-                    makeValue(pat.repeat, here)
-                ]);
+            if (pat.repeat) {
+                obj.repeat = pat.repeat;
             }
-            if (typeof pat.separator !== 'undefined') {
-                res = res.concat([
-                    makePunc(",", here),
-                    makeIdent("separator", here),
-                    makePunc(":", here),
-                    makeValue(pat.separator, here)
-                ]);
+            if (pat.separator) {
+                obj.separator = pat.separator;
             }
-            if (typeof pat.leading !== 'undefined') {
-                res = res.concat([
-                    makePunc(",", here),
-                    makeIdent("leading", here),
-                    makePunc(":", here),
-                    makeValue(pat.leading, here)
-                ]);
+            if (pat.leading) {
+                obj.leading = pat.leading;
+            }
+            if (pat.macroName) {
+                obj.macroName = pat.macroName;
             }
 
-            return makeDelim("{}", res, here);
+            return obj;
         }
 
         function patternsToObject(pats) {
-            var res = [];
-            for (var i = 0; i < pats.length; i++) {
-                if (i !== 0) {
-                    res.push(makePunc(",", here));
-                }
-                res.push(patternToObject(pats[i]));
+            if (!pats.length) {
+                return makeDelim("[]", [], here);
             }
-            return makeDelim("[]", res, here);
+
+            var freshId = __fresh();
+            context.patternMap.set(freshId, pats.map(patternToObject));
+
+            return [
+                makeIdent("getPattern", here),
+                makeDelim("()", [
+                    makeValue(freshId, here)
+                ], here)
+            ];
         }
 
         function makeMatch(caseObj) {
-            var lhs = makeAssign("lhs", [patternsToObject(caseObj.lookbehind)]);
-            var rhs = makeAssign("rhs", [patternsToObject(caseObj.pattern)]);
+            var lhs = makeAssign("lhs", patternsToObject(caseObj.lookbehind));
+            var rhs = makeAssign("rhs", patternsToObject(caseObj.pattern));
 
             var lhsMatch = makeAssign("lhsMatch", [
                 makeIdent("patternModule", here),
@@ -409,11 +397,7 @@ let syntaxCase = macro {
         }
 
         body = body.concat(quoteSyntax {
-            function SyntaxCaseError(msg) {
-                this.type = "SyntaxCaseError";
-                this.msg = msg;
-            }
-            throw new SyntaxCaseError("Could not match any cases");
+            throwSyntaxCaseError("Could not match any cases");
         });
 
         var res = makeFunc([
@@ -457,6 +441,7 @@ let macro = macro {
         var body_inner_stx;
         var body_stx;
         var takeLine = patternModule.takeLine;
+        var makeIdentityRule = patternModule.makeIdentityRule;
         var rest;
         
         if (stx[1].token.inner) {
@@ -539,19 +524,27 @@ let macro = macro {
 
         var rules = [];
         if (body_inner_stx[0] && body_inner_stx[0].token.value === "rule") {
-            var rules = [];
             for (var i = 0; i < body_inner_stx.length; i += 4) {
                 var isInfix = body_inner_stx[i + 1].token.value === 'infix';
                 if (isInfix) {
                     i += 1;
                 }
-                var rule_pattern = body_inner_stx[i + 1].token.inner;
 
-                if (!(body_inner_stx[i + 3] && body_inner_stx[i + 3].token && body_inner_stx[i + 3].token.inner)) {
-                    throwSyntaxError("macro", "Macro `macro` could not be matched" , body_inner_stx[i + 3]);
+                var rule_pattern = body_inner_stx[i + 1];
+                var rule_arrow = body_inner_stx[i + 2];
+                var rule_def = body_inner_stx[i + 3];
+
+                if (rule_pattern && rule_arrow && rule_arrow.token.value === "=>" && rule_def) {
+                    rules = rules.concat(translateRule(rule_pattern.expose().token.inner,
+                                                       rule_def.expose().token.inner,
+                                                       isInfix));
+                } else if (rule_pattern) {
+                    var idRule = makeIdentityRule(rule_pattern.expose().token.inner, isInfix);
+                    rules = rules.concat(translateRule(idRule.pattern, idRule.body, isInfix));
+                    i -= 2;
+                } else {
+                  throwSyntaxError("macro", "Macro `macro` could not be matched" , rule_arrow);
                 }
-                var rule_def = body_inner_stx[i + 3].expose().token.inner;
-                rules = rules.concat(translateRule(rule_pattern, rule_def, isInfix));
             }
             rules = makeDelim("{}", rules, here);
 

@@ -954,4 +954,125 @@ describe("macro expander", function() {
         expect(@bar).to.be(42);
     });
 
+    it("should eagerly expand using invoke", function() {
+        macro a {
+            rule { $num } => { 
+                $num + 42
+            }
+        }
+        macro b {
+            rule { $num:invoke(a) } => {
+                $num
+            }
+        }
+
+        expect(b 100).to.be(142);
+    });
+
+    it("should eagerly expand once using invokeOnce", function() {
+        macro a {
+            rule { $num } => {
+                3
+            }
+        }
+        macro b {
+            rule { $num } => {
+                a 2
+            }
+        }
+        macro c {
+            case { _ $num:invokeOnce(b) } => {
+                return [makeValue(#{ $num }.length === 2, #{ here })];
+            }
+        }
+        expect(c 1).to.be(true);
+    });
+
+    it("should eagerly expand recursively using invoke", function() {
+        macro a {
+            rule { $num } => {
+                3
+            }
+        }
+        macro b {
+            rule { $num } => {
+                a 2
+            }
+        }
+        macro c {
+            case { _ $num:invoke(b) } => {
+                return [makeValue(#{ $num }.length === 1, #{ here })];
+            }
+        }
+        expect(c 1).to.be(true);
+    });
+
+    it("should eagerly expand using invoke in a repeater", function() {
+        macro a {
+            rule { $num } => {
+                $num - 1
+            }
+        }
+        macro b {
+            rule { $num:invoke(a) ... } => {
+                $num (+) ...
+            }
+        }
+        expect(b 1 2 3).to.be(3);
+    });
+
+    it("should fall through to the next rule when invoke fails", function() {
+        macro a {
+            rule { $num:lit } => {
+                $num
+            }
+        }
+        macro b {
+            rule { $num:invoke(a) } => {
+                false
+            }
+            rule { $num } => {
+                true
+            }
+        }
+        expect(b foo).to.be(true);
+    });
+
+    it("should support invoke inside delimiters", function() {
+        macro a {
+            rule { $num:lit } => {
+                $num + 42
+            }
+        }
+        macro b {
+            rule { ($num:invoke(a)) } => {
+               $num
+            }
+        }
+        expect(b(100)).to.be(142);
+    });
+
+    it("should support identity rules", function() {
+        macro m {
+          rule { 42 }
+        }
+
+        expect(m 42).to.be(42);
+    });
+
+    it("should support complex identity rules", function() {
+        macro m {
+          rule { (1 + $a:lit) + 3 + $rest (+) ... }
+        }
+
+        expect(m (1 + 2) + 3 + 4 + 5).to.be(15);
+    });
+
+    it("should support wildcards in identity rules", function() {
+      macro m {
+        rule { _ + _ + _ }
+      }
+      expect(m 1 + 2 + 3).to.be(6);
+    });
+
 });
