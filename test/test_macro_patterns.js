@@ -839,6 +839,14 @@ describe("macro expander", function() {
         expect(c(10)).to.be(7);
     });
 
+    it("should work with multi punctuator macro names with `=` in them", function() {
+        let := = macro {
+            rule { $x } => { $x }
+        }
+
+        expect(:= 100).to.be(100);
+    })
+
     it("should allow macros to override binary operators", function() {
         macro + {
             rule infix { $lhs:expr | $rhs:expr } => {
