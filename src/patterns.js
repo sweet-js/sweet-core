@@ -855,10 +855,19 @@
             }, []).value();
     }
 
-    function extendEnv(env) {
-        var newEnv = _.clone(env);
-        newEnv.parent = env;
-        return newEnv;
+
+    function cloneMatch(oldMatch) {
+        var newMatch = {
+            success: oldMatch.success,
+            rest: oldMatch.rest,
+            patternEnv: {}
+        };
+        for (var pat in oldMatch.patternEnv) {
+            if (oldMatch.patternEnv.hasOwnProperty(pat)) {
+                newMatch.patternEnv[pat] = oldMatch.patternEnv[pat];
+            }
+        }
+        return oldMatch;
     }
 
     exports.loadPattern = loadPattern;
@@ -869,5 +878,5 @@
     exports.takeLineContext = takeLineContext;
     exports.takeLine = takeLine;
     exports.typeIsLiteral = typeIsLiteral;
-    exports.extendEnv = extendEnv;
+    exports.cloneMatch = cloneMatch;
 }))
