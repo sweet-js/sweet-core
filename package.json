@@ -36,7 +36,8 @@
     "grunt-cli": "0.1.x",
     "grunt-contrib-copy": "~0.4.1",
     "grunt-contrib-jshint": "~0.7.2",
-    "grunt-mocha-test": "~0.7.0"
+    "grunt-mocha-test": "~0.7.0",
+    "mori": "~0.2.4"
   },
   "repository": {
     "type": "git",
