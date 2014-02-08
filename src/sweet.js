@@ -77,8 +77,7 @@
     }
 }(this, function (exports, _, parser, expander, syn, stxcaseModule, gen, escope, fs, path, resolveSync, requireModule) {
     // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
-    var codegen = typeof window !== 'undefined' && window.escodegen ? window.escodegen : gen;
-    // var escope = scope || escope;
+    var codegen = typeof escodegen !== "undefined" ? escodegen : gen;
     var expand = makeExpand(expander.expand);
     var expandModule = makeExpand(expander.expandModule);
     var stxcaseCtx;

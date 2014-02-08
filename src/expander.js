@@ -47,7 +47,7 @@
 }(this, function(exports, _, parser, syn, se, patternModule, gen) {
     'use strict';
     // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
-    var codegen = typeof window !== 'undefined' && window.escodegen ? window.escodegen : gen;
+    var codegen = typeof escodegen !== "undefined" ? escodegen : gen;
     var assert = syn.assert;
     var throwSyntaxError = syn.throwSyntaxError;
     var unwrapSyntax = syn.unwrapSyntax;
