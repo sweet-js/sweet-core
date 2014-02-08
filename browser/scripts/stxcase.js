@@ -598,13 +598,7 @@ macro withSyntax_done {
         var vars = #{ $vars ... };
         var rest = #{ $rest ... };
 
-        var res = [
-            makeIdent('match', ctx), makePunc('.', here), makeIdent('patternEnv', here), makePunc('=', here),
-            makeIdent('patternModule', here), makePunc('.', here), makeIdent('extendEnv', here),
-            makeDelim('()', [
-                makeIdent('match', ctx), makePunc('.', here), makeIdent('patternEnv', here),
-            ], here)
-        ];
+        var res = [];
 
         for (var i = 0; i < vars.length; i += 3) {
             var name = vars[i];
@@ -650,25 +644,15 @@ macro withSyntax_done {
         res = [
             makeDelim("()", [
                 makeKeyword("function", here),
-                makeDelim("()", [], here),
-                makeDelim("{}", [
-                    makeKeyword("var", here),
-                    makeIdent("res", here),
-                    makePunc("=", here),
-                    makeKeyword("function", here),
-                    makeDelim("()", [], here),
-                    makeDelim("{}", res, here),
-                    makeDelim("()", [], here),
-                    makePunc(";", here),
-                    makeIdent('match', ctx), makePunc('.', here), makeIdent('patternEnv', here), makePunc('=', here),
-                    makeIdent('match', ctx), makePunc('.', here), makeIdent('patternEnv', here), makePunc('.', here),
-                    makeIdent('parent', here), makePunc(';', here),
-                    makeKeyword("return", here),
-                    makeIdent("res", here),
-                    makePunc(";", here)
-                ], here)
+                makeDelim("()", [makeIdent("match", ctx)], here),
+                makeDelim("{}", res, here)
             ], here),
-            makeDelim("()", [], here)
+            makeDelim("()", [
+                makeIdent("patternModule", here),
+                makePunc(".", here),
+                makeIdent("cloneMatch", here),
+                makeDelim("()", [makeIdent("match", ctx)], here)
+            ], here)
         ];
 
         return res;
