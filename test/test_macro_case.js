@@ -80,6 +80,21 @@ describe "procedural (syntax-case) macros" {
         }
         expect(m 100).to.be(142);
     }
+
+    it "withSyntax should only modify its own scope" {
+        macro test {
+            case { _ $x } => {
+                function foo() {
+                    return #{ $x };
+                }
+                var x = #{ 12 };
+                return withSyntax($x = x) {
+                    return foo();
+                }
+            }
+        }
+        expect(test 42).to.be(42)
+    }
     
     it "should support withSyntax with multiple patterns" {
         macro m {

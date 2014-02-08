@@ -591,91 +591,102 @@ let macro = macro {
 }
 export macro;
 
-macro withSyntax_unzip {
-    case { _ $name ($ps ...) ($es ...) ($p = $e:expr , $rest ...) $body } => {
-        return #{
-            withSyntax_unzip $name ($ps ... ($p)) ($es ... ($e)) ($rest ...) $body
-        };
-    }
-    case { _ $name ($ps ...) ($es ...) ($p = $e:expr) $body } => {
-        return #{
-            withSyntax_unzip $name ($ps ... ($p)) ($es ... ($e)) () $body
-        };
-    }
-    case { _ $name ($ps ...) ($es ...) ($p $punc = $e:expr , $rest ...) $body } => {
-        var punc = #{$punc};
-        if (punc[0].token.type !== parser.Token.Punctuator ||
-            punc[0].token.value !== "...") {
-            throwSyntaxError("withSyntax", "Unexpected token", punc);
-        }
-        return #{
-            withSyntax_unzip $name ($ps ... ($p $punc)) ($es ... ($e)) ($rest ...) $body
-        };
-    }
-    case { _ $name ($ps ...) ($es ...) ($p $punc = $e:expr) $body } => {
-        var punc = #{$punc};
-        if (punc[0].token.type !== parser.Token.Punctuator ||
-            punc[0].token.value !== "...") {
-            throwSyntaxError("withSyntax", "Unexpected token", punc);
-        }
-        return #{
-            withSyntax_unzip $name ($ps ... ($p $punc)) ($es ... ($e)) () $body
-        };
-    }
-    case { _ $name ($ps ...) ($es ...) () $body } => {
-        var name = #{$name};
-        var here = #{here};
+macro withSyntax_done {
+    case { _ $ctx ($vars ...) {$rest ...} } => {
+        var ctx = #{ $ctx };
+        var here = #{ here };
+        var vars = #{ $vars ... };
+        var rest = #{ $rest ... };
 
-        var args = #{[$(makeDelim("()", $es, null)) (,) ...],};
-        // since withSyntax runs within a macro invocation
-        // it needs to make it's own mark rather than reuse the calling
-        // macro mark
-        // (_.defaults({mark: fresh()}, context))
-        var withContext = [
-            makeDelim("()", [
-                makeIdent("_", here),
-                makePunc(".", here),
-                makeIdent("defaults", here),
-                makeDelim("()", [
-                    makeDelim("{}", [
-                        makeIdent("mark", here),
-                        makePunc(":", here),
-                        makeIdent("__fresh", here),
-                        makeDelim("()", [], here)
+        var res = [];
+
+        for (var i = 0; i < vars.length; i += 3) {
+            var name = vars[i];
+            var repeat = !!vars[i + 1].token.inner.length;
+            var rhs = vars[i + 2];
+
+            if (repeat) {
+                res.push(
+                    makeIdent('match', ctx),
+                    makePunc('.', here),
+                    makeIdent('patternEnv', here),
+                    makeDelim('[]', [makeValue(name.token.value, here)], here),
+                    makePunc('=', here),
+                    makeDelim('{}', [
+                        makeIdent('level', here), makePunc(':', here), makeValue(1, here), makePunc(',', here),
+                        makeIdent('match', here), makePunc(':', here), makeDelim('()', #{
+                            (function(exp) {
+                                return exp.length
+                                    ? exp.map(function(t) { return { level: 0, match: [t] } })
+                                    : [{ level: 0, match: [] }];
+                            })
+                        }, here), makeDelim('()', [rhs], here)
                     ], here),
-                    makePunc(",", here),
-                    makeIdent("context", name)
-                ], here)     
+                    makePunc(';', here)
+                );
+            } else {
+                res.push(
+                    makeIdent('match', ctx),
+                    makePunc('.', here),
+                    makeIdent('patternEnv', here),
+                    makeDelim('[]', [makeValue(name.token.value, here)], here),
+                    makePunc('=', here),
+                    makeDelim('{}', [
+                        makeIdent('level', here), makePunc(':', here), makeValue(0, here), makePunc(',', here),
+                        makeIdent('match', here), makePunc(':', here), rhs
+                    ], here),
+                    makePunc(';', here)
+                );
+            }
+        }
+
+        res = res.concat(rest);
+        res = [
+            makeDelim("()", [
+                makeKeyword("function", here),
+                makeDelim("()", [makeIdent("match", ctx)], here),
+                makeDelim("{}", res, here)
             ], here),
-            makePunc(",", here),
-            makeIdent("prevStx", name),
-            makePunc(",", here),
-            makeIdent("prevTerms", name)
-        ];
-        args = args.concat(withContext);
-
-        var res = [makeIdent("syntaxCase", name)];
-        res = res.concat(makeDelim("()", args, here));
-        res = res.concat(#{
-            { case { $ps ... } => $body }
-        });
-
-        return [makeDelim("()", res, here),
+            makeDelim("()", [
+                makeIdent("patternModule", here),
                 makePunc(".", here),
-                makeIdent("result", here)];
+                makeIdent("cloneMatch", here),
+                makeDelim("()", [makeIdent("match", ctx)], here)
+            ], here)
+        ];
+
+        return res;
     }
 }
 
+
+macro withSyntax_collect {
+    rule { $ctx ($vars ...) ($name:ident $[...] = $rhs:expr , $rest ...) { $body ... } } => {
+        withSyntax_collect $ctx ($vars ... $name (true) ($rhs)) ($rest ...) { $body ... }
+    }
+    rule { $ctx ($vars ...) ($name:ident $[...] = $rhs:expr) { $body ... } } => {
+        withSyntax_done $ctx ($vars ... $name (true) ($rhs)) { $body ... }
+    }
+    rule { $ctx ($vars ...) ($name:ident = $rhs:expr , $rest ...) { $body ... } } => {
+        withSyntax_collect $ctx ($vars ... $name () ($rhs)) ($rest ...) { $body ... }
+    }
+    rule { $ctx ($vars ...) ($name:ident = $rhs:expr) { $body ...} } => {
+        withSyntax_done $ctx ($vars ... $name () ($rhs)) { $body ... }
+    }
+
+}
+
 let withSyntax = macro {
-    case { $name ($vars ...) {$body ...} } => {
+    case { $name ($vars ...) { $body ...} } => {
         return #{
-            withSyntax_unzip $name () () ($vars ...) {$body ...}
+            withSyntax_collect $name () ($vars ...) { $body ... }
         }
     }
+
     case { $name ($vars ...) #{$body ...} } => {
         var here = #{ here };
         return #{
-            withSyntax_unzip $name () () ($vars ...)
+            withSyntax_collect $name () ($vars ...)
         }.concat(makeDelim("{}", [
             makeKeyword("return", here),
             makePunc("#", #{ $name }),
@@ -683,7 +694,6 @@ let withSyntax = macro {
         ], here));
     }
 }
-
 export withSyntax;
 
 let letstx = macro {
