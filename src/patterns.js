@@ -867,7 +867,7 @@
                 newMatch.patternEnv[pat] = oldMatch.patternEnv[pat];
             }
         }
-        return oldMatch;
+        return newMatch;
     }
 
     exports.loadPattern = loadPattern;
