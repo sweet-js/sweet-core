@@ -334,13 +334,14 @@
         }
 
         var next = macroName.slice(-1).concat(stx);
-        var rest, result, rt;
+        var rest, result, rt, patternEnv;
 
         while (macroObj && next) {
             try {
                 rt = macroObj.fn(next, newContext, [], []);
                 result = rt.result;
                 rest = rt.rest;
+                patternEnv = rt.patterns;
             } catch (e) {
                 if (e instanceof syntax.SyntaxCaseError) {
                     result = null;
@@ -370,14 +371,15 @@
 
         return {
             result: result,
-            rest: rest
+            rest: rest,
+            patternEnv: patternEnv
         };
     }
 
 
     // (Pattern, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
     function matchPatternClass (patternObj, stx, env) {
-        var result, rest, match;
+        var result, rest, match, patternEnv;
         // pattern has no parse class
         if (patternObj.class === "token" &&
             stx[0] && stx[0].token.type !== parser.Token.EOF) {
@@ -419,6 +421,7 @@
                                     patternObj.class === "invoke");
             result = match.result;
             rest = match.result ? match.rest : stx;
+            patternEnv = match.patternEnv;
         } else {
             result = null;
             rest = stx;
@@ -426,7 +429,8 @@
 
         return {
             result: result,
-            rest: rest
+            rest: rest,
+            patternEnv: patternEnv
         };
     }
 
@@ -624,29 +628,10 @@
                 };
             }
             success = subMatch.success;
-
-            // merge the subpattern matches with the current pattern environment
-            _.keys(subMatch.patternEnv).forEach(function(patternKey) {
-                if (pattern.repeat) {
-                    // if this is a repeat pattern we need to bump the level
-                    var nextLevel = subMatch.patternEnv[patternKey].level + 1;
-
-                    if (patternEnv[patternKey]) {
-                        patternEnv[patternKey].level = nextLevel;
-                        patternEnv[patternKey].match.push(subMatch.patternEnv[patternKey]);
-                    } else {
-                        // initialize if we haven't done so already
-                        patternEnv[patternKey] = {
-                            level: nextLevel,
-                            match: [subMatch.patternEnv[patternKey]],
-                            topLevel: topLevel
-                        };
-                    }
-                } else {
-                    // otherwise accept the environment as-is
-                    patternEnv[patternKey] = subMatch.patternEnv[patternKey];
-                }
-            });
+            patternEnv = loadPatternEnv(patternEnv,
+                                        subMatch.patternEnv,
+                                        topLevel,
+                                        pattern.repeat);
 
         } else {
             if (pattern.class === "pattern_literal") {
@@ -664,7 +649,6 @@
                 }
             } else {
                 match = matchPatternClass(pattern, stx, env);
-
                 success = match.result !== null;
                 rest = match.rest;
                 matchEnv = {
@@ -688,6 +672,12 @@
                 } else {
                     patternEnv[pattern.value] = matchEnv;
                 }
+
+                patternEnv = loadPatternEnv(patternEnv,
+                                            match.patternEnv,
+                                            topLevel,
+                                            pattern.repeat,
+                                            pattern.value);
             }
         }
         return {
@@ -696,6 +686,29 @@
             patternEnv: patternEnv
         };
 
+    }
+
+    function loadPatternEnv(toEnv, fromEnv, topLevel, repeat, prefix) {
+        prefix = prefix || '';
+        _.forEach(fromEnv, function(patternVal, patternKey) {
+            var patternName = prefix + patternKey;
+            if (repeat) {
+                var nextLevel = patternVal.level + 1;
+                if (toEnv[patternName]) {
+                    toEnv[patternName].level = nextLevel;
+                    toEnv[patternName].match.push(patternVal);
+                } else {
+                    toEnv[patternName] = {
+                        level: nextLevel,
+                        match: [patternVal],
+                        topLevel: topLevel
+                    };
+                }
+            } else {
+                toEnv[patternName] = patternVal;
+            }
+        });
+        return toEnv;
     }
 
     function matchLookbehind(patterns, stx, terms, env) {
