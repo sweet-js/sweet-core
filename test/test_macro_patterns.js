@@ -961,5 +961,16 @@ describe("macro expander", function() {
         expect(@foo).to.be(12);
         expect(@bar).to.be(42);
     });
+    
+    it("should expand the call in a `new` constructor", function() {
+        macro m {
+          rule {} => { 42 }
+        }
+        function Ctr(fn) {
+            this.foo = fn();
+        }
+        var ctr = new Ctr(function() { return m });
+        expect(ctr.foo).to.be(42);
+    });
 
 });
