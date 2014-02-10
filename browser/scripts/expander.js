@@ -1600,6 +1600,9 @@
                 return expandTermTreeToFinal(arg, context);
             });
             return term;
+        } else if (term.hasPrototype(Const)) {
+            term.call = expandTermTreeToFinal(term.call, context);
+            return term;
         } else if (term.hasPrototype(UnaryOp)) {
             term.expr = expandTermTreeToFinal(term.expr, context);
             return term;
