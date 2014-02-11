@@ -1052,6 +1052,21 @@ describe("macro expander", function() {
         expect(b(100)).to.be(142);
     });
 
+    it("should implicitly call invoke with custom pattern classes", function() {
+        macro a {
+            rule { $num } => { 
+                $num + 42
+            }
+        }
+        macro b {
+            rule { $num:a } => {
+                $num
+            }
+        }
+
+        expect(b 100).to.be(142);
+    })
+
     it("should support identity rules", function() {
         macro m {
           rule { 42 }
