@@ -474,6 +474,12 @@
             } while (pattern.repeat && success && rest.length > 0);
         }
 
+        // If we are in a delimiter and we haven't matched all the syntax, it
+        // was a failed match.
+        if (!topLevel && rest.length) {
+            success = false;
+        }
+
         var result;
         if (success) {
             result = rest.length ? stx.slice(0, -rest.length): stx;
