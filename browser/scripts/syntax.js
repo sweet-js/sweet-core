@@ -293,6 +293,12 @@
         }
         throw new MacroSyntaxError(name, message, stx);
     }
+    function SyntaxCaseError(message) {
+        this.message = message;
+    }
+    function throwSyntaxCaseError(message) {
+        throw new SyntaxCaseError(message);
+    }
     function printSyntaxError(code, err) {
         if (!err.stx) {
             return '[' + err.name + '] ' + err.message;
@@ -383,6 +389,8 @@
     exports$2.prettyPrint = prettyPrint;
     exports$2.MacroSyntaxError = MacroSyntaxError;
     exports$2.throwSyntaxError = throwSyntaxError;
+    exports$2.SyntaxCaseError = SyntaxCaseError;
+    exports$2.throwSyntaxCaseError = throwSyntaxCaseError;
     exports$2.printSyntaxError = printSyntaxError;
 }));
 //# sourceMappingURL=syntax.js.map
