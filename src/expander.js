@@ -50,6 +50,8 @@
     var codegen = typeof escodegen !== "undefined" ? escodegen : gen;
     var assert = syn.assert;
     var throwSyntaxError = syn.throwSyntaxError;
+    var throwSyntaxCaseError = syn.throwSyntaxCaseError;
+    var SyntaxCaseError = syn.SyntaxCaseError;
     var unwrapSyntax = syn.unwrapSyntax;
 
     macro _get_vars {
@@ -248,7 +250,6 @@
             return this;
         }
     }
-
 
     var scopedEval = se.scopedEval;
 
@@ -1041,13 +1042,13 @@
         }
     }
 
-    function getMacroInEnv(head, rest, context) {
+    function getMacroInEnv(head, rest, env) {
         var name = getName(head, rest);
         // simple case, don't need to create a new syntax object
         if (name.length === 1) {
             var resolvedName = resolve(name[0]);
-            if (context.env.has(resolvedName)) {
-                return context.env.get(resolvedName);
+            if (env.has(resolvedName)) {
+                return env.get(resolvedName);
             }
             return null;
         } else {
@@ -1055,9 +1056,9 @@
                 var nameStr = name.map(unwrapSyntax).join("");
                 var nameStx = syn.makeIdent(nameStr, name[0]);
                 var resolvedName = resolve(nameStx);
-                var inEnv = context.env.has(resolvedName);
+                var inEnv = env.has(resolvedName);
                 if (inEnv) {
-                    return context.env.get(resolvedName);
+                    return env.get(resolvedName);
                 }
                 name.pop();
             }
@@ -1065,11 +1066,11 @@
         }
     }
 
-    function nameInEnv(head, rest, context) {
+    function nameInEnv(head, rest, env) {
         if (head.token.type === parser.Token.Identifier ||
             head.token.type === parser.Token.Keyword ||
             head.token.type === parser.Token.Punctuator) {
-            return getMacroInEnv(head, rest, context) !== null;
+            return getMacroInEnv(head, rest, env) !== null;
         }
         return false;
     }
@@ -1211,7 +1212,7 @@
                         var bopName = resolve(rest[0]);
 
                         // Check if the operator is a macro first.
-                        if (nameInEnv(rest[0], rest.slice(1), context)) {
+                        if (nameInEnv(rest[0], rest.slice(1), context.env)) {
                             var headStx = tagWithTerm(head, head.destruct().reverse());
                             bopPrevStx = headStx.concat(prevStx);
                             bopPrevTerms = [head].concat(prevTerms);
@@ -1433,10 +1434,10 @@
                      head.token.type === parser.Token.Keyword ||
                      head.token.type === parser.Token.Punctuator) && 
                     (expandCount < maxExpands) &&
-                    nameInEnv(head, rest, context)) {
+                    nameInEnv(head, rest, context.env)) {
 
                     // pull the macro transformer out the environment
-                    var macroObj = getMacroInEnv(head, rest, context);
+                    var macroObj = getMacroInEnv(head, rest, context.env);
                     var transformer = macroObj.fn;
 
                     // create a new mark to be used for the input to
@@ -1454,7 +1455,7 @@
                     try {
                         rt = transformer([head].concat(rest.slice(macroObj.fullName.length - 1)), transformerContext, prevStx, prevTerms);
                     } catch (e) {
-                        if (e.type && e.type === "SyntaxCaseError") {
+                        if (e instanceof SyntaxCaseError) {
                             // add a nicer error for syntax case
                             var argumentString = "`" + rest.slice(0, 5).map(function(stx) {
                                 return stx.token.value;
@@ -1690,7 +1691,7 @@
         }
 
         while (next.rest.length &&
-                nameInEnv(next.rest[0], next.rest.slice(1), context)) {
+                nameInEnv(next.rest[0], next.rest.slice(1), context.env)) {
 
             // Enforest the next term tree since it might be an infix macro that
             // consumes the initial expression.
@@ -1832,11 +1833,15 @@
             },
             unwrapSyntax: syn.unwrapSyntax,
             throwSyntaxError: throwSyntaxError,
+            throwSyntaxCaseError: throwSyntaxCaseError,
             prettyPrint: syn.prettyPrint,
             parser: parser,
             __fresh: fresh,
             _: _,
             patternModule: patternModule,
+            getPattern: function(id) {
+                return context.patternMap.get(id);
+            },
             getTemplate: function(id) {
                 return cloneSyntaxArray(context.templateMap.get(id));
             },
@@ -2207,6 +2212,8 @@
                        writable: false, enumerable: true, configurable: false},
             templateMap: {value: o.templateMap || new StringMap(),
                           writable: false, enumerable: true, configurable: false},
+            patternMap: {value: o.patternMap || new StringMap(),
+                         writable: false, enumerable: true, configurable: false},
             mark: {value: o.mark,
                           writable: false, enumerable: true, configurable: false}
         });
@@ -2343,6 +2350,9 @@
 
     exports.resolve = resolve;
     exports.get_expression = get_expression;
+    exports.getName = getName;
+    exports.getMacroInEnv = getMacroInEnv;
+    exports.nameInEnv = nameInEnv;
 
     exports.makeExpanderContext = makeExpanderContext;
 

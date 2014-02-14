@@ -207,85 +207,98 @@
         return patterns;
     }
 
+    function isPrimaryClass(name) {
+        return ['expr', 'lit', 'ident', 'token', 'invoke', 'invokeOnce'].indexOf(name) > -1;
+    }
+
     function loadPattern(patterns, reverse) {
-        var patts = _.chain(patterns)
-        // first pass to merge the pattern variables together
-            .reduce(function(acc, patStx, idx) {
-                var last = patterns[idx-1];
-                var lastLast = patterns[idx-2];
-                var next = patterns[idx+1];
-                var nextNext = patterns[idx+2];
+        var patts = [];
 
-                // skip over the `:lit` part of `$x:lit`
-                if (patStx.token.value === ":") {
-                    if(last && isPatternVar(last) && !isPatternVar(next)) {
-                        return acc;
-                    }
-                }
-                if (last && last.token.value === ":") {
-                    if (lastLast && isPatternVar(lastLast) && !isPatternVar(patStx)) {
-                        return acc;
-                    }
-                }
-                // skip over $
-                if (patStx.token.value === "$" &&
-                    next && next.token.type === parser.Token.Delimiter) {
-                    return acc;
-                }
+        for (var i = 0; i < patterns.length; i++) {
+            var tok1 = patterns[i];
+            var tok2 = patterns[i + 1];
+            var tok3 = patterns[i + 2];
+            var tok4 = patterns[i + 3];
+            var last = patts[patts.length - 1];
+            var patt;
 
-                if (isPatternVar(patStx)) {
-                    if (next && next.token.value === ":" && !isPatternVar(nextNext)) {
-                        if (typeof nextNext === 'undefined') {
-                            throwSyntaxError("patterns", "expecting a pattern class following a `:`", next);
+            assert(tok1, "Expecting syntax object");
+
+            // Repeaters
+            if (tok1.token.type === parser.Token.Delimiter &&
+                tok1.token.value === "()" &&
+                tok2 && tok2.token.type === parser.Token.Punctuator &&
+                tok2.token.value === "..." && last) {
+
+                assert(tok1.token.inner.length === 1,
+                       "currently assuming all separators are a single token");
+
+                i += 1;
+                last.repeat = true;
+                last.separator = tok1.token.inner[0].token.value;
+                continue;
+
+            } else if (tok1.token.type === parser.Token.Punctuator &&
+                       tok1.token.value === "..." && last) {
+                last.repeat = true;
+                last.separator = " ";
+                continue;
+
+            } else if (isPatternVar(tok1)) {
+                patt = tok1;
+
+                if (tok2 && tok2.token.type === parser.Token.Punctuator &&
+                    tok2.token.value === ":" &&
+                    tok3 && tok3.token.type === parser.Token.Identifier) {
+
+                    i += 2;
+                    if (isPrimaryClass(tok3.token.value)) {
+                        patt.class = tok3.token.value;
+                        if (patt.class === "invokeOnce" || patt.class === "invoke") {
+                            i += 1;
+                            if (tok4.token.value === "()" && tok4.token.inner.length) {
+                                patt.macroName = tok4.expose().token.inner;
+                            } else {
+                                throwSyntaxError(patt.class, "Expected macro parameter", tok3);
+                            }
                         }
-                        patStx.class = nextNext.token.value;
                     } else {
-                        patStx.class = "token";
-                    }
-                } else if (patStx.token.type === parser.Token.Delimiter) {
-                    if (last && last.token.value === "$") {
-                        patStx.class = "pattern_group";
-                    }
-
-                    // Leave literal groups as is
-                    if (patStx.class === "pattern_group" && patStx.token.value === '[]') {
-                        patStx.token.inner = loadLiteralGroup(patStx.token.inner);
-                    } else {
-                        patStx.token.inner = loadPattern(patStx.token.inner);
+                        patt.class = "invoke";
+                        patt.macroName = [tok3];
                     }
                 } else {
-                    patStx.class = "pattern_literal";
+                    patt.class = "token";
                 }
-                acc.push(patStx);
-                return acc;
-                // then second pass to mark repeat and separator
-            }, []).reduce(function(acc, patStx, idx, patterns) {
-                var separator = patStx.separator || " ";
-                var repeat = patStx.repeat || false;
-                var next = patterns[idx+1];
-                var nextNext = patterns[idx+2];
+            } else if (tok1.token.type === parser.Token.Identifier && 
+                       tok1.token.value === "$" &&
+                       tok2.token.type === parser.Token.Delimiter) {
+                i += 1;
+                patt = tok2;
+                patt.class = "pattern_group";
 
-                if (next && next.token.value === "...") {
-                    repeat = true;
-                    separator = " ";
-                } else if (delimIsSeparator(next) &&
-                           nextNext && nextNext.token.value === "...") {
-                    repeat = true;
-                    assert(next.token.inner.length === 1,
-                           "currently assuming all separators are a single token");
-                    separator = next.token.inner[0].token.value;
+                if (patt.token.value === "[]") {
+                    patt.token.inner = loadLiteralGroup(patt.token.inner);
+                } else {
+                    patt.token.inner = loadPattern(patt.expose().token.inner);
                 }
+            } else {
+                patt = tok1;
+                patt.class = "pattern_literal";
 
-                // skip over ... and (,)
-                if (patStx.token.value === "..."||
-                    (delimIsSeparator(patStx) && next && next.token.value === "...")) {
-                    return acc;
+                if (patt.token.inner) {
+                    patt.token.inner = loadPattern(patt.expose().token.inner);
                 }
-                patStx.repeat = repeat;
-                patStx.separator = separator;
-                acc.push(patStx);
-                return acc;
-            }, []).value();
+            }
+
+            // Macro classes aren't allowed in lookbehind because we wouldn't
+            // know where to insert the macro, and you can't use a L->R macro
+            // to match R->L.
+            if (reverse && patt.macroName) {
+                throwSyntaxError(patStx.class, "Not allowed in top-level lookbehind", patt.macroName[0]);
+            }
+
+            patts.push(patt);
+        }
 
         return reverse ? reversePattern(patts) : patts;
     }
@@ -304,24 +317,77 @@
         };
     }
 
+    function expandWithMacro(macroName, stx, env, rec) {
+        var name = macroName.map(syntax.unwrapSyntax).join("");
+        var ident = syntax.makeIdent(name, macroName[0]);
+        var macroObj = env.get(expander.resolve(ident));
+        var newContext = expander.makeExpanderContext({env: env});
 
-    // (Str, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
-    function matchPatternClass (patternClass, stx, env) {
-        var result, rest, match;
+        if (!macroObj) {
+            throwSyntaxError("invoke", "Macro not in scope", macroName[0]);
+        }
+
+        var next = macroName.slice(-1).concat(stx);
+        var rest, result, rt, patternEnv;
+
+        while (macroObj && next) {
+            try {
+                rt = macroObj.fn(next, newContext, [], []);
+                result = rt.result;
+                rest = rt.rest;
+                patternEnv = rt.patterns;
+            } catch (e) {
+                if (e instanceof syntax.SyntaxCaseError) {
+                    result = null;
+                    rest = stx;
+                    break;
+                } else {
+                    throw e;
+                }
+            }
+
+            if (rec && result.length >= 1) {
+                var resultHead = result[0];
+                var resultRest = result.slice(1);
+                var nextName = expander.getName(resultHead, resultRest);
+                var nextMacro = expander.getMacroInEnv(resultHead, resultRest, env);
+
+                if (nextName && nextMacro) {
+                    macroObj = nextMacro;
+                    next = result.concat(rest);
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+
+        return {
+            result: result,
+            rest: rest,
+            patternEnv: patternEnv
+        };
+    }
+
+
+    // (Pattern, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
+    function matchPatternClass (patternObj, stx, env) {
+        var result, rest, match, patternEnv;
         // pattern has no parse class
-        if (patternClass === "token" &&
+        if (patternObj.class === "token" &&
             stx[0] && stx[0].token.type !== parser.Token.EOF) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (patternClass === "lit" &&
+        } else if (patternObj.class === "lit" &&
                    stx[0] && typeIsLiteral(stx[0].token.type)) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (patternClass === "ident" &&
+        } else if (patternObj.class === "ident" &&
                    stx[0] && stx[0].token.type === parser.Token.Identifier) {
             result = [stx[0]];
             rest = stx.slice(1);
-        } else if (stx.length > 0 && patternClass === "VariableStatement") {
+        } else if (stx.length > 0 && patternObj.class === "VariableStatement") {
             match = stx[0].term
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.enforest(stx, expander.makeExpanderContext({env: env}));
@@ -332,7 +398,7 @@
                 result = null;
                 rest = stx;
             }
-        } else if (stx.length > 0 && patternClass === "expr") {
+        } else if (stx.length > 0 && patternObj.class === "expr") {
             match = stx[0].term
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.get_expression(stx, expander.makeExpanderContext({env: env}));
@@ -343,6 +409,13 @@
                 result = match.destructed || match.result.destruct(false);
                 rest = match.rest;
             }
+        } else if (stx.length > 0 && (patternObj.class === "invoke" ||
+                                      patternObj.class === "invokeOnce")) {
+            match = expandWithMacro(patternObj.macroName, stx, env,
+                                    patternObj.class === "invoke");
+            result = match.result;
+            rest = match.result ? match.rest : stx;
+            patternEnv = match.patternEnv;
         } else {
             result = null;
             rest = stx;
@@ -350,7 +423,8 @@
 
         return {
             result: result,
-            rest: rest
+            rest: rest,
+            patternEnv: patternEnv
         };
     }
 
@@ -554,29 +628,10 @@
                 };
             }
             success = subMatch.success;
-
-            // merge the subpattern matches with the current pattern environment
-            _.keys(subMatch.patternEnv).forEach(function(patternKey) {
-                if (pattern.repeat) {
-                    // if this is a repeat pattern we need to bump the level
-                    var nextLevel = subMatch.patternEnv[patternKey].level + 1;
-
-                    if (patternEnv[patternKey]) {
-                        patternEnv[patternKey].level = nextLevel;
-                        patternEnv[patternKey].match.push(subMatch.patternEnv[patternKey]);
-                    } else {
-                        // initialize if we haven't done so already
-                        patternEnv[patternKey] = {
-                            level: nextLevel,
-                            match: [subMatch.patternEnv[patternKey]],
-                            topLevel: topLevel
-                        };
-                    }
-                } else {
-                    // otherwise accept the environment as-is
-                    patternEnv[patternKey] = subMatch.patternEnv[patternKey];
-                }
-            });
+            patternEnv = loadPatternEnv(patternEnv,
+                                        subMatch.patternEnv,
+                                        topLevel,
+                                        pattern.repeat);
 
         } else {
             if (pattern.class === "pattern_literal") {
@@ -593,8 +648,7 @@
                     rest = stx;
                 }
             } else {
-                match = matchPatternClass(pattern.class, stx, env);
-
+                match = matchPatternClass(pattern, stx, env);
                 success = match.result !== null;
                 rest = match.rest;
                 matchEnv = {
@@ -618,6 +672,12 @@
                 } else {
                     patternEnv[pattern.value] = matchEnv;
                 }
+
+                patternEnv = loadPatternEnv(patternEnv,
+                                            match.patternEnv,
+                                            topLevel,
+                                            pattern.repeat,
+                                            pattern.value);
             }
         }
         return {
@@ -626,6 +686,29 @@
             patternEnv: patternEnv
         };
 
+    }
+
+    function loadPatternEnv(toEnv, fromEnv, topLevel, repeat, prefix) {
+        prefix = prefix || '';
+        _.forEach(fromEnv, function(patternVal, patternKey) {
+            var patternName = prefix + patternKey;
+            if (repeat) {
+                var nextLevel = patternVal.level + 1;
+                if (toEnv[patternName]) {
+                    toEnv[patternName].level = nextLevel;
+                    toEnv[patternName].match.push(patternVal);
+                } else {
+                    toEnv[patternName] = {
+                        level: nextLevel,
+                        match: [patternVal],
+                        topLevel: topLevel
+                    };
+                }
+            } else {
+                toEnv[patternName] = patternVal;
+            }
+        });
+        return toEnv;
     }
 
     function matchLookbehind(patterns, stx, terms, env) {
@@ -876,6 +959,83 @@
         return newMatch;
     }
 
+    function makeIdentityRule(pattern, isInfix) {
+        var _s = 1;
+
+        function traverse(s, infix) {
+            var pat = [];
+            var stx = [];
+
+            for (var i = 0; i < s.length; i++) {
+                var tok1 = s[i];
+                var tok2 = s[i + 1];
+                var tok3 = s[i + 2];
+                var tok4 = s[i + 3];
+
+                // Pattern vars, ignore classes
+                if (isPatternVar(tok1)) {
+                    pat.push(tok1);
+                    stx.push(tok1);
+                    if (tok2 && tok2.token.type === parser.Token.Punctuator &&
+                        tok2.token.value === ":" &&
+                        tok3 && tok3.token.type === parser.Token.Identifier) {
+                        pat.push(tok2, tok3);
+                        i += 2;
+
+                        if (tok3.token.value === "invoke" ||
+                            tok3.token.value === "invokeOnce" && tok4) {
+                            pat.push(tok4);
+                            i += 1;
+                        }
+                    }
+                }
+                // Rename wildcards
+                else if (tok1.token.type === parser.Token.Identifier &&
+                         tok1.token.value === "_") {
+                    var uident = syntax.makeIdent("$__wildcard" + (_s++), tok1);
+                    pat.push(uident);
+                    stx.push(uident);
+                }
+                // Don't traverse literal groups
+                else if (tok1.token.type === parser.Token.Identifier &&
+                         tok1.token.value === "$" &&
+                         tok2 && tok2.token.type === parser.Token.Delimiter &&
+                         tok2.token.value === "[]") {
+                    pat.push(tok1, tok2);
+                    stx.push(tok1, tok2);
+                    i += 1;
+                }
+                // Traverse delimiters
+                else if (tok1.token.type === parser.Token.Delimiter) {
+                    var sub = traverse(tok1.token.inner, false);
+                    var clone = syntaxFromToken(_.clone(tok1.token), tok1);
+                    tok1.token.inner = sub.pattern;
+                    clone.token.inner = sub.body;
+                    pat.push(tok1);
+                    stx.push(clone);
+                }
+                // Skip infix bar
+                else if (infix && tok1.token.type === parser.Token.Punctuator &&
+                         tok1.token.value === "|") {
+                    infix = false;
+                    pat.push(tok1);
+                }
+                // Tokens
+                else {
+                    pat.push(tok1);
+                    stx.push(tok1);
+                }
+            }
+
+            return {
+                pattern: pat,
+                body: stx
+            };
+        }
+
+        return traverse(pattern, isInfix);
+    }
+
     exports.loadPattern = loadPattern;
     exports.matchPatterns = matchPatterns;
     exports.matchLookbehind = matchLookbehind;
@@ -885,4 +1045,5 @@
     exports.takeLine = takeLine;
     exports.typeIsLiteral = typeIsLiteral;
     exports.cloneMatch = cloneMatch;
+    exports.makeIdentityRule = makeIdentityRule;
 }))
