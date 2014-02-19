@@ -28,7 +28,8 @@
         var path        = require('path');
         var fs          = require('fs');
         var resolveSync = require('resolve/lib/sync');
-
+        var codegen     = require('escodegen');
+        
         var lib  = path.join(path.dirname(fs.realpathSync(__filename)), "../macros");
 
         var stxcaseModule = fs.readFileSync(lib + "/stxcase.js", 'utf8');
