@@ -1109,4 +1109,13 @@ describe("macro expander", function() {
       expect(m 1 + 2 + 3).to.be(6);
     });
 
+    it("should match literal underscores in literal groups", function() {
+        macro m {
+            rule { $[_] } => { 42 }
+            rule { $tok } => { 12 }
+        }
+        expect(m foo).to.be(12);
+        expect(m _).to.be(42);
+    });
+
 });

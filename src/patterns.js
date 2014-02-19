@@ -281,6 +281,10 @@
                 } else {
                     patt.token.inner = loadPattern(patt.expose().token.inner);
                 }
+            } else if (tok1.token.type === parser.Token.Identifier &&
+                       tok1.token.value === "_") {
+                patt = tok1;
+                patt.class = "wildcard";
             } else {
                 patt = tok1;
                 patt.class = "pattern_literal";
@@ -634,13 +638,12 @@
                                         pattern.repeat);
 
         } else {
-            if (pattern.class === "pattern_literal") {
-                // wildcard
-                if(stx[0] && pattern.value === "_") {
-                    success = true;
-                    rest = stx.slice(1);
+            if (pattern.class === "wildcard") {
+                success = true;
+                rest = stx.slice(1);
+            } else if (pattern.class === "pattern_literal") {
                 // match the literal but don't update the pattern environment
-                } else if (stx[0] && pattern.value === stx[0].token.value) {
+                if (stx[0] && pattern.value === stx[0].token.value) {
                     success = true;
                     rest = stx.slice(1);
                 } else {
