@@ -14,7 +14,8 @@
     var syntaxFromToken = syntax.syntaxFromToken;
     var makePunc = syntax.makePunc;
     var joinSyntax = syntax.joinSyntax;
-    var joinSyntaxArr = syntax.joinSyntaxArr;
+    var joinSyntaxArray = syntax.joinSyntaxArray;
+    var cloneSyntaxArray = syntax.cloneSyntaxArray;
     var assert = syntax.assert;
     var throwSyntaxError = syntax.throwSyntaxError;
 
@@ -905,7 +906,7 @@
                         });
                         var joined;
                         if (bodyStx.group) {
-                            joined = joinSyntaxArr(transcribed, bodyStx.separator);
+                            joined = joinSyntaxArray(transcribed, bodyStx.separator);
                         } else {
                             joined = joinSyntax(transcribed, bodyStx.separator);
                         }
