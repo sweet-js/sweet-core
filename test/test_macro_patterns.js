@@ -1118,4 +1118,13 @@ describe("macro expander", function() {
         expect(m _).to.be(42);
     });
 
+    it("should allow transcription of delims in repeaters more than once", function() {
+        macro m {
+          rule { ($foo ...) } => {
+            $foo ... .concat($foo ...)
+          }
+        }
+        expect(m([1, 2, 3])).to.eql([1, 2, 3, 1, 2, 3]);
+    });
+
 });
