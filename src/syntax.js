@@ -296,7 +296,7 @@
 
 
     // ([...[...CSyntax]], Str) -> [...CSyntax]
-    function joinSyntaxArr(tojoin, punc) {
+    function joinSyntaxArray(tojoin, punc) {
         if (tojoin.length === 0) { return []; }
         if (punc === " ") {
             return _.flatten(tojoin, true);
@@ -307,6 +307,16 @@
             Array.prototype.push.apply(acc, join);
             return acc;
         }, _.first(tojoin));
+    }
+
+    function cloneSyntaxArray(arr) {
+        return arr.map(function(stx) {
+            var o = syntaxFromToken(_.clone(stx.token), stx);
+            if (o.token.type === parser.Token.Delimiter) {
+                o.token.inner = cloneSyntaxArray(o.token.inner);
+            }
+            return o;
+        });
     }
 
     function MacroSyntaxError(name, message, stx) {
@@ -417,7 +427,8 @@
     exports.syntaxToTokens = syntaxToTokens;
 
     exports.joinSyntax = joinSyntax;
-    exports.joinSyntaxArr = joinSyntaxArr;
+    exports.joinSyntaxArray = joinSyntaxArray;
+    exports.cloneSyntaxArray = cloneSyntaxArray;
 
     exports.prettyPrint = prettyPrint;
 

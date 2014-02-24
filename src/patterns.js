@@ -14,7 +14,8 @@
     var syntaxFromToken = syntax.syntaxFromToken;
     var makePunc = syntax.makePunc;
     var joinSyntax = syntax.joinSyntax;
-    var joinSyntaxArr = syntax.joinSyntaxArr;
+    var joinSyntaxArray = syntax.joinSyntaxArray;
+    var cloneSyntaxArray = syntax.cloneSyntaxArray;
     var assert = syntax.assert;
     var throwSyntaxError = syntax.throwSyntaxError;
 
@@ -71,11 +72,11 @@
     function joinRepeatedMatch(tojoin, punc) {
         return _.reduce(_.rest(tojoin, 1), function(acc, join) {
             if (punc === " ") {
-                return acc.concat(join.match);
+                return acc.concat(cloneSyntaxArray(join.match));
             }
             return acc.concat(makePunc(punc, _.first(join.match)),
-                              join.match);
-        }, _.first(tojoin).match);
+                              cloneSyntaxArray(join.match));
+        }, cloneSyntaxArray(_.first(tojoin).match));
     }
     
     // take the line context (range, lineNumber)
@@ -905,7 +906,7 @@
                         });
                         var joined;
                         if (bodyStx.group) {
-                            joined = joinSyntaxArr(transcribed, bodyStx.separator);
+                            joined = joinSyntaxArray(transcribed, bodyStx.separator);
                         } else {
                             joined = joinSyntax(transcribed, bodyStx.separator);
                         }
