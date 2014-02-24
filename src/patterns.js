@@ -298,7 +298,7 @@
             // know where to insert the macro, and you can't use a L->R macro
             // to match R->L.
             if (reverse && patt.macroName) {
-                throwSyntaxError(patStx.class, "Not allowed in top-level lookbehind", patt.macroName[0]);
+                throwSyntaxError(patt.class, "Not allowed in top-level lookbehind", patt.macroName[0]);
             }
 
             patts.push(patt);
