@@ -269,7 +269,7 @@
         }, [_.first(tojoin)]);
     }
     // ([...[...CSyntax]], Str) -> [...CSyntax]
-    function joinSyntaxArr(tojoin, punc) {
+    function joinSyntaxArray(tojoin, punc) {
         if (tojoin.length === 0) {
             return [];
         }
@@ -281,6 +281,15 @@
             Array.prototype.push.apply(acc, join);
             return acc;
         }, _.first(tojoin));
+    }
+    function cloneSyntaxArray(arr) {
+        return arr.map(function (stx) {
+            var o = syntaxFromToken(_.clone(stx.token), stx);
+            if (o.token.type === parser.Token.Delimiter) {
+                o.token.inner = cloneSyntaxArray(o.token.inner);
+            }
+            return o;
+        });
     }
     function MacroSyntaxError(name, message, stx) {
         this.name = name;
@@ -385,7 +394,8 @@
     exports$2.tokensToSyntax = tokensToSyntax;
     exports$2.syntaxToTokens = syntaxToTokens;
     exports$2.joinSyntax = joinSyntax;
-    exports$2.joinSyntaxArr = joinSyntaxArr;
+    exports$2.joinSyntaxArray = joinSyntaxArray;
+    exports$2.cloneSyntaxArray = cloneSyntaxArray;
     exports$2.prettyPrint = prettyPrint;
     exports$2.MacroSyntaxError = MacroSyntaxError;
     exports$2.throwSyntaxError = throwSyntaxError;

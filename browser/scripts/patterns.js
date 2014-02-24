@@ -17,7 +17,8 @@
     var syntaxFromToken = syntax.syntaxFromToken;
     var makePunc = syntax.makePunc;
     var joinSyntax = syntax.joinSyntax;
-    var joinSyntaxArr = syntax.joinSyntaxArr;
+    var joinSyntaxArray = syntax.joinSyntaxArray;
+    var cloneSyntaxArray = syntax.cloneSyntaxArray;
     var assert = syntax.assert;
     var throwSyntaxError = syntax.throwSyntaxError;
     var push = Array.prototype.push;
@@ -54,10 +55,10 @@
     function joinRepeatedMatch(tojoin, punc) {
         return _.reduce(_.rest(tojoin, 1), function (acc, join) {
             if (punc === ' ') {
-                return acc.concat(join.match);
+                return acc.concat(cloneSyntaxArray(join.match));
             }
-            return acc.concat(makePunc(punc, _.first(join.match)), join.match);
-        }, _.first(tojoin).match);
+            return acc.concat(makePunc(punc, _.first(join.match)), cloneSyntaxArray(join.match));
+        }, cloneSyntaxArray(_.first(tojoin).match));
     }
     // take the line context (range, lineNumber)
     // (CSyntax, [...CSyntax]) -> [...CSyntax]
@@ -164,11 +165,11 @@
         }, []);
     }
     function loadLiteralGroup(patterns) {
-        _.forEach(patterns, function (patStx$2) {
-            if (patStx$2.token.type === parser.Token.Delimiter) {
-                patStx$2.token.inner = loadLiteralGroup(patStx$2.token.inner);
+        _.forEach(patterns, function (patStx) {
+            if (patStx.token.type === parser.Token.Delimiter) {
+                patStx.token.inner = loadLiteralGroup(patStx.token.inner);
             } else {
-                patStx$2.class = 'pattern_literal';
+                patStx.class = 'pattern_literal';
             }
         });
         return patterns;
@@ -248,7 +249,7 @@
             // know where to insert the macro, and you can't use a L->R macro
             // to match R->L.
             if (reverse && patt.macroName) {
-                throwSyntaxError(patStx.class, 'Not allowed in top-level lookbehind', patt.macroName[0]);
+                throwSyntaxError(patt.class, 'Not allowed in top-level lookbehind', patt.macroName[0]);
             }
             patts.push(patt);
         }
@@ -764,7 +765,7 @@
                         });
                     var joined;
                     if (bodyStx.group) {
-                        joined = joinSyntaxArr(transcribed, bodyStx.separator);
+                        joined = joinSyntaxArray(transcribed, bodyStx.separator);
                     } else {
                         joined = joinSyntax(transcribed, bodyStx.separator);
                     }
