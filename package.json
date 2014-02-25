@@ -14,7 +14,7 @@
     }
   ],
   "scripts": {
-    "test": "grunt"
+    "test": "node --harmony ./node_modules/.bin/grunt full"
   },
   "directories": {
     "test": "test"

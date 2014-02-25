@@ -84,7 +84,19 @@ module.exports = function(grunt) {
                 options:{
                     colors: !grunt.option('no-color')
                 },
-                src: ["build/*.js"]
+                src: ["build/*.js"],
+                filter: function(name) {
+                    return !/.*test_es6.*/.test(name);
+                }
+            },
+            es6: {
+                options:{
+                    colors: !grunt.option('no-color')
+                },
+                src: ["build/*.js"],
+                filter: function(name) {
+                    return /.*test_es6.*/.test(name);
+                }
             }
         },
         jshint: {
@@ -150,7 +162,7 @@ module.exports = function(grunt) {
 
     grunt.registerTask("test", ["build:test",
                                 "copy:testFixtures",
-                                "mochaTest"]);
+                                "mochaTest:test"]);
 
     grunt.registerTask("default", ["copy:scopedEval",
                                    "copy:buildMacros",
@@ -159,8 +171,10 @@ module.exports = function(grunt) {
                                    "copy:browserMacros",
                                    "copy:scopedEvalBrowser",
                                    "copy:testFixtures",
-                                   "mochaTest",
+                                   "mochaTest:test",
                                    "jshint"]);
+
+    grunt.registerTask("full", ["default", "mochaTest:es6"]);
 
     function readModule(mod) {
         var path = require.resolve(mod);
