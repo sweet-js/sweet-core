@@ -864,8 +864,7 @@
         return _.contains(staticOperators, unwrapSyntax(stx));
     }
 
-    function enforestVarStatement(stx, context, varStx) {
-        var isLet = /^(?:let|const)$/.test(varStx.token.value);
+    function enforestVarStatement(stx, context) {
         var decls = [];
         var rest = stx;
         var rhs;
@@ -876,14 +875,6 @@
 
         while (rest.length) {
             if (rest[0].token.type === parser.Token.Identifier) {
-                if (isLet) {
-                    var freshName = fresh();
-                    var renamedId = rest[0].rename(rest[0], freshName);
-                    rest = rest.map(function(stx) {
-                        return stx.rename(rest[0], freshName);
-                    });
-                    rest[0] = renamedId;
-                }
                 if (rest[1].token.type === parser.Token.Punctuator &&
                     rest[1].token.value === "=") {
                     rhs = get_expression(rest.slice(2), context);
@@ -1377,7 +1368,7 @@
                             return step(LetMacro.create(nameTokens, mac.result.body), mac.rest);
                         // Let statement
                         } else {
-                            var lsRes = enforestVarStatement(rest, context, keyword);
+                            var lsRes = enforestVarStatement(rest, context);
                             if (lsRes) {
                                 return step(LetStatement.create(head, lsRes.result),
                                             lsRes.rest);
@@ -1388,7 +1379,7 @@
                     }
                     // VariableStatement
                     Keyword(keyword) | (resolve(keyword) === "var" && rest[0]) => {
-                        var vsRes = enforestVarStatement(rest, context, keyword);
+                        var vsRes = enforestVarStatement(rest, context);
                         if (vsRes) {
                             return step(VariableStatement.create(head, vsRes.result),
                                         vsRes.rest);
@@ -1396,7 +1387,7 @@
                     }
                     // Const Statement
                     Keyword(keyword) | (resolve(keyword) === "const" && rest[0]) => {
-                        var csRes = enforestVarStatement(rest, context, keyword);
+                        var csRes = enforestVarStatement(rest, context);
                         if (csRes) {
                             return step(ConstStatement.create(head, csRes.result),
                                         csRes.rest);
@@ -1902,7 +1893,9 @@
                 addToDefinitionCtx([head.name], context.defscope, true);
             }
 
-            if (head.hasPrototype(VariableStatement)) {
+            if (head.hasPrototype(VariableStatement) ||
+                head.hasPrototype(LetStatement) ||
+                head.hasPrototype(ConstStatement)) {
                 addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
                                    context.defscope,
                                    true)
