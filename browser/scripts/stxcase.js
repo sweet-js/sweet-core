@@ -444,22 +444,18 @@ let macro = macro {
         var makeIdentityRule = patternModule.makeIdentityRule;
         var rest;
         
-        if (stx[1].token.inner) {
+        if (stx[1] && stx[1].token.type === parser.Token.Delimiter && 
+            stx[1].token.value === "{}") {
             mac_name_stx = null;
             body_stx = stx[1];
             body_inner_stx = stx[1].expose().token.inner;
             rest = stx.slice(2);
         } else {
             mac_name_stx = [];
-            for (var i = 1; i < stx.length; i++) {
-                if (stx[i].token.inner) {
-                    body_stx = stx[i];
-                    body_inner_stx = stx[i].expose().token.inner;
-                    rest = stx.slice(i + 1);
-                    break;
-                }
-                mac_name_stx.push(stx[i]);
-            }
+            mac_name_stx.push(stx[1]); 
+            body_stx = stx[2];
+            body_inner_stx = stx[2].expose().token.inner;
+            rest = stx.slice(3);
         }
 
         function makeFunc(params, body) {
