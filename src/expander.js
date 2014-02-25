@@ -1360,27 +1360,19 @@
                     
                     Keyword(keyword) | (resolve(keyword) === "let") => {
                         var nameTokens = [];
-                        for (var i = 0; i < rest.length; i++) {
-                            if (rest[i].token.type === parser.Token.Punctuator && rest[i].token.value === "=" &&
-                                rest[i+1] && rest[i+1].token.value === "macro" &&
-                                rest[i+2] && rest[i+2].token.type === parser.Token.Delimiter && rest[i+2].token.value == "{}") {
-                                break;
-                            } else if (i > 0 && rest[i - 1].token.range[1] !== rest[i].token.range[0]) {
-                                throwSyntaxError("enforest", "Multi token macro names must not contain spaces between tokens", rest[i]);
-                            } else if (rest[i].token.type === parser.Token.Keyword ||
-                                       rest[i].token.type === parser.Token.Punctuator ||
-                                       rest[i].token.type === parser.Token.Identifier) {
-                                nameTokens.push(rest[i]);
-                            } else {
-                                throwSyntaxError("enforest", "Macro name must be a legal identifier or punctuator", rest[i]);
-                            }
+                        if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                            rest[0].token.value === "()") {
+                            nameTokens = rest[0].token.inner;
+                        } else {
+                            nameTokens.push(rest[0]);
                         }
 
                         // Let macro
-                        if (rest[i + 1] && rest[i + 1].token.value === "macro") {
-                            var mac = enforest(rest.slice(i + 1), context);
+                        if (rest[1] && rest[1].token.value === "=" &&
+                            rest[2] && rest[2].token.value === "macro") {
+                            var mac = enforest(rest.slice(2), context);
                             if (!mac.result.hasPrototype(AnonMacro)) {
-                                throwSyntaxError("enforest", "expecting an anonymous macro definition in syntax let binding", rest.slice(i + 1));
+                                throwSyntaxError("enforest", "expecting an anonymous macro definition in syntax let binding", rest.slice(2));
                             }
                             return step(LetMacro.create(nameTokens, mac.result.body), mac.rest);
                         // Let statement
@@ -1506,26 +1498,17 @@
                 } else if (head.token.type === parser.Token.Identifier &&
                            head.token.value === "macro") {
                     var nameTokens = [];
-                    for (var i = 0; i < rest.length; i++) {
-                        // done with the name once we find the delimiter
-                        if (rest[i].token.type === parser.Token.Delimiter) {
-                            break;
-                        } else if (i > 0 && rest[i - 1].token.range[1] !== rest[i].token.range[0]) {
-                            throwSyntaxError("enforest", "Multi token macro names must not contain spaces between tokens", rest[i]);
-                        } else if (rest[i].token.type === parser.Token.Identifier ||
-                                   rest[i].token.type === parser.Token.Keyword ||
-                                   rest[i].token.type === parser.Token.Punctuator) {
-                            nameTokens.push(rest[i]);
-                        } else {
-                            throwSyntaxError("enforest", "Macro name must be a legal identifier or punctuator", rest[i]);
-                        }
-
-                    }
-                    if (rest[i] && rest[i].token.type === parser.Token.Delimiter) {
-                        return step(Macro.create(nameTokens, rest[i].expose().token.inner),
-                                    rest.slice(i + 1));
+                    if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                        rest[0].token.value === "()") {
+                        nameTokens = rest[0].expose().token.inner;
                     } else {
-                        throwSyntaxError("enforest", "Macro declaration must include body", rest[i]);
+                        nameTokens.push(rest[0])
+                    }
+                    if (rest[1] && rest[1].token.type === parser.Token.Delimiter) {
+                        return step(Macro.create(nameTokens, rest[1].expose().token.inner),
+                                    rest.slice(2));
+                    } else {
+                        throwSyntaxError("enforest", "Macro declaration must include body", rest[1]);
                     }
                 // module definition
                 } else if (unwrapSyntax(head) === "module" && 

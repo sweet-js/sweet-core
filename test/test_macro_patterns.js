@@ -803,13 +803,13 @@ describe("macro expander", function() {
     });
 
     it("should work with multi punctuator macro names", function() {
-        macro -> {
+        macro (->) {
             rule { $x } => { $x }
         } 
 
         expect(-> 100).to.be(100);
 
-        macro function? {
+        macro (function?) {
             rule { ($x ...) } => {
                 typeof $x ... === "function"
             }
@@ -818,14 +818,14 @@ describe("macro expander", function() {
     });
 
     it("should work with multi punctuator macro names and let macros", function() {
-        let -> = macro {
+        let (->) = macro {
             rule { $x } => { $x }
         } 
         expect(-> 100).to.be(100);
     });
 
     it("should work with multi punctuator infix macros", function() {
-        let -> = macro {
+        let (->) = macro {
             rule infix { $arg:ident | $body:expr } => {
                 function($arg) { return $body }
             }
@@ -840,7 +840,7 @@ describe("macro expander", function() {
     });
 
     it("should work with multi punctuator macro names with `=` in them", function() {
-        let := = macro {
+        let (:=) = macro {
             rule { $x } => { $x }
         }
 
@@ -950,11 +950,11 @@ describe("macro expander", function() {
     });
 
     it("should allow multi token macros to share the same root token", function() {
-        macro @foo {
+        macro (@foo) {
             rule {} => { 12 }
         }
 
-        macro @bar {
+        macro (@bar) {
             rule {} => { 42 }
         }
 
