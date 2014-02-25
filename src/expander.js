@@ -2060,6 +2060,7 @@
             term.right = expandTermTreeToFinal(term.right, context);
             return term;
         } else if (term.hasPrototype(ObjGet)) {
+            term.left = expandTermTreeToFinal(term.left, context);
             term.right.delim.token.inner = expand(term.right.delim.expose().token.inner, context);
             return term;
         } else if (term.hasPrototype(ObjDotGet)) {

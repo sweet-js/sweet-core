@@ -1127,4 +1127,8 @@ describe("macro expander", function() {
         expect(m([1, 2, 3])).to.eql([1, 2, 3, 1, 2, 3]);
     });
 
+    it("should allow expansion on the left side of an object get", function () {
+        macro m { rule { $x } => { $x } }
+        expect((m [100])[0]).to.be(100);
+    });
 });
