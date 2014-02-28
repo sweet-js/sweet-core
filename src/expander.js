@@ -576,6 +576,14 @@
         }
     });
 
+    var AssignmentExpression = Expr.extend({
+        properties: ['left', 'op', 'right'],
+        construct: function(op, left, right) {
+            this.op = op;
+            this.left = left;
+            this.right = right;
+        }
+    });
 
     var Keyword = TermTree.extend({
         properties: ["keyword"],
@@ -849,18 +857,25 @@
         }
     })
 
-    function stxIsUnaryOp (stx) {
+    function stxIsUnaryOp(stx) {
         var staticOperators = ["+", "-", "~", "!",
                                 "delete", "void", "typeof",
                                 "++", "--"];
         return _.contains(staticOperators, unwrapSyntax(stx));
     }
 
-    function stxIsBinOp (stx) {
+    function stxIsBinOp(stx) {
         var staticOperators = ["+", "-", "*", "/", "%", "||", "&&", "|", "&", "^",
                                 "==", "!=", "===", "!==", 
                                 "<", ">", "<=", ">=", "in", "instanceof",
                                 "<<", ">>", ">>>"];
+        return _.contains(staticOperators, unwrapSyntax(stx));
+    }
+
+    function stxIsAssignOp(stx) {
+        var staticOperators = ["=", "+=", "-=", "*=", "/=", "%=",
+                               "<<=", ">>=", ">>>=",
+                               "|=", "^=", "&="];
         return _.contains(staticOperators, unwrapSyntax(stx));
     }
 
@@ -917,6 +932,53 @@
         return {
             result: decls,
             rest: rest
+        }
+    }
+
+    function enforestOperator(stx, context, leftTerm, prevStx, prevTerms) {
+        var opPrevStx, opPrevTerms, opRes, isAssign = stxIsAssignOp(stx[0]);
+
+        // Check if the operator is a macro first.
+        if (nameInEnv(stx[0], stx.slice(1), context.env)) {
+            var headStx = tagWithTerm(leftTerm, leftTerm.destruct().reverse());
+            opPrevStx = headStx.concat(prevStx);
+            opPrevTerms = [leftTerm].concat(prevTerms);
+            opRes = enforest(stx, context, opPrevStx, opPrevTerms);
+
+            if (opRes.prevTerms.length < opPrevTerms.length) {
+                return opRes;
+            } else if(opRes.result) {
+                return { result: leftTerm,
+                         rest: opRes.result.destruct().concat(opRes.rest) };
+            }
+        }
+
+        var op = stx[0];
+        var left = leftTerm;
+        var rightStx = stx.slice(1);
+
+        opPrevStx = [stx[0]].concat(leftTerm.destruct().reverse(), prevStx);
+        opPrevTerms = [Punc.create(stx[0]), leftTerm].concat(prevTerms);
+        opRes = enforest(rightStx, context, opPrevStx, opPrevTerms);
+
+        if(opRes.result) {
+            // Lookbehind was matched, so it may not even be a binop anymore.
+            if (opRes.prevTerms.length < opPrevTerms.length) {
+                return opRes;
+            }
+
+            var right = opRes.result;
+            // only a binop if the right is a real expression
+            // so 2+2++ will only match 2+2
+            if (right.hasPrototype(Expr)) {
+                var term = (isAssign ?
+                            AssignmentExpression.create(op, left, right) :
+                            BinOp.create(op, left, right)); 
+                return { result: term, rest: opRes.rest };
+            }
+        }
+        else {
+            return opRes;
         }
     }
 
@@ -1208,43 +1270,22 @@
 
                     // BinOp
                     Expr(emp) | (rest[0] && rest[1] && stxIsBinOp(rest[0])) => {
-                        var bopPrevStx, bopPrevTerms, bopRes;
-                        var bopName = resolve(rest[0]);
+                       var opRes = enforestOperator(rest, context, head, prevStx, prevTerms);
+                       if(opRes && opRes.result) {
+                           return step(opRes.result, opRes.rest, prevStx, prevTerms);
+                       }
+                    }
 
-                        // Check if the operator is a macro first.
-                        if (nameInEnv(rest[0], rest.slice(1), context.env)) {
-                            var headStx = tagWithTerm(head, head.destruct().reverse());
-                            bopPrevStx = headStx.concat(prevStx);
-                            bopPrevTerms = [head].concat(prevTerms);
-                            bopRes = enforest(rest, context, bopPrevStx, bopPrevTerms);
-
-                            if (bopRes.prevTerms.length < bopPrevTerms.length) {
-                                return bopRes;
-                            } else {
-                                return step(head,
-                                            bopRes.result.destruct().concat(bopRes.rest));
-                            }
-                        }
-
-                        var op = rest[0];
-                        var left = head;
-                        var rightStx = rest.slice(1);
-
-                        bopPrevStx = [rest[0]].concat(head.destruct().reverse(), prevStx);
-                        bopPrevTerms = [Punc.create(rest[0]), head].concat(prevTerms);
-                        bopRes = enforest(rightStx, context, bopPrevStx, bopPrevTerms);
-
-                        // Lookbehind was matched, so it may not even be a binop anymore.
-                        if (bopRes.prevTerms.length < bopPrevTerms.length) {
-                            return bopRes;
-                        }
-
-                        var right = bopRes.result;
-                        // only a binop if the right is a real expression
-                        // so 2+2++ will only match 2+2
-                        if (right.hasPrototype(Expr)) {
-                            return step(BinOp.create(op, left, right), bopRes.rest);
-                        }
+                    // AssignmentExpression
+                    Expr(emp) | ((head.hasPrototype(Id) ||
+                                  head.hasPrototype(ObjGet) ||
+                                  head.hasPrototype(ObjDotGet) ||
+                                  head.hasPrototype(ThisExpression)) &&
+                                rest[0] && rest[1] && stxIsAssignOp(rest[0])) => {
+                       var opRes = enforestOperator(rest, context, head, prevStx, prevTerms);
+                       if(opRes && opRes.result) {
+                           return step(opRes.result, opRes.rest, prevStx, prevTerms);
+                       }
                     }
 
                     // UnaryOp (via punctuation)
@@ -2016,7 +2057,6 @@
     function expandTermTreeToFinal (term, context) {
         assert(context && context.env, "environment map is required");
 
-
         if (term.hasPrototype(ArrayLiteral)) {
             term.array.delim.token.inner = expand(term.array.delim.expose().token.inner, context);
             return term;
@@ -2038,7 +2078,7 @@
         } else if (term.hasPrototype(UnaryOp)) {
             term.expr = expandTermTreeToFinal(term.expr, context);
             return term;
-        } else if (term.hasPrototype(BinOp)) {
+        } else if (term.hasPrototype(BinOp) || term.hasPrototype(AssignmentExpression)) {
             term.left = expandTermTreeToFinal(term.left, context);
             term.right = expandTermTreeToFinal(term.right, context);
             return term;
