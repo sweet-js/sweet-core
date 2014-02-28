@@ -874,6 +874,10 @@
             throwSyntaxError("enforest", "Unexpected end of input", varStx);
         }
 
+        if(expandCount >= maxExpands) {
+            return null;
+        }
+
         while (rest.length) {
             if (rest[0].token.type === parser.Token.Identifier) {
                 if (isLet) {
@@ -1083,6 +1087,11 @@
         prevStx = prevStx || [];
         prevTerms = prevTerms || [];
 
+        if(expandCount >= maxExpands) {
+            return { result: null,
+                     rest: toks };
+        }
+
         function step(head, rest) {
             var innerTokens;
             assert(Array.isArray(rest), "result must at least be an empty array");
@@ -1100,6 +1109,9 @@
                         innerTokens = rest[0].token.inner;
                         while (innerTokens.length > 0) {
                             argRes = enforest(innerTokens, context);
+                            if(!argRes.result) {
+                                break;
+                            }
                             enforestedArgs.push(argRes.result);
                             innerTokens = argRes.rest;
                             if (innerTokens[0] && innerTokens[0].token.value === ",") {
@@ -1133,20 +1145,22 @@
                     Expr(emp) | (rest[0] && resolve(rest[0]) === "?") => {
                         var question = rest[0];
                         var condRes = enforest(rest.slice(1), context);
-                        var truExpr = condRes.result;
-                        var condRight = condRes.rest;
-                        if(truExpr.hasPrototype(Expr) &&
-                           condRight[0] && resolve(condRight[0]) === ":") {
-                            var colon = condRight[0];
-                            var flsRes = enforest(condRight.slice(1), context);
-                            var flsExpr = flsRes.result;
-                            if(flsExpr.hasPrototype(Expr)) {
-                                return step(ConditionalExpression.create(head,
-                                                                         question,
-                                                                         truExpr,
-                                                                         colon,
-                                                                         flsExpr),
-                                            flsRes.rest);
+                        if(condRes.result) {
+                            var truExpr = condRes.result;
+                            var condRight = condRes.rest;
+                            if(truExpr.hasPrototype(Expr) &&
+                               condRight[0] && resolve(condRight[0]) === ":") {
+                                var colon = condRight[0];
+                                var flsRes = enforest(condRight.slice(1), context);
+                                var flsExpr = flsRes.result;
+                                if(flsExpr.hasPrototype(Expr)) {
+                                    return step(ConditionalExpression.create(head,
+                                                                             question,
+                                                                             truExpr,
+                                                                             colon,
+                                                                             flsExpr),
+                                                flsRes.rest);
+                                }
                             }
                         }
                     }
@@ -1378,7 +1392,7 @@
                         // Let statement
                         } else {
                             var lsRes = enforestVarStatement(rest, context, keyword);
-                            if (lsRes) {
+                            if (lsRes && lsRes.result) {
                                 return step(LetStatement.create(head, lsRes.result),
                                             lsRes.rest);
                             }
@@ -1389,7 +1403,7 @@
                     // VariableStatement
                     Keyword(keyword) | (resolve(keyword) === "var" && rest[0]) => {
                         var vsRes = enforestVarStatement(rest, context, keyword);
-                        if (vsRes) {
+                        if (vsRes && vsRes.result) {
                             return step(VariableStatement.create(head, vsRes.result),
                                         vsRes.rest);
                         }
@@ -1397,7 +1411,7 @@
                     // Const Statement
                     Keyword(keyword) | (resolve(keyword) === "const" && rest[0]) => {
                         var csRes = enforestVarStatement(rest, context, keyword);
-                        if (csRes) {
+                        if (csRes && csRes.result) {
                             return step(ConstStatement.create(head, csRes.result),
                                         csRes.rest);
                         }
@@ -1437,11 +1451,6 @@
                     var newMark = fresh();
                     var transformerContext = makeExpanderContext(_.defaults({mark: newMark}, context));
 
-
-                    if(!builtinMode && !macroObj.builtin) {
-                        expandCount++;
-                    }
-
                     // apply the transformer
                     var rt;
                     try {
@@ -1461,6 +1470,10 @@
                             // just rethrow it
                             throw e;
                         } 
+                    }
+
+                    if (!builtinMode && !macroObj.builtin) {
+                        expandCount++;
                     }
 
                     if (rt.prevTerms) {
@@ -1662,6 +1675,9 @@
 
     function get_expression(stx, context) {
         var res = enforest(stx, context);
+        if(!res.result) {
+            return res;
+        }
         var next = res;
         var peek;
         var prevStx;
@@ -1843,7 +1859,7 @@
     function expandToTermTree(stx, context) {
         assert(context, "expander context is required");
 
-        var f, head, prevStx, prevTerms, macroDefinition;
+        var f, head, prevStx, restStx, prevTerms, macroDefinition;
         var rest = stx;
 
         while (rest.length > 0) {
@@ -1854,6 +1870,12 @@
             head = f.result;
             // rest :: [Syntax]
             rest = f.rest;
+
+            if (!head) {
+                // no head means the expansions stopped prematurely (for stepping)
+                restStx = rest;
+                break;
+            }
 
             if (head.hasPrototype(Macro) && expandCount < maxExpands) {
                 // load the macro definition into the environment and continue expanding
@@ -1972,6 +1994,7 @@
             // prevTerms are stored in reverse for the purposes of infix
             // lookbehind matching, so we need to re-reverse them.
             terms: prevTerms ? prevTerms.reverse() : [],
+            restStx: restStx,
             context: context,
         };
     }
@@ -2111,6 +2134,19 @@
             var expandedResult = expandToTermTree(renamedBody.token.inner, bodyContext);
             var bodyTerms = expandedResult.terms;
 
+            if(expandedResult.restStx) {
+                // The expansion was halted prematurely. Just stop and
+                // return what we have so far, along with the rest of the syntax
+                renamedBody.token.inner = expandedResult.terms.concat(expandedResult.restStx);
+                if(Array.isArray(term.body)) {
+                    term.body = renamedBody.token.inner;
+                }
+                else {
+                    term.body = renamedBody;
+                }
+                return term;
+            }
+
             var renamedParams = _.map(paramNames, function(p) { return p.renamedParam});
             var flatArgs;
             if (paramSingleIdent) {
@@ -2168,9 +2204,16 @@
         assert(context, "must provide an expander context");
         
         var trees = expandToTermTree(stx, context);
-        return _.map(trees.terms, function(term) {
-            return expandTermTreeToFinal(term, trees.context);
-        })
+        if(trees.restStx) {
+            // If `restStx` exists, we prematurely stopped expanding
+            // because of stepping, so just return the rest of the syntax
+            return trees.terms.concat(trees.restStx);
+        }
+        else {
+            return _.map(trees.terms, function(term) {
+                return expandTermTreeToFinal(term, trees.context);
+            })
+        }
     }
 
     function makeExpanderContext(o) {
