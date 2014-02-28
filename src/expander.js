@@ -576,6 +576,14 @@
         }
     });
 
+    var AssignmentExpression = Expr.extend({
+        properties: ['lhs', 'op', 'rhs'],
+        construct: function(op, lhs, rhs) {
+            this.op = op;
+            this.lhs = lhs;
+            this.rhs = rhs;
+        }
+    });
 
     var Keyword = TermTree.extend({
         properties: ["keyword"],
@@ -1336,6 +1344,15 @@
                         return step(ObjDotGet.create(head, rest[0], rest[1]),
                                     rest.slice(2));
                     }
+
+                    Id(id) | (rest[0] && rest[1] && unwrapSyntax(rest[0]) === '=') => {
+                        var rhs = enforest(rest.slice(1), context);
+                        var right = rhs.result;
+                        if (right && right.hasPrototype(Expr)) {
+                            return step(AssignmentExpression.create(rest[0], head, right),
+                                        rhs.rest);
+                        }
+                    }                    
 
                     // ArrayLiteral
                     Delimiter(delim) | (delim.token.value === "[]") => {
