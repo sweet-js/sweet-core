@@ -33,6 +33,20 @@ describe("enforest", function() {
         expect(res.result.decls.length).to.be(2);
     });
 
+    it("should enforest AssignmentExpressions", function() {
+        var res = enforest(read("x = 5"), makeExpanderContext());
+        expect(res.result.op.token.value).to.be('=');
+        expect(res.result.left.id.token.value).to.be('x');
+        expect(res.result.right.lit.token.value).to.be(5);
+
+        res = enforest(read("x += 5"), makeExpanderContext());
+        expect(res.result.op.token.value).to.be('+=');
+
+        // Should just enforest the function call `foo(x)`
+        res = enforest(read("foo(x) = 5"), makeExpanderContext());
+        expect(res.result.fun.id.token.value).to.be('foo');
+    });
+
     // Currently disabled because it requires --harmony mode
     // it("should maintain let hygiene when enforesting an expression with ASI", function() {
     //     'use strict';
