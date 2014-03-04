@@ -1,4 +1,4 @@
-% Created 2014-03-03 Mon 18:57
+% Created 2014-03-03 Mon 19:55
 \documentclass[preprint,10pt]{sigplanconf}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -44,9 +44,9 @@
 
 Sweet.js is a new hygienic macro system for JavaScript.
 
-Macros systems have a long history in the history of programming
-languages as a tool to provide syntactic flexibility to programmers
-going back at least to lisp and \texttt{defmacro}. 
+Macros systems have a long history in the design of extensible
+programming languages going back at least to lisp as a tool to provide
+programmers syntactic flexibility.
 
 While powerful macro systems have been used extensively in lisp
 derived languages there has been considerable less movement for macros
@@ -75,41 +75,63 @@ authors easier declaration of a macro shape
 \item the \texttt{invoke} primitive to allow custom parser classes and more
 powerful matching
 \end{itemize}
-\section{Read}
+
+\section{Overview}
 \label{sec-2}
+TODO: syntax, main features etc\ldots
+
+\section{Read}
+\label{sec-3}
 
 The syntax of JavaScript presents a challenge to correctly implement
 the critical \texttt{read} function. This challenge is not present in Honu
 because their language is an idealized syntax that misses the
 problematic interaction of delimiters and regular expression literals.
 
-\subsection{Proof}
-\label{sec-2-1}
+TODO: motivate \texttt{read} with examples etc.
 
-The proof of sweet.js reader is something like holding on to a prefix for
-each non-terminal in the grammar:
+\subsection{Proof of \texttt{read}}
+\label{sec-3-1}
 
-\[
-\begin{array}{rlr}
-  NT_g &:& / NT_h 
-  \\
-  NT_{g'}&:& /regex/ NT_{h'}
-\end{array}
-\]
-
-\begin{displayfigure}{Simple JS Grammar}
+\begin{displayfigure}{\label{fig:grammar}Simplified JS Grammar}
 \[
   \begin{array}{rrl}
-    Literal &::=& num ~|~ str ~|~ /regex/ \\
+    \textit{Literal }&::=& num ~|~ str ~|~ /regex/ \\
     \\
-    Expr &::=& Literal \\
-    &|& Expr~ +~Expr \\
-    &|& Expr~/~Expr \\
+    \textit{Expr }&::=& \textit{Literal }\\
+    &|& \textit{Expr}~ +~\textit{Expr }\\
+    &|& \textit{Expr}~/~\textit{Expr }\\
   \end{array}
 \]
 \end{displayfigure}
 
-\begin{displayfigure*}{Read Algorithm}
+The grammar of a simplified version of JavaScript is defined in Figure
+\ref{fig:grammar}. While this grammar does not cover the entirety of
+JavaScript, we claim it captures the essential complexity of \texttt{read}
+for JavaScript (TODO: maybe complete(ish?) grammar/proof in the appendix?).
+The function \texttt{read} is defined in Figure \ref{fig:read}.
+
+TODO: extend grammar/proof to cover at least calls, if statements, and
+blocks.
+
+To prove that \texttt{read} correctly distinguishes between the divide
+operator and a regular expression literal we first extend the grammar
+to carry a prefix:
+
+\[
+\begin{array}{rrl}
+  \textit{Expr}_{p} &::=& \textit{Literal}
+  \\
+  &|& \textit{Expr}_{p}~+~\textit{Expr}_{+~p}
+  \\
+  &|& \textit{Expr}_{p}~/~\textit{Expr}_{/~p}
+\end{array}
+\]
+
+Then "something something by induction" QED.
+
+
+\begin{displayfigure*}{\label{fig:read}Read Algorithm}
   
 \[
 \begin{array}{rcl}
@@ -195,17 +217,8 @@ each non-terminal in the grammar:
 \]
 \end{displayfigure*}
 
-
-The simplified \texttt{read} algorithm can be defined as:
-
-Just need to show that the prefix \texttt{g} is contained or identical with
-the prefixes recognized by the reader algorithm.
-
-The prefix will be some context fee grammar of tokens or something
-like that.
-
 \section{Enforestation}
-\label{sec-3}
+\label{sec-4}
 
 The core algorithm introduced by Honu is called \emph{enforestation} which
 is basically responsible for expanding macros and building a partial
@@ -214,7 +227,7 @@ implements this algorithm mostly as described with some additions to
 provide infix macros and invoke pattern classes described below.
 
 \subsection{Infix Macros}
-\label{sec-3-1}
+\label{sec-4-1}
 The macros we have described so far must all be prefixed by the macro
 identifier and syntax after the macro name is matched. This is
 sufficient for many kinds of macros but some syntax forms require the
@@ -245,17 +258,17 @@ var id = (x) => { return x; }
 
 TODO: details and limitations\ldots{}
 \subsection{Invoke and Pattern Classes}
-\label{sec-3-2}
+\label{sec-4-2}
 
 TODO: motivation and details\ldots{}
 
 \section{Hygiene}
-\label{sec-4}
+\label{sec-5}
 
 Mostly straightforward implementation from scheme with some details to
 handle \texttt{var}.
 \section{Implementation}
-\label{sec-5}
+\label{sec-6}
 Sweet.js is written in JavaScript and runs in the major JS
 environments (\ie the brower and node.js). This is in contrast to Honu
 which translates its code to Racket code and reuses the hygienic
@@ -264,7 +277,7 @@ the implementation of Honu it also requires an installation of Racket
 which in some cases is not feasible (\eg sweet.js is able to run in
 mobile device browsers).
 \section{Related Work}
-\label{sec-6}
+\label{sec-7}
 
 \begin{itemize}
 \item Scheme/Racket
@@ -275,6 +288,6 @@ mobile device browsers).
 \item Closure
 \end{itemize}
 \section{Conclusion}
-\label{sec-7}
+\label{sec-8}
 % Emacs 24.3.1 (Org mode 8.2.5h)
 \end{document}

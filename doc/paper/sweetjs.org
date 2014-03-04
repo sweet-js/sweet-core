@@ -32,9 +32,9 @@
 
 Sweet.js is a new hygienic macro system for JavaScript.
 
-Macros systems have a long history in the history of programming
-languages as a tool to provide syntactic flexibility to programmers
-going back at least to lisp and =defmacro=. 
+Macros systems have a long history in the design of extensible
+programming languages going back at least to lisp as a tool to provide
+programmers syntactic flexibility.
 
 While powerful macro systems have been used extensively in lisp
 derived languages there has been considerable less movement for macros
@@ -61,7 +61,10 @@ challenges:
 - infix macros
 - the =invoke= primitive to allow custom parser classes and more
   powerful matching
-  
+
+
+* Overview
+TODO: syntax, main features etc\ldots
 * Read
 
 The syntax of JavaScript presents a challenge to correctly implement
@@ -69,37 +72,54 @@ the critical =read= function. This challenge is not present in Honu
 because their language is an idealized syntax that misses the
 problematic interaction of delimiters and regular expression literals.
   
-** Proof
-   
-The proof of sweet.js reader is something like holding on to a prefix for
-each non-terminal in the grammar:
+TODO: motivate =read= with examples etc.
+
+** Proof of =read=
 
 #+BEGIN_LaTeX
+  \begin{displayfigure}{\label{fig:grammar}Simplified JS Grammar}
   \[
-  \begin{array}{rlr}
-    NT_g &:& / NT_h 
+    \begin{array}{rrl}
+      \textit{Literal }&::=& num ~|~ str ~|~ /regex/ \\
+      \\
+      \textit{Expr }&::=& \textit{Literal }\\
+      &|& \textit{Expr}~ +~\textit{Expr }\\
+      &|& \textit{Expr}~/~\textit{Expr }\\
+    \end{array}
+  \]
+  \end{displayfigure}
+#+END_LaTeX
+  
+The grammar of a simplified version of JavaScript is defined in Figure
+\ref{fig:grammar}. While this grammar does not cover the entirety of
+JavaScript, we claim it captures the essential complexity of =read=
+for JavaScript (TODO: maybe complete(ish?) grammar/proof in the appendix?).
+The function =read= is defined in Figure \ref{fig:read}.
+
+TODO: extend grammar/proof to cover at least calls, if statements, and
+blocks.
+
+To prove that =read= correctly distinguishes between the divide
+operator and a regular expression literal we first extend the grammar
+to carry a prefix:
+   
+#+BEGIN_LaTeX
+  \[
+  \begin{array}{rrl}
+    \textit{Expr}_{p} &::=& \textit{Literal}
     \\
-    NT_{g'}&:& /regex/ NT_{h'}
+    &|& \textit{Expr}_{p}~+~\textit{Expr}_{+~p}
+    \\
+    &|& \textit{Expr}_{p}~/~\textit{Expr}_{/~p}
   \end{array}
   \]
 #+END_LaTeX
 
-#+BEGIN_LaTeX
-  \begin{displayfigure}{Simple JS Grammar}
+Then "something something by induction" QED.
 
-    \begin{array}{rrl}
-      Literal &::=& num ~|~ str ~|~ /regex/ \\
-      \\
-      Expr &::=& Literal \\
-      &|& Expr~ +~Expr \\
-      &|& Expr~/~Expr \\
-    \end{array}
-
-  \end{displayfigure}
-#+END_LaTeX
 
 #+BEGIN_LaTeX
-  \begin{displayfigure*}{Read Algorithm}
+  \begin{displayfigure*}{\label{fig:read}Read Algorithm}
     
   \[
   \begin{array}{rcl}
@@ -187,8 +207,6 @@ each non-terminal in the grammar:
 #+END_LaTeX
                  
 
-The simplified =read= algorithm can be defined as:
-
 #+begin_src haskell :tangle yes :exports none
   import Prelude hiding (read)
   
@@ -255,15 +273,6 @@ The simplified =read= algorithm can be defined as:
   test4 = read [T_Int 100, T_Add, T_Slash, T_Add, T_Slash] []
 #+end_src
 
-
-
-
-
-Just need to show that the prefix =g= is contained or identical with
-the prefixes recognized by the reader algorithm.
-
-The prefix will be some context fee grammar of tokens or something
-like that.
 * Enforestation
 
 The core algorithm introduced by Honu is called /enforestation/ which
