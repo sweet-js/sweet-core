@@ -1,0 +1,332 @@
+#+TITLE:     Sweet.js - Hygienic Macros for JavaScript
+#+AUTHOR:    Tim Disney
+#+EMAIL:     tim.disney@gmail.com
+#+DESCRIPTION: Sweet.js - Macros for JavaScript
+#+OPTIONS: toc:nil
+#+OPTIONS:   H:3 num:t toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:nil
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: 
+#+EXPORT_EXCLUDE_TAGS: noexport
+
+# LaTeX_CLASS: sigplanconfone
+#+LaTeX_CLASS: sigplanconftenpre
+
+#+LaTeX_HEADER:\usepackage{amsmath}
+#+LaTeX_HEADER:\usepackage{amsthm}
+#+LaTeX_HEADER:\usepackage{stmaryrd}
+#+LaTeX_HEADER:\usepackage{amssymb}
+#+LaTeX_HEADER:\usepackage{gastex}
+#+LaTeX_HEADER:\usepackage{graphics}
+#+LaTeX_HEADER:\usepackage{listings}
+# LaTeX_HEADER:\usepackage{hyperref}
+#+LaTeX_HEADER:\usepackage{microtype}
+#+LaTeX_HEADER:\input{brackets}
+#+LaTeX_HEADER:\input{definitions}
+#+LaTeX_HEADER:\authorinfo{Tim Disney}{UC Santa Cruz}{}
+#+LaTeX_HEADER:\authorinfo{Nate Faubion}{}{}
+#+LaTeX_HEADER:\authorinfo{David Herman}{Mozilla}{}
+#+LaTeX_HEADER:\renewcommand{\author}[1]{}
+
+* Introduction
+
+Sweet.js is a new hygienic macro system for JavaScript.
+
+Macros systems have a long history in the history of programming
+languages as a tool to provide syntactic flexibility to programmers
+going back at least to lisp and =defmacro=. 
+
+While powerful macro systems have been used extensively in lisp
+derived languages there has been considerable less movement for macros
+systems for languages with an expression based syntax such as
+JavaScript. This is due to a variety of technical reasons that have
+held back macro systems in expression based languages which we address
+in this paper.
+
+Recently the Honu project has shown how to overcome some of the
+existing challenges in developing a macro system for expression based
+language. The Honu technique was designed for an idealized JavaScript
+like language. In this paper we show how to extend the ideas of Honu
+for full JavaScript and present additional techniques that target
+expression based languages.
+
+The design of sweet.js attempts to overcome the following technical
+challenges: 
+
+- a correct implementation of =read= that structures the token stream
+  before expansion begins
+- parser class annotation (e.g. =:expr=) in patterns to allow macro
+  authors easier declaration of a macro shape
+- operator overloading
+- infix macros
+- the =invoke= primitive to allow custom parser classes and more
+  powerful matching
+  
+* Read
+
+The syntax of JavaScript presents a challenge to correctly implement
+the critical =read= function. This challenge is not present in Honu
+because their language is an idealized syntax that misses the
+problematic interaction of delimiters and regular expression literals.
+  
+** Proof
+   
+The proof of sweet.js reader is something like holding on to a prefix for
+each non-terminal in the grammar:
+
+#+BEGIN_LaTeX
+  \[
+  \begin{array}{rlr}
+    NT_g &:& / NT_h 
+    \\
+    NT_{g'}&:& /regex/ NT_{h'}
+  \end{array}
+  \]
+#+END_LaTeX
+
+#+BEGIN_LaTeX
+  \begin{displayfigure}{Simple JS Grammar}
+
+    \begin{array}{rrl}
+      Literal &::=& num ~|~ str ~|~ /regex/ \\
+      \\
+      Expr &::=& Literal \\
+      &|& Expr~ +~Expr \\
+      &|& Expr~/~Expr \\
+    \end{array}
+
+  \end{displayfigure}
+#+END_LaTeX
+
+#+BEGIN_LaTeX
+  \begin{displayfigure*}{Read Algorithm}
+    
+  \[
+  \begin{array}{rcl}
+    \texttt{Token} &::=& \textit{num}~|~\textit{str}~|~+~|~/ \\
+  \end{array}
+  \]
+  
+    \texttt{read} :: \verb![Token] -> [ReadTree] -> [ReadTree]!
+  \[
+    \begin{array}{lcl}
+      \readfn{[\num,~\ldots \textrm{rest}]}{\textrm{prefix}}
+      &=&
+      \cons{\num}{
+        \readfn{\textrm{rest}}{
+          \cons{\num}{\textrm{prefix}} 
+        }
+      }
+      \\
+      \readfn{[\str,~\ldots \textrm{rest}]}{\textrm{prefix}}
+      &=&
+      \cons{\str}{
+        \readfn{\textrm{rest}}{
+          \cons{\str}{\textrm{prefix}}
+        }  
+      }
+      
+      
+      \\
+      \readfn{[+,~\ldots \textrm{rest}]}{\textrm{prefix}}
+      &=&
+      \cons{+}{
+        \readfn{\textrm{rest}}{
+          \cons{+}{\textrm{prefix}}
+        }
+      } 
+      \\
+      \readfn{[/,~\ldots \textrm{rest}]}{[\num,~\ldots\textrm{prefix}]}
+      &=&
+      \cons{/}{
+        \readfn{\textrm{rest}}{
+          \cons{/,~\num}{\textrm{prefix}} 
+        }
+      }
+      \\
+      \readfn{[/,~\ldots \textrm{rest}]}{[\str,~\ldots\textrm{prefix}]}
+      &=&
+      \cons{/}{
+        \readfn{\textrm{rest}}{
+          \cons{/,~\str}{\textrm{prefix}} 
+        }
+      }
+      \\
+      \readfn{[/,~\ldots \textrm{rest}]}{[\textit{regex},~\ldots\textrm{prefix}]}
+      &=&
+      \cons{/}{
+        \readfn{\textrm{rest}}{
+          \cons{/,~\textit{regex}}{\textrm{prefix}} 
+        }
+      }
+      \\
+      \readfn{[/,~\ldots \textrm{rest}]}{[+,~\ldots\textrm{prefix}]}
+      &=&
+      \cons{\textit{regex}}{
+        \readfn{\textrm{regexRest}}{
+          \cons{\textit{regex},~+}{\textrm{prefix}} 
+        }
+      }
+      \\
+      && \textit{where}~(\textit{regex},~\textrm{regexRest}) = 
+      \textrm{scanRegex}(\textrm{rest})
+      \\
+      \readfn{[/,~\ldots \textrm{rest}]}{[/,~\ldots\textrm{prefix}]}
+      &=&
+      \cons{\textit{regex}}{
+        \readfn{\textrm{regexRest}}{
+          \cons{\textit{regex},~/}{\textrm{prefix}} 
+        }
+      }
+      \\
+      && \textit{where}~(\textit{regex},~\textrm{regexRest}) = 
+      \textrm{scanRegex}(\textrm{rest})
+    \end{array}
+  \]
+  \end{displayfigure*}
+#+END_LaTeX
+                 
+
+The simplified =read= algorithm can be defined as:
+
+#+begin_src haskell :tangle yes :exports none
+  import Prelude hiding (read)
+  
+  type RegexBody = String
+  
+  data Lit = L_Int Int         -- n
+           | L_Str String      -- s
+           | L_Regex RegexBody -- /foo/
+           deriving Show
+  
+  data Expr = E_Lit Lit
+            | E_Add Expr Expr -- Expr + Expr 
+            | E_Div Expr Expr -- Expr / Expr 
+            deriving Show
+  
+#+end_src
+
+#+begin_src haskell :tangle yes :exports none
+  data Token = T_Int Int
+             | T_Str String
+             | T_Add
+             | T_Slash
+             deriving Show
+  
+  data ReadTree = R_Lit Lit
+                  | R_Punc String     -- + - * /
+                  | R_Paren ReadTree  -- ( ReadTree )
+                  | R_Square ReadTree -- [ ReadTree ]
+                  | R_Curly ReadTree  -- { ReadTree }
+                  deriving Show
+#+end_src
+
+#+begin_src haskell :tangle yes :exports none
+  read :: [Token] -> [ReadTree] -> [ReadTree]
+  read [] _ = []
+  read ((T_Int n) : rest) prefix = lit : read rest (lit : prefix)
+    where lit = R_Lit $ L_Int n
+  read ((T_Str s) : rest) prefix = lit : read rest (lit : prefix)
+    where lit = R_Lit $ L_Str s
+  read (T_Add : rest) prefix = punc : read rest (punc : prefix)
+    where punc = R_Punc "+"
+  read (T_Slash : rest) ((R_Lit l) : prefix) = punc : read rest (punc : (R_Lit l) : prefix)
+    where punc = R_Punc "/"
+  read (T_Slash : rest) [] = re : read after [re]
+    where (re, after) = scanRegex rest
+  read (T_Slash : rest) ((R_Punc p) : prefix) = re : read after (re : (R_Punc p) : prefix)
+    where (re, after) = scanRegex rest
+  
+  -- just accepts the regex /+/
+  -- incorrect but lexing a regex body isn't important
+  scanRegex :: [Token] -> (ReadTree, [Token])
+  scanRegex (T_Add : T_Slash : rest) = (R_Lit (L_Regex "+"), rest)
+#+end_src
+
+
+#+begin_src haskell :tangle yes :exports none
+  -- 100
+  test1 = read [T_Int 100] []
+  -- 100 / 200
+  test2 = read [T_Int 100, T_Slash, T_Int 200] []
+  -- /+/
+  test3 = read [T_Slash, T_Add, T_Slash] []
+  -- 100 + /+/
+  test4 = read [T_Int 100, T_Add, T_Slash, T_Add, T_Slash] []
+#+end_src
+
+
+
+
+
+Just need to show that the prefix =g= is contained or identical with
+the prefixes recognized by the reader algorithm.
+
+The prefix will be some context fee grammar of tokens or something
+like that.
+* Enforestation
+
+The core algorithm introduced by Honu is called /enforestation/ which
+is basically responsible for expanding macros and building a partial
+syntax tree with enough structure to match on parse classes. Sweet.js
+implements this algorithm mostly as described with some additions to
+provide infix macros and invoke pattern classes described below.
+
+** Infix Macros
+The macros we have described so far must all be prefixed by the macro
+identifier and syntax after the macro name is matched. This is
+sufficient for many kinds of macros but some syntax forms require the
+macro identifier to sit between patterns.
+
+Honu addresses this need in a limited way by providing a way to define
+new binary and unary operators which during expansion can manipulate
+their operators. However, those operators must be fully expanded and
+must match as an expression.
+
+Sweet.js provides /infix macros/ which allows a macro identifier to
+match syntax before it. For example, the following implements
+ES6-style arrow functions via infix macros:
+
+#+begin_src javascript
+  macro (=>) {
+      rule infix {
+          ($params ...) | { $body ... }
+      } => {
+          function ($params ...) {
+              $body ...
+          }
+      }
+  }
+  
+  var id = (x) => { return x; }
+#+end_src
+
+TODO: details and limitations...
+
+** Invoke and Pattern Classes
+
+TODO: motivation and details...
+* Hygiene
+
+Mostly straightforward implementation from scheme with some details to
+handle =var=.
+   
+* Implementation
+Sweet.js is written in JavaScript and runs in the major JS
+environments (\ie the brower and node.js). This is in contrast to Honu
+which translates its code to Racket code and reuses the hygienic
+expansion machinery already built in Racket. While this simplifies
+the implementation of Honu it also requires an installation of Racket
+which in some cases is not feasible (\eg sweet.js is able to run in
+mobile device browsers).
+
+* Related Work
+  
+- Scheme/Racket
+- Honu
+- Template Haskell
+- Nemerle
+- Scala
+- Closure
+
+* Conclusion

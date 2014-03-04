@@ -1,0 +1,280 @@
+% Created 2014-03-03 Mon 18:57
+\documentclass[preprint,10pt]{sigplanconf}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{soul}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{stmaryrd}
+\usepackage{amssymb}
+\usepackage{gastex}
+\usepackage{graphics}
+\usepackage{listings}
+\usepackage{microtype}
+\input{brackets}
+\input{definitions}
+\authorinfo{Tim Disney}{UC Santa Cruz}{}
+\authorinfo{Nate Faubion}{}{}
+\authorinfo{David Herman}{Mozilla}{}
+\renewcommand{\author}[1]{}
+\author{Tim Disney}
+\date{\today}
+\title{Sweet.js - Hygienic Macros for JavaScript}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={Sweet.js - Macros for JavaScript},
+  pdfcreator={Emacs 24.3.1 (Org mode 8.2.5h)}}
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+\label{sec-1}
+
+Sweet.js is a new hygienic macro system for JavaScript.
+
+Macros systems have a long history in the history of programming
+languages as a tool to provide syntactic flexibility to programmers
+going back at least to lisp and \texttt{defmacro}. 
+
+While powerful macro systems have been used extensively in lisp
+derived languages there has been considerable less movement for macros
+systems for languages with an expression based syntax such as
+JavaScript. This is due to a variety of technical reasons that have
+held back macro systems in expression based languages which we address
+in this paper.
+
+Recently the Honu project has shown how to overcome some of the
+existing challenges in developing a macro system for expression based
+language. The Honu technique was designed for an idealized JavaScript
+like language. In this paper we show how to extend the ideas of Honu
+for full JavaScript and present additional techniques that target
+expression based languages.
+
+The design of sweet.js attempts to overcome the following technical
+challenges: 
+
+\begin{itemize}
+\item a correct implementation of \texttt{read} that structures the token stream
+before expansion begins
+\item parser class annotation (e.g. \texttt{:expr}) in patterns to allow macro
+authors easier declaration of a macro shape
+\item operator overloading
+\item infix macros
+\item the \texttt{invoke} primitive to allow custom parser classes and more
+powerful matching
+\end{itemize}
+\section{Read}
+\label{sec-2}
+
+The syntax of JavaScript presents a challenge to correctly implement
+the critical \texttt{read} function. This challenge is not present in Honu
+because their language is an idealized syntax that misses the
+problematic interaction of delimiters and regular expression literals.
+
+\subsection{Proof}
+\label{sec-2-1}
+
+The proof of sweet.js reader is something like holding on to a prefix for
+each non-terminal in the grammar:
+
+\[
+\begin{array}{rlr}
+  NT_g &:& / NT_h 
+  \\
+  NT_{g'}&:& /regex/ NT_{h'}
+\end{array}
+\]
+
+\begin{displayfigure}{Simple JS Grammar}
+\[
+  \begin{array}{rrl}
+    Literal &::=& num ~|~ str ~|~ /regex/ \\
+    \\
+    Expr &::=& Literal \\
+    &|& Expr~ +~Expr \\
+    &|& Expr~/~Expr \\
+  \end{array}
+\]
+\end{displayfigure}
+
+\begin{displayfigure*}{Read Algorithm}
+  
+\[
+\begin{array}{rcl}
+  \texttt{Token} &::=& \textit{num}~|~\textit{str}~|~+~|~/ \\
+\end{array}
+\]
+
+  \texttt{read} :: \verb![Token] -> [ReadTree] -> [ReadTree]!
+\[
+  \begin{array}{lcl}
+    \readfn{[\num,~\ldots \textrm{rest}]}{\textrm{prefix}}
+    &=&
+    \cons{\num}{
+      \readfn{\textrm{rest}}{
+        \cons{\num}{\textrm{prefix}} 
+      }
+    }
+    \\
+    \readfn{[\str,~\ldots \textrm{rest}]}{\textrm{prefix}}
+    &=&
+    \cons{\str}{
+      \readfn{\textrm{rest}}{
+        \cons{\str}{\textrm{prefix}}
+      }  
+    }
+    
+    
+    \\
+    \readfn{[+,~\ldots \textrm{rest}]}{\textrm{prefix}}
+    &=&
+    \cons{+}{
+      \readfn{\textrm{rest}}{
+        \cons{+}{\textrm{prefix}}
+      }
+    } 
+    \\
+    \readfn{[/,~\ldots \textrm{rest}]}{[\num,~\ldots\textrm{prefix}]}
+    &=&
+    \cons{/}{
+      \readfn{\textrm{rest}}{
+        \cons{/,~\num}{\textrm{prefix}} 
+      }
+    }
+    \\
+    \readfn{[/,~\ldots \textrm{rest}]}{[\str,~\ldots\textrm{prefix}]}
+    &=&
+    \cons{/}{
+      \readfn{\textrm{rest}}{
+        \cons{/,~\str}{\textrm{prefix}} 
+      }
+    }
+    \\
+    \readfn{[/,~\ldots \textrm{rest}]}{[\textit{regex},~\ldots\textrm{prefix}]}
+    &=&
+    \cons{/}{
+      \readfn{\textrm{rest}}{
+        \cons{/,~\textit{regex}}{\textrm{prefix}} 
+      }
+    }
+    \\
+    \readfn{[/,~\ldots \textrm{rest}]}{[+,~\ldots\textrm{prefix}]}
+    &=&
+    \cons{\textit{regex}}{
+      \readfn{\textrm{regexRest}}{
+        \cons{\textit{regex},~+}{\textrm{prefix}} 
+      }
+    }
+    \\
+    && \textit{where}~(\textit{regex},~\textrm{regexRest}) = 
+    \textrm{scanRegex}(\textrm{rest})
+    \\
+    \readfn{[/,~\ldots \textrm{rest}]}{[/,~\ldots\textrm{prefix}]}
+    &=&
+    \cons{\textit{regex}}{
+      \readfn{\textrm{regexRest}}{
+        \cons{\textit{regex},~/}{\textrm{prefix}} 
+      }
+    }
+    \\
+    && \textit{where}~(\textit{regex},~\textrm{regexRest}) = 
+    \textrm{scanRegex}(\textrm{rest})
+  \end{array}
+\]
+\end{displayfigure*}
+
+
+The simplified \texttt{read} algorithm can be defined as:
+
+Just need to show that the prefix \texttt{g} is contained or identical with
+the prefixes recognized by the reader algorithm.
+
+The prefix will be some context fee grammar of tokens or something
+like that.
+
+\section{Enforestation}
+\label{sec-3}
+
+The core algorithm introduced by Honu is called \emph{enforestation} which
+is basically responsible for expanding macros and building a partial
+syntax tree with enough structure to match on parse classes. Sweet.js
+implements this algorithm mostly as described with some additions to
+provide infix macros and invoke pattern classes described below.
+
+\subsection{Infix Macros}
+\label{sec-3-1}
+The macros we have described so far must all be prefixed by the macro
+identifier and syntax after the macro name is matched. This is
+sufficient for many kinds of macros but some syntax forms require the
+macro identifier to sit between patterns.
+
+Honu addresses this need in a limited way by providing a way to define
+new binary and unary operators which during expansion can manipulate
+their operators. However, those operators must be fully expanded and
+must match as an expression.
+
+Sweet.js provides \emph{infix macros} which allows a macro identifier to
+match syntax before it. For example, the following implements
+ES6-style arrow functions via infix macros:
+
+\begin{verbatim}
+macro (=>) {
+    rule infix {
+        ($params ...) | { $body ... }
+    } => {
+        function ($params ...) {
+            $body ...
+        }
+    }
+}
+
+var id = (x) => { return x; }
+\end{verbatim}
+
+TODO: details and limitations\ldots{}
+\subsection{Invoke and Pattern Classes}
+\label{sec-3-2}
+
+TODO: motivation and details\ldots{}
+
+\section{Hygiene}
+\label{sec-4}
+
+Mostly straightforward implementation from scheme with some details to
+handle \texttt{var}.
+\section{Implementation}
+\label{sec-5}
+Sweet.js is written in JavaScript and runs in the major JS
+environments (\ie the brower and node.js). This is in contrast to Honu
+which translates its code to Racket code and reuses the hygienic
+expansion machinery already built in Racket. While this simplifies
+the implementation of Honu it also requires an installation of Racket
+which in some cases is not feasible (\eg sweet.js is able to run in
+mobile device browsers).
+\section{Related Work}
+\label{sec-6}
+
+\begin{itemize}
+\item Scheme/Racket
+\item Honu
+\item Template Haskell
+\item Nemerle
+\item Scala
+\item Closure
+\end{itemize}
+\section{Conclusion}
+\label{sec-7}
+% Emacs 24.3.1 (Org mode 8.2.5h)
+\end{document}
