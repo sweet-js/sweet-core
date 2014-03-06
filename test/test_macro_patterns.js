@@ -1131,4 +1131,13 @@ describe("macro expander", function() {
         macro m { rule { $x } => { $x } }
         expect((m [100])[0]).to.be(100);
     });
+    it("should allow expansion in a ternary expression", function () {
+        macro m { rule { $x } => { $x } }
+        var x = 42;
+        var y = 10;
+        expect(true ? (m x) : (m y)).to.be(x);
+        expect(false ? (m x) : (m y)).to.be(y);
+        expect((m (1==1)) ? (m x) : (m y)).to.be(x);
+        expect((m (1!=1)) ? (m x) : (m y)).to.be(y);
+    });
 });

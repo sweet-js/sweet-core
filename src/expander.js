@@ -2112,6 +2112,11 @@
             term.left = expandTermTreeToFinal(term.left, context);
             term.right = expandTermTreeToFinal(term.right, context);
             return term;
+        } else if (term.hasPrototype(ConditionalExpression)) {
+            term.cond = expandTermTreeToFinal(term.cond, context);
+            term.tru = expandTermTreeToFinal(term.tru, context);
+            term.fls = expandTermTreeToFinal(term.fls, context);
+            return term;
         } else if (term.hasPrototype(VariableDeclaration)) {
             if (term.init) {
                 term.init = expandTermTreeToFinal(term.init, context);
