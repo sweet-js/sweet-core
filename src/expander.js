@@ -1,7 +1,7 @@
 /*
   Copyright (C) 2012 Tim Disney <tim@disnet.me>
 
-  
+
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
 
@@ -41,7 +41,7 @@
                 'parser',
                 'syntax',
                 'scopedEval',
-                'patterns', 
+                'patterns',
                 'escodegen'], factory);
     }
 }(this, function(exports, _, parser, syn, se, patternModule, gen) {
@@ -84,7 +84,7 @@
 
     macro _case {
 	    case {_ $val else {} } => { return #{} }
-	    
+
 	    case {
             _
 		    $val else {
@@ -97,7 +97,7 @@
 		        }
             }
 	    }
-	    
+
 	    case {
             _
 		    $val else {
@@ -112,7 +112,7 @@
 		        _case $val else { $rest ... }
             }
 	    }
-	    
+
 	    case {
             _
 		    $val else {
@@ -127,7 +127,7 @@
 		        _case $val else { $rest ... }
             }
 	    }
-	    
+
 	    case {
             _
 		    $val {
@@ -142,7 +142,7 @@
 		        _case $val else { $rest ... }
             }
 	    }
-	    
+
 	    case {
             _
 		    $val {
@@ -172,7 +172,7 @@
 		        _case $val { $proto($field (,) ...) => { $body ... } $rest ... }
             }
 	    }
-	    
+
 	    case {
             _
 		    $val {
@@ -187,7 +187,7 @@
 	    }
     }
 
-    
+
     // used to export "private" methods for unit testing
     exports._test = {};
 
@@ -481,7 +481,7 @@
                         if (t.hasPrototype(TermTree)) {
                             push.apply(acc, t.destruct());
                             return acc;
-                        } 
+                        }
                         acc.push(t);
                         return acc;
                     }, []);
@@ -888,7 +888,7 @@
 
     var Template = Expr.extend({
         properties: ["template"],
-        
+
         construct: function(template) {
             this.template = template;
         }
@@ -903,7 +903,7 @@
 
     function stxIsBinOp(stx) {
         var staticOperators = ["+", "-", "*", "/", "%", "||", "&&", "|", "&", "^",
-                                "==", "!=", "===", "!==", 
+                                "==", "!=", "===", "!==",
                                 "<", ">", "<=", ">=", "in", "instanceof",
                                 "<<", ">>", ">>>"];
         return _.contains(staticOperators, unwrapSyntax(stx));
@@ -1005,7 +1005,7 @@
             if (right.hasPrototype(Expr)) {
                 var term = (isAssign ?
                             AssignmentExpression.create(op, left, right) :
-                            BinOp.create(op, left, right)); 
+                            BinOp.create(op, left, right));
                 return { result: term, rest: opRes.rest };
             }
         }
@@ -1066,7 +1066,7 @@
                     stx.token.startLineNumber = current.lineNumber;
                 } else if (stx.token.startLineNumber !== current.lastLineNumber) {
                     current.lineNumber++;
-                    current.lastLineNumber = stx.token.startLineNumber; 
+                    current.lastLineNumber = stx.token.startLineNumber;
                     stx.token.startLineNumber = current.lineNumber;
                 }
 
@@ -1089,9 +1089,9 @@
             // Only set the sourcemap line info once. Necessary because a single
             // syntax object can go through expansion multiple times. If at some point
             // we want to write an expansion stepper this might be a good place to store
-            // intermediate expansion line info (ie push to a stack instead of 
+            // intermediate expansion line info (ie push to a stack instead of
             // just write once).
-            stx.token.sm_lineNumber = typeof stx.token.sm_lineNumber == 'undefined' 
+            stx.token.sm_lineNumber = typeof stx.token.sm_lineNumber == 'undefined'
                                         ? stx.token.lineNumber
                                         : stx.token.sm_lineNumber;
             stx.token.sm_lineStart = typeof stx.token.sm_lineStart == 'undefined'
@@ -1108,7 +1108,7 @@
                 stx.token.lineNumber = current.lineNumber;
             } else if (stx.token.lineNumber !== current.lastLineNumber) {
                 current.lineNumber++;
-                current.lastLineNumber = stx.token.lineNumber; 
+                current.lastLineNumber = stx.token.lineNumber;
                 stx.token.lineNumber = current.lineNumber;
             }
 
@@ -1191,7 +1191,7 @@
                 case head {
 
                     // Call
-                    Expr(emp) | (rest[0] && 
+                    Expr(emp) | (rest[0] &&
                                  rest[0].token.type === parser.Token.Delimiter &&
                                  rest[0].token.value === "()") => {
                         var argRes, enforestedArgs = [], commas = [];
@@ -1271,7 +1271,7 @@
                                          resolve(rest[0]) === "=>") => {
                         var arrowRes = enforest(rest.slice(1), context);
                         if (arrowRes.result && arrowRes.result.hasPrototype(Expr)) {
-                            return step(ArrowFun.create(delim, rest[0], arrowRes.result.destruct()), 
+                            return step(ArrowFun.create(delim, rest[0], arrowRes.result.destruct()),
                                         arrowRes.rest);
                         } else {
                             throwSyntaxError("enforest", "Body of arrow function must be an expression", rest.slice(1));
@@ -1284,7 +1284,7 @@
                                  resolve(rest[0]) === "=>") => {
                         var res = enforest(rest.slice(1), context);
                         if (res.result && res.result.hasPrototype(Expr)) {
-                            return step(ArrowFun.create(id, rest[0], res.result.destruct()), 
+                            return step(ArrowFun.create(id, rest[0], res.result.destruct()),
                                         res.rest);
                         } else {
                             throwSyntaxError("enforest", "Body of arrow function must be an expression", rest.slice(1));
@@ -1375,7 +1375,7 @@
                     }
 
                     // Postfix
-                    Expr(emp) | (rest[0] && (unwrapSyntax(rest[0]) === "++" || 
+                    Expr(emp) | (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
                                             unwrapSyntax(rest[0]) === "--")) => {
                         // Check if the operator is a macro first.
                         if (context.env.has(resolve(rest[0]))) {
@@ -1383,7 +1383,7 @@
                             var opPrevStx = headStx.concat(prevStx);
                             var opPrevTerms = [head].concat(prevTerms);
                             var opRes = enforest(rest, context, opPrevStx, opPrevTerms);
-                            
+
                             if (opRes.prevTerms.length < opPrevTerms.length) {
                                 return opRes;
                             } else if(opRes.result) {
@@ -1434,17 +1434,17 @@
                         return step(Block.create(head), rest);
                     }
 
-                    Id(id) | (unwrapSyntax(id) === "#quoteSyntax" && 
+                    Id(id) | (unwrapSyntax(id) === "#quoteSyntax" &&
                                 rest[0] && rest[0].token.value === "{}") => {
 
                         var tempId = fresh();
                         context.templateMap.set(tempId, rest[0].token.inner);
-                        return step(syn.makeIdent("getTemplate", id), 
+                        return step(syn.makeIdent("getTemplate", id),
                                     [syn.makeDelim("()", [syn.makeValue(tempId, id)], id)].concat(rest.slice(1)));
                     }
 
 
-                    
+
                     Keyword(keyword) | (resolve(keyword) === "let") => {
                         var nameTokens = [];
                         if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
@@ -1473,7 +1473,7 @@
                             }
                         }
 
-                                  
+
                     }
                     // VariableStatement
                     Keyword(keyword) | (resolve(keyword) === "var" && rest[0]) => {
@@ -1492,9 +1492,9 @@
                         }
                     }
 
-                    Keyword(keyword) | (resolve(keyword) === "for" && 
+                    Keyword(keyword) | (resolve(keyword) === "for" &&
                                         rest[0] && rest[0].token.value === "()") => {
-                        return step(ForStatement.create(keyword, rest[0]), 
+                        return step(ForStatement.create(keyword, rest[0]),
                                     rest.slice(1));
                     }
 
@@ -1513,7 +1513,7 @@
                 // macro invocation
                 if ((head.token.type === parser.Token.Identifier ||
                      head.token.type === parser.Token.Keyword ||
-                     head.token.type === parser.Token.Punctuator) && 
+                     head.token.type === parser.Token.Punctuator) &&
                     (expandCount < maxExpands) &&
                     nameInEnv(head, rest, context.env)) {
 
@@ -1536,15 +1536,15 @@
                             var argumentString = "`" + rest.slice(0, 5).map(function(stx) {
                                 return stx.token.value;
                             }).join(" ") + "...`";
-                            throwSyntaxError("macro", "Macro `" + head.token.value + 
-                                                          "` could not be matched with " + 
+                            throwSyntaxError("macro", "Macro `" + head.token.value +
+                                                          "` could not be matched with " +
                                                           argumentString,
                                                           head);
                         }
                         else {
                             // just rethrow it
                             throw e;
-                        } 
+                        }
                     }
 
                     if (!builtinMode && !macroObj.builtin) {
@@ -1574,13 +1574,13 @@
                         return step(adjustedResult[0], adjustedResult.slice(1).concat(rt.rest));
                     } else {
                         return step(Empty.create(), rt.rest);
-                    } 
+                    }
                 // anon macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
                            resolve(head) === "macro" &&
                            rest[0] && rest[0].token.value === "{}") {
 
-                    return step(AnonMacro.create(rest[0].expose().token.inner), 
+                    return step(AnonMacro.create(rest[0].expose().token.inner),
                                 rest.slice(1));
                 // macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
@@ -1599,7 +1599,7 @@
                         throwSyntaxError("enforest", "Macro declaration must include body", rest[1]);
                     }
                 // module definition
-                } else if (unwrapSyntax(head) === "module" && 
+                } else if (unwrapSyntax(head) === "module" &&
                             rest[0] && rest[0].token.value === "{}") {
                     return step(Module.create(rest[0]), rest.slice(1));
                 // function definition
@@ -1667,7 +1667,7 @@
                                                 rest[2]),
                                 rest.slice(3));
                 // arrow function
-                } else if(((head.token.type === parser.Token.Delimiter && 
+                } else if(((head.token.type === parser.Token.Delimiter &&
                             head.token.value === "()") ||
                             head.token.type === parser.Token.Identifier) &&
                             rest[0] && rest[0].token.type === parser.Token.Punctuator &&
@@ -1701,8 +1701,8 @@
 
                     return step(Lit.create(head), rest);
                 // export
-                } else if (head.token.type === parser.Token.Keyword && 
-                            unwrapSyntax(head) === "export" && 
+                } else if (head.token.type === parser.Token.Keyword &&
+                            unwrapSyntax(head) === "export" &&
                             rest[0] && (rest[0].token.type === parser.Token.Identifier ||
                                         rest[0].token.type === parser.Token.Keyword ||
                                         rest[0].token.type === parser.Token.Punctuator)) {
@@ -1715,7 +1715,7 @@
                     return step(Punc.create(head), rest);
                 } else if (head.token.type === parser.Token.Keyword &&
                             unwrapSyntax(head) === "with") {
-                    throwSyntaxError("enforest", "with is not supported in sweet.js", head); 
+                    throwSyntaxError("enforest", "with is not supported in sweet.js", head);
                 // keyword
                 } else if (head.token.type === parser.Token.Keyword) {
                     return step(Keyword.create(head), rest);
@@ -1924,7 +1924,7 @@
                 newMatch.patternEnv = _.extend({}, oldMatch.patternEnv, newMatch.patternEnv);
                 return newMatch;
             }
-        }); 
+        });
 
         return macroFn;
     }
@@ -2016,7 +2016,7 @@
                     }
                 });
 
-            } 
+            }
 
             if(head.hasPrototype(Delimiter)) {
                 head.delim.token.inner.forEach(function(term)  {
@@ -2024,7 +2024,7 @@
                         addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
                                            context.defscope,
                                            true);
-                                          
+
                     }
                 });
             }
@@ -2088,9 +2088,9 @@
                 });
                 skip = typeof declRepeat !== 'undefined';
             }
-            /* 
+            /*
                When var declarations repeat in the same function scope:
-               
+
                var x = 24;
                ...
                var x = 42;
@@ -2104,7 +2104,7 @@
                     id: id,
                     name: name
                 });
-                
+
             }
         });
     }
@@ -2261,7 +2261,7 @@
                                                  expandedResult.context);
                 }
             })
-            
+
             if (term.hasPrototype(Module)) {
                 bodyTerms = _.filter(bodyTerms, function(bodyTerm) {
                     if (bodyTerm.hasPrototype(Export)) {
@@ -2291,7 +2291,7 @@
     // ([Syntax], Map, Map) -> [TermTree]
     function expand(stx, context) {
         assert(context, "must provide an expander context");
-        
+
         var trees = expandToTermTree(stx, context);
         var terms = _.map(trees.terms, function(term) {
             return expandTermTreeToFinal(term, trees.context);
@@ -2381,7 +2381,7 @@
     function loadModuleExports(stx, newEnv, exports, oldEnv) {
         return _.reduce(exports, function(acc, param) {
             var newName = fresh();
-            newEnv.set(resolve(param.newParam.rename(param.newParam, newName)), 
+            newEnv.set(resolve(param.newParam.rename(param.newParam, newName)),
                        oldEnv.get(resolve(param.oldExport)));
             return acc.rename(param.newParam, newName);
         }, stx);
@@ -2435,16 +2435,16 @@
                 acc.push(closeParen);
                 return acc;
             }
-            stx.token.sm_lineNumber = stx.token.sm_lineNumber 
-                                    ? stx.token.sm_lineNumber 
+            stx.token.sm_lineNumber = stx.token.sm_lineNumber
+                                    ? stx.token.sm_lineNumber
                                     : stx.token.lineNumber;
-            stx.token.sm_lineStart = stx.token.sm_lineStart 
-                                    ? stx.token.sm_lineStart 
+            stx.token.sm_lineStart = stx.token.sm_lineStart
+                                    ? stx.token.sm_lineStart
                                     : stx.token.lineStart;
             stx.token.sm_range = stx.token.sm_range
                                     ? stx.token.sm_range
                                     : stx.token.range;
-            acc.push(stx);                        
+            acc.push(stx);
             return acc;
         }, []);
     }
