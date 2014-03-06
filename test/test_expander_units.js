@@ -66,147 +66,147 @@ describe("matchPatternClass", function() {
         var stx = parser.read("+2");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["+", 2]);
+        expect(tokValues(res)).to.eql(["(", "+", 2, ")"]);
     });
 
     it("should match a complex unary expression", function() {
         var stx = parser.read("++2 + 42");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["++", 2, "+", 42]);
+        expect(tokValues(res)).to.eql(["(", "++", 2, "+", 42, ")"]);
     });
 
     it("should match a postfix unary expression", function() {
         var stx = parser.read("x++");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["x", "++"]);
+        expect(tokValues(res)).to.eql(["(", "x", "++", ")"]);
     });
 
     it("should match a binary expression", function() {
         var stx = parser.read("2+2");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql([2, "+", 2]);
+        expect(tokValues(res)).to.eql(["(", 2, "+", 2, ")"]);
     });
 
     it("should match a complex binary expression", function() {
         var stx = parser.read("2+2*10/32");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql([2, "+", 2, "*", 10, "/", 32]);
+        expect(tokValues(res)).to.eql(["(", 2, "+", 2, "*", 10, "/", 32, ")"]);
     });
 
     it("should handle a broken binary expression", function() {
         var stx = parser.read("2+2 + +");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql([2, "+", 2]);
+        expect(tokValues(res)).to.eql(["(", 2, "+", 2, ")"]);
     });
 
     it("should handle a binary and unary expression", function() {
         var stx = parser.read("2 + 2 - ++x");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql([2, "+", 2, "-", "++", "x"]);
+        expect(tokValues(res)).to.eql(["(", 2, "+", 2, "-", "++", "x", ")"]);
     });
 
     it("should match a this expression", function() {
         var stx = parser.read("this.foo");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["this", ".", "foo"]);
+        expect(tokValues(res)).to.eql(["(", "this", ".", "foo", ")"]);
     });
 
     it("should match a literal expression", function() {
         var stx = parser.read("42");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql([42]);
+        expect(tokValues(res)).to.eql(["(", 42, ")"]);
     });
 
     it("should match a parenthesized expression", function() {
         var stx = parser.read("(42)");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["(", 42, ")"]);
+        expect(tokValues(res)).to.eql(["(", "(", 42, ")", ")"]);
     });
 
     it("should match an array literal", function() {
         var stx = parser.read("[1,2,3]");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["[", 1, ",", 2, ",", 3, "]"]);
+        expect(tokValues(res)).to.eql(["(", "[", 1, ",", 2, ",", 3, "]", ")"]);
     });
 
     it("should match a simple object literal", function() {
         var stx = parser.read("{a: 42}");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["{", "a", ":", 42, "}"]);
+        expect(tokValues(res)).to.eql(["(", "{", "a", ":", 42, "}", ")"]);
     });
 
     it("should match an empty function call", function() {
         var stx = parser.read("foo()");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["foo", "(", ")"]);
+        expect(tokValues(res)).to.eql(["(", "foo", "(", ")", ")"]);
     });
 
     it("should match a simple function call", function() {
         var stx = parser.read("foo(24)");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["foo", "(", 24, ")"]);
+        expect(tokValues(res)).to.eql(["(", "foo", "(", 24, ")", ")"]);
     });
 
     it("should match a function call with two simple arguments", function() {
         var stx = parser.read("foo(24, 42)");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["foo", "(", 24, ",", 42, ")"]);
+        expect(tokValues(res)).to.eql(["(", "foo", "(", 24, ",", 42, ")", ")"]);
     });
 
     it("should match a function call with two complex arguments", function() {
         var stx = parser.read("foo(24 + 24, 42)");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["foo", "(", 24, "+", 24, ",", 42, ")"]);
+        expect(tokValues(res)).to.eql(["(", "foo", "(", 24, "+", 24, ",", 42, ")", ")"]);
     });
 
     it("should not match a function call with a non-expression as one of the args", function() {
         var stx = parser.read("foo(24 + 24 +, 42)");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["foo"]);
+        expect(tokValues(res)).to.eql(["(", "foo", ")"]);
     });
 
     it("should not match a function call with a non-expression punctuator", function() {
         var stx = parser.read("foo(24 + 24, ,)");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["foo"]);
+        expect(tokValues(res)).to.eql(["(", "foo", ")"]);
     });
 
     it("should match a simple dotted get", function() {
         var stx = parser.read("foo.bar");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["foo", ".", "bar"]);
+        expect(tokValues(res)).to.eql(["(", "foo", ".", "bar", ")"]);
     });
 
     it("should match a dotted get method call", function() {
         var stx = parser.read("foo.bar(f())");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["foo", ".", "bar", "(", "f", "(", ")", ")"]);
+        expect(tokValues(res)).to.eql(["(", "foo", ".", "bar", "(", "f", "(", ")", ")", ")"]);
     });
 
     it("should match a new expression", function() {
         var stx = parser.read("new Foo(42)");
         var res = matchPatternClass({class: "expr"}, stx, emptyMacroMap).result;
 
-        expect(tokValues(res)).to.eql(["new", "Foo", "(", 42, ")"]);
+        expect(tokValues(res)).to.eql(["(", "new", "Foo", "(", 42, ")", ")"]);
     });
 
     it("should match a simple var declaration statement", function() {
@@ -313,4 +313,5 @@ describe("expand", function() {
 
         expect(function() { expander.expand(stx);}).to.throwError();
     });
+
 });

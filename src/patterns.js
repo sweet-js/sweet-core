@@ -412,6 +412,7 @@
                 rest = stx;
             } else {
                 result = match.destructed || match.result.destruct(false);
+                result = [syntax.makeDelim("()", result, result[0])];
                 rest = match.rest;
             }
         } else if (stx.length > 0 && (patternObj.class === "invoke" ||
