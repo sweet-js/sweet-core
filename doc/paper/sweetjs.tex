@@ -1,4 +1,4 @@
-% Created 2014-03-03 Mon 19:55
+% Created 2014-03-05 Wed 20:48
 \documentclass[preprint,10pt]{sigplanconf}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -34,7 +34,7 @@
 \hypersetup{
   pdfkeywords={},
   pdfsubject={Sweet.js - Macros for JavaScript},
-  pdfcreator={Emacs 24.3.1 (Org mode 8.2.5h)}}
+  pdfcreator={Emacs 24.3.1 (Org mode 8.2.1)}}
 \begin{document}
 
 \maketitle
@@ -75,11 +75,9 @@ authors easier declaration of a macro shape
 \item the \texttt{invoke} primitive to allow custom parser classes and more
 powerful matching
 \end{itemize}
-
 \section{Overview}
 \label{sec-2}
 TODO: syntax, main features etc\ldots
-
 \section{Read}
 \label{sec-3}
 
@@ -93,30 +91,79 @@ TODO: motivate \texttt{read} with examples etc.
 \subsection{Proof of \texttt{read}}
 \label{sec-3-1}
 
-\begin{displayfigure}{\label{fig:grammar}Simplified JS Grammar}
+We first define a simplified grammar that captures just the essential
+complexity we want to address, namely the interaction of \texttt{/} as a
+divide punctuator and the regular expression literal \texttt{/x/}.
+
 \[
   \begin{array}{rrl}
-    \textit{Literal }&::=& num ~|~ str ~|~ /regex/ \\
-    \\
-    \textit{Expr }&::=& \textit{Literal }\\
-    &|& \textit{Expr}~ +~\textit{Expr }\\
-    &|& \textit{Expr}~/~\textit{Expr }\\
+    \textit{Expr }&::=& x ~|~ /x/ \\
+    &|& \textit{Expr}~/~\textit{Expr}\\
   \end{array}
 \]
-\end{displayfigure}
 
-The grammar of a simplified version of JavaScript is defined in Figure
-\ref{fig:grammar}. While this grammar does not cover the entirety of
-JavaScript, we claim it captures the essential complexity of \texttt{read}
-for JavaScript (TODO: maybe complete(ish?) grammar/proof in the appendix?).
-The function \texttt{read} is defined in Figure \ref{fig:read}.
+There are two alphabets that interest us: the standard \(
+\mathit{Tokens} \) and the more structured \( \mathit{ReadTree} \)
+which the \texttt{read} function will produce.
 
-TODO: extend grammar/proof to cover at least calls, if statements, and
-blocks.
+\[
+\begin{array}{rcl}
+  \textit{Token} &::=& x ~|~ / \\
+  \textit{ReadTree} &::=& x ~|~ / ~|~ /x/
+\end{array}
+\]
+
+We define \( \textit{Expr}_T \) to be the grammar as defined above
+over the alphabet \( \textit{Token} \) and \( \textit{Expr}_R \) as
+the grammar as defined above but over the alphabet \(
+\textit{ReadTree} \). The function \textit{tok} takes words in the
+\textit{ReadTree} alphabet and converts them into words in the
+\textit{Token} alphabet by splitting regular expression literals
+apart.
+
+The following lemma notes that any word that is valid for \(
+\textit{Expr}_R \) is also valid for \( \textit{Expr}_T \) when the
+\textit{tok} function is applied.
+
+  \begin{lemma}[]\mbox{}
+\[
+    w \in \textit{Expr}_R
+    \Rightarrow
+    \textrm{tok}(w) \in \textit{Expr}_T
+\]
+  \end{lemma}
+
+We can also go the other direction with the \textit{read} function.
+
+  \begin{lemma}[]
+\[
+    w \in \textit{Expr}_T
+    \Rightarrow
+    \textit{read}(w) \in \textit{Expr}_R
+\]
+  \end{lemma}
+  \begin{proof}
+    By induction and some other fun stuff.
+  \end{proof}
+
+Which leads us to what we want to prove:
+
+  \begin{theorem}[]
+\[
+    w \in \textit{Expr}_T
+    \Rightarrow
+    \textit{tok}(\textit{read}(w)) \in \textit{Expr}_T
+\]
+  \end{theorem}
+  \begin{proof}
+    Follows from the Lemmas 1 and 2.
+  \end{proof}
 
 To prove that \texttt{read} correctly distinguishes between the divide
 operator and a regular expression literal we first extend the grammar
-to carry a prefix:
+to carry a prefix.
+
+
 
 \[
 \begin{array}{rrl}
@@ -289,5 +336,5 @@ mobile device browsers).
 \end{itemize}
 \section{Conclusion}
 \label{sec-8}
-% Emacs 24.3.1 (Org mode 8.2.5h)
+% Emacs 24.3.1 (Org mode 8.2.1)
 \end{document}
