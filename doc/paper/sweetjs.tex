@@ -1,4 +1,4 @@
-% Created 2014-03-05 Wed 20:48
+% Created 2014-03-06 Thu 16:50
 \documentclass[preprint,10pt]{sigplanconf}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -34,7 +34,7 @@
 \hypersetup{
   pdfkeywords={},
   pdfsubject={Sweet.js - Macros for JavaScript},
-  pdfcreator={Emacs 24.3.1 (Org mode 8.2.1)}}
+  pdfcreator={Emacs 24.3.1 (Org mode 8.2.5h)}}
 \begin{document}
 
 \maketitle
@@ -97,14 +97,22 @@ divide punctuator and the regular expression literal \texttt{/x/}.
 
 \[
   \begin{array}{rrl}
-    \textit{Expr }&::=& x ~|~ /x/ \\
-    &|& \textit{Expr}~/~\textit{Expr}\\
+    \textit{Expr}_e 
+    &::=& x~\textit{ExprRest}_{x, e}
+    \\
+    &|& /x/~\textit{ExprRest}_{/x/, e}
+    \\
+    \\
+    \textit{ExprRest}_{e, (e / e')}
+    &::=&
+    /~\textit{Expr}_{e'}
+    \\
+    \textit{ExprRest}_{e, e}
+    &::=&
+    \epsilon
   \end{array}
 \]
 
-There are two alphabets that interest us: the standard \(
-\mathit{Tokens} \) and the more structured \( \mathit{ReadTree} \)
-which the \texttt{read} function will produce.
 
 \[
 \begin{array}{rcl}
@@ -336,5 +344,5 @@ mobile device browsers).
 \end{itemize}
 \section{Conclusion}
 \label{sec-8}
-% Emacs 24.3.1 (Org mode 8.2.1)
+% Emacs 24.3.1 (Org mode 8.2.5h)
 \end{document}

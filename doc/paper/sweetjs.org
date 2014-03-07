@@ -83,7 +83,7 @@ divide punctuator and the regular expression literal =/x/=.
 #+BEGIN_LaTeX
   \[
     \begin{array}{rrl}
-      \textit{Expr }&::=& x ~|~ /x/ \\
+      \textit{Expr}&::=& x ~|~ /x/ \\
       &|& \textit{Expr}~/~\textit{Expr}\\
     \end{array}
   \]
