@@ -1,4 +1,3 @@
-% Created 2014-03-06 Thu 16:50
 \documentclass[preprint,10pt]{sigplanconf}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -33,8 +32,7 @@
 \title{Sweet.js - Hygienic Macros for JavaScript}
 \hypersetup{
   pdfkeywords={},
-  pdfsubject={Sweet.js - Macros for JavaScript},
-  pdfcreator={Emacs 24.3.1 (Org mode 8.2.5h)}}
+  pdfsubject={Sweet.js - Macros for JavaScript}}
 \begin{document}
 
 \maketitle
@@ -92,182 +90,152 @@ TODO: motivate \texttt{read} with examples etc.
 \label{sec-3-1}
 
 We first define a simplified grammar that captures just the essential
-complexity we want to address, namely the interaction of \texttt{/} as a
-divide punctuator and the regular expression literal \texttt{/x/}.
-
-\[
-  \begin{array}{rrl}
-    \textit{Expr}_e 
-    &::=& x~\textit{ExprRest}_{x, e}
-    \\
-    &|& /x/~\textit{ExprRest}_{/x/, e}
-    \\
-    \\
-    \textit{ExprRest}_{e, (e / e')}
-    &::=&
-    /~\textit{Expr}_{e'}
-    \\
-    \textit{ExprRest}_{e, e}
-    &::=&
-    \epsilon
-  \end{array}
-\]
-
-
-\[
-\begin{array}{rcl}
-  \textit{Token} &::=& x ~|~ / \\
-  \textit{ReadTree} &::=& x ~|~ / ~|~ /x/
-\end{array}
-\]
-
-We define \( \textit{Expr}_T \) to be the grammar as defined above
-over the alphabet \( \textit{Token} \) and \( \textit{Expr}_R \) as
-the grammar as defined above but over the alphabet \(
-\textit{ReadTree} \). The function \textit{tok} takes words in the
-\textit{ReadTree} alphabet and converts them into words in the
-\textit{Token} alphabet by splitting regular expression literals
-apart.
-
-The following lemma notes that any word that is valid for \(
-\textit{Expr}_R \) is also valid for \( \textit{Expr}_T \) when the
-\textit{tok} function is applied.
-
-  \begin{lemma}[]\mbox{}
-\[
-    w \in \textit{Expr}_R
-    \Rightarrow
-    \textrm{tok}(w) \in \textit{Expr}_T
-\]
-  \end{lemma}
-
-We can also go the other direction with the \textit{read} function.
-
-  \begin{lemma}[]
-\[
-    w \in \textit{Expr}_T
-    \Rightarrow
-    \textit{read}(w) \in \textit{Expr}_R
-\]
-  \end{lemma}
-  \begin{proof}
-    By induction and some other fun stuff.
-  \end{proof}
-
-Which leads us to what we want to prove:
-
-  \begin{theorem}[]
-\[
-    w \in \textit{Expr}_T
-    \Rightarrow
-    \textit{tok}(\textit{read}(w)) \in \textit{Expr}_T
-\]
-  \end{theorem}
-  \begin{proof}
-    Follows from the Lemmas 1 and 2.
-  \end{proof}
-
-To prove that \texttt{read} correctly distinguishes between the divide
-operator and a regular expression literal we first extend the grammar
-to carry a prefix.
-
-
+complexity we want to address, namely the interaction between
+the division symbol \texttt{/} and the regular expression literal
+\texttt{/x/}.
 
 \[
 \begin{array}{rrl}
-  \textit{Expr}_{p} &::=& \textit{Literal}
+  \Tok &::=& x ~|~ /
   \\
-  &|& \textit{Expr}_{p}~+~\textit{Expr}_{+~p}
+  \TT &::=& x ~|~ / ~|~ /x/
   \\
-  &|& \textit{Expr}_{p}~/~\textit{Expr}_{/~p}
+  \\
+  \textit{Expr}_e 
+  &::=& x~\textit{ExprRest}_{x, e}
+  \\
+  &|& /\cdot x \cdot /~\textit{ExprRest}_{/x/, e}
+  \\
+  \\
+  \textit{ExprRest}_{e, (e / e')}
+  &::=&
+  /~\textit{Expr}_{e'}
+  \\
+  \textit{ExprRest}_{e, e}
+  &::=&
+  \epsilon
+  \\
+  \\
+  \textit{Expr}_e' 
+  &::=& x~\textit{ExprRest}_{x, e}'
+  \\
+  &|& /x/~\textit{ExprRest}_{/x/, e}'
+  \\
+  \\
+  \textit{ExprRest}_{e, (e / e')}'
+  &::=&
+  /~\textit{Expr}_{e'}'
+  \\
+  \textit{ExprRest}_{e, e}'
+  &::=&
+  \epsilon
 \end{array}
 \]
 
-Then "something something by induction" QED.
+We also define \( \textit{Expr}' \) with the same productions as \(
+\textit{Expr} \) but defined over \( \TT^{*} \) instead of \( \Tok^{*}
+\). So the terminal \( /x/ \) in the second production of \(
+\textit{Expr} \) is three distinct tokens (\( /, x, \) and \( /
+\)) while it is a single token in \( \textit{Expr}' \).
 
+
+\begin{theorem}[\label{thrm:read}Read is correct]\mbox{}
+
+\(\forall s. s \in \Tok^{*} \)
+\begin{enumerate}
+\item \( 
+  \{ e ~|~ s \in \textit{Expr}_{e} \} 
+  =  
+  \{ e ~|~ \readfn{s}{\neg \textit{EndsWithLit}} \in \textit{Expr}'_{e}
+  \}
+  \)
+\item \( 
+  \{ e ~|~ s \in \textit{ExprRest}_{l, e} \}
+  =
+  \{ e ~|~ \readfn{s}{\textit{EndsWithLit}} \}
+  \)
+  where we define:
+  \[
+  \begin{array}{rcl}
+    \textit{EndsWithLit} &::=& \TT^{*}\cdot x
+    \\
+    &|& \TT^{*} \cdot /x/ 
+  \end{array}
+  \]
+\end{enumerate}
+\end{theorem}
+\begin{proof}\mbox{}
+  
+  \begin{itemize}
+  \item Part 1.
+
+    If \( s \in \textit{Expr}_{e} \) then there are two possible cases:
+    \begin{itemize}
+    \item \( s = x \cdot s' \). Since:
+      \[
+      \readfn{x \cdot s'}{\neg \ewl} 
+      =
+      x \cdot \readfn{s'}{\ewl}
+      \]
+      and \( s' \in \textit{ExprRest}_{x, e} \) by part 2 of the theorem
+      we know
+      \(
+      \{ e ~|~ s' \in \textit{ExprRest}_{x, e} \}
+      =
+      \{ e ~|~ \readfn{s'}{\ewl} \in \textit{ExprRest}_{x, e}' \}
+      \)
+    \item \( s = / \cdot x \cdot / \cdot s' \)
+    \end{itemize}
+    
+  \item Part 2.
+  \end{itemize}
+  
+
+\end{proof}
 
 \begin{displayfigure*}{\label{fig:read}Read Algorithm}
   
 \[
-\begin{array}{rcl}
-  \texttt{Token} &::=& \textit{num}~|~\textit{str}~|~+~|~/ \\
-\end{array}
-\]
-
-  \texttt{read} :: \verb![Token] -> [ReadTree] -> [ReadTree]!
-\[
   \begin{array}{lcl}
-    \readfn{[\num,~\ldots \textrm{rest}]}{\textrm{prefix}}
-    &=&
-    \cons{\num}{
-      \readfn{\textrm{rest}}{
-        \cons{\num}{\textrm{prefix}} 
-      }
-    }
-    \\
-    \readfn{[\str,~\ldots \textrm{rest}]}{\textrm{prefix}}
-    &=&
-    \cons{\str}{
-      \readfn{\textrm{rest}}{
-        \cons{\str}{\textrm{prefix}}
-      }  
-    }
-    
-    
-    \\
-    \readfn{[+,~\ldots \textrm{rest}]}{\textrm{prefix}}
-    &=&
-    \cons{+}{
-      \readfn{\textrm{rest}}{
-        \cons{+}{\textrm{prefix}}
-      }
-    } 
-    \\
-    \readfn{[/,~\ldots \textrm{rest}]}{[\num,~\ldots\textrm{prefix}]}
+    \readfn{/\cdot \textrm{rest}}{\textrm{prefix}\cdot x}
     &=&
     \cons{/}{
       \readfn{\textrm{rest}}{
-        \cons{/,~\num}{\textrm{prefix}} 
+        \textrm{prefix}\cdot x\cdot /
       }
     }
     \\
-    \readfn{[/,~\ldots \textrm{rest}]}{[\str,~\ldots\textrm{prefix}]}
+    \readfn{/\cdot \textrm{rest}}{\textrm{prefix}\cdot /x/}
     &=&
     \cons{/}{
       \readfn{\textrm{rest}}{
-        \cons{/,~\str}{\textrm{prefix}} 
+        \textrm{prefix}\cdot /x/ \cdot /
       }
     }
     \\
-    \readfn{[/,~\ldots \textrm{rest}]}{[\textit{regex},~\ldots\textrm{prefix}]}
+    \readfn{/\cdot x \cdot /\cdot\textrm{rest}}{\textrm{prefix}\cdot /}
     &=&
-    \cons{/}{
+    \cons{/x/}{
       \readfn{\textrm{rest}}{
-        \cons{/,~\textit{regex}}{\textrm{prefix}} 
+        \textrm{prefix}\cdot / \cdot /x/
       }
     }
     \\
-    \readfn{[/,~\ldots \textrm{rest}]}{[+,~\ldots\textrm{prefix}]}
+    \readfn{/\cdot x \cdot /\cdot\textrm{rest}}{\epsilon}
     &=&
-    \cons{\textit{regex}}{
-      \readfn{\textrm{regexRest}}{
-        \cons{\textit{regex},~+}{\textrm{prefix}} 
-      }
+    \cons{/x/}{
+      \readfn{\textrm{rest}}{/x/}
     }
     \\
-    && \textit{where}~(\textit{regex},~\textrm{regexRest}) = 
-    \textrm{scanRegex}(\textrm{rest})
-    \\
-    \readfn{[/,~\ldots \textrm{rest}]}{[/,~\ldots\textrm{prefix}]}
+    \readfn{x \cdot \textrm{rest}}{\textrm{prefix}}
     &=&
-    \cons{\textit{regex}}{
-      \readfn{\textrm{regexRest}}{
-        \cons{\textit{regex},~/}{\textrm{prefix}} 
-      }
+    \cons{x}{
+      \readfn{\textrm{rest}}{\textrm{prefix}\cdot x}
     }
     \\
-    && \textit{where}~(\textit{regex},~\textrm{regexRest}) = 
-    \textrm{scanRegex}(\textrm{rest})
+    \readfn{\epsilon}{\textrm{prefix}}
+    &=&
+    \epsilon
   \end{array}
 \]
 \end{displayfigure*}
