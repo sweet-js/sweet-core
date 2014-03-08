@@ -46,8 +46,8 @@ let syntax = macro {
                        makePunc(".", here),
                        makeIdent("patternEnv", name_stx)
                    ], here)];
-                   
-        
+
+
         return {
             result: res,
             rest: stx.slice(2)
@@ -443,8 +443,8 @@ let macro = macro {
         var takeLine = patternModule.takeLine;
         var makeIdentityRule = patternModule.makeIdentityRule;
         var rest;
-        
-        if (stx[1] && stx[1].token.type === parser.Token.Delimiter && 
+
+        if (stx[1] && stx[1].token.type === parser.Token.Delimiter &&
             stx[1].token.value === "{}") {
             mac_name_stx = null;
             body_stx = stx[1];
@@ -452,7 +452,7 @@ let macro = macro {
             rest = stx.slice(2);
         } else {
             mac_name_stx = [];
-            mac_name_stx.push(stx[1]); 
+            mac_name_stx.push(stx[1]);
             body_stx = stx[2];
             body_inner_stx = stx[2].expose().token.inner;
             rest = stx.slice(3);
@@ -547,7 +547,7 @@ let macro = macro {
         } else {
             rules = body_stx;
         }
-        
+
         var stxSyntaxCase = takeLine(here[0], makeIdent("syntaxCase", name_stx));
         var res = mac_name_stx
             ? [makeIdent("macro", here)].concat(mac_name_stx)
@@ -698,3 +698,50 @@ let letstx = macro {
     }
 }
 export letstx;
+
+macro __log {
+    case { _ defctx $stx } => {
+        var context = #{ $stx }[0].context;
+        console.log("defctx context for " + unwrapSyntax(#{$stx}) + "]");
+        while (context) {
+            if (context.defctx) {
+                console.log(context.defctx.map(function(d) {
+                    return d.id.token.value
+                }));
+            }
+            context = context.context;
+        }
+        return [];
+    }
+    case {_ rename $stx } => {
+        var context = #{ $stx }[0].context;
+        console.log("rename context for " + unwrapSyntax(#{$stx}) + ":");
+        while (context) {
+            if (context.name) {
+                console.log("[name: " + context.name + ", id: " + context.id.token.value + "]");
+            }
+            context = context.context;
+        }
+        return [];
+    }
+    case {_ all $stx } => {
+        var context = #{ $stx }[0].context;
+        console.log("context for " + unwrapSyntax(#{$stx}) + ":");
+        while (context) {
+            if (context.name) {
+                console.log("rename@[name: " + context.name + ", id: " + context.id.token.value + "]");
+            }
+            if (context.mark) {
+                console.log("mark@[mark: " + context.mark + "]");
+            }
+            if (context.defctx) {
+                console.log("defctx@[" + context.defctx.map(function(d) {
+                    return d.id.token.value
+                }) + "]");
+            }
+            context = context.context;
+        }
+        return [];
+    }
+}
+// export __log;
