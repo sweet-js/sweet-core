@@ -894,7 +894,7 @@
 
         while (rest.length) {
             if (rest[0].token.type === parser.Token.Identifier) {
-                if (rest[1].token.type === parser.Token.Punctuator &&
+                if (rest[1] && rest[1].token.type === parser.Token.Punctuator &&
                     rest[1].token.value === "=") {
                     rhs = get_expression(rest.slice(2), context);
                     if (rhs.result == null) {
@@ -910,7 +910,7 @@
                         rest = rhs.rest;
                         break;
                     }
-                } else if (rest[1].token.type === parser.Token.Punctuator &&
+                } else if (rest[1] && rest[1].token.type === parser.Token.Punctuator &&
                            rest[1].token.value === ",") {
                     decls.push(VariableDeclaration.create(rest[0], null, null, rest[1]));
                     rest = rest.slice(2);
