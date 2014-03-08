@@ -2211,10 +2211,16 @@
                 // add the definition context to the result of
                 // expansion (this makes sure that syntax objects
                 // introduced by expansion have the def context)
-                var termWithCtx = bodyTerm.addDefCtx(newDef);
-                // finish expansion
-                return expandTermTreeToFinal(termWithCtx,
-                                             expandedResult.context);
+                if (bodyTerm.hasPrototype(Block)) {
+                    var blockFinal = expandTermTreeToFinal(bodyTerm, 
+                                                           expandedResult.context);
+                    return blockFinal.addDefCtx(newDef);
+                } else {
+                    var termWithCtx = bodyTerm.addDefCtx(newDef);
+                    // finish expansion
+                    return expandTermTreeToFinal(termWithCtx,
+                                                 expandedResult.context);
+                }
             })
             
             if (term.hasPrototype(Module)) {
