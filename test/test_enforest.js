@@ -33,6 +33,13 @@ describe("enforest", function() {
         expect(res.result.decls.length).to.be(2);
     });
 
+    it("should enforest a VarStatement with only a name and no EOF", function() {
+        var toks = read("var x");
+        toks.pop();
+        var res = enforest(toks, makeExpanderContext());
+        expect(res.result.decls.length).to.be(1);
+    })
+
     it("should enforest AssignmentExpressions", function() {
         var res = enforest(read("x = 5"), makeExpanderContext());
         expect(res.result.op.token.value).to.be('=');
