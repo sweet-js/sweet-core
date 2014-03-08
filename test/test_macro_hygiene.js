@@ -423,5 +423,7 @@ describe "macro hygiene" {
         var x = "outer";
         { inner }
         expect(x).to.be("outer");
+        if (true) { inner }
+        expect(x).to.be("outer");
     }
 }
