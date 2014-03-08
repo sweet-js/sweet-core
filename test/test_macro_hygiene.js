@@ -415,4 +415,13 @@ describe "macro hygiene" {
 
         expect(compiled).to.be(after);
     }
+
+    it "should handle vars expanded inside of blocks" {
+        macro inner {
+            rule { } => { var x = "inner"; }
+        }
+        var x = "outer";
+        { inner }
+        expect(x).to.be("outer");
+    }
 }
