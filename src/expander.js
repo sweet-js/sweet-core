@@ -2212,6 +2212,8 @@
                 // expansion (this makes sure that syntax objects
                 // introduced by expansion have the def context)
                 if (bodyTerm.hasPrototype(Block)) {
+                    // we need to expand blocks before adding the defctx since
+                    // blocks defer macro expansion.
                     var blockFinal = expandTermTreeToFinal(bodyTerm, 
                                                            expandedResult.context);
                     return blockFinal.addDefCtx(newDef);
