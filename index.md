@@ -329,7 +329,7 @@ Sweet.js provides the following functions to create syntax objects:
 * `makeValue(val, stx)` -- `val` can be a `boolean`, `number`,
   `string`, or `null`/`undefined`
 * `makeRegex(pattern, flags, stx)` -- `pattern` is the string
-  representaiton of the regex pattern and `flags` is the string
+  representation of the regex pattern and `flags` is the string
   representation of the regex flags
 * `makeIdent(val, stx)` -- `val` is a string representing an
   identifier
