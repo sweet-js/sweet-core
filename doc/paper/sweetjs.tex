@@ -343,11 +343,129 @@ macro (=>) {
 var id = (x) => { return x; }
 \end{verbatim}
 
-TODO: details and limitations\ldots{}
+The macros we have described so far must all be prefixed by the macro
+identifier and syntax after the macro name is matched. This is
+sufficient for many kinds of macros but some syntax forms require the
+macro identifier to sit between patterns.
+
+Honu addresses this need in a limited way by providing a way to define
+new binary and unary operators which during expansion can manipulate
+their operators. However, those operators must be fully expanded and
+must match as an expression.
+
+Sweet.js provides \emph{infix macros} which allows a macro identifier to
+match syntax before it. For example, the following implements
+ES6-style arrow functions via infix macros:
+
+\begin{verbatim}
+macro (=>) {
+    rule infix {
+        ($params ...) | { $body ... }
+    } => {
+        function ($params ...) {
+            $body ...
+        }
+    }
+}
+var id = (x) => { return x; }
+\end{verbatim}
+
+This is accomplished by simply providing the state of previously
+expanded syntax to macro transformers. Macros may then consume from
+either ends as needed, yielding new previous and subsequent syntax. At
+first glance, this can appear brittle:
+
+\begin{verbatim}
+var foo = bar(x) => { return x; }
+\end{verbatim}
+
+We've juxtaposed the \verb!=>! macro next to a function call, which we did
+not intend to be valid syntax. A naive expansion results in unparsable
+code:
+
+\begin{verbatim}
+var foo = bar function(x) { return x; }
+\end{verbatim}
+
+In more subtle cases, a naive expansion can result in parsable code
+with incorrect semantics. [Example needed?] To preserve the integrity
+of previously expanded syntax, we verify that an infix macro only
+matches previous syntax on boundaries delimited by the partial syntax
+tree we've built. The syntax tree would show \verb!bar(x)! as a complete
+function call term. Consuming the parentheses would result in a split
+term and is disallowed, failing the rule. In practice, this has proven
+to be an intuitive restriction. [Elaborate?]
+
+The primary limitation of infix macros is they do not obey precedence
+and associativity. They stand as a complement to Honu operators, not
+as a replacement, for when an infix form does not adhere to operator
+semantics, much like the \verb!=>! macro. Its left-hand-side and
+right-hand-side are not arbitrary expressions but must match a
+specific form. Additionally, it would need a precedence of infinity so
+as to always bind tighter than other operators.
+
 \subsection{Invoke and Pattern Classes}
 \label{sec-4-2}
 
-TODO: motivation and details\ldots{}
+[Something about default pattern classes and `:expr`...]
+
+Pattern classes are extensible via the \verb!invoke! class which is
+parameterized by a macro name.
+
+\begin{verbatim}
+macro color {
+  rule { red } => { red }
+  rule { green } => { green }
+  rule { blue } => { blue }
+}
+macro colors_options {
+  rule { ($opt:invoke(color) ...) } => { ... }
+}
+\end{verbatim}
+
+The macro is essentially inserted into the token stream. If the
+expansion succeeds, the result will be loaded into the pattern
+variable, otherwise the rule will fail. We've added sugar so that any
+non-primitive pattern classes are interpretted as \verb!invoke!
+parameterized by the custom class. We've also added identity rules to
+shorten definitions of simple custom classes.
+
+\begin{verbatim}
+macro color {
+  rule { red }
+  rule { green }
+  rule { blue }
+}
+macro colors_options {
+  rule { ($opt:color (,) ...) } => { ... }
+}
+\end{verbatim}
+
+These macros may return an optional pattern environment which will be
+scoped and loaded into the invoking macro's pattern environment. This
+lets us define Honu-style pattern classes as simple macro-generating
+macros.
+
+\begin{verbatim}
+macro color {
+  ...
+}
+macro number {
+  ...
+}
+// `pattern` is just a macro-generating macro
+pattern color_value { $color:color $num:number }
+
+macro color_options {
+  rule { ($opt:color_value (,) ...) } => {
+    var cols = [$opt$color (,) ...];
+    var nums = [$opt$num (,) ...];
+  }
+}
+
+\end{verbatim}
+
+...?
 
 \section{Hygiene}
 \label{sec-5}
