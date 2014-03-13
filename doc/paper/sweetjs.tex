@@ -100,35 +100,6 @@ the division symbol \texttt{/} and the regular expression literal
   \\
   \TT &::=& x ~|~ / ~|~ /x/
   \\
-  \\
-  \textit{Expr}_e 
-  &::=& x~\textit{ExprRest}_{x, e}
-  \\
-  &|& /\cdot x \cdot /~\textit{ExprRest}_{/x/, e}
-  \\
-  \\
-  \textit{ExprRest}_{e, (e / e')}
-  &::=&
-  /~\textit{Expr}_{e'}
-  \\
-  \textit{ExprRest}_{e, e}
-  &::=&
-  \epsilon
-  \\
-  \\
-  \textit{Expr}_e' 
-  &::=& x~\textit{ExprRest}_{x, e}'
-  \\
-  &|& /x/~\textit{ExprRest}_{/x/, e}'
-  \\
-  \\
-  \textit{ExprRest}_{e, (e / e')}'
-  &::=&
-  /~\textit{Expr}_{e'}'
-  \\
-  \textit{ExprRest}_{e, e}'
-  &::=&
-  \epsilon
 \end{array}
 \]
 
@@ -141,121 +112,64 @@ We also define \( \textit{Expr}' \) with the same productions as \(
 
 \begin{theorem}[\label{thrm:read}Read is correct]\mbox{}
 
-\(\forall s. s \in \Tok^{*} \)
-\begin{enumerate}
-\item 
-  \( 
-  \{ e ~|~ s \in \textit{Expr}_{e} \} 
-  =  
-  \{ e ~|~ \readfn{s}{\neg \textit{EndsWithLit}} \in \textit{Expr}'_{e}
-  \}
-  \)
-\item \( 
-  \{ e ~|~ s \in \textit{ExprRest}_{l, e} \}
-  =
-  \{ e ~|~ \readfn{s}{\textit{EndsWithLit}} \in \textit{ExprRest}'_{l, e} \}
-  \)
-  where we define:
+  \( \forall s \in \Tok. \)
   \[
-  \begin{array}{rcl}
-    \textit{EndsWithLit} &::=& \TT^{*}\cdot x
-    \\
-    &|& \TT^{*} \cdot /x/ 
-  \end{array}
+  \{ e \mid s \in \gprods{Program}{e} \}
+  =
+  \{ e \mid \readfn{s}{\epsilon} \in \gprods{Program}{e}' \}
   \]
-\end{enumerate}
 \end{theorem}
 \begin{proof}\mbox{}
-  Part 1. We need to show the two sets are contained in each other.
-  \begin{itemize}
-  \item To show 
-  \( 
-  \{ e ~|~ s \in \textit{Expr}_{e} \} 
-  \subset  
-  \{ e ~|~ \readfn{s}{\neg \textit{EndsWithLit}} \in \textit{Expr}'_{e}
-  \}
-  \) there are two cases to consider:
-    \begin{itemize}
-    \item If \( s \in \textit{Expr}_{e} \) by \( x~\textit{ExprRest}_{x,
-        e} \) then \( s = x\cdot s' \) and \( s' \in
-      \textit{ExprRest}_{x, e} \). 
-      Since
-      \(
-      \readfn{x \cdot s'}{\neg \ewl} 
-      =
-      x \cdot \readfn{s'}{\ewl}
-      \),
-      by part 2 of the theorem \( x\cdot s' \in \textit{Expr}_{e} \) and 
-      \( \readfn{x \cdot s'}{\neg \ewl} \in \textit{Expr}'_{e} \).
-    \item If \( s \in \textit{Expr}_{e} \) by 
-      \( / \cdot x \cdot /~\textit{ExprRest}_{/x/, e} \) 
-      then \( s = /\cdot x \cdot /\cdot s' \).
-      Since
-      \(
-      \readfn{/ \cdot x \cdot / \cdot s'}{\neg \ewl} 
-      =
-      /x/ \cdot \readfn{s'}{\ewl}
-      \),
-      by part 2 of the theorem 
-      \( /\cdot x \cdot / \cdot s' \in \textit{Expr}_{e} \) and 
-      \( \readfn{/ \cdot x \cdot / \cdot s'}{\neg \ewl} 
-      \in \textit{Expr}'_{e} \).
-    \end{itemize}
-    
-  \item To show 
-  \( 
-  \{ e ~|~ \readfn{s}{\neg \textit{EndsWithLit}} \in \textit{Expr}'_{e}
-  \}
-  \subset  
-  \{ e ~|~ s \in \textit{Expr}_{e} \} 
-  \) there are two cases to consider:
-  \begin{itemize}
-
-  \item If 
-    \( \readfn{s}{\neg \textit{EndsWithLit}} \in \textit{Expr}'_{e} \)
-    by \( x \cdot \textit{ExprRest}'_{x, e} \). Similar argument as
-    previous case.
-    
-  \item If 
-    \( \readfn{s}{\neg \textit{EndsWithLit}} \in \textit{Expr}'_{e} \)
-    by \( /\cdot x\cdot / \cdot \textit{ExprRest}'_{/x/, e} \). Similar argument as
-    previous case.
-  \end{itemize}
   
-  \end{itemize}
-  
-  Part 2. Again we need to show set containment.
-  \begin{itemize}
-  \item To show
-  \( 
-  \{ e ~|~ s \in \textit{ExprRest}_{l, e} \} 
-  \subset  
-  \{ e ~|~ \readfn{s}{\textit{EndsWithLit}} \in \textit{ExprRest}'_{l,e}
-  \}
-  \) there are two cases to consider:
-  \begin{itemize}
-
-  \item If \( s \in \textit{ExprRest}_{l, e} \) by \( \epsilon \) then
-    \( s = \epsilon \) the result follows directly.
-    
-  \item If \( s \in \textit{ExprRest}_{e, (e / e')} \) by 
-    \( /~\textit{Expr}_{e'} \) then \( s = / \cdot s' \) and 
-    \( s' \in \textit{Expr}_{e'} \). Since 
-    \( \readfn{/ \cdot s'}{\ewl} = /\cdot \readfn{s'}{\neg \ewl} \)
-    by part 1 \( / \cdot s' \in \textit{ExprRest}_{e, (e / e')} \)
-    and \( \readfn{s \cdot s'}{\ewl} \in \textit{ExprRest}'_{e, (e / e')} \).
-  \end{itemize}
-
-\item To show
-  \( 
-  \{ e ~|~ \readfn{s}{\textit{EndsWithLit}} \in \textit{ExprRest}'_{l,e}
-  \}
-  \subset  
-  \{ e ~|~ s \in \textit{ExprRest}_{l, e} \} 
-  \) the argument is similar to above.
-  \end{itemize}
-
+By showing set inclusion. Details in the appendix.
 \end{proof}
+
+\begin{displayfigure*}{\label{fig:grammar}Simple JS Grammar}
+\[
+\begin{array}{lcl}
+  \gprod{PrimaryExpr}{p}{p} &::=& \epsilon \\
+  \gprod{PrimaryExpr}{p}{\var} &::=& \var \\
+  \gprod{PrimaryExpr}{p}{\rett} &::=& \re \\
+  \\
+  \gprod{CallExpr}{p}{e} &::=& \gprod{PrimaryExpr}{p}{e} \\
+  \gprod{CallExpr}{p}{\call{e}{e'}} 
+  &::=& 
+  \call{\gprod{PrimaryExpr}{p}{e}}{
+    \gprod{Expr}{\epsilon}{e'}
+  } \\
+  \\
+  \gprod{Expr}{p}{e} &::=& \gprod{CallExpr}{p}{e} \\
+  \gprod{Expr}{p}{e ~\div~ e'}
+  &::=&
+  \gprod{Expr}{p}{e} ~\div~ \gprod{Expr}{e~\div}{e'} \\
+  \gprod{Expr}{p}{e ~\plus~ e'}
+  &::=&
+  \gprod{Expr}{p}{e} ~\plus~ \gprod{Expr}{e~\plus}{e'} \\
+  \\
+  \gprod{Statement}{p}{e} &::=& \gprod{Expr}{p}{e} \\
+  \gprod{Statement}{p}{\ifstate{e}{~e'}} 
+  &::=& 
+  \ifstate{
+    \gprod{Expr}{\epsilon}{e}  
+  }{
+    ~\gprod{Statement}{p~\ifstate{e}{}}{e'} 
+  } \\
+  \gprod{Statement}{p}{\ifelsestate{e}{~e'}{~e''}} 
+  &::=& 
+  \ifelsestate{
+    \gprod{Expr}{\epsilon}{e}
+  }{
+    ~\gprod{Statement}{p~\ifstate{e}{}}{e'}
+  }{
+    ~\gprod{Statement}{p~\ifelsestate{e}{}}{e''}  
+  } \\
+  \\
+  \gprods{Program}{e} &::=& \gprod{Statement}{\epsilon}{e} \\
+  \gprods{Program}{e} &::=& \gprod{FunctionDeclaration}{\epsilon}{e}
+
+\end{array}
+\]  
+\end{displayfigure*}
 
 \begin{displayfigure*}{\label{fig:read}Read Algorithm}
   
@@ -495,4 +409,120 @@ mobile device browsers).
 \section{Conclusion}
 \label{sec-8}
 % Emacs 24.3.1 (Org mode 8.2.5h)
+
+\appendix
+
+\section{Read Proof}
+
+To help reason over prefixes we define the following set of token tree
+words that end with a literal:
+\[
+\begin{array}{rcl}
+\ewl &::=& \{t \mid \forall s \in \TT^{*}.~t = s \cdot \var
+~\textrm{or}~ t = s \cdot \rett \}
+\end{array}
+\]
+
+\begin{lemma}[\label{lem:readPrimaryExpr}Read PrimaryExpr]\mbox{}
+
+  \( \forall s \in \Tok^{*},~p \in \neg \ewl. \)
+  \[
+  \{ e \mid s \in \gprod{PrimaryExpr}{p}{e} \}
+  =
+  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{p}{e}' \}
+  \]
+\end{lemma}
+\begin{proof}
+  We first show 
+  \( \{ e \mid s \in \gprod{PrimaryExpr}{p}{e} \} \subset
+  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{p}{e}' \}
+  \)
+  by cases on \( s \in \gprod{PrimaryExpr}{p}{e} \):
+  \begin{itemize}
+
+  \item Case \( \epsilon \). Then \( s = \epsilon \in
+    \gprod{PrimaryExpr}{p}{p} \) and \(
+    \readfn{\epsilon}{p} = \epsilon \in \gprod{PrimaryExpr}{p}{p}' \).
+
+  \item Case \( \var \). Then \( s = \var \in
+    \gprod{PrimaryExpr}{p}{\var} \) and \( \readfn{\var}{p} = x \in
+    \gprod{PrimaryExpr}{p}{\var}' \).
+
+  \item Case \( \re \). Then \( s = \re \in
+    \gprod{PrimaryExpr}{p}{\rett} \) and since \( p \in \neg \ewl \)
+    then \( \readfn{\re}{p} = \rett \in \gprod{PrimaryExpr}{p}{\rett}' \).
+
+  \end{itemize}
+  To show 
+  \( 
+  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{p}{e}' \}
+  \subset
+  \{ e \mid s \in \gprod{PrimaryExpr}{p}{e} \} 
+  \) the cases are similar to the above.
+\end{proof}
+
+\begin{lemma}[\label{lem:readCallExpr}Read CallExpr]\mbox{}
+
+  \( \forall s \in \Tok^{*},~p \in \neg \ewl. \)
+  \[
+  \{ e \mid s \in \gprod{CallExpr}{p}{e} \}
+  =
+  \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{p}{e}' \}
+  \]
+\end{lemma}
+\begin{proof}
+  We first show 
+  \( \{ e \mid s \in \gprod{CallExpr}{p}{e} \} \subset
+  \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{p}{e}' \}
+  \)
+  by cases on \( s \in \gprod{CallExpr}{p}{e} \):
+  \begin{itemize}
+
+  \item Case \( \gprod{PrimaryExpr}{p}{e} \). By Lemma \ref{lem:readPrimaryExpr}.
+
+  \item Case \( \call{\gprod{PrimaryExpr}{p}{e}}{\gprod{Expr}{\epsilon}{e'}} \).
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[\label{lem:readExpr}Read Expr]
+  \( \forall s \in \Tok^{*},~p \in \neg \ewl. \)
+  \[
+  \{ e \mid s \in \gprod{Expr}{p}{e} \}
+  =
+  \{ e \mid \readfn{s}{p} \in \gprod{Expr}{p}{e}' \}
+  \]
+\end{lemma}
+\begin{proof}
+  We first show 
+  \( \{ e \mid s \in \gprod{Expr}{p}{e} \} \subset
+  \{ e \mid \readfn{s}{p} \in \gprod{Expr}{p}{e}' \}
+  \)
+  by cases on \( s \in \gprod{Expr}{p}{e} \):
+  \begin{itemize}
+  \item Case \( \gprod{CallExpr}{p}{e} \). By Lemma \ref{lem:readCallExpr}.
+
+  \item Case \( \gprod{Expr}{p}{e} ~\div~ \gprod{Expr}{e~\div}{e'} \). 
+    Then \( s = s' \cdot \div \cdot s'' \) where \( s' \in
+    \gprod{Expr}{p}{e'} \) and \( s'' \in \gprod{Expr}{e'~\div}{e''}
+    \). By induction \( \readfn{s'}{p} \in \gprod{Expr}{p}{e'}' \) and
+    by Lemma \ref{something} \( e' \in \ewl \) so \( \readfn{\div
+      \cdot s''}{e'} = \div \cdot \readfn{s''}{e'~\div} \) so by
+    induction \( \readfn{s''}{e'~\div} \in \gprod{Expr}{e'~\div}{e''}' \)
+  \item .
+  \end{itemize}
+\end{proof}
+
+\begin{theorem}[\label{thrm:read}Read is correct]\mbox{}
+
+  \( \forall s \in \Tok. \)
+  \[
+  \{ e \mid s \in \gprods{Program}{e} \}
+  =
+  \{ e \mid \readfn{s}{\epsilon} \in \gprods{Program}{e}' \}
+  \]
+\end{theorem}
+\begin{proof}\mbox{}
+  
+By showing set inclusion. Details in the appendix.
+\end{proof}
 \end{document}
