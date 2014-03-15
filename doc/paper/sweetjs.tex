@@ -64,18 +64,20 @@ The design of sweet.js attempts to overcome the following technical
 challenges: 
 
 \begin{itemize}
-\item a correct implementation of \texttt{read} that structures the token stream
-before expansion begins
-\item parser class annotation (e.g. \texttt{:expr}) in patterns to allow macro
-authors easier declaration of a macro shape
+\item a correct implementation of \texttt{read} that structures the
+  token stream before expansion begins
+\item parser class annotation (e.g. \texttt{:expr}) in patterns to
+  allow macro authors easier declaration of a macro shape
 \item operator overloading
 \item infix macros
-\item the \texttt{invoke} primitive to allow custom parser classes and more
-powerful matching
+\item the \texttt{invoke} primitive to allow custom parser classes and
+  more powerful matching
 \end{itemize}
+
 \section{Overview}
 \label{sec-2}
 TODO: syntax, main features etc\ldots
+
 \section{Read}
 \label{sec-3}
 
@@ -85,6 +87,14 @@ because their language is an idealized syntax that misses the
 problematic interaction of delimiters and regular expression literals.
 
 TODO: motivate \texttt{read} with examples etc.
+
+\[
+\begin{array}{rcl}
+  e &::=& \var ~|~ \rett \\
+  &|& \call{e}{e} \\
+  &|& \ifstate{e}{e}
+\end{array}
+\]
 
 \subsection{Proof of \texttt{read}}
 \label{sec-3-1}
@@ -109,15 +119,18 @@ We also define \( \textit{Expr}' \) with the same productions as \(
 \textit{Expr} \) is three distinct tokens (\( /, x, \) and \( /
 \)) while it is a single token in \( \textit{Expr}' \).
 
+We define the grammar of a \( \gprod{Program}{e} \) as a function from
+\( \Tok \) to \( \textit{Expr} \).
+
+\[
+\gprod{Program}{e} :: \Tok \rightarrow \textit{Expr}
+\]
 
 \begin{theorem}[\label{thrm:read}Read is correct]\mbox{}
 
-  \( \forall s \in \Tok. \)
-  \[
-  \{ e \mid s \in \gprods{Program}{e} \}
-  =
-  \{ e \mid \readfn{s}{\epsilon} \in \gprods{Program}{e}' \}
-  \]
+  \( \forall s \in \Tok. s \in \gprod{Expr}{e} \) iff
+  \( t = \readfn{s}{p}, t \in \gprod{Expr'}{e} \).
+  
 \end{theorem}
 \begin{proof}\mbox{}
   
@@ -127,45 +140,45 @@ By showing set inclusion. Details in the appendix.
 \begin{displayfigure*}{\label{fig:grammar}Simple JS Grammar}
 \[
 \begin{array}{lcl}
-  \gprod{PrimaryExpr}{p}{p} &::=& \epsilon \\
-  \gprod{PrimaryExpr}{p}{\var} &::=& \var \\
-  \gprod{PrimaryExpr}{p}{\rett} &::=& \re \\
+  \gprod{PrimaryExpr}{\epsilon} &::=& \epsilon \\
+  \gprod{PrimaryExpr}{\var} &::=& \var \\
+  \gprod{PrimaryExpr}{\rett} &::=& \re \\
   \\
-  \gprod{CallExpr}{p}{e} &::=& \gprod{PrimaryExpr}{p}{e} \\
-  \gprod{CallExpr}{p}{\call{e}{e'}} 
+  \gprod{CallExpr}{e} &::=& \gprod{PrimaryExpr}{e} \\
+  \gprod{CallExpr}{\call{e}{e'}} 
   &::=& 
-  \call{\gprod{PrimaryExpr}{p}{e}}{
-    \gprod{Expr}{\epsilon}{e'}
+  \call{\gprod{PrimaryExpr}{e}}{
+    \gprod{Expr}{e'}
   } \\
   \\
-  \gprod{Expr}{p}{e} &::=& \gprod{CallExpr}{p}{e} \\
-  \gprod{Expr}{p}{e ~\div~ e'}
+  \gprod{Expr}{e} &::=& \gprod{CallExpr}{e} \\
+  \gprod{Expr}{e ~\div~ e'}
   &::=&
-  \gprod{Expr}{p}{e} ~\div~ \gprod{Expr}{e~\div}{e'} \\
-  \gprod{Expr}{p}{e ~\plus~ e'}
+  \gprod{Expr}{e} ~\div~ \gprod{Expr}{e'} \\
+  \gprod{Expr}{e ~\plus~ e'}
   &::=&
-  \gprod{Expr}{p}{e} ~\plus~ \gprod{Expr}{e~\plus}{e'} \\
+  \gprod{Expr}{e} ~\plus~ \gprod{Expr}{e'} \\
   \\
-  \gprod{Statement}{p}{e} &::=& \gprod{Expr}{p}{e} \\
-  \gprod{Statement}{p}{\ifstate{e}{~e'}} 
+  \gprod{Statement}{e} &::=& \gprod{Expr}{e} \\
+  \gprod{Statement}{\ifstate{e}{~e'}} 
   &::=& 
   \ifstate{
-    \gprod{Expr}{\epsilon}{e}  
+    \gprod{Expr}{e}  
   }{
-    ~\gprod{Statement}{p~\ifstate{e}{}}{e'} 
+    ~\gprod{Statement}{e'} 
   } \\
-  \gprod{Statement}{p}{\ifelsestate{e}{~e'}{~e''}} 
+  \gprod{Statement}{\ifelsestate{e}{~e'}{~e''}} 
   &::=& 
   \ifelsestate{
-    \gprod{Expr}{\epsilon}{e}
+    \gprod{Expr}{e}
   }{
-    ~\gprod{Statement}{p~\ifstate{e}{}}{e'}
+    ~\gprod{Statement}{e'}
   }{
-    ~\gprod{Statement}{p~\ifelsestate{e}{}}{e''}  
+    ~\gprod{Statement}{e''}  
   } \\
   \\
-  \gprods{Program}{e} &::=& \gprod{Statement}{\epsilon}{e} \\
-  \gprods{Program}{e} &::=& \gprod{FunctionDeclaration}{\epsilon}{e}
+  \gprod{Program}{e} &::=& \gprod{Statement}{e} \\
+  \gprod{Program}{e} &::=& \gprod{FunctionDeclaration}{e}
 
 \end{array}
 \]  
@@ -174,44 +187,86 @@ By showing set inclusion. Details in the appendix.
 \begin{displayfigure*}{\label{fig:read}Read Algorithm}
   
 \[
-  \begin{array}{lcl}
-    \readfn{/\cdot \textrm{rest}}{\textrm{prefix}\cdot x}
+  \begin{array}{lcll}
+    % divide
+    \readfn{/\cdot \vtok}{p\cdot x}
     &=&
     \cons{/}{
-      \readfn{\textrm{rest}}{
-        \textrm{prefix}\cdot x\cdot /
+      \readfn{\vtok}{
+        p\cdot x\cdot /
       }
     }
     \\
-    \readfn{/\cdot \textrm{rest}}{\textrm{prefix}\cdot /x/}
+    \readfn{/\cdot \vtok}{p \cdot /x/}
     &=&
     \cons{/}{
-      \readfn{\textrm{rest}}{
-        \textrm{prefix}\cdot /x/ \cdot /
+      \readfn{\vtok}{
+        p \cdot /x/ \cdot /
       }
     }
-    \\
-    \readfn{/\cdot x \cdot /\cdot\textrm{rest}}{\textrm{prefix}\cdot /}
+
+    \\ \\
+    % regex
+    \readfn{/\cdot x \cdot /\cdot \vtok}{\epsilon}
     &=&
     \cons{/x/}{
-      \readfn{\textrm{rest}}{
-        \textrm{prefix}\cdot / \cdot /x/
+      \readfn{\vtok}{/x/}
+    }
+    \\
+    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot p'}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{
+        p \cdot p' \cdot /x/
       }
     }
+    \quad \textit{if}~p' \in \textit{Punctuator or Keyword}
     \\
-    \readfn{/\cdot x \cdot /\cdot\textrm{rest}}{\epsilon}
+    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot \texttt{if} \cdot \parens{p'}}
     &=&
     \cons{/x/}{
-      \readfn{\textrm{rest}}{/x/}
+      \readfn{\vtok}{p \cdot \texttt{if} \cdot \parens{p'} \cdot /x/}
     }
     \\
-    \readfn{x \cdot \textrm{rest}}{\textrm{prefix}}
+    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot \texttt{for} \cdot \parens{p'}}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{p \cdot \texttt{for} \cdot \parens{p'} \cdot /x/}
+    }
+    \\
+    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot \texttt{while} \cdot \parens{p'}}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{p \cdot \texttt{while} \cdot \parens{p'} \cdot /x/}
+    }
+    \\
+    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot \texttt{with} \cdot \parens{p'}}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{p \cdot \texttt{with} \cdot \parens{p'} \cdot /x/}
+    }
+    \\
+    \readfn{/\cdot x \cdot /\cdot \vtok}{
+      p \cdot p' \cdot \texttt{function} \cdot \var \cdot \parens{q} \curlies{q'}
+    }
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{
+      p \cdot p' 
+      \cdot \texttt{function} \cdot \var \cdot \parens{q} \curlies{q'}\cdot /x/
+      }
+    }
+
+    \\ \\
+    
+    % other
+    \readfn{x \cdot \vtok}{p}
     &=&
     \cons{x}{
-      \readfn{\textrm{rest}}{\textrm{prefix}\cdot x}
+      \readfn{\vtok}{p \cdot x}
     }
     \\
-    \readfn{\epsilon}{\textrm{prefix}}
+    \readfn{\epsilon}{p}
     &=&
     \epsilon
   \end{array}
@@ -423,41 +478,50 @@ words that end with a literal:
 \end{array}
 \]
 
+\begin{lemma}
+  \( s \in \textit{ReadUnit} \Rightarrow \readfn{s\cdot s'}{p} = 
+  \readfn{s}{p} \cdot \readfn{s'}{p \cdot \readfn{s}{p}}\) 
+\end{lemma}
+
+\begin{lemma}
+  \( s \in \gprod{Expr}{e} \Rightarrow p \cdot \readfn{s}{p} \in \ewl \)
+\end{lemma}
+
 \begin{lemma}[\label{lem:readPrimaryExpr}Read PrimaryExpr]\mbox{}
 
   \( \forall s \in \Tok^{*},~p \in \neg \ewl. \)
   \[
-  \{ e \mid s \in \gprod{PrimaryExpr}{p}{e} \}
+  \{ e \mid s \in \gprod{PrimaryExpr}{e} \}
   =
-  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{p}{e}' \}
+  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
   \]
 \end{lemma}
 \begin{proof}
   We first show 
-  \( \{ e \mid s \in \gprod{PrimaryExpr}{p}{e} \} \subset
-  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{p}{e}' \}
+  \( \{ e \mid s \in \gprod{PrimaryExpr}{e} \} \subset
+  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
   \)
-  by cases on \( s \in \gprod{PrimaryExpr}{p}{e} \):
+  by cases on \( s \in \gprod{PrimaryExpr}{e} \):
   \begin{itemize}
 
   \item Case \( \epsilon \). Then \( s = \epsilon \in
-    \gprod{PrimaryExpr}{p}{p} \) and \(
-    \readfn{\epsilon}{p} = \epsilon \in \gprod{PrimaryExpr}{p}{p}' \).
+    \gprod{PrimaryExpr}{p} \) and \(
+    \readfn{\epsilon}{p} = \epsilon \in \gprod{PrimaryExpr}{p}' \).
 
   \item Case \( \var \). Then \( s = \var \in
-    \gprod{PrimaryExpr}{p}{\var} \) and \( \readfn{\var}{p} = x \in
-    \gprod{PrimaryExpr}{p}{\var}' \).
+    \gprod{PrimaryExpr}{\var} \) and \( \readfn{\var}{p} = x \in
+    \gprod{PrimaryExpr}{\var}' \).
 
   \item Case \( \re \). Then \( s = \re \in
-    \gprod{PrimaryExpr}{p}{\rett} \) and since \( p \in \neg \ewl \)
-    then \( \readfn{\re}{p} = \rett \in \gprod{PrimaryExpr}{p}{\rett}' \).
+    \gprod{PrimaryExpr}{\rett} \) and since \( p \in \neg \ewl \)
+    then \( \readfn{\re}{p} = \rett \in \gprod{PrimaryExpr}{\rett}' \).
 
   \end{itemize}
   To show 
   \( 
-  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{p}{e}' \}
+  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
   \subset
-  \{ e \mid s \in \gprod{PrimaryExpr}{p}{e} \} 
+  \{ e \mid s \in \gprod{PrimaryExpr}{e} \} 
   \) the cases are similar to the above.
 \end{proof}
 
@@ -465,49 +529,49 @@ words that end with a literal:
 
   \( \forall s \in \Tok^{*},~p \in \neg \ewl. \)
   \[
-  \{ e \mid s \in \gprod{CallExpr}{p}{e} \}
+  \{ e \mid s \in \gprod{CallExpr}{e} \}
   =
-  \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{p}{e}' \}
+  \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{e}' \}
   \]
 \end{lemma}
 \begin{proof}
   We first show 
-  \( \{ e \mid s \in \gprod{CallExpr}{p}{e} \} \subset
-  \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{p}{e}' \}
+  \( \{ e \mid s \in \gprod{CallExpr}{e} \} \subset
+  \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{e}' \}
   \)
-  by cases on \( s \in \gprod{CallExpr}{p}{e} \):
+  by cases on \( s \in \gprod{CallExpr}{e} \):
   \begin{itemize}
 
-  \item Case \( \gprod{PrimaryExpr}{p}{e} \). By Lemma \ref{lem:readPrimaryExpr}.
+  \item Case \( \gprod{PrimaryExpr}{e} \). By Lemma \ref{lem:readPrimaryExpr}.
 
-  \item Case \( \call{\gprod{PrimaryExpr}{p}{e}}{\gprod{Expr}{\epsilon}{e'}} \).
+  \item Case \( \call{\gprod{PrimaryExpr}{e}}{\gprod{Expr}{e'}} \).
   \end{itemize}
 \end{proof}
 
 \begin{lemma}[\label{lem:readExpr}Read Expr]
   \( \forall s \in \Tok^{*},~p \in \neg \ewl. \)
   \[
-  \{ e \mid s \in \gprod{Expr}{p}{e} \}
+  \{ e \mid s \in \gprod{Expr}{e} \}
   =
-  \{ e \mid \readfn{s}{p} \in \gprod{Expr}{p}{e}' \}
+  \{ e \mid \readfn{s}{p} \in \gprod{Expr}{e}' \}
   \]
 \end{lemma}
 \begin{proof}
   We first show 
-  \( \{ e \mid s \in \gprod{Expr}{p}{e} \} \subset
-  \{ e \mid \readfn{s}{p} \in \gprod{Expr}{p}{e}' \}
+  \( \{ e \mid s \in \gprod{Expr}{e} \} \subset
+  \{ e \mid \readfn{s}{p} \in \gprod{Expr}{e}' \}
   \)
-  by cases on \( s \in \gprod{Expr}{p}{e} \):
+  by cases on \( s \in \gprod{Expr}{e} \):
   \begin{itemize}
-  \item Case \( \gprod{CallExpr}{p}{e} \). By Lemma \ref{lem:readCallExpr}.
+  \item Case \( \gprod{CallExpr}{e} \). By Lemma \ref{lem:readCallExpr}.
 
-  \item Case \( \gprod{Expr}{p}{e} ~\div~ \gprod{Expr}{e~\div}{e'} \). 
+  \item Case \( \gprod{Expr}{e} ~\div~ \gprod{Expr}{e'} \). 
     Then \( s = s' \cdot \div \cdot s'' \) where \( s' \in
-    \gprod{Expr}{p}{e'} \) and \( s'' \in \gprod{Expr}{e'~\div}{e''}
-    \). By induction \( \readfn{s'}{p} \in \gprod{Expr}{p}{e'}' \) and
+    \gprod{Expr}{e'} \) and \( s'' \in \gprod{Expr}{e''}
+    \). By induction \( \readfn{s'}{p} \in \gprod{Expr}{e'}' \) and
     by Lemma \ref{something} \( e' \in \ewl \) so \( \readfn{\div
       \cdot s''}{e'} = \div \cdot \readfn{s''}{e'~\div} \) so by
-    induction \( \readfn{s''}{e'~\div} \in \gprod{Expr}{e'~\div}{e''}' \)
+    induction \( \readfn{s''}{e'~\div} \in \gprod{Expr}{e''}' \)
   \item .
   \end{itemize}
 \end{proof}
@@ -516,9 +580,9 @@ words that end with a literal:
 
   \( \forall s \in \Tok. \)
   \[
-  \{ e \mid s \in \gprods{Program}{e} \}
+  \{ e \mid s \in \gprod{Program}{e} \}
   =
-  \{ e \mid \readfn{s}{\epsilon} \in \gprods{Program}{e}' \}
+  \{ e \mid \readfn{s}{\epsilon} \in \gprod{Program}{e}' \}
   \]
 \end{theorem}
 \begin{proof}\mbox{}
