@@ -129,7 +129,7 @@ We define the grammar of a \( \gprod{Program}{e} \) as a function from
 \begin{theorem}[\label{thrm:read}Read is correct]\mbox{}
 
   \( \forall s \in \Tok. s \in \gprod{Expr}{e} \) iff
-  \( t = \readfn{s}{p}, t \in \gprod{Expr'}{e} \).
+  \( t = \readfn{s}{p}{0}, t \in \gprod{Expr'}{e} \).
   
 \end{theorem}
 \begin{proof}\mbox{}
@@ -189,84 +189,165 @@ By showing set inclusion. Details in the appendix.
 \[
   \begin{array}{lcll}
     % divide
-    \readfn{/\cdot \vtok}{p\cdot x}
+    \readfn{/\cdot \vtok}{p\cdot x}{b}
     &=&
     \cons{/}{
       \readfn{\vtok}{
         p\cdot x\cdot /
-      }
+      }{b}
     }
     \\
-    \readfn{/\cdot \vtok}{p \cdot /x/}
+    \readfn{/\cdot \vtok}{p \cdot /x/}{b}
     &=&
     \cons{/}{
       \readfn{\vtok}{
         p \cdot /x/ \cdot /
-      }
+      }{b}
     }
+    \\
+    \readfn{/\cdot \vtok}{p \cdot \texttt{function}\cdot \parens{q}
+      \cdot \curlies{q'}}{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p \cdot \texttt{function}\cdot \parens{q}
+        \cdot \curlies{q'} \cdot /
+      }{b}
+    }
+    \\
+    \readfn{/\cdot \vtok}{
+      p \cdot p' \cdot \texttt{function}\cdot \var 
+      \cdot \parens{q} \cdot \curlies{q'}
+    }{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p \cdot p' \cdot \texttt{function}\cdot \var \cdot \parens{q}
+        \cdot \curlies{q'} \cdot /
+      }{b}
+    }
+    \\
+    && \quad \textit{if}~p' \in \textit{ExpressionPrefix}
+    \\
+    \readfn{/\cdot \vtok}{
+      p \cdot \curlies{q'}
+    }{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p \cdot \curlies{q'} \cdot /
+      }{b}
+    }
+    \\
+    && \quad \textit{where false} = \isblock(p,~b)
 
     \\ \\
     % regex
-    \readfn{/\cdot x \cdot /\cdot \vtok}{\epsilon}
+    \readfn{/\cdot x \cdot /\cdot \vtok}{\epsilon}{b}
     &=&
     \cons{/x/}{
-      \readfn{\vtok}{/x/}
+      \readfn{\vtok}{/x/}{b}
     }
     \\
-    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot p'}
+    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot p'}{b}
     &=&
     \cons{/x/}{
       \readfn{\vtok}{
         p \cdot p' \cdot /x/
-      }
+      }{b}
     }
     \quad \textit{if}~p' \in \textit{Punctuator or Keyword}
     \\
-    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot \texttt{if} \cdot \parens{p'}}
+    \readfn{/\cdot x \cdot /\cdot \vtok}{
+      p \cdot \texttt{if} \cdot \parens{p'}
+    }{b}
     &=&
     \cons{/x/}{
-      \readfn{\vtok}{p \cdot \texttt{if} \cdot \parens{p'} \cdot /x/}
-    }
-    \\
-    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot \texttt{for} \cdot \parens{p'}}
-    &=&
-    \cons{/x/}{
-      \readfn{\vtok}{p \cdot \texttt{for} \cdot \parens{p'} \cdot /x/}
-    }
-    \\
-    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot \texttt{while} \cdot \parens{p'}}
-    &=&
-    \cons{/x/}{
-      \readfn{\vtok}{p \cdot \texttt{while} \cdot \parens{p'} \cdot /x/}
-    }
-    \\
-    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot \texttt{with} \cdot \parens{p'}}
-    &=&
-    \cons{/x/}{
-      \readfn{\vtok}{p \cdot \texttt{with} \cdot \parens{p'} \cdot /x/}
+      \readfn{\vtok}{p \cdot \texttt{if} \cdot \parens{p'} \cdot /x/}{b}
     }
     \\
     \readfn{/\cdot x \cdot /\cdot \vtok}{
-      p \cdot p' \cdot \texttt{function} \cdot \var \cdot \parens{q} \curlies{q'}
+      p \cdot \texttt{for} \cdot \parens{p'}
+    }{b}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{p \cdot \texttt{for} \cdot \parens{p'} \cdot /x/}{b}
     }
+    \\
+    \readfn{/\cdot x \cdot /\cdot \vtok}{
+      p \cdot \texttt{while} \cdot \parens{p'}
+    }{b}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{p \cdot \texttt{while} \cdot \parens{p'} \cdot /x/}{b}
+    }
+    \\
+    \readfn{/\cdot x \cdot /\cdot \vtok}{
+      p \cdot \texttt{with} \cdot \parens{p'}
+    }{b}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{p \cdot \texttt{with} \cdot \parens{p'} \cdot /x/}{b}
+    }
+    \\
+    \readfn{/\cdot x \cdot /\cdot \vtok}{
+      p \cdot p' \cdot \texttt{function} \cdot \var 
+      \cdot \parens{q} \cdot \curlies{q'}
+    }{b}
     &=&
     \cons{/x/}{
       \readfn{\vtok}{
       p \cdot p' 
-      \cdot \texttt{function} \cdot \var \cdot \parens{q} \curlies{q'}\cdot /x/
-      }
+      \cdot \texttt{function} \cdot \var \cdot 
+      \parens{q} \cdot \curlies{q'}\cdot /x/
+      }{b}
+    } \\
+    && \quad \textit{if}~p' \in \textit{DeclarationPrefix}
+    \\
+    \readfn{/\cdot x \cdot / \cdot \vtok}{
+      p \cdot \curlies{q}
+    }{b}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{
+        p \cdot \curlies{q}\cdot /x/
+      }{b}
     }
+    \\
+    && \quad \textit{where true} = \isblock(p,~b) \\
+    
 
     \\ \\
     
     % other
-    \readfn{x \cdot \vtok}{p}
+    \readfn{\texttt{(} \cdot \vtok \cdot \texttt{)} \cdot \vtok'}{p}{b}
+    &=&
+    \cons{\parens{\readfn{s}{\epsilon}{b}}}{
+      \readfn{\vtok'}{p \cdot \parens{\readfn{s}{\epsilon}{\textit{false}} }}{b}
+    } 
+    \\
+    \quad \textit{where}~s~\textit{contains no unmatched}~\texttt{)} 
+    \\
+    \readfn{
+      \texttt{\{} \cdot \vtok \cdot \texttt{\}} \cdot \vtok'
+    }{p}{b}
+    &=&
+    \cons{\curlies{t}}{
+      \readfn{\vtok'}{
+        p \cdot \curlies{t}
+      }{b}
+    } 
+    \\
+    \quad \textit{where}~s~\textit{contains no unmatched}~\texttt{\}} 
+    && \textit{where}~t = \readfn{s}{\epsilon}{\isblock(p,~b)}
+    \\
+    \readfn{x \cdot \vtok}{p}{b}
     &=&
     \cons{x}{
-      \readfn{\vtok}{p \cdot x}
+      \readfn{\vtok}{p \cdot x}{b}
     }
     \\
-    \readfn{\epsilon}{p}
+    \readfn{\epsilon}{p}{b}
     &=&
     \epsilon
   \end{array}
