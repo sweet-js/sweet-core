@@ -137,48 +137,222 @@ We define the grammar of a \( \gprod{Program}{e} \) as a function from
 By showing set inclusion. Details in the appendix.
 \end{proof}
 
-\begin{displayfigure*}{\label{fig:grammar}Simple JS Grammar}
+The grammar we present is a simplified version of the grammar
+specified in the ES5 specification. The simplification we are making
+do not affect the read algorithm, and only serve to shorten its
+presentation. In particular, functions can only have a single
+parameter, function bodies are not allowed to be empty and a few other
+minor changes. We only address the = assignment operator and only the
+/ and + binary operators.
+
+\begin{displayfigure*}{\label{fig:grammar}Simplified ES5 Grammar}
 \[
 \begin{array}{lcl}
-  \gprod{PrimaryExpr}{\epsilon} &::=& \epsilon \\
-  \gprod{PrimaryExpr}{\var} &::=& \var \\
-  \gprod{PrimaryExpr}{\rett} &::=& \re \\
+  \gprod{PrimaryExpression}{\var} &::=& \var 
   \\
-  \gprod{CallExpr}{e} &::=& \gprod{PrimaryExpr}{e} \\
-  \gprod{CallExpr}{\call{e}{e'}} 
-  &::=& 
-  \call{\gprod{PrimaryExpr}{e}}{
-    \gprod{Expr}{e'}
-  } \\
+  \gprod{PrimaryExpression}{\rett} &::=& \re 
   \\
-  \gprod{Expr}{e} &::=& \gprod{CallExpr}{e} \\
-  \gprod{Expr}{e ~\div~ e'}
+  \gprod{PrimaryExpression}{\texttt{this}} &::=& \texttt{this}
+  \\
+  \gprod{PrimaryExpression}{e} &::=& 
+  \gprod{ArrayLiteral}{e}
+  \\
+  \gprod{PrimaryExpression}{e} &::=& 
+  \gprod{ObjectLiteral}{e}
+  \\
+  \gprod{PrimaryExpression}{e} &::=& 
+  \parens{\gprod{Expression}{e}}
+  \\ \\
+  \gprod{ArrayLiteral}{e} &::=&
+  \brackets{\gprod{ElementList}{e}}
+  \\
+  \gprod{ElementList}{e} &::=&
+  \gprod{AssignmentExpression}{e}
+  \\
+  \gprod{ElementList}{e~\texttt{,}~e'} &::=&
+  \gprod{ElementList}{e}~\texttt{,}~\gprod{AssignmentExpression}{e'}
+  \\ \\
+  \gprod{ObjectLiteral}{e} &::=&
+  \curlies{\gprod{PropertyNameAndValueList}{e}}
+  \\
+  \gprod{PropertyNameAndValueList}{e} &::=&
+  \gprod{PropertyAssignment}{e}
+  \\
+  \gprod{PropertyNameAndValueList}{e~\texttt{,}~e'} &::=&
+  \gprod{PropertyNameAndValueList}{e}~\texttt{,}~\gprod{PropertyAssignment}{e'}
+  \\
+  \gprod{PropertyAssignment}{e~\texttt{:}~e'} &::=&
+  \gprod{PropertyName}{e}~\texttt{:}~\gprod{AssignmentExpression}{e'}
+  \\
+  \gprod{PropertyAssignment}{\texttt{get}~e~e'} &::=&
+  \texttt{get}~\gprod{PropertyName}{e}~\parens{}~\curlies{\gprod{FunctionBody}{e'}}
+  \\
+  \gprod{PropertyAssignment}{\texttt{set}~e~e'~e''} &::=&
+  \texttt{set}~\gprod{PropertyName}{e}~\parens{\gprod{Identifier}{e'}}~\curlies{\gprod{FunctionBody}{e''}}
+  \\
+  \gprod{PropertyName}{e} &::=&
+  \gprod{IdentifierName}{e}
+  \\
+  \gprod{PropertyName}{e} &::=&
+  \gprod{StringLiteral}{e}
+  \\
+  \gprod{PropertyName}{e} &::=&
+  \gprod{NumericLiteral}{e}
+  \\ \\
+  \gprod{MemberExpression}{e} &::=&
+  \gprod{PrimaryExpression}{e}
+  \\
+  \gprod{MemberExpression}{e} &::=&
+  \gprod{FunctionExpression}{e}
+  \\
+  \gprod{MemberExpression}{e\brackets{e'}} &::=&
+  \gprod{MemberExpression}{e}~\brackets{\gprod{Expression}{e'}}
+  \\
+  \gprod{MemberExpression}{e\texttt{.}e'} &::=&
+  \gprod{MemberExpression}{e}~\texttt{.}~\gprod{IdentifierName}{e'}
+  \\
+  \gprod{MemberExpression}{\texttt{new}~e\parens{e'}} &::=&
+  \texttt{new}~\gprod{MemberExpression}{e}~\parens{\gprod{ArgumentList}{e'}}
+  \\ \\
+  \gprod{NewExpression}{e} &::=&
+  \gprod{MemberExpression}{e}
+  \\
+  \gprod{NewExpression}{\texttt{new}~e} &::=&
+  \texttt{new}~\gprod{NewExpression}{e}
+  \\ \\
+  \gprod{CallExpression}{e~\parens{e'}} &::=& 
+  \gprod{MemberExpression}{e}~
+  \parens{\gprod{ArgumentList}{e'}}
+  \\
+  \gprod{CallExpression}{e~\parens{e'}} &::=& 
+  \gprod{CallExpression}{e}~
+  \parens{\gprod{ArgumentList}{e'}}
+  \\
+  \gprod{CallExpression}{e~\brackets{e'}} &::=& 
+  \gprod{CallExpression}{e}~
+  \brackets{\gprod{Expression}{e'}}
+  \\
+  \gprod{CallExpression}{e\texttt{.}e'} &::=& 
+  \gprod{CallExpression}{e}~\texttt{.}~
+  \gprod{IdentifierName}{e'}
+  \\ \\
+  \gprod{ArgumentList}{e} &::=&
+  \gprod{AssignmentExpression}{e}
+  \\
+  \gprod{ArgumentList}{e~\texttt{,}~e'} &::=&
+  \gprod{ArgumentList}{e}~\texttt{,}~
+  \gprod{AssignmentExpression}{e'}
+  \\ \\
+  \gprod{LeftHandSideExpression}{e} &::=&
+  \gprod{NewExpression}{e}
+  \\
+  \gprod{LeftHandSideExpression}{e} &::=&
+  \gprod{CallExpression}{e}
+  \\ \\
+  \gprod{PostfixExpr}{e} &::=&
+  \gprod{LeftHandSideExpression}{e}
+  \\
+  \gprod{PostfixExpr}{e\texttt{++}} &::=&
+  \gprod{PostfixExpr}{e}~\texttt{++}
+  \\ \\
+  \gprod{UnaryExpr}{e} &::=&
+  \gprod{PostfixExpr}{e}
+  \\
+  \gprod{UnaryExpr}{\texttt{++}e} &::=&
+  \texttt{++}~\gprod{UnaryExpr}{e}
+  \\ \\
+  \gprod{BinaryExpr}{e} &::=& \gprod{UnaryExpr}{e} \\
+  \gprod{BinaryExpr}{e ~\div~ e'}
   &::=&
-  \gprod{Expr}{e} ~\div~ \gprod{Expr}{e'} \\
-  \gprod{Expr}{e ~\plus~ e'}
+  \gprod{BinaryExpr}{e} ~\div~ \gprod{BinaryExpr}{e'} \\
+  \gprod{BinaryExpr}{e ~\plus~ e'}
   &::=&
-  \gprod{Expr}{e} ~\plus~ \gprod{Expr}{e'} \\
+  \gprod{BinaryExpr}{e} ~\plus~ \gprod{BinaryExpr}{e'}
+  \\ \\
+  \gprod{ConditionalExpression}{e} &::=&
+  \gprod{BinaryExpr}{e}
   \\
-  \gprod{Statement}{e} &::=& \gprod{Expr}{e} \\
-  \gprod{Statement}{\ifstate{e}{~e'}} 
-  &::=& 
-  \ifstate{
-    \gprod{Expr}{e}  
-  }{
-    ~\gprod{Statement}{e'} 
-  } \\
-  \gprod{Statement}{\ifelsestate{e}{~e'}{~e''}} 
-  &::=& 
-  \ifelsestate{
-    \gprod{Expr}{e}
-  }{
-    ~\gprod{Statement}{e'}
-  }{
-    ~\gprod{Statement}{e''}  
-  } \\
+  \gprod{ConditionalExpression}{e~\texttt{?}~e'~\texttt{:}~e'''} &::=&
+  \gprod{BinaryExpr}{e}~\texttt{?}~\gprod{AssignmentExpression}{e'}
+  ~\texttt{:}~\gprod{AssignmentExpression}{e'''}
+  \\ \\
+  \gprod{AssignmentExpression}{e} &::=&
+  \gprod{ConditionalExpression}{e}
   \\
-  \gprod{Program}{e} &::=& \gprod{Statement}{e} \\
-  \gprod{Program}{e} &::=& \gprod{FunctionDeclaration}{e}
+  \gprod{AssignmentExpression}{e~\texttt{=}~e'} &::=&
+  \gprod{LeftHandSideExpression}{e}~\texttt{=}~
+  \gprod{AssignmentExpression}{e'}
+  \\ \\
+  \gprod{Expression}{e} &::=&
+  \gprod{AssignmentExpression}{e}
+  \\
+  \gprod{Expression}{e~\texttt{,}~e'} &::=&
+  \gprod{Expression}{e}~\texttt{,}~
+  \gprod{AssignmentExpression}{e'}
+  \\ \\
+  \gprod{ExpressionStatement}{e} &::=&
+  \gprod{Expression}{e} \texttt{;}
+  \\ 
+  &&  \textit{where lookahead \( \not =
+    \texttt{\{} \) or \( \texttt{function} \)}
+  \\ \\
+  \gprod{Statement}{e} &::=& \gprod{Block}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{VariableStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{EmptyStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{ExpressionStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{IfStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{IterationStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{ContinueStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{BreakStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{ReturnStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{WithStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{LabelledStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{SwitchStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{ThrowStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{TryStatement}{e}
+  \\
+  \gprod{Statement}{e} &::=& \gprod{DebuggerStatement}{e}
+  \\ \\
+  \gprod{FunctionDeclaration}{\texttt{function}~\var~\parens{\var}~\curlies{e}} 
+  &::=&
+  \texttt{function}~\var~\parens{\var}~
+  \curlies{\gprod{SourceElements}{e}}
+  \\
+  \gprod{FunctionExpression}{\texttt{function}~\var~\parens{\var}~\curlies{e}} 
+  &::=&
+  \texttt{function}~\var~\parens{\var}~
+  \curlies{\gprod{SourceElements}{e}}
+  \\
+  \gprod{FunctionExpression}{\texttt{function}~\parens{\var}~\curlies{e}} 
+  &::=&
+  \texttt{function}~\parens{\var}~
+  \curlies{\gprod{SourceElements}{e}}
+  \\ \\
+  \gprod{SourceElement}{e} &::=& \gprod{Statement}{e} 
+  \\
+  \gprod{SourceElement}{e} &::=& \gprod{FunctionDeclaration}{e}
+  \\ \\
+
+  \gprod{SourceElements}{e} &::=& \gprod{SourceElement}{e}
+  \\
+  \gprod{SourceElements}{e~e'} &::=& \gprod{SourceElements}{e}~\gprod{SourceElement}{e'}
+  \\ \\
+  \gprod{Program}{e} &::=& \gprod{SourceElements}{e}
+  \\
+  \gprod{Program}{} &::=& \epsilon
 
 \end{array}
 \]  
@@ -230,16 +404,16 @@ By showing set inclusion. Details in the appendix.
     && \quad \textit{if}~p' \in \textit{ExpressionPrefix}
     \\
     \readfn{/\cdot \vtok}{
-      p \cdot \curlies{q'}
+      p \cdot \curlies{q'}^{l}
     }{b}
     &=&
     \cons{/}{
       \readfn{\vtok}{
-        p \cdot \curlies{q'} \cdot /
+        p \cdot \curlies{q'}^{l} \cdot /
       }{b}
     }
     \\
-    && \quad \textit{where false} = \isblock(p,~b)
+    && \quad \textit{where false} = \isblock(p,~b,~l)
 
     \\ \\
     % regex
@@ -305,16 +479,16 @@ By showing set inclusion. Details in the appendix.
     && \quad \textit{if}~p' \in \textit{DeclarationPrefix}
     \\
     \readfn{/\cdot x \cdot / \cdot \vtok}{
-      p \cdot \curlies{q}
+      p \cdot \curlies{q}^{l}
     }{b}
     &=&
     \cons{/x/}{
       \readfn{\vtok}{
-        p \cdot \curlies{q}\cdot /x/
+        p \cdot \curlies{q}^{l}\cdot /x/
       }{b}
     }
     \\
-    && \quad \textit{where true} = \isblock(p,~b) \\
+    && \quad \textit{where true} = \isblock(p,~b,~l) \\
     
 
     \\ \\
@@ -322,24 +496,25 @@ By showing set inclusion. Details in the appendix.
     % other
     \readfn{\texttt{(} \cdot \vtok \cdot \texttt{)} \cdot \vtok'}{p}{b}
     &=&
-    \cons{\parens{\readfn{s}{\epsilon}{b}}}{
-      \readfn{\vtok'}{p \cdot \parens{\readfn{s}{\epsilon}{\textit{false}} }}{b}
+    \cons{\parens{t}}{
+      \readfn{\vtok'}{p \cdot \parens{t}}{b}
     } 
     \\
     \quad \textit{where}~s~\textit{contains no unmatched}~\texttt{)} 
+    &&\quad \textit{where}~t = \readfn{s}{\epsilon}{\textit{false}} 
     \\
     \readfn{
-      \texttt{\{} \cdot \vtok \cdot \texttt{\}} \cdot \vtok'
+      \texttt{\{}^l \cdot \vtok \cdot \texttt{\}} \cdot \vtok'
     }{p}{b}
     &=&
-    \cons{\curlies{t}}{
+    \cons{\curlies{t}^l}{
       \readfn{\vtok'}{
-        p \cdot \curlies{t}
+        p \cdot \curlies{t}^l
       }{b}
     } 
     \\
     \quad \textit{where}~s~\textit{contains no unmatched}~\texttt{\}} 
-    && \textit{where}~t = \readfn{s}{\epsilon}{\isblock(p,~b)}
+    && \textit{where}~t = \readfn{s}{\epsilon}{\isblock(p,~b,~l)}
     \\
     \readfn{x \cdot \vtok}{p}{b}
     &=&
@@ -349,7 +524,37 @@ By showing set inclusion. Details in the appendix.
     \\
     \readfn{\epsilon}{p}{b}
     &=&
-    \epsilon
+    \epsilon \\
+  \end{array}
+\]
+\[
+  \begin{array}{lcll}
+    \isblock(\epsilon,~\textit{false},~l) &=& \textit{false}
+    \\
+    \isblock(p \cdot \div,~b,~l) &=& \textit{false}
+    \\
+    \isblock(p \cdot \texttt{+},~b,~l) &=& \textit{false}
+    \\
+    \isblock(p \cdot \texttt{:},~b,~l) &=& b
+    \\
+    \isblock(p \cdot \texttt{return}^{l},~b,~l') &=& \textit{true} 
+    & \textit{if}~l \not = l'
+    \\
+    \isblock(p \cdot \texttt{return}^{l},~b,~l') &=& \textit{false} 
+    & \textit{if}~l = l'
+    \\
+    \isblock(p \cdot \texttt{void},~b,~l) &=& \textit{false}
+    \\
+    \isblock(p \cdot \texttt{typeof},~b,~l) &=& \textit{false}
+    \\
+    \isblock(p \cdot \texttt{in},~b,~l) &=& \textit{false}
+    \\
+    \isblock(p \cdot \texttt{case},~b,~l) &=& \textit{false}
+    \\
+    \isblock(p \cdot \texttt{delete},~b,~l) &=& \textit{false}
+    \\
+    \isblock(p ,~b,~l) &=& \textit{true}
+    \\
   \end{array}
 \]
 \end{displayfigure*}
@@ -548,126 +753,198 @@ mobile device browsers).
 
 \appendix
 
+\clearpage
+
 \section{Read Proof}
 
-To help reason over prefixes we define the following set of token tree
-words that end with a literal:
-\[
-\begin{array}{rcl}
-\ewl &::=& \{t \mid \forall s \in \TT^{*}.~t = s \cdot \var
-~\textrm{or}~ t = s \cdot \rett \}
-\end{array}
-\]
+\begin{theorem}\mbox{}
 
-\begin{lemma}
-  \( s \in \textit{ReadUnit} \Rightarrow \readfn{s\cdot s'}{p} = 
-  \readfn{s}{p} \cdot \readfn{s'}{p \cdot \readfn{s}{p}}\) 
-\end{lemma}
+  \( \forall s. s \in \gprod{Program}{e} \Leftrightarrow 
+  \readfn{s}{\epsilon}{b} \in \gprod{Program'}{e} \)
 
-\begin{lemma}
-  \( s \in \gprod{Expr}{e} \Rightarrow p \cdot \readfn{s}{p} \in \ewl \)
-\end{lemma}
-
-\begin{lemma}[\label{lem:readPrimaryExpr}Read PrimaryExpr]\mbox{}
-
-  \( \forall s \in \Tok^{*},~p \in \neg \ewl. \)
-  \[
-  \{ e \mid s \in \gprod{PrimaryExpr}{e} \}
-  =
-  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
-  \]
-\end{lemma}
-\begin{proof}
-  We first show 
-  \( \{ e \mid s \in \gprod{PrimaryExpr}{e} \} \subset
-  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
-  \)
-  by cases on \( s \in \gprod{PrimaryExpr}{e} \):
-  \begin{itemize}
-
-  \item Case \( \epsilon \). Then \( s = \epsilon \in
-    \gprod{PrimaryExpr}{p} \) and \(
-    \readfn{\epsilon}{p} = \epsilon \in \gprod{PrimaryExpr}{p}' \).
-
-  \item Case \( \var \). Then \( s = \var \in
-    \gprod{PrimaryExpr}{\var} \) and \( \readfn{\var}{p} = x \in
-    \gprod{PrimaryExpr}{\var}' \).
-
-  \item Case \( \re \). Then \( s = \re \in
-    \gprod{PrimaryExpr}{\rett} \) and since \( p \in \neg \ewl \)
-    then \( \readfn{\re}{p} = \rett \in \gprod{PrimaryExpr}{\rett}' \).
-
-  \end{itemize}
-  To show 
-  \( 
-  \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
-  \subset
-  \{ e \mid s \in \gprod{PrimaryExpr}{e} \} 
-  \) the cases are similar to the above.
-\end{proof}
-
-\begin{lemma}[\label{lem:readCallExpr}Read CallExpr]\mbox{}
-
-  \( \forall s \in \Tok^{*},~p \in \neg \ewl. \)
-  \[
-  \{ e \mid s \in \gprod{CallExpr}{e} \}
-  =
-  \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{e}' \}
-  \]
-\end{lemma}
-\begin{proof}
-  We first show 
-  \( \{ e \mid s \in \gprod{CallExpr}{e} \} \subset
-  \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{e}' \}
-  \)
-  by cases on \( s \in \gprod{CallExpr}{e} \):
-  \begin{itemize}
-
-  \item Case \( \gprod{PrimaryExpr}{e} \). By Lemma \ref{lem:readPrimaryExpr}.
-
-  \item Case \( \call{\gprod{PrimaryExpr}{e}}{\gprod{Expr}{e'}} \).
-  \end{itemize}
-\end{proof}
-
-\begin{lemma}[\label{lem:readExpr}Read Expr]
-  \( \forall s \in \Tok^{*},~p \in \neg \ewl. \)
-  \[
-  \{ e \mid s \in \gprod{Expr}{e} \}
-  =
-  \{ e \mid \readfn{s}{p} \in \gprod{Expr}{e}' \}
-  \]
-\end{lemma}
-\begin{proof}
-  We first show 
-  \( \{ e \mid s \in \gprod{Expr}{e} \} \subset
-  \{ e \mid \readfn{s}{p} \in \gprod{Expr}{e}' \}
-  \)
-  by cases on \( s \in \gprod{Expr}{e} \):
-  \begin{itemize}
-  \item Case \( \gprod{CallExpr}{e} \). By Lemma \ref{lem:readCallExpr}.
-
-  \item Case \( \gprod{Expr}{e} ~\div~ \gprod{Expr}{e'} \). 
-    Then \( s = s' \cdot \div \cdot s'' \) where \( s' \in
-    \gprod{Expr}{e'} \) and \( s'' \in \gprod{Expr}{e''}
-    \). By induction \( \readfn{s'}{p} \in \gprod{Expr}{e'}' \) and
-    by Lemma \ref{something} \( e' \in \ewl \) so \( \readfn{\div
-      \cdot s''}{e'} = \div \cdot \readfn{s''}{e'~\div} \) so by
-    induction \( \readfn{s''}{e'~\div} \in \gprod{Expr}{e''}' \)
-  \item .
-  \end{itemize}
-\end{proof}
-
-\begin{theorem}[\label{thrm:read}Read is correct]\mbox{}
-
-  \( \forall s \in \Tok. \)
-  \[
-  \{ e \mid s \in \gprod{Program}{e} \}
-  =
-  \{ e \mid \readfn{s}{\epsilon} \in \gprod{Program}{e}' \}
-  \]
 \end{theorem}
-\begin{proof}\mbox{}
+
+\begin{lemma}[\label{lem:readunit}Reading a Unit]\mbox{}
+
+  \( s \in \textit{ReadUnit} \Rightarrow \)
+\[
+  \readfn{s\cdot s'}{p}{b} = 
+  \readfn{s}{p}{b} \cdot \readfn{s'}{p \cdot \readfn{s}{p}{b}}{b}
+\] 
+\end{lemma}
+
+\begin{lemma}[\label{lem:endingofexpr}Reading the end of an expr]\mbox{}
+
+  \( s \in \gprod{Expr}{e} \Rightarrow p \cdot \readfn{s}{p}{b} \in \divprefix \)
+\end{lemma}
+
+\begin{lemma}
+  \( s \in \gprod{Expr}{e} \Rightarrow s \in \textit{ReadUnit} \)
+\end{lemma}
+
+\begin{lemma}[\label{lem:readExpr}Read Expr]\mbox{}
   
-By showing set inclusion. Details in the appendix.
+  \( \forall s,~p. ~p \not \in \divprefix \)
+
+  \( s \in \gprod{Expr}{e} \Leftrightarrow \readfn{s}{p}{b} \in \gprod{Expr'}{e} \)
+\end{lemma}
+\begin{proof}
+  
+  By cases of \( \gprod{Expr}{e} \):
+
+  \begin{itemize}
+
+  \item Case \(\gprod{Expr}{e~\div~e'} ::= \gprod{Expr}{e} ~\div~ \gprod{Expr}{e'} \).
+    From this \( s = s' \cdot \div \cdot s'' \) where \( s' \in
+    \gprod{Expr}{e} \) and \( s'' \in \gprod{Expr}{e'} \). So
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{s' \cdot \div \cdot s''}{p}{b}
+      \\
+      &=& \readfn{s'}{p}{b} \cdot \readfn{\div \cdot s''}{
+        p\cdot \readfn{s'}{p}{b}
+      }{b}
+      \\
+      &&\textrm{(by Lemma \ref{lem:readunit} since \( s' \in \textit{ReadUnit} \))}
+      \\
+      &=& \readfn{s'}{p}{b} \cdot \div \cdot 
+      \readfn{s''}{
+        p\cdot \readfn{s'}{p}{b} \cdot \div
+      }{b}
+      \\
+      &&\textrm{(since by Lemma \ref{lem:endingofexpr}, \(
+        \readfn{s'}{p}{b} \in \divprefix \))}
+      \\
+    \end{array}
+    \]
+    By induction \( \readfn{s'}{p}{b} \in \gprod{Expr'}{e} \) and
+    \( 
+      \readfn{s''}{
+        p\cdot \readfn{s'}{p}{b} \cdot \div
+      }{b} \in \gprod{Expr'}{e'}
+      \) so \( t \in \gprod{Expr'}{e ~\div~ e'} \).
+
+  \end{itemize}
 \end{proof}
+
+% To help reason over prefixes we define the following set of token tree
+% words that end with a literal:
+% \[
+% \begin{array}{rcl}
+% \divprefix &::=& \{t \mid \forall s \in \TT^{*}.~t = s \cdot \var
+% ~\textrm{or}~ t = s \cdot \rett \}
+% \end{array}
+% \]
+
+% \begin{lemma}
+%   \( s \in \textit{ReadUnit} \Rightarrow \readfn{s\cdot s'}{p} = 
+%   \readfn{s}{p} \cdot \readfn{s'}{p \cdot \readfn{s}{p}}\) 
+% \end{lemma}
+
+% \begin{lemma}
+%   \( s \in \gprod{Expr}{e} \Rightarrow p \cdot \readfn{s}{p} \in \divprefix \)
+% \end{lemma}
+
+% \begin{lemma}[\label{lem:readPrimaryExpr}Read PrimaryExpr]\mbox{}
+
+%   \( \forall s \in \Tok^{*},~p \in \neg \divprefix. \)
+%   \[
+%   \{ e \mid s \in \gprod{PrimaryExpr}{e} \}
+%   =
+%   \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   We first show 
+%   \( \{ e \mid s \in \gprod{PrimaryExpr}{e} \} \subset
+%   \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
+%   \)
+%   by cases on \( s \in \gprod{PrimaryExpr}{e} \):
+%   \begin{itemize}
+
+%   \item Case \( \epsilon \). Then \( s = \epsilon \in
+%     \gprod{PrimaryExpr}{p} \) and \(
+%     \readfn{\epsilon}{p} = \epsilon \in \gprod{PrimaryExpr}{p}' \).
+
+%   \item Case \( \var \). Then \( s = \var \in
+%     \gprod{PrimaryExpr}{\var} \) and \( \readfn{\var}{p} = x \in
+%     \gprod{PrimaryExpr}{\var}' \).
+
+%   \item Case \( \re \). Then \( s = \re \in
+%     \gprod{PrimaryExpr}{\rett} \) and since \( p \in \neg \divprefix \)
+%     then \( \readfn{\re}{p} = \rett \in \gprod{PrimaryExpr}{\rett}' \).
+
+%   \end{itemize}
+%   To show 
+%   \( 
+%   \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
+%   \subset
+%   \{ e \mid s \in \gprod{PrimaryExpr}{e} \} 
+%   \) the cases are similar to the above.
+% \end{proof}
+
+% \begin{lemma}[\label{lem:readCallExpr}Read CallExpr]\mbox{}
+
+%   \( \forall s \in \Tok^{*},~p \in \neg \divprefix. \)
+%   \[
+%   \{ e \mid s \in \gprod{CallExpr}{e} \}
+%   =
+%   \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{e}' \}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   We first show 
+%   \( \{ e \mid s \in \gprod{CallExpr}{e} \} \subset
+%   \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{e}' \}
+%   \)
+%   by cases on \( s \in \gprod{CallExpr}{e} \):
+%   \begin{itemize}
+
+%   \item Case \( \gprod{PrimaryExpr}{e} \). By Lemma \ref{lem:readPrimaryExpr}.
+
+%   \item Case \( \call{\gprod{PrimaryExpr}{e}}{\gprod{Expr}{e'}} \).
+%   \end{itemize}
+% \end{proof}
+
+% \begin{lemma}[\label{lem:readExpr}Read Expr]
+%   \( \forall s \in \Tok^{*},~p \in \neg \divprefix. \)
+%   \[
+%   \{ e \mid s \in \gprod{Expr}{e} \}
+%   =
+%   \{ e \mid \readfn{s}{p} \in \gprod{Expr}{e}' \}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   We first show 
+%   \( \{ e \mid s \in \gprod{Expr}{e} \} \subset
+%   \{ e \mid \readfn{s}{p} \in \gprod{Expr}{e}' \}
+%   \)
+%   by cases on \( s \in \gprod{Expr}{e} \):
+%   \begin{itemize}
+%   \item Case \( \gprod{CallExpr}{e} \). By Lemma \ref{lem:readCallExpr}.
+
+%   \item Case \( \gprod{Expr}{e} ~\div~ \gprod{Expr}{e'} \). 
+%     Then \( s = s' \cdot \div \cdot s'' \) where \( s' \in
+%     \gprod{Expr}{e'} \) and \( s'' \in \gprod{Expr}{e''}
+%     \). By induction \( \readfn{s'}{p} \in \gprod{Expr}{e'}' \) and
+%     by Lemma \ref{something} \( e' \in \divprefix \) so \( \readfn{\div
+%       \cdot s''}{e'} = \div \cdot \readfn{s''}{e'~\div} \) so by
+%     induction \( \readfn{s''}{e'~\div} \in \gprod{Expr}{e''}' \)
+%   \item .
+%   \end{itemize}
+% \end{proof}
+
+% \begin{theorem}[\label{thrm:read}Read is correct]\mbox{}
+
+%   \( \forall s \in \Tok. \)
+%   \[
+%   \{ e \mid s \in \gprod{Program}{e} \}
+%   =
+%   \{ e \mid \readfn{s}{\epsilon} \in \gprod{Program}{e}' \}
+%   \]
+% \end{theorem}
+% \begin{proof}\mbox{}
+  
+% By showing set inclusion. Details in the appendix.
+% \end{proof}
 \end{document}
