@@ -145,59 +145,18 @@ parameter, function bodies are not allowed to be empty and a few other
 minor changes. We only address the = assignment operator and only the
 / and + binary operators.
 
-\begin{displayfigure*}{\label{fig:grammar}Simplified ES5 Grammar}
+\begin{displayfigure*}{\label{fig:grammar}Simplified ES Grammar}
 \[
 \begin{array}{lcl}
   \gprod{PrimaryExpression}{\var} &::=& \var 
   \\
   \gprod{PrimaryExpression}{\rett} &::=& \re 
   \\
-  \gprod{PrimaryExpression}{\texttt{this}} &::=& \texttt{this}
-  \\
-  \gprod{PrimaryExpression}{e} &::=& 
-  \gprod{ArrayLiteral}{e}
-  \\
-  \gprod{PrimaryExpression}{e} &::=& 
-  \gprod{ObjectLiteral}{e}
+  \gprod{PrimaryExpression}{\curlies{\var \texttt{:} e}} &::=& 
+  \curlies{\var \texttt{:} \gprod{AssignmentExpression}{e}}
   \\
   \gprod{PrimaryExpression}{e} &::=& 
   \parens{\gprod{Expression}{e}}
-  \\ \\
-  \gprod{ArrayLiteral}{e} &::=&
-  \brackets{\gprod{ElementList}{e}}
-  \\
-  \gprod{ElementList}{e} &::=&
-  \gprod{AssignmentExpression}{e}
-  \\
-  \gprod{ElementList}{e~\texttt{,}~e'} &::=&
-  \gprod{ElementList}{e}~\texttt{,}~\gprod{AssignmentExpression}{e'}
-  \\ \\
-  \gprod{ObjectLiteral}{e} &::=&
-  \curlies{\gprod{PropertyNameAndValueList}{e}}
-  \\
-  \gprod{PropertyNameAndValueList}{e} &::=&
-  \gprod{PropertyAssignment}{e}
-  \\
-  \gprod{PropertyNameAndValueList}{e~\texttt{,}~e'} &::=&
-  \gprod{PropertyNameAndValueList}{e}~\texttt{,}~\gprod{PropertyAssignment}{e'}
-  \\
-  \gprod{PropertyAssignment}{e~\texttt{:}~e'} &::=&
-  \gprod{PropertyName}{e}~\texttt{:}~\gprod{AssignmentExpression}{e'}
-  \\
-  \gprod{PropertyAssignment}{\texttt{get}~e~e'} &::=&
-  \texttt{get}~\gprod{PropertyName}{e}~\parens{}~\curlies{\gprod{FunctionBody}{e'}}
-  \\
-  \gprod{PropertyAssignment}{\texttt{set}~e~e'~e''} &::=&
-  \texttt{set}~\gprod{PropertyName}{e}~\parens{\gprod{Identifier}{e'}}~\curlies{\gprod{FunctionBody}{e''}}
-  \\
-  \gprod{PropertyName}{e} &::=&
-  \gprod{IdentifierName}{e}
-  \\
-  \gprod{PropertyName}{e} &::=&
-  \gprod{StringLiteral}{e}
-  \\
-  \gprod{PropertyName}{e} &::=&
-  \gprod{NumericLiteral}{e}
   \\ \\
   \gprod{MemberExpression}{e} &::=&
   \gprod{PrimaryExpression}{e}
@@ -205,20 +164,8 @@ minor changes. We only address the = assignment operator and only the
   \gprod{MemberExpression}{e} &::=&
   \gprod{FunctionExpression}{e}
   \\
-  \gprod{MemberExpression}{e\brackets{e'}} &::=&
-  \gprod{MemberExpression}{e}~\brackets{\gprod{Expression}{e'}}
-  \\
   \gprod{MemberExpression}{e\texttt{.}e'} &::=&
   \gprod{MemberExpression}{e}~\texttt{.}~\gprod{IdentifierName}{e'}
-  \\
-  \gprod{MemberExpression}{\texttt{new}~e\parens{e'}} &::=&
-  \texttt{new}~\gprod{MemberExpression}{e}~\parens{\gprod{ArgumentList}{e'}}
-  \\ \\
-  \gprod{NewExpression}{e} &::=&
-  \gprod{MemberExpression}{e}
-  \\
-  \gprod{NewExpression}{\texttt{new}~e} &::=&
-  \texttt{new}~\gprod{NewExpression}{e}
   \\ \\
   \gprod{CallExpression}{e~\parens{e'}} &::=& 
   \gprod{MemberExpression}{e}~
@@ -226,105 +173,65 @@ minor changes. We only address the = assignment operator and only the
   \\
   \gprod{CallExpression}{e~\parens{e'}} &::=& 
   \gprod{CallExpression}{e}~
-  \parens{\gprod{ArgumentList}{e'}}
-  \\
-  \gprod{CallExpression}{e~\brackets{e'}} &::=& 
-  \gprod{CallExpression}{e}~
-  \brackets{\gprod{Expression}{e'}}
+  \parens{\gprod{AssignmentExpression}{e'}}
   \\
   \gprod{CallExpression}{e\texttt{.}e'} &::=& 
   \gprod{CallExpression}{e}~\texttt{.}~
   \gprod{IdentifierName}{e'}
   \\ \\
-  \gprod{ArgumentList}{e} &::=&
-  \gprod{AssignmentExpression}{e}
-  \\
-  \gprod{ArgumentList}{e~\texttt{,}~e'} &::=&
-  \gprod{ArgumentList}{e}~\texttt{,}~
-  \gprod{AssignmentExpression}{e'}
-  \\ \\
-  \gprod{LeftHandSideExpression}{e} &::=&
-  \gprod{NewExpression}{e}
-  \\
-  \gprod{LeftHandSideExpression}{e} &::=&
-  \gprod{CallExpression}{e}
-  \\ \\
-  \gprod{PostfixExpr}{e} &::=&
-  \gprod{LeftHandSideExpression}{e}
-  \\
-  \gprod{PostfixExpr}{e\texttt{++}} &::=&
-  \gprod{PostfixExpr}{e}~\texttt{++}
-  \\ \\
-  \gprod{UnaryExpr}{e} &::=&
-  \gprod{PostfixExpr}{e}
-  \\
-  \gprod{UnaryExpr}{\texttt{++}e} &::=&
-  \texttt{++}~\gprod{UnaryExpr}{e}
-  \\ \\
-  \gprod{BinaryExpr}{e} &::=& \gprod{UnaryExpr}{e} \\
-  \gprod{BinaryExpr}{e ~\div~ e'}
+  \gprod{BinaryExpression}{e} &::=& \gprod{CallExpression}{e} \\
+  \gprod{BinaryExpression}{e ~\div~ e'}
   &::=&
-  \gprod{BinaryExpr}{e} ~\div~ \gprod{BinaryExpr}{e'} \\
-  \gprod{BinaryExpr}{e ~\plus~ e'}
+  \gprod{BinaryExpression}{e} ~\div~ \gprod{BinaryExpression}{e'} \\
+  \gprod{BinaryExpression}{e ~\plus~ e'}
   &::=&
-  \gprod{BinaryExpr}{e} ~\plus~ \gprod{BinaryExpr}{e'}
-  \\ \\
-  \gprod{ConditionalExpression}{e} &::=&
-  \gprod{BinaryExpr}{e}
-  \\
-  \gprod{ConditionalExpression}{e~\texttt{?}~e'~\texttt{:}~e'''} &::=&
-  \gprod{BinaryExpr}{e}~\texttt{?}~\gprod{AssignmentExpression}{e'}
-  ~\texttt{:}~\gprod{AssignmentExpression}{e'''}
+  \gprod{BinaryExpression}{e} ~\plus~ \gprod{BinaryExpression}{e'}
   \\ \\
   \gprod{AssignmentExpression}{e} &::=&
-  \gprod{ConditionalExpression}{e}
+  \gprod{BinaryExpression}{e}
   \\
   \gprod{AssignmentExpression}{e~\texttt{=}~e'} &::=&
-  \gprod{LeftHandSideExpression}{e}~\texttt{=}~
-  \gprod{AssignmentExpression}{e'}
-  \\ \\
-  \gprod{Expression}{e} &::=&
-  \gprod{AssignmentExpression}{e}
-  \\
-  \gprod{Expression}{e~\texttt{,}~e'} &::=&
-  \gprod{Expression}{e}~\texttt{,}~
+  \gprod{CallExpression}{e}~\texttt{=}~
   \gprod{AssignmentExpression}{e'}
   \\ \\
   \gprod{ExpressionStatement}{e} &::=&
-  \gprod{Expression}{e} \texttt{;}
+  \gprod{AssignmentExpression}{e} \texttt{;}
   \\ 
   &&  \textit{where lookahead \( \not =
     \texttt{\{} \) or \( \texttt{function} \)}
   \\ \\
+  \gprod{ReturnStatement}{\texttt{return}~\texttt{;}} &::=&
+  \texttt{return}~\texttt{;}
+  \\
+  \gprod{ReturnStatement}{\texttt{return}~e} &::=&
+  \texttt{return}~\textrm{[no line terminator here]}~\gprod{AssignmentExpression}{e}
+  \\ \\
+  \gprod{Block}{e} &::=&
+  \curlies{ \gprod{StatementList}{e} } 
+  \\
+  \gprod{StatementList}{e} &::=&
+  \gprod{Statement}{e}
+  \\
+  \gprod{StatementList}{e~e'} &::=&
+  \gprod{StatementList}{e}~
+  \gprod{Statement}{e'}
+  \\ \\
+  \gprod{LabelledStatement}{\var\texttt{:}~e} &::=&
+  \var~\texttt{:}~\gprod{Statement}{e}
+  \\ \\
+  \gprod{IfStatement}{\texttt{if}~\parens{e}~e'~\texttt{else}~e''} &::=&
+  \texttt{if}~\parens{\gprod{AssignmentExpression}{e}}~\gprod{Statement}{e'}~
+  \texttt{else}~\gprod{Statement}{e''}
+  \\ \\
   \gprod{Statement}{e} &::=& \gprod{Block}{e}
-  \\
-  \gprod{Statement}{e} &::=& \gprod{VariableStatement}{e}
-  \\
-  \gprod{Statement}{e} &::=& \gprod{EmptyStatement}{e}
   \\
   \gprod{Statement}{e} &::=& \gprod{ExpressionStatement}{e}
   \\
   \gprod{Statement}{e} &::=& \gprod{IfStatement}{e}
   \\
-  \gprod{Statement}{e} &::=& \gprod{IterationStatement}{e}
-  \\
-  \gprod{Statement}{e} &::=& \gprod{ContinueStatement}{e}
-  \\
-  \gprod{Statement}{e} &::=& \gprod{BreakStatement}{e}
-  \\
   \gprod{Statement}{e} &::=& \gprod{ReturnStatement}{e}
   \\
-  \gprod{Statement}{e} &::=& \gprod{WithStatement}{e}
-  \\
   \gprod{Statement}{e} &::=& \gprod{LabelledStatement}{e}
-  \\
-  \gprod{Statement}{e} &::=& \gprod{SwitchStatement}{e}
-  \\
-  \gprod{Statement}{e} &::=& \gprod{ThrowStatement}{e}
-  \\
-  \gprod{Statement}{e} &::=& \gprod{TryStatement}{e}
-  \\
-  \gprod{Statement}{e} &::=& \gprod{DebuggerStatement}{e}
   \\ \\
   \gprod{FunctionDeclaration}{\texttt{function}~\var~\parens{\var}~\curlies{e}} 
   &::=&
@@ -334,11 +241,6 @@ minor changes. We only address the = assignment operator and only the
   \gprod{FunctionExpression}{\texttt{function}~\var~\parens{\var}~\curlies{e}} 
   &::=&
   \texttt{function}~\var~\parens{\var}~
-  \curlies{\gprod{SourceElements}{e}}
-  \\
-  \gprod{FunctionExpression}{\texttt{function}~\parens{\var}~\curlies{e}} 
-  &::=&
-  \texttt{function}~\parens{\var}~
   \curlies{\gprod{SourceElements}{e}}
   \\ \\
   \gprod{SourceElement}{e} &::=& \gprod{Statement}{e} 
@@ -353,10 +255,403 @@ minor changes. We only address the = assignment operator and only the
   \gprod{Program}{e} &::=& \gprod{SourceElements}{e}
   \\
   \gprod{Program}{} &::=& \epsilon
-
 \end{array}
 \]  
 \end{displayfigure*}
+
+
+
+\begin{displayfigure*}{\label{fig:simpleread}Simplified Read Algorithm}
+\[
+\begin{array}{lcl}
+  \textit{Punctuator} &::=& \div ~|~ \texttt{+} ~|~ \texttt{:} ~|~
+  \texttt{;} ~|~ \texttt{=} ~|~ \texttt{.}
+  \\
+  \textit{Keyword} &::=& \texttt{return} ~|~ \texttt{function}~|~
+  \texttt{if} ~|~ \texttt{else}
+  \\
+  \textit{ExpressionPrefix} &::=& \texttt{=} ~|~ \div ~|~ \texttt{+}
+  ~|~ \texttt{return}
+  \\
+  \textit{DeclarationPrefix} &::=& 
+   \var ~|~ \rett ~|~ \texttt{else} ~|~ \texttt{;}
+\end{array}
+\]
+  
+\[
+  \begin{array}{lcll}
+    % regex
+    \readfn{/\cdot x \cdot /\cdot \vtok}{\epsilon}{b}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{/x/}{b}
+    }
+    \\
+    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot p'}{b}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{
+        p \cdot p' \cdot /x/
+      }{b}
+    }
+    \\
+    && \quad\textit{if}~p' \in \textit{Punctuator or Keyword}
+    \\
+    \readfn{/\cdot x \cdot /\cdot \vtok}{
+      p \cdot \texttt{if} \cdot \parens{p'}
+    }{b}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{p \cdot \texttt{if} \cdot \parens{p'} \cdot /x/}{b}
+    }
+    \\
+    \readfn{/\cdot x \cdot /\cdot \vtok}{
+      p \cdot p' \cdot \texttt{function} \cdot \var 
+      \cdot \parens{q} \cdot \curlies{q'}
+    }{b}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{
+      p \cdot p' 
+      \cdot \texttt{function} \cdot \var \cdot 
+      \parens{q} \cdot \curlies{q'}\cdot /x/
+      }{b}
+    } \\
+    && \quad \textit{if}~p' \in \textit{DeclarationPrefix}
+    \\
+    \readfn{/\cdot x \cdot / \cdot \vtok}{
+      p \cdot \curlies{q}^{l}
+    }{b}
+    &=&
+    \cons{/x/}{
+      \readfn{\vtok}{
+        p \cdot \curlies{q}^{l}\cdot /x/
+      }{b}
+    }
+    \\
+    && \quad \textit{where true} = \isblock(p,~b,~l)
+
+    \\ \\
+
+    % divide
+    \readfn{/\cdot \vtok}{p\cdot x}{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p\cdot x\cdot /
+      }{b}
+    }
+    \\
+    \readfn{/\cdot \vtok}{p \cdot /x/}{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p \cdot /x/ \cdot /
+      }{b}
+    }
+    \\
+    \readfn{/\cdot \vtok}{p \cdot \parens{p'}}{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p \cdot \parens{p'} \cdot /
+      }{b}
+    }
+    \\
+    \readfn{/\cdot \vtok}{
+      p \cdot p' \cdot \texttt{function}\cdot \var 
+      \cdot \parens{q} \cdot \curlies{q'}
+    }{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p \cdot p' \cdot \texttt{function}\cdot \var \cdot \parens{q}
+        \cdot \curlies{q'} \cdot /
+      }{b}
+    }
+    \\
+    && \quad \textit{if}~p' \in \textit{ExpressionPrefix}
+    \\
+    \readfn{/\cdot \vtok}{
+      p \cdot \curlies{q'}^{l}
+    }{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p \cdot \curlies{q'}^{l} \cdot /
+      }{b}
+    }
+    \\
+    && \quad \textit{where false} = \isblock(p,~b,~l)
+
+    \\ \\
+    
+
+    % other
+    \readfn{\texttt{(} \cdot \vtok \cdot \texttt{)} \cdot \vtok'}{p}{b}
+    &=&
+    \cons{\parens{t}}{
+      \readfn{\vtok'}{p \cdot \parens{t}}{b}
+    } 
+    \\
+    \quad \textit{where}~s~\textit{contains no unmatched}~\texttt{)} 
+    &&\quad \textit{where}~t = \readfn{s}{\epsilon}{\textit{false}} 
+    \\
+    \readfn{
+      \texttt{\{}^l \cdot \vtok \cdot \texttt{\}} \cdot \vtok'
+    }{p}{b}
+    &=&
+    \cons{\curlies{t}^l}{
+      \readfn{\vtok'}{
+        p \cdot \curlies{t}^l
+      }{b}
+    } 
+    \\
+    \quad \textit{where}~s~\textit{contains no unmatched}~\texttt{\}} 
+    && \textit{where}~t = \readfn{s}{\epsilon}{\isblock(p,~b,~l)}
+    % \\
+    % \readfn{\texttt{function}~\var~\parens{\var}~\curlies{s}\cdot s'}{p}{b}
+    % &=&
+    % \texttt{function}~\var~\parens{\var}~\curlies{t}
+    % \cdot
+    % \readfn{s'}{p \cdot
+    %   \texttt{function}~\var~\parens{\var}~\curlies{t}
+    % } {b}
+    % \\
+    % &&\quad \textit{where}~t = \readfn{s}{\epsilon}{\textit{true}}
+    \\
+    \readfn{x \cdot \vtok}{p}{b}
+    &=&
+    \cons{x}{
+      \readfn{\vtok}{p \cdot x}{b}
+    }
+    \\
+    \readfn{\epsilon}{p}{b}
+    &=&
+    \epsilon \\
+  \end{array}
+\]
+\[
+  \begin{array}{lcll}
+    \isblock(\epsilon,~\textit{false},~l) &=& \textit{false}
+    \\
+    \isblock(p \cdot \div,~b,~l) &=& \textit{false}
+    \\
+    \isblock(p \cdot \texttt{+},~b,~l) &=& \textit{false}
+    \\
+    \isblock(p \cdot \texttt{:},~b,~l) &=& b
+    \\
+    \isblock(p \cdot \texttt{return}^{l},~b,~l') &=& \textit{true} 
+    & \textit{if}~l \not = l'
+    \\
+    \isblock(p \cdot \texttt{return}^{l},~b,~l') &=& \textit{false} 
+    & \textit{if}~l = l'
+    \\
+    \isblock(p ,~b,~l) &=& \textit{true}
+    \\
+  \end{array}
+\]
+\end{displayfigure*}
+
+
+\section{Enforestation}
+\label{sec-4}
+
+The core algorithm introduced by Honu is called \emph{enforestation} which
+is basically responsible for expanding macros and building a partial
+syntax tree with enough structure to match on parse classes. Sweet.js
+implements this algorithm mostly as described with some additions to
+provide infix macros and invoke pattern classes described below.
+
+\subsection{Infix Macros}
+\label{sec-4-1}
+The macros we have described so far must all be prefixed by the macro
+identifier and syntax after the macro name is matched. This is
+sufficient for many kinds of macros but some syntax forms require the
+macro identifier to sit between patterns.
+
+Honu addresses this need in a limited way by providing a way to define
+new binary and unary operators which during expansion can manipulate
+their operators. However, those operators must be fully expanded and
+must match as an expression.
+
+Sweet.js provides \emph{infix macros} which allows a macro identifier to
+match syntax before it. For example, the following implements
+ES6-style arrow functions via infix macros:
+
+\begin{verbatim}
+macro (=>) {
+    rule infix {
+        ($params ...) | { $body ... }
+    } => {
+        function ($params ...) {
+            $body ...
+        }
+    }
+}
+
+var id = (x) => { return x; }
+\end{verbatim}
+
+The macros we have described so far must all be prefixed by the macro
+identifier and syntax after the macro name is matched. This is
+sufficient for many kinds of macros but some syntax forms require the
+macro identifier to sit between patterns.
+
+Honu addresses this need in a limited way by providing a way to define
+new binary and unary operators which during expansion can manipulate
+their operators. However, those operators must be fully expanded and
+must match as an expression.
+
+Sweet.js provides \emph{infix macros} which allows a macro identifier to
+match syntax before it. For example, the following implements
+ES6-style arrow functions via infix macros:
+
+\begin{verbatim}
+macro (=>) {
+    rule infix {
+        ($params ...) | { $body ... }
+    } => {
+        function ($params ...) {
+            $body ...
+        }
+    }
+}
+var id = (x) => { return x; }
+\end{verbatim}
+
+This is accomplished by simply providing the state of previously
+expanded syntax to macro transformers. Macros may then consume from
+either ends as needed, yielding new previous and subsequent syntax. At
+first glance, this can appear brittle:
+
+\begin{verbatim}
+var foo = bar(x) => { return x; }
+\end{verbatim}
+
+We've juxtaposed the \verb!=>! macro next to a function call, which we did
+not intend to be valid syntax. A naive expansion results in unparsable
+code:
+
+\begin{verbatim}
+var foo = bar function(x) { return x; }
+\end{verbatim}
+
+In more subtle cases, a naive expansion can result in parsable code
+with incorrect semantics. [Example needed?] To preserve the integrity
+of previously expanded syntax, we verify that an infix macro only
+matches previous syntax on boundaries delimited by the partial syntax
+tree we've built. The syntax tree would show \verb!bar(x)! as a complete
+function call term. Consuming the parentheses would result in a split
+term and is disallowed, failing the rule. In practice, this has proven
+to be an intuitive restriction. [Elaborate?]
+
+The primary limitation of infix macros is they do not obey precedence
+and associativity. They stand as a complement to Honu operators, not
+as a replacement, for when an infix form does not adhere to operator
+semantics, much like the \verb!=>! macro. Its left-hand-side and
+right-hand-side are not arbitrary expressions but must match a
+specific form. Additionally, it would need a precedence of infinity so
+as to always bind tighter than other operators.
+
+\subsection{Invoke and Pattern Classes}
+\label{sec-4-2}
+
+[Something about default pattern classes and `:expr`...]
+
+Pattern classes are extensible via the \verb!invoke! class which is
+parameterized by a macro name.
+
+\begin{verbatim}
+macro color {
+  rule { red } => { red }
+  rule { green } => { green }
+  rule { blue } => { blue }
+}
+macro colors_options {
+  rule { ($opt:invoke(color) ...) } => { ... }
+}
+\end{verbatim}
+
+The macro is essentially inserted into the token stream. If the
+expansion succeeds, the result will be loaded into the pattern
+variable, otherwise the rule will fail. We've added sugar so that any
+non-primitive pattern classes are interpretted as \verb!invoke!
+parameterized by the custom class. We've also added identity rules to
+shorten definitions of simple custom classes.
+
+\begin{verbatim}
+macro color {
+  rule { red }
+  rule { green }
+  rule { blue }
+}
+macro colors_options {
+  rule { ($opt:color (,) ...) } => { ... }
+}
+\end{verbatim}
+
+These macros may return an optional pattern environment which will be
+scoped and loaded into the invoking macro's pattern environment. This
+lets us define Honu-style pattern classes as simple macro-generating
+macros.
+
+\begin{verbatim}
+macro color {
+  ...
+}
+macro number {
+  ...
+}
+// `pattern` is just a macro-generating macro
+pattern color_value { $color:color $num:number }
+
+macro color_options {
+  rule { ($opt:color_value (,) ...) } => {
+    var cols = [$opt$color (,) ...];
+    var nums = [$opt$num (,) ...];
+  }
+}
+
+\end{verbatim}
+
+...?
+
+\section{Hygiene}
+\label{sec-5}
+
+Mostly straightforward implementation from scheme with some details to
+handle \texttt{var}.
+\section{Implementation}
+\label{sec-6}
+Sweet.js is written in JavaScript and runs in the major JS
+environments (\ie the brower and node.js). This is in contrast to Honu
+which translates its code to Racket code and reuses the hygienic
+expansion machinery already built in Racket. While this simplifies
+the implementation of Honu it also requires an installation of Racket
+which in some cases is not feasible (\eg sweet.js is able to run in
+mobile device browsers).
+\section{Related Work}
+\label{sec-7}
+
+\begin{itemize}
+\item Scheme/Racket
+\item Honu
+\item Template Haskell
+\item Nemerle
+\item Scala
+\item Closure
+\end{itemize}
+\section{Conclusion}
+\label{sec-8}
+% Emacs 24.3.1 (Org mode 8.2.5h)
+
+\appendix
+
+\clearpage
+
+\section{Read Proof}
+
 
 \begin{displayfigure*}{\label{fig:read}Read Algorithm}
   
@@ -559,210 +854,148 @@ minor changes. We only address the = assignment operator and only the
 \]
 \end{displayfigure*}
 
-\section{Enforestation}
-\label{sec-4}
 
-The core algorithm introduced by Honu is called \emph{enforestation} which
-is basically responsible for expanding macros and building a partial
-syntax tree with enough structure to match on parse classes. Sweet.js
-implements this algorithm mostly as described with some additions to
-provide infix macros and invoke pattern classes described below.
 
-\subsection{Infix Macros}
-\label{sec-4-1}
-The macros we have described so far must all be prefixed by the macro
-identifier and syntax after the macro name is matched. This is
-sufficient for many kinds of macros but some syntax forms require the
-macro identifier to sit between patterns.
-
-Honu addresses this need in a limited way by providing a way to define
-new binary and unary operators which during expansion can manipulate
-their operators. However, those operators must be fully expanded and
-must match as an expression.
-
-Sweet.js provides \emph{infix macros} which allows a macro identifier to
-match syntax before it. For example, the following implements
-ES6-style arrow functions via infix macros:
-
-\begin{verbatim}
-macro (=>) {
-    rule infix {
-        ($params ...) | { $body ... }
-    } => {
-        function ($params ...) {
-            $body ...
-        }
-    }
-}
-
-var id = (x) => { return x; }
-\end{verbatim}
-
-The macros we have described so far must all be prefixed by the macro
-identifier and syntax after the macro name is matched. This is
-sufficient for many kinds of macros but some syntax forms require the
-macro identifier to sit between patterns.
-
-Honu addresses this need in a limited way by providing a way to define
-new binary and unary operators which during expansion can manipulate
-their operators. However, those operators must be fully expanded and
-must match as an expression.
-
-Sweet.js provides \emph{infix macros} which allows a macro identifier to
-match syntax before it. For example, the following implements
-ES6-style arrow functions via infix macros:
-
-\begin{verbatim}
-macro (=>) {
-    rule infix {
-        ($params ...) | { $body ... }
-    } => {
-        function ($params ...) {
-            $body ...
-        }
-    }
-}
-var id = (x) => { return x; }
-\end{verbatim}
-
-This is accomplished by simply providing the state of previously
-expanded syntax to macro transformers. Macros may then consume from
-either ends as needed, yielding new previous and subsequent syntax. At
-first glance, this can appear brittle:
-
-\begin{verbatim}
-var foo = bar(x) => { return x; }
-\end{verbatim}
-
-We've juxtaposed the \verb!=>! macro next to a function call, which we did
-not intend to be valid syntax. A naive expansion results in unparsable
-code:
-
-\begin{verbatim}
-var foo = bar function(x) { return x; }
-\end{verbatim}
-
-In more subtle cases, a naive expansion can result in parsable code
-with incorrect semantics. [Example needed?] To preserve the integrity
-of previously expanded syntax, we verify that an infix macro only
-matches previous syntax on boundaries delimited by the partial syntax
-tree we've built. The syntax tree would show \verb!bar(x)! as a complete
-function call term. Consuming the parentheses would result in a split
-term and is disallowed, failing the rule. In practice, this has proven
-to be an intuitive restriction. [Elaborate?]
-
-The primary limitation of infix macros is they do not obey precedence
-and associativity. They stand as a complement to Honu operators, not
-as a replacement, for when an infix form does not adhere to operator
-semantics, much like the \verb!=>! macro. Its left-hand-side and
-right-hand-side are not arbitrary expressions but must match a
-specific form. Additionally, it would need a precedence of infinity so
-as to always bind tighter than other operators.
-
-\subsection{Invoke and Pattern Classes}
-\label{sec-4-2}
-
-[Something about default pattern classes and `:expr`...]
-
-Pattern classes are extensible via the \verb!invoke! class which is
-parameterized by a macro name.
-
-\begin{verbatim}
-macro color {
-  rule { red } => { red }
-  rule { green } => { green }
-  rule { blue } => { blue }
-}
-macro colors_options {
-  rule { ($opt:invoke(color) ...) } => { ... }
-}
-\end{verbatim}
-
-The macro is essentially inserted into the token stream. If the
-expansion succeeds, the result will be loaded into the pattern
-variable, otherwise the rule will fail. We've added sugar so that any
-non-primitive pattern classes are interpretted as \verb!invoke!
-parameterized by the custom class. We've also added identity rules to
-shorten definitions of simple custom classes.
-
-\begin{verbatim}
-macro color {
-  rule { red }
-  rule { green }
-  rule { blue }
-}
-macro colors_options {
-  rule { ($opt:color (,) ...) } => { ... }
-}
-\end{verbatim}
-
-These macros may return an optional pattern environment which will be
-scoped and loaded into the invoking macro's pattern environment. This
-lets us define Honu-style pattern classes as simple macro-generating
-macros.
-
-\begin{verbatim}
-macro color {
-  ...
-}
-macro number {
-  ...
-}
-// `pattern` is just a macro-generating macro
-pattern color_value { $color:color $num:number }
-
-macro color_options {
-  rule { ($opt:color_value (,) ...) } => {
-    var cols = [$opt$color (,) ...];
-    var nums = [$opt$num (,) ...];
-  }
-}
-
-\end{verbatim}
-
-...?
-
-\section{Hygiene}
-\label{sec-5}
-
-Mostly straightforward implementation from scheme with some details to
-handle \texttt{var}.
-\section{Implementation}
-\label{sec-6}
-Sweet.js is written in JavaScript and runs in the major JS
-environments (\ie the brower and node.js). This is in contrast to Honu
-which translates its code to Racket code and reuses the hygienic
-expansion machinery already built in Racket. While this simplifies
-the implementation of Honu it also requires an installation of Racket
-which in some cases is not feasible (\eg sweet.js is able to run in
-mobile device browsers).
-\section{Related Work}
-\label{sec-7}
-
-\begin{itemize}
-\item Scheme/Racket
-\item Honu
-\item Template Haskell
-\item Nemerle
-\item Scala
-\item Closure
-\end{itemize}
-\section{Conclusion}
-\label{sec-8}
-% Emacs 24.3.1 (Org mode 8.2.5h)
-
-\appendix
-
-\clearpage
-
-\section{Read Proof}
-
-\begin{theorem}\mbox{}
+\begin{theorem}[\label{thrm:readProgram}Read Program]\mbox{}
 
   \( \forall s. s \in \gprod{Program}{e} \Leftrightarrow 
   \readfn{s}{\epsilon}{b} \in \gprod{Program'}{e} \)
 
 \end{theorem}
+\begin{proof}
+
+  For the if direction, there are two cases:
+  \begin{itemize}
+  \item \( s \in \gprod{Program}{e} ::= \epsilon \). The result is immediate.
+
+  \item \( s \in \gprod{Program}{e} ::= \gprod{SourceElements}{e} \)
+    this holds by Lemma~\ref{lem:readSourceElements}.
+  \end{itemize}
+
+  A similar argument holds for the only if direction.
+\end{proof}
+
+\begin{lemma}[\label{lem:readSourceElements}Read SourceElements]\mbox{}
+
+  \( \forall s. s \in \gprod{SourceElements}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{SourceElements'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction, there are two cases:
+  \begin{itemize}
+  \item \( s \in \gprod{SourceElements}{e} ::=
+    \gprod{SourceElement}{e} \). This holds by Lemma
+    \ref{lem:readSourceElement}.
+    
+  \item \( s \in \gprod{SourceElements}{e~e'} ::=
+    \gprod{SourceElements}{e}~\gprod{SourceElement}{e'} \). We have
+    \( s = s' \cdot s'' \) where \( s' \in \gprod{SourceElements}{e}
+    \) and \( s'' \in \gprod{SourceElement}{e'} \).
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{s'\cdot s''}{p}{b}
+      \\
+      &=& \readfn{s'}{p}{b}\cdot \readfn{s''}{p \cdot \readfn{s'}{p}{b}}{b}
+    \end{array}
+    \]
+    \textbf{(TODO: need to say something about reading the prefix)}
+    By induction \( \readfn{s'}{p}{b} \in \gprod{SourceElements'}{e} \)
+    and by Lemma \ref{lem:readSourceElement}, \( \readfn{s''}{p \cdot
+      \readfn{s'}{p}{b}}{b} \in \gprod{SourceElement'}{e'} \). Thus
+    \( t \in \gprod{SourceElements'}{e~e'} \).
+  \end{itemize}
+  
+  The argument is similar for the only if direction.
+\end{proof}
+
+\begin{lemma}[\label{lem:readSourceElement}Read SourceElement]\mbox{}
+  
+  \( \forall s. s \in \gprod{SourceElement}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{SourceElement'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction there are two cases:
+  \begin{itemize}
+  \item \( s \in \gprod{SourceElement}{e} ::= \gprod{Statement}{e} \).
+    This holds by Lemma \ref{lem:readStatement}.
+    
+  \item \( s \in \gprod{SourceElement}{e} ::=
+    \gprod{FunctionDeclaration}{e} \). This holds by Lemma
+    \ref{lem:readFunctionDeclaration}.
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[\label{lem:readFunctionDeclaration}Read FunctionDeclaration]\mbox{}
+  
+  \( \forall s. s \in \gprod{FunctionDeclaration}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{FunctionDeclaration'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we only have a single case: \( s \in
+  \gprod{FunctionDeclaration}{\texttt{function}~\var~\parens{\var}~\curlies{e}}
+  ::= \texttt{function}~\var~\parens{\var}~\curlies{\gprod{SourceElements}{e}}
+ \). We have \( s = \texttt{function}~\var~\parens{\var}~\curlies{s'}
+ \) where \( s' \in \gprod{SourceElements}{e} \) so:
+ \[
+ \begin{array}{rcl}
+   t &=& \readfn{\texttt{function}~\var~\parens{\var}~\curlies{s'}}{p}{b}
+   \\
+   &=& \texttt{function}~\var~\parens{\var}~\curlies{t'}
+ \end{array}
+ \]
+ where \( t' = \readfn{s'}{\epsilon}{\textit{true}} \). \textbf{TODO:
+   explain why b = true}. Since by Lemma \ref{lem:readSourceElements},
+ \( t' \in \gprod{SourceElements'}{e} \) we have \( t \in \gprod{FunctionDeclaration'}{\texttt{function}~\var~\parens{\var}~\curlies{e}} \).
+\end{proof}
+
+\begin{lemma}[\label{lem:readStatement}Read Statement]\mbox{}
+  
+  \( \forall s. s \in \gprod{Statement}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{Statement'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we have several cases:
+  \begin{itemize}
+  \item \( s \in \gprod{Statement}{e} ::= \gprod{Block}{e} \). This
+    holds by Lemma \ref{lem:readBlock}.
+
+  \item \( s \in \gprod{Statement}{e} ::= \gprod{ExpressionStatement}{e} \). This
+    holds by Lemma \ref{lem:readExpressionStatement}.
+
+  \item \( s \in \gprod{Statement}{e} ::= \gprod{IfStatement}{e} \). This
+    holds by Lemma \ref{lem:readIfStatement}.
+
+  \item \( s \in \gprod{Statement}{e} ::= \gprod{ReturnStatement}{e} \). This
+    holds by Lemma \ref{lem:readReturnStatement}.
+
+  \item \( s \in \gprod{Statement}{e} ::= \gprod{LabelledStatement}{e} \). This
+    holds by Lemma \ref{lem:readLabelledStatement}.
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[\label{lem:readIfStatement}Read IfStatement]\mbox{}
+  
+  \( \forall s. s \in \gprod{IfStatement}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{IfStatement'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we have:
+  \[
+  \begin{array}{lcl}
+    s \in
+    \gprod{IfStatement}{\texttt{if}~\parens{e}~e'~\texttt{else}~ e''} 
+    ::= 
+    \\
+    \texttt{if}~ \parens{\gprod{AssignmentExpression}{e}}~
+    \gprod{Statement}{e'}~\texttt{else}~ \gprod{Statement}{e''} 
+  \end{array}
+  \]
+  We have \( s = \texttt{if}\cdot \parens{s'}\cdot s''\cdot
+  \texttt{else}\cdot s''' \) where \( s' \in
+  \gprod{AssignmentExpression}{e} \), \( s'' \in \gprod{Statement}{e'}
+  \), and \( s''' \in \gprod{Statement}{e''} \).
+\end{proof}
+
 
 \begin{lemma}[\label{lem:readunit}Reading a Unit]\mbox{}
 
@@ -827,124 +1060,4 @@ mobile device browsers).
   \end{itemize}
 \end{proof}
 
-% To help reason over prefixes we define the following set of token tree
-% words that end with a literal:
-% \[
-% \begin{array}{rcl}
-% \divprefix &::=& \{t \mid \forall s \in \TT^{*}.~t = s \cdot \var
-% ~\textrm{or}~ t = s \cdot \rett \}
-% \end{array}
-% \]
-
-% \begin{lemma}
-%   \( s \in \textit{ReadUnit} \Rightarrow \readfn{s\cdot s'}{p} = 
-%   \readfn{s}{p} \cdot \readfn{s'}{p \cdot \readfn{s}{p}}\) 
-% \end{lemma}
-
-% \begin{lemma}
-%   \( s \in \gprod{Expr}{e} \Rightarrow p \cdot \readfn{s}{p} \in \divprefix \)
-% \end{lemma}
-
-% \begin{lemma}[\label{lem:readPrimaryExpr}Read PrimaryExpr]\mbox{}
-
-%   \( \forall s \in \Tok^{*},~p \in \neg \divprefix. \)
-%   \[
-%   \{ e \mid s \in \gprod{PrimaryExpr}{e} \}
-%   =
-%   \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
-%   \]
-% \end{lemma}
-% \begin{proof}
-%   We first show 
-%   \( \{ e \mid s \in \gprod{PrimaryExpr}{e} \} \subset
-%   \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
-%   \)
-%   by cases on \( s \in \gprod{PrimaryExpr}{e} \):
-%   \begin{itemize}
-
-%   \item Case \( \epsilon \). Then \( s = \epsilon \in
-%     \gprod{PrimaryExpr}{p} \) and \(
-%     \readfn{\epsilon}{p} = \epsilon \in \gprod{PrimaryExpr}{p}' \).
-
-%   \item Case \( \var \). Then \( s = \var \in
-%     \gprod{PrimaryExpr}{\var} \) and \( \readfn{\var}{p} = x \in
-%     \gprod{PrimaryExpr}{\var}' \).
-
-%   \item Case \( \re \). Then \( s = \re \in
-%     \gprod{PrimaryExpr}{\rett} \) and since \( p \in \neg \divprefix \)
-%     then \( \readfn{\re}{p} = \rett \in \gprod{PrimaryExpr}{\rett}' \).
-
-%   \end{itemize}
-%   To show 
-%   \( 
-%   \{ e \mid \readfn{s}{p} \in \gprod{PrimaryExpr}{e}' \}
-%   \subset
-%   \{ e \mid s \in \gprod{PrimaryExpr}{e} \} 
-%   \) the cases are similar to the above.
-% \end{proof}
-
-% \begin{lemma}[\label{lem:readCallExpr}Read CallExpr]\mbox{}
-
-%   \( \forall s \in \Tok^{*},~p \in \neg \divprefix. \)
-%   \[
-%   \{ e \mid s \in \gprod{CallExpr}{e} \}
-%   =
-%   \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{e}' \}
-%   \]
-% \end{lemma}
-% \begin{proof}
-%   We first show 
-%   \( \{ e \mid s \in \gprod{CallExpr}{e} \} \subset
-%   \{ e \mid \readfn{s}{p} \in \gprod{CallExpr}{e}' \}
-%   \)
-%   by cases on \( s \in \gprod{CallExpr}{e} \):
-%   \begin{itemize}
-
-%   \item Case \( \gprod{PrimaryExpr}{e} \). By Lemma \ref{lem:readPrimaryExpr}.
-
-%   \item Case \( \call{\gprod{PrimaryExpr}{e}}{\gprod{Expr}{e'}} \).
-%   \end{itemize}
-% \end{proof}
-
-% \begin{lemma}[\label{lem:readExpr}Read Expr]
-%   \( \forall s \in \Tok^{*},~p \in \neg \divprefix. \)
-%   \[
-%   \{ e \mid s \in \gprod{Expr}{e} \}
-%   =
-%   \{ e \mid \readfn{s}{p} \in \gprod{Expr}{e}' \}
-%   \]
-% \end{lemma}
-% \begin{proof}
-%   We first show 
-%   \( \{ e \mid s \in \gprod{Expr}{e} \} \subset
-%   \{ e \mid \readfn{s}{p} \in \gprod{Expr}{e}' \}
-%   \)
-%   by cases on \( s \in \gprod{Expr}{e} \):
-%   \begin{itemize}
-%   \item Case \( \gprod{CallExpr}{e} \). By Lemma \ref{lem:readCallExpr}.
-
-%   \item Case \( \gprod{Expr}{e} ~\div~ \gprod{Expr}{e'} \). 
-%     Then \( s = s' \cdot \div \cdot s'' \) where \( s' \in
-%     \gprod{Expr}{e'} \) and \( s'' \in \gprod{Expr}{e''}
-%     \). By induction \( \readfn{s'}{p} \in \gprod{Expr}{e'}' \) and
-%     by Lemma \ref{something} \( e' \in \divprefix \) so \( \readfn{\div
-%       \cdot s''}{e'} = \div \cdot \readfn{s''}{e'~\div} \) so by
-%     induction \( \readfn{s''}{e'~\div} \in \gprod{Expr}{e''}' \)
-%   \item .
-%   \end{itemize}
-% \end{proof}
-
-% \begin{theorem}[\label{thrm:read}Read is correct]\mbox{}
-
-%   \( \forall s \in \Tok. \)
-%   \[
-%   \{ e \mid s \in \gprod{Program}{e} \}
-%   =
-%   \{ e \mid \readfn{s}{\epsilon} \in \gprod{Program}{e}' \}
-%   \]
-% \end{theorem}
-% \begin{proof}\mbox{}
-  
-% By showing set inclusion. Details in the appendix.
-% \end{proof}
 \end{document}
