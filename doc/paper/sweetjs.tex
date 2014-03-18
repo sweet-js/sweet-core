@@ -206,7 +206,7 @@ minor changes. We only address the = assignment operator and only the
   \gprod{ReturnStatement}{\texttt{return}~e} &::=&
   \texttt{return}~\textrm{[no line terminator here]}~\gprod{AssignmentExpression}{e}
   \\ \\
-  \gprod{Block}{e} &::=&
+  \gprod{Block}{\curlies{e}} &::=&
   \curlies{ \gprod{StatementList}{e} } 
   \\
   \gprod{StatementList}{e} &::=&
@@ -931,10 +931,18 @@ mobile device browsers).
   \readfn{s}{p}{b} \in \gprod{FunctionDeclaration'}{e} \)
 \end{lemma}
 \begin{proof}
-  For the if direction we only have a single case: \( s \in
+  For the if direction we only have a single case: 
+  \[ 
+  \begin{array}{lcl}
+  s \in
   \gprod{FunctionDeclaration}{\texttt{function}~\var~\parens{\var}~\curlies{e}}
-  ::= \texttt{function}~\var~\parens{\var}~\curlies{\gprod{SourceElements}{e}}
- \). We have \( s = \texttt{function}~\var~\parens{\var}~\curlies{s'}
+  ::= 
+  \\
+  \texttt{function}~\var~\parens{\var}~\curlies{\gprod{SourceElements}{e}}
+  \end{array}
+  \]
+
+ We have \( s = \texttt{function}~\var~\parens{\var}~\curlies{s'}
  \) where \( s' \in \gprod{SourceElements}{e} \) so:
  \[
  \begin{array}{rcl}
@@ -994,6 +1002,146 @@ mobile device browsers).
   \texttt{else}\cdot s''' \) where \( s' \in
   \gprod{AssignmentExpression}{e} \), \( s'' \in \gprod{Statement}{e'}
   \), and \( s''' \in \gprod{Statement}{e''} \).
+  \[
+  \begin{array}{rcl}
+    t &=& \readfn{
+      \texttt{if}\cdot \parens{s'}\cdot s'' \cdot \texttt{else}
+      \cdot s'''
+    }{p}{b}
+    \\
+    &=& \texttt{if} \cdot \parens{t'} \cdot t'' \cdot \texttt{else}
+    \cdot t'''
+  \end{array}
+  \]
+  where 
+  \[ 
+  \begin{array}{lcl}
+    t' &=& \readfn{s'}{\epsilon}{b}
+    \\
+    t'' &=& \readfn{s''}{
+      p \cdot \texttt{if} \cdot \parens{t'}
+    }{b}
+    \\
+    t''' &=& \readfn{s'''}{
+      p \cdot \texttt{if} \cdot \parens{t'}
+      \cdot t'' \cdot \texttt{else}
+    }{b}
+  \end{array}
+  \]
+  By Lemma \ref{lem:readAssignmentExpression} \( t' \in
+  \gprod{AssignmentExpression'}{e} \). By Lemma
+  \ref{lem:readStatement}, \( t'' \in \gprod{Statement'}{e'} \) and \(
+  t''' \in \gprod{Statement'}{e''} \). Thus \( t \in \gprod{IfStatement'}{\texttt{if}~\parens{e}~e'~\texttt{else}~e''} \).
+\end{proof}
+
+\begin{lemma}[\label{lem:readLabelledStatement}Read LabelledStatement]\mbox{}
+  
+  \( \forall s. s \in \gprod{LabelledStatement}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{LabelledStatement'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we have a single case: \( s \in
+  \gprod{LabelledStatement}{\var \texttt{:}~e} ::=
+  \var~\texttt{:}~\gprod{Statement}{e} \). We have \( s = \var \cdot
+  \texttt{:} \cdot s' \) where \( s' \in \gprod{Statement}{e} \).
+  Then:
+  \[
+  \begin{array}{rcl}
+    t &=& \readfn{\var \cdot \texttt{:} \cdot s'}{p}{b}
+    \\
+    &=& \var \cdot \texttt{:} \cdot 
+    \readfn{s'}{
+      p \cdot \var \cdot \texttt{:}
+    }{b}
+  \end{array}
+  \]
+  By Lemma \ref{lem:readStatement}, \( \readfn{s'}{p \cdot \var \cdot
+    \texttt{:}}{b} \in \gprod{Statement'}{e} \) so \( t \in
+  \gprod{LabelledStatement'}{\var~\texttt{:}~e} \).
+  \textbf{TODO: need to take into account b and the prefix}.
+\end{proof}
+
+\begin{lemma}[\label{lem:readReturnStatement}Read ReturnStatement]\mbox{}
+  
+  \( \forall s. s \in \gprod{ReturnStatement}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{ReturnStatement'}{e} \)
+\end{lemma}
+\begin{proof}
+  To show the if direction there are two cases:
+  \begin{itemize}
+  \item \( s \in \gprod{ReturnStatement}{\texttt{return ;}} ::=
+    \texttt{return ;} \). Since \( s = \texttt{return ;} \) and \(
+    \readfn{s}{p}{q} = \texttt{return}\cdot\texttt{;} \in
+    \gprod{ReturnStatement'}{\texttt{return ;}} \) we have our result
+    directly.
+
+  \item \( s \in \gprod{ReturnStatement}{\texttt{return}~e} ::=
+    \texttt{return}~ \gprod{AssignmentExpression}{e} \). We have \( s
+    = \texttt{return}\cdot s' \) where \( s' \in
+    \gprod{AssignmentExpression}{e} \). Then:
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{\texttt{return} \cdot s'}{p}{b}
+      \\
+      &=& \texttt{return}\cdot \readfn{s'}{p \cdot \texttt{return}}{b}
+    \end{array}
+    \]
+    By Lemma \ref{lem:readAssignmentExpression}, \( \readfn{s'}{p
+      \cdot \texttt{return}}{b} \in \gprod{AssignmentExpression'}{e}
+    \) thus \( t \in \gprod{ReturnStatement'}{\texttt{return}~e} \).
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[\label{lem:readBlock}Read Block]\mbox{}
+  
+  \( \forall s. s \in \gprod{Block}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{Block'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we have:
+  \[ 
+  s \in \gprod{Block}{\curlies{e}} ::= \curlies{\gprod{StatementList}{e}}
+  \]
+  so \( s = \curlies{s'} \) where \( s' \in \gprod{StatementList}{e} \).
+  \[
+  \begin{array}{rcl}
+    t &=& \readfn{\curlies{s'}}{p}{b}
+    \\
+    &=& \curlies{t'}
+  \end{array}
+  \]
+  where \( t' = \readfn{s'}{\epsilon}{\textit{true}} \). By Lemma
+  \ref{lem:readStatementList}, \( t' \in \gprod{StatementList'}{e} \)
+  so \( t \in \gprod{Block'}{\curlies{e}} \).
+\end{proof}
+
+\begin{lemma}[\label{lem:readStatementList}Read StatementList]\mbox{}
+
+  \( \forall s. s \in \gprod{StatementList}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{StatementList'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we have two cases:
+  \begin{itemize}
+  \item \( s \in \gprod{StatementList}{e} ::= \gprod{Statement}{e} \).
+    This follows by Lemma \ref{lem:readStatement}.
+
+  \item \( s \in \gprod{StatementList}{e~e'} ::=
+    \gprod{StatementList}{e}~ \gprod{Statement}{e'} \). So 
+    \( s = s' \cdot s'' \) where \( s' \in \gprod{StatementList}{e} \)
+    and \( s'' \in \gprod{Statement}{e'} \). Then,
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{s' \cdot s''}{p}{b}
+      \\
+      &=& \readfn{s'}{p}{b} \cdot \readfn{s''}{p \cdot \readfn{s'}{p}{b}}{b}
+    \end{array}
+    \]
+    By induction \( \readfn{s'}{p}{b} \in \gprod{StatementList'}{e} \)
+    and by Lemma \ref{lem:readStatement}, \( \readfn{s''}{p \cdot
+      \readfn{s'}{p}{b}}{b} \in \gprod{Statement'}{e'} \).
+    Thus, \( t \in \gprod{StatementList'}{e~e'} \).
+  \end{itemize}
 \end{proof}
 
 
