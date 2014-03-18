@@ -155,8 +155,8 @@ minor changes. We only address the = assignment operator and only the
   \gprod{PrimaryExpression}{\curlies{\var \texttt{:} e}} &::=& 
   \curlies{\var \texttt{:} \gprod{AssignmentExpression}{e}}
   \\
-  \gprod{PrimaryExpression}{e} &::=& 
-  \parens{\gprod{Expression}{e}}
+  \gprod{PrimaryExpression}{\parens{e}} &::=& 
+  \parens{\gprod{AssignmentExpression}{e}}
   \\ \\
   \gprod{MemberExpression}{e} &::=&
   \gprod{PrimaryExpression}{e}
@@ -1344,6 +1344,56 @@ mobile device browsers).
     \]
     By induction \( \readfn{s'}{p}{b} \in \gprod{MemberExpression'}{e}
     \) thus \( t \in \gprod{MemberExpression'}{e\texttt{.\var}} \).
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[\label{lem:readPrimaryExpression}Read PrimaryExpression]\mbox{}
+  
+  \( \forall s. s \in \gprod{PrimaryExpression}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{PrimaryExpression'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we have several cases:
+  \begin{itemize}
+  \item \( s \in \gprod{PrimaryExpression}{\var} ::= \var \). Then \( s
+    = \var \) and \( \readfn{\var}{p}{b} \in
+    \gprod{PrimaryExpression'}{\var} \) directly.
+
+  \item \( s \in \gprod{PrimaryExpression}{\rett} ::= \re \). Then \( s
+    = \re \) and \( \readfn{\re}{p}{b} \in
+    \gprod{PrimaryExpression'}{\rett} \) directly.
+    \textbf{TODO: prefix matters here}
+
+  \item \( s \in \gprod{PrimaryExpression}{\curlies{\var\texttt{:}e}}
+    ::= \curlies{\var\texttt{:} \gprod{AssignmentExpression}{e}} \).
+    Then \( s = \var \cdot \texttt{:} \cdot \curlies{s'} \) where \(
+    s' \in \gprod{AssignmentExpression}{e} \). Then:
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{\var\cdot  \texttt{:} \cdot \curlies{s'}}{p}{b}
+      \\
+      &=& \var \cdot \texttt{:} \cdot \curlies{t'}
+    \end{array}
+    \]
+    where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). By Lemma
+    \ref{lem:readAssignmentExpression}, \( t' \in
+    \gprod{AssignmentExpression'}{e} \) and thus \( t \in
+    \gprod{PrimaryExpression'}{\curlies{\var\texttt{:}e}} \).
+    
+  \item \( s \in \gprod{PrimaryExpression}{\parens{e}}
+    ::= \parens{\gprod{AssignmentExpression}{e}} \). Then \( s = \parens{s'} \)
+    where \( s' \in \gprod{AssignmentExpression}{e} \). So,
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{\parens{s'}}{p}{b}
+      \\
+      &=& \parens{t'}
+    \end{array}
+    \]
+    where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). By Lemma
+    \ref{lem:readAssignmentExpression} \( t' \in
+    \gprod{AssignmentExpression'}{e} \). So, \( t \in
+    \gprod{PrimaryExpression'}{\parens{e}} \).
   \end{itemize}
 \end{proof}
 
