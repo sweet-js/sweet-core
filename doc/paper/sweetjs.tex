@@ -1349,7 +1349,9 @@ mobile device browsers).
 
 \begin{lemma}[\label{lem:readPrimaryExpression}Read PrimaryExpression]\mbox{}
   
-  \( \forall s. s \in \gprod{PrimaryExpression}{e} \Leftrightarrow 
+  \( \forall s, p \in \reprefix. \)
+
+  \( s \in \gprod{PrimaryExpression}{e} \Leftrightarrow 
   \readfn{s}{p}{b} \in \gprod{PrimaryExpression'}{e} \)
 \end{lemma}
 \begin{proof}
@@ -1360,9 +1362,8 @@ mobile device browsers).
     \gprod{PrimaryExpression'}{\var} \) directly.
 
   \item \( s \in \gprod{PrimaryExpression}{\rett} ::= \re \). Then \( s
-    = \re \) and \( \readfn{\re}{p}{b} \in
-    \gprod{PrimaryExpression'}{\rett} \) directly.
-    \textbf{TODO: prefix matters here}
+    = \re \) and \( \readfn{\re}{p}{b} = \rett \in
+    \gprod{PrimaryExpression'}{\rett} \) since \( p \in \reprefix \).
 
   \item \( s \in \gprod{PrimaryExpression}{\curlies{\var\texttt{:}e}}
     ::= \curlies{\var\texttt{:} \gprod{AssignmentExpression}{e}} \).
