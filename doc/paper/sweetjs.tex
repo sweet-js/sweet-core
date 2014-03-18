@@ -164,20 +164,20 @@ minor changes. We only address the = assignment operator and only the
   \gprod{MemberExpression}{e} &::=&
   \gprod{FunctionExpression}{e}
   \\
-  \gprod{MemberExpression}{e\texttt{.}e'} &::=&
-  \gprod{MemberExpression}{e}~\texttt{.}~\gprod{IdentifierName}{e'}
+  \gprod{MemberExpression}{e\texttt{.\var}} &::=&
+  \gprod{MemberExpression}{e}~\texttt{.}~\var
   \\ \\
   \gprod{CallExpression}{e~\parens{e'}} &::=& 
   \gprod{MemberExpression}{e}~
-  \parens{\gprod{ArgumentList}{e'}}
+  \parens{\gprod{AssignmentExpression}{e'}}
   \\
   \gprod{CallExpression}{e~\parens{e'}} &::=& 
   \gprod{CallExpression}{e}~
   \parens{\gprod{AssignmentExpression}{e'}}
   \\
-  \gprod{CallExpression}{e\texttt{.}e'} &::=& 
+  \gprod{CallExpression}{e\texttt{.\var}} &::=& 
   \gprod{CallExpression}{e}~\texttt{.}~
-  \gprod{IdentifierName}{e'}
+  \var
   \\ \\
   \gprod{BinaryExpression}{e} &::=& \gprod{CallExpression}{e} \\
   \gprod{BinaryExpression}{e ~\div~ e'}
@@ -1141,6 +1141,209 @@ mobile device browsers).
     and by Lemma \ref{lem:readStatement}, \( \readfn{s''}{p \cdot
       \readfn{s'}{p}{b}}{b} \in \gprod{Statement'}{e'} \).
     Thus, \( t \in \gprod{StatementList'}{e~e'} \).
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[\label{lem:readExpressionStatement}Read ExpressionStatement]\mbox{}
+  
+  \( \forall s. s \in \gprod{ExpressionStatement}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{ExpressionStatement'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we have 
+  \( s \in \gprod{ExpressionStatement}{e} ::=
+  \gprod{AssignmentExpression}{e}~\texttt{;} \) so \( s = s' \cdot
+  \texttt{;} \) where \( s' \in \gprod{AssignmentExpression}{e} \).
+  Then:
+  \[
+  \begin{array}{rcl}
+    t &=& \readfn{s'\cdot \texttt{;}}{p}{b}
+    \\
+    &=& \readfn{s'}{p}{b} \cdot \texttt{;}
+  \end{array}
+  \]
+  Since by Lemma \ref{lem:readAssignmentExpression}, \(
+  \readfn{s'}{p}{b} \in \gprod{AssignmentExpression'}{e} \) we have
+  \( t \in \gprod{ExpressionStatement'}{e} \).
+\end{proof}
+
+\begin{lemma}[\label{lem:readAssignmentExpression}Read AssignmentExpression]\mbox{}
+  
+  \( \forall s. s \in \gprod{AssignmentExpression}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{AssignmentExpression'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we have two cases:
+  \begin{itemize}
+  \item \( s \in \gprod{AssignmentExpression}{e} ::=
+    \gprod{BinaryExpression}{e} \). This holds by Lemma
+    \ref{lem:readBinaryExpression}.
+    
+  \item \( s \in \gprod{AssignmentExpression}{e~\texttt{=}~e'} \) by
+    \[ 
+    \gprod{CallExpression}{e} ~\texttt{=}~
+    \gprod{AssignmentExpression}{e'} 
+    \]
+    Then \( s = s' \cdot \texttt{=} \cdot s'' \) where \( s' \in
+    \gprod{CallExpression}{e} \) and \( s'' \in
+    \gprod{AssignmentExpression}{e'} \). Then:
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{s' \cdot \texttt{=} \cdot s''}{p}{b}
+      \\
+      &=& \readfn{s'}{p}{b} \cdot \texttt{=} \cdot
+      \readfn{s''}{p \cdot \readfn{s'}{p}{b} \cdot \texttt{=}}{b}
+    \end{array}
+    \]
+    By Lemma \ref{lem:readCallExpression}, \( \readfn{s'}{p}{b} \in
+    \gprod{CallExpression'}{e} \) and by induction \( \readfn{s''}{p
+      \cdot \readfn{s'}{p}{b} \cdot \texttt{=}}{b} \in
+    \gprod{AssignmentExpression'}{e'} \) so \( t \in
+    \gprod{AssignmentExpression'}{e~\texttt{=}~e'} \).
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[\label{lem:readBinaryExpression}Read BinaryExpression]\mbox{}
+  
+  \( \forall s. s \in \gprod{BinaryExpression}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{BinaryExpression'}{e} \)
+\end{lemma}
+\begin{proof}
+  To show the if direction we have three cases:
+  \begin{itemize}
+  \item \( s \in \gprod{BinaryExpression}{e} ::=
+    \gprod{CallExpression}{e} \). This holds by Lemma
+    \ref{lem:readCallExpression}.
+
+  \item \( s \in \gprod{BinaryExpression}{e~\div~e'} \) by 
+    \[
+    \gprod{BinaryExpression}{e} ~\div~ \gprod{BinaryExpression}{e'} 
+    \]
+    We have \( s = s' \cdot \div \cdot s'' \) where \( s' \in
+    \gprod{BinaryExpression}{e} \) and \( s'' \in
+    \gprod{BinaryExpression}{e'} \). Then:
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{s'\cdot \div \cdot s''}{p}{b}
+      \\
+      &=& \readfn{s'}{p}{b} \cdot \div \cdot 
+      \readfn{s''}{
+        p \cdot \readfn{s'}{p}{b} \cdot \div
+      }{b}
+    \end{array}
+    \]
+    \textbf{TODO: since reasons}.
+    By induction \( \readfn{s'}{p}{b} \in \gprod{BinaryExpression'}{e} \)
+    and \( 
+      \readfn{s''}{
+        p \cdot \readfn{s'}{p}{b} \cdot \div
+      }{b} \in \gprod{BinaryExpression'}{e'}
+      \) thus \( t \in \gprod{BinaryExpression'}{e~\div~e'} \).
+
+  \item \( s \in \gprod{BinaryExpression}{e~\texttt{+}~e'} \) by 
+    \[
+    \gprod{BinaryExpression}{e} ~\texttt{+}~ \gprod{BinaryExpression}{e'} 
+    \]
+    We have \( s = s' \cdot \texttt{+} \cdot s'' \) where \( s' \in
+    \gprod{BinaryExpression}{e} \) and \( s'' \in
+    \gprod{BinaryExpression}{e'} \). Then:
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{s'\cdot \texttt{+} \cdot s''}{p}{b}
+      \\
+      &=& \readfn{s'}{p}{b} \cdot \texttt{+} \cdot 
+      \readfn{s''}{
+        p \cdot \readfn{s'}{p}{b} \cdot \texttt{+}
+      }{b}
+    \end{array}
+    \]
+    \textbf{TODO: since reasons}.
+    By induction \( \readfn{s'}{p}{b} \in \gprod{BinaryExpression'}{e} \)
+    and \( 
+      \readfn{s''}{
+        p \cdot \readfn{s'}{p}{b} \cdot \texttt{+}
+      }{b} \in \gprod{BinaryExpression'}{e'}
+      \) thus \( t \in \gprod{BinaryExpression'}{e~\texttt{+}~e'} \).
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[\label{lem:readCallExpression}Read CallExpression]\mbox{}
+  
+  \( \forall s. s \in \gprod{CallExpression}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{CallExpression'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we have three cases:
+  \begin{itemize}
+  \item \( s \in \gprod{CallExpression}{e~\parens{e'}} \) by
+    \[
+    \gprod{MemberExpression}{e}~\parens{\gprod{AssignmentExpression'}{e'}}
+    \]
+    We have \( s = s' \cdot \parens{s''} \) where \( s' \in
+    \gprod{MemberExpression}{e} \) and \( s'' \in
+    \gprod{AssignmentExpression}{e'} \). Then
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{s' \cdot \parens{s''}}{p}{b}
+      \\
+      &=& \readfn{s'}{p}{b} \cdot
+      \readfn{\parens{s''}}{
+        p \cdot \readfn{s'}{p}{b}
+      }{b}
+    \end{array}
+    \]
+    By Lemma \ref{lem:readMemberExpression} we have \(
+    \readfn{s'}{p}{b} \in \gprod{MemberExpression'}{e} \) and my Lemma
+    \ref{lem:readAssignmentExpression} we have
+    \(\readfn{s''}{\epsilon}{\textit{false}} \in
+    \gprod{AssignmentExpression'}{e'} \) thus
+    \( t \in \gprod{CallExpression'}{e~\parens{e'}} \).
+
+  \item \( s \in \gprod{CallExpression}{e\texttt{.\var}} ::=
+    \gprod{CallExpression}{e} ~\texttt{.} ~\var \). Then
+    \( s = s' \cdot \texttt{.}\cdot \var \) where \( s' \in
+    \gprod{CallExpression}{e} \). Then
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{s' \cdot \texttt{.} \cdot \var}{p}{b}
+      \\
+      &=& \readfn{s'}{p}{b} \cdot \texttt{.}\cdot \var
+    \end{array}
+    \]
+    By induction \( \readfn{s'}{p}{b} \in \gprod{CallExpression'}{e}
+    \). Thus \( t \in \gprod{CallExpression'}{e~\texttt{.\var}} \).
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[\label{lem:readMemberExpression}Read MemberExpression]\mbox{}
+
+  \( \forall s. s \in \gprod{MemberExpression}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{MemberExpression'}{e} \)
+\end{lemma}
+\begin{proof}
+  For the if direction we have three cases:
+  \begin{itemize}
+  \item \( s \in \gprod{MemberExpression}{e} ::=
+    \gprod{PrimaryExpression}{e} \). This follows from Lemma
+    \ref{lem:readPrimaryExpression}.
+    
+  \item \( s \in \gprod{MemberExpression}{e} ::=
+    \gprod{FunctionExpression}{e} \). This follows from Lemma
+    \ref{lem:readFunctionExpression}.
+    
+  \item \( s \in \gprod{MemberExpression}{e\texttt{.\var}} ::=
+    \gprod{MemberExpression}{e} ~\texttt{.}~\var \). We have 
+    \( s = s' \cdot \texttt{.} \var \) where \( s \in
+    \gprod{MemberExpression}{e} \). Then
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{s' \cdot \texttt{.} \cdot \var}{p}{b}
+      \\
+      &=& \readfn{s'}{p}{b} \cdot \texttt{.} \cdot \var
+    \end{array}
+    \]
+    By induction \( \readfn{s'}{p}{b} \in \gprod{MemberExpression'}{e}
+    \) thus \( t \in \gprod{MemberExpression'}{e\texttt{.\var}} \).
   \end{itemize}
 \end{proof}
 
