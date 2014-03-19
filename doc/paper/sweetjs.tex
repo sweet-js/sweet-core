@@ -195,22 +195,6 @@ minor changes. We only address the = assignment operator and only the
   \gprod{CallExpr}{e}~\texttt{=}~
   \gprod{AssignExpr}{e'}
   \\ \\
-  \gprod{ExprStmt}{e} &::=&
-  \gprod{AssignExpr}{e} \texttt{;}
-  \\ 
-  &&  \textit{where lookahead \( \not =
-    \texttt{\{} \) or \( \texttt{function} \)}
-  \\ \\
-  \gprod{ReturnStmt}{\texttt{return}~\texttt{;}} &::=&
-  \texttt{return}
-  \\
-  \gprod{ReturnStmt}{\texttt{return}~e} &::=&
-  \texttt{return}~\textrm{[no line terminator
-    here]}~\gprod{AssignExpr}{e}~\texttt{;}
-  \\ \\
-  \gprod{Block}{\curlies{e}} &::=&
-  \curlies{ \gprod{StmtList}{e} } 
-  \\
   \gprod{StmtList}{e} &::=&
   \gprod{Stmt}{e}
   \\
@@ -218,21 +202,26 @@ minor changes. We only address the = assignment operator and only the
   \gprod{StmtList}{e}~
   \gprod{Stmt}{e'}
   \\ \\
-  \gprod{LabelledStmt}{\var\texttt{:}~e} &::=&
+  \gprod{Stmt}{\curlies{e}} &::=& 
+  \curlies{ \gprod{StmtList}{e} } 
+  \\
+  \gprod{Stmt}{\var\texttt{:}~e} &::=&
   \var~\texttt{:}~\gprod{Stmt}{e}
-  \\ \\
-  \gprod{IfStmt}{\texttt{if}~\parens{e}~e'} &::=&
+  \\
+  \gprod{Stmt}{e} &::=& 
+  \gprod{AssignExpr}{e} \texttt{;}
+  \qquad  \textit{where lookahead \( \not =
+    \texttt{\{} \) or \( \texttt{function} \)}
+  \\
+  \gprod{Stmt}{\texttt{if}~\parens{e}~e'} &::=& 
   \texttt{if}~\parens{\gprod{AssignExpr}{e}}~\gprod{Stmt}{e'}
-  \\ \\
-  \gprod{Stmt}{e} &::=& \gprod{Block}{e}
   \\
-  \gprod{Stmt}{e} &::=& \gprod{ExprStmt}{e}
+  \gprod{Stmt}{\texttt{return}} &::=& 
+  \texttt{return}
   \\
-  \gprod{Stmt}{e} &::=& \gprod{IfStmt}{e}
-  \\
-  \gprod{Stmt}{e} &::=& \gprod{ReturnStmt}{e}
-  \\
-  \gprod{Stmt}{e} &::=& \gprod{LabelledStmt}{e}
+  \gprod{Stmt}{\texttt{return}~e} &::=& 
+  \texttt{return}~\textrm{[no line terminator
+    here]}~\gprod{AssignExpr}{e}~\texttt{;}
   \\ \\
   \gprod{FunctionDecl}{\texttt{function}~x~\parens{x'}~\curlies{e}} 
   &::=&
@@ -667,8 +656,10 @@ mobile device browsers).
 
 \begin{theorem}[\label{thrm:readProgram}Parse Equivalence for Program]\mbox{}
 
-  \( \forall s. s \in \gprod{Program}{e} \Leftrightarrow 
-  \readfn{s}{\epsilon}{b} \in \gprod{Program'}{e} \)
+  \( \forall s. \)
+
+  \( s \in \gprod{Program}{e} \Leftrightarrow 
+  \readfn{s}{\epsilon}{\textit{false}} \in \gprod{Program'}{e} \)
 
 \end{theorem}
 \begin{proof}
@@ -686,8 +677,10 @@ mobile device browsers).
 
 \begin{lemma}[\label{lem:readSourceElements}Parse Equivalence for SourceElements]\mbox{}
 
-  \( \forall s. s \in \gprod{SourceElements}{e} \Leftrightarrow 
-  \readfn{s}{\epsilon}{b} \in \gprod{SourceElements'}{e} \)
+  \( \forall s. \) 
+
+  \( s \in \gprod{SourceElements}{e} \Leftrightarrow 
+  \readfn{s}{\epsilon}{\textit{false}} \in \gprod{SourceElements'}{e} \)
 \end{lemma}
 \begin{proof}
   For the if direction, there are two cases:
@@ -705,17 +698,18 @@ mobile device browsers).
     \) and \( s'' \in \gprod{SourceElement}{e'} \).
     \[
     \begin{array}{rcl}
-      t &=& \readfn{s'\cdot s''}{\epsilon}{b}
+      t &=& \readfn{s'\cdot s''}{\epsilon}{\textit{false}}
       \\
-      &=& \readfn{s'}{\epsilon}{b}\cdot \readfn{s''}{\readfn{s'}{\epsilon}{b}}{b}
+      &=& \readfn{s'}{\epsilon}{\false}\cdot  
+      \readfn{s''}{\readfn{s'}{\epsilon}{\false}}{\false}
     \end{array}
     \]
-    By induction \( \readfn{s'}{\epsilon}{b} \in
+    By induction \( \readfn{s'}{\epsilon}{\false} \in
     \gprod{SourceElements'}{e} \) and by Lemma
     \ref{lem:readSourceElement}, \( \readfn{s''}{
-      \readfn{s'}{\epsilon}{b}}{b} \in \gprod{SourceElement'}{e'} \) (since
+      \readfn{s'}{\epsilon}{\false}}{\false} \in \gprod{SourceElement'}{e'} \) (since
     by Lemma \ref{lem:readSourceElementPrefix}, \( 
-    \readfn{s'}{\epsilon}{b} \in \reprefix \)). Thus \( t \in
+    \readfn{s'}{\epsilon}{\false} \in \reprefix \)). Thus \( t \in
     \gprod{SourceElements'}{e~e'} \).
   \end{itemize}
   
@@ -728,7 +722,7 @@ mobile device browsers).
   \( \forall s, p \in \reprefix. \)
 
   \( s \in \gprod{SourceElement}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{SourceElement'}{e} \)
+  \readfn{s}{p}{\false} \in \gprod{SourceElement'}{e} \)
 \end{lemma}
 \begin{proof}
   For the if direction there are two cases:
@@ -744,7 +738,9 @@ mobile device browsers).
 
 \begin{lemma}[\label{lem:readFunctionDecl}Parse Equivalence for FunctionDecl]\mbox{}
   
-  \( \forall s. s \in \gprod{FunctionDecl}{e} \Leftrightarrow 
+  \( \forall s, p, b. \)
+
+  \( s \in \gprod{FunctionDecl}{e} \Leftrightarrow 
   \readfn{s}{p}{b} \in \gprod{FunctionDecl'}{e} \)
 \end{lemma}
 \begin{proof}
@@ -752,10 +748,10 @@ mobile device browsers).
   \[ 
   \begin{array}{lcl}
   s \in
-  \gprod{FunctionDecl}{\texttt{function}~x~\parens{x}~\curlies{e}}
+  \gprod{FunctionDecl}{\texttt{function}~x~\parens{x'}~\curlies{e}}
   ::= 
   \\
-  \texttt{function}~x~\parens{x}~\curlies{\gprod{SourceElements}{e}}
+  \texttt{function}~x~\parens{x'}~\curlies{\gprod{SourceElements}{e}}
   \end{array}
   \]
 
@@ -768,8 +764,8 @@ mobile device browsers).
    &=& \texttt{function}~x~\parens{x}~\curlies{t'}
  \end{array}
  \]
- where \( t' = \readfn{s'}{\epsilon}{\textit{true}} \). \textbf{TODO:
-   explain why b = true}. Since by Lemma \ref{lem:readSourceElements},
+ where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). 
+ Since by Lemma \ref{lem:readSourceElements},
  \( t' \in \gprod{SourceElements'}{e} \) we have \( t \in \gprod{FunctionDecl'}{\texttt{function}~x~\parens{x}~\curlies{e}} \).
 \end{proof}
 
@@ -778,155 +774,111 @@ mobile device browsers).
   \( \forall s, p \in \reprefix. \)
 
   \( s \in \gprod{Stmt}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{Stmt'}{e} \)
+  \readfn{s}{p}{\false} \in \gprod{Stmt'}{e} \)
 \end{lemma}
 \begin{proof}
   For the if direction we have several cases:
   \begin{itemize}
-  \item \( s \in \gprod{Stmt}{e} ::= \gprod{Block}{e} \). This
-    holds by Lemma \ref{lem:readBlock}.
 
-  \item \( s \in \gprod{Stmt}{e} ::= \gprod{ExprStmt}{e} \). This
-    holds by Lemma \ref{lem:readExprStmt}.
-
-  \item \( s \in \gprod{Stmt}{e} ::= \gprod{IfStmt}{e} \). This
-    holds by Lemma \ref{lem:readIfStmt}.
-
-  \item \( s \in \gprod{Stmt}{e} ::= \gprod{ReturnStmt}{e} \). This
-    holds by Lemma \ref{lem:readReturnStmt}.
-
-  \item \( s \in \gprod{Stmt}{e} ::= \gprod{LabelledStmt}{e} \). This
-    holds by Lemma \ref{lem:readLabelledStmt}.
-  \end{itemize}
-\end{proof}
+  \item \( s \in \gprod{Stmt}{\curlies{e}} ::=
+    \curlies{\gprod{StmtList}{e}} \). We have \( s = \curlies{s'} \)
+    where \( s' \in \gprod{StmtList}{e} \). Then:
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{\curlies{s'}}{p}{\false}
+      \\
+      &=& \curlies{t'}
+    \end{array}
+    \]
+    where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). By Lemma
+    \ref{lem:readStmtList}, \( t' \in \gprod{StmtList'}{e} \)
+    so \( t \in \gprod{Stmt'}{\curlies{e}} \).
 
 
-\begin{lemma}[\label{lem:readIfStmt}Parse Equivalence for IfStmt]\mbox{}
-  
-  \( \forall s, p \in \reprefix. \)
-
-  \( s \in \gprod{IfStmt}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{IfStmt'}{e} \)
-\end{lemma}
-\begin{proof}
-  For the if direction we have:
-  \[
-  \begin{array}{lcl}
-    s \in
-    \gprod{IfStmt}{\texttt{if}~\parens{e}~e'} 
-    ::= 
-    \\
-    \texttt{if}~ \parens{\gprod{AssignExpr}{e}}~
-    \gprod{Stmt}{e'}
-  \end{array}
-  \]
-  We have \( s = \texttt{if}\cdot \parens{s'}\cdot s'' \) where \( s' \in
-  \gprod{AssignExpr}{e} \) and \( s'' \in \gprod{Stmt}{e'} \).
-  \[
-  \begin{array}{rcl}
-    t &=& \readfn{
-      \texttt{if}\cdot \parens{s'}\cdot s'' 
-    }{p}{b}
-    \\
-    &=& \texttt{if} \cdot \parens{t'} \cdot t'' 
-  \end{array}
-  \]
-  where 
-  \[ 
-  \begin{array}{lcl}
-    t' &=& \readfn{s'}{\epsilon}{b}
-    \\
-    t'' &=& \readfn{s''}{
-      p \cdot \texttt{if} \cdot \parens{t'}
-    }{b}
-  \end{array}
-  \]
-  By Lemma \ref{lem:readAssignExpr} \( t' \in
-  \gprod{AssignExpr'}{e} \). By Lemma
-  \ref{lem:readStmt}, \( t'' \in \gprod{Stmt'}{e'} \) (since
-  \( p \cdot \parens{t'} \in \reprefix \)). Thus \( t \in
-  \gprod{IfStmt'}{\texttt{if}~\parens{e}~e'} \).
-\end{proof}
-
-\begin{lemma}[\label{lem:readLabelledStmt}Parse Equivalence for LabelledStmt]\mbox{}
-  
-  \( \forall s. s \in \gprod{LabelledStmt}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{LabelledStmt'}{e} \)
-\end{lemma}
-\begin{proof}
-  For the if direction we have a single case: \( s \in
-  \gprod{LabelledStmt}{\var \texttt{:}~e} ::=
-  \var~\texttt{:}~\gprod{Stmt}{e} \). We have \( s = \var \cdot
-  \texttt{:} \cdot s' \) where \( s' \in \gprod{Stmt}{e} \).
-  Then:
-  \[
-  \begin{array}{rcl}
-    t &=& \readfn{\var \cdot \texttt{:} \cdot s'}{p}{b}
-    \\
-    &=& \var \cdot \texttt{:} \cdot 
-    \readfn{s'}{
-      p \cdot \var \cdot \texttt{:}
-    }{b}
-  \end{array}
-  \]
-  By Lemma \ref{lem:readStmt}, \( \readfn{s'}{p \cdot \var \cdot
-    \texttt{:}}{b} \in \gprod{Stmt'}{e} \) so \( t \in
-  \gprod{LabelledStmt'}{\var~\texttt{:}~e} \).
-  \textbf{TODO: need to take into account b and the prefix}.
-\end{proof}
-
-\begin{lemma}[\label{lem:readReturnStmt}Parse Equivalence for ReturnStmt]\mbox{}
-  
-  \( \forall s. s \in \gprod{ReturnStmt}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{ReturnStmt'}{e} \)
-\end{lemma}
-\begin{proof}
-  To show the if direction there are two cases:
-  \begin{itemize}
-  \item \( s \in \gprod{ReturnStmt}{\texttt{return ;}} ::=
-    \texttt{return ;} \). Since \( s = \texttt{return ;} \) and \(
-    \readfn{s}{p}{q} = \texttt{return}\cdot\texttt{;} \in
-    \gprod{ReturnStmt'}{\texttt{return ;}} \) we have our result
-    directly.
-
-  \item \( s \in \gprod{ReturnStmt}{\texttt{return}~e} ::=
-    \texttt{return}~ \gprod{AssignExpr}{e} \). We have \( s
-    = \texttt{return}\cdot s' \) where \( s' \in
+  \item \( s \in \gprod{Stmt}{e} ::= \gprod{AssignExpr}{e}~\texttt{;}
+    \). We have \( s = s' \cdot \texttt{;} \) where \( s' \in
     \gprod{AssignExpr}{e} \). Then:
     \[
     \begin{array}{rcl}
-      t &=& \readfn{\texttt{return} \cdot s'}{p}{b}
+      t &=& \readfn{s'\cdot \texttt{;}}{p}{\false}
       \\
-      &=& \texttt{return}\cdot \readfn{s'}{p \cdot \texttt{return}}{b}
+      &=& \readfn{s'}{p}{\false} \cdot \texttt{;}
+    \end{array}
+    \]
+    Since \( p \in \reprefix \) by Lemma
+    \ref{lem:readAssignExpr}, \( \readfn{s'}{p}{\false} \in
+    \gprod{AssignExpr'}{e} \) we have \( t \in
+    \gprod{Stmt'}{e} \).
+
+  \item \( s \in \gprod{Stmt}{\texttt{if}~\parens{e}~e'} ::=
+    \texttt{if}~ \parens{\gprod{AssignExpr}{e}}~ \gprod{Stmt}{e'} \).
+    We have \( s = \texttt{if}\cdot \parens{s'}\cdot s'' \) where \(
+    s' \in \gprod{AssignExpr}{e} \) and \( s'' \in \gprod{Stmt}{e'}
+    \).
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{
+        \texttt{if}\cdot \parens{s'}\cdot s'' 
+      }{p}{\false}
+      \\
+      &=& \texttt{if} \cdot \parens{t'} \cdot t'' 
+    \end{array}
+    \]
+    where 
+    \[ 
+    \begin{array}{lcl}
+      t' &=& \readfn{s'}{\epsilon}{\false}
+      \\
+      t'' &=& \readfn{s''}{
+        p \cdot \texttt{if} \cdot \parens{t'}
+      }{\false}
+    \end{array}
+    \]
+    By Lemma \ref{lem:readAssignExpr} \( t' \in
+    \gprod{AssignExpr'}{e} \). By induction, 
+    \( t'' \in \gprod{Stmt'}{e'} \) (since
+    \( p \cdot \parens{t'} \in \reprefix \)). Thus \( t \in
+    \gprod{Stmt'}{\texttt{if}~\parens{e}~e'} \).
+
+  \item \( s \in \gprod{Stmt}{\texttt{return}} ::= \texttt{return} \).
+    Since \( s = \texttt{return} \) and \( \readfn{s}{p}{\false} =
+    \texttt{return} \in \gprod{Stmt'}{\texttt{return}} \) we
+    have our result directly.
+
+  \item \( s \in \gprod{Stmt}{\texttt{return}~e} ::=
+    \texttt{return}~ \gprod{AssignExpr}{e} \texttt{;} \).
+    We have \( s
+    = \texttt{return}\cdot s' \cdot \texttt{;} \) where \( s' \in
+    \gprod{AssignExpr}{e} \). Then:
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{\texttt{return} \cdot s' \cdot \texttt{;}}{p}{\false}
+      \\
+      &=& \texttt{return}\cdot \readfn{s'}{p \cdot \texttt{return}}{\false}
+      \cdot \texttt{;}
     \end{array}
     \]
     By Lemma \ref{lem:readAssignExpr}, \( \readfn{s'}{p
-      \cdot \texttt{return}}{b} \in \gprod{AssignExpr'}{e}
-    \) thus \( t \in \gprod{ReturnStmt'}{\texttt{return}~e} \).
-  \end{itemize}
-\end{proof}
+      \cdot \texttt{return}}{\false} \in \gprod{AssignExpr'}{e}
+    \) thus \( t \in \gprod{Stmt'}{\texttt{return}~e} \).
 
-\begin{lemma}[\label{lem:readBlock}Parse Equivalence for Block]\mbox{}
-  
-  \( \forall s. s \in \gprod{Block}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{Block'}{e} \)
-\end{lemma}
-\begin{proof}
-  For the if direction we have:
-  \[ 
-  s \in \gprod{Block}{\curlies{e}} ::= \curlies{\gprod{StmtList}{e}}
-  \]
-  so \( s = \curlies{s'} \) where \( s' \in \gprod{StmtList}{e} \).
-  \[
-  \begin{array}{rcl}
-    t &=& \readfn{\curlies{s'}}{p}{b}
-    \\
-    &=& \curlies{t'}
-  \end{array}
-  \]
-  where \( t' = \readfn{s'}{\epsilon}{\textit{true}} \). By Lemma
-  \ref{lem:readStmtList}, \( t' \in \gprod{StmtList'}{e} \)
-  so \( t \in \gprod{Block'}{\curlies{e}} \).
+  \item \( s \in \gprod{Stmt}{\var \texttt{:}~e} ::=
+    \var~\texttt{:}~\gprod{Stmt}{e} \). We have \( s = \var \cdot
+    \texttt{:} \cdot s' \) where \( s' \in \gprod{Stmt}{e} \). Then:
+    \[
+    \begin{array}{rcl}
+      t &=& \readfn{\var \cdot \texttt{:} \cdot s'}{p}{\false}
+      \\
+      &=& \var \cdot \texttt{:} \cdot 
+      \readfn{s'}{
+        p \cdot \var \cdot \texttt{:}
+      }{\false}
+    \end{array}
+    \]
+    By induction, \( \readfn{s'}{p \cdot \var \cdot
+      \texttt{:}}{\false} \in \gprod{Stmt'}{e} \) so \( t \in
+    \gprod{Stmt'}{\var~\texttt{:}~e} \).
+  \end{itemize}
 \end{proof}
 
 \begin{lemma}[\label{lem:readStmtList}Parse Equivalence for StmtList]\mbox{}
@@ -934,7 +886,7 @@ mobile device browsers).
   \( \forall s, p \in \reprefix. \)
 
   \( s \in \gprod{StmtList}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{StmtList'}{e} \)
+  \readfn{s}{p}{\false} \in \gprod{StmtList'}{e} \)
 \end{lemma}
 \begin{proof}
   For the if direction we have two cases:
@@ -948,57 +900,41 @@ mobile device browsers).
     and \( s'' \in \gprod{Stmt}{e'} \). Then,
     \[
     \begin{array}{rcl}
-      t &=& \readfn{s' \cdot s''}{p}{b}
+      t &=& \readfn{s' \cdot s''}{p}{\false}
       \\
-      &=& \readfn{s'}{p}{b} \cdot \readfn{s''}{p \cdot \readfn{s'}{p}{b}}{b}
+      &=& \readfn{s'}{p}{\false} \cdot \readfn{s''}{p 
+        \cdot \readfn{s'}{p}{\false}}{\false}
     \end{array}
     \]
-    By induction \( \readfn{s'}{p}{b} \in \gprod{StmtList'}{e} \)
+    By induction \( \readfn{s'}{p}{\false} \in \gprod{StmtList'}{e} \)
     and by Lemma \ref{lem:readStmt}, \( \readfn{s''}{p \cdot
-      \readfn{s'}{p}{b}}{b} \in \gprod{Stmt'}{e'} \) (since by
-    Lemma \ref{lem:readStmtPrefix}, \( p \cdot \readfn{s'}{p}{b}
-    \in \reprefix \)).
-    Thus, \( t \in \gprod{StmtList'}{e~e'} \).
+      \readfn{s'}{p}{\false}}{\false} \in \gprod{Stmt'}{e'} \) (since
+    by Lemma \ref{lem:readStmtPrefix}, \( p \cdot
+    \readfn{s'}{p}{\false} \in \reprefix \)). Thus, \( t \in
+    \gprod{StmtList'}{e~e'} \).
   \end{itemize}
 \end{proof}
 
-\begin{lemma}[\label{lem:readExprStmt}Parse Equivalence for
-  ExprStmt]\mbox{}
+\begin{lemma}[\label{lem:readAssignExpr}Parse Equivalence for
+  AssignExpr]\mbox{}
   
   \( \forall s, p \in \reprefix. \)
-
-  \( s \in \gprod{ExprStmt}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{ExprStmt'}{e} \)
-\end{lemma}
-\begin{proof}
-  For the if direction we have 
-  \( s \in \gprod{ExprStmt}{e} ::=
-  \gprod{AssignExpr}{e}~\texttt{;} \) so \( s = s' \cdot
-  \texttt{;} \) where \( s' \in \gprod{AssignExpr}{e} \).
-  Then:
-  \[
-  \begin{array}{rcl}
-    t &=& \readfn{s'\cdot \texttt{;}}{p}{b}
-    \\
-    &=& \readfn{s'}{p}{b} \cdot \texttt{;}
-  \end{array}
+  If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
+  b = \true \) then \( s \) is unconstrained.
+  \[ 
+  s \in \gprod{AssignExpr}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{AssignExpr'}{e} 
   \]
-  Since \( p \in \reprefix \) by Lemma
-  \ref{lem:readAssignExpr}, \( \readfn{s'}{p}{b} \in
-  \gprod{AssignExpr'}{e} \) we have \( t \in
-  \gprod{ExprStmt'}{e} \).
-\end{proof}
-
-\begin{lemma}[\label{lem:readAssignExpr}Parse Equivalence
-  for  AssignExpr]\mbox{}
   
-  \( \forall s, p \in \reprefix. \)
-
-  \( s \in \gprod{AssignExpr}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{AssignExpr'}{e} \)
 \end{lemma}
 \begin{proof}
-  For the if direction we have two cases:
+  The constraint on \( s \) when \( b \) is false is due to the
+  lookahead check in the production \( \gprod{Stmt}{e} ::=
+  \gprod{AssignExpr}{e}~\texttt{;} \). Lemma \ref{lem:readPrimaryExpr}
+  will make use of this constraint.
+
+  For the if direction we have
+  two cases:
   \begin{itemize}
   \item \( s \in \gprod{AssignExpr}{e} ::=
     \gprod{BinaryExpr}{e} \). This holds by Lemma
@@ -1036,9 +972,13 @@ mobile device browsers).
 \begin{lemma}[\label{lem:readBinaryExpr}Parse Equivalence for BinaryExpr]\mbox{}
   
   \( \forall s, p \in \reprefix. \)
- 
-  \( s \in \gprod{BinaryExpr}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{BinaryExpr'}{e} \)
+  If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
+  b = \true \) then \( s \) is unconstrained.
+  \[
+  s \in \gprod{BinaryExpr}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{BinaryExpr'}{e} 
+  \]
+
 \end{lemma}
 \begin{proof}
   To show the if direction we have three cases:
@@ -1107,9 +1047,12 @@ mobile device browsers).
 \begin{lemma}[\label{lem:readCallExpr}Parse Equivalence for CallExpr]\mbox{}
   
   \( \forall s, p \in \reprefix. \)
- 
-  \( s \in \gprod{CallExpr}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{CallExpr'}{e} \)
+  If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
+  b = \true \) then \( s \) is unconstrained.
+  \[ 
+  s \in \gprod{CallExpr}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{CallExpr'}{e} 
+  \]
 \end{lemma}
 \begin{proof}
   For the if direction we have three cases:
@@ -1158,9 +1101,12 @@ mobile device browsers).
 \begin{lemma}[\label{lem:readMemberExpr}Parse Equivalence for MemberExpr]\mbox{}
 
   \( \forall s, p \in \reprefix. \)
-
-  \( s \in \gprod{MemberExpr}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{MemberExpr'}{e} \)
+  If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
+  b = \true \) then \( s \) is unconstrained.
+  \[
+  s \in \gprod{MemberExpr}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{MemberExpr'}{e} 
+  \]
 \end{lemma}
 \begin{proof}
   For the if direction we have three cases:
@@ -1192,9 +1138,12 @@ mobile device browsers).
 \begin{lemma}[\label{lem:readPrimaryExpr}Parse Equivalence for PrimaryExpr]\mbox{}
   
   \( \forall s, p \in \reprefix. \)
-
-  \( s \in \gprod{PrimaryExpr}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{PrimaryExpr'}{e} \)
+  If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
+  b = \true \) then \( s \) is unconstrained.
+  \[ 
+  s \in \gprod{PrimaryExpr}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{PrimaryExpr'}{e} 
+  \]
 \end{lemma}
 \begin{proof}
   For the if direction we have several cases:
@@ -1209,16 +1158,18 @@ mobile device browsers).
 
   \item \( s \in \gprod{PrimaryExpr}{\curlies{\var\texttt{:}e}}
     ::= \curlies{\var\texttt{:} \gprod{AssignExpr}{e}} \).
-    Then \( s = \var \cdot \texttt{:} \cdot \curlies{s'} \) where \(
+    Then \( s = \texttt{\{} \cdot \var \cdot \texttt{:} \cdot 
+    s' \cdot \texttt{\}} \) where \(
     s' \in \gprod{AssignExpr}{e} \). Then:
     \[
     \begin{array}{rcl}
-      t &=& \readfn{\var\cdot  \texttt{:} \cdot \curlies{s'}}{p}{b}
+      t &=& \readfn{\texttt{\{} \cdot \var\cdot  
+        \texttt{:} \cdot s' \cdot \texttt{\}}}{p}{\true}
       \\
-      &=& \var \cdot \texttt{:} \cdot \curlies{t'}
+      &=& \curlies{\var \cdot \texttt{:} \cdot t'}
     \end{array}
     \]
-    where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). By Lemma
+    where \( t' = \readfn{s'}{\var \cdot \texttt{:}}{\textit{true}} \). By Lemma
     \ref{lem:readAssignExpr}, \( t' \in
     \gprod{AssignExpr'}{e} \) and thus \( t \in
     \gprod{PrimaryExpr'}{\curlies{\var\texttt{:}e}} \).
@@ -1246,7 +1197,7 @@ mobile device browsers).
 
   \( 
   s \in \gprod{SourceElement}{e} \Rightarrow 
-  \readfn{s}{p}{b} \in \reprefix
+  \readfn{s}{p}{\false} \in \reprefix
   \)
 \end{lemma}
 \begin{proof}
@@ -1263,31 +1214,36 @@ mobile device browsers).
 
   \( \forall s, p \in \reprefix. \)
 
-  \( \readfn{s}{p}{b} \in \gprod{Stmt'}{e} \Rightarrow p \cdot \readfn{s}{p}{b} \in \reprefix \)
+  \( \readfn{s}{p}{\false} \in \gprod{Stmt'}{e} \Rightarrow p \cdot \readfn{s}{p}{\false} \in \reprefix \)
 \end{lemma}
 \begin{proof}
   We have several cases:
   \begin{itemize}
-  \item \( \readfn{s}{p}{b} \in \gprod{Block'}{e} \). Follows since \(
-    p \in \reprefix \).
+  \item \( \readfn{s}{p}{\false} \in \curlies{\gprod{StmtList'}{e}}
+    \). Follows since \( p \in \reprefix \).
 
-  \item \( \readfn{s}{p}{b} \in \gprod{ExprStmt'}{e} \).
-    Follows since \( t \cdot \texttt{;} \in \reprefix \) for any \( t \).
+  \item \( \readfn{s}{p}{\false} \in \gprod{AssignExpr'}{e}~\texttt{;}
+    \). Follows since \( t \cdot \texttt{;} \in \reprefix \) for any
+    \( t \).
     
-  \item \( t = \readfn{s}{p}{b} \in \gprod{IfStmt'}{e} \). Since
+  \item \( t = \readfn{s}{p}{\false} \in \texttt{if}~\parens{\gprod{AssignExpr'}{e}}~\gprod{Stmt}{e'} \). Since
     \( t = \texttt{if}\cdot \parens{t'}\cdot t'' \) where \( t'' \in
     \gprod{Stmt'}{e'} \) by induction \( t'' \in \reprefix \) and
-    thus \( t \in \reprefix \).
-    
-  \item \( t = \readfn{s}{p}{b} \in \gprod{ReturnStmt'}{e} \).
-    Either \( t = \texttt{return}\cdot \texttt{;} \) 
-    or \( t = \texttt{return}\cdot t' \cdot \texttt{;} \)
-    and since \( \texttt{;} \in \reprefix \) then \( t \in \reprefix \).
+    thus \( p \cdot t \in \reprefix \).
 
-  \item \( t = \readfn{s}{p}{b} \in \gprod{LabelledStmt'}{e} \).
-    Since \( t = \texttt{x}\cdot \texttt{:}\cdot t' \) where \( t' \in
-    \gprod{Stmt'}{e} \) by induction \( t' \in \reprefix \) and
-    thus \( t \in \reprefix \).
+  \item \( \readfn{s}{p}{\false} \in \texttt{return} \).
+    Follows since \( p \cdot \texttt{return} \in \reprefix \).
+    
+  \item \( t = \readfn{s}{p}{\false} \in
+    \texttt{return}~\gprod{AssignExpr'}{e}~ \texttt{;} \). 
+    Since \( \texttt{;} \in \reprefix \) then \( p \cdot t \in
+    \reprefix \).
+
+  \item \( t = \readfn{s}{p}{\false} \in
+    \var~\texttt{:}~\gprod{Stmt'}{e} \). Since \( t = \texttt{x}\cdot
+    \texttt{:}\cdot t' \) where \( t' \in \gprod{Stmt'}{e} \). Since
+    \( p \in \reprefix \) and by induction \( t' \in \reprefix \) we
+    have \( p \cdot t \in \reprefix \).
 
   \end{itemize}
 \end{proof}
