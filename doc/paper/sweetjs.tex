@@ -1,4 +1,5 @@
-\documentclass[preprint,10pt]{sigplanconf}
+% \documentclass[preprint,10pt]{sigplanconf}
+\documentclass[onecolumn]{sigplanconf-onecolumn}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{fixltx2e}
@@ -21,11 +22,17 @@
 \usepackage{graphics}
 \usepackage{listings}
 \usepackage{microtype}
+\usepackage{color}
+\definecolor{lightgray}{rgb}{.9,.9,.9}
+\definecolor{darkgray}{rgb}{.4,.4,.4}
+\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+
 \input{brackets}
 \input{definitions}
 \authorinfo{Tim Disney}{UC Santa Cruz}{}
 \authorinfo{Nate Faubion}{}{}
 \authorinfo{David Herman}{Mozilla}{}
+\authorinfo{Cormac Flanagan}{UC Santa Cruz}{}
 \renewcommand{\author}[1]{}
 \author{Tim Disney}
 \date{\today}
@@ -34,6 +41,36 @@
   pdfkeywords={},
   pdfsubject={Sweet.js - Macros for JavaScript}}
 \begin{document}
+
+
+\lstdefinelanguage{JavaScript}{
+  keywords={macro, typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
+  keywordstyle=\color{black}\textbf,
+  ndkeywords={class, export, boolean, throw, implements, import, this},
+  ndkeywordstyle=\color{darkgray},
+  identifierstyle=\color{black},
+  sensitive=false,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{darkgray}\ttfamily,
+  morestring=[b]',
+  morestring=[b]"
+}
+
+\lstset{
+   language=JavaScript,
+   extendedchars=true,
+   basicstyle=\footnotesize\ttfamily,
+   showstringspaces=false,
+   showspaces=false,
+   numberstyle=\footnotesize,
+   numbersep=9pt,
+   tabsize=2,
+   breaklines=true,
+   showtabs=false,
+   captionpos=b
+}
+
 
 \maketitle
 
@@ -78,15 +115,14 @@ challenges:
 \label{sec-2}
 TODO: syntax, main features etc\ldots
 
+
 \section{Read}
 \label{sec-3}
 
 The syntax of JavaScript presents a challenge to correctly implement
-the critical \texttt{read} function. This challenge is not present in Honu
-because their language is an idealized syntax that misses the
+the critical \texttt{read} function. This challenge is not present in
+Honu because their language is an idealized syntax that misses the
 problematic interaction of delimiters and regular expression literals.
-
-TODO: motivate \texttt{read} with examples etc.
 
 \[
 \begin{array}{rcl}
@@ -481,7 +517,7 @@ Sweet.js provides \emph{infix macros} which allows a macro identifier to
 match syntax before it. For example, the following implements
 ES6-style arrow functions via infix macros:
 
-\begin{verbatim}
+\begin{lstlisting}
 macro (=>) {
     rule infix {
         ($params ...) | { $body ... }
@@ -493,7 +529,7 @@ macro (=>) {
 }
 
 var id = (x) => { return x; }
-\end{verbatim}
+\end{lstlisting}
 
 The macros we have described so far must all be prefixed by the macro
 identifier and syntax after the macro name is matched. This is
@@ -509,7 +545,7 @@ Sweet.js provides \emph{infix macros} which allows a macro identifier to
 match syntax before it. For example, the following implements
 ES6-style arrow functions via infix macros:
 
-\begin{verbatim}
+\begin{lstlisting}
 macro (=>) {
     rule infix {
         ($params ...) | { $body ... }
@@ -520,24 +556,24 @@ macro (=>) {
     }
 }
 var id = (x) => { return x; }
-\end{verbatim}
+\end{lstlisting}
 
 This is accomplished by simply providing the state of previously
 expanded syntax to macro transformers. Macros may then consume from
 either ends as needed, yielding new previous and subsequent syntax. At
 first glance, this can appear brittle:
 
-\begin{verbatim}
+\begin{lstlisting}
 var foo = bar(x) => { return x; }
-\end{verbatim}
+\end{lstlisting}
 
 We've juxtaposed the \verb!=>! macro next to a function call, which we did
 not intend to be valid syntax. A naive expansion results in unparsable
 code:
 
-\begin{verbatim}
+\begin{lstlisting}
 var foo = bar function(x) { return x; }
-\end{verbatim}
+\end{lstlisting}
 
 In more subtle cases, a naive expansion can result in parsable code
 with incorrect semantics. [Example needed?] To preserve the integrity
@@ -564,7 +600,7 @@ as to always bind tighter than other operators.
 Pattern classes are extensible via the \verb!invoke! class which is
 parameterized by a macro name.
 
-\begin{verbatim}
+\begin{lstlisting}
 macro color {
   rule { red } => { red }
   rule { green } => { green }
@@ -573,7 +609,7 @@ macro color {
 macro colors_options {
   rule { ($opt:invoke(color) ...) } => { ... }
 }
-\end{verbatim}
+\end{lstlisting}
 
 The macro is essentially inserted into the token stream. If the
 expansion succeeds, the result will be loaded into the pattern
@@ -582,7 +618,7 @@ non-primitive pattern classes are interpretted as \verb!invoke!
 parameterized by the custom class. We've also added identity rules to
 shorten definitions of simple custom classes.
 
-\begin{verbatim}
+\begin{lstlisting}
 macro color {
   rule { red }
   rule { green }
@@ -591,14 +627,14 @@ macro color {
 macro colors_options {
   rule { ($opt:color (,) ...) } => { ... }
 }
-\end{verbatim}
+\end{lstlisting}
 
 These macros may return an optional pattern environment which will be
 scoped and loaded into the invoking macro's pattern environment. This
 lets us define Honu-style pattern classes as simple macro-generating
 macros.
 
-\begin{verbatim}
+\begin{lstlisting}
 macro color {
   ...
 }
@@ -615,7 +651,7 @@ macro color_options {
   }
 }
 
-\end{verbatim}
+\end{lstlisting}
 
 ...?
 
@@ -624,6 +660,126 @@ macro color_options {
 
 Mostly straightforward implementation from scheme with some details to
 handle \texttt{var}.
+
+\subsection{Var statements} 
+
+Unfortunately there's some complexity in how `var` (and `let`/`const`)
+statements and macros interact. In short, macros must be defined
+before being used in a var statement.
+
+For example, this will work:
+
+\begin{lstlisting}
+macro id { rule { $id } }
+var x = id 42;
+// -->
+var x = 42;
+\end{lstlisting}
+
+But not this:
+
+\begin{lstlisting}
+var x = id 42;
+macro id { rule { $id } }
+// -->
+var x = m 42;
+\end{lstlisting}
+
+This is unfortunate because macros can be used before definition for
+all other syntax forms, just not `var`. Also Racket, from which sweet.js
+takes most other design cues, allows exactly this kind of use/definition
+mixing with internal definitions:
+
+\begin{lstlisting}
+(define y (id 100))
+(define-syntax-rule (id x) x)
+\end{lstlisting}
+
+So what gives?
+
+In order to support mixing use/def the scheme expander must run
+through each scope twice. The first pass registers any macro definitions
+but critically it doesn't expand inside internal definitions.
+
+So after the first pass of the above example we'll have something like:
+
+\begin{lstlisting}
+// the id macro is registered in the environment { id: <transformer> }
+(define y (id 100))
+\end{lstlisting}
+
+And then the second pass will expand macros inside internal definitions:
+
+\begin{lstlisting}
+(define y 100)
+\end{lstlisting}
+
+So far so good, but here's the tricky part for sweet.js: you need to
+know where internal definitions end during the first pass
+*before* expanding any macros inside them. This is easy for scheme
+because everything is delimited but we don't have it that easy in
+JavaScript.
+
+To clarify the problem let's use the ES6 arrow macro:
+
+\begin{lstlisting}
+var x = (x) => { x }
+macro (=>) { ... }
+\end{lstlisting}
+
+When the expander gets to the `var` statement during the first pass
+it doesn't know anything about the `=>` macro yet. All it can
+know is that the right hand side of `=` needs to be an expression
+(which in this case means it will match `var x = (x)` and then barf
+on `=>`).
+
+The basic problem here is that in JavaScript there is no way
+to detect the end of a var statement in the presence of as yet
+unknown macro definitions. So, you must define your macros
+before using them in `var` statements.
+
+But wait, it's even more confusing
+
+So even though we can't defer expansion inside of `var` statements
+we still do two passes for each scope and the expansion of any
+syntax inside of a delimiter is deferred until the second pass
+which now has all the macro definitions in scope. Which means that
+you can actually use macros in `var` statements before definition
+as long as you wrap it in parens.
+
+\begin{lstlisting}
+var x = id(100);
+// var x = id(100)
+
+var x = (id(100));
+// var x = 100
+
+macro id { rule { ($x) } }
+\end{lstlisting}
+
+(IMO it's better to just always define your macros first rather
+than think about these details but it is a way around the problem)
+
+As I was writing this up I realized we actually have a small problem
+in how we handle macros used before definition that are not in a
+delimiter or a `var` statement:
+
+\begin{lstlisting}
+id (100)
+// id(100)
+
+{
+	id(100)
+    // 100
+}
+macro id { rule { ($x) } }
+\end{lstlisting}
+
+The first `id (100)` isn't being expanded even though we should be
+able to do so.
+
+
+
 \section{Implementation}
 \label{sec-6}
 Sweet.js is written in JavaScript and runs in the major JS
