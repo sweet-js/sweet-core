@@ -111,18 +111,30 @@ challenges:
   more powerful matching
 \end{itemize}
 
-\section{Overview}
-\label{sec-2}
-TODO: syntax, main features etc\ldots
+\section{Reading JavaScript}
+\label{sec:read}
 
+Compilers give structure to unstructured source code. In compilers without macro systems this is accomplished by lexers (which generate flat tokens from a regular expression definition) and parsers (which generate an abstract syntax tree from a grammar definition).
 
-\section{Read}
-\label{sec-3}
+In order to implement the kinds of expressive macro systems found in the Lisp and Scheme tradition it is necessary to give additional structure beyond what a lexer can accomplish. In Lisp and Scheme this was done by the \emph{read} function which matches delimiters. By structuring code with delimiters, macros can manipulate whole delimited chunks of code.
 
-The syntax of JavaScript presents a challenge to correctly implement
-the critical \texttt{read} function. This challenge is not present in
-Honu because their language is an idealized syntax that misses the
-problematic interaction of delimiters and regular expression literals.
+While this is obviously a requirement in an fully delimited language like Lisp/Scheme, it is also important in languages such as JavaScript that are not entirely delimited.
+
+\textbf{TODO: class example to show the delimiters?}
+
+Unfortunately, the syntax of JavaScript presents a challenge to correctly implement the \texttt{read} function. In particular, one of the syntax features of JavaScript is support for regular expression literals, which are formed with the forward slash \lstinline!/!. Delimiters are valid inside of a regular expression literal so the reader must not match delimiters inside of a regular expression literal.
+
+\begin{lstlisting}
+function makeRegex() {
+  return /}/;
+}
+\end{lstlisting}
+
+Since the reader must ignore delimiters inside regular expression literals, it must know when it is reading between the literal's slashes. However, slash is also used as the divide operator in JavaScript. So, in order for the reader to ignore delimiters inside of regex literals it must first decide if a slash is the beginning of a literal or a divide operator. This is complicated.
+
+Traditionally JavaScript parsers are not separated from the lexer; the lex function is called from a particular parsing context with a flag indicating if the context accepts either a regular expression literal or a divide token. For JavaScript parsers this technique is sufficient but a macro expander requires the separation of the lexer/reader from the parser.
+
+Note that this problem is not present in Honu since their language does not include regular expression literals and so misses the problematic interaction we describe here.
 
 \[
 \begin{array}{rcl}
@@ -801,8 +813,6 @@ mobile device browsers).
 \item Closure
 \end{itemize}
 \section{Conclusion}
-\label{sec-8}
-% Emacs 24.3.1 (Org mode 8.2.5h)
 
 \appendix
 
