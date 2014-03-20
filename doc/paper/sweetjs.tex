@@ -1135,6 +1135,27 @@ mobile device browsers).
   \end{itemize}
 \end{proof}
 
+\begin{lemma}[\label{lem:readFunctionExpr}Parse Equivalence for
+  FunctionExpr]\mbox{}
+
+  \( \forall s, b, p \in \reprefix. \)
+  \[
+  s \in \gprod{FunctionExpr}{e} \Leftrightarrow 
+  \readfn{s}{p}{b} \in \gprod{FunctionExpr'}{e} 
+  \]
+\end{lemma}
+\begin{proof}
+  Since \( s = \texttt{function}~x~\parens{x'}~\curlies{s'} \) where
+  \( s' \in \gprod{SourceElements}{e} \) and 
+  \[ 
+  t = \readfn{s}{p}{b} = 
+  \texttt{function} \cdot x \cdot \parens{x'} \cdot \curlies{t'}
+  \]
+  where \( t' = \readfn{s'}{\epsilon}{\false} \) and by Lemma
+  \ref{lem:readSourceElements}, \( t' \in \gprod{SourceElements'}{e}
+  \) we have \( t \in \gprod{FunctionExpr'}{\texttt{function}~x~\parens{x}~\curlies{e}} \).
+\end{proof}
+
 \begin{lemma}[\label{lem:readPrimaryExpr}Parse Equivalence for PrimaryExpr]\mbox{}
   
   \( \forall s, p \in \reprefix. \)
