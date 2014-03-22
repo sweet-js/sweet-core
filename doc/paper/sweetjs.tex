@@ -22,10 +22,12 @@
 \usepackage{graphics}
 \usepackage{listings}
 \usepackage{microtype}
+\usepackage{mathtools}
 \usepackage{color}
 \definecolor{lightgray}{rgb}{.9,.9,.9}
 \definecolor{darkgray}{rgb}{.4,.4,.4}
 \definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+
 
 \input{brackets}
 \input{definitions}
@@ -60,6 +62,7 @@
 \lstset{
    language=JavaScript,
    extendedchars=true,
+   % basicstyle=\ttfamily,
    basicstyle=\footnotesize\ttfamily,
    showstringspaces=false,
    showspaces=false,
@@ -74,55 +77,373 @@
 
 \maketitle
 
+\abstract{Sweet.js is a hygienic macro system for JavaScript.}
+
 \section{Introduction}
 \label{sec-1}
 
-Sweet.js is a new hygienic macro system for JavaScript.
-
 Macros systems have a long history in the design of extensible
-programming languages going back at least to lisp as a tool to provide
+programming languages going back at least to Lisp and Scheme
+\cite{Kohlbecker1987,Foderaro1983} as a tool to provide
 programmers syntactic flexibility.
 
-While powerful macro systems have been used extensively in lisp
-derived languages there has been considerable less movement for macros
-systems for languages with an expression based syntax such as
+While powerful macro systems have been used extensively in 
+Lisp-derived languages, there has been considerable less movement for macros
+systems for languages with an 
+
+expression based syntax such as
 JavaScript. This is due to a variety of technical reasons that have
 held back macro systems in expression based languages which we address
 in this paper.
 
-Recently the Honu project has shown how to overcome some of the
-existing challenges in developing a macro system for expression based
-language. The Honu technique was designed for an idealized JavaScript
-like language. In this paper we show how to extend the ideas of Honu
-for full JavaScript and present additional techniques that target
-expression based languages.
+Key ideas: Parens in Scheme make macros easy. Rich syntax is much
+harder. Need to interpose reader before parsing. ES5's parser uses
+context-sensitive lexing. Need a reader that avoids context sensitive
+lexing and produces token trees.
 
-The design of sweet.js attempts to overcome the following technical
-challenges: 
+A scheme compiler pipeline looks like:
+\[
+\textit{Scheme} : 
+\textit{lexer} \xrightarrow{\textit{Token}^{*}}
+\textit{reader} \xrightarrow{\textit{Sexpr}}
+\textit{parser} \xrightarrow{\textit{AST}}
+\]
+
+A because of ambiguity during lexing an ES5 compiler pipline looks
+like:
+\[
+\textit{ES5} :
+\textit{lexer} \xleftrightharpoons[\textit{Token}^{*}]{\textit{feedback}}
+\textit{parser} \xrightarrow{\textit{AST}}
+\]
+
+And a sweet.js pipline is
+\[
+\textit{sweet.js} :
+\textit{lexer} \xrightarrow{\textit{Token}^{*}}
+\textit{reader} \xrightarrow{\textit{TokenTree}^{*}}
+\textit{parser} \xrightarrow{\textit{AST}}
+\]
+
+Our website is at \cite{Disney2014}.
+
+Recently the Honu project \cite{Rafkind2012,Rafkind2013} has shown how
+to overcome some of the existing challenges in developing a macro
+system for expression based language. The Honu technique was designed
+for an idealized JavaScript like language. 
+
+In this paper we present sweet.js, a hygienic macros system for
+JavaScript, that extends the techniques of Honu for full JavaScript
+and present additional techniques that target expression based
+languages.
+
+
+We make the following contributions:
 
 \begin{itemize}
-\item a correct implementation of \texttt{read} that structures the
-  token stream before expansion begins
-\item parser class annotation (e.g. \texttt{:expr}) in patterns to
-  allow macro authors easier declaration of a macro shape
-\item operator overloading
-\item infix macros
+\item an implementation of and proof of \textit{read} that addresses
+  the JavaScript grammar issues that traditionally have prevented
+  separating lexing and parsing.
+\item the ability to define infix macros that match on arbitrary
+  surrounding syntax.
 \item the \texttt{invoke} primitive to allow custom parser classes and
   more powerful matching
 \end{itemize}
 
+\section{Overview}
+
+The sweet.js system provides two kinds of macros: \emph{rule} macros
+(analogous to \lstinline!syntax-rules! in Scheme) and \emph{case}
+macros (analogous to \lstinline!syntax-case! in Scheme). Rule macros
+are the simpler of the two and work by matching on a pattern and
+generating a template:
+
+\begin{lstlisting}
+macro <name> {
+  rule { <pattern> } => { <template> }
+}
+\end{lstlisting}
+
+For example, the following macro introduces a new function definition
+form:
+
+\begin{lstlisting}
+macro def {
+  rule { 
+    $name ($params ...) { $body ... } 
+  } => {
+    function $name ($params ...) {
+      $body ...
+    }
+  }
+}
+def id (x) { return x; }
+// expands to:
+// function id (x) { return x; }
+\end{lstlisting}
+
+The pattern is matched against the syntax following the macro name.
+Identifiers in a pattern that begin with \lstinline!$! are
+\emph{pattern variables} and bind the syntax they match in the
+template (identifiers that do not begin with \lstinline!$! are matched
+literally). The ellipses (\lstinline!...!) mean match zero or more
+tokens.
+
+The above example show the power of matching delimited groups of
+syntax (\ie matching all the tokens inside the function body). In
+order for macros to be convenient in a language like JavaScript it is
+necessary to have the ability to match logical groupings of syntax
+that are not fully delimited. For example, consider the
+\lstinline!let! macro:
+
+\begin{lstlisting}
+macro let {
+  rule { $id = $init:expr } => {
+    var $id = $init
+  }
+}
+let x = 40 + 2;
+// expands to:
+// var x = 40 + 2;
+\end{lstlisting}
+
+The initialization of a \lstinline!let! can be an arbitrary expression
+so we use the \emph{pattern class} \lstinline!:expr! to match on an
+expression so in this example the entire expression \lstinline!40 + 2!
+is bound to \lstinline!$init!.
+
+\textbf{(some better examples than def and var?)}
+
+Along with the template-based rule macros, sweet.js also provides the
+more powerful case macros. Instead of a template, the body of a case
+macro is JavaScript that is run when the macro is invoked.
+
+\begin{lstlisting}
+macro log {
+  case {_ ($msg) } => {
+    // need a good example here...
+  }
+}
+\end{lstlisting}
+
+
+\section{Enforestation}
+\label{sec:enforest}
+
+The core technique that enables Scheme-like expressive macros for non
+delimited languages is called \emph{enforestation} \cite{Rafkind2012}.
+Enforestation works by progressively recognizing syntax forms and
+expanding macros. The key idea of enforestation is to give structure
+to the syntax arguments to macros.
+
+Sweet.js implements this algorithm mostly as described with some
+additions to provide infix macros and invoke pattern classes
+(described in the following sections).
+
+Enforestation works by grouping token trees into a more structured
+form called a term tree. Term trees are a kind of proto-AST; each term
+tree corresponds to a node in the final AST. For example,
+
+\begin{lstlisting}
+2 + 40;
+foo(100)
+\end{lstlisting}
+
+After an initial pass through the enforestation process the first
+binary expression will be matched as a binary term tree (we use angle
+brackets to denote a term tree element).
+
+\begin{lstlisting}
+<binop: +, left: 2, right: 40>;
+foo(100)
+\end{lstlisting}
+
+Through enforestation, a macro can match structured groupings of code.
+For example, consider a \lstinline!let! macro that must match the
+variable initialization (which can be an arbitrary undelimited
+expression):
+
+\begin{lstlisting}
+macro let {
+  rule { $name = $init:expr } => { 
+    // ...
+  }
+}
+let x = 40 + 2;
+\end{lstlisting}
+
+The \lstinline!:expr! pattern class signals the expander to match an expression term tree, which in the case is \lstinline!<binop +, left: 40, right: 2>!.
+
+\subsection{Infix Macros}
+\label{sec-4-1}
+The macros we have described so far must all be prefixed by the macro
+identifier and syntax after the macro name is matched. This is
+sufficient for many kinds of macros but some syntax forms require the
+macro identifier to sit between patterns.
+
+Honu addresses this need in a limited way by providing a way to define
+new binary and unary operators which during expansion can manipulate
+their operators. However, those operators must be fully expanded and
+must match as an expression.
+
+Sweet.js provides \emph{infix macros} which allows a macro identifier to
+match syntax before it. For example, the following implements
+ES6-style arrow functions via infix macros:
+
+\begin{lstlisting}
+macro => {
+    rule infix {
+        ($params ...) | { $body ... }
+    } => {
+        function ($params ...) {
+            $body ...
+        }
+    }
+}
+
+var id = (x) => { return x; }
+\end{lstlisting}
+
+This is accomplished by simply providing the state of previously
+expanded syntax to macro transformers. Macros may then consume from
+either ends as needed, yielding new previous and subsequent syntax. At
+first glance, this can appear brittle:
+
+\begin{lstlisting}
+var foo = bar(x) => { return x; }
+\end{lstlisting}
+
+We've juxtaposed the \lstinline!=>! macro next to a function call, which we did
+not intend to be valid syntax. A naive expansion results in unparsable
+code:
+
+\begin{lstlisting}
+var foo = bar function(x) { return x; }
+\end{lstlisting}
+
+In more subtle cases, a naive expansion can result in parsable code
+with incorrect semantics. [Example needed?] To preserve the integrity
+of previously expanded syntax, we verify that an infix macro only
+matches previous syntax on boundaries delimited by the partial syntax
+tree we've built. The syntax tree would show \lstinline!bar(x)! as a complete
+function call term. Consuming the parentheses would result in a split
+term and is disallowed, failing the rule. In practice, this has proven
+to be an intuitive restriction. [Elaborate?]
+
+The primary limitation of infix macros is they do not obey precedence
+and associativity. They stand as a complement to Honu operators, not
+as a replacement, for when an infix form does not adhere to operator
+semantics, much like the \lstinline!=>! macro. Its left-hand-side and
+right-hand-side are not arbitrary expressions but must match a
+specific form. 
+Additionally, it would need a precedence higher
+than other operators.
+
+\subsection{Invoke and Pattern Classes}
+\label{sec-4-2}
+
+[Something about default pattern classes and `:expr`...]
+
+Pattern classes are extensible via the \lstinline!invoke! class which
+is parameterized by a macro name.
+
+\begin{lstlisting}
+macro color {
+  rule { red } => { red }
+  rule { green } => { green }
+  rule { blue } => { blue }
+}
+macro colors_options {
+  rule { ($opt:invoke(color) ...) } => { ... }
+}
+\end{lstlisting}
+
+The macro is essentially inserted into the token stream. If the
+expansion succeeds, the result will be loaded into the pattern
+variable, otherwise the rule will fail. We've added sugar so that any
+non-primitive pattern classes are interpretted as \lstinline!invoke!
+parameterized by the custom class. We've also added identity rules to
+shorten definitions of simple custom classes.
+
+\begin{lstlisting}
+macro color {
+  rule { red }
+  rule { green }
+  rule { blue }
+}
+macro colors_options {
+  rule { ($opt:color (,) ...) } => { ... }
+}
+\end{lstlisting}
+
+These macros may return an optional pattern environment which will be
+scoped and loaded into the invoking macro's pattern environment. This
+lets us define Honu-style pattern classes as simple macro-generating
+macros.
+
+\begin{lstlisting}
+macro color {
+  ...
+}
+macro number {
+  ...
+}
+// `pattern` is just a macro-generating macro
+pattern color_value { $color:color $num:number }
+
+macro color_options {
+  rule { ($opt:color_value (,) ...) } => {
+    var cols = [$opt$color (,) ...];
+    var nums = [$opt$num (,) ...];
+  }
+}
+
+\end{lstlisting}
+
+...?
+
+
 \section{Reading JavaScript}
 \label{sec:read}
 
-Compilers give structure to unstructured source code. In compilers without macro systems this is accomplished by lexers (which generate flat tokens from a regular expression definition) and parsers (which generate an abstract syntax tree from a grammar definition).
+Parsers give structure to unstructured source code. In parsers without
+macro systems this is usually accomplished by 
+a lexer (which converts a character stream to a token stream) and a
+parser (which converts the token stream into an AST according to a
+context-free grammar).
 
-In order to implement the kinds of expressive macro systems found in the Lisp and Scheme tradition it is necessary to give additional structure beyond what a lexer can accomplish. In Lisp and Scheme this was done by the \emph{read} function which matches delimiters. By structuring code with delimiters, macros can manipulate whole delimited chunks of code.
+A macro system must transform code before it reaches the parser, but
+in order to implement expressive macros it requires more structured
+input than a simple token stream.
 
-While this is obviously a requirement in an fully delimited language like Lisp/Scheme, it is also important in languages such as JavaScript that are not entirely delimited.
+In Lisp and Scheme, this additional structure is provided by the read
+function, that transforms a token stream into an s-expression by
+matching delimiters. By operating on the s-expression representation,
+macros can manipulate whole delimited chunks of code.
+
+While this is obviously a requirement in an fully delimited language
+like Lisp and Scheme, it is also important in languages such as
+JavaScript that are not entirely delimited.
 
 \textbf{TODO: class example to show the delimiters?}
 
-Unfortunately, the syntax of JavaScript presents a challenge to correctly implement the \texttt{read} function. In particular, one of the syntax features of JavaScript is support for regular expression literals, which are formed with the forward slash \lstinline!/!. Delimiters are valid inside of a regular expression literal so the reader must not match delimiters inside of a regular expression literal.
+The design of a correct reader for full JavaScript turns out to be
+surprisingly subtle, due to ambiguities in how regular expression
+literals (such as \lstinline!/[0-9]*/!) and the divide operator
+(\lstinline!/!) should be lexed.
+
+Our macro system includes a reader that transforms a stream of flat
+tokens into a stream of more structured \emph{token trees}, by
+matching delimiters.
+
+Unfortunately, the syntax of JavaScript presents a challenge to
+correctly implement the \texttt{read} function. In particular, one of
+the syntax features of JavaScript is support for regular expression
+literals, which are formed with the forward slash \lstinline!/!.
+Delimiters are valid inside of a regular expression literal so the
+reader must not match delimiters inside of a regular expression
+literal otherwise it would break the true delimiter structure of the
+program.
 
 \begin{lstlisting}
 function makeRegex() {
@@ -130,174 +451,211 @@ function makeRegex() {
 }
 \end{lstlisting}
 
-Since the reader must ignore delimiters inside regular expression literals, it must know when it is reading between the literal's slashes. However, slash is also used as the divide operator in JavaScript. So, in order for the reader to ignore delimiters inside of regex literals it must first decide if a slash is the beginning of a literal or a divide operator. This is complicated.
+Since the reader must ignore delimiters inside regular expression
+literals, it must know when it is reading between the literal's
+slashes. However, slash is also used as the divide operator in
+JavaScript. So, in order for the reader to ignore delimiters inside of
+regex literals it must first decide if a slash is the beginning of a
+literal or a divide operator. Unfortunately this is somewhat
+complicated for JavaScript.
 
-Traditionally JavaScript parsers are not separated from the lexer; the lex function is called from a particular parsing context with a flag indicating if the context accepts either a regular expression literal or a divide token. For JavaScript parsers this technique is sufficient but a macro expander requires the separation of the lexer/reader from the parser.
+Traditionally, JavaScript parsers are not separated from the lexer;
+the parser calls the lexer with a flag indicating if the grammatical
+context accepts either a regular expression literal or a divide token.
+For JavaScript parsers this technique is sufficient but a macro
+expander requires the separation of the lexer and reader from the
+parser.
 
-Note that this problem is not present in Honu since their language does not include regular expression literals and so misses the problematic interaction we describe here.
+Note that this problem is not present in Honu since their language
+does not include regular expression literals.
 
+A key novelty in sweet.js is the design and implementation of a
+correct version of read for full ES5 JavaScript\footnote{Our
+  implementation also has initial support for the upcoming ES6
+  version of JavaScript}. 
+For clarity of presentation, this paper
+describes the implementation of read for the subset of JavaScript
+shown in Figure \ref{fig:grammar} which retains the essential
+complications of a correct version of read but elides the full details
+of the entire JavaScript language.
+
+Read takes a sequence of tokens and produces a sequence of token
+trees. Tokens are punctuators (\texttt{+}, \div, \texttt{:},
+\texttt{;}, \texttt{=}, \texttt{.}), keywords (\texttt{return},
+\texttt{function}, \texttt{if}), variables (\( x \)), and delimiters
+(\texttt{\{}, \texttt{(}, \texttt{\}}, \texttt{)}). We write a
+sequence of tokens separated by a dot so the source string
+``\lstinline!foo(/x/)!'' is lexed into the sequence of six tokens
+\( \texttt{foo}\cdot \texttt{(} \cdot \div \cdot \var \cdot \div \cdot \texttt{)} \).
+
+A token tree is similar to a token with 
+the addition of the regular
+expression literal (\( \rett \)) and instead of 
+individual opening and
+closing delimiter tokens a delimiter nests a sequence of inner token
+trees (\eg the sequence \( \texttt{foo} \cdot \texttt{(} \cdot
+\div \cdot \var \cdot \div \cdot \texttt{)} \) would be
+the token tree \( \texttt{foo} \cdot \parens{\rett} \)).
+
+The key idea of read is to maintain of prefix of already read token
+trees. When the reader comes to a slash and needs to decide if it
+should read the slash as a divide token or the start of a regular
+expression literal it consults the prefix. Looking back at most five
+tokens trees in the prefix is sufficient to disambiguate the slash
+token.
+
+Some of the cases of read are relatively obvious. For example, if the
+token just read was one of the binary operators (\eg
+\lstinline!100 + /x/g!) the slash will always be a regular expression
+literal. If on the other hand the previous token tree was a parenthesis
+then most of the time the slash will be the divide operator (\eg
+dividing the result of a call \lstinline!foo(100) / 10!). However, if
+the token before the parenthesis was the keyword \texttt{if} then it
+is actually the start of a regular expression (since single statement
+if bodies do not require braces).
+
+\begin{lstlisting}
+if (x) /y/g  
+\end{lstlisting}
+
+One of the most complicated cases is a slash following curly braces.
+Part of the  complication here is that curly braces can be either an object
+literal (in which case the slash should be a divide) or it could be a
+block (in which case the slash should be a regular expression) but
+even more problematic is that both object literals and blocks with
+labeled statements can nest:
+
+\begin{lstlisting}
+{
+x:{y: z} /x/g  // regex
+}
+\end{lstlisting}
+
+The outer curly brace is a block with a labeled statement
+\lstinline!x!, which is another block with a labeled statement
+\lstinline!y! followed by a regular expression literal.
+
+But if we slightly change the code the outer curly braces become an
+object literal and \lstinline!x! is a property so the inner curly
+braces are also an object literal and thus the slash is a divide operator.
+
+\begin{lstlisting}
+o = {
+x:{y: z} /x/g  // divide
+}
+\end{lstlisting}
+
+While it is unlikely that a programmer would attempt to intentionally
+perform division on an object literal, it is not a parse error. In
+fact, this is not even a runtime error since JavaScript will
+implicitly convert the object to a number (technically
+\lstinline!NaN!) and then perform the division (yielding
+\lstinline!NaN!).
+
+The reader handles these cases by checking if the prefix of a curly
+brace block forces the curly to be an object literal or a statement
+block and then setting a boolean flag to be used while reading the
+tokens inside of the braces.
+
+\subsection{Proving Read}
+
+To show that our read algorithm correctly distinguishes between the
+divide operator and a regular expression literal, we show that
+a parser defined over normal tokens produces the same AST as a parser
+defined over token trees produced from read.
+
+The parser for normal tokens is defined in Figure \ref{fig:grammar}. A
+parser for the nonterminal \( \gprod{Program}{} \) is a function from a
+sequence of tokens to an AST.
 \[
-\begin{array}{rcl}
-  e &::=& \var ~|~ \rett \\
-  &|& \call{e}{e} \\
-  &|& \ifstate{e}{e}
-\end{array}
+\gprod{Program}{} :: \Tok^* \rightarrow \textit{AST}
 \]
+We use the notation $\gprod{Program}{e} ::= \gprod{SourceElements}{e}$
+to mean match the input sequence with $\gprod{SourceElements}{e}$ and
+produce the resulting AST $e$.
 
-\subsection{Proof of \texttt{read}}
-\label{sec-3-1}
+Note that the grammar we present here is a simplified version of the
+grammar specified in the ECMAScript standard \cite{International2011}
+and many of the nonterminal names we use here correspond to shortened
+versions of nonterminals in the standard.
 
-We first define a simplified grammar that captures just the essential
-complexity we want to address, namely the interaction between
-the division symbol \texttt{/} and the regular expression literal
-\texttt{/x/}.
+% The AST for our simplified language is made of up literals (variables
+% $x$, regular expressions $\rett$, objects $\curlies{\var
+%   \texttt{:}~e}$, and functions
+% $\texttt{function}~x~\parens{x}~\curlies{e}$), expressions
+% (parenthesized expressions $\parens{e}$, property lookup $e \texttt{.}
+% \var$, function call $e \parens{e}$, binary expressions $e ~\div~ e$
+% and $e ~\texttt{+}~ e$, and assignments $e ~\texttt{=}~ e$), and
+% statements (blocks $\curlies{e}$, labelled statements $\var
+% \texttt{:}~e$, if statements $\texttt{if}~\parens{e}~e$, return
+% statements $\texttt{return}$ and $\texttt{return}~e$, function
+% declarations $\texttt{function}~x~\parens{x}~\curlies{e}$, and
+% statement sequences $e~e$).
 
+\begin{displayfigure}{\label{fig:ast}AST for Simplified JavaScript}
 \[
 \begin{array}{rrl}
-  \Tok &::=& x ~|~ /
+  e \in \textit{AST} &::=& \var ~|~ \rett ~|~ \curlies{\var\texttt{:}~e} ~|~ \parens{e}
+  ~|~ e\texttt{.}\var ~|~ e\parens{e}
   \\
-  \TT &::=& x ~|~ / ~|~ /x/
+  &|& e~\div~e ~|~ e ~\texttt{+}~ e ~|~ e ~\texttt{=}~ e
+  ~|~ \curlies{e} ~|~ \var \texttt{:} e ~|~ \texttt{if}~\parens{e}~e
+  \\ 
+  &|& \texttt{return} ~|~ \texttt{return}~e
+  \\
+  &|& \texttt{function}~x~\parens{x}~\curlies{e} ~|~ e~e
+\end{array}
+\]
+\end{displayfigure}
+
+The language presented here is a simplified for the sake of
+presentation; it is mostly straightforward to extend the algorithm
+presented here for the simplified language to 
+the sweet.js implementation for full ES5 JavaScript.
+
+In addition to the \( \gprod{Program}{} \) parser just described, we
+also define a parser \( \gprod{Program'}{} \) that works over token
+trees. The rules of the two parsers are similar except for that
+all rules with delimiters and regular expression literals will change:
+
+\[
+\begin{array}{lcl}
+  \gprod{PrimaryExpr}{\rett} &::=& \texttt{/}\cdot x \cdot \texttt{/}
+  \\
+  \gprod{PrimaryExpr'}{\rett} &::=& \rett
+  \\
+  \gprod{PrimaryExpr}{\parens{e}} &::=& 
+  \texttt{(} \cdot \gprod{AssignExpr}{e} \cdot \texttt{)}
+  \\
+  \gprod{PrimaryExpr'}{\parens{e}} &::=& 
+  \parens{\gprod{AssignExpr'}{e}}
   \\
 \end{array}
 \]
 
-We also define \( \textit{Expr}' \) with the same productions as \(
-\textit{Expr} \) but defined over \( \TT^{*} \) instead of \( \Tok^{*}
-\). So the terminal \( /x/ \) in the second production of \(
-\textit{Expr} \) is three distinct tokens (\( /, x, \) and \( /
-\)) while it is a single token in \( \textit{Expr}' \).
+To prove that read is correct, we show that the following two parsing
+strategies give identical behavior.
+\begin{itemize}
+\item The traditional parsing strategy is, given a token stream \( s
+  \), to parse \( s \) into an AST \( e \) using a traditional parser.
 
-We define the grammar of a \( \gprod{Program}{e} \) as a function from
-\( \Tok \) to \( \textit{Expr} \).
-
-\[
-\gprod{Program}{e} :: \Tok \rightarrow \textit{Expr}
-\]
+\item The second parsing strategy first reads \( s \) into a token
+  tree stream \( t = \readfn{s}{\epsilon}{\false} \), and then parses
+  this token tree stream \( t \) into an AST \( e \).
+\end{itemize}
 
 \begin{theorem}[\label{thrm:readProgram}Parse Equivalence]\mbox{}
 
-  \( \forall s. s \in \gprod{Program}{e} \Leftrightarrow 
-  \readfn{s}{\epsilon}{b} \in \gprod{Program'}{e} \)
+  \( \forall s. \)
+
+  \( s \in \gprod{Program}{e} \Leftrightarrow 
+  \readfn{s}{\epsilon}{\textit{false}} \in \gprod{Program'}{e} \)
 
 \end{theorem}
 \begin{proof}\mbox{}
-  
-By showing parse equivalence for each non-terminal in the grammar.
-Details in the appendix.
+  By showing parse equivalence for each non-terminal in the grammar.
+  Details in the appendix.
 \end{proof}
-
-The grammar we present is a simplified version of the grammar
-specified in the ES5 specification. The simplification we are making
-do not affect the read algorithm, and only serve to shorten its
-presentation. In particular, functions can only have a single
-parameter, function bodies are not allowed to be empty and a few other
-minor changes. We only address the = assignment operator and only the
-/ and + binary operators.
-
-\begin{displayfigure*}{\label{fig:grammar}Simplified ES Grammar}
-\[
-\begin{array}{lcl}
-  \gprod{PrimaryExpr}{\var} &::=& \var 
-  \\
-  \gprod{PrimaryExpr}{\rett} &::=& \re 
-  \\
-  \gprod{PrimaryExpr}{\curlies{\var \texttt{:} e}} &::=& 
-  \curlies{\var \texttt{:} \gprod{AssignExpr}{e}}
-  \\
-  \gprod{PrimaryExpr}{\parens{e}} &::=& 
-  \parens{\gprod{AssignExpr}{e}}
-  \\ \\
-  \gprod{MemberExpr}{e} &::=&
-  \gprod{PrimaryExpr}{e}
-  \\
-  \gprod{MemberExpr}{e} &::=&
-  \gprod{FunctionExpr}{e}
-  \\
-  \gprod{MemberExpr}{e\texttt{.\var}} &::=&
-  \gprod{MemberExpr}{e}~\texttt{.}~\var
-  \\ \\
-  \gprod{CallExpr}{e~\parens{e'}} &::=& 
-  \gprod{MemberExpr}{e}~
-  \parens{\gprod{AssignExpr}{e'}}
-  \\
-  \gprod{CallExpr}{e~\parens{e'}} &::=& 
-  \gprod{CallExpr}{e}~
-  \parens{\gprod{AssignExpr}{e'}}
-  \\
-  \gprod{CallExpr}{e\texttt{.\var}} &::=& 
-  \gprod{CallExpr}{e}~\texttt{.}~
-  \var
-  \\ \\
-  \gprod{BinaryExpr}{e} &::=& \gprod{CallExpr}{e} \\
-  \gprod{BinaryExpr}{e ~\div~ e'}
-  &::=&
-  \gprod{BinaryExpr}{e} ~\div~ \gprod{BinaryExpr}{e'} \\
-  \gprod{BinaryExpr}{e ~\plus~ e'}
-  &::=&
-  \gprod{BinaryExpr}{e} ~\plus~ \gprod{BinaryExpr}{e'}
-  \\ \\
-  \gprod{AssignExpr}{e} &::=&
-  \gprod{BinaryExpr}{e}
-  \\
-  \gprod{AssignExpr}{e~\texttt{=}~e'} &::=&
-  \gprod{CallExpr}{e}~\texttt{=}~
-  \gprod{AssignExpr}{e'}
-  \\ \\
-  \gprod{StmtList}{e} &::=&
-  \gprod{Stmt}{e}
-  \\
-  \gprod{StmtList}{e~e'} &::=&
-  \gprod{StmtList}{e}~
-  \gprod{Stmt}{e'}
-  \\ \\
-  \gprod{Stmt}{\curlies{e}} &::=& 
-  \curlies{ \gprod{StmtList}{e} } 
-  \\
-  \gprod{Stmt}{\var\texttt{:}~e} &::=&
-  \var~\texttt{:}~\gprod{Stmt}{e}
-  \\
-  \gprod{Stmt}{e} &::=& 
-  \gprod{AssignExpr}{e} \texttt{;}
-  \qquad  \textit{where lookahead \( \not =
-    \texttt{\{} \) or \( \texttt{function} \)}
-  \\
-  \gprod{Stmt}{\texttt{if}~\parens{e}~e'} &::=& 
-  \texttt{if}~\parens{\gprod{AssignExpr}{e}}~\gprod{Stmt}{e'}
-  \\
-  \gprod{Stmt}{\texttt{return}} &::=& 
-  \texttt{return}
-  \\
-  \gprod{Stmt}{\texttt{return}~e} &::=& 
-  \texttt{return}~\textrm{[no line terminator
-    here]}~\gprod{AssignExpr}{e}~\texttt{;}
-  \\ \\
-  \gprod{FunctionDecl}{\texttt{function}~x~\parens{x'}~\curlies{e}} 
-  &::=&
-  \texttt{function}~x~\parens{x'}~
-  \curlies{\gprod{SourceElements}{e}}
-  \\
-  \gprod{FunctionExpr}{\texttt{function}~x~\parens{x'}~\curlies{e}} 
-  &::=&
-  \texttt{function}~x~\parens{x'}~
-  \curlies{\gprod{SourceElements}{e}}
-  \\ \\
-  \gprod{SourceElement}{e} &::=& \gprod{Stmt}{e} 
-  \\
-  \gprod{SourceElement}{e} &::=& \gprod{FunctionDecl}{e}
-  \\ \\
-
-  \gprod{SourceElements}{e} &::=& \gprod{SourceElement}{e}
-  \\
-  \gprod{SourceElements}{e~e'} &::=& \gprod{SourceElements}{e}~\gprod{SourceElement}{e'}
-  \\ \\
-  \gprod{Program}{e} &::=& \gprod{SourceElements}{e}
-  \\
-  \gprod{Program}{} &::=& \epsilon
-\end{array}
-\]  
-\end{displayfigure*}
-
-
 
 \begin{displayfigure*}{\label{fig:simpleread}Simplified Read Algorithm}
 \begin{minipage}[t]{0.5\linewidth}
@@ -503,181 +861,124 @@ minor changes. We only address the = assignment operator and only the
 \]
 \end{displayfigure*}
 
+\begin{displayfigure*}{\label{fig:grammar}Simplified ES Grammar}
+\[
+\begin{array}{lcl}
+  \gprod{PrimaryExpr}{x} &::=& x
+  \\
+  \gprod{PrimaryExpr}{\rett} &::=& \texttt{/} \cdot x \cdot \texttt{/}
+  \\
+  \gprod{PrimaryExpr}{\curlies{\var \texttt{:} e}} &::=& 
+  \curlies{\var \texttt{:} \gprod{AssignExpr}{e}}
+  \\
+  \gprod{PrimaryExpr}{\parens{e}} &::=& 
+  \parens{\gprod{AssignExpr}{e}}
+  \\ \\
+  \gprod{MemberExpr}{e} &::=&
+  \gprod{PrimaryExpr}{e}
+  \\
+  \gprod{MemberExpr}{e} &::=&
+  \gprod{FunctionExpr}{e}
+  \\
+  \gprod{MemberExpr}{e\texttt{.\var}} &::=&
+  \gprod{MemberExpr}{e}~\texttt{.}~\var
+  \\ \\
+  \gprod{CallExpr}{e~\parens{e'}} &::=& 
+  \gprod{MemberExpr}{e}~
+  \parens{\gprod{AssignExpr}{e'}}
+  \\
+  \gprod{CallExpr}{e~\parens{e'}} &::=& 
+  \gprod{CallExpr}{e}~
+  \parens{\gprod{AssignExpr}{e'}}
+  \\
+  \gprod{CallExpr}{e\texttt{.\var}} &::=& 
+  \gprod{CallExpr}{e}~\texttt{.}~
+  \var
+  \\ \\
+  \gprod{BinaryExpr}{e} &::=& \gprod{CallExpr}{e} \\
+  \gprod{BinaryExpr}{e ~\div~ e'}
+  &::=&
+  \gprod{BinaryExpr}{e} ~\div~ \gprod{BinaryExpr}{e'} \\
+  \gprod{BinaryExpr}{e ~\plus~ e'}
+  &::=&
+  \gprod{BinaryExpr}{e} ~\plus~ \gprod{BinaryExpr}{e'}
+  \\ \\
+  \gprod{AssignExpr}{e} &::=&
+  \gprod{BinaryExpr}{e}
+  \\
+  \gprod{AssignExpr}{e~\texttt{=}~e'} &::=&
+  \gprod{CallExpr}{e}~\texttt{=}~
+  \gprod{AssignExpr}{e'}
+  \\ \\
+  \gprod{StmtList}{e} &::=&
+  \gprod{Stmt}{e}
+  \\
+  \gprod{StmtList}{e~e'} &::=&
+  \gprod{StmtList}{e}~
+  \gprod{Stmt}{e'}
+  \\ \\
+  \gprod{Stmt}{\curlies{e}} &::=& 
+  \curlies{ \gprod{StmtList}{e} } 
+  \\
+  \gprod{Stmt}{\var\texttt{:}~e} &::=&
+  \var~\texttt{:}~\gprod{Stmt}{e}
+  \\
+  \gprod{Stmt}{e} &::=& 
+  \gprod{AssignExpr}{e} \texttt{;}
+  \qquad  \textit{where lookahead \( \not =
+    \texttt{\{} \) or \( \texttt{function} \)}
+  \\
+  \gprod{Stmt}{\texttt{if}~\parens{e}~e'} &::=& 
+  \texttt{if}~\parens{\gprod{AssignExpr}{e}}~\gprod{Stmt}{e'}
+  \\
+  \gprod{Stmt}{\texttt{return}} &::=& 
+  \texttt{return}
+  \\
+  \gprod{Stmt}{\texttt{return}~e} &::=& 
+  \texttt{return}~\textrm{[no line terminator
+    here]}~\gprod{AssignExpr}{e}~\texttt{;}
+  \\ \\
+  \gprod{FunctionDecl}{\texttt{function}~x~\parens{x'}~\curlies{e}} 
+  &::=&
+  \texttt{function}~x~\parens{x'}~
+  \curlies{\gprod{SourceElements}{e}}
+  \\
+  \gprod{FunctionExpr}{\texttt{function}~x~\parens{x'}~\curlies{e}} 
+  &::=&
+  \texttt{function}~x~\parens{x'}~
+  \curlies{\gprod{SourceElements}{e}}
+  \\ \\
+  \gprod{SourceElement}{e} &::=& \gprod{Stmt}{e} 
+  \\
+  \gprod{SourceElement}{e} &::=& \gprod{FunctionDecl}{e}
+  \\ \\
 
-\section{Enforestation}
-\label{sec-4}
+  \gprod{SourceElements}{e} &::=& \gprod{SourceElement}{e}
+  \\
+  \gprod{SourceElements}{e~e'} &::=& \gprod{SourceElements}{e}~\gprod{SourceElement}{e'}
+  \\ \\
+  \gprod{Program}{e} &::=& \gprod{SourceElements}{e}
+  \\
+  \gprod{Program}{} &::=& \epsilon
+\end{array}
+\]  
+\end{displayfigure*}
 
-The core algorithm introduced by Honu is called \emph{enforestation} which
-is basically responsible for expanding macros and building a partial
-syntax tree with enough structure to match on parse classes. Sweet.js
-implements this algorithm mostly as described with some additions to
-provide infix macros and invoke pattern classes described below.
 
-\subsection{Infix Macros}
-\label{sec-4-1}
-The macros we have described so far must all be prefixed by the macro
-identifier and syntax after the macro name is matched. This is
-sufficient for many kinds of macros but some syntax forms require the
-macro identifier to sit between patterns.
-
-Honu addresses this need in a limited way by providing a way to define
-new binary and unary operators which during expansion can manipulate
-their operators. However, those operators must be fully expanded and
-must match as an expression.
-
-Sweet.js provides \emph{infix macros} which allows a macro identifier to
-match syntax before it. For example, the following implements
-ES6-style arrow functions via infix macros:
-
-\begin{lstlisting}
-macro (=>) {
-    rule infix {
-        ($params ...) | { $body ... }
-    } => {
-        function ($params ...) {
-            $body ...
-        }
-    }
-}
-
-var id = (x) => { return x; }
-\end{lstlisting}
-
-The macros we have described so far must all be prefixed by the macro
-identifier and syntax after the macro name is matched. This is
-sufficient for many kinds of macros but some syntax forms require the
-macro identifier to sit between patterns.
-
-Honu addresses this need in a limited way by providing a way to define
-new binary and unary operators which during expansion can manipulate
-their operators. However, those operators must be fully expanded and
-must match as an expression.
-
-Sweet.js provides \emph{infix macros} which allows a macro identifier to
-match syntax before it. For example, the following implements
-ES6-style arrow functions via infix macros:
-
-\begin{lstlisting}
-macro (=>) {
-    rule infix {
-        ($params ...) | { $body ... }
-    } => {
-        function ($params ...) {
-            $body ...
-        }
-    }
-}
-var id = (x) => { return x; }
-\end{lstlisting}
-
-This is accomplished by simply providing the state of previously
-expanded syntax to macro transformers. Macros may then consume from
-either ends as needed, yielding new previous and subsequent syntax. At
-first glance, this can appear brittle:
-
-\begin{lstlisting}
-var foo = bar(x) => { return x; }
-\end{lstlisting}
-
-We've juxtaposed the \verb!=>! macro next to a function call, which we did
-not intend to be valid syntax. A naive expansion results in unparsable
-code:
-
-\begin{lstlisting}
-var foo = bar function(x) { return x; }
-\end{lstlisting}
-
-In more subtle cases, a naive expansion can result in parsable code
-with incorrect semantics. [Example needed?] To preserve the integrity
-of previously expanded syntax, we verify that an infix macro only
-matches previous syntax on boundaries delimited by the partial syntax
-tree we've built. The syntax tree would show \verb!bar(x)! as a complete
-function call term. Consuming the parentheses would result in a split
-term and is disallowed, failing the rule. In practice, this has proven
-to be an intuitive restriction. [Elaborate?]
-
-The primary limitation of infix macros is they do not obey precedence
-and associativity. They stand as a complement to Honu operators, not
-as a replacement, for when an infix form does not adhere to operator
-semantics, much like the \verb!=>! macro. Its left-hand-side and
-right-hand-side are not arbitrary expressions but must match a
-specific form. Additionally, it would need a precedence of infinity so
-as to always bind tighter than other operators.
-
-\subsection{Invoke and Pattern Classes}
-\label{sec-4-2}
-
-[Something about default pattern classes and `:expr`...]
-
-Pattern classes are extensible via the \verb!invoke! class which is
-parameterized by a macro name.
-
-\begin{lstlisting}
-macro color {
-  rule { red } => { red }
-  rule { green } => { green }
-  rule { blue } => { blue }
-}
-macro colors_options {
-  rule { ($opt:invoke(color) ...) } => { ... }
-}
-\end{lstlisting}
-
-The macro is essentially inserted into the token stream. If the
-expansion succeeds, the result will be loaded into the pattern
-variable, otherwise the rule will fail. We've added sugar so that any
-non-primitive pattern classes are interpretted as \verb!invoke!
-parameterized by the custom class. We've also added identity rules to
-shorten definitions of simple custom classes.
-
-\begin{lstlisting}
-macro color {
-  rule { red }
-  rule { green }
-  rule { blue }
-}
-macro colors_options {
-  rule { ($opt:color (,) ...) } => { ... }
-}
-\end{lstlisting}
-
-These macros may return an optional pattern environment which will be
-scoped and loaded into the invoking macro's pattern environment. This
-lets us define Honu-style pattern classes as simple macro-generating
-macros.
-
-\begin{lstlisting}
-macro color {
-  ...
-}
-macro number {
-  ...
-}
-// `pattern` is just a macro-generating macro
-pattern color_value { $color:color $num:number }
-
-macro color_options {
-  rule { ($opt:color_value (,) ...) } => {
-    var cols = [$opt$color (,) ...];
-    var nums = [$opt$num (,) ...];
-  }
-}
-
-\end{lstlisting}
-
-...?
 
 \section{Hygiene}
 \label{sec-5}
 
-Mostly straightforward implementation from scheme with some details to
-handle \texttt{var}.
+The main hygienic technique for procedurual macros were described in \cite{Hieb1992}. Earlier work for syntax-rules is \cite{Clinger1991}.
+
+
+Mostly straightforward implementation from scheme (in for a good treatment of the subject see \cite{Flatt2012}) with some details to handle \texttt{var}.
 
 \subsection{Var statements} 
 
-Unfortunately there's some complexity in how `var` (and `let`/`const`)
-statements and macros interact. In short, macros must be defined
-before being used in a var statement.
+Unfortunately there's some complexity in how \lstinline!var! (and
+\lstinline!let!/\lstinline!const!) statements and macros interact. In
+short, macros must be defined before being used in a var statement.
 
 For example, this will work:
 
@@ -698,22 +999,22 @@ var x = m 42;
 \end{lstlisting}
 
 This is unfortunate because macros can be used before definition for
-all other syntax forms, just not `var`. Also Racket, from which sweet.js
-takes most other design cues, allows exactly this kind of use/definition
-mixing with internal definitions:
+all other syntax forms, just not \lstinline!var!. Also Racket, from
+which sweet.js takes most other design cues, allows exactly this kind
+of use/definition mixing with internal definitions:
 
 \begin{lstlisting}
 (define y (id 100))
 (define-syntax-rule (id x) x)
 \end{lstlisting}
 
-So what gives?
-
 In order to support mixing use/def the scheme expander must run
-through each scope twice. The first pass registers any macro definitions
-but critically it doesn't expand inside internal definitions.
+through each scope twice. The first pass registers any macro
+definitions but critically it doesn't expand inside internal
+definitions.
 
-So after the first pass of the above example we'll have something like:
+So after the first pass of the above example we will have something
+like:
 
 \begin{lstlisting}
 // the id macro is registered in the environment { id: <transformer> }
@@ -726,38 +1027,35 @@ And then the second pass will expand macros inside internal definitions:
 (define y 100)
 \end{lstlisting}
 
-So far so good, but here's the tricky part for sweet.js: you need to
-know where internal definitions end during the first pass
-*before* expanding any macros inside them. This is easy for scheme
-because everything is delimited but we don't have it that easy in
-JavaScript.
+So far so good, but the tricky part for sweet.js is you need to know
+where internal definitions end during the first pass \emph{before}
+expanding any macros inside them. This is easy for Scheme since
+everything is delimited but this is not the case in JavaScript.
 
-To clarify the problem let's use the ES6 arrow macro:
+To clarify the problem, consider the ES6 arrow macro:
 
 \begin{lstlisting}
 var x = (x) => { x }
-macro (=>) { ... }
+macro => { ... }
 \end{lstlisting}
 
-When the expander gets to the `var` statement during the first pass
-it doesn't know anything about the `=>` macro yet. All it can
-know is that the right hand side of `=` needs to be an expression
-(which in this case means it will match `var x = (x)` and then barf
-on `=>`).
+When the expander gets to the \lstinline!var! statement during the
+first pass it doesn't know anything about the \lstinline!=>! macro
+yet. All it can know is that the right hand side of \lstinline!=!
+needs to be an expression (which in this case means it will match 
+\lstinline!var x = (x)! and then fail to match on \lstinline!=>!).
 
 The basic problem here is that in JavaScript there is no way
 to detect the end of a var statement in the presence of as yet
 unknown macro definitions. So, you must define your macros
-before using them in `var` statements.
+before using them in \lstinline!var! statements.
 
-But wait, it's even more confusing
-
-So even though we can't defer expansion inside of `var` statements
-we still do two passes for each scope and the expansion of any
-syntax inside of a delimiter is deferred until the second pass
-which now has all the macro definitions in scope. Which means that
-you can actually use macros in `var` statements before definition
-as long as you wrap it in parens.
+So even though we cannot defer expansion inside of \lstinline!var!
+statements we still do two passes for each scope and the expansion of
+any syntax inside of a delimiter is deferred until the second pass
+which now has all the macro definitions in scope. Which means that you
+can actually use macros in \lstinline!var! statements before
+definition as long as you wrap it in parens.
 
 \begin{lstlisting}
 var x = id(100);
@@ -769,31 +1067,10 @@ var x = (id(100));
 macro id { rule { ($x) } }
 \end{lstlisting}
 
-(IMO it's better to just always define your macros first rather
-than think about these details but it is a way around the problem)
-
-As I was writing this up I realized we actually have a small problem
-in how we handle macros used before definition that are not in a
-delimiter or a `var` statement:
-
-\begin{lstlisting}
-id (100)
-// id(100)
-
-{
-	id(100)
-    // 100
-}
-macro id { rule { ($x) } }
-\end{lstlisting}
-
-The first `id (100)` isn't being expanded even though we should be
-able to do so.
-
-
 
 \section{Implementation}
-\label{sec-6}
+\label{sec:implementation}
+
 Sweet.js is written in JavaScript and runs in the major JS
 environments (\ie the brower and node.js). This is in contrast to Honu
 which translates its code to Racket code and reuses the hygienic
@@ -801,18 +1078,25 @@ expansion machinery already built in Racket. While this simplifies
 the implementation of Honu it also requires an installation of Racket
 which in some cases is not feasible (\eg sweet.js is able to run in
 mobile device browsers).
+
+
 \section{Related Work}
-\label{sec-7}
+\label{sec:related}
+
+Earlier treatments of macro-by-example in \cite{Kohlbecker1987}.
 
 \begin{itemize}
 \item Scheme/Racket
 \item Honu
 \item Template Haskell
-\item Nemerle
+\item Nemerle \cite{Skalski2004}
 \item Scala
 \item Closure
 \end{itemize}
 \section{Conclusion}
+
+\bibliographystyle{plain}
+\bibliography{../../../../bibtex/sweet.js}
 
 \appendix
 
@@ -823,42 +1107,48 @@ mobile device browsers).
 \begin{theorem}[\label{thrm:readProgram}Parse Equivalence for Program]\mbox{}
 
   \( \forall s. \)
-
-  \( s \in \gprod{Program}{e} \Leftrightarrow 
-  \readfn{s}{\epsilon}{\textit{false}} \in \gprod{Program'}{e} \)
-
+  \[
+  \begin{array}{rl}
+  &s \in \gprod{Program}{e} \\
+  \Leftrightarrow&
+  \readfn{s}{\epsilon}{\textit{false}} \in \gprod{Program'}{e}
+  \end{array}
+  \]
 \end{theorem}
 \begin{proof}
 
-  For the if direction, there are two cases:
+  For the left-to-right direction, the are two production rules for 
+  \( \gprod{Program}{e} \).
   \begin{itemize}
-  \item \( s \in \gprod{Program}{e} ::= \epsilon \). The result is immediate.
+  \item \( s \in \epsilon \). The result is immediate.
 
-  \item \( s \in \gprod{Program}{e} ::= \gprod{SourceElements}{e} \)
+  \item \( s \in \gprod{SourceElements}{e} \)
     this holds by Lemma~\ref{lem:readSourceElements}.
   \end{itemize}
 
-  A similar argument holds for the only if direction.
+  A similar argument holds for the right-to-left direction.
 \end{proof}
 
 \begin{lemma}[\label{lem:readSourceElements}Parse Equivalence for SourceElements]\mbox{}
 
   \( \forall s. \) 
-
-  \( s \in \gprod{SourceElements}{e} \Leftrightarrow 
-  \readfn{s}{\epsilon}{\textit{false}} \in \gprod{SourceElements'}{e} \)
+  \[
+  \begin{array}{rl}
+  &s \in \gprod{SourceElements}{e} 
+  \\
+  \Leftrightarrow&
+  \readfn{s}{\epsilon}{\textit{false}} \in \gprod{SourceElements'}{e} 
+  \end{array}
+  \]
 \end{lemma}
 \begin{proof}
-  For the if direction, there are two cases:
+  For the left-to-right direction there are two production rules for
+  \( \gprod{SourceElements}{e} \).
   \begin{itemize}
-  \item \( s \in \gprod{SourceElements}{e} ::=
-    \gprod{SourceElement}{e} \). This holds by Lemma
+  \item \( s \in \gprod{SourceElement}{e} \). This holds by Lemma
     \ref{lem:readSourceElement}.
     
-  \item \( s \in \gprod{SourceElements}{e~e'} \) by case:
-    \[
-    \gprod{SourceElements}{e}~\gprod{SourceElement}{e'} 
-    \] 
+  \item \( s \in \gprod{SourceElements}{e}~\gprod{SourceElement}{e'} \).
     We have
     \( s = s' \cdot s'' \) where \( s' \in \gprod{SourceElements}{e}
     \) and \( s'' \in \gprod{SourceElement}{e'} \).
@@ -879,44 +1169,54 @@ mobile device browsers).
     \gprod{SourceElements'}{e~e'} \).
   \end{itemize}
   
-  The argument is similar for the only if direction.
+  The argument is similar for the right-to-left direction.
 \end{proof}
 
 
 \begin{lemma}[\label{lem:readSourceElement}Parse Equivalence for SourceElement]\mbox{}
   
   \( \forall s, p \in \reprefix. \)
-
-  \( s \in \gprod{SourceElement}{e} \Leftrightarrow 
-  \readfn{s}{p}{\false} \in \gprod{SourceElement'}{e} \)
+  \[
+  \begin{array}{rl}
+  &s \in \gprod{SourceElement}{e} 
+  \\
+  \Leftrightarrow &
+  \readfn{s}{p}{\false} \in \gprod{SourceElement'}{e}
+  \end{array}
+  \]
 \end{lemma}
 \begin{proof}
-  For the if direction there are two cases:
+  For the left-to-right direction there are two production rules for 
+  \( \gprod{SourceElement}{e} \).
   \begin{itemize}
-  \item \( s \in \gprod{SourceElement}{e} ::= \gprod{Stmt}{e} \).
+  \item \( s \in \gprod{Stmt}{e} \).
     This holds by Lemma \ref{lem:readStmt} since \( p \in \reprefix \).
     
-  \item \( s \in \gprod{SourceElement}{e} ::=
-    \gprod{FunctionDecl}{e} \). This holds by Lemma
+  \item \( s \in \gprod{FunctionDecl}{e} \). This holds by Lemma
     \ref{lem:readFunctionDecl}.
   \end{itemize}
+
+  The argument is similar for the right-to-left direction.
 \end{proof}
 
 \begin{lemma}[\label{lem:readFunctionDecl}Parse Equivalence for FunctionDecl]\mbox{}
   
   \( \forall s, p, b. \)
-
-  \( s \in \gprod{FunctionDecl}{e} \Leftrightarrow 
-  \readfn{s}{p}{b} \in \gprod{FunctionDecl'}{e} \)
+  \[
+  \begin{array}{rl}
+  &s \in \gprod{FunctionDecl}{e} 
+  \\
+  \Leftrightarrow &
+  \readfn{s}{p}{b} \in \gprod{FunctionDecl'}{e} 
+  \end{array}
+  \]
 \end{lemma}
 \begin{proof}
-  For the if direction we only have a single case: 
+  For the left-to-right direction there is one production rule for
+  \( \gprod{FunctionDecl}{e} \):
   \[ 
   \begin{array}{lcl}
   s \in
-  \gprod{FunctionDecl}{\texttt{function}~x~\parens{x'}~\curlies{e}}
-  ::= 
-  \\
   \texttt{function}~x~\parens{x'}~\curlies{\gprod{SourceElements}{e}}
   \end{array}
   \]
@@ -933,22 +1233,29 @@ mobile device browsers).
  where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). 
  Since by Lemma \ref{lem:readSourceElements},
  \( t' \in \gprod{SourceElements'}{e} \) we have \( t \in \gprod{FunctionDecl'}{\texttt{function}~x~\parens{x}~\curlies{e}} \).
+ 
+ The argument is similar for the right-to-left direction.
 \end{proof}
 
 \begin{lemma}[\label{lem:readStmt}Parse Equivalence for Stmt]\mbox{}
   
   \( \forall s, p \in \reprefix. \)
-
-  \( s \in \gprod{Stmt}{e} \Leftrightarrow 
-  \readfn{s}{p}{\false} \in \gprod{Stmt'}{e} \)
+  \[
+  \begin{array}{rl}
+  &s \in \gprod{Stmt}{e} 
+  \\
+  \Leftrightarrow &
+  \readfn{s}{p}{\false} \in \gprod{Stmt'}{e}
+  \end{array}
+  \]
 \end{lemma}
 \begin{proof}
-  For the if direction we have several cases:
+  For the left-to-right direction we have several production rules for
+  \( \gprod{Stmt}{e} \).
   \begin{itemize}
 
-  \item \( s \in \gprod{Stmt}{\curlies{e}} ::=
-    \curlies{\gprod{StmtList}{e}} \). We have \( s = \curlies{s'} \)
-    where \( s' \in \gprod{StmtList}{e} \). Then:
+  \item \( s \in \curlies{\gprod{StmtList}{e}} \). We have \( s =
+    \curlies{s'} \) where \( s' \in \gprod{StmtList}{e} \). Then:
     \[
     \begin{array}{rcl}
       t &=& \readfn{\curlies{s'}}{p}{\false}
@@ -961,7 +1268,7 @@ mobile device browsers).
     so \( t \in \gprod{Stmt'}{\curlies{e}} \).
 
 
-  \item \( s \in \gprod{Stmt}{e} ::= \gprod{AssignExpr}{e}~\texttt{;}
+  \item \( s \in \gprod{AssignExpr}{e}~\texttt{;}
     \). We have \( s = s' \cdot \texttt{;} \) where \( s' \in
     \gprod{AssignExpr}{e} \). Then:
     \[
@@ -976,11 +1283,10 @@ mobile device browsers).
     \gprod{AssignExpr'}{e} \) we have \( t \in
     \gprod{Stmt'}{e} \).
 
-  \item \( s \in \gprod{Stmt}{\texttt{if}~\parens{e}~e'} ::=
-    \texttt{if}~ \parens{\gprod{AssignExpr}{e}}~ \gprod{Stmt}{e'} \).
-    We have \( s = \texttt{if}\cdot \parens{s'}\cdot s'' \) where \(
-    s' \in \gprod{AssignExpr}{e} \) and \( s'' \in \gprod{Stmt}{e'}
-    \).
+  \item \( s \in \texttt{if}~ \parens{\gprod{AssignExpr}{e}}~
+    \gprod{Stmt}{e'} \). We have \( s =
+    \texttt{if}\cdot \parens{s'}\cdot s'' \) where \( s' \in
+    \gprod{AssignExpr}{e} \) and \( s'' \in \gprod{Stmt}{e'} \).
     \[
     \begin{array}{rcl}
       t &=& \readfn{
@@ -1006,16 +1312,13 @@ mobile device browsers).
     \( p \cdot \parens{t'} \in \reprefix \)). Thus \( t \in
     \gprod{Stmt'}{\texttt{if}~\parens{e}~e'} \).
 
-  \item \( s \in \gprod{Stmt}{\texttt{return}} ::= \texttt{return} \).
-    Since \( s = \texttt{return} \) and \( \readfn{s}{p}{\false} =
-    \texttt{return} \in \gprod{Stmt'}{\texttt{return}} \) we
-    have our result directly.
+  \item \( s \in \texttt{return} \). Since \( s = \texttt{return} \)
+    and \( \readfn{s}{p}{\false} = \texttt{return} \in
+    \gprod{Stmt'}{\texttt{return}} \) we have our result directly.
 
-  \item \( s \in \gprod{Stmt}{\texttt{return}~e} ::=
-    \texttt{return}~ \gprod{AssignExpr}{e} \texttt{;} \).
-    We have \( s
-    = \texttt{return}\cdot s' \cdot \texttt{;} \) where \( s' \in
-    \gprod{AssignExpr}{e} \). Then:
+  \item \( s \in \texttt{return}~ \gprod{AssignExpr}{e} \texttt{;} \).
+    We have \( s = \texttt{return}\cdot s' \cdot \texttt{;} \) where
+    \( s' \in \gprod{AssignExpr}{e} \). Then:
     \[
     \begin{array}{rcl}
       t &=& \readfn{\texttt{return} \cdot s' \cdot \texttt{;}}{p}{\false}
@@ -1028,9 +1331,9 @@ mobile device browsers).
       \cdot \texttt{return}}{\false} \in \gprod{AssignExpr'}{e}
     \) thus \( t \in \gprod{Stmt'}{\texttt{return}~e} \).
 
-  \item \( s \in \gprod{Stmt}{\var \texttt{:}~e} ::=
-    \var~\texttt{:}~\gprod{Stmt}{e} \). We have \( s = \var \cdot
-    \texttt{:} \cdot s' \) where \( s' \in \gprod{Stmt}{e} \). Then:
+  \item \( s \in \var~\texttt{:}~\gprod{Stmt}{e} \). We have \( s =
+    \var \cdot \texttt{:} \cdot s' \) where \( s' \in \gprod{Stmt}{e}
+    \). Then:
     \[
     \begin{array}{rcl}
       t &=& \readfn{\var \cdot \texttt{:} \cdot s'}{p}{\false}
@@ -1045,25 +1348,32 @@ mobile device browsers).
       \texttt{:}}{\false} \in \gprod{Stmt'}{e} \) so \( t \in
     \gprod{Stmt'}{\var~\texttt{:}~e} \).
   \end{itemize}
+
+  The argument for the right-to-left direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readStmtList}Parse Equivalence for StmtList]\mbox{}
 
   \( \forall s, p \in \reprefix. \)
-
-  \( s \in \gprod{StmtList}{e} \Leftrightarrow 
-  \readfn{s}{p}{\false} \in \gprod{StmtList'}{e} \)
+  \[
+  \begin{array}{rl}
+  &s \in \gprod{StmtList}{e} 
+  \\
+  \Leftrightarrow &
+  \readfn{s}{p}{\false} \in \gprod{StmtList'}{e}
+  \end{array}
+  \]
 \end{lemma}
 \begin{proof}
-  For the if direction we have two cases:
+  For the left-to-right direction we have two production rules for
+  \( \gprod{StmtList}{e} \).
   \begin{itemize}
-  \item \( s \in \gprod{StmtList}{e} ::= \gprod{Stmt}{e} \).
+  \item \( s \in \gprod{Stmt}{e} \).
     This follows by Lemma \ref{lem:readStmt} since \( p \in \reprefix \).
 
-  \item \( s \in \gprod{StmtList}{e~e'} ::=
-    \gprod{StmtList}{e}~ \gprod{Stmt}{e'} \). So 
-    \( s = s' \cdot s'' \) where \( s' \in \gprod{StmtList}{e} \)
-    and \( s'' \in \gprod{Stmt}{e'} \). Then,
+  \item \( s \in \gprod{StmtList}{e}~ \gprod{Stmt}{e'} \). So \( s =
+    s' \cdot s'' \) where \( s' \in \gprod{StmtList}{e} \) and \( s''
+    \in \gprod{Stmt}{e'} \). Then,
     \[
     \begin{array}{rcl}
       t &=& \readfn{s' \cdot s''}{p}{\false}
@@ -1079,6 +1389,8 @@ mobile device browsers).
     \readfn{s'}{p}{\false} \in \reprefix \)). Thus, \( t \in
     \gprod{StmtList'}{e~e'} \).
   \end{itemize}
+  
+  The argument for the right-to-left direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readAssignExpr}Parse Equivalence for
@@ -1088,8 +1400,12 @@ mobile device browsers).
   If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
   b = \true \) then \( s \) is unconstrained.
   \[ 
-  s \in \gprod{AssignExpr}{e} \Leftrightarrow 
+  \begin{array}{rl}
+  &s \in \gprod{AssignExpr}{e} 
+  \\
+  \Leftrightarrow&
   \readfn{s}{p}{b} \in \gprod{AssignExpr'}{e} 
+  \end{array}
   \]
   
 \end{lemma}
@@ -1099,18 +1415,14 @@ mobile device browsers).
   \gprod{AssignExpr}{e}~\texttt{;} \). Lemma \ref{lem:readPrimaryExpr}
   will make use of this constraint.
 
-  For the if direction we have
-  two cases:
+  For the left-to-right direction we have two production rules for
+  \( \gprod{AssignExpr}{e} \).
   \begin{itemize}
-  \item \( s \in \gprod{AssignExpr}{e} ::=
-    \gprod{BinaryExpr}{e} \). This holds by Lemma
+  \item \( s \in \gprod{BinaryExpr}{e} \). This holds by Lemma
     \ref{lem:readBinaryExpr}.
     
-  \item \( s \in \gprod{AssignExpr}{e~\texttt{=}~e'} \) by
-    \[ 
-    \gprod{CallExpr}{e} ~\texttt{=}~
-    \gprod{AssignExpr}{e'} 
-    \]
+  \item \( s \in \gprod{CallExpr}{e} ~\texttt{=}~
+    \gprod{AssignExpr}{e'} \).
     Then \( s = s' \cdot \texttt{=} \cdot s'' \) where \( s' \in
     \gprod{CallExpr}{e} \) and \( s'' \in
     \gprod{AssignExpr}{e'} \). Then:
@@ -1133,6 +1445,8 @@ mobile device browsers).
     (since \( p \cdot \readfn{s'}{p}{b} \cdot \texttt{=} \in \reprefix \)) so \( t \in
     \gprod{AssignExpr'}{e~\texttt{=}~e'} \).
   \end{itemize}
+  
+  The argument for the right-to-left direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readBinaryExpr}Parse Equivalence for BinaryExpr]\mbox{}
@@ -1141,25 +1455,26 @@ mobile device browsers).
   If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
   b = \true \) then \( s \) is unconstrained.
   \[
-  s \in \gprod{BinaryExpr}{e} \Leftrightarrow 
+  \begin{array}{rl}
+  &s \in \gprod{BinaryExpr}{e} 
+  \\
+  \Leftrightarrow &
   \readfn{s}{p}{b} \in \gprod{BinaryExpr'}{e} 
+  \end{array}
   \]
 
 \end{lemma}
 \begin{proof}
-  To show the if direction we have three cases:
+  For the left-to-right direction there are three productions for
+  \( \gprod{BinaryExpr}{e} \).
   \begin{itemize}
-  \item \( s \in \gprod{BinaryExpr}{e} ::=
-    \gprod{CallExpr}{e} \). This holds by Lemma
+  \item \( s \in \gprod{CallExpr}{e} \). This holds by Lemma
     \ref{lem:readCallExpr} since \( p \in \reprefix \).
 
-  \item \( s \in \gprod{BinaryExpr}{e~\div~e'} \) by 
-    \[
-    \gprod{BinaryExpr}{e} ~\div~ \gprod{BinaryExpr}{e'} 
-    \]
-    We have \( s = s' \cdot \div \cdot s'' \) where \( s' \in
-    \gprod{BinaryExpr}{e} \) and \( s'' \in
-    \gprod{BinaryExpr}{e'} \). Then:
+  \item \( s \in \gprod{BinaryExpr}{e} ~\div~ \gprod{BinaryExpr}{e'}
+    \). We have \( s = s' \cdot \div \cdot s'' \) where \( s' \in
+    \gprod{BinaryExpr}{e} \) and \( s'' \in \gprod{BinaryExpr}{e'} \).
+    Then:
     \[
     \begin{array}{rcl}
       t &=& \readfn{s'\cdot \div \cdot s''}{p}{b}
@@ -1185,13 +1500,10 @@ mobile device browsers).
       }{b} \in \gprod{BinaryExpr'}{e'}
       \) (since \( p \cdot \readfn{s'}{p}{b} \cdot \div \in \reprefix \)) thus \( t \in \gprod{BinaryExpr'}{e~\div~e'} \).
 
-  \item \( s \in \gprod{BinaryExpr}{e~\texttt{+}~e'} \) by 
-    \[
-    \gprod{BinaryExpr}{e} ~\texttt{+}~ \gprod{BinaryExpr}{e'} 
-    \]
-    We have \( s = s' \cdot \texttt{+} \cdot s'' \) where \( s' \in
-    \gprod{BinaryExpr}{e} \) and \( s'' \in
-    \gprod{BinaryExpr}{e'} \). Then:
+    \item \( s \in \gprod{BinaryExpr}{e} ~\texttt{+}~
+      \gprod{BinaryExpr}{e'} \). We have \( s = s' \cdot \texttt{+}
+      \cdot s'' \) where \( s' \in \gprod{BinaryExpr}{e} \) and \( s''
+      \in \gprod{BinaryExpr}{e'} \). Then:
     \[
     \begin{array}{rcl}
       t &=& \readfn{s'\cdot \texttt{+} \cdot s''}{p}{b}
@@ -1208,6 +1520,8 @@ mobile device browsers).
     \readfn{s'}{p}{b} \cdot \texttt{+} \in \reprefix \)) thus \( t \in
     \gprod{BinaryExpr'}{e~\texttt{+}~e'} \).
   \end{itemize}
+  
+  The argument for the right-to-left direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readCallExpr}Parse Equivalence for CallExpr]\mbox{}
@@ -1216,20 +1530,23 @@ mobile device browsers).
   If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
   b = \true \) then \( s \) is unconstrained.
   \[ 
-  s \in \gprod{CallExpr}{e} \Leftrightarrow 
+  \begin{array}{rl}
+  &s \in \gprod{CallExpr}{e} 
+  \\
+  \Leftrightarrow &
   \readfn{s}{p}{b} \in \gprod{CallExpr'}{e} 
+  \end{array}
   \]
 \end{lemma}
 \begin{proof}
-  For the if direction we have three cases:
+  For the left-to-right direction there are two production rules for
+  \( \gprod{CallExpr}{e} \).
   \begin{itemize}
-  \item \( s \in \gprod{CallExpr}{e~\parens{e'}} \) by
-    \[
-    \gprod{MemberExpr}{e}~\parens{\gprod{AssignExpr'}{e'}}
-    \]
-    We have \( s = s' \cdot \parens{s''} \) where \( s' \in
-    \gprod{MemberExpr}{e} \) and \( s'' \in
-    \gprod{AssignExpr}{e'} \). Then
+  \item \( s \in
+    \gprod{MemberExpr}{e}~ \parens{\gprod{AssignExpr'}{e'}} \). We
+    have \( s = s' \cdot \parens{s''} \) where \( s' \in
+    \gprod{MemberExpr}{e} \) and \( s'' \in \gprod{AssignExpr}{e'} \).
+    Then
     \[
     \begin{array}{rcl}
       t &=& \readfn{s' \cdot \parens{s''}}{p}{b}
@@ -1248,9 +1565,8 @@ mobile device browsers).
     \gprod{AssignExpr'}{e'} \) thus \( t \in
     \gprod{CallExpr'}{e~\parens{e'}} \).
 
-  \item \( s \in \gprod{CallExpr}{e\texttt{.\var}} ::=
-    \gprod{CallExpr}{e} ~\texttt{.} ~\var \). Then
-    \( s = s' \cdot \texttt{.}\cdot \var \) where \( s' \in
+  \item \( s \in \gprod{CallExpr}{e} ~\texttt{.} ~\var \). Then \( s =
+    s' \cdot \texttt{.}\cdot \var \) where \( s' \in
     \gprod{CallExpr}{e} \). Then
     \[
     \begin{array}{rcl}
@@ -1262,6 +1578,8 @@ mobile device browsers).
     By induction \( \readfn{s'}{p}{b} \in \gprod{CallExpr'}{e}
     \). Thus \( t \in \gprod{CallExpr'}{e~\texttt{.\var}} \).
   \end{itemize}
+  
+  The argument for the right-to-left direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readMemberExpr}Parse Equivalence for MemberExpr]\mbox{}
@@ -1270,24 +1588,26 @@ mobile device browsers).
   If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
   b = \true \) then \( s \) is unconstrained.
   \[
-  s \in \gprod{MemberExpr}{e} \Leftrightarrow 
+  \begin{array}{rl}
+  &s \in \gprod{MemberExpr}{e} 
+  \\
+  \Leftrightarrow&
   \readfn{s}{p}{b} \in \gprod{MemberExpr'}{e} 
+  \end{array}
   \]
 \end{lemma}
 \begin{proof}
-  For the if direction we have three cases:
+  For the left-to-right direction there are two three production rules
+  for \( \gprod{MemberExpr}{e} \).
   \begin{itemize}
-  \item \( s \in \gprod{MemberExpr}{e} ::=
-    \gprod{PrimaryExpr}{e} \). This follows from Lemma
+  \item \( s \in \gprod{PrimaryExpr}{e} \). This follows from Lemma
     \ref{lem:readPrimaryExpr} since \( p \in \reprefix \).
     
-  \item \( s \in \gprod{MemberExpr}{e} ::=
-    \gprod{FunctionExpr}{e} \). This follows from Lemma
+  \item \( s \in \gprod{FunctionExpr}{e} \). This follows from Lemma
     \ref{lem:readFunctionExpr}.
     
-  \item \( s \in \gprod{MemberExpr}{e\texttt{.\var}} ::=
-    \gprod{MemberExpr}{e} ~\texttt{.}~\var \). We have 
-    \( s = s' \cdot \texttt{.} \var \) where \( s \in
+  \item \( s \in \gprod{MemberExpr}{e} ~\texttt{.}~\var \). We have \(
+    s = s' \cdot \texttt{.} \var \) where \( s \in
     \gprod{MemberExpr}{e} \). Then
     \[
     \begin{array}{rcl}
@@ -1299,6 +1619,8 @@ mobile device browsers).
     By induction \( \readfn{s'}{p}{b} \in \gprod{MemberExpr'}{e}
     \) thus \( t \in \gprod{MemberExpr'}{e\texttt{.\var}} \).
   \end{itemize}
+  
+  The argument for the right-to-left direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readFunctionExpr}Parse Equivalence for
@@ -1306,8 +1628,12 @@ mobile device browsers).
 
   \( \forall s, b, p \in \reprefix. \)
   \[
-  s \in \gprod{FunctionExpr}{e} \Leftrightarrow 
+  \begin{array}{rl}
+  &s \in \gprod{FunctionExpr}{e} 
+  \\
+  \Leftrightarrow &
   \readfn{s}{p}{b} \in \gprod{FunctionExpr'}{e} 
+  \end{array}
   \]
 \end{lemma}
 \begin{proof}
@@ -1320,6 +1646,8 @@ mobile device browsers).
   where \( t' = \readfn{s'}{\epsilon}{\false} \) and by Lemma
   \ref{lem:readSourceElements}, \( t' \in \gprod{SourceElements'}{e}
   \) we have \( t \in \gprod{FunctionExpr'}{\texttt{function}~x~\parens{x}~\curlies{e}} \).
+  
+  The argument for the right-to-left direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readPrimaryExpr}Parse Equivalence for PrimaryExpr]\mbox{}
@@ -1328,23 +1656,27 @@ mobile device browsers).
   If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
   b = \true \) then \( s \) is unconstrained.
   \[ 
-  s \in \gprod{PrimaryExpr}{e} \Leftrightarrow 
+  \begin{array}{rl}
+  &s \in \gprod{PrimaryExpr}{e} 
+  \\
+  \Leftrightarrow &
   \readfn{s}{p}{b} \in \gprod{PrimaryExpr'}{e} 
+  \end{array}
   \]
 \end{lemma}
 \begin{proof}
-  For the if direction we have several cases:
+  For the left-to-right direction there are several production rules for
+  \( \gprod{PrimaryExpr}{e} \).
   \begin{itemize}
-  \item \( s \in \gprod{PrimaryExpr}{\var} ::= \var \). Then \( s
+  \item \( s \in \var \). Then \( s
     = \var \) and \( \readfn{\var}{p}{b} \in
     \gprod{PrimaryExpr'}{\var} \) directly.
 
-  \item \( s \in \gprod{PrimaryExpr}{\rett} ::= \re \). Then \( s
+  \item \( s \in \re \). Then \( s
     = \re \) and \( \readfn{\re}{p}{b} = \rett \in
     \gprod{PrimaryExpr'}{\rett} \) since \( p \in \reprefix \).
 
-  \item \( s \in \gprod{PrimaryExpr}{\curlies{\var\texttt{:}e}}
-    ::= \curlies{\var\texttt{:} \gprod{AssignExpr}{e}} \).
+  \item \( s \in \curlies{\var\texttt{:} \gprod{AssignExpr}{e}} \).
     Then \( s = \texttt{\{} \cdot \var \cdot \texttt{:} \cdot 
     s' \cdot \texttt{\}} \) where \(
     s' \in \gprod{AssignExpr}{e} \). Then:
@@ -1361,8 +1693,7 @@ mobile device browsers).
     \gprod{AssignExpr'}{e} \) and thus \( t \in
     \gprod{PrimaryExpr'}{\curlies{\var\texttt{:}e}} \).
     
-  \item \( s \in \gprod{PrimaryExpr}{\parens{e}}
-    ::= \parens{\gprod{AssignExpr}{e}} \). Then \( s = \parens{s'} \)
+  \item \( s \in \parens{\gprod{AssignExpr}{e}} \). Then \( s = \parens{s'} \)
     where \( s' \in \gprod{AssignExpr}{e} \). So,
     \[
     \begin{array}{rcl}
@@ -1376,16 +1707,22 @@ mobile device browsers).
     \gprod{AssignExpr'}{e} \). So, \( t \in
     \gprod{PrimaryExpr'}{\parens{e}} \).
   \end{itemize}
+  
+  For the right-to-left direction the argument is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readSourceElementPrefix}SourceElement Prefix]\mbox{}
   
   \( \forall s, p \in \reprefix. \)
 
-  \( 
-  s \in \gprod{SourceElement}{e} \Rightarrow 
+  \[
+  \begin{array}{rl}
+  &s \in \gprod{SourceElement}{e} 
+  \\
+  \Rightarrow &
   \readfn{s}{p}{\false} \in \reprefix
-  \)
+  \end{array}
+  \]
 \end{lemma}
 \begin{proof}
   There are two cases:
@@ -1400,8 +1737,13 @@ mobile device browsers).
 \begin{lemma}[\label{lem:readStmtPrefix}Stmt Prefix]\mbox{}
 
   \( \forall s, p \in \reprefix. \)
-
-  \( \readfn{s}{p}{\false} \in \gprod{Stmt'}{e} \Rightarrow p \cdot \readfn{s}{p}{\false} \in \reprefix \)
+  \[
+  \begin{array}{rl}
+  &\readfn{s}{p}{\false} \in \gprod{Stmt'}{e} 
+  \\
+  \Rightarrow& p \cdot \readfn{s}{p}{\false} \in \reprefix
+  \end{array}
+  \]
 \end{lemma}
 \begin{proof}
   We have several cases:
