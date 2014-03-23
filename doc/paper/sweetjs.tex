@@ -82,68 +82,87 @@
 \section{Introduction}
 \label{sec-1}
 
-Macros systems have a long history in the design of extensible
-programming languages going back at least to Lisp and Scheme
-\cite{Kohlbecker1987,Foderaro1983} as a tool to provide
-programmers syntactic flexibility.
+Expressive macros systems have a long history in the design of
+extensible programming languages going back to Lisp and Scheme
+\cite{Kohlbecker1987,Foderaro1983} as a powerful tool that enables
+programmers to craft their own languages.
 
-While powerful macro systems have been used extensively in 
-Lisp-derived languages, there has been considerable less movement for macros
-systems for languages with an 
+While macro systems have found success in the Lisp-derived languages,
+they have not been widely adopted in languages such as JavaScript. In
+part, this failure is due to the difficulty in implementing macro
+systems in languages that are not fully delimited. A key feature of a
+sufficiently expressive macro system is the ability for macros to
+manipulate unparsed and unexpanded subexpressions. In a language with
+parentheses like Scheme, manipulating unparsed subexpressions is
+simple:
+\begin{lstlisting}
+(if (> denom 0)
+    (/ x denom)
+    (error "divide by zero"))
+\end{lstlisting}
+The Scheme \emph{reader} converts the source string into nested
+s-expressions which macros can easily manipulate. Since each
+subexpression of the \lstinline!if! form is a fully delimited
+s-expression, it is easy to implement a form like \lstinline!if! as a
+macro.
 
-expression based syntax such as
-JavaScript. This is due to a variety of technical reasons that have
-held back macro systems in expression based languages which we address
-in this paper.
+% A language with richer syntax like JavaScript complicates this
+% process:
+% \begin{lstlisting}
+% if (denom > 0)
+%   x / denom;
+% else
+%   throw "divide by zero";
+% \end{lstlisting}
+% Without fully parsing, it is difficult to know where 
 
-Key ideas: Parens in Scheme make macros easy. Rich syntax is much
-harder. Need to interpose reader before parsing. ES5's parser uses
-context-sensitive lexing. Need a reader that avoids context sensitive
-lexing and produces token trees.
-
-A scheme compiler pipeline looks like:
+Conceptually, the Scheme compiler pipeline lexes a source string into
+a sequence of tokens which are then read into s-expressions before
+being macro expanded and parsed into an abstract syntax tree:
 \[
-\textit{Scheme} : 
 \textit{lexer} \xrightarrow{\textit{Token}^{*}}
 \textit{reader} \xrightarrow{\textit{Sexpr}}
-\textit{parser} \xrightarrow{\textit{AST}}
+\textit{expander/parser} \xrightarrow{\textit{AST}}
 \]
 
-A because of ambiguity during lexing an ES5 compiler pipline looks
-like:
+As a first step to designing a Scheme-like macro system for
+JavaScript, it is necessary to introduce a read step to the compiler
+pipline. However, the design of a correct reader for full JavaScript
+turns out to be surprisingly subtle, due to ambiguities in how regular
+expression literals (such as \lstinline!/[0-9]*/!) and the divide
+operator (\lstinline!/!) should be lexed. In traditional JavaScript
+compilers the parser and lexer are intertwined. Rather than run the
+entire program through the lexer once to get a sequence of tokens, the
+parser calls out to the lexer from a given grammatical context with a
+flag to indicate if the lexer should accept a regular expression or
+divide operator.
 \[
-\textit{ES5} :
 \textit{lexer} \xleftrightharpoons[\textit{Token}^{*}]{\textit{feedback}}
 \textit{parser} \xrightarrow{\textit{AST}}
 \]
-
-And a sweet.js pipline is
+So, it is necessary to separate the parser and lexer in order to
+implement a macro system for JavaScript. Our system,
+sweet.js\footnote{http://sweetjs.org}, implements such a separated
+reader that converts a sequence of tokens into a sequence of token
+trees (similar to s-expressions) without feedback from the parser.
 \[
-\textit{sweet.js} :
 \textit{lexer} \xrightarrow{\textit{Token}^{*}}
 \textit{reader} \xrightarrow{\textit{TokenTree}^{*}}
-\textit{parser} \xrightarrow{\textit{AST}}
+\textit{expander/parser} \xrightarrow{\textit{AST}}
 \]
+This enables us to finally separate the JavaScript lexer and parser
+and build a fully hygienic macro system for JavaScript.
 
-Our website is at \cite{Disney2014}.
-
-Recently the Honu project \cite{Rafkind2012,Rafkind2013} has shown how
-to overcome some of the existing challenges in developing a macro
-system for expression based language. The Honu technique was designed
-for an idealized JavaScript like language. 
-
-In this paper we present sweet.js, a hygienic macros system for
-JavaScript, that extends the techniques of Honu for full JavaScript
-and present additional techniques that target expression based
-languages.
-
+Our work builds on techniques pioneered by Honu
+\cite{Rafkind2012,Rafkind2013}, which is a macro system for a
+JavaScript-like language. The Honu language does not support regular
+expression literals like JavaScript which simplifies their reader.
 
 We make the following contributions:
 
 \begin{itemize}
-\item an implementation of and proof of \textit{read} that addresses
-  the JavaScript grammar issues that traditionally have prevented
-  separating lexing and parsing.
+\item a reader implementation and proof that separates the lexer from
+  the parser.
 \item the ability to define infix macros that match on arbitrary
   surrounding syntax.
 \item the \texttt{invoke} primitive to allow custom parser classes and
@@ -170,7 +189,7 @@ form:
 \begin{lstlisting}
 macro def {
   rule { 
-    $name ($params ...) { $body ... } 
+    $name ($params (,) ...) { $body ... } 
   } => {
     function $name ($params ...) {
       $body ...
@@ -186,8 +205,8 @@ The pattern is matched against the syntax following the macro name.
 Identifiers in a pattern that begin with \lstinline!$! are
 \emph{pattern variables} and bind the syntax they match in the
 template (identifiers that do not begin with \lstinline!$! are matched
-literally). The ellipses (\lstinline!...!) mean match zero or more
-tokens.
+literally). The ellipses (\lstinline!$params (,) ...!) mean match zero or more
+tokens separated by commas.
 
 The above example show the power of matching delimited groups of
 syntax (\ie matching all the tokens inside the function body). In
@@ -1047,9 +1066,9 @@ id 100 m
 // foo
 // ("sweet") + 100
 \end{lstlisting}
-This behavior introduces an asymmetry in the kinds of syntax an infix
-macro can match before its identifier and the kinds of syntax it can
-match after since the syntax following the identifier can contain
+This behavior introduces an asymmetry between the kinds of syntax an
+infix macro can match before its identifier and the kinds of syntax it
+can match after since the syntax following the identifier can contain
 unexpanded macros.
 
 Even with these limitations infix macros work as a powerful complement
@@ -1059,65 +1078,135 @@ that can be written as a macro.
 \subsection{Invoke and Pattern Classes}
 \label{sec:invoke}
 
-Pattern classes are extensible via the \lstinline!invoke! class which
-is parameterized by a macro name.
+Extensibility is the guiding design principle of any expressive macro
+system. Since the entire point of macros is to extend the expressive
+power of the language, so too should the macro system itself be
+extensible by users. To that end sweet.js provides a mechanism to
+extend the patterns used by macros to match their arguments.
 
+As motivation, consider the following macro that matches against
+color options:
 \begin{lstlisting}
-macro color {
-  rule { red } => { red }
-  rule { green } => { green }
-  rule { blue } => { blue }
-}
 macro colors_options {
-  rule { ($opt:invoke(color) ...) } => { ... }
-}
-\end{lstlisting}
-
-The macro is essentially inserted into the token stream. If the
-expansion succeeds, the result will be loaded into the pattern
-variable, otherwise the rule will fail. We've added sugar so that any
-non-primitive pattern classes are interpretted as \lstinline!invoke!
-parameterized by the custom class. We've also added identity rules to
-shorten definitions of simple custom classes.
-
-\begin{lstlisting}
-macro color {
-  rule { red }
-  rule { green }
-  rule { blue }
-}
-macro colors_options {
-  rule { ($opt:color (,) ...) } => { ... }
-}
-\end{lstlisting}
-
-These macros may return an optional pattern environment which will be
-scoped and loaded into the invoking macro's pattern environment. This
-lets us define Honu-style pattern classes as simple macro-generating
-macros.
-
-\begin{lstlisting}
-macro color {
-  ...
-}
-macro number {
-  ...
-}
-// `pattern` is just a macro-generating macro
-pattern color_value { $color:color $num:number }
-
-macro color_options {
-  rule { ($opt:color_value (,) ...) } => {
-    var cols = [$opt$color (,) ...];
-    var nums = [$opt$num (,) ...];
+  rule { (red) } => {
+    ["#FF0000"]
+  }
+  rule { (green) } => {
+    ["#00FF00"]
+  }
+  rule { (blue) } => {
+    ["#0000FF"]
   }
 }
+r = colors_options (red)
+g = colors_options (green)
+// expands to:
+// r = ["#FF0000"]
+// g = ["#00FF00"]
+\end{lstlisting}
+Macros can have multiple rules and the first rule to match (from top
+to bottom) is used. While this macro seems to work, attempting to
+generalize it quickly leads to a mess:
+\begin{lstlisting}
+macro colors_options {
+  rule { (red, red) } => {
+    ["#FF0000", "#FF0000"]
+  }
+  rule { (red, green) } => {
+    ["#FF0000", "#00FF00"]
+  }
+  rule { (red, blue) } => {
+    ["#FF0000", "#0000FF"]
+  }
+  // ... etc.
+}
+r = colors_options (red, green)
+g = colors_options (green, blue)
+// expands to:
+// r = ["#FF0000", "#00FF00"]
+// g = ["#00FF00", "#0000FF"]
+\end{lstlisting}
+While it is possible to solve this problem through the use of case
+macros, the declarative intent is quickly lost in a mess of 
+token manipulation code.
 
+Our solution to this is the \lstinline!:invoke! pattern class.
+This pattern class takes as a parameter a macro name which is inserted
+into the token tree stream before matching. If the inserted macro
+successfully matches its arguments, the result of its expansion is
+bound to the pattern variable. This makes declarative options simple
+to write:
+\begin{lstlisting}
+macro color {
+  rule { red } => { "#FF0000" }
+  rule { green } => { "#00FF00" }
+  rule { blue } => { "#0000FF" }
+}
+macro colors_options {
+  rule { ($opt:invoke(color) (,) ...) } => { 
+    [$opt (,) ...]
+  }
+}
+colors_options (red, green, blue, blue)
+// expands to:
+// ["#FF0000", "#00FF00", "#0000FF", "#0000FF"]
+\end{lstlisting}
+Here the \lstinline!color! macro plays the role of enumerating the
+valid colors that can be matched and bound to \lstinline!$opt!.
+If the token is not in one of the rules for \lstinline!color! (\eg
+\lstinline!orange!) the \lstinline!colors_options! macro will fail to match.
+
+As a sweet added bit of sugar, the use of \lstinline!:invoke! can be
+inferred by just using the name of a macro in scope (\ie
+\lstinline!$opt:color! is equivalent to
+\lstinline!$opt:invoke(color)!).
+
+\begin{lstlisting}
+macro color {
+  rule { red } => { "#FF0000" }
+  rule { green } => { "#00FF00" }
+  rule { blue } => { "#0000FF" }
+}
+macro colors_options {
+  rule { ($opt:color (,) ...) } => { 
+    [$opt (,) ...]
+  }
+}
+colors_options (red, green, blue, blue)
+// expands to:
+// ["#FF0000", "#00FF00", "#0000FF", "#0000FF"]
 \end{lstlisting}
 
-...?
+By using \lstinline!:invoke! macros writers can encode patterns
+like alternates, optional tokens, keyword classes, numeric classes,
+and more in a declarative style.
 
+\textbf{todo: talk about honu-style custom pattern classes? requires
+  explaining the pattern environment which might be too deep.}
 
+% These macros may return an optional pattern environment which will be
+% scoped and loaded into the invoking macro's pattern environment. This
+% lets us define Honu-style pattern classes as simple macro-generating
+% macros.
+
+% \begin{lstlisting}
+% macro color {
+%   ...
+% }
+% macro number {
+%   ...
+% }
+% // `pattern` is just a macro-generating macro
+% pattern color_value { $color:color $num:number }
+
+% macro color_options {
+%   rule { ($opt:color_value (,) ...) } => {
+%     var cols = [$opt$color (,) ...];
+%     var nums = [$opt$num (,) ...];
+%   }
+% }
+
+% \end{lstlisting}
 
 \section{Hygiene}
 \label{sec:hygiene}
