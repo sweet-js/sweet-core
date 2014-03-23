@@ -1,5 +1,5 @@
-% \documentclass[preprint,10pt]{sigplanconf}
-\documentclass[onecolumn]{sigplanconf-onecolumn}
+\documentclass[preprint,10pt]{sigplanconf}
+% \documentclass[onecolumn]{sigplanconf-onecolumn}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{fixltx2e}
@@ -227,181 +227,6 @@ macro log {
 \end{lstlisting}
 
 
-\section{Enforestation}
-\label{sec:enforest}
-
-The core technique that enables Scheme-like expressive macros for non
-delimited languages is called \emph{enforestation} \cite{Rafkind2012}.
-Enforestation works by progressively recognizing syntax forms and
-expanding macros. The key idea of enforestation is to give structure
-to the syntax arguments to macros.
-
-Sweet.js implements this algorithm mostly as described with some
-additions to provide infix macros and invoke pattern classes
-(described in the following sections).
-
-Enforestation works by grouping token trees into a more structured
-form called a term tree. Term trees are a kind of proto-AST; each term
-tree corresponds to a node in the final AST. For example,
-
-\begin{lstlisting}
-2 + 40;
-foo(100)
-\end{lstlisting}
-
-After an initial pass through the enforestation process the first
-binary expression will be matched as a binary term tree (we use angle
-brackets to denote a term tree element).
-
-\begin{lstlisting}
-<binop: +, left: 2, right: 40>;
-foo(100)
-\end{lstlisting}
-
-Through enforestation, a macro can match structured groupings of code.
-For example, consider a \lstinline!let! macro that must match the
-variable initialization (which can be an arbitrary undelimited
-expression):
-
-\begin{lstlisting}
-macro let {
-  rule { $name = $init:expr } => { 
-    // ...
-  }
-}
-let x = 40 + 2;
-\end{lstlisting}
-
-The \lstinline!:expr! pattern class signals the expander to match an expression term tree, which in the case is \lstinline!<binop +, left: 40, right: 2>!.
-
-\subsection{Infix Macros}
-\label{sec-4-1}
-The macros we have described so far must all be prefixed by the macro
-identifier and syntax after the macro name is matched. This is
-sufficient for many kinds of macros but some syntax forms require the
-macro identifier to sit between patterns.
-
-Honu addresses this need in a limited way by providing a way to define
-new binary and unary operators which during expansion can manipulate
-their operators. However, those operators must be fully expanded and
-must match as an expression.
-
-Sweet.js provides \emph{infix macros} which allows a macro identifier to
-match syntax before it. For example, the following implements
-ES6-style arrow functions via infix macros:
-
-\begin{lstlisting}
-macro => {
-    rule infix {
-        ($params ...) | { $body ... }
-    } => {
-        function ($params ...) {
-            $body ...
-        }
-    }
-}
-
-var id = (x) => { return x; }
-\end{lstlisting}
-
-This is accomplished by simply providing the state of previously
-expanded syntax to macro transformers. Macros may then consume from
-either ends as needed, yielding new previous and subsequent syntax. At
-first glance, this can appear brittle:
-
-\begin{lstlisting}
-var foo = bar(x) => { return x; }
-\end{lstlisting}
-
-We've juxtaposed the \lstinline!=>! macro next to a function call, which we did
-not intend to be valid syntax. A naive expansion results in unparsable
-code:
-
-\begin{lstlisting}
-var foo = bar function(x) { return x; }
-\end{lstlisting}
-
-In more subtle cases, a naive expansion can result in parsable code
-with incorrect semantics. [Example needed?] To preserve the integrity
-of previously expanded syntax, we verify that an infix macro only
-matches previous syntax on boundaries delimited by the partial syntax
-tree we've built. The syntax tree would show \lstinline!bar(x)! as a complete
-function call term. Consuming the parentheses would result in a split
-term and is disallowed, failing the rule. In practice, this has proven
-to be an intuitive restriction. [Elaborate?]
-
-The primary limitation of infix macros is they do not obey precedence
-and associativity. They stand as a complement to Honu operators, not
-as a replacement, for when an infix form does not adhere to operator
-semantics, much like the \lstinline!=>! macro. Its left-hand-side and
-right-hand-side are not arbitrary expressions but must match a
-specific form. 
-Additionally, it would need a precedence higher
-than other operators.
-
-\subsection{Invoke and Pattern Classes}
-\label{sec-4-2}
-
-[Something about default pattern classes and `:expr`...]
-
-Pattern classes are extensible via the \lstinline!invoke! class which
-is parameterized by a macro name.
-
-\begin{lstlisting}
-macro color {
-  rule { red } => { red }
-  rule { green } => { green }
-  rule { blue } => { blue }
-}
-macro colors_options {
-  rule { ($opt:invoke(color) ...) } => { ... }
-}
-\end{lstlisting}
-
-The macro is essentially inserted into the token stream. If the
-expansion succeeds, the result will be loaded into the pattern
-variable, otherwise the rule will fail. We've added sugar so that any
-non-primitive pattern classes are interpretted as \lstinline!invoke!
-parameterized by the custom class. We've also added identity rules to
-shorten definitions of simple custom classes.
-
-\begin{lstlisting}
-macro color {
-  rule { red }
-  rule { green }
-  rule { blue }
-}
-macro colors_options {
-  rule { ($opt:color (,) ...) } => { ... }
-}
-\end{lstlisting}
-
-These macros may return an optional pattern environment which will be
-scoped and loaded into the invoking macro's pattern environment. This
-lets us define Honu-style pattern classes as simple macro-generating
-macros.
-
-\begin{lstlisting}
-macro color {
-  ...
-}
-macro number {
-  ...
-}
-// `pattern` is just a macro-generating macro
-pattern color_value { $color:color $num:number }
-
-macro color_options {
-  rule { ($opt:color_value (,) ...) } => {
-    var cols = [$opt$color (,) ...];
-    var nums = [$opt$num (,) ...];
-  }
-}
-
-\end{lstlisting}
-
-...?
-
 
 \section{Reading JavaScript}
 \label{sec:read}
@@ -507,12 +332,15 @@ token.
 Some of the cases of read are relatively obvious. For example, if the
 token just read was one of the binary operators (\eg
 \lstinline!100 + /x/g!) the slash will always be a regular expression
-literal. If on the other hand the previous token tree was a parenthesis
-then most of the time the slash will be the divide operator (\eg
-dividing the result of a call \lstinline!foo(100) / 10!). However, if
-the token before the parenthesis was the keyword \texttt{if} then it
-is actually the start of a regular expression (since single statement
-if bodies do not require braces).
+literal. 
+
+Other cases require additional context to disambiguate. For example,
+if the previous token tree was a parentheses (\eg dividing the result
+of a call \lstinline!foo(100) / 10!) then slash will be the divide
+operator \emph{unless} the token tree before the parentheses was the
+keyword \texttt{if} in which case it is actually the start of a
+regular expression (since single statement \texttt{if }bodies do not require
+braces).
 
 \begin{lstlisting}
 if (x) /y/g  
@@ -861,7 +689,8 @@ strategies give identical behavior.
 \]
 \end{displayfigure*}
 
-\begin{displayfigure*}{\label{fig:grammar}Simplified ES Grammar}
+
+\begin{displayfigure*}{\label{fig:grammar}Simplified ES5 Grammar}
 \[
 \begin{array}{lcl}
   \gprod{PrimaryExpr}{x} &::=& x
@@ -869,10 +698,11 @@ strategies give identical behavior.
   \gprod{PrimaryExpr}{\rett} &::=& \texttt{/} \cdot x \cdot \texttt{/}
   \\
   \gprod{PrimaryExpr}{\curlies{\var \texttt{:} e}} &::=& 
-  \curlies{\var \texttt{:} \gprod{AssignExpr}{e}}
+  \curlies{\cdot \var \cdot \texttt{:} \cdot  \gprod{AssignExpr}{e}
+    \cdot }
   \\
   \gprod{PrimaryExpr}{\parens{e}} &::=& 
-  \parens{\gprod{AssignExpr}{e}}
+  \parens{\cdot \gprod{AssignExpr}{e} \cdot }
   \\ \\
   \gprod{MemberExpr}{e} &::=&
   \gprod{PrimaryExpr}{e}
@@ -881,15 +711,15 @@ strategies give identical behavior.
   \gprod{FunctionExpr}{e}
   \\
   \gprod{MemberExpr}{e\texttt{.\var}} &::=&
-  \gprod{MemberExpr}{e}~\texttt{.}~\var
+  \gprod{MemberExpr}{e} \cdot \texttt{.} \cdot \var
   \\ \\
   \gprod{CallExpr}{e~\parens{e'}} &::=& 
-  \gprod{MemberExpr}{e}~
-  \parens{\gprod{AssignExpr}{e'}}
+  \gprod{MemberExpr}{e} \cdot
+  \parens{\cdot \gprod{AssignExpr}{e'} \cdot }
   \\
   \gprod{CallExpr}{e~\parens{e'}} &::=& 
-  \gprod{CallExpr}{e}~
-  \parens{\gprod{AssignExpr}{e'}}
+  \gprod{CallExpr}{e} \cdot
+  \parens{\cdot \gprod{AssignExpr}{e'} \cdot }
   \\
   \gprod{CallExpr}{e\texttt{.\var}} &::=& 
   \gprod{CallExpr}{e}~\texttt{.}~
@@ -898,55 +728,56 @@ strategies give identical behavior.
   \gprod{BinaryExpr}{e} &::=& \gprod{CallExpr}{e} \\
   \gprod{BinaryExpr}{e ~\div~ e'}
   &::=&
-  \gprod{BinaryExpr}{e} ~\div~ \gprod{BinaryExpr}{e'} \\
+  \gprod{BinaryExpr}{e} \cdot \div \cdot  \gprod{BinaryExpr}{e'} \\
   \gprod{BinaryExpr}{e ~\plus~ e'}
   &::=&
-  \gprod{BinaryExpr}{e} ~\plus~ \gprod{BinaryExpr}{e'}
+  \gprod{BinaryExpr}{e} \cdot \plus \cdot \gprod{BinaryExpr}{e'}
   \\ \\
   \gprod{AssignExpr}{e} &::=&
   \gprod{BinaryExpr}{e}
   \\
   \gprod{AssignExpr}{e~\texttt{=}~e'} &::=&
-  \gprod{CallExpr}{e}~\texttt{=}~
+  \gprod{CallExpr}{e} \cdot \texttt{=} \cdot
   \gprod{AssignExpr}{e'}
   \\ \\
   \gprod{StmtList}{e} &::=&
   \gprod{Stmt}{e}
   \\
   \gprod{StmtList}{e~e'} &::=&
-  \gprod{StmtList}{e}~
+  \gprod{StmtList}{e} \cdot
   \gprod{Stmt}{e'}
   \\ \\
   \gprod{Stmt}{\curlies{e}} &::=& 
-  \curlies{ \gprod{StmtList}{e} } 
+  \curlies{\cdot \gprod{StmtList}{e}\cdot} 
   \\
   \gprod{Stmt}{\var\texttt{:}~e} &::=&
-  \var~\texttt{:}~\gprod{Stmt}{e}
+  \var\cdot \texttt{:}\cdot\gprod{Stmt}{e}
   \\
   \gprod{Stmt}{e} &::=& 
-  \gprod{AssignExpr}{e} \texttt{;}
+  \gprod{AssignExpr}{e} \cdot \texttt{;}
   \qquad  \textit{where lookahead \( \not =
     \texttt{\{} \) or \( \texttt{function} \)}
   \\
   \gprod{Stmt}{\texttt{if}~\parens{e}~e'} &::=& 
-  \texttt{if}~\parens{\gprod{AssignExpr}{e}}~\gprod{Stmt}{e'}
+  \texttt{if}\cdot 
+  \parens{\cdot \gprod{AssignExpr}{e} \cdot }\cdot \gprod{Stmt}{e'}
   \\
   \gprod{Stmt}{\texttt{return}} &::=& 
   \texttt{return}
   \\
   \gprod{Stmt}{\texttt{return}~e} &::=& 
-  \texttt{return}~\textrm{[no line terminator
-    here]}~\gprod{AssignExpr}{e}~\texttt{;}
+  \texttt{return}\cdot \textrm{[no line terminator
+    here]}~\gprod{AssignExpr}{e}\cdot \texttt{;}
   \\ \\
   \gprod{FunctionDecl}{\texttt{function}~x~\parens{x'}~\curlies{e}} 
   &::=&
-  \texttt{function}~x~\parens{x'}~
-  \curlies{\gprod{SourceElements}{e}}
+  \texttt{function} \cdot x \cdot \parens{ \cdot x' \cdot}\cdot
+  \curlies{\cdot \gprod{SourceElements}{e} \cdot}
   \\
   \gprod{FunctionExpr}{\texttt{function}~x~\parens{x'}~\curlies{e}} 
   &::=&
-  \texttt{function}~x~\parens{x'}~
-  \curlies{\gprod{SourceElements}{e}}
+  \texttt{function} \cdot x \cdot \parens{ \cdot x' \cdot}\cdot
+  \curlies{\cdot \gprod{SourceElements}{e} \cdot}
   \\ \\
   \gprod{SourceElement}{e} &::=& \gprod{Stmt}{e} 
   \\
@@ -955,7 +786,8 @@ strategies give identical behavior.
 
   \gprod{SourceElements}{e} &::=& \gprod{SourceElement}{e}
   \\
-  \gprod{SourceElements}{e~e'} &::=& \gprod{SourceElements}{e}~\gprod{SourceElement}{e'}
+  \gprod{SourceElements}{e~e'} &::=&
+  \gprod{SourceElements}{e}\cdot \gprod{SourceElement}{e'}
   \\ \\
   \gprod{Program}{e} &::=& \gprod{SourceElements}{e}
   \\
@@ -964,109 +796,433 @@ strategies give identical behavior.
 \]  
 \end{displayfigure*}
 
+\section{Enforestation}
+\label{sec:enforest}
+
+The token tree structure produced by the reader is sufficient to
+implement an expressive macro system for a fully delimited language
+like Scheme. However since most of the syntax forms in a language like
+JavaScript are only partially delimited, it is necessary to provide
+additional structure during expansion that allows macros to manipulate
+undelimited or partially delimited groups of tokens. As an example,
+consider the \lstinline!let! macro described earlier:
+
+\begin{lstlisting}
+macro let {
+  rule { $id = $init:expr } => {
+    var $id = $init
+  }
+}
+let x = 40 + 2;
+// expands to:
+// var x = 40 + 2;
+\end{lstlisting}
+
+Like many syntax forms in JavaScript the variable initialization
+expression is an undelimited group of tokens. Building an expressive
+macro system requires that the macro can match and manipulate patterns
+such as an expression.
+
+Sweet.js groups tokens by
+transforming a token tree into a
+\emph{term tree} through \emph{enforestation} \cite{Rafkind2013}.
+Enforestation works by progressively recognizing syntax forms (\eg
+literals, identifiers, expressions, and statements) during expansion.
+
+A term tree is a kind of proto-AST that represents a partial parse of
+the program. As the expander passes through the token tress, it
+creates term trees that contain unexpanded sub trees that will be
+expanded once all macro definitions have been discovered in the
+current scope (as discussed in Section \ref{sec:macroBinding}).
+
+For an example of how enforestation progresses, consider the following
+use of the \lstinline!let! macro:
+\begin{lstlisting}
+macro let {
+  rule { $id = $init:expr } => {
+    var $id = $init
+  }
+}
+function foo(x) {
+  let y = 40 + 2;
+  return x + y;
+}
+foo(100);
+\end{lstlisting}
+Enforestation begins by loading the \lstinline!let! macro into the
+macro environment and converting the function declaration into a term
+tree (we use angle brackets to denote a term tree). Notice that the
+body of the function has not yet been enforested in the first pass.
+\begin{lstlisting}
+<fn: foo, 
+ args: (x), 
+ body: {
+   let y = 40 + 2;
+   return x + y;
+ }>
+foo(100);
+\end{lstlisting}
+Next, a term tree is created for the function call.
+\begin{lstlisting}
+<fn: foo, 
+ params: (x), 
+ body: {
+   let y = 40 + 2;
+   return x + y;
+ }>
+<call: foo, args: (100)>
+\end{lstlisting}
+On the second pass through the top level scope the expander moves into
+the function body. The use of \lstinline!let! is expanded away and the
+\lstinline!var! and \lstinline!return! term trees are created.
+\begin{lstlisting}
+<fn: foo, 
+ params: (x), 
+ body: {
+   <id: x, init: <op: +, left: 40, right: 2>
+   <return: <op: +, left: x right: y> 
+ }>
+<call: foo, args: (100)>
+\end{lstlisting}
+
+The additional structure provided by the term trees allow macros to
+match undelimited groups of tokens like as binary expressions such as
+\lstinline!<op: +, left: 40, right: 2>!.
+
+The enforestation technique described here was first proposed for the
+Honu language \cite{Rafkind2013}. We take their technique and extend
+it with two features described in the following sections:
+infix macros and the invoke pattern class.
+
+\subsection{Infix Macros}
+\label{sec:infix}
+The macros we have described so far must all be prefixed by the macro
+identifier and syntax after the macro name is matched. This is
+sufficient for many kinds of macros but some syntax forms require the
+macro identifier to sit between patterns.
+
+For example, the upcoming ES6 version of JavaScript includes a
+shorthand syntax for defining functions with arrow notation:
+
+\begin{lstlisting}
+id = (x) => x
+// equivalent to:
+// id = (function(x) { return x; }).bind(this);
+\end{lstlisting}
+
+One of the primary goals of sweet.js is to enable the kinds of syntax
+extension previously only done by the standardization committee. But,
+prefix macros are not capable of implementing syntax extensions like
+arrow functions since the macro name (\lstinline!=>!) is in the middle
+of its syntax arguments.
+
+Honu addressed this need for more flexible syntax transformation forms
+in a limited fashion via user definable unary and binary
+operators\footnote{Sweet.js will also provide support for definable
+  operators though at the time of this writing they have not yet been
+  fully implemented.}. Definable operators provide the ability to set
+custom precedence and associativity along with a syntax
+transformation. For example, the exponentiation operator could be
+defined as:
+\begin{lstlisting}
+operator ^ 10 left {$lhs, $rhs} => {
+  Math.pow($lhs, $rhs)
+}
+2 ^ 100;
+// expands to:
+// Math.pow(2, 100);
+\end{lstlisting}
+
+Unfortunately, definable operators are limited in that their operands
+must be expressions (this limitation allows setting custom precedence
+and associativity rules). This means it is impossible to define syntax
+forms such as arrow functions via definable operators since the
+parameter list is not an expression.
+
+To address this limitation, sweet.js introduces \emph{infix macros},
+which allow a macro to match syntax that comes before the macro
+identifier. Infix macros are defined by adding the keyword
+\lstinline!infix! after the \lstinline!rule! or \lstinline!case!
+keyword and placing a pipe (\lstinline!|!) in the pattern where the
+macro name would appear (the pipe can be thought of as the cursor in
+the token stream).
+
+For example, the following infix macro implements arrow functions:
+\begin{lstlisting}
+macro => {
+  rule infix {
+    ($params ...) | { $body:expr }
+  } => {
+    function ($params ...) {
+      return $body 
+    }
+  }
+}
+
+var id = (x) => x
+\end{lstlisting}
+
+
+
+
+Standard macro transformers are invoked with the sequence of tokens
+following the macro identifier and then return a modified sequence of
+tokens that are then expanded:
+\[
+\textit{transformer} : \TT^* \rightarrow \TT^*
+\]
+To implement infix macros, we modify the type of a transformer to
+take two arguments, one for the tokens that precede the macro
+identifier and the other with the tokens that follow. The transformer
+may then consume from either ends as needed, yielding new preceding
+and following tokens:
+\[
+\begin{array}{rcl}
+  \textit{transfomer}_{\textit{infix}} &:& (\TT^*, \TT^*) 
+  \\
+  &\rightarrow& (\TT^*, \TT^*)
+\end{array}
+\]
+
+A naive implementation of this transformer type will lead to brittle
+edge cases. For example:
+\begin{lstlisting}
+bar(x) => x
+\end{lstlisting}
+Here the \lstinline!=>! macro is juxtaposed next to a function call,
+which we did not intend to be valid syntax. The naive expansion results
+in unparsable code:
+\begin{lstlisting}
+bar function(x) { return x; }
+\end{lstlisting}
+
+In more subtle cases, a naive expansion might result in code that
+actually parses but has incorrect semantics, leading to a
+debugging nightmare.
+
+To avoid this problem we provide the macro transformer with both the
+previous tokens and their term tree representation.
+\[
+\begin{array}{rcl}
+  \textit{transfomer}_{\textit{infix}} &:& ((\TT^*, \textit{TermTree}^{*}), \TT^*) 
+  \\
+  &\rightarrow& (\TT^*, \TT^*)
+\end{array}
+\]
+We verify that an infix macro only
+matches previous tokens within boundaries delimited by 
+the term trees. In our running example:
+\begin{lstlisting}
+bar(x) => x
+\end{lstlisting}
+is first enforested to:
+\begin{lstlisting}
+<call: bar, args: (x)> => x
+\end{lstlisting}
+before invoking the \lstinline!=>! transformer with both the tokens
+\lstinline!bar(x)! and the term tree
+\lstinline!<call: bar, args: (x)>!. When the macro attempts to match
+just \lstinline!(x)!, it detects that the parentheses splits the term
+tree \lstinline!<call: bar, args: (x)>! and fails the match.
+
+While infix macros fill the gap left by definable operators and allow
+us to write previously undefinable macros such as arrow functions,
+they also come with two limitations. First, there is no way to set
+custom precedence or associativity was with operators. It is unclear
+if this is a fundamental limitation or if there is some technique that
+might enable setting precedence and associativity for infix macros.
+The second limitation is that the preceding tokens to an infix macro
+must be first expanded. This means that any macros that occur before
+an infix macro will be invoked first:
+\begin{lstlisting}
+macro id { rule { $x } => { $x }}
+macro m {
+  rule infix { $first $second | } => {
+    $first + $second   
+  }
+}
+foo("sweet")
+id 100 m
+// expands to:
+// foo
+// ("sweet") + 100
+\end{lstlisting}
+This behavior introduces an asymmetry in the kinds of syntax an infix
+macro can match before its identifier and the kinds of syntax it can
+match after since the syntax following the identifier can contain
+unexpanded macros.
+
+Even with these limitations infix macros work as a powerful complement
+to definable operators and greatly extend the kinds of syntax forms
+that can be written as a macro.
+
+\subsection{Invoke and Pattern Classes}
+\label{sec:invoke}
+
+Pattern classes are extensible via the \lstinline!invoke! class which
+is parameterized by a macro name.
+
+\begin{lstlisting}
+macro color {
+  rule { red } => { red }
+  rule { green } => { green }
+  rule { blue } => { blue }
+}
+macro colors_options {
+  rule { ($opt:invoke(color) ...) } => { ... }
+}
+\end{lstlisting}
+
+The macro is essentially inserted into the token stream. If the
+expansion succeeds, the result will be loaded into the pattern
+variable, otherwise the rule will fail. We've added sugar so that any
+non-primitive pattern classes are interpretted as \lstinline!invoke!
+parameterized by the custom class. We've also added identity rules to
+shorten definitions of simple custom classes.
+
+\begin{lstlisting}
+macro color {
+  rule { red }
+  rule { green }
+  rule { blue }
+}
+macro colors_options {
+  rule { ($opt:color (,) ...) } => { ... }
+}
+\end{lstlisting}
+
+These macros may return an optional pattern environment which will be
+scoped and loaded into the invoking macro's pattern environment. This
+lets us define Honu-style pattern classes as simple macro-generating
+macros.
+
+\begin{lstlisting}
+macro color {
+  ...
+}
+macro number {
+  ...
+}
+// `pattern` is just a macro-generating macro
+pattern color_value { $color:color $num:number }
+
+macro color_options {
+  rule { ($opt:color_value (,) ...) } => {
+    var cols = [$opt$color (,) ...];
+    var nums = [$opt$num (,) ...];
+  }
+}
+
+\end{lstlisting}
+
+...?
+
 
 
 \section{Hygiene}
-\label{sec-5}
+\label{sec:hygiene}
 
-The main hygienic technique for procedurual macros were described in \cite{Hieb1992}. Earlier work for syntax-rules is \cite{Clinger1991}.
+Maintaining hygiene during macro expansion is perhaps the single most
+critical feature of an expressive macro system. The hygiene condition
+enables macros to be true syntactic \emph{abstractions} by removing
+the burden of reasoning about a macro's implementation details from the
+user of a macro.
 
+Our implementation of hygiene for sweet.js follows the Scheme approach
+\cite{Hieb1992,Flatt2012} of tracking the lexical context in each
+syntax object.
 
-Mostly straightforward implementation from scheme (in for a good treatment of the subject see \cite{Flatt2012}) with some details to handle \texttt{var}.
+\textbf{todo: do we need examples of hygiene?}
 
-\subsection{Var statements} 
+\subsection{Macro Binding Limitation} 
+\label{sec:macroBinding}
 
-Unfortunately there's some complexity in how \lstinline!var! (and
-\lstinline!let!/\lstinline!const!) statements and macros interact. In
-short, macros must be defined before being used in a var statement.
+Unfortunately, the syntax of JavaScript does place a limitations on
+our system that is not present in Scheme. In Scheme, definitions and
+uses of macros can be freely mixed in a given lexical scope. In
+particular, a macro can be used in an internal definition before its definition:
 
-For example, this will work:
-
-\begin{lstlisting}
-macro id { rule { $id } }
-var x = id 42;
-// -->
-var x = 42;
+\begin{lstlisting}[language=lisp]
+(define (foo)
+  (define y (id 100))
+  (define-syntax-rule (id x) x)
+  (+ y y))
+;; expands to:
+;; (define (foo)
+;;   (define y 100)
+;;   (+ y y))
 \end{lstlisting}
 
-But not this:
+In order to support mixing use and definition, the Scheme expander
+must make multiple passes through a scope. First to register any macro
+definitions and second to expand the macros that were discovered
+during the first pass. Critically, during the first pass the expander
+does not expand inside internal definitions.
 
+For example, after the first pass of expansion the above example will become:
 \begin{lstlisting}
-var x = id 42;
-macro id { rule { $id } }
-// -->
-var x = m 42;
+(define (foo)
+  (define y (id 100))
+  (+ y y))
+\end{lstlisting}
+where the \lstinline!id! macro has been registered in the macro
+environment. During the second pass, the expander will expand macros
+inside of internal definitions and so the example becomes:
+\begin{lstlisting}
+(define (foo)
+  (define y 100)
+  (+ y y))
 \end{lstlisting}
 
-This is unfortunate because macros can be used before definition for
-all other syntax forms, just not \lstinline!var!. Also Racket, from
-which sweet.js takes most other design cues, allows exactly this kind
-of use/definition mixing with internal definitions:
+Scheme is able to defer expansion of macros inside of internal
+definitions because internal definitions are fully delimited. The
+expander can skip over all of the syntax inside of the delimiter
+because there actually is an \emph{inside} to skip over. However, this
+is not true for JavaScript since \lstinline!var! statements
+(JavaScript's equivalent of Scheme's internal definitions) are not
+delimited and so it is not possible to use a macro that has not yet
+been defined in a \lstinline!var! statement in sweet.js.
+
+For example, this will fail:
 
 \begin{lstlisting}
-(define y (id 100))
-(define-syntax-rule (id x) x)
+function foo() {
+  var y = id 100;
+  macro id {
+    rule { $x } => { $x }
+  }
+  return y + y;
+}
+// fails!
 \end{lstlisting}
+When the expander reaches the \lstinline!var! statement during the
+first pass, it has not yet loaded the \lstinline!id! macro into the
+macro environment and so \lstinline!id 100! will be left unexpanded.
+Since \lstinline!id 100! is not a valid expression, this will fail to parse.
+Without delimiters there is no way to defer expansion of the
+right-hand side of a \lstinline!var! statement.
 
-In order to support mixing use/def the scheme expander must run
-through each scope twice. The first pass registers any macro
-definitions but critically it doesn't expand inside internal
-definitions.
-
-So after the first pass of the above example we will have something
-like:
-
+Though the expander cannot defer expansion of \lstinline!var!
+statements, it still does two passes so that
+the second pass can expand inside of delimiters. For example, a macro
+can be used inside of a function body that appears before the macro definition:
 \begin{lstlisting}
-// the id macro is registered in the environment { id: <transformer> }
-(define y (id 100))
+function foo() {
+  return id 100;
+}
+macro id {
+  rule { $x } => { $x }
+}
+// expands to:
+// function foo() {
+//   return 100;
+// }
 \end{lstlisting}
 
-And then the second pass will expand macros inside internal definitions:
-
-\begin{lstlisting}
-(define y 100)
-\end{lstlisting}
-
-So far so good, but the tricky part for sweet.js is you need to know
-where internal definitions end during the first pass \emph{before}
-expanding any macros inside them. This is easy for Scheme since
-everything is delimited but this is not the case in JavaScript.
-
-To clarify the problem, consider the ES6 arrow macro:
-
-\begin{lstlisting}
-var x = (x) => { x }
-macro => { ... }
-\end{lstlisting}
-
-When the expander gets to the \lstinline!var! statement during the
-first pass it doesn't know anything about the \lstinline!=>! macro
-yet. All it can know is that the right hand side of \lstinline!=!
-needs to be an expression (which in this case means it will match 
-\lstinline!var x = (x)! and then fail to match on \lstinline!=>!).
-
-The basic problem here is that in JavaScript there is no way
-to detect the end of a var statement in the presence of as yet
-unknown macro definitions. So, you must define your macros
-before using them in \lstinline!var! statements.
-
-So even though we cannot defer expansion inside of \lstinline!var!
-statements we still do two passes for each scope and the expansion of
-any syntax inside of a delimiter is deferred until the second pass
-which now has all the macro definitions in scope. Which means that you
-can actually use macros in \lstinline!var! statements before
-definition as long as you wrap it in parens.
-
-\begin{lstlisting}
-var x = id(100);
-// var x = id(100)
-
-var x = (id(100));
-// var x = 100
-
-macro id { rule { ($x) } }
-\end{lstlisting}
-
+While it is unfortunate that the syntax of JavaScript prevents fully
+general mixing of macro use and definition, the primary need for
+flexible macro definition locations is when writing mutually recursive
+macros, which is fully supported with our approach.
 
 \section{Implementation}
 \label{sec:implementation}
@@ -1103,6 +1259,24 @@ Earlier treatments of macro-by-example in \cite{Kohlbecker1987}.
 \clearpage
 
 \section{Read Proof}
+
+\textbf{todo: define RegexPrefix/DivPrefix}
+
+% To help reason about the prefixes in read we define two sets the
+% contain the disjoint prefixes that determine either a slash should be
+% a divide or the start of a regular expression:
+
+% \[
+% \begin{array}{lrl}
+%  \reprefix &::=& \epsilon
+%  \\
+%  &|& p \cdot p' \quad \textit{if}~p' \in \textit{Punctuator or Keyword}
+%  \\
+%  &|& p \cdot \texttt{if}\cdot\parens{t}
+%  \\
+%  &|& p \cdot p' \cdot \texttt{if}\cdot\parens{t}
+% \end{array}
+% \]
 
 \begin{theorem}[\label{thrm:readProgram}Parse Equivalence for Program]\mbox{}
 
