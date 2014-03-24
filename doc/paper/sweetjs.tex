@@ -49,7 +49,7 @@
   keywords={macro, typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
   keywordstyle=\color{black}\textbf,
   ndkeywords={class, export, boolean, throw, implements, import, this},
-  ndkeywordstyle=\color{darkgray},
+  ndkeywordstyle=\color{black},
   identifierstyle=\color{black},
   sensitive=false,
   comment=[l]{//},
@@ -77,7 +77,8 @@
 
 \maketitle
 
-\abstract{Sweet.js is a hygienic macro system for JavaScript.}
+\abstract{Sweet.js is a hygienic macro system for JavaScript. It's
+  pretty sweet.}
 
 \section{Introduction}
 \label{sec-1}
@@ -87,7 +88,7 @@ extensible programming languages going back to Lisp and Scheme
 \cite{Kohlbecker1987,Foderaro1983} as a powerful tool that enables
 programmers to craft their own languages.
 
-While macro systems have found success in the Lisp-derived languages,
+While macro systems have found success in Lisp-derived languages,
 they have not been widely adopted in languages such as JavaScript. In
 part, this failure is due to the difficulty in implementing macro
 systems in languages that are not fully delimited. A key feature of a
@@ -101,9 +102,9 @@ simple:
     (error "divide by zero"))
 \end{lstlisting}
 The Scheme \emph{reader} converts the source string into nested
-s-expressions which macros can easily manipulate. Since each
-subexpression of the \lstinline!if! form is a fully delimited
-s-expression, it is easy to implement a form like \lstinline!if! as a
+s-expressions, which macros can easily manipulate. Since each
+subexpression of the \verb!if! form is a fully delimited
+s-expression, it is easy to implement \lstinline!if! as a
 macro.
 
 % A language with richer syntax like JavaScript complicates this
@@ -117,8 +118,8 @@ macro.
 % Without fully parsing, it is difficult to know where 
 
 Conceptually, the Scheme compiler pipeline lexes a source string into
-a sequence of tokens which are then read into s-expressions before
-being macro expanded and parsed into an abstract syntax tree:
+a stream of tokens which are then read into s-expressions
+before being macro expanded and parsed into an abstract syntax tree:
 \[
 \textit{lexer} \xrightarrow{\textit{Token}^{*}}
 \textit{reader} \xrightarrow{\textit{Sexpr}}
@@ -131,7 +132,7 @@ pipline. However, the design of a correct reader for full JavaScript
 turns out to be surprisingly subtle, due to ambiguities in how regular
 expression literals (such as \lstinline!/[0-9]*/!) and the divide
 operator (\lstinline!/!) should be lexed. In traditional JavaScript
-compilers the parser and lexer are intertwined. Rather than run the
+compilers, the parser and lexer are intertwined. Rather than run the
 entire program through the lexer once to get a sequence of tokens, the
 parser calls out to the lexer from a given grammatical context with a
 flag to indicate if the lexer should accept a regular expression or
@@ -140,11 +141,12 @@ divide operator.
 \textit{lexer} \xleftrightharpoons[\textit{Token}^{*}]{\textit{feedback}}
 \textit{parser} \xrightarrow{\textit{AST}}
 \]
-So, it is necessary to separate the parser and lexer in order to
-implement a macro system for JavaScript. Our system,
+It is necessary to separate the parser and lexer in order to implement
+a macro system for JavaScript. Our system,
 sweet.js\footnote{http://sweetjs.org}, implements such a separated
 reader that converts a sequence of tokens into a sequence of token
-trees (similar to s-expressions) without feedback from the parser.
+trees (a little analogous to s-expressions) without feedback from the
+parser.
 \[
 \textit{lexer} \xrightarrow{\textit{Token}^{*}}
 \textit{reader} \xrightarrow{\textit{TokenTree}^{*}}
@@ -152,98 +154,59 @@ trees (similar to s-expressions) without feedback from the parser.
 \]
 This enables us to finally separate the JavaScript lexer and parser
 and build a fully hygienic macro system for JavaScript.
+The reader records sufficient history information in order to always
+correctly decide whether to parse a sequence of tokens
+\lstinline!/x/g! as a regular expression or as division operators and
+operands (as in \lstinline!4.0/x/g!). Surprisingly, this history
+information needs to be remembered from arbitrarily far back in the
+token stream.
 
-Our work builds on techniques pioneered by Honu
-\cite{Rafkind2012,Rafkind2013}, which is a macro system for a
-JavaScript-like language. The Honu language does not support regular
-expression literals like JavaScript which simplifies their reader.
+
+Once JavaScript source has been correctly read, there are still a
+number of challenges to building an expressive macro system. The lack
+of parentheses in particular make writing declarative macro
+definitions difficult. For example, the \lstinline!if! statement in
+JavaScript allows undelimited then and else branches:
+\begin{lstlisting}
+if (denom > 0)
+  x / denom;
+else
+  throw "divide by zero";
+\end{lstlisting}
+It is necessary to know where the then and else branches end to
+correctly implement an \lstinline!if! macro but this is complicated by
+the lack of delimiters. 
+
+The solution to this problem that we take is by progressively building
+a partial AST during macro expansion. Macros can then match against
+and manipulate the partial AST. For example, an \lstinline!if! macro
+could indicate that the then and else branches must be single
+expressions and then manipulate them appropriately.
+
+This approach, called \emph{enforestation}, was pioneered by Honu
+\cite{Rafkind2012,Rafkind2013}, which we adapt here for
+JavaScript\footnote{Honu does not support regular expression literals
+  which simplifies their reader. }. In addition, we make two
+extensions to the Honu technique. First, as described in Section
+\ref{sec:infix} we add support for infix macros, which allow macros to
+match syntax both before and after the macro identifier. Secondly, we
+implement the \lstinline!invoke! pattern class, described in Section
+\ref{sec:invoke}, which allows macro authors to extend the patterns
+used to match syntax.
+
+\textbf{todo: more about the project like users}
 
 We make the following contributions:
 
 \begin{itemize}
-\item a reader implementation and proof that separates the lexer from
-  the parser.
-\item the ability to define infix macros that match on arbitrary
-  surrounding syntax.
+\item a reader implementation that addresses the complexities of
+  JavaScript, including regular expression literals, together with a
+  correctness proof for this reader.
+\item a macro system with the ability to define infix macros that
+  match on arbitrary surrounding syntax.
 \item the \texttt{invoke} primitive to allow custom parser classes and
   more powerful matching
 \end{itemize}
-
-\section{Overview}
-
-The sweet.js system provides two kinds of macros: \emph{rule} macros
-(analogous to \lstinline!syntax-rules! in Scheme) and \emph{case}
-macros (analogous to \lstinline!syntax-case! in Scheme). Rule macros
-are the simpler of the two and work by matching on a pattern and
-generating a template:
-
-\begin{lstlisting}
-macro <name> {
-  rule { <pattern> } => { <template> }
-}
-\end{lstlisting}
-
-For example, the following macro introduces a new function definition
-form:
-
-\begin{lstlisting}
-macro def {
-  rule { 
-    $name ($params (,) ...) { $body ... } 
-  } => {
-    function $name ($params ...) {
-      $body ...
-    }
-  }
-}
-def id (x) { return x; }
-// expands to:
-// function id (x) { return x; }
-\end{lstlisting}
-
-The pattern is matched against the syntax following the macro name.
-Identifiers in a pattern that begin with \lstinline!$! are
-\emph{pattern variables} and bind the syntax they match in the
-template (identifiers that do not begin with \lstinline!$! are matched
-literally). The ellipses (\lstinline!$params (,) ...!) mean match zero or more
-tokens separated by commas.
-
-The above example show the power of matching delimited groups of
-syntax (\ie matching all the tokens inside the function body). In
-order for macros to be convenient in a language like JavaScript it is
-necessary to have the ability to match logical groupings of syntax
-that are not fully delimited. For example, consider the
-\lstinline!let! macro:
-
-\begin{lstlisting}
-macro let {
-  rule { $id = $init:expr } => {
-    var $id = $init
-  }
-}
-let x = 40 + 2;
-// expands to:
-// var x = 40 + 2;
-\end{lstlisting}
-
-The initialization of a \lstinline!let! can be an arbitrary expression
-so we use the \emph{pattern class} \lstinline!:expr! to match on an
-expression so in this example the entire expression \lstinline!40 + 2!
-is bound to \lstinline!$init!.
-
-\textbf{(some better examples than def and var?)}
-
-Along with the template-based rule macros, sweet.js also provides the
-more powerful case macros. Instead of a template, the body of a case
-macro is JavaScript that is run when the macro is invoked.
-
-\begin{lstlisting}
-macro log {
-  case {_ ($msg) } => {
-    // need a good example here...
-  }
-}
-\end{lstlisting}
 
 
 
@@ -251,35 +214,25 @@ macro log {
 \label{sec:read}
 
 Parsers give structure to unstructured source code. In parsers without
-macro systems this is usually accomplished by 
-a lexer (which converts a character stream to a token stream) and a
-parser (which converts the token stream into an AST according to a
-context-free grammar).
-
-A macro system must transform code before it reaches the parser, but
-in order to implement expressive macros it requires more structured
-input than a simple token stream.
-
-In Lisp and Scheme, this additional structure is provided by the read
-function, that transforms a token stream into an s-expression by
-matching delimiters. By operating on the s-expression representation,
-macros can manipulate whole delimited chunks of code.
-
-While this is obviously a requirement in an fully delimited language
-like Lisp and Scheme, it is also important in languages such as
-JavaScript that are not entirely delimited.
-
-\textbf{TODO: class example to show the delimiters?}
-
-The design of a correct reader for full JavaScript turns out to be
-surprisingly subtle, due to ambiguities in how regular expression
-literals (such as \lstinline!/[0-9]*/!) and the divide operator
-(\lstinline!/!) should be lexed.
+macro systems this is usually accomplished by a lexer (which converts
+a character stream to a token stream) and a parser (which converts the
+token stream into an AST according to a context-free grammar). A
+system with macros must implement a macro \emph{expander} that sits
+between the lexer and parser. Some macros systems, such as the C
+preprocessor \cite{Harbison1984}, work over just the token stream.
+However, as mentioned in the introduction, to implement truly
+expressive Scheme-like macros that can manipulate groups of unparsed
+tokens, it is necessary to structure the token stream via a
+\emph{reader}, which performs delimiter matching.
 
 Our macro system includes a reader that transforms a stream of flat
 tokens into a stream of more structured \emph{token trees}, by
 matching delimiters.
 
+The design of a correct reader for full JavaScript turns out to be
+surprisingly subtle, due to ambiguities in how regular expression
+literals (such as \lstinline!/[0-9]*/!) and the divide operator
+(\lstinline!/!) should be lexed.
 Unfortunately, the syntax of JavaScript presents a challenge to
 correctly implement the \texttt{read} function. In particular, one of
 the syntax features of JavaScript is support for regular expression
@@ -314,39 +267,38 @@ Note that this problem is not present in Honu since their language
 does not include regular expression literals.
 
 A key novelty in sweet.js is the design and implementation of a
-correct version of read for full ES5 JavaScript\footnote{Our
-  implementation also has initial support for the upcoming ES6
-  version of JavaScript}. 
-For clarity of presentation, this paper
-describes the implementation of read for the subset of JavaScript
-shown in Figure \ref{fig:grammar} which retains the essential
-complications of a correct version of read but elides the full details
-of the entire JavaScript language.
+correct reader for full ES5 JavaScript\footnote{Our implementation
+  also has initial support for the upcoming ES6 version of
+  JavaScript}. For clarity of presentation, this paper describes the
+implementation of read for the subset of JavaScript shown in Figure
+\ref{fig:grammar}, which retains the essential complications of a
+correct version of read but elides the full details of the entire
+JavaScript language.
 
 Read takes a sequence of tokens and produces a sequence of token
 trees. Tokens are punctuators (\texttt{+}, \div, \texttt{:},
 \texttt{;}, \texttt{=}, \texttt{.}), keywords (\texttt{return},
 \texttt{function}, \texttt{if}), variables (\( x \)), and delimiters
-(\texttt{\{}, \texttt{(}, \texttt{\}}, \texttt{)}). We write a
-sequence of tokens separated by a dot so the source string
-``\lstinline!foo(/x/)!'' is lexed into the sequence of six tokens
-\( \texttt{foo}\cdot \texttt{(} \cdot \div \cdot \var \cdot \div \cdot \texttt{)} \).
+(\texttt{\{}, \texttt{(}, \texttt{\}}, \texttt{)}): see Figure
+\ref{fig:grammar}. We write a sequence of tokens separated by a dot so
+the source string ``\lstinline!foo(/x/)!'' is lexed into the sequence
+of six tokens \( \texttt{foo}\cdot \texttt{(} \cdot \div \cdot \var
+\cdot \div \cdot \texttt{)} \).
 
-A token tree is similar to a token with 
-the addition of the regular
-expression literal (\( \rett \)) and instead of 
-individual opening and
+A token tree is similar to a token with the addition of the regular
+expression literal (\( \rett \)) and instead of individual opening and
 closing delimiter tokens a delimiter nests a sequence of inner token
-trees (\eg the sequence \( \texttt{foo} \cdot \texttt{(} \cdot
-\div \cdot \var \cdot \div \cdot \texttt{)} \) would be
-the token tree \( \texttt{foo} \cdot \parens{\rett} \)).
+trees, so that the sequence \( \texttt{foo} \cdot \texttt{(} \cdot
+\div \cdot \var \cdot \div \cdot \texttt{)} \) would be the token tree
+sequence \( \texttt{foo} \cdot \parens{\rett} \)).
 
 The key idea of read is to maintain of prefix of already read token
 trees. When the reader comes to a slash and needs to decide if it
 should read the slash as a divide token or the start of a regular
 expression literal it consults the prefix. Looking back at most five
 tokens trees in the prefix is sufficient to disambiguate the slash
-token.
+token. Not that this may correspond to looking back an unbounded
+distance in the original token stream.
 
 Some of the cases of read are relatively obvious. For example, if the
 token just read was one of the binary operators (\eg
@@ -378,11 +330,11 @@ x:{y: z} /x/g  // regex
 }
 \end{lstlisting}
 
-The outer curly brace is a block with a labeled statement
+Here, the outer curly brace is a block with a labeled statement
 \lstinline!x!, which is another block with a labeled statement
 \lstinline!y! followed by a regular expression literal.
 
-But if we slightly change the code the outer curly braces become an
+But if we change the code slightly, the outer curly braces become an
 object literal and \lstinline!x! is a property so the inner curly
 braces are also an object literal and thus the slash is a divide operator.
 
@@ -409,9 +361,10 @@ tokens inside of the braces.
 To show that our read algorithm correctly distinguishes between the
 divide operator and a regular expression literal, we show that
 a parser defined over normal tokens produces the same AST as a parser
-defined over token trees produced from read.
+defined over the token trees produced from read.
 
-The parser for normal tokens is defined in Figure \ref{fig:grammar}. A
+The parser for normal tokens is defined in Figure \ref{fig:grammar},
+and generates ASTs in the abstract syntax shown in Figure \ref{fig:ast}. A
 parser for the nonterminal \( \gprod{Program}{} \) is a function from a
 sequence of tokens to an AST.
 \[
@@ -442,7 +395,7 @@ versions of nonterminals in the standard.
 \begin{displayfigure}{\label{fig:ast}AST for Simplified JavaScript}
 \[
 \begin{array}{rrl}
-  e \in \textit{AST} &::=& \var ~|~ \rett ~|~ \curlies{\var\texttt{:}~e} ~|~ \parens{e}
+  e \in \textit{AST} &::=& x ~|~ \rett ~|~ \curlies{\var\texttt{:}~e} ~|~ \parens{e}
   ~|~ e\texttt{.}\var ~|~ e\parens{e}
   \\
   &|& e~\div~e ~|~ e ~\texttt{+}~ e ~|~ e ~\texttt{=}~ e
@@ -455,8 +408,7 @@ versions of nonterminals in the standard.
 \]
 \end{displayfigure}
 
-The language presented here is a simplified for the sake of
-presentation; it is mostly straightforward to extend the algorithm
+It is mostly straightforward to extend the algorithm
 presented here for the simplified language to 
 the sweet.js implementation for full ES5 JavaScript.
 
@@ -524,8 +476,6 @@ strategies give identical behavior.
   &&|~ x ~|~ \rett ~|~ \parens{t} ~|~ \curlies{t}
   \\
   x &\in& \textit{Variable}
-  \\
-  r &\in& \textit{RegexBody}
   \\
   s &\in& \Tok^{*}
   \\
@@ -815,6 +765,84 @@ strategies give identical behavior.
 \]  
 \end{displayfigure*}
 
+\section{Writing Macros}
+\label{sec:writingMacros}
+
+The sweet.js system provides two kinds of macros: \emph{rule} macros
+(analogous to \lstinline!syntax-rules! in Scheme \cite{Clinger1991})
+and \emph{case} macros (analogous to \lstinline!syntax-case! in
+Scheme \cite{Hieb1992}). Rule macros are the simpler of the two and work by matching
+on a pattern and generating a template:
+
+\begin{lstlisting}
+macro <name> {
+  rule { <pattern> } => { <template> }
+}
+\end{lstlisting}
+
+For example, the following macro introduces a new function definition
+form:
+
+\begin{lstlisting}
+macro def {
+  rule { 
+    $name ($params (,) ...) { $body ... } 
+  } => {
+    function $name ($params ...) {
+      $body ...
+    }
+  }
+}
+def id (x) { return x; }
+// expands to:
+// function id (x) { return x; }
+\end{lstlisting}
+
+The pattern is matched against the syntax following the macro name.
+Identifiers in a pattern that begin with \lstinline!$! are
+\emph{pattern variables} and bind the syntax they match in the
+template (identifiers that do not begin with \lstinline!$! are matched
+literally). The ellipses (\lstinline!$params (,) ...!) mean match zero or more
+tokens separated by commas.
+
+The above example show the power of matching delimited groups of
+syntax (\ie matching all the tokens inside the function body). In
+order for macros to be convenient in a language like JavaScript it is
+necessary to have the ability to match logical groupings of syntax
+that are not fully delimited. For example, consider the
+\lstinline!let! macro:
+
+\begin{lstlisting}
+macro let {
+  rule { $id = $init:expr } => {
+    var $id = $init
+  }
+}
+let x = 40 + 2;
+// expands to:
+// var x = 40 + 2;
+\end{lstlisting}
+
+The initialization of a \lstinline!let! can be an arbitrary expression
+so we use the \emph{pattern class} \lstinline!:expr! to match the
+largest possible expression, so in this example the entire expression
+\lstinline!40 + 2! is bound to \lstinline!$init!.
+
+\textbf{(some better examples than def and var?)}
+
+Along with the template-based rule macros, sweet.js also provides the
+more powerful case macros. Instead of a template, the body of a case
+macro is JavaScript that is run when the macro is invoked.
+
+\begin{lstlisting}
+macro log {
+  case {_ ($msg) } => {
+    // need a good example here...
+  }
+}
+\end{lstlisting}
+
+
 \section{Enforestation}
 \label{sec:enforest}
 
@@ -837,7 +865,7 @@ let x = 40 + 2;
 // var x = 40 + 2;
 \end{lstlisting}
 
-Like many syntax forms in JavaScript the variable initialization
+Like many syntactic forms in JavaScript, the variable initialization
 expression is an undelimited group of tokens. Building an expressive
 macro system requires that the macro can match and manipulate patterns
 such as an expression.
@@ -849,7 +877,7 @@ Enforestation works by progressively recognizing syntax forms (\eg
 literals, identifiers, expressions, and statements) during expansion.
 
 A term tree is a kind of proto-AST that represents a partial parse of
-the program. As the expander passes through the token tress, it
+the program. As the expander passes through the token trees, it
 creates term trees that contain unexpanded sub trees that will be
 expanded once all macro definitions have been discovered in the
 current scope (as discussed in Section \ref{sec:macroBinding}).
@@ -898,14 +926,14 @@ the function body. The use of \lstinline!let! is expanded away and the
 <fn: foo, 
  params: (x), 
  body: {
-   <id: x, init: <op: +, left: 40, right: 2>
+   <var: x, init: <op: +, left: 40, right: 2>
    <return: <op: +, left: x right: y> 
  }>
 <call: foo, args: (100)>
 \end{lstlisting}
 
 The additional structure provided by the term trees allow macros to
-match undelimited groups of tokens like as binary expressions such as
+match undelimited groups of tokens like binary expressions, such as
 \lstinline!<op: +, left: 40, right: 2>!.
 
 The enforestation technique described here was first proposed for the
@@ -954,9 +982,9 @@ operator ^ 10 left {$lhs, $rhs} => {
 
 Unfortunately, definable operators are limited in that their operands
 must be expressions (this limitation allows setting custom precedence
-and associativity rules). This means it is impossible to define syntax
-forms such as arrow functions via definable operators since the
-parameter list is not an expression.
+and associativity rules). This restriction means it is impossible to
+define syntax forms such as arrow functions via definable operators
+since the parameter list is not an expression.
 
 To address this limitation, sweet.js introduces \emph{infix macros},
 which allow a macro to match syntax that comes before the macro
@@ -973,20 +1001,20 @@ macro => {
     ($params ...) | { $body:expr }
   } => {
     function ($params ...) {
-      return $body 
+      return $body; 
     }
   }
 }
 
 var id = (x) => x
+// expands to:
+// var id = function (x) { return x; }
 \end{lstlisting}
 
 
-
-
-Standard macro transformers are invoked with the sequence of tokens
-following the macro identifier and then return a modified sequence of
-tokens that are then expanded:
+Standard prefix macro transformers are invoked with the sequence of
+tokens following the macro identifier and then return a modified
+sequence of tokens that are then expanded:
 \[
 \textit{transformer} : \TT^* \rightarrow \TT^*
 \]
@@ -1047,9 +1075,9 @@ tree \lstinline!<call: bar, args: (x)>! and fails the match.
 While infix macros fill the gap left by definable operators and allow
 us to write previously undefinable macros such as arrow functions,
 they also come with two limitations. First, there is no way to set
-custom precedence or associativity was with operators. It is unclear
+custom precedence or associativity as with operators. It is unclear
 if this is a fundamental limitation or if there is some technique that
-might enable setting precedence and associativity for infix macros.
+might allow custom precedence and associativity for infix macros.
 The second limitation is that the preceding tokens to an infix macro
 must be first expanded. This means that any macros that occur before
 an infix macro will be invoked first:
@@ -1071,9 +1099,9 @@ infix macro can match before its identifier and the kinds of syntax it
 can match after since the syntax following the identifier can contain
 unexpanded macros.
 
-Even with these limitations infix macros work as a powerful complement
+Even with these limitations infix, macros work as a powerful complement
 to definable operators and greatly extend the kinds of syntax forms
-that can be written as a macro.
+that can be implemented with macros.
 
 \subsection{Invoke and Pattern Classes}
 \label{sec:invoke}
@@ -1088,15 +1116,9 @@ As motivation, consider the following macro that matches against
 color options:
 \begin{lstlisting}
 macro colors_options {
-  rule { (red) } => {
-    ["#FF0000"]
-  }
-  rule { (green) } => {
-    ["#00FF00"]
-  }
-  rule { (blue) } => {
-    ["#0000FF"]
-  }
+  rule { (red) }   => { ["#FF0000"] }
+  rule { (green) } => { ["#00FF00"] }
+  rule { (blue) }  => { ["#0000FF"] }
 }
 r = colors_options (red)
 g = colors_options (green)
@@ -1130,7 +1152,7 @@ While it is possible to solve this problem through the use of case
 macros, the declarative intent is quickly lost in a mess of 
 token manipulation code.
 
-Our solution to this is the \lstinline!:invoke! pattern class.
+Our solution to this problem is the \lstinline!:invoke! pattern class.
 This pattern class takes as a parameter a macro name which is inserted
 into the token tree stream before matching. If the inserted macro
 successfully matches its arguments, the result of its expansion is
@@ -1138,9 +1160,9 @@ bound to the pattern variable. This makes declarative options simple
 to write:
 \begin{lstlisting}
 macro color {
-  rule { red } => { "#FF0000" }
+  rule { red }   => { "#FF0000" }
   rule { green } => { "#00FF00" }
-  rule { blue } => { "#0000FF" }
+  rule { blue }  => { "#0000FF" }
 }
 macro colors_options {
   rule { ($opt:invoke(color) (,) ...) } => { 
@@ -1154,7 +1176,7 @@ colors_options (red, green, blue, blue)
 Here the \lstinline!color! macro plays the role of enumerating the
 valid colors that can be matched and bound to \lstinline!$opt!.
 If the token is not in one of the rules for \lstinline!color! (\eg
-\lstinline!orange!) the \lstinline!colors_options! macro will fail to match.
+\lstinline!orange!), the \lstinline!colors_options! macro will fail to match.
 
 As a sweet added bit of sugar, the use of \lstinline!:invoke! can be
 inferred by just using the name of a macro in scope (\ie
@@ -1163,9 +1185,9 @@ inferred by just using the name of a macro in scope (\ie
 
 \begin{lstlisting}
 macro color {
-  rule { red } => { "#FF0000" }
+  rule { red }   => { "#FF0000" }
   rule { green } => { "#00FF00" }
-  rule { blue } => { "#0000FF" }
+  rule { blue }  => { "#0000FF" }
 }
 macro colors_options {
   rule { ($opt:color (,) ...) } => { 
@@ -1177,7 +1199,7 @@ colors_options (red, green, blue, blue)
 // ["#FF0000", "#00FF00", "#0000FF", "#0000FF"]
 \end{lstlisting}
 
-By using \lstinline!:invoke! macros writers can encode patterns
+By using \lstinline!:invoke!, macro writers can encode patterns
 like alternates, optional tokens, keyword classes, numeric classes,
 and more in a declarative style.
 
@@ -1243,10 +1265,10 @@ particular, a macro can be used in an internal definition before its definition:
 \end{lstlisting}
 
 In order to support mixing use and definition, the Scheme expander
-must make multiple passes through a scope. First to register any macro
-definitions and second to expand the macros that were discovered
-during the first pass. Critically, during the first pass the expander
-does not expand inside internal definitions.
+must make multiple passes through a scope. The first pass registers
+any macro definitions and the second pass expands any uses of macros
+discovered during the first pass. Critically, during the first
+pass the expander does not expand inside internal definitions.
 
 For example, after the first pass of expansion the above example will become:
 \begin{lstlisting}
@@ -1287,9 +1309,18 @@ function foo() {
 When the expander reaches the \lstinline!var! statement during the
 first pass, it has not yet loaded the \lstinline!id! macro into the
 macro environment and so \lstinline!id 100! will be left unexpanded.
-Since \lstinline!id 100! is not a valid expression, this will fail to parse.
+Since \lstinline!id 100! is not a valid expression, this will fail to
+parse.
 Without delimiters there is no way to defer expansion of the
 right-hand side of a \lstinline!var! statement.
+
+Note that at first glance it might appear that the semicolon could
+serve to delimit a var statement but this will not work for two
+reasons. First, a semicolon is just a token which might be comsumed by
+a macro. Second, the JavaScript specification calls for missing
+semicolons to be automatically inserted by the parser, which means
+it is not guaranteed that a semicolon will close off a \lstinline!var!
+statement.
 
 Though the expander cannot defer expansion of \lstinline!var!
 statements, it still does two passes so that
@@ -1307,6 +1338,7 @@ macro id {
 //   return 100;
 // }
 \end{lstlisting}
+
 
 While it is unfortunate that the syntax of JavaScript prevents fully
 general mixing of macro use and definition, the primary need for
@@ -1338,7 +1370,6 @@ Earlier treatments of macro-by-example in \cite{Kohlbecker1987}.
 \item Scala
 \item Closure
 \end{itemize}
-\section{Conclusion}
 
 \bibliographystyle{plain}
 \bibliography{../../../../bibtex/sweet.js}
