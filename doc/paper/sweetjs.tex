@@ -117,9 +117,9 @@ macro.
 % \end{lstlisting}
 % Without fully parsing, it is difficult to know where 
 
-Conceptually, the Scheme compiler pipeline lexes a source string into
+Conceptually, the Scheme compiler lexes a source string into
 a stream of tokens which are then read into s-expressions
-before being macro expanded and parsed into an abstract syntax tree:
+before being macro expanded and parsed into an abstract syntax tree.
 \[
 \textit{lexer} \xrightarrow{\textit{Token}^{*}}
 \textit{reader} \xrightarrow{\textit{Sexpr}}
@@ -136,13 +136,13 @@ compilers, the parser and lexer are intertwined. Rather than run the
 entire program through the lexer once to get a sequence of tokens, the
 parser calls out to the lexer from a given grammatical context with a
 flag to indicate if the lexer should accept a regular expression or
-divide operator.
+a divide operator.
 \[
 \textit{lexer} \xleftrightharpoons[\textit{Token}^{*}]{\textit{feedback}}
 \textit{parser} \xrightarrow{\textit{AST}}
 \]
 It is necessary to separate the parser and lexer in order to implement
-a macro system for JavaScript. Our system,
+a macro system for JavaScript. Our JavaScript macro system,
 sweet.js, implements such a separated
 reader that converts a sequence of tokens into a sequence of token
 trees (a little analogous to s-expressions) without feedback from the
@@ -187,7 +187,7 @@ This approach, called \emph{enforestation}, was pioneered by Honu
 \cite{Rafkind2012,Rafkind2013}, which we adapt here for
 JavaScript\footnote{Honu does not support regular expression literals
   which simplifies their reader. }. In addition, we make two
-extensions to the Honu technique. First, as described in Section
+extensions to the Honu technique that enable more expressive macros to be built. First, as described in Section
 \ref{sec:infix} we add support for infix macros, which allow macros to
 match syntax both before and after the macro identifier. Secondly, we
 implement the \verb!invoke! pattern class, described in Section
@@ -196,8 +196,8 @@ used to match syntax.
 
 Sweet.js is implemented in JavaScript and takes source code written with sweet.js macros and outputs the expanded source that can be run in any JavaScript environment. 
 The project web page\footnote{\url{http://sweetjs.org}} includes an interactive editor that makes it simple to try out writing macros without requiring any installation.
-There is already an active community using sweet.js. 
-Some of the projects that have already begun to use sweet.js include es6-macros \cite{Long} (implements parts of the upcoming ES6 version of JavaScript such as classes and destructuring), Ki \cite{Antiga} (a set of macros for interacting with Clojure data structures in JavaScript), and Spakler \cite{Faubion} (a pattern matching library).
+There is already an active community using sweet.js to implement
+significant features from the upcoming ES6 version of JavaScript \cite{Long} and pattern matching for JavaScript \cite{Faubion}.
 
 We make the following contributions:
 
@@ -223,101 +223,115 @@ token stream into an AST according to a context-free grammar). A
 system with macros must implement a macro \emph{expander} that sits
 between the lexer and parser. Some macros systems, such as the C
 preprocessor \cite{Harbison1984}, work over just the token stream.
-However, as mentioned in the introduction, to implement truly
+However, to implement truly
 expressive Scheme-like macros that can manipulate groups of unparsed
 tokens, it is necessary to structure the token stream via a
-\emph{reader}, which performs delimiter matching.
+\emph{reader}, which performs delimiter matching and enables macros to manipulate delimiter grouped tokens.
 
-Our macro system includes a reader that transforms a stream of flat
-tokens into a stream of more structured \emph{token trees}, by
-matching delimiters.
-
-The design of a correct reader for full JavaScript turns out to be
-surprisingly subtle, due to ambiguities in how regular expression
-literals (such as \verb!/[0-9]*/!) and the divide operator
-(\verb!/!) should be lexed.
-Unfortunately, the syntax of JavaScript presents a challenge to
-correctly implement the \texttt{read} function. In particular, one of
-the syntax features of JavaScript is support for regular expression
-literals, which are formed with the forward slash \verb!/!.
-Delimiters are valid inside of a regular expression literal so the
-reader must not match delimiters inside of a regular expression
-literal otherwise it would break the true delimiter structure of the
-program.
-
+As mentioned in the introduction, the design of a correct reader for JavaScript is surprisingly subtle due to ambiguities between lexing regular expression literals and the divide operator. This disambiguation is critical to the correct implementation of read because delimiters can appear inside of a regular expression literal. If the reader failed to distinguish between a regular expression an a divide operator, it could incorrectly match delimiters that appear inside of a regular expression.
 \begin{lstlisting}
 function makeRegex() {
-  return /}/;
+  return /}/;  
 }
 \end{lstlisting}
 
-Since the reader must ignore delimiters inside regular expression
-literals, it must know when it is reading between the literal's
-slashes. However, slash is also used as the divide operator in
-JavaScript. So, in order for the reader to ignore delimiters inside of
-regex literals it must first decide if a slash is the beginning of a
-literal or a divide operator. Unfortunately this is somewhat
-complicated for JavaScript.
-
-Traditionally, JavaScript parsers are not separated from the lexer;
-the parser calls the lexer with a flag indicating if the grammatical
-context accepts either a regular expression literal or a divide token.
-For JavaScript parsers this technique is sufficient but a macro
-expander requires the separation of the lexer and reader from the
-parser.
-
-Note that this problem is not present in Honu since their language
-does not include regular expression literals.
-
 A key novelty in sweet.js is the design and implementation of a
-correct reader for full ES5 JavaScript\footnote{Our implementation
+reader that correctly distinguishes between regular expression literals and the divide operator for full ES5 JavaScript\footnote{Our implementation
   also has initial support for the upcoming ES6 version of
   JavaScript}. For clarity of presentation, this paper describes the
 implementation of read for the subset of JavaScript shown in Figure
 \ref{fig:grammar}, which retains the essential complications of a
-correct version of read but elides the full details of the entire
-JavaScript language.
+correct version of read.
 
-Read takes a sequence of tokens and produces a sequence of token
-trees. Tokens are punctuators (\texttt{+}, \div, \texttt{:},
-\texttt{;}, \texttt{=}, \texttt{.}), keywords (\texttt{return},
-\texttt{function}, \texttt{if}), variables (\( x \)), and delimiters
-(\texttt{\{}, \texttt{(}, \texttt{\}}, \texttt{)}): see Figure
-\ref{fig:grammar}. We write a sequence of tokens separated by a dot so
-the source string ``\verb!foo(/x/)!'' is lexed into the sequence
+In our formalism in Figure \ref{fig:simpleread}, read takes a \textit{Token} sequence. Tokens are the output of a very simple lexer, which we do not define here, that preforms the standard grouping of keywords, puncutators, the (unmatched) delimiters, and variable identifiers but does not distinguish between regular expressions and divide (\ie there is just the ambiguous \texttt{/} token).
+\[
+\begin{array}{lrl}
+  \textit{Punctuator} &::=& \div ~|~ \texttt{+} ~|~ \texttt{:} ~|~
+  \texttt{;} ~|~ \texttt{=} ~|~ \texttt{.}
+  \\
+  \textit{Keyword} &::=& \texttt{return} ~|~ \texttt{function}~|~ \texttt{if}
+  \\
+  \Tok &::=& x ~|~ \textit{Punctuator} ~|~ \textit{Keyword}
+  \\
+  &|& \texttt{\{} ~|~ \texttt{(} ~|~ \texttt {\}} ~|~  \texttt{)}
+  \\
+  x, y &\in& \textit{Variable}
+  \\
+  s &\in& \Tok^{*}
+ \end{array}
+\]
+
+The job of read is then to produces a correct \textit{TokenTree} sequence. Token trees include regular expression literals $\rett$ (where $y$ is the regular expression flag and $x$ is the regular expression body, which we simplify here to a variable rather than include irrelevant details of parsing a regular expression body) and fully matched delimiters with nested token tree sequences $\parens{t}$ and $\curlies{t}$ rather than individual delimiters.
+
+\[
+\begin{array}{lrl}
+  k \in \TT &::=& x ~|~ \textit{Punctuator} ~|~ \textit{Keyword}
+  \\
+  &|& \rett ~|~ \parens{t} ~|~ \curlies{t}
+  \\
+  t,p &\in& \TT^{*}
+\end{array}
+\]
+
+Each tokens and token tree also carries their line number from the original source string. Line numbers are needed because there are edge cases in the JavaScript grammar where parsing changes depending on which line a token is on. For example,
+in JavaScript the following function returns the object literal \verb!{x: y}! as expected. 
+\begin{lstlisting}
+function f(y) {
+  return {
+    x: y
+  }
+}
+\end{lstlisting}
+However, this next function returns \verb!undefined! because the grammar calls for a semicolon to be inserted after the \verb!return! keyword.
+\begin{lstlisting}
+function g(y) {
+  return 
+  {
+    x: y
+  }
+}
+\end{lstlisting}
+For clarity of presentation, we leave token line numbers implicit unless we require them in which case we use the notation $\texttt{\{}^l$ where $l$ is the line number for $\texttt{\{}$.
+
+We write a sequence by separating elements with a dot so
+the source string ``\texttt{foo(/x/g)}'' 
+is lexed into a sequence
 of six tokens \( \texttt{foo}\cdot \texttt{(} \cdot \div \cdot \var
-\cdot \div \cdot \texttt{)} \).
+\cdot \div \cdot \texttt{g} \cdot \texttt{)} \). The equivalent token tree sequence is
+\(
+\texttt{foo} \cdot \parens{\texttt{/} \texttt{x} \texttt{/} \texttt{g}}
+\).
 
-A token tree is similar to a token with the addition of the regular
-expression literal (\( \rett \)) and instead of individual opening and
-closing delimiter tokens a delimiter nests a sequence of inner token
-trees, so that the sequence \( \texttt{foo} \cdot \texttt{(} \cdot
-\div \cdot \var \cdot \div \cdot \texttt{)} \) would be the token tree
-sequence \( \texttt{foo} \cdot \parens{\rett} \)).
 
 The key idea of read is to maintain of prefix of already read token
 trees. When the reader comes to a slash and needs to decide if it
 should read the slash as a divide token or the start of a regular
-expression literal it consults the prefix. Looking back at most five
+expression literal, it consults the prefix. Looking back at most five
 tokens trees in the prefix is sufficient to disambiguate the slash
 token. Not that this may correspond to looking back an unbounded
 distance in the original token stream.
 
 Some of the cases of read are relatively obvious. For example, if the
-token just read was one of the binary operators (\eg
-\verb!100 + /x/g!) the slash will always be a regular expression
+token just read was one of the binary operators (\eg the \texttt{+} in
+\(\texttt{f} \cdot \texttt{+} \cdot \texttt{/} 
+\cdot \texttt{x} \cdot \texttt{/} \cdot \texttt{g}
+\)) the slash will always be the start of a regular expression
 literal. 
 
 Other cases require additional context to disambiguate. For example,
 if the previous token tree was a parentheses (\eg dividing the result
-of a call \verb!foo(100) / 10!) then slash will be the divide
+of a call 
+\(
+\texttt{foo} \cdot \texttt{(} \cdot \texttt{x} \cdot \texttt{)} \cdot \texttt{/} \cdot \texttt{y}
+\)
+) then slash will be the divide
 operator \emph{unless} the token tree before the parentheses was the
 keyword \texttt{if} in which case it is actually the start of a
-regular expression (since single statement \texttt{if }bodies do not require
+regular expression (since single statement \texttt{if} bodies do not require
 braces).
 
 \begin{lstlisting}
-if (x) /y/g  
+if (x) /y/g   // regex
 \end{lstlisting}
 
 One of the most complicated cases is a slash following curly braces.
@@ -358,6 +372,27 @@ The reader handles these cases by checking if the prefix of a curly
 brace block forces the curly to be an object literal or a statement
 block and then setting a boolean flag to be used while reading the
 tokens inside of the braces.
+
+The type for read is then:
+\[
+\textrm{read} : \Tok^{*} \rightarrow \TT^{*} 
+\rightarrow \textit{Bool} \rightarrow \TT^{*}
+\]
+Read is a function that takes a sequence of tokens, a prefix of previously read token trees, a boolean indicating if the token stream currently being read is inside an object literal, and returns sequence of token trees.
+
+The implementation of read shown in Figure \ref{fig:simpleread} includes an auxiliary function isExprPrefix used to determine if the prefix for a curly brace indicates that the braces should be part of an expression (\ie the braces are an object literal) or if they should be a block statement.
+
+Interestingly, the isExprPrefix function must also be used when the prefix before a slash contains a function definition. This is because there are two kinds of function definitions in JavaScript, function expressions and function declarations, and these also affect how slash is read. For example, a slash following a function declaration is always the start of a regular expression:
+\begin{lstlisting}
+function f() {}
+/x/g   // regex
+\end{lstlisting}
+However, a slash following a function expression is a divide operator:
+\begin{lstlisting}
+x = function f() { } 
+/x/g   // divide
+\end{lstlisting}
+As in the object literal case, it is unlikely that a programmer would attempt to intentionally divide a function expression but it is not an error to do so.
 
 \subsection{Proving Read}
 
@@ -469,14 +504,14 @@ strategies give identical behavior.
   \textit{Keyword} &::=& \texttt{return} ~|~ \texttt{function}~|~
   \texttt{if}
   \\
-  \Tok &::=& \textit{Punctuator} ~|~ \textit{Keyword}
+   \Tok &::=& x ~|~ \textit{Punctuator} ~|~ \textit{Keyword}
   \\
-  && |~ x ~|~ \texttt{\{} ~|~ \texttt{(} ~|~ 
+  &|& \texttt{\{} ~|~ \texttt{(} ~|~ 
   \texttt {\}} ~|~  \texttt{)}
   \\
-  \TT &::=& \textit{Punctuator} ~|~ \textit{Keyword}
+  k \in \TT &::=& x ~|~ \textit{Punctuator} ~|~ \textit{Keyword}
   \\
-  &&|~ x ~|~ \rett ~|~ \parens{t} ~|~ \curlies{t}
+  &|& \rett ~|~ \parens{t} ~|~ \curlies{t}
   \\
   x &\in& \textit{Variable}
   \\
@@ -525,15 +560,15 @@ strategies give identical behavior.
       \readfn{\vtok}{/x/}{b}
     }
     \\
-    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot p'}{b}
+    \readfn{/\cdot x \cdot /\cdot \vtok}{p \cdot k}{b}
     &=&
     \cons{/x/}{
       \readfn{\vtok}{
-        p \cdot p' \cdot /x/
+        p \cdot k \cdot /x/
       }{b}
     }
     \\
-    \quad\textit{if}~p' \in \textit{Punctuator or Keyword}
+    \quad\textit{if}~k \in \textit{Punctuator} \cup \textit{Keyword}
     \\
     \readfn{/\cdot x \cdot /\cdot \vtok}{
       p \cdot \texttt{if} \cdot \parens{t}
@@ -544,18 +579,18 @@ strategies give identical behavior.
     }
     \\
     \readfn{/\cdot x \cdot /\cdot \vtok}{
-      p \cdot p' \cdot \texttt{function}^{l} \cdot x
+      p \cdot \texttt{function}^{l} \cdot x
       \cdot \parens{t} \cdot \curlies{t'}
     }{b}
     &=&
     \cons{/x/}{
       \readfn{\vtok}{
-      p \cdot p' 
+      p 
       \cdot \texttt{function}^{l} \cdot x \cdot 
       \parens{t} \cdot \curlies{t'}\cdot /x/
       }{b}
     } \\
-    \quad \textit{if false}~=~ \isobject(p',~b,~l)
+    \quad \textit{if}~\isobject(p,~b,~l) = \false
     \\
     \readfn{/\cdot x \cdot / \cdot \vtok}{
       p \cdot \curlies{t}^{l}
@@ -567,7 +602,7 @@ strategies give identical behavior.
       }{b}
     }
     \\
-    \quad \textit{where false} = \isobject(p,~b,~l)
+    \quad \textit{if}~ \isobject(p,~b,~l) = \false
 
     \\ \\
 
@@ -597,18 +632,18 @@ strategies give identical behavior.
     }
     \\
     \readfn{/\cdot \vtok}{
-      p \cdot p' \cdot \texttt{function}^l \cdot x
+      p  \cdot \texttt{function}^l \cdot x
       \cdot \parens{t} \cdot \curlies{t'}
     }{b}
     &=&
     \cons{/}{
       \readfn{\vtok}{
-        p \cdot p' \cdot \texttt{function}^l \cdot x \cdot \parens{t}
+        p  \cdot \texttt{function}^l \cdot x \cdot \parens{t}
         \cdot \curlies{t'} \cdot /
       }{b}
     }
     \\
-    \quad \textit{if true}~=~\isobject(p',~b,~l)
+    \quad \textit{if}~\isobject(p,~b,~l)= \true
     \\
     \readfn{/\cdot \vtok}{
       p \cdot \curlies{t}^{l}
@@ -620,7 +655,7 @@ strategies give identical behavior.
       }{b}
     }
     \\
-    \quad \textit{where true} = \isobject(p,~b,~l)
+    \quad \textit{if}~\isobject(p,~b,~l)= \true
 
     \\ \\
     
@@ -1363,7 +1398,7 @@ mobile device browsers).
 \section{Related Work}
 \label{sec:related}
 
-Macros have been extensively used and studied in Lisp\cite{Foderaro1983,Pitman1980} and related languages for many years. Scheme in particular has embraced macros pioneering the development of declarative definitions \cite{Kohlbecker1987} and working out the hygiene conditions for rewriting macros \cite{Clinger1991} and procedural macros \cite{Hieb1992} that enable true composability.
+Macros have been extensively used and studied in Lisp\cite{Foderaro1983,Pitman1980} and related languages for many years. Scheme in particular has embraced macros, pioneering the development of declarative definitions \cite{Kohlbecker1987} and working out the hygiene conditions for term rewriting macros (rule macros) \cite{Clinger1991} and procedural macros (case macros) \cite{Hieb1992} that enable true composability.
 
 The Scheme tradition has also figured out modules \cite{Flatt2002,Ghuloum2007}
 
