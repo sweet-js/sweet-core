@@ -261,7 +261,7 @@ In our formalism in Figure \ref{fig:simpleread}, read takes a \textit{Token} seq
  \end{array}
 \]
 
-The job of read is then to produces a correct \textit{TokenTree} sequence. Token trees include regular expression literals $\rett$ (where $y$ is the regular expression flag and $x$ is the regular expression body, which we simplify here to a variable rather than include irrelevant details of parsing a regular expression body) and fully matched delimiters with nested token tree sequences $\parens{t}$ and $\curlies{t}$ rather than individual delimiters.
+The job of read is then to produces a correct \textit{TokenTree} sequence. Token trees include regular expression literals $\rett$ (where $x$ is the regular expression body, which we simplify here to a variable rather than include irrelevant details of parsing a regular expression body) and fully matched delimiters with nested token tree sequences $\parens{t}$ and $\curlies{t}$ rather than individual delimiters.
 
 \[
 \begin{array}{lrl}
@@ -294,12 +294,12 @@ function g(y) {
 For clarity of presentation, we leave token line numbers implicit unless we require them in which case we use the notation $\texttt{\{}^l$ where $l$ is the line number for $\texttt{\{}$.
 
 We write a sequence by separating elements with a dot so
-the source string ``\texttt{foo(/x/g)}'' 
+the source string ``\texttt{foo(/x/)}'' 
 is lexed into a sequence
 of six tokens \( \texttt{foo}\cdot \texttt{(} \cdot \div \cdot \var
-\cdot \div \cdot \texttt{g} \cdot \texttt{)} \). The equivalent token tree sequence is
+\cdot \div \cdot \texttt{)} \). The equivalent token tree sequence is
 \(
-\texttt{foo} \cdot \parens{\texttt{/} \texttt{x} \texttt{/} \texttt{g}}
+\texttt{foo} \cdot \parens{\texttt{/} \texttt{x} \texttt{/} }
 \).
 
 
@@ -314,7 +314,7 @@ distance in the original token stream.
 Some of the cases of read are relatively obvious. For example, if the
 token just read was one of the binary operators (\eg the \texttt{+} in
 \(\texttt{f} \cdot \texttt{+} \cdot \texttt{/} 
-\cdot \texttt{x} \cdot \texttt{/} \cdot \texttt{g}
+\cdot \texttt{x} \cdot \texttt{/}
 \)) the slash will always be the start of a regular expression
 literal. 
 
@@ -331,7 +331,7 @@ regular expression (since single statement \texttt{if} bodies do not require
 braces).
 
 \begin{lstlisting}
-if (x) /y/g   // regex
+if (x) /y/   // regex
 \end{lstlisting}
 
 One of the most complicated cases is a slash following curly braces.
@@ -343,7 +343,7 @@ labeled statements can nest:
 
 \begin{lstlisting}
 {
-x:{y: z} /x/g  // regex
+  x:{y: z} /x/  // regex
 }
 \end{lstlisting}
 
@@ -357,7 +357,7 @@ braces are also an object literal and thus the slash is a divide operator.
 
 \begin{lstlisting}
 o = {
-x:{y: z} /x/g  // divide
+  x:{y: z} /x/g  // divide
 }
 \end{lstlisting}
 
@@ -385,7 +385,7 @@ The implementation of read shown in Figure \ref{fig:simpleread} includes an auxi
 Interestingly, the isExprPrefix function must also be used when the prefix before a slash contains a function definition. This is because there are two kinds of function definitions in JavaScript, function expressions and function declarations, and these also affect how slash is read. For example, a slash following a function declaration is always the start of a regular expression:
 \begin{lstlisting}
 function f() {}
-/x/g   // regex
+/x/   // regex
 \end{lstlisting}
 However, a slash following a function expression is a divide operator:
 \begin{lstlisting}
@@ -471,7 +471,7 @@ all rules with delimiters and regular expression literals will change:
 \]
 
 To prove that read is correct, we show that the following two parsing
-strategies give identical behavior.
+strategies give identical behavior:
 \begin{itemize}
 \item The traditional parsing strategy is, given a token stream \( s
   \), to parse \( s \) into an AST \( e \) using a traditional parser.
