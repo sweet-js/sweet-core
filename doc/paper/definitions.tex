@@ -29,8 +29,16 @@
 \renewcommand{\div}{\texttt{/}}
 \newcommand{\plus}{\texttt{+}}
 
-\newcommand{\parens}[1]{\texttt{(}#1\texttt{)}}
-\newcommand{\curlies}[1]{\texttt{\{}#1\texttt{\}}}
+\newcommand{\rcurly}{
+	\underline{
+		\texttt{\{}
+	}
+}
+
+\newcommand{\parens}[1]{\underline{ \texttt{(} #1 \texttt{)}}}
+% \newcommand{\parens}[1]{\underline{(#1)}}
+\newcommand{\curlies}[1]{\underline{ \texttt{\{} #1 \texttt{\}} } }
+% \newcommand{\curlies}[1]{\underline{ \{ #1 \} } }
 \newcommand{\brackets}[1]{\texttt{[}#1\texttt{]}}
 
 \newcommand{\vtok}{s}

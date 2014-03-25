@@ -261,7 +261,7 @@ In our formalism in Figure \ref{fig:simpleread}, read takes a \textit{Token} seq
  \end{array}
 \]
 
-The job of read is then to produces a correct \textit{TokenTree} sequence. Token trees include regular expression literals $\rett$ (where $x$ is the regular expression body, which we simplify here to a variable rather than include irrelevant details of parsing a regular expression body) and fully matched delimiters with nested token tree sequences $\parens{t}$ and $\curlies{t}$ rather than individual delimiters.
+The job of read is then to produces a correct \textit{TokenTree} sequence. Token trees include regular expression literals $\rett$ (where $x$ is the regular expression body, which we simplify here to a variable rather than include irrelevant details of parsing a regular expression body) and fully matched delimiters with nested token tree sequences $\parens{t}$ and $\curlies{t}$ rather than individual delimiters (note that we write token tree delimiters with an \underline{underline} to distinguish them from token delimiters).
 
 \[
 \begin{array}{lrl}
@@ -413,7 +413,7 @@ to mean match the input sequence with $\gprod{SourceElements}{e}$ and
 produce the resulting AST $e$.
 
 Note that the grammar we present here is a simplified version of the
-grammar specified in the ECMAScript standard \cite{International2011}
+grammar specified in the ECMAScript 5.1 standard \cite{International2011}
 and many of the nonterminal names we use here correspond to shortened
 versions of nonterminals in the standard.
 
@@ -433,15 +433,20 @@ versions of nonterminals in the standard.
 \begin{displayfigure}{\label{fig:ast}AST for Simplified JavaScript}
 \[
 \begin{array}{rrl}
-  e \in \textit{AST} &::=& x ~|~ \rett ~|~ \curlies{\var\texttt{:}~e} ~|~ \parens{e}
-  ~|~ e\texttt{.}\var ~|~ e\parens{e}
+  e \in \textit{AST} &::=& x ~|~ \rett ~|~ 
+  \texttt{\{} \var\texttt{:}~e} \texttt{\}}
+  ~|~ \texttt{(} e \texttt{)}
+  ~|~ e\texttt{.}\var ~|~ e \texttt{(} e \texttt{)}
   \\
   &|& e~\div~e ~|~ e ~\texttt{+}~ e ~|~ e ~\texttt{=}~ e
-  ~|~ \curlies{e} ~|~ \var \texttt{:} e ~|~ \texttt{if}~\parens{e}~e
+  ~|~ \texttt{\{} e \texttt{\}} ~|~ \var \texttt{:} e ~|~ \texttt{if}~
+  \texttt{(} e \texttt{)}~e
   \\ 
   &|& \texttt{return} ~|~ \texttt{return}~e
   \\
-  &|& \texttt{function}~x~\parens{x}~\curlies{e} ~|~ e~e
+  &|& \texttt{function}~x~
+  \texttt{(}x \texttt{)}~
+  \texttt{\{} e \texttt{\}} ~|~ e~e
 \end{array}
 \]
 \end{displayfigure}
@@ -461,10 +466,10 @@ all rules with delimiters and regular expression literals will change:
   \\
   \gprod{PrimaryExpr'}{\rett} &::=& \rett
   \\
-  \gprod{PrimaryExpr}{\parens{e}} &::=& 
+  \gprod{PrimaryExpr}{\texttt{(} e \texttt{)}} &::=& 
   \texttt{(} \cdot \gprod{AssignExpr}{e} \cdot \texttt{)}
   \\
-  \gprod{PrimaryExpr'}{\parens{e}} &::=& 
+  \gprod{PrimaryExpr'}{\texttt{(} e \texttt{)}} &::=& 
   \parens{\gprod{AssignExpr'}{e}}
   \\
 \end{array}
@@ -704,29 +709,32 @@ strategies give identical behavior:
   \\
   \gprod{PrimaryExpr}{\rett} &::=& \texttt{/} \cdot x \cdot \texttt{/}
   \\
-  \gprod{PrimaryExpr}{\curlies{\var \texttt{:} e}} &::=& 
-  \curlies{\cdot \var \cdot \texttt{:} \cdot  \gprod{AssignExpr}{e}
-    \cdot }
+  \gprod{PrimaryExpr}{
+    \texttt{\{} \{\var \texttt{:} e \texttt{\}}
+  } 
+  &::=& 
+  \texttt{\{} \cdot \var \cdot \texttt{:} \cdot  \gprod{AssignExpr}{e}
+    \cdot \texttt{\}}
   \\
-  \gprod{PrimaryExpr}{\parens{e}} &::=& 
-  \parens{\cdot \gprod{AssignExpr}{e} \cdot }
+  \gprod{PrimaryExpr}{\texttt{(} e \texttt{)}} &::=& 
+  \texttt{(} \cdot \gprod{AssignExpr}{e} \cdot \texttt{)}
   \\ \\
   \gprod{MemberExpr}{e} &::=&
   \gprod{PrimaryExpr}{e}
   \\
   \gprod{MemberExpr}{e} &::=&
-  \gprod{FunctionExpr}{e}
+  \gprod{Function}{e}
   \\
   \gprod{MemberExpr}{e\texttt{.\var}} &::=&
   \gprod{MemberExpr}{e} \cdot \texttt{.} \cdot \var
   \\ \\
-  \gprod{CallExpr}{e~\parens{e'}} &::=& 
+  \gprod{CallExpr}{e~ \texttt{(}e' \texttt{)}} &::=& 
   \gprod{MemberExpr}{e} \cdot
-  \parens{\cdot \gprod{AssignExpr}{e'} \cdot }
+  \texttt{(}\cdot \gprod{AssignExpr}{e'} \cdot \texttt{)}
   \\
-  \gprod{CallExpr}{e~\parens{e'}} &::=& 
+  \gprod{CallExpr}{e~ \texttt{(}e' \texttt{)}} &::=& 
   \gprod{CallExpr}{e} \cdot
-  \parens{\cdot \gprod{AssignExpr}{e'} \cdot }
+  \texttt{(}\cdot \gprod{AssignExpr}{e'} \cdot \texttt{)}
   \\
   \gprod{CallExpr}{e\texttt{.\var}} &::=& 
   \gprod{CallExpr}{e}~\texttt{.}~
@@ -754,8 +762,8 @@ strategies give identical behavior:
   \gprod{StmtList}{e} \cdot
   \gprod{Stmt}{e'}
   \\ \\
-  \gprod{Stmt}{\curlies{e}} &::=& 
-  \curlies{\cdot \gprod{StmtList}{e}\cdot} 
+  \gprod{Stmt}{\texttt{\{} e \texttt{\}}} &::=& 
+  \texttt{\{} \cdot \gprod{StmtList}{e}\cdot \texttt{\}}
   \\
   \gprod{Stmt}{\var\texttt{:}~e} &::=&
   \var\cdot \texttt{:}\cdot\gprod{Stmt}{e}
@@ -765,9 +773,9 @@ strategies give identical behavior:
   \qquad  \textit{where lookahead \( \not =
     \texttt{\{} \) or \( \texttt{function} \)}
   \\
-  \gprod{Stmt}{\texttt{if}~\parens{e}~e'} &::=& 
+  \gprod{Stmt}{\texttt{if}~\texttt{(}e \texttt{)}~e'} &::=& 
   \texttt{if}\cdot 
-  \parens{\cdot \gprod{AssignExpr}{e} \cdot }\cdot \gprod{Stmt}{e'}
+  \texttt{(}\cdot \gprod{AssignExpr}{e} \cdot \texttt{)}\cdot \gprod{Stmt}{e'}
   \\
   \gprod{Stmt}{\texttt{return}} &::=& 
   \texttt{return}
@@ -776,19 +784,15 @@ strategies give identical behavior:
   \texttt{return}\cdot \textrm{[no line terminator
     here]}~\gprod{AssignExpr}{e}\cdot \texttt{;}
   \\ \\
-  \gprod{FunctionDecl}{\texttt{function}~x~\parens{x'}~\curlies{e}} 
+  \gprod{Function}{\texttt{function}~x~ \texttt{(}x' \texttt{)}~\texttt{\{}e \texttt{\}}} 
   &::=&
-  \texttt{function} \cdot x \cdot \parens{ \cdot x' \cdot}\cdot
-  \curlies{\cdot \gprod{SourceElements}{e} \cdot}
-  \\
-  \gprod{FunctionExpr}{\texttt{function}~x~\parens{x'}~\curlies{e}} 
-  &::=&
-  \texttt{function} \cdot x \cdot \parens{ \cdot x' \cdot}\cdot
-  \curlies{\cdot \gprod{SourceElements}{e} \cdot}
+  \texttt{function} \cdot x \cdot 
+  \texttt{(} \cdot x' \cdot \texttt{)}\cdot
+  \texttt{\{}\cdot \gprod{SourceElements}{e} \cdot \texttt{\}}
   \\ \\
   \gprod{SourceElement}{e} &::=& \gprod{Stmt}{e} 
   \\
-  \gprod{SourceElement}{e} &::=& \gprod{FunctionDecl}{e}
+  \gprod{SourceElement}{e} &::=& \gprod{Function}{e}
   \\ \\
 
   \gprod{SourceElements}{e} &::=& \gprod{SourceElement}{e}
@@ -866,20 +870,29 @@ so we use the \emph{pattern class} \verb!:expr! to match the
 largest possible expression, so in this example the entire expression
 \verb!40 + 2! is bound to \verb!$init!.
 
-\textbf{(some better examples than def and var?)}
-
 Along with the template-based rule macros, sweet.js also provides the
-more powerful case macros. Instead of a template, the body of a case
-macro is JavaScript that is run when the macro is invoked.
+more powerful procedural \emph{case} macros. Instead of a template, the body of a case
+macro is JavaScript code that runs when the macro is invoked.
+Rather than be the entire body of a macro, templates are interspersed with JavaScript code by using the notation \verb!#{ ... }!.
 
+For example, the following macro creates a string from the contents of a file.
 \begin{lstlisting}
-macro log {
-  case {_ ($msg) } => {
-    // need a good example here...
+macro fromFile {
+  case {_ ($path) } => {
+    var fname = unwrapSyntax(#{$path});
+    var f = readFile(fname);
+    letstx $content = [makeValue(f, #{here})];
+    return #{$content}
   }
 }
+var s = fromFile ("./file.txt")
+// expands to:
+// s = "contents of file";
 \end{lstlisting}
 
+Here we take the file name token matched by the macro, unwrap it, and 
+read\footnote{Note that \verb!readFile! will depend on the particular JavaScript environment in which sweet.js is being run (\eg in node.js it might be \verb!fs.readFile! and in the browser it might an \verb!XMLHttpRequest!).} 
+the file into a variable. The \verb!makeValue! function is used to create a string syntax object (\verb!#{here}! is just a placeholder for the lexical context) from the context of the file and \verb!letstx! (analogous to \verb!with-syntax! in Scheme) binds that new syntax object to a pattern variable \verb!$content! that can be used inside of a template.
 
 \section{Enforestation}
 \label{sec:enforest}
@@ -1241,9 +1254,6 @@ By using \verb!:invoke!, macro writers can encode patterns
 like alternates, optional tokens, keyword classes, numeric classes,
 and more in a declarative style.
 
-\textbf{todo: talk about honu-style custom pattern classes? requires
-  explaining the pattern environment which might be too deep.}
-
 % These macros may return an optional pattern environment which will be
 % scoped and loaded into the invoking macro's pattern environment. This
 % lets us define Honu-style pattern classes as simple macro-generating
@@ -1280,8 +1290,6 @@ user of a macro.
 Our implementation of hygiene for sweet.js follows the Scheme approach
 \cite{Hieb1992,Flatt2012} of tracking the lexical context in each
 syntax object.
-
-\textbf{todo: do we need examples of hygiene?}
 
 \subsection{Macro Binding Limitation} 
 \label{sec:macroBinding}
@@ -1398,27 +1406,28 @@ mobile device browsers).
 \section{Related Work}
 \label{sec:related}
 
-Macros have been extensively used and studied in Lisp\cite{Foderaro1983,Pitman1980} and related languages for many years. Scheme in particular has embraced macros, pioneering the development of declarative definitions \cite{Kohlbecker1987} and working out the hygiene conditions for term rewriting macros (rule macros) \cite{Clinger1991} and procedural macros (case macros) \cite{Hieb1992} that enable true composability.
+Macros have been extensively used and studied in Lisp~\cite{Foderaro1983,Pitman1980} and related languages for many years. Scheme in particular has embraced macros, pioneering the development of declarative definitions~\cite{Kohlbecker1987} and working out the hygiene conditions for term rewriting macros (rule macros)~\cite{Clinger1991} and procedural macros (case macros)~\cite{Hieb1992} that enable true composability.
+In addition there has been work to integrate procedural macros and module systems~\cite{Flatt2002,Ghuloum2007}.
 
-The Scheme tradition has also figured out modules \cite{Flatt2002,Ghuloum2007}
+Racket takes it even further by extending the Scheme macro system with deep hooks into the compilation process~\cite{Flatt2012,Tobin-Hochstadt2011}.
 
-Racket takes it even further by extending the Scheme macro system with deep hooks into the compilation process \cite{Flatt2012,Tobin-Hochstadt2011}.
+In addition, there are a number of macro systems for languages with more traditional syntax that are not fully delimited. 
 
-As mentioned before we primarily extend Honu \cite{Rafkind2012,Rafkind2013}.
+As mentioned before, Honu~\cite{Rafkind2012,Rafkind2013} is the primary inspiration for sweet.js. In contrast with Honu, which does not include regular expression literals, we solve the reader problem for JavaScript and introduce infix macros along with the \verb!invoke! pattern class.
 
-C++ templates \cite{Alexandrescu2001}.
+Macro systems that use a similar technique as Honu include 
+Fortress~\cite{Allen2009} and
+Dylan~\cite{Bachrach1999} however they only provide support for term rewriting macros (our \verb!rule! macros).
+Dylan's auxilary rules are similar to our \verb!invoke! pattern class.
+Nemerle~\cite{Skalski2004} also uses a similar technique but does not allow local definitions of macros.
 
-Dylan is interesting \cite{Bachrach1999} but only provides support for term rewriting macros (our \verb!rule! macros) though it's auxilary rules are similar to our \verb!:invoke!.
+Template Haskell~\cite{Sheard2002} does AST matching and makes a treadoff by forcing the macro call site to always be demarcated. 
 
-Template Haskell \cite{Sheard2002} does AST matching and makes a treadoff by forcing the macro call site to always be demarcated. 
+Scala macros~\cite{Burmako2013}.
 
-Scala macros \cite{Burmako2013}.
+MetaCaml~\cite{Taha1997,Martel1997}.
 
-Fortress \cite{Allen2009}.
-
-Nemerle \cite{Skalski2004} is interesting but does not allow local definitions of macros.
-
-MetaCaml \cite{Taha1997,Martel1997}.
+C++ templates~\cite{Alexandrescu2001}.
 
 \bibliographystyle{plain}
 \bibliography{../../../../bibtex/sweet.js}
@@ -1429,11 +1438,42 @@ MetaCaml \cite{Taha1997,Martel1997}.
 
 \section{Read Proof}
 
-\textbf{todo: define RegexPrefix/DivPrefix}
 
-% To help reason about the prefixes in read we define two sets the
-% contain the disjoint prefixes that determine either a slash should be
-% a divide or the start of a regular expression:
+To help reason about prefixes,
+we use two disjoint sets, \reprefix~and \divprefix, that
+contain the prefixes that determine if a slash should be
+ether a divide or the start of a regular expression. Theses sets are parametrized by a boolean indicating if the prefix is inside an object literal or a block statement:
+\[
+\begin{array}{rrl}
+\reprefix_b &::=& \epsilon
+\\
+&|& p \cdot k \quad \textit{if}~k \in \textit{Punctuator} \cup \textit{Keyword}
+\\
+&|& p \cdot \texttt{if} \cdot \parens{t}
+\\
+&|& p \cdot \texttt{function}^l \cdot x \cdot \parens{t} \cdot \curlies{t'}
+\\
+&& \quad \textit{if}~\isobject(p,~b,~l) = \false
+\\
+&|& p \cdot \curlies{t}^l
+\\
+&& \quad \textit{if}~\isobject(p,~b,~l) = \false
+
+\\ \\
+\divprefix_b &::=& p \cdot x
+\\
+&|& p \cdot \rett
+\\
+&|& p \cdot k \cdot \parens{t} \quad \textit{if}~k \not = \texttt{if}
+\\
+&& \quad \textit{if}~\isobject(p,~b,~l) = \true
+\\
+&|& p \cdot \curlies{t}^l
+\\
+&& \quad \textit{if}~\isobject(p,~b,~l) = \true
+\end{array}
+\]
+These sets are the prefixes used by the read function in Figure \ref{fig:simpleread}.
 
 % \[
 % \begin{array}{lrl}
@@ -1491,7 +1531,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
   \item \( s \in \gprod{SourceElement}{e} \). This holds by Lemma
     \ref{lem:readSourceElement}.
     
-  \item \( s \in \gprod{SourceElements}{e}~\gprod{SourceElement}{e'} \).
+  \item \( s \in \gprod{SourceElements}{e} \cdot \gprod{SourceElement}{e'} \).
     We have
     \( s = s' \cdot s'' \) where \( s' \in \gprod{SourceElements}{e}
     \) and \( s'' \in \gprod{SourceElement}{e'} \).
@@ -1508,7 +1548,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
     \ref{lem:readSourceElement}, \( \readfn{s''}{
       \readfn{s'}{\epsilon}{\false}}{\false} \in \gprod{SourceElement'}{e'} \) (since
     by Lemma \ref{lem:readSourceElementPrefix}, \( 
-    \readfn{s'}{\epsilon}{\false} \in \reprefix \)). Thus \( t \in
+    \readfn{s'}{\epsilon}{\false} \in \reprefix_b \)). Thus \( t \in
     \gprod{SourceElements'}{e~e'} \).
   \end{itemize}
   
@@ -1518,7 +1558,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
 
 \begin{lemma}[\label{lem:readSourceElement}Parse Equivalence for SourceElement]\mbox{}
   
-  \( \forall s, p \in \reprefix. \)
+  \( \forall s, p \in \reprefix_b. \)
   \[
   \begin{array}{rl}
   &s \in \gprod{SourceElement}{e} 
@@ -1533,7 +1573,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
   \( \gprod{SourceElement}{e} \).
   \begin{itemize}
   \item \( s \in \gprod{Stmt}{e} \).
-    This holds by Lemma \ref{lem:readStmt} since \( p \in \reprefix \).
+    This holds by Lemma \ref{lem:readStmt} since \( p \in \reprefix_b \).
     
   \item \( s \in \gprod{FunctionDecl}{e} \). This holds by Lemma
     \ref{lem:readFunctionDecl}.
@@ -1542,47 +1582,54 @@ MetaCaml \cite{Taha1997,Martel1997}.
   The argument is similar for the right-to-left direction.
 \end{proof}
 
-\begin{lemma}[\label{lem:readFunctionDecl}Parse Equivalence for FunctionDecl]\mbox{}
+\begin{lemma}[\label{lem:readFunctionDecl}Parse Equivalence for Function]\mbox{}
   
   \( \forall s, p, b. \)
   \[
   \begin{array}{rl}
-  &s \in \gprod{FunctionDecl}{e} 
+  &s \in \gprod{Function}{e} 
   \\
   \Leftrightarrow &
-  \readfn{s}{p}{b} \in \gprod{FunctionDecl'}{e} 
+  \readfn{s}{p}{b} \in \gprod{Function'}{e} 
   \end{array}
   \]
 \end{lemma}
 \begin{proof}
   For the left-to-right direction there is one production rule for
-  \( \gprod{FunctionDecl}{e} \):
+  \( \gprod{Function}{e} \):
   \[ 
   \begin{array}{lcl}
   s \in
-  \texttt{function}~x~\parens{x'}~\curlies{\gprod{SourceElements}{e}}
+  \texttt{function} \cdot x \cdot \texttt{(} \cdot x' \cdot \texttt{)} \cdot
+  \texttt{\{} \cdot \gprod{SourceElements}{e} \cdot \texttt{\}}
   \end{array}
   \]
 
- We have \( s = \texttt{function}~x~\parens{x}~\curlies{s'}
+ We have \( s = \texttt{function} \cdot x \cdot \texttt{(} \cdot x \cdot \texttt{)}~
+ \cdot \texttt{\{} \cdot s' \cdot \texttt{\}}
  \) where \( s' \in \gprod{SourceElements}{e} \) so:
  \[
  \begin{array}{rcl}
-   t &=& \readfn{\texttt{function}~x~\parens{x}~\curlies{s'}}{p}{b}
+   t &=& \readfn{\texttt{function} \cdot x \cdot \texttt{(} \cdot x \cdot \texttt{)}~
+   \cdot \texttt{\{} \cdot s' \cdot \texttt{\}}
+   }{p}{b}
    \\
-   &=& \texttt{function}~x~\parens{x}~\curlies{t'}
+   &=& \texttt{function} \cdot x \cdot \parens{x}\cdot \curlies{t'}
+
  \end{array}
  \]
  where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). 
  Since by Lemma \ref{lem:readSourceElements},
- \( t' \in \gprod{SourceElements'}{e} \) we have \( t \in \gprod{FunctionDecl'}{\texttt{function}~x~\parens{x}~\curlies{e}} \).
+ \( t' \in \gprod{SourceElements'}{e} \) we have \( t \in \gprod{FunctionDecl'}{\texttt{function}~x~
+ \texttt{(}x \texttt{)}~
+ \texttt{\{}e \texttt{\}}} \).
  
  The argument is similar for the right-to-left direction.
 \end{proof}
 
 \begin{lemma}[\label{lem:readStmt}Parse Equivalence for Stmt]\mbox{}
   
-  \( \forall s, p \in \reprefix. \)
+  \( \forall s, p \in \reprefix_b. \)
   \[
   \begin{array}{rl}
   &s \in \gprod{Stmt}{e} 
@@ -1597,11 +1644,12 @@ MetaCaml \cite{Taha1997,Martel1997}.
   \( \gprod{Stmt}{e} \).
   \begin{itemize}
 
-  \item \( s \in \curlies{\gprod{StmtList}{e}} \). We have \( s =
-    \curlies{s'} \) where \( s' \in \gprod{StmtList}{e} \). Then:
+  \item \( s \in \texttt{\{} \cdot \gprod{StmtList}{e} \cdot \texttt{\}} \). 
+    We have \( s =
+    \texttt{\{} \cdot s' \cdot \texttt{\}} \) where \( s' \in \gprod{StmtList}{e} \). Then:
     \[
     \begin{array}{rcl}
-      t &=& \readfn{\curlies{s'}}{p}{\false}
+      t &=& \readfn{\texttt{\{} \cdot s' \cdot \texttt{\}}}{p}{\false}
       \\
       &=& \curlies{t'}
     \end{array}
@@ -1611,7 +1659,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
     so \( t \in \gprod{Stmt'}{\curlies{e}} \).
 
 
-  \item \( s \in \gprod{AssignExpr}{e}~\texttt{;}
+  \item \( s \in \gprod{AssignExpr}{e} \cdot \texttt{;}
     \). We have \( s = s' \cdot \texttt{;} \) where \( s' \in
     \gprod{AssignExpr}{e} \). Then:
     \[
@@ -1621,19 +1669,19 @@ MetaCaml \cite{Taha1997,Martel1997}.
       &=& \readfn{s'}{p}{\false} \cdot \texttt{;}
     \end{array}
     \]
-    Since \( p \in \reprefix \) by Lemma
+    Since \( p \in \reprefix_b \) by Lemma
     \ref{lem:readAssignExpr}, \( \readfn{s'}{p}{\false} \in
     \gprod{AssignExpr'}{e} \) we have \( t \in
     \gprod{Stmt'}{e} \).
 
-  \item \( s \in \texttt{if}~ \parens{\gprod{AssignExpr}{e}}~
-    \gprod{Stmt}{e'} \). We have \( s =
-    \texttt{if}\cdot \parens{s'}\cdot s'' \) where \( s' \in
+  \item \( s \in \texttt{if} \cdot \texttt{(} \cdot \gprod{AssignExpr}{e}
+    \cdot \texttt{)} \cdot \gprod{Stmt}{e'}  \). We have \( s =
+    \texttt{if}\cdot \texttt{(}\cdot s' \cdot \texttt{)} \cdot s'' \) where \( s' \in
     \gprod{AssignExpr}{e} \) and \( s'' \in \gprod{Stmt}{e'} \).
     \[
     \begin{array}{rcl}
       t &=& \readfn{
-        \texttt{if}\cdot \parens{s'}\cdot s'' 
+        \texttt{if}\cdot \texttt{(} \cdot s' \cdot \texttt{)} \cdot s'' 
       }{p}{\false}
       \\
       &=& \texttt{if} \cdot \parens{t'} \cdot t'' 
@@ -1652,14 +1700,14 @@ MetaCaml \cite{Taha1997,Martel1997}.
     By Lemma \ref{lem:readAssignExpr} \( t' \in
     \gprod{AssignExpr'}{e} \). By induction, 
     \( t'' \in \gprod{Stmt'}{e'} \) (since
-    \( p \cdot \parens{t'} \in \reprefix \)). Thus \( t \in
-    \gprod{Stmt'}{\texttt{if}~\parens{e}~e'} \).
+    \( p \cdot \parens{t'} \in \reprefix_b \)). Thus \( t \in
+    \gprod{Stmt'}{\texttt{if}~\texttt{(} e \texttt{)}~e'} \).
 
   \item \( s \in \texttt{return} \). Since \( s = \texttt{return} \)
     and \( \readfn{s}{p}{\false} = \texttt{return} \in
     \gprod{Stmt'}{\texttt{return}} \) we have our result directly.
 
-  \item \( s \in \texttt{return}~ \gprod{AssignExpr}{e} \texttt{;} \).
+  \item \( s \in \texttt{return} \cdot \gprod{AssignExpr}{e} \texttt{;} \).
     We have \( s = \texttt{return}\cdot s' \cdot \texttt{;} \) where
     \( s' \in \gprod{AssignExpr}{e} \). Then:
     \[
@@ -1674,7 +1722,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
       \cdot \texttt{return}}{\false} \in \gprod{AssignExpr'}{e}
     \) thus \( t \in \gprod{Stmt'}{\texttt{return}~e} \).
 
-  \item \( s \in \var~\texttt{:}~\gprod{Stmt}{e} \). We have \( s =
+  \item \( s \in \var \cdot \texttt{:} \cdot \gprod{Stmt}{e} \). We have \( s =
     \var \cdot \texttt{:} \cdot s' \) where \( s' \in \gprod{Stmt}{e}
     \). Then:
     \[
@@ -1697,7 +1745,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
 
 \begin{lemma}[\label{lem:readStmtList}Parse Equivalence for StmtList]\mbox{}
 
-  \( \forall s, p \in \reprefix. \)
+  \( \forall s, p \in \reprefix_b. \)
   \[
   \begin{array}{rl}
   &s \in \gprod{StmtList}{e} 
@@ -1712,9 +1760,9 @@ MetaCaml \cite{Taha1997,Martel1997}.
   \( \gprod{StmtList}{e} \).
   \begin{itemize}
   \item \( s \in \gprod{Stmt}{e} \).
-    This follows by Lemma \ref{lem:readStmt} since \( p \in \reprefix \).
+    This follows by Lemma \ref{lem:readStmt} since \( p \in \reprefix_b \).
 
-  \item \( s \in \gprod{StmtList}{e}~ \gprod{Stmt}{e'} \). So \( s =
+  \item \( s \in \gprod{StmtList}{e} \cdot \gprod{Stmt}{e'} \). So \( s =
     s' \cdot s'' \) where \( s' \in \gprod{StmtList}{e} \) and \( s''
     \in \gprod{Stmt}{e'} \). Then,
     \[
@@ -1729,7 +1777,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
     and by Lemma \ref{lem:readStmt}, \( \readfn{s''}{p \cdot
       \readfn{s'}{p}{\false}}{\false} \in \gprod{Stmt'}{e'} \) (since
     by Lemma \ref{lem:readStmtPrefix}, \( p \cdot
-    \readfn{s'}{p}{\false} \in \reprefix \)). Thus, \( t \in
+    \readfn{s'}{p}{\false} \in \reprefix_b \)). Thus, \( t \in
     \gprod{StmtList'}{e~e'} \).
   \end{itemize}
   
@@ -1739,7 +1787,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
 \begin{lemma}[\label{lem:readAssignExpr}Parse Equivalence for
   AssignExpr]\mbox{}
   
-  \( \forall s, p \in \reprefix. \)
+  \( \forall s, p \in \reprefix_b. \)
   If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
   b = \true \) then \( s \) is unconstrained.
   \[ 
@@ -1764,7 +1812,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
   \item \( s \in \gprod{BinaryExpr}{e} \). This holds by Lemma
     \ref{lem:readBinaryExpr}.
     
-  \item \( s \in \gprod{CallExpr}{e} ~\texttt{=}~
+  \item \( s \in \gprod{CallExpr}{e} \cdot \texttt{=} \cdot
     \gprod{AssignExpr}{e'} \).
     Then \( s = s' \cdot \texttt{=} \cdot s'' \) where \( s' \in
     \gprod{CallExpr}{e} \) and \( s'' \in
@@ -1780,12 +1828,12 @@ MetaCaml \cite{Taha1997,Martel1997}.
       \readfn{s''}{p \cdot \readfn{s'}{p}{b} \cdot \texttt{=}}{b}
     \end{array}
     \]
-    Since \( p \in \reprefix \) by Lemma
+    Since \( p \in \reprefix_b \) by Lemma
     \ref{lem:readCallExpr}, \( \readfn{s'}{p}{b} \in
     \gprod{CallExpr'}{e} \) and by induction \( \readfn{s''}{p
       \cdot \readfn{s'}{p}{b} \cdot \texttt{=}}{b} \in
     \gprod{AssignExpr'}{e'} \) 
-    (since \( p \cdot \readfn{s'}{p}{b} \cdot \texttt{=} \in \reprefix \)) so \( t \in
+    (since \( p \cdot \readfn{s'}{p}{b} \cdot \texttt{=} \in \reprefix_b \)) so \( t \in
     \gprod{AssignExpr'}{e~\texttt{=}~e'} \).
   \end{itemize}
   
@@ -1794,7 +1842,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
 
 \begin{lemma}[\label{lem:readBinaryExpr}Parse Equivalence for BinaryExpr]\mbox{}
   
-  \( \forall s, p \in \reprefix. \)
+  \( \forall s, p \in \reprefix_b. \)
   If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
   b = \true \) then \( s \) is unconstrained.
   \[
@@ -1812,9 +1860,9 @@ MetaCaml \cite{Taha1997,Martel1997}.
   \( \gprod{BinaryExpr}{e} \).
   \begin{itemize}
   \item \( s \in \gprod{CallExpr}{e} \). This holds by Lemma
-    \ref{lem:readCallExpr} since \( p \in \reprefix \).
+    \ref{lem:readCallExpr} since \( p \in \reprefix_b \).
 
-  \item \( s \in \gprod{BinaryExpr}{e} ~\div~ \gprod{BinaryExpr}{e'}
+  \item \( s \in \gprod{BinaryExpr}{e} \cdot \div \cdot \gprod{BinaryExpr}{e'}
     \). We have \( s = s' \cdot \div \cdot s'' \) where \( s' \in
     \gprod{BinaryExpr}{e} \) and \( s'' \in \gprod{BinaryExpr}{e'} \).
     Then:
@@ -1833,7 +1881,8 @@ MetaCaml \cite{Taha1997,Martel1997}.
         p \cdot \readfn{s'}{p}{b} \cdot \div
       }{b}
       \\ 
-      && \textrm{(since \( p \cdot \readfn{s'}{p}{b} \in \divprefix \))}
+      && \textrm{(since \( p \cdot \readfn{s'}{p}{b} \in \divprefix_b \))}
+
     \end{array}
     \]
     By induction \( \readfn{s'}{p}{b} \in \gprod{BinaryExpr'}{e} \)
@@ -1841,9 +1890,9 @@ MetaCaml \cite{Taha1997,Martel1997}.
       \readfn{s''}{
         p \cdot \readfn{s'}{p}{b} \cdot \div
       }{b} \in \gprod{BinaryExpr'}{e'}
-      \) (since \( p \cdot \readfn{s'}{p}{b} \cdot \div \in \reprefix \)) thus \( t \in \gprod{BinaryExpr'}{e~\div~e'} \).
+      \) (since \( p \cdot \readfn{s'}{p}{b} \cdot \div \in \reprefix_b \)) thus \( t \in \gprod{BinaryExpr'}{e~\div~e'} \).
 
-    \item \( s \in \gprod{BinaryExpr}{e} ~\texttt{+}~
+    \item \( s \in \gprod{BinaryExpr}{e} \cdot \texttt{+} \cdot
       \gprod{BinaryExpr}{e'} \). We have \( s = s' \cdot \texttt{+}
       \cdot s'' \) where \( s' \in \gprod{BinaryExpr}{e} \) and \( s''
       \in \gprod{BinaryExpr}{e'} \). Then:
@@ -1860,7 +1909,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
     By induction \( \readfn{s'}{p}{b} \in \gprod{BinaryExpr'}{e}
     \) and \( \readfn{s''}{ p \cdot \readfn{s'}{p}{b} \cdot \texttt{+}
     }{b} \in \gprod{BinaryExpr'}{e'} \) (since \( p \cdot
-    \readfn{s'}{p}{b} \cdot \texttt{+} \in \reprefix \)) thus \( t \in
+    \readfn{s'}{p}{b} \cdot \texttt{+} \in \reprefix_b \)) thus \( t \in
     \gprod{BinaryExpr'}{e~\texttt{+}~e'} \).
   \end{itemize}
   
@@ -1869,7 +1918,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
 
 \begin{lemma}[\label{lem:readCallExpr}Parse Equivalence for CallExpr]\mbox{}
   
-  \( \forall s, p \in \reprefix. \)
+  \( \forall s, p \in \reprefix_b. \)
   If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
   b = \true \) then \( s \) is unconstrained.
   \[ 
@@ -1886,29 +1935,34 @@ MetaCaml \cite{Taha1997,Martel1997}.
   \( \gprod{CallExpr}{e} \).
   \begin{itemize}
   \item \( s \in
-    \gprod{MemberExpr}{e}~ \parens{\gprod{AssignExpr'}{e'}} \). We
-    have \( s = s' \cdot \parens{s''} \) where \( s' \in
+    \gprod{MemberExpr}{e} \cdot \texttt{(} \cdot \gprod{AssignExpr'}{e'} \cdot \texttt{)} \). We
+    have \( s = s' \cdot 
+    \texttt{(} \cdot s'' \cdot \texttt{)} \) where \( s' \in
     \gprod{MemberExpr}{e} \) and \( s'' \in \gprod{AssignExpr}{e'} \).
     Then
     \[
     \begin{array}{rcl}
-      t &=& \readfn{s' \cdot \parens{s''}}{p}{b}
+      t &=& \readfn{s' \cdot 
+      \texttt{(} \cdot s'' \cdot \texttt{)}
+      }{p}{b}
       \\
       &=& \readfn{s'}{p}{b} \cdot
-      \readfn{\parens{s''}}{
+      \readfn{
+      \texttt{(} \cdot s'' \cdot \texttt{)}
+      }{
         p \cdot \readfn{s'}{p}{b}
       }{b}
     \end{array}
     \]
-    Since \( p \in \reprefix \), by Lemma
+    Since \( p \in \reprefix_b \), by Lemma
     \ref{lem:readMemberExpr} we have \( \readfn{s'}{p}{b} \in
     \gprod{MemberExpr'}{e} \) and my Lemma
     \ref{lem:readAssignExpr} we have
     \(\readfn{s''}{\epsilon}{\textit{false}} \in
     \gprod{AssignExpr'}{e'} \) thus \( t \in
-    \gprod{CallExpr'}{e~\parens{e'}} \).
+    \gprod{CallExpr'}{e~\texttt{(} e' \texttt{)}} \).
 
-  \item \( s \in \gprod{CallExpr}{e} ~\texttt{.} ~\var \). Then \( s =
+  \item \( s \in \gprod{CallExpr}{e} \cdot \texttt{.} \cdot \var \). Then \( s =
     s' \cdot \texttt{.}\cdot \var \) where \( s' \in
     \gprod{CallExpr}{e} \). Then
     \[
@@ -1927,7 +1981,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
 
 \begin{lemma}[\label{lem:readMemberExpr}Parse Equivalence for MemberExpr]\mbox{}
 
-  \( \forall s, p \in \reprefix. \)
+  \( \forall s, p \in \reprefix_b. \)
   If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
   b = \true \) then \( s \) is unconstrained.
   \[
@@ -1944,12 +1998,12 @@ MetaCaml \cite{Taha1997,Martel1997}.
   for \( \gprod{MemberExpr}{e} \).
   \begin{itemize}
   \item \( s \in \gprod{PrimaryExpr}{e} \). This follows from Lemma
-    \ref{lem:readPrimaryExpr} since \( p \in \reprefix \).
+    \ref{lem:readPrimaryExpr} since \( p \in \reprefix_b \).
     
-  \item \( s \in \gprod{FunctionExpr}{e} \). This follows from Lemma
-    \ref{lem:readFunctionExpr}.
+  \item \( s \in \gprod{Function}{e} \). This follows from Lemma
+    \ref{lem:readFunctionDecl}.
     
-  \item \( s \in \gprod{MemberExpr}{e} ~\texttt{.}~\var \). We have \(
+  \item \( s \in \gprod{MemberExpr}{e} \cdot \texttt{.} \cdot \var \). We have \(
     s = s' \cdot \texttt{.} \var \) where \( s \in
     \gprod{MemberExpr}{e} \). Then
     \[
@@ -1966,36 +2020,10 @@ MetaCaml \cite{Taha1997,Martel1997}.
   The argument for the right-to-left direction is similar.
 \end{proof}
 
-\begin{lemma}[\label{lem:readFunctionExpr}Parse Equivalence for
-  FunctionExpr]\mbox{}
-
-  \( \forall s, b, p \in \reprefix. \)
-  \[
-  \begin{array}{rl}
-  &s \in \gprod{FunctionExpr}{e} 
-  \\
-  \Leftrightarrow &
-  \readfn{s}{p}{b} \in \gprod{FunctionExpr'}{e} 
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  Since \( s = \texttt{function}~x~\parens{x'}~\curlies{s'} \) where
-  \( s' \in \gprod{SourceElements}{e} \) and 
-  \[ 
-  t = \readfn{s}{p}{b} = 
-  \texttt{function} \cdot x \cdot \parens{x'} \cdot \curlies{t'}
-  \]
-  where \( t' = \readfn{s'}{\epsilon}{\false} \) and by Lemma
-  \ref{lem:readSourceElements}, \( t' \in \gprod{SourceElements'}{e}
-  \) we have \( t \in \gprod{FunctionExpr'}{\texttt{function}~x~\parens{x}~\curlies{e}} \).
-  
-  The argument for the right-to-left direction is similar.
-\end{proof}
 
 \begin{lemma}[\label{lem:readPrimaryExpr}Parse Equivalence for PrimaryExpr]\mbox{}
   
-  \( \forall s, p \in \reprefix. \)
+  \( \forall s, p \in \reprefix_b. \)
   If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
   b = \true \) then \( s \) is unconstrained.
   \[ 
@@ -2017,9 +2045,13 @@ MetaCaml \cite{Taha1997,Martel1997}.
 
   \item \( s \in \re \). Then \( s
     = \re \) and \( \readfn{\re}{p}{b} = \rett \in
-    \gprod{PrimaryExpr'}{\rett} \) since \( p \in \reprefix \).
+    \gprod{PrimaryExpr'}{\rett} \) since \( p \in \reprefix_b \).
 
-  \item \( s \in \curlies{\var\texttt{:} \gprod{AssignExpr}{e}} \).
+  \item \( s \in 
+  \texttt{\{} \cdot
+    \var \cdot \texttt{:} \cdot \gprod{AssignExpr}{e}
+    \cdot \texttt{\}}
+    \).
     Then \( s = \texttt{\{} \cdot \var \cdot \texttt{:} \cdot 
     s' \cdot \texttt{\}} \) where \(
     s' \in \gprod{AssignExpr}{e} \). Then:
@@ -2034,13 +2066,15 @@ MetaCaml \cite{Taha1997,Martel1997}.
     where \( t' = \readfn{s'}{\var \cdot \texttt{:}}{\textit{true}} \). By Lemma
     \ref{lem:readAssignExpr}, \( t' \in
     \gprod{AssignExpr'}{e} \) and thus \( t \in
-    \gprod{PrimaryExpr'}{\curlies{\var\texttt{:}e}} \).
+    \gprod{PrimaryExpr'}{
+    \texttt{\{}\var\texttt{:}e \texttt{\}}} \).
     
-  \item \( s \in \parens{\gprod{AssignExpr}{e}} \). Then \( s = \parens{s'} \)
+  \item \( s \in \texttt{(} \cdot \gprod{AssignExpr}{e} \cdot \texttt{)} \). 
+    Then \( s = \texttt{(} \cdot s' \cdot \texttt{)} \)
     where \( s' \in \gprod{AssignExpr}{e} \). So,
     \[
     \begin{array}{rcl}
-      t &=& \readfn{\parens{s'}}{p}{b}
+      t &=& \readfn{\texttt{(} \cdot s' \cdot \texttt{)}}{p}{b}
       \\
       &=& \parens{t'}
     \end{array}
@@ -2048,7 +2082,7 @@ MetaCaml \cite{Taha1997,Martel1997}.
     where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). By Lemma
     \ref{lem:readAssignExpr} \( t' \in
     \gprod{AssignExpr'}{e} \). So, \( t \in
-    \gprod{PrimaryExpr'}{\parens{e}} \).
+    \gprod{PrimaryExpr'}{\texttt{(} e \texttt{)}} \).
   \end{itemize}
   
   For the right-to-left direction the argument is similar.
@@ -2056,14 +2090,14 @@ MetaCaml \cite{Taha1997,Martel1997}.
 
 \begin{lemma}[\label{lem:readSourceElementPrefix}SourceElement Prefix]\mbox{}
   
-  \( \forall s, p \in \reprefix. \)
+  \( \forall s, p \in \reprefix_b. \)
 
   \[
   \begin{array}{rl}
   &s \in \gprod{SourceElement}{e} 
   \\
   \Rightarrow &
-  \readfn{s}{p}{\false} \in \reprefix
+  \readfn{s}{p}{\false} \in \reprefix_b
   \end{array}
   \]
 \end{lemma}
@@ -2073,18 +2107,18 @@ MetaCaml \cite{Taha1997,Martel1997}.
   \item \( s \in \gprod{Stmt}{e} \). This holds by
     Lemma \ref{lem:readStmtPrefix}.
 
-  \item \( s \in \gprod{FunctionDecl}{e} \). Follows directly.
+  \item \( s \in \gprod{Function}{e} \). Follows directly.
   \end{itemize}
 \end{proof}
 
 \begin{lemma}[\label{lem:readStmtPrefix}Stmt Prefix]\mbox{}
 
-  \( \forall s, p \in \reprefix. \)
+  \( \forall s, p \in \reprefix_b. \)
   \[
   \begin{array}{rl}
   &\readfn{s}{p}{\false} \in \gprod{Stmt'}{e} 
   \\
-  \Rightarrow& p \cdot \readfn{s}{p}{\false} \in \reprefix
+  \Rightarrow& p \cdot \readfn{s}{p}{\false} \in \reprefix_b
   \end{array}
   \]
 \end{lemma}
@@ -2092,30 +2126,30 @@ MetaCaml \cite{Taha1997,Martel1997}.
   We have several cases:
   \begin{itemize}
   \item \( \readfn{s}{p}{\false} \in \curlies{\gprod{StmtList'}{e}}
-    \). Follows since \( p \in \reprefix \).
+    \). Follows since \( p \in \reprefix_b \).
 
-  \item \( \readfn{s}{p}{\false} \in \gprod{AssignExpr'}{e}~\texttt{;}
-    \). Follows since \( t \cdot \texttt{;} \in \reprefix \) for any
+  \item \( \readfn{s}{p}{\false} \in \gprod{AssignExpr'}{e} \cdot \texttt{;}
+    \). Follows since \( t \cdot \texttt{;} \in \reprefix_b \) for any
     \( t \).
     
-  \item \( t = \readfn{s}{p}{\false} \in \texttt{if}~\parens{\gprod{AssignExpr'}{e}}~\gprod{Stmt}{e'} \). Since
+  \item \( t = \readfn{s}{p}{\false} \in \texttt{if}\cdot \parens{\gprod{AssignExpr'}{e}}~\gprod{Stmt}{e'} \). Since
     \( t = \texttt{if}\cdot \parens{t'}\cdot t'' \) where \( t'' \in
-    \gprod{Stmt'}{e'} \) by induction \( t'' \in \reprefix \) and
-    thus \( p \cdot t \in \reprefix \).
+    \gprod{Stmt'}{e'} \) by induction \( t'' \in \reprefix_b \) and
+    thus \( p \cdot t \in \reprefix_b \).
 
   \item \( \readfn{s}{p}{\false} \in \texttt{return} \).
-    Follows since \( p \cdot \texttt{return} \in \reprefix \).
+    Follows since \( p \cdot \texttt{return} \in \reprefix_b \).
     
   \item \( t = \readfn{s}{p}{\false} \in
-    \texttt{return}~\gprod{AssignExpr'}{e}~ \texttt{;} \). 
-    Since \( \texttt{;} \in \reprefix \) then \( p \cdot t \in
-    \reprefix \).
+    \texttt{return}\cdot\gprod{AssignExpr'}{e}\cdot \texttt{;} \). 
+    Since \( \texttt{;} \in \reprefix_b \) then \( p \cdot t \in
+    \reprefix_b \).
 
   \item \( t = \readfn{s}{p}{\false} \in
-    \var~\texttt{:}~\gprod{Stmt'}{e} \). Since \( t = \texttt{x}\cdot
+    \var \cdot \texttt{:} \cdot \gprod{Stmt'}{e} \). Since \( t = \texttt{x}\cdot
     \texttt{:}\cdot t' \) where \( t' \in \gprod{Stmt'}{e} \). Since
-    \( p \in \reprefix \) and by induction \( t' \in \reprefix \) we
-    have \( p \cdot t \in \reprefix \).
+    \( p \in \reprefix_b \) and by induction \( t' \in \reprefix_b \) we
+    have \( p \cdot t \in \reprefix_b \).
 
   \end{itemize}
 \end{proof}
