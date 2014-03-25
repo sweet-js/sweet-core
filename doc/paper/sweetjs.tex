@@ -234,7 +234,11 @@ This paper makes the following contributions:
 \[
 \begin{array}{rrl}
   e \in \textit{AST} &::=& x ~|~ \rett ~|~ 
-  \texttt{\{} \var\texttt{:}~e} \texttt{\}}
+  \texttt{\{} 
+  \var
+  \texttt{:}
+  ~e
+  \texttt{\}}
   ~|~ \texttt{(} e \texttt{)}
   ~|~ e\texttt{.}\var ~|~ e \texttt{(} e \texttt{)}
   \\
@@ -252,7 +256,320 @@ This paper makes the following contributions:
 \end{displayfigure}
 
 
+\begin{displayfigure*}{\label{fig:simpleread}Simplified Read Algorithm}
+\begin{minipage}[t]{0.5\linewidth}
+\[
+\begin{array}{lrl}
+  \textit{Punctuator} &::=& \div ~|~ \texttt{+} ~|~ \texttt{:} ~|~
+  \texttt{;} ~|~ \texttt{=} ~|~ \texttt{.}
+  \\
+  \textit{Keyword} &::=& \texttt{return} ~|~ \texttt{function}~|~
+  \texttt{if}
+  \\
 
+
+   \Tok &::=& x ~|~ \textit{Punctuator} ~|~ \textit{Keyword}
+  \\
+  &|& 
+  \texttt{\{} ~|~ 
+  \texttt {\}} ~|~  
+  \texttt{(} ~|~ 
+  \texttt{)}
+  \\
+  k \in \TT &::=& x ~|~ \textit{Punctuator} ~|~ \textit{Keyword}
+  \\
+  &|& \rett ~|~ \parens{t} ~|~ \curlies{t}
+  \\
+  r \in \textit{RegexPat} &::=& x ~|~ \texttt{\{} ~|~ \texttt{\}}
+  ~|~ \texttt{(} ~|~ \texttt{)}
+  \\
+  x &\in& \textit{Variable}
+  \\
+  s &\in& \Tok^{*}
+  \\
+  t,p &\in& \TT^{*}
+\end{array}
+\]
+\end{minipage}
+\begin{minipage}[t]{0.5\linewidth}
+\[
+  \begin{array}{lcll}
+    \multicolumn{3}{l}{\textrm{isExprPrefix} : \TT^{*} \rightarrow
+      \textit{Bool} \rightarrow \textit{Int} \rightarrow \textit{Bool}}
+    \\
+    \isobject(\epsilon,~\textit{true},~l) &=& \textit{true}
+    \\
+    \isobject(p \cdot \div,~b,~l) &=& \textit{true}
+    \\
+    \isobject(p \cdot \texttt{+},~b,~l) &=& \textit{true}
+    \\
+    \isobject(p \cdot \texttt{=},~b,~l) &=& \textit{true}
+    \\
+    \isobject(p \cdot \texttt{:},~b,~l) &=& b
+    \\
+    \isobject(p \cdot \texttt{return}^{l},~b,~l') &=& \textit{false} 
+    & \textit{if}~l \not = l'
+    \\
+    \isobject(p \cdot \texttt{return}^{l},~b,~l') &=& \textit{true} 
+    & \textit{if}~l = l'
+    \\
+    \isobject(p ,~b,~l) &=& \textit{false}
+    \\
+  \end{array}
+\]
+\end{minipage}
+\[
+  \begin{array}{lcll}
+    \multicolumn{3}{l}{\textrm{read} : \Tok^{*} \rightarrow \TT^{*}
+      \rightarrow \textit{Bool} \rightarrow \TT^{*}}
+    \\
+    % regex
+    \readfn{/\cdot r \cdot /\cdot \vtok}{\epsilon}{b}
+    &=&
+    \cons{/r/}{
+      \readfn{\vtok}{/r/}{b}
+    }
+    \\
+    \readfn{/\cdot r \cdot /\cdot \vtok}{p \cdot k}{b}
+    &=&
+    \cons{/r/}{
+      \readfn{\vtok}{
+        p \cdot k \cdot /r/
+      }{b}
+    }
+    \\
+    \quad\textit{if}~k \in \textit{Punctuator} \cup \textit{Keyword}
+    \\
+    \readfn{/\cdot r \cdot /\cdot \vtok}{
+      p \cdot \texttt{if} \cdot \parens{t}
+    }{b}
+    &=&
+    \cons{/r/}{
+      \readfn{\vtok}{p \cdot \texttt{if} \cdot \parens{t} \cdot /r/}{b}
+    }
+    \\
+    \readfn{/\cdot r \cdot /\cdot \vtok}{
+      p \cdot \texttt{function}^{l} \cdot x
+      \cdot \parens{t} \cdot \curlies{t'}
+    }{b}
+    &=&
+    \cons{/r/}{
+      \readfn{\vtok}{
+      p 
+      \cdot \texttt{function}^{l} \cdot x \cdot 
+      \parens{t} \cdot \curlies{t'}\cdot /r/
+      }{b}
+    } \\
+    \quad \textit{if}~\isobject(p,~b,~l) = \false
+    \\
+    \readfn{/\cdot r \cdot / \cdot \vtok}{
+      p \cdot \curlies{t}^{l}
+    }{b}
+    &=&
+    \cons{/r/}{
+      \readfn{\vtok}{
+        p \cdot \curlies{t}^{l}\cdot /r/
+      }{b}
+    }
+    \\
+    \quad \textit{if}~ \isobject(p,~b,~l) = \false
+
+    \\ \\
+
+    % divide
+    \readfn{/\cdot \vtok}{p\cdot x}{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p\cdot x\cdot /
+      }{b}
+    }
+    \\
+    \readfn{/\cdot \vtok}{p \cdot /x/}{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p \cdot /x/ \cdot /
+      }{b}
+    }
+    \\
+    \readfn{/\cdot \vtok}{p \cdot \parens{t}}{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p \cdot \parens{t} \cdot /
+      }{b}
+    }
+    \\
+    \readfn{/\cdot \vtok}{
+      p  \cdot \texttt{function}^l \cdot x
+      \cdot \parens{t} \cdot \curlies{t'}
+    }{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p  \cdot \texttt{function}^l \cdot x \cdot \parens{t}
+        \cdot \curlies{t'} \cdot /
+      }{b}
+    }
+    \\
+    \quad \textit{if}~\isobject(p,~b,~l)= \true
+    \\
+    \readfn{/\cdot \vtok}{
+      p \cdot \curlies{t}^{l}
+    }{b}
+    &=&
+    \cons{/}{
+      \readfn{\vtok}{
+        p \cdot \curlies{t}^{l} \cdot /
+      }{b}
+    }
+    \\
+    \quad \textit{if}~\isobject(p,~b,~l)= \true
+
+    \\ \\
+    
+
+    % other
+    \readfn{\texttt{(} \cdot \vtok \cdot \texttt{)} \cdot \vtok'}{p}{b}
+    &=&
+    \cons{\parens{t}}{
+      \readfn{\vtok'}{p \cdot \parens{t}}{b}
+    } 
+    \\
+    \quad \textit{where}~s~\textit{contains no unmatched}~\texttt{)} 
+    &&\quad \textit{where}~t = \readfn{s}{\epsilon}{\textit{false}} 
+    \\
+    \readfn{
+      \texttt{\{}^l \cdot \vtok \cdot \texttt{\}} \cdot \vtok'
+    }{p}{b}
+    &=&
+    \cons{\curlies{t}^l}{
+      \readfn{\vtok'}{
+        p \cdot \curlies{t}^l
+      }{b}
+    } 
+    \\
+    \quad \textit{where}~s~\textit{contains no unmatched}~\texttt{\}} 
+    && \textit{where}~t = \readfn{s}{\epsilon}{\isobject(p,~b,~l)}
+    \\
+    \readfn{x \cdot \vtok}{p}{b}
+    &=&
+    \cons{x}{
+      \readfn{\vtok}{p \cdot x}{b}
+    }
+    \\
+    \readfn{\epsilon}{p}{b}
+    &=&
+    \epsilon \\
+  \end{array}
+\]
+\end{displayfigure*}
+
+\begin{displayfigure*}{\label{fig:grammar}Simplified ES5 Grammar}
+\[
+\begin{array}{lcl}
+  \gprod{PrimaryExpr}{x} &::=& x
+  \\
+  \gprod{PrimaryExpr}{\rett} &::=& \texttt{/} \cdot x \cdot \texttt{/}
+  \\
+  \gprod{PrimaryExpr}{
+    \texttt{\{} \{\var \texttt{:} e \texttt{\}}
+  } 
+  &::=& 
+  \texttt{\{} \cdot \var \cdot \texttt{:} \cdot  \gprod{AssignExpr}{e}
+    \cdot \texttt{\}}
+  \\
+  \gprod{PrimaryExpr}{\texttt{(} e \texttt{)}} &::=& 
+  \texttt{(} \cdot \gprod{AssignExpr}{e} \cdot \texttt{)}
+  \\ \\
+  \gprod{MemberExpr}{e} &::=&
+  \gprod{PrimaryExpr}{e}
+  \\
+  \gprod{MemberExpr}{e} &::=&
+  \gprod{Function}{e}
+  \\
+  \gprod{MemberExpr}{e\texttt{.\var}} &::=&
+  \gprod{MemberExpr}{e} \cdot \texttt{.} \cdot \var
+  \\ \\
+  \gprod{CallExpr}{e~ \texttt{(}e' \texttt{)}} &::=& 
+  \gprod{MemberExpr}{e} \cdot
+  \texttt{(}\cdot \gprod{AssignExpr}{e'} \cdot \texttt{)}
+  \\
+  \gprod{CallExpr}{e~ \texttt{(}e' \texttt{)}} &::=& 
+  \gprod{CallExpr}{e} \cdot
+  \texttt{(}\cdot \gprod{AssignExpr}{e'} \cdot \texttt{)}
+  \\
+  \gprod{CallExpr}{e\texttt{.\var}} &::=& 
+  \gprod{CallExpr}{e}~\texttt{.}~
+  \var
+  \\ \\
+  \gprod{BinaryExpr}{e} &::=& \gprod{CallExpr}{e} \\
+  \gprod{BinaryExpr}{e ~\div~ e'}
+  &::=&
+  \gprod{BinaryExpr}{e} \cdot \div \cdot  \gprod{BinaryExpr}{e'} \\
+  \gprod{BinaryExpr}{e ~\plus~ e'}
+  &::=&
+  \gprod{BinaryExpr}{e} \cdot \plus \cdot \gprod{BinaryExpr}{e'}
+  \\ \\
+  \gprod{AssignExpr}{e} &::=&
+  \gprod{BinaryExpr}{e}
+  \\
+  \gprod{AssignExpr}{e~\texttt{=}~e'} &::=&
+  \gprod{CallExpr}{e} \cdot \texttt{=} \cdot
+  \gprod{AssignExpr}{e'}
+  \\ \\
+  \gprod{StmtList}{e} &::=&
+  \gprod{Stmt}{e}
+  \\
+  \gprod{StmtList}{e~e'} &::=&
+  \gprod{StmtList}{e} \cdot
+  \gprod{Stmt}{e'}
+  \\ \\
+  \gprod{Stmt}{\texttt{\{} e \texttt{\}}} &::=& 
+  \texttt{\{} \cdot \gprod{StmtList}{e}\cdot \texttt{\}}
+  \\
+  \gprod{Stmt}{\var\texttt{:}~e} &::=&
+  \var\cdot \texttt{:}\cdot\gprod{Stmt}{e}
+  \\
+  \gprod{Stmt}{e} &::=& 
+  \gprod{AssignExpr}{e} \cdot \texttt{;}
+  \qquad \textit{where lookahead}~\not = 
+    \texttt{\{}~\textit{or}~\texttt{function}
+  \\
+  \gprod{Stmt}{\texttt{if}~\texttt{(}e \texttt{)}~e'} &::=& 
+  \texttt{if}\cdot 
+  \texttt{(}\cdot \gprod{AssignExpr}{e} \cdot \texttt{)}\cdot \gprod{Stmt}{e'}
+  \\
+  \gprod{Stmt}{\texttt{return}} &::=& 
+  \texttt{return}
+  \\
+  \gprod{Stmt}{\texttt{return}~e} &::=& 
+  \texttt{return}\cdot \textrm{[no line terminator
+    here]}~\gprod{AssignExpr}{e}\cdot \texttt{;}
+  \\ \\
+  \gprod{Function}{\texttt{function}~x~ \texttt{(}x' \texttt{)}~\texttt{\{}e \texttt{\}}} 
+  &::=&
+  \texttt{function} \cdot x \cdot 
+  \texttt{(} \cdot x' \cdot \texttt{)}\cdot
+  \texttt{\{}\cdot \gprod{SourceElements}{e} \cdot \texttt{\}}
+  \\ \\
+  \gprod{SourceElement}{e} &::=& \gprod{Stmt}{e} 
+  \\
+  \gprod{SourceElement}{e} &::=& \gprod{Function}{e}
+  \\ \\
+
+  \gprod{SourceElements}{e} &::=& \gprod{SourceElement}{e}
+  \\
+  \gprod{SourceElements}{e~e'} &::=&
+  \gprod{SourceElements}{e}\cdot \gprod{SourceElement}{e'}
+  \\ \\
+  \gprod{Program}{e} &::=& \gprod{SourceElements}{e}
+  \\
+  \gprod{Program}{} &::=& \epsilon
+\end{array}
+\]  
+\end{displayfigure*}
 
 Parsers give structure to unstructured source code. In parsers without
 macro systems this is usually accomplished by a lexer (which converts
@@ -507,321 +824,8 @@ strategies give identical behavior:
 The proof proceeds by induction on ASTs to show that parse equivalence holds between all corresponding nonterminals in the two grammars. We present the details of this proof in Appendix \ref{sec:readproof}.
 \end{proof}
 
-\begin{displayfigure*}{\label{fig:simpleread}Simplified Read Algorithm}
-\begin{minipage}[t]{0.5\linewidth}
-\[
-\begin{array}{lrl}
-  \textit{Punctuator} &::=& \div ~|~ \texttt{+} ~|~ \texttt{:} ~|~
-  \texttt{;} ~|~ \texttt{=} ~|~ \texttt{.}
-  \\
-  \textit{Keyword} &::=& \texttt{return} ~|~ \texttt{function}~|~
-  \texttt{if}
-  \\
 
 
-   \Tok &::=& x ~|~ \textit{Punctuator} ~|~ \textit{Keyword}
-  \\
-  &|& 
-  \texttt{\{} ~|~ 
-  \texttt {\}} ~|~  
-  \texttt{(} ~|~ 
-  \texttt{)}
-  \\
-  k \in \TT &::=& x ~|~ \textit{Punctuator} ~|~ \textit{Keyword}
-  \\
-  &|& \rett ~|~ \parens{t} ~|~ \curlies{t}
-  \\
-  r \in \textit{RegexPat} &::=& x ~|~ \texttt{\{} ~|~ \texttt{\}}
-  ~|~ \texttt{(} ~|~ \texttt{)}
-  \\
-  x &\in& \textit{Variable}
-  \\
-  s &\in& \Tok^{*}
-  \\
-  t,p &\in& \TT^{*}
-\end{array}
-\]
-\end{minipage}
-\begin{minipage}[t]{0.5\linewidth}
-\[
-  \begin{array}{lcll}
-    \multicolumn{3}{l}{\textrm{isExprPrefix} : \TT^{*} \rightarrow
-      \textit{Bool} \rightarrow \textit{Int} \rightarrow \textit{Bool}}
-    \\
-    \isobject(\epsilon,~\textit{true},~l) &=& \textit{true}
-    \\
-    \isobject(p \cdot \div,~b,~l) &=& \textit{true}
-    \\
-    \isobject(p \cdot \texttt{+},~b,~l) &=& \textit{true}
-    \\
-    \isobject(p \cdot \texttt{=},~b,~l) &=& \textit{true}
-    \\
-    \isobject(p \cdot \texttt{:},~b,~l) &=& b
-    \\
-    \isobject(p \cdot \texttt{return}^{l},~b,~l') &=& \textit{false} 
-    & \textit{if}~l \not = l'
-    \\
-    \isobject(p \cdot \texttt{return}^{l},~b,~l') &=& \textit{true} 
-    & \textit{if}~l = l'
-    \\
-    \isobject(p ,~b,~l) &=& \textit{false}
-    \\
-  \end{array}
-\]
-\end{minipage}
-\[
-  \begin{array}{lcll}
-    \multicolumn{3}{l}{\textrm{read} : \Tok^{*} \rightarrow \TT^{*}
-      \rightarrow \textit{Bool} \rightarrow \TT^{*}}
-    \\
-    % regex
-    \readfn{/\cdot r \cdot /\cdot \vtok}{\epsilon}{b}
-    &=&
-    \cons{/r/}{
-      \readfn{\vtok}{/r/}{b}
-    }
-    \\
-    \readfn{/\cdot r \cdot /\cdot \vtok}{p \cdot k}{b}
-    &=&
-    \cons{/r/}{
-      \readfn{\vtok}{
-        p \cdot k \cdot /r/
-      }{b}
-    }
-    \\
-    \quad\textit{if}~k \in \textit{Punctuator} \cup \textit{Keyword}
-    \\
-    \readfn{/\cdot r \cdot /\cdot \vtok}{
-      p \cdot \texttt{if} \cdot \parens{t}
-    }{b}
-    &=&
-    \cons{/r/}{
-      \readfn{\vtok}{p \cdot \texttt{if} \cdot \parens{t} \cdot /r/}{b}
-    }
-    \\
-    \readfn{/\cdot r \cdot /\cdot \vtok}{
-      p \cdot \texttt{function}^{l} \cdot x
-      \cdot \parens{t} \cdot \curlies{t'}
-    }{b}
-    &=&
-    \cons{/r/}{
-      \readfn{\vtok}{
-      p 
-      \cdot \texttt{function}^{l} \cdot x \cdot 
-      \parens{t} \cdot \curlies{t'}\cdot /r/
-      }{b}
-    } \\
-    \quad \textit{if}~\isobject(p,~b,~l) = \false
-    \\
-    \readfn{/\cdot r \cdot / \cdot \vtok}{
-      p \cdot \curlies{t}^{l}
-    }{b}
-    &=&
-    \cons{/r/}{
-      \readfn{\vtok}{
-        p \cdot \curlies{t}^{l}\cdot /r/
-      }{b}
-    }
-    \\
-    \quad \textit{if}~ \isobject(p,~b,~l) = \false
-
-    \\ \\
-
-    % divide
-    \readfn{/\cdot \vtok}{p\cdot x}{b}
-    &=&
-    \cons{/}{
-      \readfn{\vtok}{
-        p\cdot x\cdot /
-      }{b}
-    }
-    \\
-    \readfn{/\cdot \vtok}{p \cdot /x/}{b}
-    &=&
-    \cons{/}{
-      \readfn{\vtok}{
-        p \cdot /x/ \cdot /
-      }{b}
-    }
-    \\
-    \readfn{/\cdot \vtok}{p \cdot \parens{t}}{b}
-    &=&
-    \cons{/}{
-      \readfn{\vtok}{
-        p \cdot \parens{t} \cdot /
-      }{b}
-    }
-    \\
-    \readfn{/\cdot \vtok}{
-      p  \cdot \texttt{function}^l \cdot x
-      \cdot \parens{t} \cdot \curlies{t'}
-    }{b}
-    &=&
-    \cons{/}{
-      \readfn{\vtok}{
-        p  \cdot \texttt{function}^l \cdot x \cdot \parens{t}
-        \cdot \curlies{t'} \cdot /
-      }{b}
-    }
-    \\
-    \quad \textit{if}~\isobject(p,~b,~l)= \true
-    \\
-    \readfn{/\cdot \vtok}{
-      p \cdot \curlies{t}^{l}
-    }{b}
-    &=&
-    \cons{/}{
-      \readfn{\vtok}{
-        p \cdot \curlies{t}^{l} \cdot /
-      }{b}
-    }
-    \\
-    \quad \textit{if}~\isobject(p,~b,~l)= \true
-
-    \\ \\
-    
-
-    % other
-    \readfn{\texttt{(} \cdot \vtok \cdot \texttt{)} \cdot \vtok'}{p}{b}
-    &=&
-    \cons{\parens{t}}{
-      \readfn{\vtok'}{p \cdot \parens{t}}{b}
-    } 
-    \\
-    \quad \textit{where}~s~\textit{contains no unmatched}~\texttt{)} 
-    &&\quad \textit{where}~t = \readfn{s}{\epsilon}{\textit{false}} 
-    \\
-    \readfn{
-      \texttt{\{}^l \cdot \vtok \cdot \texttt{\}} \cdot \vtok'
-    }{p}{b}
-    &=&
-    \cons{\curlies{t}^l}{
-      \readfn{\vtok'}{
-        p \cdot \curlies{t}^l
-      }{b}
-    } 
-    \\
-    \quad \textit{where}~s~\textit{contains no unmatched}~\texttt{\}} 
-    && \textit{where}~t = \readfn{s}{\epsilon}{\isobject(p,~b,~l)}
-    \\
-    \readfn{x \cdot \vtok}{p}{b}
-    &=&
-    \cons{x}{
-      \readfn{\vtok}{p \cdot x}{b}
-    }
-    \\
-    \readfn{\epsilon}{p}{b}
-    &=&
-    \epsilon \\
-  \end{array}
-\]
-\end{displayfigure*}
-
-
-\begin{displayfigure*}{\label{fig:grammar}Simplified ES5 Grammar}
-\[
-\begin{array}{lcl}
-  \gprod{PrimaryExpr}{x} &::=& x
-  \\
-  \gprod{PrimaryExpr}{\rett} &::=& \texttt{/} \cdot x \cdot \texttt{/}
-  \\
-  \gprod{PrimaryExpr}{
-    \texttt{\{} \{\var \texttt{:} e \texttt{\}}
-  } 
-  &::=& 
-  \texttt{\{} \cdot \var \cdot \texttt{:} \cdot  \gprod{AssignExpr}{e}
-    \cdot \texttt{\}}
-  \\
-  \gprod{PrimaryExpr}{\texttt{(} e \texttt{)}} &::=& 
-  \texttt{(} \cdot \gprod{AssignExpr}{e} \cdot \texttt{)}
-  \\ \\
-  \gprod{MemberExpr}{e} &::=&
-  \gprod{PrimaryExpr}{e}
-  \\
-  \gprod{MemberExpr}{e} &::=&
-  \gprod{Function}{e}
-  \\
-  \gprod{MemberExpr}{e\texttt{.\var}} &::=&
-  \gprod{MemberExpr}{e} \cdot \texttt{.} \cdot \var
-  \\ \\
-  \gprod{CallExpr}{e~ \texttt{(}e' \texttt{)}} &::=& 
-  \gprod{MemberExpr}{e} \cdot
-  \texttt{(}\cdot \gprod{AssignExpr}{e'} \cdot \texttt{)}
-  \\
-  \gprod{CallExpr}{e~ \texttt{(}e' \texttt{)}} &::=& 
-  \gprod{CallExpr}{e} \cdot
-  \texttt{(}\cdot \gprod{AssignExpr}{e'} \cdot \texttt{)}
-  \\
-  \gprod{CallExpr}{e\texttt{.\var}} &::=& 
-  \gprod{CallExpr}{e}~\texttt{.}~
-  \var
-  \\ \\
-  \gprod{BinaryExpr}{e} &::=& \gprod{CallExpr}{e} \\
-  \gprod{BinaryExpr}{e ~\div~ e'}
-  &::=&
-  \gprod{BinaryExpr}{e} \cdot \div \cdot  \gprod{BinaryExpr}{e'} \\
-  \gprod{BinaryExpr}{e ~\plus~ e'}
-  &::=&
-  \gprod{BinaryExpr}{e} \cdot \plus \cdot \gprod{BinaryExpr}{e'}
-  \\ \\
-  \gprod{AssignExpr}{e} &::=&
-  \gprod{BinaryExpr}{e}
-  \\
-  \gprod{AssignExpr}{e~\texttt{=}~e'} &::=&
-  \gprod{CallExpr}{e} \cdot \texttt{=} \cdot
-  \gprod{AssignExpr}{e'}
-  \\ \\
-  \gprod{StmtList}{e} &::=&
-  \gprod{Stmt}{e}
-  \\
-  \gprod{StmtList}{e~e'} &::=&
-  \gprod{StmtList}{e} \cdot
-  \gprod{Stmt}{e'}
-  \\ \\
-  \gprod{Stmt}{\texttt{\{} e \texttt{\}}} &::=& 
-  \texttt{\{} \cdot \gprod{StmtList}{e}\cdot \texttt{\}}
-  \\
-  \gprod{Stmt}{\var\texttt{:}~e} &::=&
-  \var\cdot \texttt{:}\cdot\gprod{Stmt}{e}
-  \\
-  \gprod{Stmt}{e} &::=& 
-  \gprod{AssignExpr}{e} \cdot \texttt{;}
-  \qquad \textit{where lookahead}~\not = 
-    \texttt{\{}~\textit{or}~\texttt{function}
-  \\
-  \gprod{Stmt}{\texttt{if}~\texttt{(}e \texttt{)}~e'} &::=& 
-  \texttt{if}\cdot 
-  \texttt{(}\cdot \gprod{AssignExpr}{e} \cdot \texttt{)}\cdot \gprod{Stmt}{e'}
-  \\
-  \gprod{Stmt}{\texttt{return}} &::=& 
-  \texttt{return}
-  \\
-  \gprod{Stmt}{\texttt{return}~e} &::=& 
-  \texttt{return}\cdot \textrm{[no line terminator
-    here]}~\gprod{AssignExpr}{e}\cdot \texttt{;}
-  \\ \\
-  \gprod{Function}{\texttt{function}~x~ \texttt{(}x' \texttt{)}~\texttt{\{}e \texttt{\}}} 
-  &::=&
-  \texttt{function} \cdot x \cdot 
-  \texttt{(} \cdot x' \cdot \texttt{)}\cdot
-  \texttt{\{}\cdot \gprod{SourceElements}{e} \cdot \texttt{\}}
-  \\ \\
-  \gprod{SourceElement}{e} &::=& \gprod{Stmt}{e} 
-  \\
-  \gprod{SourceElement}{e} &::=& \gprod{Function}{e}
-  \\ \\
-
-  \gprod{SourceElements}{e} &::=& \gprod{SourceElement}{e}
-  \\
-  \gprod{SourceElements}{e~e'} &::=&
-  \gprod{SourceElements}{e}\cdot \gprod{SourceElement}{e'}
-  \\ \\
-  \gprod{Program}{e} &::=& \gprod{SourceElements}{e}
-  \\
-  \gprod{Program}{} &::=& \epsilon
-\end{array}
-\]  
-\end{displayfigure*}
 
 \section{Writing Macros}
 \label{sec:writingMacros}
@@ -887,10 +891,8 @@ largest possible expression, so in this example the entire expression
 \verb!40 + 2! is bound to \verb!$init!.
 
 Along with the template-based rule macros, sweet.js also provides the
-more powerful procedural \emph{case} macros. Instead of a template, the body of a case
-macro is JavaScript code that runs when the macro is invoked.
-Rather than be the entire body of a macro, templates are interspersed with JavaScript code by using the notation \verb!#{ ... }!.
-
+more powerful procedural \emph{case} macros. 
+While rule macros just provide term rewriting templates, case macros allow macro authors to use JavaScript code to create and manipulate syntax. 
 For example, the following macro creates a string from the contents of a file.
 \begin{lstlisting}
 macro fromFile {
@@ -905,10 +907,11 @@ var s = fromFile ("./file.txt")
 // expands to:
 // s = "contents of file";
 \end{lstlisting}
-
-Here we take the file name token matched by the macro, unwrap it, and 
+Syntax bound in the macro pattern can be referenced inside of templates
+using the notation \verb!#{ ... }!.
+Here we take the file name token matched by the macro (\verb!#{$path}!), unwrap it, and 
 read\footnote{Note that \verb!readFile! will depend on the particular JavaScript environment in which sweet.js is being run (\eg in node.js it might be \verb!fs.readFile! and in the browser it might an \verb!XMLHttpRequest!).} 
-the file into a variable. The \verb!makeValue! function is used to create a string syntax object (\verb!#{here}! is just a placeholder for the lexical context) from the context of the file and \verb!letstx! (analogous to \verb!with-syntax! in Scheme) binds that new syntax object to a pattern variable \verb!$content! that can be used inside of a template.
+the file into a variable. The \verb!makeValue! function is used to create a string syntax object (\verb!#{here}! is just a placeholder for the lexical context used for hygiene) from the context of the file and \verb!letstx! (analogous to \verb!with-syntax! in Scheme) binds that new syntax object to a pattern variable \verb!$content! that can be used inside of a template.
 
 \section{Enforestation}
 \label{sec:enforest}
@@ -1362,9 +1365,7 @@ For example, this will fail:
 \begin{lstlisting}
 function foo() {
   var y = id 100;
-  macro id {
-    rule { $x } => { $x }
-  }
+  macro id { rule { $x } => { $x } }
   return y + y;
 }
 // fails!
@@ -1382,7 +1383,7 @@ serve to delimit a var statement but this will not work for two
 reasons. First, a semicolon is just a token which might be comsumed by
 a macro. Second, the JavaScript specification calls for missing
 semicolons to be automatically inserted by the parser, which means
-it is not guaranteed that a semicolon will close off a \verb!var!
+it is not guaranteed that a semicolon will close every \verb!var!
 statement.
 
 Though the expander cannot defer expansion of \verb!var!
@@ -1393,9 +1394,7 @@ can be used inside of a function body that appears before the macro definition:
 function foo() {
   return id 100;
 }
-macro id {
-  rule { $x } => { $x }
-}
+macro id { rule { $x } => { $x } }
 // expands to:
 // function foo() {
 //   return 100;
@@ -1413,11 +1412,9 @@ macros, which is fully supported with our approach.
 
 Macros have been extensively used and studied in Lisp~\cite{Foderaro1983,Pitman1980} and related languages for many years. Scheme in particular has embraced macros, pioneering the development of declarative definitions~\cite{Kohlbecker1987} and working out the hygiene conditions for term rewriting macros (rule macros)~\cite{Clinger1991} and procedural macros (case macros)~\cite{Hieb1992} that enable true composability.
 In addition there has been work to integrate procedural macros and module systems~\cite{Flatt2002,Ghuloum2007}.
-
 Racket takes it even further by extending the Scheme macro system with deep hooks into the compilation process~\cite{Flatt2012,Tobin-Hochstadt2011}.
 
 In addition, there are a number of macro systems for languages with more traditional syntax that are not fully delimited. 
-
 As mentioned before, sweet.js is most closely related to Honu~\cite{Rafkind2012,Rafkind2013}. In contrast with Honu, which does not include regular expression literals, we solve the reader ambiguity problem for JavaScript and introduce infix macros along with the \verb!invoke! pattern class.
 
 
@@ -1460,7 +1457,7 @@ In addition we presented an algorithm for read that correctly handles key ambigu
 To help reason about prefixes,
 we use two disjoint sets, \reprefix~and \divprefix, that
 contain the prefixes that determine if a slash should be
-ether a divide or the start of a regular expression. Theses sets are parametrized by a boolean indicating if the prefix is inside an object literal or a block statement:
+either a divide or the start of a regular expression. Theses sets are parametrized by a boolean indicating if the prefix is inside an object literal or a block statement:
 \[
 \begin{array}{rrl}
 \reprefix_b &::=& \epsilon
@@ -1491,23 +1488,12 @@ ether a divide or the start of a regular expression. Theses sets are parametrize
 && \quad \textit{if}~\isobject(p,~b,~l) = \true
 \end{array}
 \]
-These sets are the prefixes used by the read function in Figure \ref{fig:simpleread}.
-
-% \[
-% \begin{array}{lrl}
-%  \reprefix &::=& \epsilon
-%  \\
-%  &|& p \cdot p' \quad \textit{if}~p' \in \textit{Punctuator or Keyword}
-%  \\
-%  &|& p \cdot \texttt{if}\cdot\parens{t}
-%  \\
-%  &|& p \cdot p' \cdot \texttt{if}\cdot\parens{t}
-% \end{array}
-% \]
+These sets correspond to the prefixes 
+in the read function that determine if a slash should be regular expression or a divide operator.
 
 \begin{theorem}[\label{thrm:readProgram}Parse Equivalence for Program]\mbox{}
 
-  \( \forall s. \)
+  \( \forall s \in \Tok^*. \)
   \[
   \begin{array}{rl}
   &s \in \gprod{Program}{e} \\
@@ -1523,16 +1509,16 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
   \begin{itemize}
   \item \( s \in \epsilon \). The result is immediate.
 
-  \item \( s \in \gprod{SourceElements}{e} \)
-    this holds by Lemma~\ref{lem:readSourceElements}.
+  \item \( s \in \gprod{SourceElements}{e} \).
+    Holds by Lemma~\ref{lem:readSourceElements}.
   \end{itemize}
 
-  A similar argument holds for the right-to-left direction.
+  A similar argument holds for the other direction.
 \end{proof}
 
 \begin{lemma}[\label{lem:readSourceElements}Parse Equivalence for SourceElements]\mbox{}
 
-  \( \forall s. \) 
+  \( \forall s \in \Tok^*. \)
   \[
   \begin{array}{rl}
   &s \in \gprod{SourceElements}{e} 
@@ -1570,13 +1556,13 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
     \gprod{SourceElements'}{e~e'} \).
   \end{itemize}
   
-  The argument is similar for the right-to-left direction.
+  The argument is similar for the other direction.
 \end{proof}
 
 
 \begin{lemma}[\label{lem:readSourceElement}Parse Equivalence for SourceElement]\mbox{}
   
-  \( \forall s, p \in \reprefix_b. \)
+  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
   \[
   \begin{array}{rl}
   &s \in \gprod{SourceElement}{e} 
@@ -1597,12 +1583,12 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
     \ref{lem:readFunctionDecl}.
   \end{itemize}
 
-  The argument is similar for the right-to-left direction.
+  The argument is similar for the other direction.
 \end{proof}
 
 \begin{lemma}[\label{lem:readFunctionDecl}Parse Equivalence for Function]\mbox{}
   
-  \( \forall s, p, b. \)
+  \( \forall s \in \Tok^*, b \in \bool, p \in \TT^*. \)
   \[
   \begin{array}{rl}
   &s \in \gprod{Function}{e} 
@@ -1642,12 +1628,12 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
  \texttt{(}x \texttt{)}~
  \texttt{\{}e \texttt{\}}} \).
  
- The argument is similar for the right-to-left direction.
+ The argument is similar for the other direction.
 \end{proof}
 
 \begin{lemma}[\label{lem:readStmt}Parse Equivalence for Stmt]\mbox{}
   
-  \( \forall s, p \in \reprefix_b. \)
+  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
   \[
   \begin{array}{rl}
   &s \in \gprod{Stmt}{e} 
@@ -1758,12 +1744,12 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
     \gprod{Stmt'}{\var~\texttt{:}~e} \).
   \end{itemize}
 
-  The argument for the right-to-left direction is similar.
+  The argument for the other direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readStmtList}Parse Equivalence for StmtList]\mbox{}
 
-  \( \forall s, p \in \reprefix_b. \)
+  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
   \[
   \begin{array}{rl}
   &s \in \gprod{StmtList}{e} 
@@ -1799,15 +1785,14 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
     \gprod{StmtList'}{e~e'} \).
   \end{itemize}
   
-  The argument for the right-to-left direction is similar.
+  The argument for the other direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readAssignExpr}Parse Equivalence for
   AssignExpr]\mbox{}
   
-  \( \forall s, p \in \reprefix_b. \)
-  If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
-  b = \true \) then \( s \) is unconstrained.
+  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+  Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \), we have that
   \[ 
   \begin{array}{rl}
   &s \in \gprod{AssignExpr}{e} 
@@ -1855,14 +1840,13 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
     \gprod{AssignExpr'}{e~\texttt{=}~e'} \).
   \end{itemize}
   
-  The argument for the right-to-left direction is similar.
+  The argument for the other direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readBinaryExpr}Parse Equivalence for BinaryExpr]\mbox{}
   
-  \( \forall s, p \in \reprefix_b. \)
-  If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
-  b = \true \) then \( s \) is unconstrained.
+  \( \forall s \in \Tok^*, b \in \bool,  p \in \reprefix_b. \)
+  Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \), we have that
   \[
   \begin{array}{rl}
   &s \in \gprod{BinaryExpr}{e} 
@@ -1931,14 +1915,14 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
     \gprod{BinaryExpr'}{e~\texttt{+}~e'} \).
   \end{itemize}
   
-  The argument for the right-to-left direction is similar.
+  The argument for the other direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readCallExpr}Parse Equivalence for CallExpr]\mbox{}
   
-  \( \forall s, p \in \reprefix_b. \)
-  If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
-  b = \true \) then \( s \) is unconstrained.
+  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+  Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \),
+  we have that
   \[ 
   \begin{array}{rl}
   &s \in \gprod{CallExpr}{e} 
@@ -1994,14 +1978,14 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
     \). Thus \( t \in \gprod{CallExpr'}{e~\texttt{.\var}} \).
   \end{itemize}
   
-  The argument for the right-to-left direction is similar.
+  The argument for the other direction is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readMemberExpr}Parse Equivalence for MemberExpr]\mbox{}
 
-  \( \forall s, p \in \reprefix_b. \)
-  If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
-  b = \true \) then \( s \) is unconstrained.
+  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+  Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \),
+  we have that
   \[
   \begin{array}{rl}
   &s \in \gprod{MemberExpr}{e} 
@@ -2035,15 +2019,15 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
     \) thus \( t \in \gprod{MemberExpr'}{e\texttt{.\var}} \).
   \end{itemize}
   
-  The argument for the right-to-left direction is similar.
+  The argument for the other direction is similar.
 \end{proof}
 
 
 \begin{lemma}[\label{lem:readPrimaryExpr}Parse Equivalence for PrimaryExpr]\mbox{}
   
-  \( \forall s, p \in \reprefix_b. \)
-  If \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \). If \(
-  b = \true \) then \( s \) is unconstrained.
+  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+  Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \),
+  we have that
   \[ 
   \begin{array}{rl}
   &s \in \gprod{PrimaryExpr}{e} 
@@ -2103,12 +2087,12 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
     \gprod{PrimaryExpr'}{\texttt{(} e \texttt{)}} \).
   \end{itemize}
   
-  For the right-to-left direction the argument is similar.
+  For the other direction the argument is similar.
 \end{proof}
 
 \begin{lemma}[\label{lem:readSourceElementPrefix}SourceElement Prefix]\mbox{}
   
-  \( \forall s, p \in \reprefix_b. \)
+  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
 
   \[
   \begin{array}{rl}
@@ -2131,7 +2115,7 @@ These sets are the prefixes used by the read function in Figure \ref{fig:simpler
 
 \begin{lemma}[\label{lem:readStmtPrefix}Stmt Prefix]\mbox{}
 
-  \( \forall s, p \in \reprefix_b. \)
+  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
   \[
   \begin{array}{rl}
   &\readfn{s}{p}{\false} \in \gprod{Stmt'}{e} 
