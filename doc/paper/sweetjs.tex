@@ -38,7 +38,7 @@
 \renewcommand{\author}[1]{}
 \author{Tim Disney}
 \date{\today}
-\title{Sweet Hygienic Macros for Full ES5 JavaScript}
+\title{Sweeten Your JavaScript: Hygienic Macros for ES5}
 \hypersetup{
   pdfkeywords={},
   pdfsubject={Sweet.js - Macros for JavaScript}}
@@ -78,8 +78,7 @@
 \maketitle
 
 \abstract{
-Lisp and Scheme have demonstrated the power of macros to enable programmers to evolve and craft languages. In languages with more complex syntax, macros have had less success. In part, this has been due to the difficulty in building expressive hygienic macro systems for such languages.
-JavaScript in particular presents unique challenges for macro systems due to ambiguities in the lexing stage that force the JavaScript lexer and parser to be intertwined.
+Lisp and Scheme have demonstrated the power of macros to enable programmers to evolve and craft languages. In languages with more complex syntax, macros have had less success. In part, this has been due to the difficulty in building expressive hygienic macro systems for such languages. JavaScript in particular presents unique challenges for macro systems due to ambiguities in the lexing stage that force the JavaScript lexer and parser to be intertwined.
 
 In this paper we present a novel solution to the lexing ambiguity of JavaScript that enables us to cleanly separate the JavaScript lexer and parser. This separated lexer and parser allows us to implement an expressive hygienic macro system for JavaScript called sweet.js.
 }
@@ -93,12 +92,12 @@ In this paper we present a novel solution to the lexing ambiguity of JavaScript 
 \includegraphics[scale=0.44]{sweetjs_browser.png}
 \end{displayfigure*}
 
-Expressive macros systems have a long history in the design of
+Expressive macro systems have a long history in the design of
 extensible programming languages going back to Lisp and Scheme
 \cite{Kohlbecker1987,Foderaro1983} as a powerful tool that enables
 programmers to craft their own languages.
 
-While macro systems have found success in Lisp-derived languages,
+While macro systems have found success in many Lisp-derived languages,
 they have not been widely adopted in languages such as JavaScript. In
 part, this failure is due to the difficulty in implementing macro
 systems in languages that are not fully delimited. A key feature of a
@@ -147,7 +146,7 @@ entire program through the lexer once to get a sequence of tokens, the
 parser calls out to the lexer from a given grammatical context with a
 flag to indicate if the lexer should accept a regular expression or
 a divide operator, and the input character stream is tokenized accordingly.
-So if the parser is in a context accepts a regular expression, the characters ``\verb!/x/!'' will be lexed into the single token \underline{\verb!/x/!} otherwise it will lex into the individual tokens \underline{\verb!/!}, \underline{\verb!x!}, and \underline{\verb!/!}.
+So if the parser is in a context that accepts a regular expression, the characters ``\verb!/x/!'' will be lexed into the single token \underline{\verb!/x/!} otherwise it will lex into the individual tokens \underline{\verb!/!}, \underline{\verb!x!}, and \underline{\verb!/!}.
 \[
 \textit{lexer} \xleftrightharpoons[\textit{Token}^{*}]{\textit{feedback}}
 \textit{parser} \xrightarrow{\textit{AST}}
@@ -197,7 +196,7 @@ statements and then manipulate them appropriately.
 
 This approach, called \emph{enforestation}, was pioneered by Honu
 \cite{Rafkind2012,Rafkind2013}, which we adapt here for
-JavaScript\footnote{Honu does not support regular expression literals
+JavaScript\footnote{Honu does not support regular expression literals,
   which simplifies their reader. }. In addition, we make two
 extensions to the Honu technique that enable more expressive macros to be built. First, as described in Section
 \ref{sec:infix} we add support for infix macros, which allow macros to
@@ -206,23 +205,16 @@ implement the \verb!invoke! pattern class, described in Section
 \ref{sec:invoke}, which allows macro authors to extend the patterns
 used to match syntax.
 
-Sweet.js is implemented in JavaScript and takes source code written with sweet.js macros and outputs the expanded source that can be run in any JavaScript environment. 
+Sweet.js is implemented in JavaScript and takes source code written with sweet.js macros and produces the expanded source that can be run in any JavaScript environment. 
 The project web page\footnote{\url{http://sweetjs.org}} includes an interactive browser-based editor that makes it simple to try out writing macros without requiring any installation.
-Figure \ref{fig:editor} shows the editor in action; a macro implementing classes is being edited in the left pane and the right pane shows the expanded output.
-There is already an active community using sweet.js to implement
-significant features from the upcoming ES6 version of JavaScript \cite{Long} and pattern matching for JavaScript \cite{Faubion}.
+Figure \ref{fig:editor} shows the editor in action; a macro implementing classes is being edited in the left pane and the right pane continually shows the expanded output.
+There is already an active community using sweet.js to, for example, implement
+significant features from the upcoming ES6 version of JavaScript \cite{Long} or implement pattern matching in JavaScript \cite{Faubion}.
 
-This paper makes the following contributions:
-
-\begin{itemize}
-\item a reader implementation that addresses the complexities of
-  JavaScript, including regular expression literals, together with a
-  correctness proof for this reader.
-\item a macro system with the ability to define infix macros that
-  match on arbitrary surrounding syntax.
-\item the \texttt{invoke} primitive to allow custom parser classes and
-  more powerful matching
-\end{itemize}
+This paper we present a reader implementation that addresses the complexities of JavaScript (Section \ref{sec:read}), including regular expression literals, together with a correctness proof (Section \ref{sec:provingread}) for this reader.
+We also describe our implementation of a hygienic macro system for JavaScript (Sections \ref{sec:writingMacros} and \ref{sec:enforest}) which includes 
+the ability to define infix macros (Section \ref{sec:infix}) that match on arbitrary surrounding syntax and
+ the \texttt{invoke} primitive (Section \ref{sec:invoke}) to allow custom parser classes and more powerful matching.
 
 
 
@@ -474,7 +466,7 @@ This paper makes the following contributions:
   \gprod{PrimaryExpr}{\rett} &::=& \texttt{/} \cdot x \cdot \texttt{/}
   \\
   \gprod{PrimaryExpr}{
-    \texttt{\{} \{\var \texttt{:} e \texttt{\}}
+    \texttt{\{} \var \texttt{:} e \texttt{\}}
   } 
   &::=& 
   \texttt{\{} \cdot \var \cdot \texttt{:} \cdot  \gprod{AssignExpr}{e}
@@ -581,9 +573,9 @@ preprocessor \cite{Harbison1984}, work over just the token stream.
 However, to implement truly
 expressive Scheme-like macros that can manipulate groups of unparsed
 tokens, it is necessary to structure the token stream via a
-\emph{reader}, which performs delimiter matching and enables macros to manipulate delimiter grouped tokens.
+\emph{reader}, which performs delimiter matching and enables macros to manipulate delimiter-grouped tokens.
 
-As mentioned in the introduction, the design of a correct reader for JavaScript is surprisingly subtle due to ambiguities between lexing regular expression literals and the divide operator. This disambiguation is critical to the correct implementation of read because delimiters can appear inside of a regular expression literal. If the reader failed to distinguish between a regular expression/divide operator, it could incorrectly match delimiters that appear inside of a regular expression.
+As mentioned in the introduction, the design of a correct reader for JavaScript is surprisingly subtle due to ambiguities between lexing regular expression literals and the divide operator. This disambiguation is critical to the correct implementation of read because delimiters can appear inside of a regular expression literal. If the reader failed to distinguish between a regular expression/divide operator, it could result in incorrectly matched delimiters. 
 \begin{lstlisting}
 function makeRegex() {
   return /}/;  
@@ -595,10 +587,10 @@ reader that correctly distinguishes between regular expression literals and the 
   also has initial support for the upcoming ES6 version of
   JavaScript.}. For clarity of presentation, this paper describes the
 implementation of read for the subset of JavaScript shown in Figure
-\ref{fig:grammar}, which retains the essential complications of a
+\ref{fig:grammar}, which retains the essential complications of
 the full version of read.
 
-In our formalism in Figure \ref{fig:simpleread}, read takes a \textit{Token} sequence. Tokens are the output of a very simple lexer, which we do not define here, that performs the standard grouping of keywords, puncutators, the (unmatched) delimiters, and variable identifiers, but does not distinguish between regular expressions and divide (\ie there is just the ambiguous \texttt{/} token).
+In our formalism in Figure \ref{fig:simpleread}, read takes a \textit{Token} sequence. Tokens are the output of a very simple lexer, which we do not define here. This lexer does not receive feedback from the parser like the ES5 lexer does, and so does not distinguish between regular expressions and the divide operator. Rather it simply lexes slashes into the ambiguous \texttt{/} token. Tokens also include keywords, puncutators, the (unmatched) delimiters, and variable identifiers.
 \[
 \begin{array}{lrl}
   \textit{Punctuator} &::=& \div ~|~ \texttt{+} ~|~ \texttt{:} ~|~
@@ -620,8 +612,8 @@ In our formalism in Figure \ref{fig:simpleread}, read takes a \textit{Token} seq
  \end{array}
 \]
 
-The job of read is then to produces a correct \textit{TokenTree} sequence. Token trees include regular expression literals $\rett$, where $r$ is the regular expression body. We simplify regular expression bodies to just a variable and the individual delimiters, which captures the essential problems of parsing regular expression literals.
-Token trees also include fully matched delimiters with nested token tree sequences $\parens{t}$ and $\curlies{t}$ rather than individual delimiters (note that we write token tree delimiters with an \underline{underline} to distinguish them from token delimiters).
+The job of read is then to produce a correct \textit{TokenTree} sequence. Token trees include regular expression literals $\rett$, where $r$ is the regular expression body. We simplify regular expression bodies to just a variable and the individual delimiters, which captures the essential problems of parsing regular expressions.
+Token trees also include fully matched delimiters with nested token tree sequences $\parens{t}$ and $\curlies{t}$ rather than individual delimiters (we write token tree delimiters with an \underline{underline} to distinguish them from token delimiters).
 \[
 \begin{array}{lrl}
   k \in \TT &::=& x ~|~ \textit{Punctuator} ~|~ \textit{Keyword}
@@ -654,7 +646,7 @@ function g(y) {
 \end{lstlisting}
 For clarity of presentation, we leave token line numbers implicit unless we require them, in which case we use the notation $\texttt{\{}^l$ where $l$ is a line number.
 
-We write a sequence by separating elements with a dot so
+We write a token sequence by separating elements with a dot so
 the source string ``\texttt{foo(/)/)}'' 
 is lexed into a sequence
 of six tokens \( \texttt{foo}\cdot \texttt{(} \cdot \div \cdot \texttt{)}
@@ -727,7 +719,7 @@ implicitly convert the object to a number (technically
 \verb!NaN!).
 
 The reader handles these cases by checking if the prefix of a curly
-brace block forces the curly to be an object literal or a statement
+brace forces the curly to be an object literal or a statement
 block and then setting a boolean flag to be used while reading the
 tokens inside of the braces.
 
@@ -755,6 +747,7 @@ As in the object literal case, it is unlikely that a programmer would attempt to
 
 
 \subsection{Proving Read}
+\label{sec:provingread}
 
 To show that our read algorithm correctly distinguishes 
 divide operations from regular expression literals, we show that
@@ -784,10 +777,10 @@ the full sweet.js implementation for ES5 JavaScript.
 In addition to the \( \gprod{Program}{} \) parser just described, we
 also define a parser \( \gprod{Program'}{} \) that works over token
 trees. The rules of the two parsers are identical, except that
-all rules with delimiters and regular expression literals changes as follows:
+all rules with delimiters and regular expression literals change as follows:
 \[
 \begin{array}{lcl}
-  \gprod{PrimaryExpr}{\rett} &::=& \texttt{/}\cdot x \cdot \texttt{/}
+  \gprod{PrimaryExpr}{\rett} &::=& \texttt{/}\cdot r \cdot \texttt{/}
   \\
   \gprod{PrimaryExpr'}{\rett} &::=& \rett
   \\
@@ -814,7 +807,7 @@ strategies give identical behavior:
 
 \begin{theorem}[\label{thrm:readProgram}Parse Equivalence]\mbox{}
 
-  \( \forall s. \)
+  \( \forall s \in \Tok^*. \)
 
   \( s \in \gprod{Program}{e} \Leftrightarrow 
   \readfn{s}{\epsilon}{\textit{false}} \in \gprod{Program'}{e} \)
@@ -867,9 +860,9 @@ template (identifiers that do not begin with \verb!$! are matched
 literally). The ellipses (\verb!$params (,) ...!) mean match zero or more
 tokens separated by commas.
 
-The above example show the power of matching delimited groups of
+The above example shows the power of matching delimited groups of
 syntax (\ie matching all the tokens inside the function body). In
-order for macros to be convenient in a language like JavaScript it is
+order for macros to be convenient in a language like JavaScript, it is
 necessary to have the ability to match logical groupings of syntax
 that are not fully delimited. For example, consider the
 \verb!let! macro:
@@ -892,7 +885,7 @@ largest possible expression, so in this example the entire expression
 
 Along with the template-based rule macros, sweet.js also provides the
 more powerful procedural \emph{case} macros. 
-While rule macros just provide term rewriting templates, case macros allow macro authors to use JavaScript code to create and manipulate syntax. 
+While rule macros just provide term rewriting, case macros allow macro authors to use JavaScript code to procedurally create and manipulate syntax. 
 For example, the following macro creates a string from the contents of a file.
 \begin{lstlisting}
 macro fromFile {
@@ -907,7 +900,7 @@ var s = fromFile ("./file.txt")
 // expands to:
 // s = "contents of file";
 \end{lstlisting}
-Syntax bound in the macro pattern can be referenced inside of templates
+Syntax bound in the macro pattern can be referenced inside of JavaScript code
 using the notation \verb!#{ ... }!.
 Here we take the file name token matched by the macro (\verb!#{$path}!), unwrap it, and 
 read\footnote{Note that \verb!readFile! will depend on the particular JavaScript environment in which sweet.js is being run (\eg in node.js it might be \verb!fs.readFile! and in the browser it might an \verb!XMLHttpRequest!).} 
@@ -1054,14 +1047,14 @@ Unfortunately, definable operators are limited in that their operands
 must be expressions (this limitation allows setting custom precedence
 and associativity rules). This restriction means it is impossible to
 define syntax forms such as arrow functions via definable operators
-since the parameter list is not an expression.
+since the syntax surrounding the arrow is not an expression.
 
 To address this limitation, sweet.js introduces \emph{infix macros},
-which allow a macro to match syntax that comes before the macro
+which allow a macro to match syntax that comes before and after the macro
 identifier. Infix macros are defined by adding the keyword
 \verb!infix! after the \verb!rule! or \verb!case!
 keyword and placing a pipe (\verb!|!) in the pattern where the
-macro name would appear (the pipe can be thought of as the cursor in
+macro name would appear (the pipe can be thought of as a cursor into
 the token stream).
 
 For example, the following infix macro implements arrow functions:
@@ -1091,7 +1084,7 @@ sequence of tokens that are then expanded:
 To implement infix macros, we modify the type of a transformer to
 take two arguments, one for the tokens that precede the macro
 identifier and the other with the tokens that follow. The transformer
-may then consume from either ends as needed, yielding new preceding
+may then consume from either end as needed, yielding new preceding
 and following tokens:
 \[
 \begin{array}{rcl}
@@ -1187,9 +1180,9 @@ As motivation, consider the following macro that matches against
 color options:
 \begin{lstlisting}
 macro colors_options {
-  rule { (red) }   => { ["#FF0000"] }
+  rule { (red)   } => { ["#FF0000"] }
   rule { (green) } => { ["#00FF00"] }
-  rule { (blue) }  => { ["#0000FF"] }
+  rule { (blue)  } => { ["#0000FF"] }
 }
 r = colors_options (red)
 g = colors_options (green)
@@ -1231,9 +1224,9 @@ bound to the pattern variable. This makes declarative options simple
 to write:
 \begin{lstlisting}
 macro color {
-  rule { red }   => { "#FF0000" }
+  rule { red   } => { "#FF0000" }
   rule { green } => { "#00FF00" }
-  rule { blue }  => { "#0000FF" }
+  rule { blue  } => { "#0000FF" }
 }
 macro colors_options {
   rule { ($opt:invoke(color) (,) ...) } => { 
@@ -1256,9 +1249,9 @@ inferred by just using the name of a macro in scope (\ie
 
 \begin{lstlisting}
 macro color {
-  rule { red }   => { "#FF0000" }
+  rule { red   } => { "#FF0000" }
   rule { green } => { "#00FF00" }
-  rule { blue }  => { "#0000FF" }
+  rule { blue  } => { "#0000FF" }
 }
 macro colors_options {
   rule { ($opt:color (,) ...) } => { 
@@ -1412,7 +1405,7 @@ macros, which is fully supported with our approach.
 
 Macros have been extensively used and studied in Lisp~\cite{Foderaro1983,Pitman1980} and related languages for many years. Scheme in particular has embraced macros, pioneering the development of declarative definitions~\cite{Kohlbecker1987} and working out the hygiene conditions for term rewriting macros (rule macros)~\cite{Clinger1991} and procedural macros (case macros)~\cite{Hieb1992} that enable true composability.
 In addition there has been work to integrate procedural macros and module systems~\cite{Flatt2002,Ghuloum2007}.
-Racket takes it even further by extending the Scheme macro system with deep hooks into the compilation process~\cite{Flatt2012,Tobin-Hochstadt2011}.
+Racket takes it even further by extending the Scheme macro system with deep hooks into the compilation process~\cite{Flatt2012,Tobin-Hochstadt2011} and robust pattern specifications~\cite{Culpepper2010a}.
 
 In addition, there are a number of macro systems for languages with more traditional syntax that are not fully delimited. 
 As mentioned before, sweet.js is most closely related to Honu~\cite{Rafkind2012,Rafkind2013}. In contrast with Honu, which does not include regular expression literals, we solve the reader ambiguity problem for JavaScript and introduce infix macros along with the \verb!invoke! pattern class.
@@ -1450,7 +1443,7 @@ In addition we presented an algorithm for read that correctly handles key ambigu
 
 \clearpage
 
-\section{Read Proof}
+\section{Proof of Parse Equivalence}
 \label{sec:readproof}
 
 
