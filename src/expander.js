@@ -1540,14 +1540,14 @@
                     } 
                 // anon macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
-                           head.token.value === "macro" && 
+                           resolve(head) === "macro" &&
                            rest[0] && rest[0].token.value === "{}") {
 
                     return step(AnonMacro.create(rest[0].expose().token.inner), 
                                 rest.slice(1));
                 // macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
-                           head.token.value === "macro") {
+                           resolve(head) === "macro") {
                     var nameTokens = [];
                     if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                         rest[0].token.value === "()") {
