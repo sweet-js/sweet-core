@@ -275,21 +275,21 @@
 
     // (CSyntax) -> [...Num]
     function marksof(ctx, stopName, originalName) {
-        var mark, submarks;
-
-        if (ctx instanceof Mark) {
-            mark = ctx.mark;
-            submarks = marksof(ctx.context, stopName, originalName);
-            return remdup(mark, submarks);
-        }
-        if(ctx instanceof Def) {
-            return marksof(ctx.context, stopName, originalName);
-        }
-        if (ctx instanceof Rename) {
-            if(stopName === originalName + "$" + ctx.name) {
-                return [];
+        while (ctx) {
+            if (ctx.constructor === Mark) {
+                return remdup(ctx.mark, marksof(ctx.context, stopName, originalName));
             }
-            return marksof(ctx.context, stopName, originalName);
+            if(ctx.constructor === Def) {
+                ctx = ctx.context;
+                continue;
+            }
+            if (ctx.constructor === Rename) {
+                if(stopName === originalName + "$" + ctx.name) {
+                    return [];
+                }
+                ctx = ctx.context;
+                continue;
+            }
         }
         return [];
     }
@@ -327,17 +327,19 @@
         function resolveCtx(originalName, ctx, stop_spine, stop_branch) {
             if (!ctx) { return originalName; }
             var key = ctx.instNum;
-            return cache[key] = cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch));
+            return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch));
         }
 
         // (Syntax) -> String
         function resolveCtxFull(originalName, ctx, stop_spine, stop_branch) {
             while (true) {
-                if (ctx instanceof Mark) {
+                if (!ctx) { return originalName; }
+
+                if (ctx.constructor === Mark) {
                     ctx = ctx.context;
                     continue;
                 }
-                if (ctx instanceof Def) {
+                if (ctx.constructor === Def) {
                     if (stop_spine.indexOf(ctx.defctx) !== -1) {
                         ctx = ctx.context;
                         continue;
@@ -347,7 +349,7 @@
                         continue;
                     }
                 }
-                if (ctx instanceof Rename) {
+                if (ctx.constructor === Rename) {
                     if (originalName === ctx.id.token.value) {
                         var idName  = resolveCtx(ctx.id.token.value,
                                 ctx.id.context,
