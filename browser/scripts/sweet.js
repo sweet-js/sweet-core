@@ -43,7 +43,7 @@
         // Alow require('./example') for an example.sjs file.
         require.extensions['.sjs'] = function (module, filename) {
             var content = require('fs').readFileSync(filename, 'utf8');
-            module._compile(codegen.generate(exports.parse(content)), filename);
+            module._compile(codegen.generate(exports.parse(content, exports.loadedMacros)), filename);
         };
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
@@ -223,10 +223,18 @@
         });
         return ast;
     }
+    var loadedMacros = [];
+    // syntax sugar for
+    // sweet.loadedMacros.push(sweet.loadNodeModule(process.cwd(), './macros/str'));
+    function loadMacro(relative_file) {
+        loadedMacros.push(loadNodeModule(process.cwd(), relative_file));
+    }
     exports$2.expand = expand;
     exports$2.parse = parse;
     exports$2.compile = compile;
     exports$2.loadModule = expandModule;
     exports$2.loadNodeModule = loadNodeModule;
+    exports$2.loadedMacros = loadedMacros;
+    exports$2.loadMacro = loadMacro;
 }));
 //# sourceMappingURL=sweet.js.map
