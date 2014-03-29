@@ -144,28 +144,38 @@
     }
     function resolve(stx) {
         var cache = {};
-        // This call memoizes intermediate results in the recursive
-        // invocation. The scope of the memo cache is the resolve()
-        // call, so that multiple resolve() calls don't walk all over
-        // each other, and memory used for the memoization can be
-        // garbage collected.
+        // This call memoizes intermediate results in the recursive invocation.
+        // The scope of the memo cache is the resolve() call, so that multiple
+        // resolve() calls don't walk all over each other, and memory used for
+        // the memoization can be garbage collected.
         //
         // The memoization addresses issue #232.
         //
-        // It looks like the memoization uses only the name and the context
-        // and doesn't look at stop_spine and stop_branch. However, those
-        // seem dependent on ctx anyway, so I think they don't need to
-        // be included in the memoization key. All tests pass, which is
-        // a fair indicator that that logic is correct ... if the tests
-        // are solid, that is :) .. Specifically, the place I have doubts 
-        // about the correctness of this memoization is the recursive step 
-        // that computes "subName".
+        // It looks like the memoization uses only the context and doesn't look
+        // at originalName, stop_spine and stop_branch arguments. This is valid
+        // because whenever in every recursive call operates on a "deeper" or
+        // else a newly created context.  Therefore the collection of
+        // [originalName, stop_spine, stop_branch] can all be associated with a
+        // unique context. This argument is easier to see in a recursive
+        // rewrite of the resolveCtx function than with the while loop
+        // optimization - https://gist.github.com/srikumarks/9847260 - where the
+        // recursive steps always operate on a different context. 
         //
-        // With this memoization, the time complexity of the resolveCtx
-        // call no longer seems exponential for the cases in issue #232.
+        // This might make it seem that the resolution results can be stored on
+        // the context object itself, but that would not work in general
+        // because multiple resolve() calls will walk over each other's cache
+        // results, which fails tests. So the memoization uses only a context's 
+        // unique instance numbers as the memoization key and is local to each
+        // resolve() call.
+        //
+        // With this memoization, the time complexity of the resolveCtx call is
+        // no longer exponential for the cases in issue #232.
         function resolveCtx(originalName, ctx, stop_spine, stop_branch) {
-            var key = 'n:' + originalName + ',c:' + (ctx ? ctx.instNum : 'null');
-            return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch));
+            if (!ctx) {
+                return originalName;
+            }
+            var key = ctx.instNum;
+            return cache[key] = cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch));
         }
         // (Syntax) -> String
         function resolveCtxFull(originalName, ctx, stop_spine, stop_branch) {
