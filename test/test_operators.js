@@ -50,4 +50,15 @@ describe("binary custom operators", function() {
 		expect(10 minusl 5 minusl 3).to.be(2);
 		expect(10 minusr 5 minusr 3).to.be(8);
 	});
+
+	it("should coexist with infix macros", function() {
+		function answer(l, r) { return 42; }
+		binaryop answer 12 right { $lhs, $rhs } => #{ answer($lhs, $rhs) }
+		macro m {
+			rule infix { $l answer | $r } => { 100 }
+		}
+		expect(10 answer 10).to.be(42);
+		expect(10 answer m 10).to.be(100);
+		expect(10 answer 10 answer m 10).to.be(42);
+	})
 });
