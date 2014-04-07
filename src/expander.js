@@ -962,7 +962,7 @@
             "^": 7,
             "|": 6,
             "&&": 5,
-            "||":4 
+            "||":4
         }
         return operatorPrecedence[op];
     }
@@ -1317,6 +1317,13 @@
         return rt;
     }
 
+    function comparePrec(left, right, assoc) {
+        if (assoc === "left") {
+            return left <= right;
+        }
+        return left < right;
+    }
+
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
     function enforest(toks, context, prevStx, prevTerms) {
@@ -1503,8 +1510,9 @@
                             }
                         }
 
+
                         var newStack;
-                        if (bopPrec < opCtx.prec) {
+                        if (comparePrec(bopPrec, opCtx.prec, bopAssoc)) {
                             var bopCtx = opCtx;
                             var combResult = opCtx.combine(head);
 
@@ -1818,10 +1826,10 @@
                             },
                             prec: 0,
                             stack: [],
-                            prevStx: prevStx, 
+                            prevStx: prevStx,
                             prevTerms: prevTerms
                         };
-                    } 
+                    }
 
 
                     if(rt.result.length > 0) {
@@ -2319,7 +2327,7 @@
                     fn: opDefinition,
                     isOp: true,
                     opPrec: head.prec.token.value,
-                    opAssoc: head.assoc,
+                    opAssoc: head.assoc ? head.assoc.token.value : null,
                     builtin: builtinMode,
                     fullName: head.name
                 });
@@ -2482,7 +2490,7 @@
             return term;
         } else if (term.hasPrototype(ObjGet)) {
             term.left = expandTermTreeToFinal(term.left, context);
-            term.right.delim.token.inner = expand(term.right.delim.expose().token.inner, context); 
+            term.right.delim.token.inner = expand(term.right.delim.expose().token.inner, context);
             return term;
         } else if (term.hasPrototype(ObjDotGet)) {
             term.left = expandTermTreeToFinal(term.left, context);

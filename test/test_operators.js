@@ -26,8 +26,8 @@ describe("unary custom operators", function() {
 });
 
 describe("binary custom operators", function() {
-	if("should match for the primitive operator form", function() {
-		binaryop (plus) 0 left {
+	it("should match for the primitive operator form", function() {
+		binaryop (plus) 12 left {
 			macro {
 				rule { ($left:expr) ($right:expr) } => {
 					$left + $right
@@ -36,9 +36,18 @@ describe("binary custom operators", function() {
 		}
 		expect(100 plus 100).to.be(200);
 	});
-	
-	if("should match with the sugar form", function() {
-		binaryop plus 0 left { $lhs, $rhs } => #{ $lhs + $rhs }
+
+	it("should match with the sugar form", function() {
+		binaryop plus 12 left { $lhs, $rhs } => #{ $lhs + $rhs }
 		expect(100 plus 100).to.be(200);
+	});
+
+	it("should handle associativity", function() {
+		function sub(x, y) { return x - y; }
+		binaryop minusl 12 left { $lhs, $rhs } => #{ sub($lhs, $rhs) }
+		binaryop minusr 12 right { $lhs, $rhs } => #{ sub($lhs, $rhs) }
+
+		expect(10 minusl 5 minusl 3).to.be(2);
+		expect(10 minusr 5 minusr 3).to.be(8);
 	});
 });
