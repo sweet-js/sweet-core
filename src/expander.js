@@ -1238,10 +1238,10 @@
                     }
 
                     var uopPrec;
-                    if (stxIsUnaryOp(opSyntax)) {
-                        uopPrec = getUnaryOpPrec(unwrapSyntax(opSyntax));
-                    } else {
+                    if (isCustomOp) {
                         uopPrec = macroObj.opPrec;
+                    } else {
+                        uopPrec = getUnaryOpPrec(unwrapSyntax(opSyntax));
                     }
 
                     var unopPrevStx = [opSyntax].concat(opCtx.prevStx);
@@ -1294,13 +1294,12 @@
 
                     var bopPrec;
                     var bopAssoc;
-                    if (stxIsBinOp(op)) {
-                        bopPrec = getBinaryOpPrec(unwrapSyntax(op));
-                        bopAssoc = getBinaryOpAssoc(unwrapSyntax(op));
-                    } else {
+                    if (isCustomOp) {
                         bopPrec = macroObj.opPrec;
                         bopAssoc = macroObj.opAssoc;
-
+                    } else {
+                        bopPrec = getBinaryOpPrec(unwrapSyntax(op));
+                        bopAssoc = getBinaryOpAssoc(unwrapSyntax(op));
                     }
                     assert(bopPrec !== undefined, "expecting a precedence for operator: " + op);
 
