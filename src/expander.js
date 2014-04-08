@@ -1248,7 +1248,8 @@
                                     opCtx);
                     }
                 // Conditional ( x ? true : false)
-                } else if (head.hasPrototype(Expr) && (rest[0] && resolve(rest[0]) === "?")) {
+                } else if (head.hasPrototype(Expr) &&
+                           (rest[0] && resolve(rest[0]) === "?")) {
                     var question = rest[0];
                     var condRes = enforest(rest.slice(1), context);
                     if(condRes.result) {
@@ -1271,7 +1272,8 @@
                         }
                     }
                 // Constructor
-                } else if (head.hasPrototype(Keyword) && (resolve(head.keyword) === "new" && rest[0])) {
+                } else if (head.hasPrototype(Keyword) &&
+                          (resolve(head.keyword) === "new" && rest[0])) {
                     var newCallRes = enforest(rest, context);
                     if(newCallRes && newCallRes.result.hasPrototype(Call)) {
                         return step(Const.create(head, newCallRes.result),
@@ -1280,17 +1282,22 @@
                     }
 
                 // Arrow functions with expression bodies
-                } else if (head.hasPrototype(Delimiter) && (head.delim.token.value === "()" &&
-                                     rest[0] &&
-                                     rest[0].token.type === parser.Token.Punctuator &&
-                                     resolve(rest[0]) === "=>")) {
+                } else if (head.hasPrototype(Delimiter) &&
+                           (head.delim.token.value === "()" &&
+                             rest[0] &&
+                             rest[0].token.type === parser.Token.Punctuator &&
+                             resolve(rest[0]) === "=>")) {
                     var arrowRes = enforest(rest.slice(1), context);
                     if (arrowRes.result && arrowRes.result.hasPrototype(Expr)) {
-                        return step(ArrowFun.create(head.delim, rest[0], arrowRes.result.destruct()),
+                        return step(ArrowFun.create(head.delim,
+                                                    rest[0],
+                                                    arrowRes.result.destruct()),
                                     arrowRes.rest,
                                     opCtx);
                     } else {
-                        throwSyntaxError("enforest", "Body of arrow function must be an expression", rest.slice(1));
+                        throwSyntaxError("enforest",
+                            "Body of arrow function must be an expression",
+                            rest.slice(1));
                     }
                 // Arrow functions with expression bodies
                 } else if (head.hasPrototype(Id) && (rest[0] &&
@@ -1298,14 +1305,19 @@
                              resolve(rest[0]) === "=>")) {
                     var res = enforest(rest.slice(1), context);
                     if (res.result && res.result.hasPrototype(Expr)) {
-                        return step(ArrowFun.create(head.id, rest[0], res.result.destruct()),
+                        return step(ArrowFun.create(head.id,
+                                                    rest[0],
+                                                    res.result.destruct()),
                                     res.rest,
                                     opCtx);
                     } else {
-                        throwSyntaxError("enforest", "Body of arrow function must be an expression", rest.slice(1));
+                        throwSyntaxError("enforest",
+                                         "Body of arrow function must be an expression",
+                                         rest.slice(1));
                     }
                 // ParenExpr
-                } else if (head.hasPrototype(Delimiter) && (head.delim.token.value === "()")) {
+                } else if (head.hasPrototype(Delimiter) &&
+                           head.delim.token.value === "()") {
                     innerTokens = head.delim.expose().token.inner;
                     // empty parens are acceptable but enforest
                     // doesn't accept empty arrays so short
@@ -1322,9 +1334,11 @@
                         // we just leave it as a delimiter
                     }
                 // BinOp
-                } else if (head.hasPrototype(Expr) && (rest[0] && rest[1] && (stxIsBinOp(rest[0]) ||
-                                                    (nameInEnv(rest[0], rest.slice(1), context.env) &&
-                                                     getMacroInEnv(rest[0], rest.slice(1), context.env).isOp)))) {
+                } else if (head.hasPrototype(Expr) &&
+                            (rest[0] && rest[1] &&
+                             (stxIsBinOp(rest[0]) ||
+                                 (nameInEnv(rest[0], rest.slice(1), context.env) &&
+                                  getMacroInEnv(rest[0], rest.slice(1), context.env).isOp)))) {
                     var opRes;
                     var op = rest[0];
                     var left = head;
@@ -1385,7 +1399,9 @@
                     }
 
 
-                    assert(opCtx.combine !== undefined, "expecting a combine function");
+                    assert(opCtx.combine !== undefined,
+                            "expecting a combine function");
+
                     var bopOpCtx = _.extend({}, opCtx, {
                         combine: function(right) {
                             if (right.hasPrototype(Expr)) {
@@ -1423,7 +1439,8 @@
                     });
                     return step(rightStx[0], rightStx.slice(1), bopOpCtx);
                 // AssignmentExpression
-                } else if (head.hasPrototype(Expr) && ((head.hasPrototype(Id) ||
+                } else if (head.hasPrototype(Expr) &&
+                            ((head.hasPrototype(Id) ||
                               head.hasPrototype(ObjGet) ||
                               head.hasPrototype(ObjDotGet) ||
                               head.hasPrototype(ThisExpression)) &&
@@ -1434,8 +1451,9 @@
                        return step(opRes.result, opRes.rest, opCtx, prevStx, prevTerms);
                    }
                 // Postfix
-                } else if(head.hasPrototype(Expr) && (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
-                                        unwrapSyntax(rest[0]) === "--"))) {
+                } else if(head.hasPrototype(Expr) &&
+                            (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
+                                         unwrapSyntax(rest[0]) === "--"))) {
                     // Check if the operator is a macro first.
                     if (context.env.has(resolve(rest[0]))) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
@@ -1455,12 +1473,14 @@
                                 rest.slice(1),
                                 opCtx);
                 // ObjectGet (computed)
-                } else if(head.hasPrototype(Expr) && (rest[0] && rest[0].token.value === "[]"))  {
+                } else if(head.hasPrototype(Expr) &&
+                            (rest[0] && rest[0].token.value === "[]"))  {
                     return step(ObjGet.create(head, Delimiter.create(rest[0].expose())),
                                 rest.slice(1),
                                 opCtx);
                 // ObjectGet
-                } else if (head.hasPrototype(Expr) && (rest[0] && unwrapSyntax(rest[0]) === "." &&
+                } else if (head.hasPrototype(Expr) &&
+                            (rest[0] && unwrapSyntax(rest[0]) === "." &&
                              !context.env.has(resolve(rest[0])) &&
                              rest[1] &&
                              rest[1].token.type === parser.Token.Identifier)) {
@@ -1484,14 +1504,17 @@
                                 rest.slice(2),
                                 opCtx);
                 // ArrayLiteral
-                } else if (head.hasPrototype(Delimiter) && (head.delim.token.value === "[]")) {
+                } else if (head.hasPrototype(Delimiter) &&
+                            head.delim.token.value === "[]") {
                     return step(ArrayLiteral.create(head), rest, opCtx);
                 // Block
-                } else if (head.hasPrototype(Delimiter) && (head.delim.token.value === "{}")) {
+                } else if (head.hasPrototype(Delimiter) &&
+                            head.delim.token.value === "{}") {
                     return step(Block.create(head), rest, opCtx);
                 // quote syntax
-                } else if (head.hasPrototype(Id) && (unwrapSyntax(head.id) === "#quoteSyntax" &&
-                            rest[0] && rest[0].token.value === "{}")) {
+                } else if (head.hasPrototype(Id) &&
+                            unwrapSyntax(head.id) === "#quoteSyntax" &&
+                            rest[0] && rest[0].token.value === "{}") {
 
                     var tempId = fresh();
                     context.templateMap.set(tempId, rest[0].token.inner);
@@ -1499,7 +1522,8 @@
                                 [syn.makeDelim("()", [syn.makeValue(tempId, head.id)], head.id)].concat(rest.slice(1)),
                                 opCtx);
                 // let statements
-                } else if (head.hasPrototype(Keyword) && (resolve(head.keyword) === "let")) {
+                } else if (head.hasPrototype(Keyword) &&
+                            resolve(head.keyword) === "let") {
                     var nameTokens = [];
                     if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                         rest[0].token.value === "()") {
@@ -1530,7 +1554,8 @@
                         }
                     }
                 // VariableStatement
-                } else if (head.hasPrototype(Keyword) && (resolve(head.keyword) === "var" && rest[0])) {
+                } else if (head.hasPrototype(Keyword) &&
+                            resolve(head.keyword) === "var" && rest[0]) {
                     var vsRes = enforestVarStatement(rest, context, head.keyword);
                     if (vsRes && vsRes.result) {
                         return step(VariableStatement.create(head, vsRes.result),
@@ -1538,7 +1563,8 @@
                                     opCtx);
                     }
                 // Const Statement
-                } else if (head.hasPrototype(Keyword) && (resolve(head.keyword) === "const" && rest[0])) {
+                } else if (head.hasPrototype(Keyword) &&
+                            resolve(head.keyword) === "const" && rest[0]) {
                     var csRes = enforestVarStatement(rest, context, head.keyword);
                     if (csRes && csRes.result) {
                         return step(ConstStatement.create(head, csRes.result),
@@ -1546,13 +1572,15 @@
                                     opCtx);
                     }
                 // for statement
-                } else if (head.hasPrototype(Keyword) && (resolve(head.keyword) === "for" &&
-                                    rest[0] && rest[0].token.value === "()")) {
+                } else if (head.hasPrototype(Keyword) &&
+                            resolve(head.keyword) === "for" &&
+                            rest[0] && rest[0].token.value === "()") {
                     return step(ForStatement.create(head.keyword, rest[0]),
                                 rest.slice(1),
                                 opCtx);
                 // yield statement
-                } else if (head.hasPrototype(Keyword) && (resolve(head.keyword) === "yield")) {
+                } else if (head.hasPrototype(Keyword) &&
+                            resolve(head.keyword) === "yield") {
                     var yieldExprRes = enforest(rest, context);
 
                     if (yieldExprRes.result && yieldExprRes.result.hasPrototype(Expr)) {
