@@ -52,13 +52,27 @@ describe("binary custom operators", function() {
 	});
 
 	it("should coexist with infix macros", function() {
-		function answer(l, r) { return 42; }
-		binaryop answer 12 right { $lhs, $rhs } => #{ answer($lhs, $rhs) }
+		function a(l, r) { return 42; }
+		binaryop answer 12 right { $lhs, $rhs } => #{ a($lhs, $rhs) }
 		macro m {
 			rule infix { $l answer | $r } => { 100 }
 		}
 		expect(10 answer 10).to.be(42);
 		expect(10 answer m 10).to.be(100);
 		expect(10 answer 10 answer m 10).to.be(42);
+	});
+
+	it("should work with multi token names", function() {
+		binaryop (instance?) 12 left { $lhs, $rhs } => #{ $lhs instanceof $rhs }
+		expect({} instance? Object).to.be(true);
+	});
+
+	it("should multi token punctuator operators", function() {
+		function bar(x) { return x + 1; }
+		function baz(x) { return x + 1; }
+		binaryop (|>) 0 left { $left, $right } => #{ $right($left) }
+		var foo = 1 |> bar |> baz;	
+		expect(foo).to.be(3);
 	})
+
 });

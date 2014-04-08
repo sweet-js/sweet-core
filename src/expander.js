@@ -1207,6 +1207,77 @@
             var innerTokens;
             assert(Array.isArray(rest), "result must at least be an empty array");
             if (head.hasPrototype(TermTree)) {
+
+                // unary operator
+                if (head.hasPrototype(Punc) ||
+                    head.hasPrototype(Keyword) ||
+                    head.hasPrototype(Id)) {
+                    var opSyntax;
+                    if (head.hasPrototype(Punc)) {
+                        opSyntax = head.punc;
+                    } else if (head.hasPrototype(Keyword)) {
+                        opSyntax = head.keyword;
+                    } else if (head.hasPrototype(Id)) {
+                        opSyntax = head.id;
+                    }
+                    var macroObj = getMacroInEnv(opSyntax, rest, context.env);
+                    var isCustomOp = macroObj && macroObj.isOp; 
+
+                    if (isCustomOp || stxIsUnaryOp(opSyntax)) {
+                        if (head.hasPrototype(Punc)) {
+                            // Reference the term on the syntax object for lookbehind.
+                            head.punc.term = head;
+                        } else if (head.hasPrototype(Keyword)) {
+                            head.keyword.term = head;
+                        } else if (head.hasPrototype(Id)) {
+                            head.id.term = head;
+                        }
+                        // var macroObj = getMacroInEnv(opSyntax, rest, context.env);
+
+                        var uopPrec;
+                        if (stxIsUnaryOp(opSyntax)) {
+                            uopPrec = getUnaryOpPrec(unwrapSyntax(opSyntax));
+                        } else {
+                            uopPrec = macroObj.opPrec;
+                        }
+
+                        var unopPrevStx = [opSyntax].concat(opCtx.prevStx);
+                        var unopPrevTerms = [head].concat(opCtx.prevTerms);
+                        var unopOpCtx = _.extend({}, opCtx, {
+                            combine: function(t) {
+                                if (t.hasPrototype(Expr)) {
+                                    if (isCustomOp) {
+                                        var rt = expandMacro(macroObj.fullName.concat(t.destruct()), context, opCtx);
+                                        var newt = get_expression(rt.result, context);
+                                        assert(newt.rest.length === 0, "should never have left over syntax");
+                                        return {
+                                            term: newt.result,
+                                            prevStx: opCtx.prevStx,
+                                            prevTerms: opCtx.prevTerms
+                                        };
+                                    }
+                                    return opCtx.combine(UnaryOp.create(opSyntax, t));
+                                } else {
+                                    // not actually an expression so don't create
+                                    // a UnaryOp term just return with the punctuator
+                                    return opCtx.combine(head);
+                                }
+                            },
+                            prec: uopPrec,
+                            prevStx: unopPrevStx,
+                            prevTerms: unopPrevTerms
+                        });
+                        var opRest = rest;
+                        if (macroObj) {
+                            opRest = rest.slice(macroObj.fullName.length - 1);
+                        }
+                        return step(opRest[0], opRest.slice(1), unopOpCtx);
+                    }
+                }
+                // intentional fall through...
+
+
+
                 // Call
                 if (head.hasPrototype(Expr)  && (rest[0] &&
                              rest[0].token.type === parser.Token.Delimiter &&
@@ -1333,8 +1404,9 @@
                         // if the tokens inside the paren aren't an expression
                         // we just leave it as a delimiter
                     }
+                } 
                 // BinOp
-                } else if (head.hasPrototype(Expr) &&
+                else if (head.hasPrototype(Expr) &&
                             (rest[0] && rest[1] &&
                              (stxIsBinOp(rest[0]) ||
                                  (nameInEnv(rest[0], rest.slice(1), context.env) &&
@@ -1348,6 +1420,7 @@
                     var opPrevTerms = [Punc.create(rest[0]), head].concat(opCtx.prevTerms);
 
                     var macroObj = getMacroInEnv(op, rightStx, context.env);
+                    var isCustomOp = macroObj && macroObj.isOp; 
 
                     var bopPrec;
                     var bopAssoc;
@@ -1357,6 +1430,7 @@
                     } else {
                         bopPrec = macroObj.opPrec;
                         bopAssoc = macroObj.opAssoc;
+
                     }
                     assert(bopPrec !== undefined, "expecting a precedence for operator: " + op);
 
@@ -1405,11 +1479,11 @@
                     var bopOpCtx = _.extend({}, opCtx, {
                         combine: function(right) {
                             if (right.hasPrototype(Expr)) {
-                                if (macroObj !== null && macroObj.isOp) {
+                                if (isCustomOp) {
                                     var leftStx = left.destruct();
                                     var rightStx = right.destruct();
-                                    var rt = expandMacro([op].concat(syn.makeDelim("()", leftStx, leftStx[0]),
-                                                                     syn.makeDelim("()", rightStx, rightStx[0])),
+                                    var rt = expandMacro(macroObj.fullName.concat(syn.makeDelim("()", leftStx, leftStx[0]),
+                                                                                  syn.makeDelim("()", rightStx, rightStx[0])),
                                                          context, opCtx);
                                     var newt = get_expression(rt.result, context);
                                     assert(newt.rest.length === 0, "should never have left over syntax");
@@ -1437,7 +1511,11 @@
                         prevStx: opPrevStx,
                         prevTerms: opPrevTerms
                     });
-                    return step(rightStx[0], rightStx.slice(1), bopOpCtx);
+                    var opRightStx = rightStx;
+                    if (isCustomOp) {
+                        opRightStx = rightStx.slice(macroObj.fullName.length - 1);
+                    }
+                    return step(opRightStx[0], opRightStx.slice(1), bopOpCtx);
                 // AssignmentExpression
                 } else if (head.hasPrototype(Expr) &&
                             ((head.hasPrototype(Id) ||
@@ -1588,67 +1666,7 @@
                                     yieldExprRes.rest,
                                     opCtx);
                     }
-                // unary operator
-                } else if (head.hasPrototype(Punc) ||
-                                 head.hasPrototype(Keyword) ||
-                                 head.hasPrototype(Id)) {
-                    var opSyntax;
-                    if (head.hasPrototype(Punc)) {
-                        opSyntax = head.punc;
-                    } else if (head.hasPrototype(Keyword)) {
-                        opSyntax = head.keyword;
-                    } else if (head.hasPrototype(Id)) {
-                        opSyntax = head.id;
-                    }
-                    var isCustomOp = nameInEnv(opSyntax, rest, context.env);
-
-                    if (isCustomOp || stxIsUnaryOp(opSyntax)) {
-                        if (head.hasPrototype(Punc)) {
-                            // Reference the term on the syntax object for lookbehind.
-                            head.punc.term = head;
-                        } else if (head.hasPrototype(Keyword)) {
-                            head.keyword.term = head;
-                        } else if (head.hasPrototype(Id)) {
-                            head.id.term = head;
-                        }
-                        var macroObj = getMacroInEnv(opSyntax, rest, context.env);
-
-                        var uopPrec;
-                        if (stxIsUnaryOp(opSyntax)) {
-                            uopPrec = getUnaryOpPrec(unwrapSyntax(opSyntax));
-                        } else {
-                            uopPrec = macroObj.opPrec;
-                        }
-
-                        var unopPrevStx = [opSyntax].concat(opCtx.prevStx);
-                        var unopPrevTerms = [head].concat(opCtx.prevTerms);
-                        var unopOpCtx = _.extend({}, opCtx, {
-                            combine: function(t) {
-                                if (t.hasPrototype(Expr)) {
-                                    if (isCustomOp) {
-                                        var rt = expandMacro([opSyntax].concat(t.destruct()), context, opCtx);
-                                        var newt = get_expression(rt.result, context);
-                                        assert(newt.rest.length === 0, "should never have left over syntax");
-                                        return {
-                                            term: newt.result,
-                                            prevStx: opCtx.prevStx,
-                                            prevTerms: opCtx.prevTerms
-                                        };
-                                    }
-                                    return opCtx.combine(UnaryOp.create(opSyntax, t));
-                                } else {
-                                    // not actually an expression so don't create
-                                    // a UnaryOp term just return with the punctuator
-                                    return opCtx.combine(head);
-                                }
-                            },
-                            prec: uopPrec,
-                            prevStx: unopPrevStx,
-                            prevTerms: unopPrevTerms
-                        });
-                        return step(rest[0], rest.slice(1), unopOpCtx);
-                    }
-                }
+                } 
             } else {
                 assert(head && head.token, "assuming head is a syntax object");
 
