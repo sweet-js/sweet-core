@@ -705,7 +705,7 @@ let unaryop = macro {
     rule {
         ($name ...) $prec:lit { $param:ident } => #{ $body ... }
     } => {
-        unaryop ($name) $prec {
+        unaryop ($name ...) $prec {
             macro {
                 rule { $param:expr } => { $body ... }
             }
@@ -740,7 +740,7 @@ let binaryop = macro {
     rule {
         ($name ...) $prec:lit $assoc:assoc { $left:ident, $right:ident } => #{ $body ... }
     } => {
-        binaryop ($name) $prec $assoc {
+        binaryop ($name ...) $prec $assoc {
             macro {
                 rule { ($left:expr) ($right:expr)  } => { $body ... }
             }
