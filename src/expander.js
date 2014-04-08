@@ -94,6 +94,8 @@
         }
     });
 
+    binaryop (proto?) 10 left { $l, $r } => #{ $r.hasPrototype($l) }
+
     function StringMap(o) {
         this.__data = o || {};
     }
@@ -1206,33 +1208,29 @@
         function step(head, rest, opCtx) {
             var innerTokens;
             assert(Array.isArray(rest), "result must at least be an empty array");
-            if (head.hasPrototype(TermTree)) {
+            if (TermTree proto? head) {
 
-                // unary operator
-                if (head.hasPrototype(Punc) ||
-                    head.hasPrototype(Keyword) ||
-                    head.hasPrototype(Id)) {
+                if (Punc proto? head || Keyword proto? head || Id proto? head) {
                     var opSyntax;
-                    if (head.hasPrototype(Punc)) {
+                    if (Punc proto? head) {
                         opSyntax = head.punc;
-                    } else if (head.hasPrototype(Keyword)) {
+                    } else if (Keyword proto? head) {
                         opSyntax = head.keyword;
-                    } else if (head.hasPrototype(Id)) {
+                    } else if (Id proto? head) {
                         opSyntax = head.id;
                     }
                     var macroObj = getMacroInEnv(opSyntax, rest, context.env);
                     var isCustomOp = macroObj && macroObj.isOp; 
 
                     if (isCustomOp || stxIsUnaryOp(opSyntax)) {
-                        if (head.hasPrototype(Punc)) {
+                        if (Punc proto? head) {
                             // Reference the term on the syntax object for lookbehind.
                             head.punc.term = head;
-                        } else if (head.hasPrototype(Keyword)) {
+                        } else if (Keyword proto? head) {
                             head.keyword.term = head;
-                        } else if (head.hasPrototype(Id)) {
+                        } else if (Id proto? head) {
                             head.id.term = head;
                         }
-                        // var macroObj = getMacroInEnv(opSyntax, rest, context.env);
 
                         var uopPrec;
                         if (stxIsUnaryOp(opSyntax)) {
@@ -1279,7 +1277,7 @@
 
 
                 // Call
-                if (head.hasPrototype(Expr)  && (rest[0] &&
+                if (Expr proto? head && (rest[0] &&
                              rest[0].token.type === parser.Token.Delimiter &&
                              rest[0].token.value === "()")) {
                     var argRes, enforestedArgs = [], commas = [];
@@ -1319,19 +1317,19 @@
                                     opCtx);
                     }
                 // Conditional ( x ? true : false)
-                } else if (head.hasPrototype(Expr) &&
+                } else if (Expr proto? head &&
                            (rest[0] && resolve(rest[0]) === "?")) {
                     var question = rest[0];
                     var condRes = enforest(rest.slice(1), context);
                     if(condRes.result) {
                         var truExpr = condRes.result;
                         var condRight = condRes.rest;
-                        if(truExpr.hasPrototype(Expr) &&
+                        if(Expr proto? truExpr &&
                            condRight[0] && resolve(condRight[0]) === ":") {
                             var colon = condRight[0];
                             var flsRes = enforest(condRight.slice(1), context);
                             var flsExpr = flsRes.result;
-                            if(flsExpr.hasPrototype(Expr)) {
+                            if(Expr proto? flsExpr) {
                                 return step(ConditionalExpression.create(head,
                                                                          question,
                                                                          truExpr,
@@ -1343,7 +1341,7 @@
                         }
                     }
                 // Constructor
-                } else if (head.hasPrototype(Keyword) &&
+                } else if (Keyword proto? head &&
                           (resolve(head.keyword) === "new" && rest[0])) {
                     var newCallRes = enforest(rest, context);
                     if(newCallRes && newCallRes.result.hasPrototype(Call)) {
@@ -1353,7 +1351,7 @@
                     }
 
                 // Arrow functions with expression bodies
-                } else if (head.hasPrototype(Delimiter) &&
+                } else if (Delimiter proto? head &&
                            (head.delim.token.value === "()" &&
                              rest[0] &&
                              rest[0].token.type === parser.Token.Punctuator &&
@@ -1371,7 +1369,7 @@
                             rest.slice(1));
                     }
                 // Arrow functions with expression bodies
-                } else if (head.hasPrototype(Id) && (rest[0] &&
+                } else if (Id proto? head && (rest[0] &&
                              rest[0].token.type === parser.Token.Punctuator &&
                              resolve(rest[0]) === "=>")) {
                     var res = enforest(rest.slice(1), context);
@@ -1387,7 +1385,7 @@
                                          rest.slice(1));
                     }
                 // ParenExpr
-                } else if (head.hasPrototype(Delimiter) &&
+                } else if (Delimiter proto? head &&
                            head.delim.token.value === "()") {
                     innerTokens = head.delim.expose().token.inner;
                     // empty parens are acceptable but enforest
@@ -1406,7 +1404,7 @@
                     }
                 } 
                 // BinOp
-                else if (head.hasPrototype(Expr) &&
+                else if (Expr proto? head &&
                             (rest[0] && rest[1] &&
                              (stxIsBinOp(rest[0]) ||
                                  (nameInEnv(rest[0], rest.slice(1), context.env) &&
@@ -1478,7 +1476,7 @@
 
                     var bopOpCtx = _.extend({}, opCtx, {
                         combine: function(right) {
-                            if (right.hasPrototype(Expr)) {
+                            if (Expr proto? right) {
                                 if (isCustomOp) {
                                     var leftStx = left.destruct();
                                     var rightStx = right.destruct();
@@ -1517,11 +1515,11 @@
                     }
                     return step(opRightStx[0], opRightStx.slice(1), bopOpCtx);
                 // AssignmentExpression
-                } else if (head.hasPrototype(Expr) &&
-                            ((head.hasPrototype(Id) ||
-                              head.hasPrototype(ObjGet) ||
-                              head.hasPrototype(ObjDotGet) ||
-                              head.hasPrototype(ThisExpression)) &&
+                } else if (Expr proto? head &&
+                            ((Id proto? head ||
+                              ObjGet proto? head ||
+                              ObjDotGet proto? head ||
+                              ThisExpression proto? head) &&
                             rest[0] && rest[1] && stxIsAssignOp(rest[0]))) {
                    var opRes = enforestOperator(rest, context, head, prevStx, prevTerms);
                    if(opRes && opRes.result) {
@@ -1529,7 +1527,7 @@
                        return step(opRes.result, opRes.rest, opCtx, prevStx, prevTerms);
                    }
                 // Postfix
-                } else if(head.hasPrototype(Expr) &&
+                } else if(Expr proto? head &&
                             (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
                                          unwrapSyntax(rest[0]) === "--"))) {
                     // Check if the operator is a macro first.
@@ -1551,13 +1549,13 @@
                                 rest.slice(1),
                                 opCtx);
                 // ObjectGet (computed)
-                } else if(head.hasPrototype(Expr) &&
+                } else if(Expr proto? head &&
                             (rest[0] && rest[0].token.value === "[]"))  {
                     return step(ObjGet.create(head, Delimiter.create(rest[0].expose())),
                                 rest.slice(1),
                                 opCtx);
                 // ObjectGet
-                } else if (head.hasPrototype(Expr) &&
+                } else if (Expr proto? head &&
                             (rest[0] && unwrapSyntax(rest[0]) === "." &&
                              !context.env.has(resolve(rest[0])) &&
                              rest[1] &&
@@ -1582,15 +1580,15 @@
                                 rest.slice(2),
                                 opCtx);
                 // ArrayLiteral
-                } else if (head.hasPrototype(Delimiter) &&
+                } else if (Delimiter proto? head &&
                             head.delim.token.value === "[]") {
                     return step(ArrayLiteral.create(head), rest, opCtx);
                 // Block
-                } else if (head.hasPrototype(Delimiter) &&
+                } else if (Delimiter proto? head &&
                             head.delim.token.value === "{}") {
                     return step(Block.create(head), rest, opCtx);
                 // quote syntax
-                } else if (head.hasPrototype(Id) &&
+                } else if (Id proto? head &&
                             unwrapSyntax(head.id) === "#quoteSyntax" &&
                             rest[0] && rest[0].token.value === "{}") {
 
@@ -1600,7 +1598,7 @@
                                 [syn.makeDelim("()", [syn.makeValue(tempId, head.id)], head.id)].concat(rest.slice(1)),
                                 opCtx);
                 // let statements
-                } else if (head.hasPrototype(Keyword) &&
+                } else if (Keyword proto? head &&
                             resolve(head.keyword) === "let") {
                     var nameTokens = [];
                     if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
@@ -1632,7 +1630,7 @@
                         }
                     }
                 // VariableStatement
-                } else if (head.hasPrototype(Keyword) &&
+                } else if (Keyword proto? head &&
                             resolve(head.keyword) === "var" && rest[0]) {
                     var vsRes = enforestVarStatement(rest, context, head.keyword);
                     if (vsRes && vsRes.result) {
@@ -1641,7 +1639,7 @@
                                     opCtx);
                     }
                 // Const Statement
-                } else if (head.hasPrototype(Keyword) &&
+                } else if (Keyword proto? head &&
                             resolve(head.keyword) === "const" && rest[0]) {
                     var csRes = enforestVarStatement(rest, context, head.keyword);
                     if (csRes && csRes.result) {
@@ -1650,14 +1648,14 @@
                                     opCtx);
                     }
                 // for statement
-                } else if (head.hasPrototype(Keyword) &&
+                } else if (Keyword proto? head &&
                             resolve(head.keyword) === "for" &&
                             rest[0] && rest[0].token.value === "()") {
                     return step(ForStatement.create(head.keyword, rest[0]),
                                 rest.slice(1),
                                 opCtx);
                 // yield statement
-                } else if (head.hasPrototype(Keyword) &&
+                } else if (Keyword proto? head &&
                             resolve(head.keyword) === "yield") {
                     var yieldExprRes = enforest(rest, context);
 
