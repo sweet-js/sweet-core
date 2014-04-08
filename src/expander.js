@@ -1210,8 +1210,11 @@
             assert(Array.isArray(rest), "result must at least be an empty array");
             if (TermTree proto? head) {
 
+                var isCustomOp = false;
+                var macroObj;
+                var opSyntax;
+
                 if (Punc proto? head || Keyword proto? head || Id proto? head) {
-                    var opSyntax;
                     if (Punc proto? head) {
                         opSyntax = head.punc;
                     } else if (Keyword proto? head) {
@@ -1219,65 +1222,172 @@
                     } else if (Id proto? head) {
                         opSyntax = head.id;
                     }
-                    var macroObj = getMacroInEnv(opSyntax, rest, context.env);
+                    macroObj = getMacroInEnv(opSyntax, rest, context.env);
+                    isCustomOp = macroObj && macroObj.isOp; 
+                }
+
+                // unary operator
+                if (isCustomOp || (opSyntax && stxIsUnaryOp(opSyntax))) {
+                    if (Punc proto? head) {
+                        // Reference the term on the syntax object for lookbehind.
+                        head.punc.term = head;
+                    } else if (Keyword proto? head) {
+                        head.keyword.term = head;
+                    } else if (Id proto? head) {
+                        head.id.term = head;
+                    }
+
+                    var uopPrec;
+                    if (stxIsUnaryOp(opSyntax)) {
+                        uopPrec = getUnaryOpPrec(unwrapSyntax(opSyntax));
+                    } else {
+                        uopPrec = macroObj.opPrec;
+                    }
+
+                    var unopPrevStx = [opSyntax].concat(opCtx.prevStx);
+                    var unopPrevTerms = [head].concat(opCtx.prevTerms);
+                    var unopOpCtx = _.extend({}, opCtx, {
+                        combine: function(t) {
+                            if (t.hasPrototype(Expr)) {
+                                if (isCustomOp) {
+                                    var rt = expandMacro(macroObj.fullName.concat(t.destruct()), context, opCtx);
+                                    var newt = get_expression(rt.result, context);
+                                    assert(newt.rest.length === 0, "should never have left over syntax");
+                                    return {
+                                        term: newt.result,
+                                        prevStx: opCtx.prevStx,
+                                        prevTerms: opCtx.prevTerms
+                                    };
+                                }
+                                return opCtx.combine(UnaryOp.create(opSyntax, t));
+                            } else {
+                                // not actually an expression so don't create
+                                // a UnaryOp term just return with the punctuator
+                                return opCtx.combine(head);
+                            }
+                        },
+                        prec: uopPrec,
+                        prevStx: unopPrevStx,
+                        prevTerms: unopPrevTerms
+                    });
+                    var opRest = rest;
+                    if (macroObj) {
+                        opRest = rest.slice(macroObj.fullName.length - 1);
+                    }
+                    return step(opRest[0], opRest.slice(1), unopOpCtx);
+                // BinOp
+                } else if (Expr proto? head &&
+                            (rest[0] && rest[1] &&
+                             (stxIsBinOp(rest[0]) ||
+                                 (nameInEnv(rest[0], rest.slice(1), context.env) &&
+                                  getMacroInEnv(rest[0], rest.slice(1), context.env).isOp)))) {
+                    var opRes;
+                    var op = rest[0];
+                    var left = head;
+                    var rightStx = rest.slice(1);
+
+                    var opPrevStx = [rest[0]].concat(head.destruct().reverse(), opCtx.prevStx);
+                    var opPrevTerms = [Punc.create(rest[0]), head].concat(opCtx.prevTerms);
+
+                    var macroObj = getMacroInEnv(op, rightStx, context.env);
                     var isCustomOp = macroObj && macroObj.isOp; 
 
-                    if (isCustomOp || stxIsUnaryOp(opSyntax)) {
-                        if (Punc proto? head) {
-                            // Reference the term on the syntax object for lookbehind.
-                            head.punc.term = head;
-                        } else if (Keyword proto? head) {
-                            head.keyword.term = head;
-                        } else if (Id proto? head) {
-                            head.id.term = head;
-                        }
+                    var bopPrec;
+                    var bopAssoc;
+                    if (stxIsBinOp(op)) {
+                        bopPrec = getBinaryOpPrec(unwrapSyntax(op));
+                        bopAssoc = getBinaryOpAssoc(unwrapSyntax(op));
+                    } else {
+                        bopPrec = macroObj.opPrec;
+                        bopAssoc = macroObj.opAssoc;
 
-                        var uopPrec;
-                        if (stxIsUnaryOp(opSyntax)) {
-                            uopPrec = getUnaryOpPrec(unwrapSyntax(opSyntax));
-                        } else {
-                            uopPrec = macroObj.opPrec;
-                        }
-
-                        var unopPrevStx = [opSyntax].concat(opCtx.prevStx);
-                        var unopPrevTerms = [head].concat(opCtx.prevTerms);
-                        var unopOpCtx = _.extend({}, opCtx, {
-                            combine: function(t) {
-                                if (t.hasPrototype(Expr)) {
-                                    if (isCustomOp) {
-                                        var rt = expandMacro(macroObj.fullName.concat(t.destruct()), context, opCtx);
-                                        var newt = get_expression(rt.result, context);
-                                        assert(newt.rest.length === 0, "should never have left over syntax");
-                                        return {
-                                            term: newt.result,
-                                            prevStx: opCtx.prevStx,
-                                            prevTerms: opCtx.prevTerms
-                                        };
-                                    }
-                                    return opCtx.combine(UnaryOp.create(opSyntax, t));
-                                } else {
-                                    // not actually an expression so don't create
-                                    // a UnaryOp term just return with the punctuator
-                                    return opCtx.combine(head);
-                                }
-                            },
-                            prec: uopPrec,
-                            prevStx: unopPrevStx,
-                            prevTerms: unopPrevTerms
-                        });
-                        var opRest = rest;
-                        if (macroObj) {
-                            opRest = rest.slice(macroObj.fullName.length - 1);
-                        }
-                        return step(opRest[0], opRest.slice(1), unopOpCtx);
                     }
-                }
-                // intentional fall through...
+                    assert(bopPrec !== undefined, "expecting a precedence for operator: " + op);
 
 
+                    // Check if the operator is a macro first.
+                    if (macroObj !== null && !macroObj.isOp) {
+                        var headStx = tagWithTerm(left, left.destruct().reverse());
+                        opPrevStx = headStx.concat(opCtx.prevStx);
+                        opPrevTerms = [left].concat(opCtx.prevTerms);
+                        opRes = enforest(rest, context, opPrevStx, opPrevTerms);
 
+                        if (opRes.prevTerms.length < opPrevTerms.length) {
+                            return opRes;
+                        } else if(opRes.result) {
+                            return step(left, opRes.result.destruct().concat(opRes.rest), opCtx);
+                        }
+                    }
+
+
+                    var newStack;
+                    if (comparePrec(bopPrec, opCtx.prec, bopAssoc)) {
+                        var bopCtx = opCtx;
+                        var combResult = opCtx.combine(head);
+
+                        if (opCtx.stack.length > 0) {
+                            var stackHead = opCtx.stack[0];
+                            bopCtx = _.extend({}, opCtx, {
+                                combine: stackHead[0],
+                                prec: stackHead[1],
+                                stack: opCtx.stack.slice(1)
+                            });
+                            return step(combResult.term, rest, bopCtx);
+                        }
+                        left = combResult.term;
+                        newStack = opCtx.stack;
+                        opPrevStx = combResult.prevStx;
+                        opPrevTerms = combResult.prevTerms;
+                    } else {
+                        newStack = [[opCtx.combine, opCtx.prec]].concat(opCtx.stack);
+                    }
+
+
+                    assert(opCtx.combine !== undefined,
+                            "expecting a combine function");
+
+                    var bopOpCtx = _.extend({}, opCtx, {
+                        combine: function(right) {
+                            if (Expr proto? right) {
+                                if (isCustomOp) {
+                                    var leftStx = left.destruct();
+                                    var rightStx = right.destruct();
+                                    var rt = expandMacro(macroObj.fullName.concat(syn.makeDelim("()", leftStx, leftStx[0]),
+                                                                                  syn.makeDelim("()", rightStx, rightStx[0])),
+                                                         context, opCtx);
+                                    var newt = get_expression(rt.result, context);
+                                    assert(newt.rest.length === 0, "should never have left over syntax");
+                                    return {
+                                        term: newt.result,
+                                        prevStx: opPrevStx,
+                                        prevTerms: opPrevTerms
+                                    };
+                                }
+                                return {
+                                    term: BinOp.create(op, left, right),
+                                    prevStx: opPrevStx,
+                                    prevTerms: opPrevTerms
+                                };
+                            } else {
+                                return {
+                                    term: head,
+                                    prevStx: opCtx.prevStx,
+                                    prevTerms: opCtx.prevTerms
+                                };
+                            }
+                        },
+                        prec: bopPrec,
+                        stack: newStack,
+                        prevStx: opPrevStx,
+                        prevTerms: opPrevTerms
+                    });
+                    var opRightStx = rightStx;
+                    if (isCustomOp) {
+                        opRightStx = rightStx.slice(macroObj.fullName.length - 1);
+                    }
+                    return step(opRightStx[0], opRightStx.slice(1), bopOpCtx);
                 // Call
-                if (Expr proto? head && (rest[0] &&
+                } else if (Expr proto? head && (rest[0] &&
                              rest[0].token.type === parser.Token.Delimiter &&
                              rest[0].token.value === "()")) {
                     var argRes, enforestedArgs = [], commas = [];
@@ -1402,118 +1512,6 @@
                         // if the tokens inside the paren aren't an expression
                         // we just leave it as a delimiter
                     }
-                } 
-                // BinOp
-                else if (Expr proto? head &&
-                            (rest[0] && rest[1] &&
-                             (stxIsBinOp(rest[0]) ||
-                                 (nameInEnv(rest[0], rest.slice(1), context.env) &&
-                                  getMacroInEnv(rest[0], rest.slice(1), context.env).isOp)))) {
-                    var opRes;
-                    var op = rest[0];
-                    var left = head;
-                    var rightStx = rest.slice(1);
-
-                    var opPrevStx = [rest[0]].concat(head.destruct().reverse(), opCtx.prevStx);
-                    var opPrevTerms = [Punc.create(rest[0]), head].concat(opCtx.prevTerms);
-
-                    var macroObj = getMacroInEnv(op, rightStx, context.env);
-                    var isCustomOp = macroObj && macroObj.isOp; 
-
-                    var bopPrec;
-                    var bopAssoc;
-                    if (stxIsBinOp(op)) {
-                        bopPrec = getBinaryOpPrec(unwrapSyntax(op));
-                        bopAssoc = getBinaryOpAssoc(unwrapSyntax(op));
-                    } else {
-                        bopPrec = macroObj.opPrec;
-                        bopAssoc = macroObj.opAssoc;
-
-                    }
-                    assert(bopPrec !== undefined, "expecting a precedence for operator: " + op);
-
-
-                    // Check if the operator is a macro first.
-                    if (macroObj !== null && !macroObj.isOp) {
-                        var headStx = tagWithTerm(left, left.destruct().reverse());
-                        opPrevStx = headStx.concat(opCtx.prevStx);
-                        opPrevTerms = [left].concat(opCtx.prevTerms);
-                        opRes = enforest(rest, context, opPrevStx, opPrevTerms);
-
-                        if (opRes.prevTerms.length < opPrevTerms.length) {
-                            return opRes;
-                        } else if(opRes.result) {
-                            return step(left, opRes.result.destruct().concat(opRes.rest), opCtx);
-                        }
-                    }
-
-
-                    var newStack;
-                    if (comparePrec(bopPrec, opCtx.prec, bopAssoc)) {
-                        var bopCtx = opCtx;
-                        var combResult = opCtx.combine(head);
-
-                        if (opCtx.stack.length > 0) {
-                            var stackHead = opCtx.stack[0];
-                            bopCtx = _.extend({}, opCtx, {
-                                combine: stackHead[0],
-                                prec: stackHead[1],
-                                stack: opCtx.stack.slice(1)
-                            });
-                            return step(combResult.term, rest, bopCtx);
-                        }
-                        left = combResult.term;
-                        newStack = opCtx.stack;
-                        opPrevStx = combResult.prevStx;
-                        opPrevTerms = combResult.prevTerms;
-                    } else {
-                        newStack = [[opCtx.combine, opCtx.prec]].concat(opCtx.stack);
-                    }
-
-
-                    assert(opCtx.combine !== undefined,
-                            "expecting a combine function");
-
-                    var bopOpCtx = _.extend({}, opCtx, {
-                        combine: function(right) {
-                            if (Expr proto? right) {
-                                if (isCustomOp) {
-                                    var leftStx = left.destruct();
-                                    var rightStx = right.destruct();
-                                    var rt = expandMacro(macroObj.fullName.concat(syn.makeDelim("()", leftStx, leftStx[0]),
-                                                                                  syn.makeDelim("()", rightStx, rightStx[0])),
-                                                         context, opCtx);
-                                    var newt = get_expression(rt.result, context);
-                                    assert(newt.rest.length === 0, "should never have left over syntax");
-                                    return {
-                                        term: newt.result,
-                                        prevStx: opPrevStx,
-                                        prevTerms: opPrevTerms
-                                    };
-                                }
-                                return {
-                                    term: BinOp.create(op, left, right),
-                                    prevStx: opPrevStx,
-                                    prevTerms: opPrevTerms
-                                };
-                            } else {
-                                return {
-                                    term: head,
-                                    prevStx: opCtx.prevStx,
-                                    prevTerms: opCtx.prevTerms
-                                };
-                            }
-                        },
-                        prec: bopPrec,
-                        stack: newStack,
-                        prevStx: opPrevStx,
-                        prevTerms: opPrevTerms
-                    });
-                    var opRightStx = rightStx;
-                    if (isCustomOp) {
-                        opRightStx = rightStx.slice(macroObj.fullName.length - 1);
-                    }
-                    return step(opRightStx[0], opRightStx.slice(1), bopOpCtx);
                 // AssignmentExpression
                 } else if (Expr proto? head &&
                             ((Id proto? head ||
