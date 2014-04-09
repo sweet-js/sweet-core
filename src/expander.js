@@ -180,12 +180,12 @@
         // unique context. This argument is easier to see in a recursive
         // rewrite of the resolveCtx function than with the while loop
         // optimization - https://gist.github.com/srikumarks/9847260 - where the
-        // recursive steps always operate on a different context. 
+        // recursive steps always operate on a different context.
         //
         // This might make it seem that the resolution results can be stored on
         // the context object itself, but that would not work in general
         // because multiple resolve() calls will walk over each other's cache
-        // results, which fails tests. So the memoization uses only a context's 
+        // results, which fails tests. So the memoization uses only a context's
         // unique instance numbers as the memoization key and is local to each
         // resolve() call.
         //
@@ -1223,7 +1223,7 @@
                         opSyntax = head.id;
                     }
                     macroObj = getMacroInEnv(opSyntax, rest, context.env);
-                    isCustomOp = macroObj && macroObj.isOp; 
+                    isCustomOp = macroObj && macroObj.isOp;
                 }
 
                 // unary operator
@@ -1290,7 +1290,7 @@
                     var opPrevTerms = [Punc.create(rest[0]), head].concat(opCtx.prevTerms);
 
                     var macroObj = getMacroInEnv(op, rightStx, context.env);
-                    var isCustomOp = macroObj && macroObj.isOp; 
+                    var isCustomOp = macroObj && macroObj.isOp;
 
                     var bopPrec;
                     var bopAssoc;
@@ -1501,11 +1501,13 @@
                     // doesn't accept empty arrays so short
                     // circuit here
                     if (innerTokens.length === 0) {
+                        head.delim.token.inner = [Empty.create()];
                         return step(ParenExpression.create(head), rest, opCtx);
                     } else {
                         var innerTerm = get_expression(innerTokens, context);
-                        if (innerTerm.result &&
-                            innerTerm.result.hasPrototype(Expr)) {
+                        if (innerTerm.result && Expr proto? innerTerm.result && 
+                            innerTerm.rest.length === 0) {
+                            head.delim.token.inner = [innerTerm.result];
                             return step(ParenExpression.create(head), rest, opCtx);
                         }
                         // if the tokens inside the paren aren't an expression
@@ -1661,7 +1663,7 @@
                                     yieldExprRes.rest,
                                     opCtx);
                     }
-                } 
+                }
             } else {
                 assert(head && head.token, "assuming head is a syntax object");
 
@@ -2335,7 +2337,8 @@
             term.body.delim.token.inner = expand(term.body.delim.expose().token.inner, context);
             return term;
         } else if (term.hasPrototype(ParenExpression)) {
-            term.expr.delim.token.inner = expand(term.expr.delim.expose().token.inner, context);
+            assert(term.expr.delim.token.inner.length === 1, "Paren expressions always have a single term inside the delimiter");
+            term.expr.delim.token.inner = [expandTermTreeToFinal(term.expr.delim.token.inner[0], context)];
             return term;
         } else if (term.hasPrototype(Call)) {
             term.fun = expandTermTreeToFinal(term.fun, context);

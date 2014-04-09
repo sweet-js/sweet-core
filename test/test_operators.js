@@ -67,12 +67,27 @@ describe("binary custom operators", function() {
 		expect({} instance? Object).to.be(true);
 	});
 
-	it("should multi token punctuator operators", function() {
+	it("should handle basic multi token punctuator operators", function() {
 		function bar(x) { return x + 1; }
 		function baz(x) { return x + 1; }
 		binaryop (|>) 0 left { $left, $right } => #{ $right($left) }
 		var foo = 1 |> bar |> baz;	
 		expect(foo).to.be(3);
-	})
+	});
+
+	it("should handle assoc for multi token operators", function() {
+		function minus(x, y) { return x - y; }
+
+		binaryop (<->) 0 left { $lhs, $rhs } => #{ minus($lhs, $rhs) }
+		binaryop (<-->) 0 right { $lhs, $rhs } => #{ minus($lhs, $rhs) }
+
+		expect(10 <-> 5 <-> 3).to.be(2);
+		expect(10 <-> (5 <-> 3)).to.be(8);
+
+		expect(10 <--> 5 <--> 3).to.be(8);
+		expect(10 <--> (5 <--> 3)).to.be(8);
+		expect((10 <--> 5) <--> 3).to.be(2);
+	});
+
 
 });
