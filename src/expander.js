@@ -1558,7 +1558,8 @@
                             (rest[0] && unwrapSyntax(rest[0]) === "." &&
                              !context.env.has(resolve(rest[0])) &&
                              rest[1] &&
-                             rest[1].token.type === parser.Token.Identifier)) {
+                             (rest[1].token.type === parser.Token.Identifier ||
+                              rest[1].token.type === parser.Token.Keyword))) {
                     // Check if the identifier is a macro first.
                     if (context.env.has(resolve(rest[1]))) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
