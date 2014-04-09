@@ -11,6 +11,7 @@ var parser = require("./build/lib/parser");
 var expander = require("./build/lib/expander");
 var patterns = require("./build/lib/patterns");
 var sweet = require("./build/lib/sweet");
+var codegen = require("escodegen");
 
 var fs = require("fs");
 
@@ -19,4 +20,5 @@ var source = fs.readFileSync("./test.js", "utf8");
 var tokenTree = parser.read(source);
 var result = expander.expand(tokenTree);
 
-console.log(result);
+// console.log(result);
+console.log(codegen.generate(parser.parse(result)));
