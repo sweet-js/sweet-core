@@ -1124,14 +1124,20 @@
         return getMacroInEnv(head, rest, env) !== null;
     }
 
-    function expandMacro(stx, context, opCtx, isOperator) {
+    function expandMacro(stx, context, opCtx, opType) {
 
         // pull the macro transformer out the environment
         var head = stx[0];
         var rest = stx.slice(1);
         var macroObj = getMacroInEnv(head, rest, context.env);
         var stxArg = rest.slice(macroObj.fullName.length - 1);
-        var transformer = macroObj.fn;
+        var transformer;
+        if (opType != null) {
+            assert(opType === "binary" || opType === "unary", "operator type should be either unary or binary: " + opType);
+            transformer = macroObj[opType].fn;
+        } else {
+            transformer = macroObj.fn;
+        }
 
         // create a new mark to be used for the input to
         // the macro
@@ -1151,7 +1157,7 @@
                 var nameStr = macroObj.fullName.map(function(stx) {
                     return stx.token.value;
                 }).join("");
-                if (isOperator) {
+                if (opType != null) {
                     var argumentString = "`" + stxArg.slice(0, 5).map(function(stx) {
                         return stx.token.value;
                     }).join(" ") + "...`";
@@ -1248,7 +1254,7 @@
                 }
 
                 // unary operator
-                if ((isCustomOp && uopMacroObj.opType === "unary") || (uopSyntax && stxIsUnaryOp(uopSyntax))) {
+                if ((isCustomOp && uopMacroObj.unary) || (uopSyntax && stxIsUnaryOp(uopSyntax))) {
                     if (Punc proto? head) {
                         // Reference the term on the syntax object for lookbehind.
                         head.punc.term = head;
@@ -1259,8 +1265,8 @@
                     }
 
                     var uopPrec;
-                    if (isCustomOp) {
-                        uopPrec = uopMacroObj.opPrec;
+                    if (isCustomOp && uopMacroObj.unary) {
+                        uopPrec = uopMacroObj.unary.prec;
                     } else {
                         uopPrec = getUnaryOpPrec(unwrapSyntax(uopSyntax));
                     }
@@ -1277,15 +1283,11 @@
                     var unopOpCtx = _.extend({}, opCtx, {
                         combine: function(t) {
                             if (t.hasPrototype(Expr)) {
-                                if (isCustomOp && uopMacroObj.opType === "unary") {
-                                    var rt = expandMacro(uopMacroName.concat(t.destruct()), context, opCtx, true);
+                                if (isCustomOp && uopMacroObj.unary) {
+                                    var rt = expandMacro(uopMacroName.concat(t.destruct()), context, opCtx, "unary");
                                     var newt = get_expression(rt.result, context);
                                     assert(newt.rest.length === 0, "should never have left over syntax");
-                                    return {
-                                        term: newt.result,
-                                        prevStx: opCtx.prevStx,
-                                        prevTerms: opCtx.prevTerms
-                                    };
+                                    return opCtx.combine(newt.result);
                                 }
                                 return opCtx.combine(UnaryOp.create(uopSyntax, t));
                             } else {
@@ -1303,8 +1305,7 @@
                 } else if (Expr proto? head &&
                             (rest[0] && rest[1] &&
                              (stxIsBinOp(rest[0]) || 
-                                (bopMacroObj && bopMacroObj.isOp && 
-                                 bopMacroObj.opType === "binary")))) {
+                                (bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary)))) {
                     var opRes;
                     var op = rest[0];
                     var left = head;
@@ -1313,13 +1314,13 @@
                     var opPrevStx = [rest[0]].concat(head.destruct().reverse(), opCtx.prevStx);
                     var opPrevTerms = [Punc.create(rest[0]), head].concat(opCtx.prevTerms);
 
-                    var isCustomOp = bopMacroObj && bopMacroObj.isOp && bopMacroObj.opType === "binary"; 
+                    var isCustomOp = bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary; 
 
                     var bopPrec;
                     var bopAssoc;
-                    if (isCustomOp) {
-                        bopPrec = bopMacroObj.opPrec;
-                        bopAssoc = bopMacroObj.opAssoc;
+                    if (isCustomOp && bopMacroObj.binary) {
+                        bopPrec = bopMacroObj.binary.prec;
+                        bopAssoc = bopMacroObj.binary.assoc;
                     } else {
                         bopPrec = getBinaryOpPrec(unwrapSyntax(op));
                         bopAssoc = getBinaryOpAssoc(unwrapSyntax(op));
@@ -1377,12 +1378,12 @@
                     var bopOpCtx = _.extend({}, opCtx, {
                         combine: function(right) {
                             if (Expr proto? right) {
-                                if (isCustomOp && bopMacroObj.opType === "binary") {
+                                if (isCustomOp && bopMacroObj.binary) {
                                     var leftStx = left.destruct();
                                     var rightStx = right.destruct();
                                     var rt = expandMacro(bopMacroName.concat(syn.makeDelim("()", leftStx, leftStx[0]),
                                                                              syn.makeDelim("()", rightStx, rightStx[0])),
-                                                         context, opCtx, true);
+                                                         context, opCtx, "binary");
                                     var newt = get_expression(rt.result, context);
                                     assert(newt.rest.length === 0, "should never have left over syntax");
                                     return {
@@ -1701,7 +1702,7 @@
                     nameInEnv(head, rest, context.env) &&
                     !getMacroInEnv(head, rest, context.env).isOp) {
 
-                    var rt = expandMacro([head].concat(rest), context, opCtx, false);
+                    var rt = expandMacro([head].concat(rest), context, opCtx);
 
                     var newOpCtx = opCtx;
                     if (rt.prevTerms && rt.prevStx) {
@@ -2216,15 +2217,22 @@
                 var name = head.name.map(unwrapSyntax).join("");
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false);
-                context.env.set(resolve(nameStx), {
+                var resolvedName = resolve(nameStx);
+                var opObj = context.env.get(resolvedName);
+                if (!opObj) {
+                    opObj = {
+                        isOp: true,
+                        builtin: builtinMode,
+                        fullName: head.name
+                    }
+                }
+                assert(head.type === "binary" || head.type === "unary", "operator must either be binary or unary");
+                opObj[head.type] = {
                     fn: opDefinition,
-                    isOp: true,
-                    opType: head.type,
-                    opPrec: head.prec.token.value,
-                    opAssoc: head.assoc ? head.assoc.token.value : null,
-                    builtin: builtinMode,
-                    fullName: head.name
-                });
+                    prec: head.prec.token.value,
+                    assoc: head.assoc ? head.assoc.token.value : null
+                };
+                context.env.set(resolvedName, opObj);
                 continue;
             }
 

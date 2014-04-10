@@ -94,5 +94,10 @@ describe("binary custom operators", function() {
 		expect((10 <--> 5) <--> 3).to.be(2);
 	});
 
+	it("should work with both unary and binary in the same expression", function() {
+		binaryop - 12 left { $l, $r } => #{ $l + $r }
+		unaryop - 12 { $o } => #{ +$o }
+		expect(10 - -10).to.be(20);
+	});
 
 });
