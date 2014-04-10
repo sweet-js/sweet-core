@@ -748,20 +748,8 @@ safemacro operator {
             }
         }
     }
-    rule {
-        $name:op_name $prec:lit { $opname:ident $op:ident } => {
-            $body ...
-        }
-    } => {
-        unaryop $name $prec {
-            macro {
-                case { $opname $op:expr } => { $body ... }
-            }
-        }
-    }
 }
 export operator;
-
 
 macro __log {
     case { _ defctx $stx } => {
