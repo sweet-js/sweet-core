@@ -103,6 +103,10 @@
                 }
             }
             this.token.inner = _.map(this.token.inner, _.bind(function (stx) {
+                // when not a syntax object (aka a TermTree) then no need to push down the expose
+                if (!stx.token) {
+                    return stx;
+                }
                 if (stx.token.inner) {
                     return syntaxFromToken(stx.token, {
                         deferredContext: applyContext(stx.deferredContext, this.deferredContext),

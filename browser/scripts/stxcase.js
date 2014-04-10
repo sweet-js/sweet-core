@@ -730,15 +730,60 @@ let unaryop = macro {
 }
 export unaryop;
 
-macro assoc {
+macro safemacro {
+    rule { $name:ident { rule $body ... } } => {
+        let $name = macro {
+            rule { : } => { $name : }
+            rule infix { . | } => { . $name }
+            rule $body ...
+        }
+    }
+    rule { $name:ident { case $body ... } } => {
+        let $name = macro {
+            case { _ : } => { return #{ $name : } }
+            case infix { . | _ } => { return #{ . $name } }
+            case $body ...
+        }
+    }
+}
+
+macro op_assoc {
     rule { left }
     rule { right }
 }
 
+macro op_name {
+    rule { ($name ...) }
+    rule { $name } => { ($name) }
+}
+
+safemacro operator {
+    rule {
+        $name:op_name $prec:lit $assoc:op_assoc
+        { $left:ident, $right:ident } => #{ $body ... }
+    } => {
+        binaryop $name $prec $assoc {
+            macro {
+                rule { ($left:expr) ($right:expr) } => { $body ... }
+            }
+        }
+    }
+    rule {
+        $name:op_name $prec:lit { $op:ident } => #{ $body ... }
+    } => {
+        unaryop $name $prec {
+            macro {
+                rule { $op:expr } => { $body ... }
+            }
+        }
+    }
+}
+export operator;
+
 let binaryop = macro {
     // with name in parens
     rule {
-        ($name ...) $prec:lit $assoc:assoc { $left:ident, $right:ident } => #{ $body ... }
+        ($name ...) $prec:lit $assoc:op_assoc { $left:ident, $right:ident } => #{ $body ... }
     } => {
         binaryop ($name ...) $prec $assoc {
             macro {
@@ -748,7 +793,7 @@ let binaryop = macro {
     }
     // with single token name
     rule {
-        $name $prec:lit $assoc:assoc { $left:ident, $right:ident } => #{ $body ... }
+        $name $prec:lit $assoc:op_assoc { $left:ident, $right:ident } => #{ $body ... }
     } => {
         binaryop ($name) $prec $assoc {
             macro {
@@ -758,12 +803,13 @@ let binaryop = macro {
     }
     // primitive case
     rule {
-        $name $prec:lit $assoc:assoc { $body ... }
+        $name $prec:lit $assoc:op_assoc { $body ... }
     } => {
         binaryop $name $prec $assoc { $body ... }
     }
 }
 export binaryop;
+
 
 macro __log {
     case { _ defctx $stx } => {
