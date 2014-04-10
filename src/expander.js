@@ -1092,6 +1092,11 @@
     }
 
     function getMacroInEnv(head, rest, env) {
+        if (!(head.token.type === parser.Token.Identifier ||
+              head.token.type === parser.Token.Keyword ||
+              head.token.type === parser.Token.Punctuator)) {
+            return null;
+        }
         var name = getName(head, rest);
         // simple case, don't need to create a new syntax object
         if (name.length === 1) {
@@ -1116,20 +1121,16 @@
     }
 
     function nameInEnv(head, rest, env) {
-        if (head.token.type === parser.Token.Identifier ||
-            head.token.type === parser.Token.Keyword ||
-            head.token.type === parser.Token.Punctuator) {
-            return getMacroInEnv(head, rest, env) !== null;
-        }
-        return false;
+        return getMacroInEnv(head, rest, env) !== null;
     }
 
-    function expandMacro(stx, context, opCtx) {
+    function expandMacro(stx, context, opCtx, isOperator) {
 
         // pull the macro transformer out the environment
         var head = stx[0];
         var rest = stx.slice(1);
         var macroObj = getMacroInEnv(head, rest, context.env);
+        var stxArg = rest.slice(macroObj.fullName.length - 1);
         var transformer = macroObj.fn;
 
         // create a new mark to be used for the input to
@@ -1140,20 +1141,33 @@
         // apply the transformer
         var rt;
         try {
-            rt = transformer([head].concat(rest.slice(macroObj.fullName.length - 1)),
+            rt = transformer([head].concat(stxArg),
                              transformerContext,
                              opCtx.prevStx,
                              opCtx.prevTerms);
         } catch (e) {
             if (e instanceof SyntaxCaseError) {
                 // add a nicer error for syntax case
-                var argumentString = "`" + rest.slice(0, 5).map(function(stx) {
+                var nameStr = macroObj.fullName.map(function(stx) {
                     return stx.token.value;
-                }).join(" ") + "...`";
-                throwSyntaxError("macro", "Macro `" + head.token.value +
-                                              "` could not be matched with " +
-                                              argumentString,
-                                              head);
+                }).join("");
+                if (isOperator) {
+                    var argumentString = "`" + stxArg.slice(0, 5).map(function(stx) {
+                        return stx.token.value;
+                    }).join(" ") + "...`";
+                    throwSyntaxError("operator", "Operator `" + nameStr +
+                                                  "` could not be matched with " +
+                                                  argumentString,
+                                                  head);
+                } else {
+                    var argumentString = "`" + stxArg.slice(0, 5).map(function(stx) {
+                        return stx.token.value;
+                    }).join(" ") + "...`";
+                    throwSyntaxError("macro", "Macro `" + nameStr +
+                                                  "` could not be matched with " +
+                                                  argumentString,
+                                                  head);
+                }
             }
             else {
                 // just rethrow it
@@ -1211,23 +1225,30 @@
             if (TermTree proto? head) {
 
                 var isCustomOp = false;
-                var macroObj;
-                var opSyntax;
+                var uopMacroObj;
+                var uopSyntax;
 
                 if (Punc proto? head || Keyword proto? head || Id proto? head) {
                     if (Punc proto? head) {
-                        opSyntax = head.punc;
+                        uopSyntax = head.punc;
                     } else if (Keyword proto? head) {
-                        opSyntax = head.keyword;
+                        uopSyntax = head.keyword;
                     } else if (Id proto? head) {
-                        opSyntax = head.id;
+                        uopSyntax = head.id;
                     }
-                    macroObj = getMacroInEnv(opSyntax, rest, context.env);
-                    isCustomOp = macroObj && macroObj.isOp;
+                    uopMacroObj = getMacroInEnv(uopSyntax, rest, context.env);
+                    isCustomOp = uopMacroObj && uopMacroObj.isOp;
+                }
+
+                // look up once (we want to check multiple properties on bopMacroObj 
+                // without repeatedly calling getMacroInEnv)
+                var bopMacroObj;
+                if (rest[0] && rest[1]) {
+                    bopMacroObj = getMacroInEnv(rest[0], rest.slice(1), context.env);
                 }
 
                 // unary operator
-                if (isCustomOp || (opSyntax && stxIsUnaryOp(opSyntax))) {
+                if ((isCustomOp && uopMacroObj.opType === "unary") || (uopSyntax && stxIsUnaryOp(uopSyntax))) {
                     if (Punc proto? head) {
                         // Reference the term on the syntax object for lookbehind.
                         head.punc.term = head;
@@ -1239,18 +1260,25 @@
 
                     var uopPrec;
                     if (isCustomOp) {
-                        uopPrec = macroObj.opPrec;
+                        uopPrec = uopMacroObj.opPrec;
                     } else {
-                        uopPrec = getUnaryOpPrec(unwrapSyntax(opSyntax));
+                        uopPrec = getUnaryOpPrec(unwrapSyntax(uopSyntax));
                     }
 
-                    var unopPrevStx = [opSyntax].concat(opCtx.prevStx);
+                    var opRest = rest;
+                    var uopMacroName;
+                    if (uopMacroObj) {
+                        uopMacroName = [uopSyntax].concat(rest.slice(0, uopMacroObj.fullName.length - 1));
+                        opRest = rest.slice(uopMacroObj.fullName.length - 1);
+                    }
+
+                    var unopPrevStx = [uopSyntax].concat(opCtx.prevStx);
                     var unopPrevTerms = [head].concat(opCtx.prevTerms);
                     var unopOpCtx = _.extend({}, opCtx, {
                         combine: function(t) {
                             if (t.hasPrototype(Expr)) {
-                                if (isCustomOp) {
-                                    var rt = expandMacro(macroObj.fullName.concat(t.destruct()), context, opCtx);
+                                if (isCustomOp && uopMacroObj.opType === "unary") {
+                                    var rt = expandMacro(uopMacroName.concat(t.destruct()), context, opCtx, true);
                                     var newt = get_expression(rt.result, context);
                                     assert(newt.rest.length === 0, "should never have left over syntax");
                                     return {
@@ -1259,7 +1287,7 @@
                                         prevTerms: opCtx.prevTerms
                                     };
                                 }
-                                return opCtx.combine(UnaryOp.create(opSyntax, t));
+                                return opCtx.combine(UnaryOp.create(uopSyntax, t));
                             } else {
                                 // not actually an expression so don't create
                                 // a UnaryOp term just return with the punctuator
@@ -1270,17 +1298,13 @@
                         prevStx: unopPrevStx,
                         prevTerms: unopPrevTerms
                     });
-                    var opRest = rest;
-                    if (macroObj) {
-                        opRest = rest.slice(macroObj.fullName.length - 1);
-                    }
                     return step(opRest[0], opRest.slice(1), unopOpCtx);
                 // BinOp
                 } else if (Expr proto? head &&
                             (rest[0] && rest[1] &&
-                             (stxIsBinOp(rest[0]) ||
-                                 (nameInEnv(rest[0], rest.slice(1), context.env) &&
-                                  getMacroInEnv(rest[0], rest.slice(1), context.env).isOp)))) {
+                             (stxIsBinOp(rest[0]) || 
+                                (bopMacroObj && bopMacroObj.isOp && 
+                                 bopMacroObj.opType === "binary")))) {
                     var opRes;
                     var op = rest[0];
                     var left = head;
@@ -1289,14 +1313,13 @@
                     var opPrevStx = [rest[0]].concat(head.destruct().reverse(), opCtx.prevStx);
                     var opPrevTerms = [Punc.create(rest[0]), head].concat(opCtx.prevTerms);
 
-                    var macroObj = getMacroInEnv(op, rightStx, context.env);
-                    var isCustomOp = macroObj && macroObj.isOp;
+                    var isCustomOp = bopMacroObj && bopMacroObj.isOp && bopMacroObj.opType === "binary"; 
 
                     var bopPrec;
                     var bopAssoc;
                     if (isCustomOp) {
-                        bopPrec = macroObj.opPrec;
-                        bopAssoc = macroObj.opAssoc;
+                        bopPrec = bopMacroObj.opPrec;
+                        bopAssoc = bopMacroObj.opAssoc;
                     } else {
                         bopPrec = getBinaryOpPrec(unwrapSyntax(op));
                         bopAssoc = getBinaryOpAssoc(unwrapSyntax(op));
@@ -1305,7 +1328,7 @@
 
 
                     // Check if the operator is a macro first.
-                    if (macroObj !== null && !macroObj.isOp) {
+                    if (bopMacroObj !== null && !bopMacroObj.isOp) {
                         var headStx = tagWithTerm(left, left.destruct().reverse());
                         opPrevStx = headStx.concat(opCtx.prevStx);
                         opPrevTerms = [left].concat(opCtx.prevTerms);
@@ -1345,15 +1368,21 @@
                     assert(opCtx.combine !== undefined,
                             "expecting a combine function");
 
+                    var opRightStx = rightStx;
+                    var bopMacroName;
+                    if (isCustomOp) {
+                        bopMacroName = rest.slice(0, bopMacroObj.fullName.length);
+                        opRightStx = rightStx.slice(bopMacroObj.fullName.length - 1);
+                    }
                     var bopOpCtx = _.extend({}, opCtx, {
                         combine: function(right) {
                             if (Expr proto? right) {
-                                if (isCustomOp) {
+                                if (isCustomOp && bopMacroObj.opType === "binary") {
                                     var leftStx = left.destruct();
                                     var rightStx = right.destruct();
-                                    var rt = expandMacro(macroObj.fullName.concat(syn.makeDelim("()", leftStx, leftStx[0]),
-                                                                                  syn.makeDelim("()", rightStx, rightStx[0])),
-                                                         context, opCtx);
+                                    var rt = expandMacro(bopMacroName.concat(syn.makeDelim("()", leftStx, leftStx[0]),
+                                                                             syn.makeDelim("()", rightStx, rightStx[0])),
+                                                         context, opCtx, true);
                                     var newt = get_expression(rt.result, context);
                                     assert(newt.rest.length === 0, "should never have left over syntax");
                                     return {
@@ -1380,10 +1409,6 @@
                         prevStx: opPrevStx,
                         prevTerms: opPrevTerms
                     });
-                    var opRightStx = rightStx;
-                    if (isCustomOp) {
-                        opRightStx = rightStx.slice(macroObj.fullName.length - 1);
-                    }
                     return step(opRightStx[0], opRightStx.slice(1), bopOpCtx);
                 // Call
                 } else if (Expr proto? head && (rest[0] &&
@@ -1676,7 +1701,7 @@
                     nameInEnv(head, rest, context.env) &&
                     !getMacroInEnv(head, rest, context.env).isOp) {
 
-                    var rt = expandMacro([head].concat(rest), context, opCtx);
+                    var rt = expandMacro([head].concat(rest), context, opCtx, false);
 
                     var newOpCtx = opCtx;
                     if (rt.prevTerms && rt.prevStx) {
@@ -2194,6 +2219,7 @@
                 context.env.set(resolve(nameStx), {
                     fn: opDefinition,
                     isOp: true,
+                    opType: head.type,
                     opPrec: head.prec.token.value,
                     opAssoc: head.assoc ? head.assoc.token.value : null,
                     builtin: builtinMode,

@@ -23,6 +23,11 @@ describe("unary custom operators", function() {
 
 		expect(minus 1 - 10).to.be(-11);
 	})
+
+	it("should handle multi token unary operators", function() {
+		unaryop (<!>)  14 {$op} => #{!$op}
+		expect(<!>true).to.be(false);
+	})
 });
 
 describe("binary custom operators", function() {
