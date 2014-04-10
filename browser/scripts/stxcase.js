@@ -700,35 +700,6 @@ let letstx = macro {
 export letstx;
 
 
-let unaryop = macro {
-    // with name in parens
-    rule {
-        ($name ...) $prec:lit { $param:ident } => #{ $body ... }
-    } => {
-        unaryop ($name ...) $prec {
-            macro {
-                rule { $param:expr } => { $body ... }
-            }
-        }
-    }
-    // with single token name
-    rule {
-        $name $prec:lit { $param:ident } => #{ $body ... }
-    } => {
-        unaryop ($name) $prec {
-            macro {
-                rule { $param:expr } => { $body ... }
-            }
-        }
-    }
-    // primitive case
-    rule {
-        $name $prec:lit { $body ... }
-    } => {
-        unaryop $name $prec { $body ... }
-    }
-}
-export unaryop;
 
 macro safemacro {
     rule { $name:ident { rule $body ... } } => {
@@ -777,38 +748,19 @@ safemacro operator {
             }
         }
     }
+    rule {
+        $name:op_name $prec:lit { $opname:ident $op:ident } => {
+            $body ...
+        }
+    } => {
+        unaryop $name $prec {
+            macro {
+                case { $opname $op:expr } => { $body ... }
+            }
+        }
+    }
 }
 export operator;
-
-let binaryop = macro {
-    // with name in parens
-    rule {
-        ($name ...) $prec:lit $assoc:op_assoc { $left:ident, $right:ident } => #{ $body ... }
-    } => {
-        binaryop ($name ...) $prec $assoc {
-            macro {
-                rule { ($left:expr) ($right:expr)  } => { $body ... }
-            }
-        }
-    }
-    // with single token name
-    rule {
-        $name $prec:lit $assoc:op_assoc { $left:ident, $right:ident } => #{ $body ... }
-    } => {
-        binaryop ($name) $prec $assoc {
-            macro {
-                rule { ($left:expr) ($right:expr) } => { $body ... }
-            }
-        }
-    }
-    // primitive case
-    rule {
-        $name $prec:lit $assoc:op_assoc { $body ... }
-    } => {
-        binaryop $name $prec $assoc { $body ... }
-    }
-}
-export binaryop;
 
 
 macro __log {
