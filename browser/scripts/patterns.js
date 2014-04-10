@@ -343,6 +343,7 @@
                 rest = stx;
             } else {
                 result = match.destructed || match.result.destruct(false);
+                result = [syntax.makeDelim('()', result, result[0])];
                 rest = match.rest;
             }
         } else if (stx.length > 0 && (patternObj.class === 'invoke' || patternObj.class === 'invokeOnce')) {
@@ -398,7 +399,7 @@
                         var restMatch = matchPatterns(patterns.slice(i + 1), rest, env, topLevel);
                         if (restMatch.success) {
                             // match the repeat pattern on the empty array to fill in its
-                            // pattern variable in the environment 
+                            // pattern variable in the environment
                             match = matchPattern(pattern, [], env, patternEnv, topLevel);
                             patternEnv = _.extend(restMatch.patternEnv, match.patternEnv);
                             rest = restMatch.rest;
@@ -625,7 +626,7 @@
             patternEnv = match.patternEnv;
             if (success) {
                 if (match.rest.length) {
-                    if (last && last.term === match.rest[0].term) {
+                    if (last && last.term && last.term === match.rest[0].term) {
                         // The term tree was split, so its a failed match;
                         success = false;
                     } else {
@@ -743,7 +744,7 @@
                                 // copy scalars over
                                 renv[pat] = env[pat];
                             } else {
-                                // grab the match at this index 
+                                // grab the match at this index
                                 renv[pat] = env[pat].match[idx$2];
                             }
                         });

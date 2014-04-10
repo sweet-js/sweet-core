@@ -63,6 +63,14 @@ module.exports = function(grunt) {
                 dest: "browser/scripts/src/"
             },
 
+            // for source maps support when using debug.js
+            nodeSrc: {
+                expand: true,
+                flatten: true,
+                src: "src/*",
+                dest: "build/lib/src/"
+            },
+
             dist: {
                 expand: true,
                 flatten: true,
@@ -76,8 +84,11 @@ module.exports = function(grunt) {
                 cwd: "test/",
                 src: "fixtures/**",
                 dest: "build/"
+            },
+            testUnit: {
+                src: "test/test_expander_units.js",
+                dest: "build/test_expander_units.js"
             }
-
         },
         mochaTest: {
             test: {
@@ -97,6 +108,12 @@ module.exports = function(grunt) {
                 filter: function(name) {
                     return /.*test_es6.*/.test(name);
                 }
+            },
+            unit: {
+                options:{
+                    colors: !grunt.option('no-color')
+                },
+                src: ["build/test_expander_units.js"]
             }
         },
         jshint: {
@@ -164,10 +181,18 @@ module.exports = function(grunt) {
                                 "copy:testFixtures",
                                 "mochaTest:test"]);
 
+    grunt.registerTask("unit", ["build:sweetjs", 
+                                "copy:scopedEval",
+                                "copy:buildMacros",
+                                "copy:nodeSrc",
+                                "copy:testUnit", 
+                                "mochaTest:unit"]);
+
     grunt.registerTask("default", ["copy:scopedEval",
                                    "copy:buildMacros",
                                    "build",
                                    "copy:browserSrc",
+                                   "copy:nodeSrc",
                                    "copy:browserMacros",
                                    "copy:scopedEvalBrowser",
                                    "copy:testFixtures",

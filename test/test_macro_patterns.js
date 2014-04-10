@@ -11,7 +11,7 @@ describe("macro expander", function() {
         m()
     })
 
-    
+
     it("should expand a macro with pattern `$x:lit`", function() {
         macro id {
             case { _ ($x:lit) }  => {
@@ -72,18 +72,18 @@ describe("macro expander", function() {
             case {_ ($x:expr)} => {return #{$x}}
         }
 
-        var x = m (true ? 42 : "foo") 
+        var x = m (true ? 42 : "foo")
         expect(x).to.be(42);
-    }); 
+    });
 
     it("should match a complex ternary expression", function() {
         macro m {
             case {_ ($x:expr)} => { return #{$x}}
         }
 
-        var x = m (2+4 > 0 ? 20 + 22 : "foo" + "bar") 
+        var x = m (2+4 > 0 ? 20 + 22 : "foo" + "bar")
         expect(x).to.be(42);
-        
+
     });
 
     it("should match binary expressions", function() {
@@ -105,7 +105,7 @@ describe("macro expander", function() {
         macro expr {
             case {_ ($x:expr plus! $y:expr)} => {
                 return #{
-                 $x + $y   
+                 $x + $y
                 }
             }
         }
@@ -166,7 +166,7 @@ describe("macro expander", function() {
         macro m {
             case {_ ($x ...)} => {
                 return #{
-                    [$x (,) ...]   
+                    [$x (,) ...]
                 }
             }
         }
@@ -186,7 +186,7 @@ describe("macro expander", function() {
             }
         }
         expect(m (1)).to.eql([1])
-        
+
     });
 
 
@@ -217,7 +217,7 @@ describe("macro expander", function() {
         macro paren {
             case {_ ( $x:lit (,) ...)} => {
                 return #{
-                    [$x (,) ...]   
+                    [$x (,) ...]
                 }
             }
         }
@@ -231,7 +231,7 @@ describe("macro expander", function() {
         macro paren {
             case {_ ( ($x:lit) (,) ...)} => {
                 return #{
-                    [$x (,) ...]   
+                    [$x (,) ...]
                 }
             }
         }
@@ -246,7 +246,7 @@ describe("macro expander", function() {
             rule { $x ... ; } => {
                 [$x (,) ...]
             }
-        }  
+        }
         var res1 = m 1 2 3 ;
         var res2 = m ;
         expect(res1).to.eql([1,2,3]);
@@ -258,7 +258,7 @@ describe("macro expander", function() {
         macro let {
             case {_ ($x:ident = $v:expr) {$y:expr}} => {
                 return #{
-                    (function($x) { return $y; })($v);   
+                    (function($x) { return $y; })($v);
                 }
             }
         }
@@ -273,7 +273,7 @@ describe("macro expander", function() {
         macro let {
             case {_ ( $($x:ident = $v:expr) (,) ...) {$y:expr} } => {
                 return #{
-                    (function($x (,) ...) { return $y; })($v (,) ...);    
+                    (function($x (,) ...) { return $y; })($v (,) ...);
                 }
             }
         }
@@ -287,7 +287,7 @@ describe("macro expander", function() {
         macro m {
             case {_ ( $x:lit (,) ...)} => {
                 return #{
-                    [[$x] (,) ...]   
+                    [[$x] (,) ...]
                 }
             }
         }
@@ -299,7 +299,7 @@ describe("macro expander", function() {
         macro m {
             case {_ { $($a $b) ... }} => {
                 return #{
-                    [$([$a, $b]) (,) ...];    
+                    [$([$a, $b]) (,) ...];
                 }
             }
         }
@@ -313,7 +313,7 @@ describe("macro expander", function() {
         macro nest {
             case {_ ( ($x:lit (,) ...) (,) ... )} => {
                 return #{
-                    [ [$x (,) ...] (,) ...]   
+                    [ [$x (,) ...] (,) ...]
                 }
             }
         }
@@ -324,7 +324,7 @@ describe("macro expander", function() {
         macro nest {
             case {_ ( ($x:lit ; $y:lit (,) ...) (,) ...)} => {
                 return #{
-                    [ [$x (,) ...], [$y (,) ...] (,) ... ]   
+                    [ [$x (,) ...], [$y (,) ...] (,) ... ]
                 }
             }
         }
@@ -340,9 +340,9 @@ describe("macro expander", function() {
         macro semi {
             case {_ ( $x:lit (;) ...)} => {
                 return #{
-                    [$x (,) ...]        
+                    [$x (,) ...]
                 }
-            
+
             }
         }
         var a = semi(1;2;3;4);
@@ -355,7 +355,7 @@ describe("macro expander", function() {
         macro semi {
             case {_ ($x:ident ...)} => {
                 return #{
-                    var $($x = 2) (,) ...   
+                    var $($x = 2) (,) ...
                 }
             }
         }
@@ -412,13 +412,13 @@ describe("macro expander", function() {
         macro rot {
             case {_ [$x:lit, $y:lit]} => {
                 return #{
-                    [rot [$y], $x]   
+                    [rot [$y], $x]
                 }
             }
             case {_ [$x:lit]} => {
                    return #{
-                     [$x]  
-                   } 
+                     [$x]
+                   }
             }
         }
 
@@ -433,19 +433,19 @@ describe("macro expander", function() {
         macro a {
             case {_ [$x:lit]} => {
                 return #{
-                    b ($x)   
+                    b ($x)
                 }
             }
         }
         macro b {
             case {_ ($x:lit)} => {
                 return #{
-                    [$x]   
+                    [$x]
                 }
             }
             case {_ ($x:lit, $y:lit)} => {
                 return #{
-                    a [$x]   
+                    a [$x]
                 }
             }
         }
@@ -475,7 +475,7 @@ describe("macro expander", function() {
         macro m {
             case {_ ($x)} => {
                 return #{
-                    $x   
+                    $x
                 }
             }
         }
@@ -490,7 +490,7 @@ describe("macro expander", function() {
                     macro $x {
                         case {_ ($y $[...]) }=> {
                             return #{
-                                [$y (,) $[...]];   
+                                [$y (,) $[...]];
                             }
                         }
                     }
@@ -642,7 +642,7 @@ describe("macro expander", function() {
         }
 
         var x = m {
-            42 
+            42
             24
         }
         expect(x).to.be(42);
@@ -668,7 +668,7 @@ describe("macro expander", function() {
     it("shoud work nicely with ASI", function() {
         macro fun {
             rule { $body:expr } => {
-                $body 
+                $body
             }
         }
 
@@ -685,7 +685,7 @@ describe("macro expander", function() {
             rule { ($x ...) } => {
                 $(var $x = 100;) ...
             }
-        } 
+        }
         foo ();
         foo (x);
         expect(x).to.be(100);
@@ -696,7 +696,7 @@ describe("macro expander", function() {
             rule { $x ($y ...) } => {
                 $($x + $y) ...
             }
-        } 
+        }
         expect(m 1 (2)).to.be(3);
         expect(m 1 ()).to.be(undefined);
     });
@@ -805,7 +805,7 @@ describe("macro expander", function() {
     it("should work with multi punctuator macro names", function() {
         macro (->) {
             rule { $x } => { $x }
-        } 
+        }
 
         expect(-> 100).to.be(100);
 
@@ -820,7 +820,7 @@ describe("macro expander", function() {
     it("should work with multi punctuator macro names and let macros", function() {
         let (->) = macro {
             rule { $x } => { $x }
-        } 
+        }
         expect(-> 100).to.be(100);
     });
 
@@ -835,7 +835,7 @@ describe("macro expander", function() {
         expect(a(10)).to.be(9);
         var b = x -> x + 2;
         expect(b(10)).to.be(12);
-        var c = x -> x - 3; 
+        var c = x -> x - 3;
         expect(c(10)).to.be(7);
     });
 
@@ -853,12 +853,12 @@ describe("macro expander", function() {
                 $lhs - $rhs
             }
         }
-        expect(3 + 2 + 1).to.be(0)
+        expect(3 + 2 + 1).to.be(2)
     });
 
     it("should allow macros to override postfix operators", function() {
         macro ++ {
-            rule infix { $lhs:expr | } => {
+            rule infix { $lhs:ident | } => {
                 $lhs--
             }
         }
@@ -961,7 +961,7 @@ describe("macro expander", function() {
         expect(@foo).to.be(12);
         expect(@bar).to.be(42);
     });
-    
+
     it("should expand the call in a `new` constructor", function() {
         macro m {
           rule {} => { 42 }
@@ -975,7 +975,7 @@ describe("macro expander", function() {
 
     it("should eagerly expand using invoke", function() {
         macro a {
-            rule { $num } => { 
+            rule { $num } => {
                 $num + 42
             }
         }
@@ -1073,7 +1073,7 @@ describe("macro expander", function() {
 
     it("should implicitly call invoke with custom pattern classes", function() {
         macro a {
-            rule { $num } => { 
+            rule { $num } => {
                 $num + 42
             }
         }

@@ -103,6 +103,10 @@
                 }
             }
             this.token.inner = _.map(this.token.inner, _.bind(function (stx) {
+                // when not a syntax object (aka a TermTree) then no need to push down the expose
+                if (!stx.token) {
+                    return stx;
+                }
                 if (stx.token.inner) {
                     return syntaxFromToken(stx.token, {
                         deferredContext: applyContext(stx.deferredContext, this.deferredContext),
@@ -230,7 +234,7 @@
     }
     function unwrapSyntax(stx) {
         if (Array.isArray(stx) && stx.length === 1) {
-            // pull stx out of single element arrays for convenience 
+            // pull stx out of single element arrays for convenience
             stx = stx[0];
         }
         if (stx.token) {

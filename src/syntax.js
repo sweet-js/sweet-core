@@ -31,7 +31,7 @@
         this.def = defctx;
         this.instNum = globalContextInstanceNumber++;
     }
-    
+
     // (Num) -> CContext
     function Mark(mark, ctx) {
         this.mark = mark;
@@ -44,7 +44,7 @@
         this.context = ctx;
         this.instNum = globalContextInstanceNumber++;
     }
-    
+
     function Syntax(token, oldstx) {
         this.token = token;
         this.context = (oldstx && oldstx.context) ? oldstx.context : null;
@@ -67,18 +67,18 @@
         rename: function(id, name, defctx) {
             // defer renaming of delimiters
             if (this.token.inner) {
-                return syntaxFromToken(this.token, 
+                return syntaxFromToken(this.token,
                                        {deferredContext: new Rename(id, name, this.deferredContext, defctx),
                                         context: new Rename(id, name, this.context, defctx)});
             }
 
-            return syntaxFromToken(this.token, 
+            return syntaxFromToken(this.token,
                                    {context: new Rename(id, name, this.context, defctx)});
         },
 
         addDefCtx: function(defctx) {
             if (this.token.inner) {
-                return syntaxFromToken(this.token, 
+                return syntaxFromToken(this.token,
                                        {deferredContext: new Def(defctx, this.deferredContext),
                                         context: new Def(defctx, this.context)});
             }
@@ -118,8 +118,10 @@
             }
 
             this.token.inner = _.map(this.token.inner, _.bind(function(stx) {
+                // when not a syntax object (aka a TermTree) then no need to push down the expose
+                if (!stx.token) { return stx; }
                 if (stx.token.inner) {
-                    return syntaxFromToken(stx.token, 
+                    return syntaxFromToken(stx.token,
                                            {deferredContext: applyContext(stx.deferredContext, this.deferredContext),
                                             context: applyContext(stx.context, this.deferredContext)});
                 } else {
@@ -194,7 +196,7 @@
                 lineStart = stx.token.lineStart;
                 lineNumber = stx.token.lineNumber;
                 range = stx.token.range;
-            } 
+            }
 
             return syntaxFromToken({
                 type: type,
@@ -206,7 +208,7 @@
         }
 
     }
-    
+
 
     function makeValue(val, stx) {
         if(typeof val === 'boolean') {
@@ -253,10 +255,10 @@
 
     function unwrapSyntax(stx) {
         if (Array.isArray(stx) && stx.length === 1) {
-            // pull stx out of single element arrays for convenience 
+            // pull stx out of single element arrays for convenience
             stx = stx[0];
         }
-        
+
         if (stx.token) {
             if(stx.token.type === parser.Token.Delimiter) {
                 return stx.token;
@@ -365,12 +367,12 @@
         var ch;
 
         while ((ch = code.charAt(lineStart++))) {
-            if (ch == '\r' || ch == '\n') { 
+            if (ch == '\r' || ch == '\n') {
                 break;
             }
             line += ch;
         }
-        
+
         return '[' + err.name + '] ' + err.message + '\n' +
                pre + line + '\n' +
                (Array(offset + pre.length).join(' ')) + ' ^';
