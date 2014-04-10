@@ -94,7 +94,7 @@
         }
     });
 
-    binaryop (proto?) 10 left { $l, $r } => #{ $r.hasPrototype($l) }
+    operator (proto?) 10 left { $l, $r } => #{ $r.hasPrototype($l) }
 
     function StringMap(o) {
         this.__data = o || {};
@@ -1246,7 +1246,7 @@
                     isCustomOp = uopMacroObj && uopMacroObj.isOp;
                 }
 
-                // look up once (we want to check multiple properties on bopMacroObj 
+                // look up once (we want to check multiple properties on bopMacroObj
                 // without repeatedly calling getMacroInEnv)
                 var bopMacroObj;
                 if (rest[0] && rest[1]) {
@@ -1304,7 +1304,7 @@
                 // BinOp
                 } else if (Expr proto? head &&
                             (rest[0] && rest[1] &&
-                             (stxIsBinOp(rest[0]) || 
+                             (stxIsBinOp(rest[0]) ||
                                 (bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary)))) {
                     var opRes;
                     var op = rest[0];
@@ -1314,7 +1314,7 @@
                     var opPrevStx = [rest[0]].concat(head.destruct().reverse(), opCtx.prevStx);
                     var opPrevTerms = [Punc.create(rest[0]), head].concat(opCtx.prevTerms);
 
-                    var isCustomOp = bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary; 
+                    var isCustomOp = bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary;
 
                     var bopPrec;
                     var bopAssoc;
@@ -1531,7 +1531,7 @@
                         return step(ParenExpression.create(head), rest, opCtx);
                     } else {
                         var innerTerm = get_expression(innerTokens, context);
-                        if (innerTerm.result && Expr proto? innerTerm.result && 
+                        if (innerTerm.result && Expr proto? innerTerm.result &&
                             innerTerm.rest.length === 0) {
                             head.delim.token.inner = [innerTerm.result];
                             return step(ParenExpression.create(head), rest, opCtx);
