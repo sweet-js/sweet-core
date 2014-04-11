@@ -1705,7 +1705,7 @@
                     var rt = expandMacro([head].concat(rest), context, opCtx);
 
                     var newOpCtx = opCtx;
-                    if (rt.prevTerms && rt.prevStx) {
+                    if (rt.prevTerms && rt.prevStx && rt.prevTerms.length !== opCtx.prevTerms.length) {
                         // Macro was infix so we have to redo all the operator
                         // precedence matching. So dump the stack, combine is identity etc.
                         prevTerms = rt.prevTerms;
