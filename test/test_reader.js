@@ -196,6 +196,9 @@ describe("reader", function() {
     it("should read a / with an identifier before it as divide", function() {
         expect(read("foo /asdf/")[1].value)
             .to.equal("/");
+
+        expect(read("this /asdf/")[1].value)
+            .to.equal("/");
         
         expect(read("{foo /asdf/}")[0].inner[1].value)
             .to.equal("/");
