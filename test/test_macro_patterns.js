@@ -795,11 +795,11 @@ describe("macro expander", function() {
 
     it("should allow infix matching of repeaters with separators", function() {
         macro m {
-            rule infix { $num (,) ... | } => {
+            rule infix { $num (+) ... | } => {
                 $num (-) ...
             }
         }
-        expect(3, 2, 1 m).to.be(0)
+        expect(3 + 2 + 1 m).to.be(0)
     });
 
     it("should work with multi punctuator macro names", function() {
