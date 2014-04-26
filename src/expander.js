@@ -774,6 +774,27 @@
         }
     });
 
+    var Partial = TermTree.extend({ constructor: function() {} });
+
+    var PartialOperation = Partial.extend({
+        properties: [],
+
+        construct: function(stx, left) {
+            this.stx = stx;
+            this.left = left;
+        }
+    });
+
+    var PartialExpression = Partial.extend({
+        properties: [],
+
+        construct: function(stx, left, combine) {
+            this.stx = stx;
+            this.left = left;
+            this.combine = combine;
+        }
+    });
+
     function stxIsUnaryOp(stx) {
         var staticOperators = ["+", "-", "~", "!",
                                 "delete", "void", "typeof",
@@ -922,33 +943,18 @@
         }
     }
 
-    function enforestOperator(stx, context, leftTerm, prevStx, prevTerms) {
-        var opPrevStx, opPrevTerms, opRes, isAssign = stxIsAssignOp(stx[0]);
-
-        // Check if the operator is a macro first.
-        if (nameInEnv(stx[0], stx.slice(1), context.env)) {
-            var headStx = tagWithTerm(leftTerm, leftTerm.destruct().reverse());
-            opPrevStx = headStx.concat(prevStx);
-            opPrevTerms = [leftTerm].concat(prevTerms);
-            opRes = enforest(stx, context, opPrevStx, opPrevTerms);
-
-            if (opRes.prevTerms.length < opPrevTerms.length) {
-                return opRes;
-            } else if(opRes.result) {
-                return { result: leftTerm,
-                         rest: opRes.result.destruct().concat(opRes.rest) };
-            }
-        }
-
+    function enforestAssignment(stx, context, left, prevStx, prevTerms) {
         var op = stx[0];
-        var left = leftTerm;
         var rightStx = stx.slice(1);
 
-        opPrevStx = [stx[0]].concat(leftTerm.destruct().reverse(), prevStx);
-        opPrevTerms = [Punc.create(stx[0]), leftTerm].concat(prevTerms);
-        opRes = enforest(rightStx, context, opPrevStx, opPrevTerms);
+        var opTerm = Punc.create(stx[0]);
+        var opPrevStx = tagWithTerm(opTerm, [stx[0]])
+                        .concat(tagWithTerm(left, left.destruct().reverse()),
+                                prevStx);
+        var opPrevTerms = [opTerm, left].concat(prevTerms);
+        var opRes = enforest(rightStx, context, opPrevStx, opPrevTerms);
 
-        if(opRes.result) {
+        if (opRes.result) {
             // Lookbehind was matched, so it may not even be a binop anymore.
             if (opRes.prevTerms.length < opPrevTerms.length) {
                 return opRes;
@@ -958,13 +964,15 @@
             // only a binop if the right is a real expression
             // so 2+2++ will only match 2+2
             if (right.hasPrototype(Expr)) {
-                var term = (isAssign ?
-                            AssignmentExpression.create(op, left, right) :
-                            BinOp.create(op, left, right));
-                return { result: term, rest: opRes.rest };
+                var term = AssignmentExpression.create(op, left, right);
+                return {
+                    result: term,
+                    rest: opRes.rest,
+                    prevStx: prevStx,
+                    prevTerms: prevTerms
+                };
             }
-        }
-        else {
+        } else {
             return opRes;
         }
     }
@@ -1125,7 +1133,6 @@
     }
 
     function expandMacro(stx, context, opCtx, opType) {
-
         // pull the macro transformer out the environment
         var head = stx[0];
         var rest = stx.slice(1);
@@ -1255,15 +1262,6 @@
 
                 // unary operator
                 if ((isCustomOp && uopMacroObj.unary) || (uopSyntax && stxIsUnaryOp(uopSyntax))) {
-                    if (Punc proto? head) {
-                        // Reference the term on the syntax object for lookbehind.
-                        head.punc.term = head;
-                    } else if (Keyword proto? head) {
-                        head.keyword.term = head;
-                    } else if (Id proto? head) {
-                        head.id.term = head;
-                    }
-
                     var uopPrec;
                     if (isCustomOp && uopMacroObj.unary) {
                         uopPrec = uopMacroObj.unary.prec;
@@ -1278,7 +1276,7 @@
                         opRest = rest.slice(uopMacroObj.fullName.length - 1);
                     }
 
-                    var unopPrevStx = [uopSyntax].concat(opCtx.prevStx);
+                    var unopPrevStx = tagWithTerm(head, head.destruct().reverse()).concat(opCtx.prevStx);
                     var unopPrevTerms = [head].concat(opCtx.prevTerms);
                     var unopOpCtx = _.extend({}, opCtx, {
                         combine: function(t) {
@@ -1304,16 +1302,24 @@
                 // BinOp
                 } else if (Expr proto? head &&
                             (rest[0] && rest[1] &&
-                             (stxIsBinOp(rest[0]) ||
-                                (bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary)))) {
+                             ((stxIsBinOp(rest[0]) && !bopMacroObj) ||
+                              (bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary)))) {
                     var opRes;
                     var op = rest[0];
                     var left = head;
                     var rightStx = rest.slice(1);
 
-                    var opPrevStx = [rest[0]].concat(head.destruct().reverse(), opCtx.prevStx);
-                    var opPrevTerms = [Punc.create(rest[0]), head].concat(opCtx.prevTerms);
-
+                    var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].hasPrototype(Partial)
+                                   ? opCtx.prevTerms[0]
+                                   : null;
+                    var leftTerm = PartialExpression.create(head.destruct(), leftLeft, function() {
+                        return step(head, [], opCtx);
+                    });
+                    var opTerm = PartialOperation.create(op, leftTerm);
+                    var opPrevStx = tagWithTerm(opTerm, [rest[0]])
+                                    .concat(tagWithTerm(leftTerm, head.destruct()).reverse(),
+                                            opCtx.prevStx);
+                    var opPrevTerms = [opTerm, leftTerm].concat(opCtx.prevTerms);
                     var isCustomOp = bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary;
 
                     var bopPrec;
@@ -1327,42 +1333,21 @@
                     }
                     assert(bopPrec !== undefined, "expecting a precedence for operator: " + op);
 
-
-                    // Check if the operator is a macro first.
-                    if (bopMacroObj !== null && !bopMacroObj.isOp) {
-                        var headStx = tagWithTerm(left, left.destruct().reverse());
-                        opPrevStx = headStx.concat(opCtx.prevStx);
-                        opPrevTerms = [left].concat(opCtx.prevTerms);
-                        opRes = enforest(rest, context, opPrevStx, opPrevTerms);
-
-                        if (opRes.prevTerms.length < opPrevTerms.length) {
-                            return opRes;
-                        } else if(opRes.result) {
-                            return step(left, opRes.result.destruct().concat(opRes.rest), opCtx);
-                        }
-                    }
-
-
                     var newStack;
                     if (comparePrec(bopPrec, opCtx.prec, bopAssoc)) {
                         var bopCtx = opCtx;
                         var combResult = opCtx.combine(head);
 
                         if (opCtx.stack.length > 0) {
-                            var stackHead = opCtx.stack[0];
-                            bopCtx = _.extend({}, opCtx, {
-                                combine: stackHead[0],
-                                prec: stackHead[1],
-                                stack: opCtx.stack.slice(1)
-                            });
-                            return step(combResult.term, rest, bopCtx);
+                            return step(combResult.term, rest, opCtx.stack[0]);
                         }
+
                         left = combResult.term;
                         newStack = opCtx.stack;
                         opPrevStx = combResult.prevStx;
                         opPrevTerms = combResult.prevTerms;
                     } else {
-                        newStack = [[opCtx.combine, opCtx.prec]].concat(opCtx.stack);
+                        newStack = [opCtx].concat(opCtx.stack);
                     }
 
 
@@ -1388,14 +1373,14 @@
                                     assert(newt.rest.length === 0, "should never have left over syntax");
                                     return {
                                         term: newt.result,
-                                        prevStx: opPrevStx,
-                                        prevTerms: opPrevTerms
+                                        prevStx: opCtx.prevStx,
+                                        prevTerms: opCtx.prevTerms
                                     };
                                 }
                                 return {
                                     term: BinOp.create(op, left, right),
-                                    prevStx: opPrevStx,
-                                    prevTerms: opPrevTerms
+                                    prevStx: opCtx.prevStx,
+                                    prevTerms: opCtx.prevTerms
                                 };
                             } else {
                                 return {
@@ -1406,9 +1391,10 @@
                             }
                         },
                         prec: bopPrec,
+                        op: opTerm,
                         stack: newStack,
                         prevStx: opPrevStx,
-                        prevTerms: opPrevTerms
+                        prevTerms: opPrevTerms,
                     });
                     return step(opRightStx[0], opRightStx.slice(1), bopOpCtx);
                 // Call
@@ -1545,12 +1531,14 @@
                               ObjGet proto? head ||
                               ObjDotGet proto? head ||
                               ThisExpression proto? head) &&
-                            rest[0] && rest[1] && stxIsAssignOp(rest[0]))) {
-                   var opRes = enforestOperator(rest, context, head, prevStx, prevTerms);
-                   if(opRes && opRes.result) {
-                       // TODO: the prevStx/prevTerms are slightly wrong here...
-                       return step(opRes.result, opRes.rest, opCtx, prevStx, prevTerms);
-                   }
+                            rest[0] && rest[1] && !bopMacroObj && stxIsAssignOp(rest[0]))) {
+                    var opRes = enforestAssignment(rest, context, head, prevStx, prevTerms);
+                    if(opRes && opRes.result) {
+                        return step(opRes.result, opRes.rest, _.extend({}, opCtx, {
+                            prevStx: opRes.prevStx,
+                            prevTerms: opRes.prevTerms
+                        }));
+                    }
                 // Postfix
                 } else if(Expr proto? head &&
                             (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
@@ -1703,30 +1691,13 @@
                     !getMacroInEnv(head, rest, context.env).isOp) {
 
                     var rt = expandMacro([head].concat(rest), context, opCtx);
-
                     var newOpCtx = opCtx;
-                    if (rt.prevTerms && rt.prevStx) {
-                        // Macro was infix so we have to redo all the operator
-                        // precedence matching. So dump the stack, combine is identity etc.
-                        prevTerms = rt.prevTerms;
-                        prevStx = rt.prevStx;
-                        newOpCtx = {
-                            combine: function (t) {
-                                return {
-                                    term: t,
-                                    prevStx: prevStx,
-                                    prevTerms:prevTerms
-                                };
-                            },
-                            prec: 0,
-                            stack: [],
-                            prevStx: prevStx,
-                            prevTerms: prevTerms
-                        };
+
+                    if (rt.prevTerms && rt.prevTerms.length < opCtx.prevTerms.length) {
+                        newOpCtx = rewindOpCtx(opCtx, rt);
                     }
 
-
-                    if(rt.result.length > 0) {
+                    if (rt.result.length > 0) {
                         return step(rt.result[0],
                                     rt.result.slice(1).concat(rt.rest),
                                     newOpCtx);
@@ -1936,6 +1907,29 @@
 
             }
 
+            // Potentially an infix macro
+            if (head.hasPrototype(Expr) && rest.length &&
+                nameInEnv(rest[0], rest.slice(1), context.env)) {
+                var infLeftTerm = opCtx.stack.length ? opCtx.prevTerms[0] : null;
+                var infTerm = PartialExpression.create(head.destruct(), infLeftTerm, function() {
+                    return step(head, [], opCtx);
+                });
+                var infPrevStx = tagWithTerm(infTerm, head.destruct()).reverse().concat(opCtx.prevStx);
+                var infPrevTerms = [infTerm].concat(opCtx.prevTerms);
+                var infRes = expandMacro(rest, context, {
+                    prevStx: infPrevStx,
+                    prevTerms: infPrevTerms
+                });
+                if (infRes.prevTerms && infRes.prevTerms.length < infPrevTerms.length) {
+                    var infOpCtx = rewindOpCtx(opCtx, infRes);
+                    return step(infRes.result[0], infRes.result.slice(1).concat(infRes.rest), infOpCtx);
+                } else {
+                    // There may not have been any infix matching, but we don't want
+                    // to waste the effort.
+                    rest = infRes.result.concat(infRes.rest);
+                }
+            }
+
             // done with current step so combine and continue on
             var combResult = opCtx.combine(head);
             if (opCtx.stack.length === 0) {
@@ -1946,13 +1940,7 @@
                     prevTerms: combResult.prevTerms
                 };
             } else {
-                var stackTop = opCtx.stack[0];
-                var newOpCtx = _.extend({}, opCtx, {
-                    combine: stackTop[0],
-                    prec: stackTop[1],
-                    stack: opCtx.stack.slice(1)
-                });
-                return step(combResult.term, rest, newOpCtx);
+                return step(combResult.term, rest, opCtx.stack[0]);
             }
         }
 
@@ -1961,63 +1949,130 @@
                 return {
                     term: t,
                     prevStx: prevStx,
-                    prevTerms:prevTerms
+                    prevTerms: prevTerms
                 };
             },
             prec: 0,
             stack: [],
+            op: null,
             prevStx: prevStx,
             prevTerms: prevTerms
         });
     }
 
+    function rewindOpCtx(opCtx, res) {
+        // If we've consumed all pending operators, we can just start over.
+        // It's important that we always thread the new prevStx and prevTerms
+        // through, otherwise the old ones will still persist.
+        if (!res.prevTerms.length ||
+            !res.prevTerms[0].hasPrototype(Partial)) {
+            return _.extend({}, opCtx, {
+                combine: function(t) {
+                    return {
+                        term: t,
+                        prevStx: res.prevStx,
+                        prevTerms: res.prevTerms
+                    };
+                },
+                prec: 0,
+                op: null,
+                stack: [],
+                prevStx: res.prevStx,
+                prevTerms: res.prevTerms
+            });
+        }
+
+        // To rewind, we need to find the first (previous) pending operator. It
+        // acts as a marker in the opCtx to let us know how far we need to go
+        // back.
+        var op = null;
+        for (var i = 0; i < res.prevTerms.length; i++) {
+            if (!res.prevTerms[i].hasPrototype(Partial)) {
+                break;
+            }
+            if (res.prevTerms[i].hasPrototype(PartialOperation)) {
+                op = res.prevTerms[i];
+                break;
+            }
+        }
+
+        // If the op matches the current opCtx, we don't need to rewind
+        // anything, but we still need to persist the prevStx and prevTerms.
+        if (opCtx.op === op) {
+            return _.extend({}, opCtx, {
+                prevStx: res.prevStx,
+                prevTerms: res.prevTerms
+            });
+        }
+
+        for (var i = 0; i < opCtx.stack.length; i++) {
+            if (opCtx.stack[i].op === op) {
+                return _.extend({}, opCtx.stack[i], {
+                    prevStx: res.prevStx,
+                    prevTerms: res.prevTerms
+                });
+            }
+        }
+
+        assert(false, "Rewind failed.");
+    }
+
     function get_expression(stx, context) {
+        if (stx[0].term) {
+            for (var termLen = 1; termLen < stx.length; termLen++) {
+                if (stx[termLen].term !== stx[0].term) {
+                    break;
+                }
+            }
+            // Guard the termLen because we can have a multi-token term that
+            // we don't want to split. TODO: is there something we can do to
+            // get around this safely?
+            if (stx[0].term.hasPrototype(PartialExpression) &&
+                termLen === stx[0].term.stx.length) {
+                var expr = stx[0].term.combine().result;
+                for (var i = 1, term = stx[0].term; i < stx.length; i++) {
+                    if (stx[i].term !== term) {
+                        if (term && term.hasPrototype(Partial)) {
+                            term = term.left;
+                            i--;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+                return {
+                    result: expr,
+                    rest: stx.slice(i)
+                };
+            } else if (stx[0].term.hasPrototype(Expr)) {
+                return {
+                    result: stx[0].term,
+                    rest: stx.slice(termLen)
+                };
+            } else {
+                return {
+                  result: null,
+                  rest: stx
+                };
+            }
+        }
+
         var res = enforest(stx, context);
-        if(!res.result) {
-            return res;
-        }
-        var next = res;
-        var peek;
-        var prevStx;
-
-        if (!next.result.hasPrototype(Expr)) {
+        if (!res.result || !res.result.hasPrototype(Expr)) {
             return {
-                result: null,
-                rest: stx
-            }
+              result: null,
+              rest: stx
+            };
         }
-
-        while (next.rest.length &&
-                nameInEnv(next.rest[0], next.rest.slice(1), context.env)) {
-
-            // Enforest the next term tree since it might be an infix macro that
-            // consumes the initial expression.
-            peek = enforest(next.rest, context, next.result.destruct(), [next.result]);
-
-            // If it has prev terms it wasn't infix, but it we need to run it
-            // through enforest together with the initial expression to see if
-            // it extends it into a longer expression.
-            if (peek.prevTerms.length === 1) {
-                peek = enforest([next.result].concat(peek.result.destruct(), peek.rest), context);
-            }
-
-            // No new expression was created, so we've reached the end.
-            if (peek.result === next.result) {
-                return peek;
-            }
-
-            // A new expression was created, so loop back around and keep going.
-            next = peek;
-        }
-
-        return next;
+        return res;
     }
 
     function tagWithTerm(term, stx) {
-        _.forEach(stx, function(s) {
+        return stx.map(function(s) {
+            s = syntaxFromToken(_.clone(s.token), s);
             s.term = term;
+            return s;
         });
-        return stx;
     }
 
 
