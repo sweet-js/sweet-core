@@ -1276,8 +1276,12 @@
                         opRest = rest.slice(uopMacroObj.fullName.length - 1);
                     }
 
-                    var unopPrevStx = tagWithTerm(head, head.destruct().reverse()).concat(opCtx.prevStx);
-                    var unopPrevTerms = [head].concat(opCtx.prevTerms);
+                    var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].hasPrototype(Partial)
+                                   ? opCtx.prevTerms[0]
+                                   : null;
+                    var unopTerm = PartialOperation.create(head, leftLeft);
+                    var unopPrevStx = tagWithTerm(unopTerm, head.destruct().reverse()).concat(opCtx.prevStx);
+                    var unopPrevTerms = [unopTerm].concat(opCtx.prevTerms);
                     var unopOpCtx = _.extend({}, opCtx, {
                         combine: function(t) {
                             if (t.hasPrototype(Expr)) {
@@ -1296,7 +1300,8 @@
                         },
                         prec: uopPrec,
                         prevStx: unopPrevStx,
-                        prevTerms: unopPrevTerms
+                        prevTerms: unopPrevTerms,
+                        op: unopTerm
                     });
                     return step(opRest[0], opRest.slice(1), unopOpCtx);
                 // BinOp
@@ -1910,7 +1915,9 @@
             // Potentially an infix macro
             if (head.hasPrototype(Expr) && rest.length &&
                 nameInEnv(rest[0], rest.slice(1), context.env)) {
-                var infLeftTerm = opCtx.stack.length ? opCtx.prevTerms[0] : null;
+                var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].hasPrototype(Partial)
+                                  ? opCtx.prevTerms[0]
+                                  : null;
                 var infTerm = PartialExpression.create(head.destruct(), infLeftTerm, function() {
                     return step(head, [], opCtx);
                 });

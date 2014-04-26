@@ -28,6 +28,14 @@ describe("unary custom operators", function() {
 		operator (<!>)  14 {$op} => #{!$op}
 		expect(<!>true).to.be(false);
 	})
+
+  it("should coexist with infix macros", function() {
+      macro m {
+          rule infix { $l | } => { 5 }
+      }
+      operator o 0 {$o} => #{ $o - 2 }
+      expect(o 3 m).to.be(3);
+  })
 });
 
 describe("binary custom operators", function() {
