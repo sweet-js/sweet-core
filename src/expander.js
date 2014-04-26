@@ -1931,9 +1931,7 @@
                     var infOpCtx = rewindOpCtx(opCtx, infRes);
                     return step(infRes.result[0], infRes.result.slice(1).concat(infRes.rest), infOpCtx);
                 } else {
-                    // There may not have been any infix matching, but we don't want
-                    // to waste the effort.
-                    rest = infRes.result.concat(infRes.rest);
+                    return step(head, infRes.result.concat(infRes.rest), opCtx);
                 }
             }
 
