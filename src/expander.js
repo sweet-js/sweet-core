@@ -328,12 +328,13 @@
         // destructed.
         // () -> [...Syntax]
         destruct: function() {
-            return _.reduce(this.properties, _.bind(function(acc, prop) {
-                if (this[prop] && this[prop].hasPrototype(TermTree)) {
-                    push.apply(acc, this[prop].destruct());
+            var self = this;
+            return _.reduce(this.properties, function(acc, prop) {
+                if (self[prop] && self[prop].hasPrototype(TermTree)) {
+                    push.apply(acc, self[prop].destruct());
                     return acc;
-                } else if (this[prop] && this[prop].token && this[prop].token.inner) {
-                    var clone = syntaxFromToken(_.clone(this[prop].token), this[prop]);
+                } else if (self[prop] && self[prop].token && self[prop].token.inner) {
+                    var clone = syntaxFromToken(_.clone(self[prop].token), self[prop]);
                     clone.token.inner = _.reduce(clone.token.inner, function(acc, t) {
                         if (t.hasPrototype(TermTree)) {
                             push.apply(acc, t.destruct());
@@ -344,8 +345,8 @@
                     }, []);
                     acc.push(clone);
                     return acc;
-                } else if (Array.isArray(this[prop])) {
-                    var destArr = _.reduce(this[prop], function(acc, t) {
+                } else if (Array.isArray(self[prop])) {
+                    var destArr = _.reduce(self[prop], function(acc, t) {
                         if (t.hasPrototype(TermTree)) {
                             push.apply(acc, t.destruct());
                             return acc;
@@ -355,39 +356,41 @@
                     }, []);
                     push.apply(acc, destArr);
                     return acc;
-                } else if (this[prop]) {
-                    acc.push(this[prop]);
+                } else if (self[prop]) {
+                    acc.push(self[prop]);
                     return acc;
                 } else {
                     return acc;
                 }
-            }, this), []);
+            }, []);
         },
 
         addDefCtx: function(def) {
-            _.each(_.range(this.properties.length), _.bind(function(i) {
-                var prop = this.properties[i];
-                if (Array.isArray(this[prop])) {
-                    this[prop] = _.map(this[prop], function (item) {
+            var self = this;
+            _.each(_.range(this.properties.length), function(i) {
+                var prop = self.properties[i];
+                if (Array.isArray(self[prop])) {
+                    self[prop] = _.map(self[prop], function (item) {
                         return item.addDefCtx(def);
                     });
-                } else if (this[prop]) {
-                    this[prop] = this[prop].addDefCtx(def);
+                } else if (self[prop]) {
+                    self[prop] = self[prop].addDefCtx(def);
                 }
-            }, this));
+            });
             return this;
         },
         rename: function(id, name) {
-            _.each(_.range(this.properties.length), _.bind(function(i) {
-                var prop = this.properties[i];
-                if (Array.isArray(this[prop])) {
-                    this[prop] = _.map(this[prop], function (item) {
+            var self = this;
+            _.each(_.range(this.properties.length), function(i) {
+                var prop = self.properties[i];
+                if (Array.isArray(self[prop])) {
+                    self[prop] = _.map(self[prop], function (item) {
                         return item.rename(id, name);
                     });
-                } else if (this[prop]) {
-                    this[prop] = this[prop].rename(id, name);
+                } else if (self[prop]) {
+                    self[prop] = self[prop].rename(id, name);
                 }
-            }, this));
+            });
             return this;
         }
     };
