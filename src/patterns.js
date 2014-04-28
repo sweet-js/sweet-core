@@ -404,9 +404,7 @@
                 rest = stx;
             }
         } else if (stx.length > 0 && patternObj.class === "expr") {
-            match = stx[0].term
-                ? cachedTermMatch(stx, stx[0].term)
-                : expander.get_expression(stx, expander.makeExpanderContext({env: env}));
+            match = expander.get_expression(stx, expander.makeExpanderContext({env: env}));
             if (match.result === null || (!match.result.hasPrototype(expander.Expr))) {
                 result = null;
                 rest = stx;
@@ -744,6 +742,7 @@
                                 break;
                             }
                         }
+                        assert(prevTerms, "No matching previous term found");
                     }
                 } else {
                     prevTerms = [];
