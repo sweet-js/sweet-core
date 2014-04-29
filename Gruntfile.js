@@ -1,8 +1,10 @@
 module.exports = function(grunt) {
     var path = require("path");
+    var exec = require("child_process").exec;
 
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-jshint');
+    grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-mocha-test');
 
     var moduleCache = {};
@@ -126,8 +128,44 @@ module.exports = function(grunt) {
                 loopfunc: true
             },
             all: ["build/lib/*.js"]
+        },
+        pandoc: {
+            options: {
+                pandocOptions: ["--to=html5",  
+                                "--standalone", 
+                                "--toc", 
+                                "--number-sections", 
+                                "--include-in-header=doc/main/style/main.css"]
+            },
+            files: {
+                expand: true,
+                flatten: true,
+                src: "doc/main/*.md",
+                dest: "doc/main/",
+                ext: ".html"
+            }
+        },
+        watch: {
+            docs: {
+                files: ["doc/**/*.md", "doc/**/*.css"],
+                tasks: ["pandoc"]
+            }
         }
     });
+
+    grunt.registerMultiTask("pandoc", function() {
+        var cb = this.async();
+        var options = this.options({});
+        var pandocOpts = options.pandocOptions.join(" ");
+        this.files.forEach(function(f) {
+
+            f.src.forEach(function(file) {
+                var args = ["-o " + f.dest].concat(pandocOpts.slice())
+                                          .concat(file);
+                exec("pandoc " + args.join(" "), cb);
+            })
+        })
+    })
 
 
     grunt.registerMultiTask("build", function() {
@@ -200,6 +238,7 @@ module.exports = function(grunt) {
                                    "jshint"]);
 
     grunt.registerTask("full", ["default", "mochaTest:es6"]);
+    grunt.registerTask("docs", ["pandoc"]);
 
     function readModule(mod) {
         var path = require.resolve(mod);

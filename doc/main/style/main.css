@@ -1,0 +1,97 @@
+<link href='http://fonts.googleapis.com/css?family=Lato:100' rel='stylesheet' type='text/css'>
+<link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="style/sweetprism.css">
+<script type='text/javascript'>
+window.onload = function() {
+	document.body.className = "language-javascript";
+	Prism.highlightAll();
+}
+</script>
+<link href='style/prism.css' rel='stylesheet' />
+<script src="style/prism.js"></script>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 600px;
+  margin: 0 auto;
+  position: relative;
+  top: 75px;
+}
+
+#logo {
+  float: left;
+  width: 275px;
+}
+
+#content {
+  float: left;
+  width: 650px;
+  padding-bottom:50px;
+}
+
+h1,h2,h3 {
+  font-family: Helvetica Neue;
+  font-weight: 100;
+  color: #222;
+  position: relative;
+  text-transform: uppercase;
+  color: #444;
+  font-family: 'Lato', Helvetica Neue, Helvetica, Arial, sans-serif;
+  font-weight: 100;
+  border-bottom: solid 1px #eee;
+}
+h1 {
+  font-size: 200%;
+}
+h2 {
+  font-size: 150%;
+}
+h3 {
+  font-size: 120%;
+}
+
+p, li {
+  font-family: 'Source Sans Pro', sans-serif;
+  /*font-weight: 400;*/
+  font-size: large;
+}
+
+
+p code {
+  font-size: 14px;
+}
+li code {
+  font-size: 14px;
+}
+
+a {
+	text-decoration: none;
+}
+a:hover, a:focus {
+    text-decoration: underline;
+}
+
+.editor { display : none }
+
+/* to display output of macro expansions */
+.console {
+  -moz-border-radius: 6px;
+  -webkit-border-radius: 6px;
+  border-radius: 6px;
+  padding: 1em;
+  margin-top:1em;
+  white-space: pre;
+  background: #f5f2f0;
+  resize: vertical;
+  max-height: 700px;
+  overflow: auto;
+  font-family: Consolas, Monaco, "Andale Mono", monospace;
+  text-shadow:0 1px white;
+  display:none;
+}
+
+</style>
