@@ -887,26 +887,7 @@ describe("macro expander", function() {
         expect(b 100).to.be(142);
     });
 
-    it("should eagerly expand once using invokeOnce", function() {
-        macro a {
-            rule { $num } => {
-                3
-            }
-        }
-        macro b {
-            rule { $num } => {
-                a 2
-            }
-        }
-        macro c {
-            case { _ $num:invokeOnce(b) } => {
-                return [makeValue(#{ $num }.length === 2, #{ here })];
-            }
-        }
-        expect(c 1).to.be(true);
-    });
-
-    it("should eagerly expand recursively using invoke", function() {
+    it("should eagerly expand once using invoke", function() {
         macro a {
             rule { $num } => {
                 3
@@ -919,6 +900,25 @@ describe("macro expander", function() {
         }
         macro c {
             case { _ $num:invoke(b) } => {
+                return [makeValue(#{ $num }.length === 2, #{ here })];
+            }
+        }
+        expect(c 1).to.be(true);
+    });
+
+    it("should eagerly expand recursively using invokeRec", function() {
+        macro a {
+            rule { $num } => {
+                3
+            }
+        }
+        macro b {
+            rule { $num } => {
+                a 2
+            }
+        }
+        macro c {
+            case { _ $num:invokeRec(b) } => {
                 return [makeValue(#{ $num }.length === 1, #{ here })];
             }
         }

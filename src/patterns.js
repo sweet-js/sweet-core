@@ -209,7 +209,7 @@
     }
 
     function isPrimaryClass(name) {
-        return ['expr', 'lit', 'ident', 'token', 'invoke', 'invokeOnce'].indexOf(name) > -1;
+        return ['expr', 'lit', 'ident', 'token', 'invoke', 'invokeRec'].indexOf(name) > -1;
     }
 
     function loadPattern(patterns, reverse) {
@@ -255,7 +255,7 @@
                     i += 2;
                     if (isPrimaryClass(tok3.token.value)) {
                         patt.class = tok3.token.value;
-                        if (patt.class === "invokeOnce" || patt.class === "invoke") {
+                        if (patt.class === "invokeRec" || patt.class === "invoke") {
                             i += 1;
                             if (tok4.token.value === "()" && tok4.token.inner.length) {
                                 patt.macroName = tok4.expose().token.inner;
@@ -414,9 +414,9 @@
                 rest = match.rest;
             }
         } else if (stx.length > 0 && (patternObj.class === "invoke" ||
-                                      patternObj.class === "invokeOnce")) {
+                                      patternObj.class === "invokeRec")) {
             match = expandWithMacro(patternObj.macroName, stx, env,
-                                    patternObj.class === "invoke");
+                                    patternObj.class === "invokeRec");
             result = match.result;
             rest = match.result ? match.rest : stx;
             patternEnv = match.patternEnv;
@@ -987,7 +987,7 @@
                         i += 2;
 
                         if (tok3.token.value === "invoke" ||
-                            tok3.token.value === "invokeOnce" && tok4) {
+                            tok3.token.value === "invokeRec" && tok4) {
                             pat.push(tok4);
                             i += 1;
                         }
