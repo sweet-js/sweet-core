@@ -149,6 +149,10 @@ module.exports = function(grunt) {
             docs: {
                 files: ["doc/**/*.md", "doc/**/*.css"],
                 tasks: ["pandoc"]
+            },
+            sweetjs: {
+                files: ["src/*.js", "test/**/*.js", "macros/*"],
+                tasks: ["default"]
             }
         }
     });
