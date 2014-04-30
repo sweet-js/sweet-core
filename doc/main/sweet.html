@@ -473,6 +473,7 @@ macro colors_options {
 colors_options (red, green, blue, blue)
 // expands to:
 // [&quot;#FF0000&quot;, &quot;#00FF00&quot;, &quot;#0000FF&quot;, &quot;#0000FF&quot;]</code></pre>
+<p>Invoke will only expand the parameterized macro once; if the macro expands to other macros they will not be expanded before being bound to the pattern variable. If you need to fully expand the output of the parameterized macro use <code>:invokeRec</code>.</p>
 <h2 id="implicit-invoke"><span class="header-section-number">5.2</span> Implicit Invoke</h2>
 <p>Custom pattern classes act as an implicit invoke. This means that <code>$opt:invoke(color)</code> is equivalent to <code>$opt:color</code>:</p>
 <pre class="js"><code>macro color {

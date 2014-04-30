@@ -493,6 +493,10 @@ colors_options (red, green, blue, blue)
 // ["#FF0000", "#00FF00", "#0000FF", "#0000FF"]
 ```
 
+Invoke will only expand the parameterized macro once; if the macro expands to other macros they will not be expanded before being bound to the pattern variable. If you need to fully expand the output of the parameterized macro use `:invokeRec`. 
+
+Note that this is a change from the default behavior of version 0.5.0 which full expanded macros in `:invoke` and provided `:invokeOnce` for the current default behavior.
+
 ## Implicit Invoke
 
 Custom pattern classes act as an implicit invoke. This means that `$opt:invoke(color)` is equivalent to `$opt:color`:
