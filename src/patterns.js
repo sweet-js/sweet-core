@@ -396,7 +396,7 @@
             match = stx[0].term
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.enforest(stx, expander.makeExpanderContext({env: env}));
-            if (match.result && match.result.hasPrototype(expander.VariableStatement)) {
+            if (match.result && match.result.isVariableStatement) {
                 result = match.destructed || match.result.destruct(false);
                 rest = match.rest;
             } else {
@@ -405,7 +405,7 @@
             }
         } else if (stx.length > 0 && patternObj.class === "expr") {
             match = expander.get_expression(stx, expander.makeExpanderContext({env: env}));
-            if (match.result === null || (!match.result.hasPrototype(expander.Expr))) {
+            if (match.result === null || !match.result.isExpr) {
                 result = null;
                 rest = stx;
             } else {
