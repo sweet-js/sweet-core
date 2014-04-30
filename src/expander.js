@@ -124,92 +124,91 @@
     }
 
     function resolve(stx) {
-        var cache = {};
-
-        // This call memoizes intermediate results in the recursive invocation.
-        // The scope of the memo cache is the resolve() call, so that multiple
-        // resolve() calls don't walk all over each other, and memory used for
-        // the memoization can be garbage collected.
-        //
-        // The memoization addresses issue #232.
-        //
-        // It looks like the memoization uses only the context and doesn't look
-        // at originalName, stop_spine and stop_branch arguments. This is valid
-        // because whenever in every recursive call operates on a "deeper" or
-        // else a newly created context.  Therefore the collection of
-        // [originalName, stop_spine, stop_branch] can all be associated with a
-        // unique context. This argument is easier to see in a recursive
-        // rewrite of the resolveCtx function than with the while loop
-        // optimization - https://gist.github.com/srikumarks/9847260 - where the
-        // recursive steps always operate on a different context.
-        //
-        // This might make it seem that the resolution results can be stored on
-        // the context object itself, but that would not work in general
-        // because multiple resolve() calls will walk over each other's cache
-        // results, which fails tests. So the memoization uses only a context's
-        // unique instance numbers as the memoization key and is local to each
-        // resolve() call.
-        //
-        // With this memoization, the time complexity of the resolveCtx call is
-        // no longer exponential for the cases in issue #232.
-
-        function resolveCtx(originalName, ctx, stop_spine, stop_branch) {
-            if (!ctx) { return originalName; }
-            var key = ctx.instNum;
-            return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch));
-        }
-
-        // (Syntax) -> String
-        function resolveCtxFull(originalName, ctx, stop_spine, stop_branch) {
-            while (true) {
-                if (!ctx) { return originalName; }
-
-                if (ctx.constructor === Mark) {
-                    ctx = ctx.context;
-                    continue;
-                }
-                if (ctx.constructor === Def) {
-                    if (stop_spine.indexOf(ctx.defctx) !== -1) {
-                        ctx = ctx.context;
-                        continue;
-                    } else {
-                        stop_branch = unionEl(stop_branch, ctx.defctx);
-                        ctx = renames(ctx.defctx, ctx.context, originalName);
-                        continue;
-                    }
-                }
-                if (ctx.constructor === Rename) {
-                    if (originalName === ctx.id.token.value) {
-                        var idName  = resolveCtx(ctx.id.token.value,
-                                ctx.id.context,
-                                stop_branch,
-                                stop_branch);
-                        var subName = resolveCtx(originalName,
-                                ctx.context,
-                                unionEl(stop_spine, ctx.def),
-                                stop_branch);
-                        if (idName === subName) {
-                            var idMarks  = marksof(ctx.id.context,
-                                    originalName + "$" + ctx.name,
-                                    originalName);
-                            var subMarks = marksof(ctx.context,
-                                    originalName + "$" + ctx.name,
-                                    originalName);
-                            if (arraysEqual(idMarks, subMarks)) {
-                                return originalName + "$" + ctx.name;
-                            }
-                        }
-                    }
-                    ctx = ctx.context;
-                    continue;
-                }
-                return originalName;
-            }
-        }
-
-        return resolveCtx(stx.token.value, stx.context, [], []);
+        return resolveCtx(stx.token.value, stx.context, [], [], {});
     }
 
+    // This call memoizes intermediate results in the recursive invocation.
+    // The scope of the memo cache is the resolve() call, so that multiple
+    // resolve() calls don't walk all over each other, and memory used for
+    // the memoization can be garbage collected.
+    //
+    // The memoization addresses issue #232.
+    //
+    // It looks like the memoization uses only the context and doesn't look
+    // at originalName, stop_spine and stop_branch arguments. This is valid
+    // because whenever in every recursive call operates on a "deeper" or
+    // else a newly created context.  Therefore the collection of
+    // [originalName, stop_spine, stop_branch] can all be associated with a
+    // unique context. This argument is easier to see in a recursive
+    // rewrite of the resolveCtx function than with the while loop
+    // optimization - https://gist.github.com/srikumarks/9847260 - where the
+    // recursive steps always operate on a different context.
+    //
+    // This might make it seem that the resolution results can be stored on
+    // the context object itself, but that would not work in general
+    // because multiple resolve() calls will walk over each other's cache
+    // results, which fails tests. So the memoization uses only a context's
+    // unique instance numbers as the memoization key and is local to each
+    // resolve() call.
+    //
+    // With this memoization, the time complexity of the resolveCtx call is
+    // no longer exponential for the cases in issue #232.
+
+    function resolveCtx(originalName, ctx, stop_spine, stop_branch, cache) {
+        if (!ctx) { return originalName; }
+        var key = ctx.instNum;
+        return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache));
+    }
+
+    // (Syntax) -> String
+    function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache) {
+        while (true) {
+            if (!ctx) { return originalName; }
+
+            if (ctx.constructor === Mark) {
+                ctx = ctx.context;
+                continue;
+            }
+            if (ctx.constructor === Def) {
+                if (stop_spine.indexOf(ctx.defctx) !== -1) {
+                    ctx = ctx.context;
+                    continue;
+                } else {
+                    stop_branch = unionEl(stop_branch, ctx.defctx);
+                    ctx = renames(ctx.defctx, ctx.context, originalName);
+                    continue;
+                }
+            }
+            if (ctx.constructor === Rename) {
+                if (originalName === ctx.id.token.value) {
+                    var idName  = resolveCtx(ctx.id.token.value,
+                            ctx.id.context,
+                            stop_branch,
+                            stop_branch,
+                            cache);
+                    var subName = resolveCtx(originalName,
+                            ctx.context,
+                            unionEl(stop_spine, ctx.def),
+                            stop_branch,
+                            cache);
+                    if (idName === subName) {
+                        var idMarks  = marksof(ctx.id.context,
+                                originalName + "$" + ctx.name,
+                                originalName);
+                        var subMarks = marksof(ctx.context,
+                                originalName + "$" + ctx.name,
+                                originalName);
+                        if (arraysEqual(idMarks, subMarks)) {
+                            return originalName + "$" + ctx.name;
+                        }
+                    }
+                }
+                ctx = ctx.context;
+                continue;
+            }
+            return originalName;
+        }
+    }
 
     function arraysEqual(a, b) {
         if(a.length !== b.length) {
@@ -284,6 +283,18 @@
         child.prototype = new P();
         child.prototype.constructor = child;
         _.extend(child.prototype, methods);
+    }
+
+    macro cloned {
+        rule { $dest:ident <- $source:expr ;... } => {
+            var src = $source;
+            var keys = Object.keys(src);
+            var $dest = {};
+            for (var i = 0, len = keys.length, key; i < len; i++) {
+                key = keys[i];
+                $dest[key] = src[key];
+            }
+        }
     }
 
     macro to_str {
@@ -385,7 +396,8 @@
                     push.apply(acc, self[prop].destruct());
                     return acc;
                 } else if (self[prop] && self[prop].token && self[prop].token.inner) {
-                    var clone = syntaxFromToken(_.clone(self[prop].token), self[prop]);
+                    cloned newtok <- self[prop].token;
+                    var clone = syntaxFromToken(newtok, self[prop]);
                     clone.token.inner = _.reduce(clone.token.inner, function(acc, t) {
                         if (t && t.isTermTree) {
                             push.apply(acc, t.destruct());
@@ -418,8 +430,7 @@
 
         addDefCtx(def) {
             var self = this;
-            _.each(_.range(this.constructor.properties.length), function(i) {
-                var prop = self.constructor.properties[i];
+            _.each(this.constructor.properties, function(prop) {
                 if (Array.isArray(self[prop])) {
                     self[prop] = _.map(self[prop], function (item) {
                         return item.addDefCtx(def);
@@ -433,8 +444,7 @@
 
         rename(id, name) {
             var self = this;
-            _.each(_.range(this.constructor.properties.length), function(i) {
-                var prop = self.constructor.properties[i];
+            _.each(this.constructor.properties, function(prop) {
                 if (Array.isArray(self[prop])) {
                     self[prop] = _.map(self[prop], function (item) {
                         return item.rename(id, name);
@@ -511,7 +521,8 @@
             assert(this.fun.isTermTree,
                 "expecting a term tree in destruct of call");
             var commas = this.commas.slice();
-            var delim = syntaxFromToken(_.clone(this.delim.token), this.delim);
+            cloned newtok <- this.delim.token;
+            var delim = syntaxFromToken(newtok, this.delim);
             delim.token.inner = _.reduce(this.args, function(acc, term) {
                 assert(term && term.isTermTree,
                        "expecting term trees in destruct of Call");
@@ -794,7 +805,7 @@
                                         ? stx.token.lineStart
                                         : stx.token.sm_lineStart;
             stx.token.sm_range = typeof stx.token.sm_range == 'undefined'
-                                    ? _.clone(stx.token.range)
+                                    ? stx.token.range.slice()
                                     : stx.token.sm_range;
 
             // move the line info to line up with the macro name
@@ -1814,7 +1825,8 @@
 
     function tagWithTerm(term, stx) {
         return stx.map(function(s) {
-            s = syntaxFromToken(_.clone(s.token), s);
+            cloned newtok <- s.token;
+            s = syntaxFromToken(newtok, s);
             s.term = term;
             return s;
         });
