@@ -142,6 +142,12 @@ macro m {
 m (x = 10, y = 2)
 ```
 
+### Literal patterns
+
+The syntax `$[]` will match what is inside the brackets literally. 
+For example, if you need to match `...` in a pattern (rather than have `...` mean repetition) you can escape it with `$[...]`.
+
+
 ### Pattern Classes
 
 A pattern name can be restricted to a particular parse class by using
@@ -159,65 +165,103 @@ m (2 + 5 * 10)
 2 + 5 * 10
 ```
 
-The parse classes are:
+The pattern classes are:
 
 - `:ident` -- matches an identifier (eg. `foo`)
 - `:lit` -- matches a literal (eg. `100` or `"a string"`)
 - `:expr` -- matches an expression (eg. `foo("a string") + 100`)
 
+### Custom Pattern Classes (Experimental)
 
-### Literal patterns
+Note that the syntax of custom pattern classes is currently experimental and subject to change.
 
-The syntax `$[]` will match what is inside the brackets literally. 
-For example, if you need to match `...` in a pattern (rather than have `...` mean repetition) you can escape it with `$[...]`.
+You can define your own custom pattern classes with `macroclass`.
+
+```js
+// define the cond_clause pattern class
+macroclass cond_clause {
+    pattern { $check:expr => $body:expr }
+}
+
+macro cond {
+  rule { $first:cond_clause $rest:cond_clause ... } => {
+    // sub-pattern variables in the custom class are 
+    // referenced by concatenation
+    if ($first$check) {
+      $first$body
+    } $(else if ($rest$check) {
+      $rest$body
+    }) ...
+  }
+}
+
+cond
+  x < 3  => console.log("less than 3")
+  x == 3 => console.log("3")
+  x > 3  => console.log("greater than 3")
+// expands to:
+// if (x < 3) {
+//     console.log('less than 3');
+// } else if (x == 3) {
+//     console.log('3');
+// } else if (x > 3) {
+//     console.log('greater than 3');
+// }
+```
+
+You can also define multiple patterns and bind missing sub-pattern variables with `where`:
+
+```js
+macroclass alias_pair {
+    pattern { $from:ident as $to:ident }
+    pattern { $from:ident } where ($to = #{ $from })
+}
+ 
+macro import {
+    rule { { $import:alias_pair (,) ... } from $mod:lit ;... } => {
+        var __module = require($mod);
+        $(var $import$to = __module.$import$from;) ...
+    }
+    rule { $default:ident from $mod:lit ;... } => {
+        var $default = require($mod).default;
+    }
+}
+ 
+import { a, b as c, d } from 'foo'
+// expands to:
+// var __module = require('foo');
+// var a = __module.a;
+// var c = __module.b;
+// var d = __module.d;
+```
 
 # Hygiene
 
-To make things slightly more interesting, let's say we want to write a
-macro that swaps the values stored in two variables.
+The most important property of sweet.js is hygiene. Hygiene prevents variables names inside of macros from clashing with variables in the surrounding code. It's what gives macros the power to actually be syntactic abstractions by hiding implementation details and allowing you to use a hygienic macro *anywhere* in your code.
+
+Hygiene protects against two kinds of naming collisions: binding collisions and reference collisions.
+
+## Hygiene Part 1 (Binding)
+
+The part of hygiene most people intuitively grok is keeping track of the variable *bindings* that a macro introduces. For example, the swap macro creates a `tmp` variable that should only be bound inside of the macro:
 
 ```js
 macro swap {
-  rule { {$a <=> $b} } => {
+  rule { ($a, $b) } => {
     var tmp = $a;
     $a = $b;
     $b = tmp;
   }
 }
 
-var a = 10;
-var b = 20;
-
-swap {a <=> b}
-```
-
-After running this through sweet.js we get the expanded code:
-
-```js
-var a$1 = 10;
-var b$2 = 20;
-
-var tmp$3 = a$1;
-a$1 = b$2;
-b$2 = tmp$3;
-```
-
-As you can see, the variables names have been changed with a `$n`
-postfix. This is hygiene at work. One of the critical features of
-sweet.js is protecting macros from unintentionally binding or
-capturing variables they weren't supposed to. This is called hygiene
-and to enforce hygiene sweet.js must carefully rename all variables.
-
-If sweet.js did not protect hygiene a naive expansion would do the
-wrong thing:
-
-```js
 var tmp = 10;
 var b = 20;
+swap (tmp, b)
+```
 
-swap {tmp <=> b}
+Without hygiene the two `tmp` variables would clash:
 
-// --> naive expansion
+```js
 var tmp = 10;
 var b = 20;
 
@@ -226,26 +270,57 @@ tmp = b;
 b = tmp;
 ```
 
-But since sweet.js protects hygiene, all variable names are correctly
-renamed:
+Hygiene keeps the two `tmp` bindings distinct by renaming them both:
 
 ```js
-var tmp = 10;
+var tmp$1 = 10;
 var b = 20;
 
-swap {tmp <=> b}
+var tmp$2 = tmp$1;
+tmp$1 = b;
+b = tmp$2;
+```
+    
 
-// --> hygienic expansion
-var tmp$1 = 10;
-var b$2 = 20;
+## Hygiene Part 2 (Reference)
 
-var tmp$3 = tmp$1;
-tmp$3 = b$2;
-b$2 = tmp$1;
+Hygiene also handles variable *references*. The body of a macro can contain references to bindings declared outside of the macro and those references must be consistent no matter the context in which the macro is invoked. 
+
+Some code to clarify. Let's say you have a macro that uses a random number function:
+
+```js
+var random = function(seed) { /* ... */ }
+let m = macro {
+    rule {()} => {
+        var n = random(42);
+        // ...
+    }
+}
 ```
 
-In the cases where you want to intentionally break hygiene you can use
-the procedural case macros described in the next section.
+This macro needs to refer to `random` in any context that it gets invoked. But its context could have a different binding to `random`!
+
+```js
+function foo() {
+    var random = 42;
+    m ()
+}
+```
+
+Hygiene needs to keep the two `random` bindings different. So sweet.js will expand this into something like:
+
+```js
+var random$1 = function(seed) { /* ... */ }
+function foo() {
+    var random$2 = 42;
+    var n = random$1(42);
+    // ...
+}
+```
+
+Note that there is no way for hygiene to do this if it only renamed identifiers inside of macros since both `random` bindings were declared outside of the macro. Hygiene is necessarily a whole program transformation.
+
+By default sweet.js will rename every variable to something like `name$102`. This gives correct but somewhat messy generated code. Usually this is not a problem since sweet.js provides source maps (with the `--sourcemap` flag) so you rarely need to inspect the generated source. If you would like to have sweet.js generate cleaner code you can use the `--readable-names` flag which will only rename variables when it is absolutely necessary. This flag is not yet turned on by default since it only supports ES5 code at the moment.
 
 # Case Macros
 
@@ -336,6 +411,8 @@ Sweet.js provides the following functions to create syntax objects:
 If you want strip a syntax object of its lexical context and get
 directly at the token you can use `unwrapSyntax(stx)`. 
 
+Case macros also provide `throwSyntaxError(name, message, stx)` when you need to throw an error inside of a case macro. `name` is a string that lets you name the error, `message` is a string to describe what went wrong, and `stx` is a syntax object or array of syntax objects that is used to print out the line number and surrounding tokens in the error message.
+
 When using these functions to create new syntax objects it is
 convenient to refer to them in `#{}` templates. To do this sweet.js
 provides the `letstx` macro that binds syntax objects to pattern
@@ -352,6 +429,125 @@ macro m {
 m 1
 // --> expands to
 1 + 42 - 2
+```
+
+# Extending Pattern Classes
+
+Consider the following macro that matches against color options:
+
+```js
+macro color_options {
+  rule { (red) } => { ["#FF0000"] }
+  rule { (green) } => { ["#00FF00"] }
+  rule { (blue) } => { ["#0000FF"] }
+}
+r = color_options (red)
+g = color_options (green)
+// expands to:
+// r = ["#FF0000"]
+// g = ["#00FF00"]
+```
+
+While this macro seems to work, attempting to generalize it quickly leads to a mess:
+
+```js
+macro color_options {
+    rule { (red, red) } => {
+        ["#FF0000", "#FF0000"]
+    }
+    rule { (red, green) } => {
+        ["#FF0000", "#00FF00"]
+    }
+    rule { (red, blue) } => {
+        ["#FF0000", "#0000FF"]
+    }
+    // ... etc.
+}
+r = colors_options (red, green)
+g = colors_options (green, blue)
+// expands to:
+// r = ["#FF0000", "#00FF00"]
+// g = ["#00FF00", "#0000FF"]
+```
+
+
+While it is possible to solve this problem through the use of case macros, the declarative intent is quickly lost in a mess of token manipulation code.
+
+## The Invoke Pattern Class
+
+Sweet.js provides a solution to this problem with the `:invoke` pattern class. This pattern class takes as a parameter a macro name which is inserted into the token tree stream before matching. If the inserted macro successfully matches its arguments, the result of its expansion is bound to the pattern variable. This makes declarative options simple to write:
+
+```js
+macro color {
+    rule { red } => { "#FF0000" }
+    rule { green } => { "#00FF00" }
+    rule { blue } => { "#0000FF" }
+}
+macro colors_options {
+    rule { ($opt:invoke(color) (,) ...) } => {
+        [$opt (,) ...]
+    }
+}
+colors_options (red, green, blue, blue)
+// expands to:
+// ["#FF0000", "#00FF00", "#0000FF", "#0000FF"]
+```
+
+## Implicit Invoke
+
+Custom pattern classes act as an implicit invoke. This means that `$opt:invoke(color)` is equivalent to `$opt:color`:
+
+```js
+macro color {
+    rule { red } => { "#FF0000" }
+    rule { green } => { "#00FF00" }
+    rule { blue } => { "#0000FF" }
+}
+macro colors_options {
+    rule { ($opt:color (,) ...) } => {
+        [$opt (,) ...]
+    }
+}
+colors_options (red, green, blue, blue)
+// expands to:
+// ["#FF0000", "#00FF00", "#0000FF", "#0000FF"]
+```
+
+Custom pattern classes only support single-token identifiers. If you need to call a multi-token name or a punctuator name, you should explicitly call `$foo:invoke(...)` with the name.
+
+## Identity Rules
+
+Sometimes you want your custom operator to just return exactly what it matched rather than transform it into something else. Identity rules let you do just that. If you leave off the body of a rule, it will just return exactly the syntax that the rule matched:
+
+```js
+macro func {
+  rule { function ($args (,) ...) { $body ... } }
+  rule { function $name:ident ($args (,) ...) { $body ... } }
+}
+
+macro checkFunc {
+  rule { $f:func } => { $f }
+}
+
+x = checkFunc function() {}
+// expands to:
+// x = function() {}
+```
+
+## Errors for Invoke
+
+The function `throwSyntaxCaseError` is similar to `throwSyntaxError`, but should be used specifically when you are using `:invoke`. Internally, sweet.js throws a SyntaxCaseError when a macro fails to match so `throwSyntaxCaseError` just lets you do it manually. Here's how you might use it in a macro that checks for keyword:
+
+```js
+macro keyword {
+  case { _ $kw } => {
+    var kw = #{ $kw };
+    if (kw[0].token.type === parser.Token.Keyword) {
+      return kw;
+    }
+    throwSyntaxCaseError('Not a keyword');
+  }
+}
 ```
 
 
@@ -461,6 +657,63 @@ you a nasty parse error.
 
 # Custom Operators
 
+Custom operators let you define your own operators or override the builtin operators. They are similar to infix macros except rather than matching arbitrary syntax before and after the identifier name, both the left and right operands must be valid JavaScript expressions. You can think of them as infix macros with a pattern of `{ $left:expr | $right:expr }`. This limitation however means that you can define precedence and associativity for your custom operator. 
+
+There are two definition forms. One for binary operators and one for unary operators:
+
+```js
+// binary operators
+operator <name> <precedence> <associativity> 
+    { <left operand>, <right operand> } => #{ <template> }
+
+// unary operators
+operator <name> <precedence> 
+    { <operand> } => #{ <template> }
+```
+
+- `<name>` can be any valid macro name (ie. identifiers and punctuation but not delimiters, multi token names must be wrapped in parentheses)
+- `<precedence>` is a number (higher numbers bind more tightly)
+- `<associativity>` is either `left` or `right`
+- `<left operand>`/`<right operand>`/`<operand>` is a pattern variable (eg `$left`) that will be bound in the template
+- `<template>` is what the operator will expand into
+
+For example, the following defines `^^` to be the power operator:
+
+```js
+operator (^^) 14 right 
+    { $base, $exp } => #{ Math.pow($base, $exp) }
+
+y + x ^^ 10 ^^ 100 - z
+// expands to:
+// y + Math.pow(x, Math.pow(10, 100)) - z;
+```
+
+The precedence of `^^` (14) is higher than the precedence of `+` and `-` (12, see the chart in the next section) so `^^` binds more tightly. Since we defined `^^` to be right associative, `x ^^ 10 ^^ 100` is equivalent to `x ^^ (10 ^^ 100)`. Left associative would have meant `(x ^^ 10) ^^ 100`.
+
+## Examples
+
+Custom operators and infix macros complement each other nicely. 
+
+```js
+macro (=>) {
+    rule infix { $param:ident | $body:expr  } => {
+        function ($param) { return $body }
+    }
+}
+operator (|>) 1 left { $l, $r } => #{ $r($l) }
+
+var res = 10 |> x => x * 2
+             |> y => y - 3
+// expands to:
+// var res = function (x) {
+//         return function (y) {
+//             return y - 3;
+//         }(x * 2);
+//     }(10);
+```
+
+Or let's say we want to chain promises:
+
 ```js
 macro (=>) {
     rule infix { ($params ...) | { $body ... } } => {
@@ -469,16 +722,52 @@ macro (=>) {
 }
 operator (>>=) 12 left { $l, $r } => #{$l.then($r) }
 
-get('story.json')  >>= (response) => {
-  return JSON.parse(response);
-} >>= (response) => {
-  console.log("Yey JSON!", response);
-} >>= JSON.parse
+getPromise('test.json')  >>= JSON.parse >>= (response) => {
+  console.log("JSON Response!", response);
+} 
+// expands to:
+// getPromise('test.json').then(JSON.parse).then(function (response) {
+//     console.log('JSON Response!', response);
+// });
 ```
+
+Custom operators also let you change the behavior of the builtin operators:
+
+```js
+operator + 12 left { $l, $r } => #{ add($l, $r) }
+function add(x, y) {
+    // custom addition
+}
+
+100 + x - y * 5 + 30
+// expands to
+// function add(x, y) {
+//     // custom addition
+// }    
+// add(add(100, x) - y * 5, 30);
+```
+
+You can even fix `==`!
+
+```js
+operator == 9 left { $l, $r } => #{ $l === $r }
+
+if ("42" == 42) {
+    // never runs! 
+}
+// expands to:
+// if ('42' === 42) {
+//    // never runs! 
+// }    
+```
+
+Keep in mind that redefining the builtin operators needs to be done with care. While it's tempting to fix some of the *wat* implicit conversions of `==`/`+`/`-` and company, this could lead to hard to understand code. It should be used sparingly if at all. With great power...
 
 ## Operator Precedence
 
-Unary Operators:
+The following charts note the precedence and associativity of the builtin operators. A higher precedence number means the operator binds more tightly.
+
+### Unary Operators
 
 | Operator   | Precedence |
 | ---------- | ---------- |
@@ -494,7 +783,7 @@ Unary Operators:
 |`delete`    | 14        
 |`yield`     | 2         
 
-Binary Operators:
+### Binary Operators
 
 | Operator   | Precedence | Associativity |
 | ---------- | ---------- | ------------- |
@@ -525,7 +814,7 @@ Binary Operators:
 
 # Modules
 
-## Using modules
+## Using Modules
 
 At the moment sweet.js supports a primitive form of module support with the `--module` flag.
 
@@ -556,7 +845,7 @@ The `--module` flag uses the node path to look up the module file so you can pub
 
 The biggest limitation with the current approach is that you can't arbitrarily interleave importing compile-time values (macros) and run-time values (functions). This will eventually be handled with support for "proper" modules (issue #43).
 
-## Node loader
+## Node Loader
 
 If you'd like to skip using the `sjs` binary to compile your sweet.js code, you can use the node loader. This allows you to `require` sweet.js files that have the `.sjs` extension:
 
@@ -661,4 +950,29 @@ will expand to
 //hello, world
 42;
 ```
+
+## How do I debug macros?
+
+### Stepping Through Expansion
+
+You can use `sjs --num-expands <number>` to walk through macro expansion one step at a time. This is particularly helpful when writing recursive macros.
+
+The [editor](http://sweetjs.org/browser/editor.html) also supports stepping.
+
+### Understanding Case Macros
+
+If you're trying to understand how a case macro is working two useful techniques are logging syntax objects to see what they actually contain and inserting `debugger` statements to pause the debugger during expansion.
+
+```js
+macro m {
+    case { _ $x } => {
+        console.log(#{$x})
+        debugger;
+        return #{42}
+    }
+}
+m 100
+```
+
+
 
