@@ -28,6 +28,14 @@ body {
   width: 275px;
 }
 
+#nav {
+  margin-top: 30px;
+  float: right;
+}
+#nav ul {
+  list-style-type: none;
+}
+
 #content {
   float: left;
   width: 650px;
@@ -123,6 +131,13 @@ a.mozilla {
 
   <div id="body">
     <div id="logo"><img src="sweetjs.png"></div>
+    <div id="nav">
+    <ul>
+      <li> <a href="doc/main/sweet.html">documentation</a> </li>
+      <li> <a href="browser/editor.html">online editor</a> </li>
+      <li> <a href="https://github.com/mozilla/sweet.js">github project</a></li>
+    </ul>
+    </div>
     <div id="content">
 
       <h1 id='sweeten_your_javascript'>Sweeten Your JavaScript</h1>
@@ -173,12 +188,16 @@ bob.say(&quot;Macros are sweet!&quot;);</code></pre>
 
 <pre><code>$ npm install -g sweet.js</code></pre>
 
-<p>Use the <code>sjs</code> binary to compile your sweet.js code:</p>
+<p>Use the <code>sjs</code> binary to compile your sweet code:</p>
 
 <pre><code>$ sjs -o output.js my_sweet_code.js</code></pre>
 
+<h2>Next Steps</h2>
+
 <ul>
-<li>Write macros in the online <a href='browser/editor.html'>editor</a></li>
+<li>Read the <a href="doc/main/sweet.html">documentation</a>.</li>
+
+<li>Write macros in the online <a href='browser/editor.html'>editor</a>.</li>
 
 <li>Report issues on <a href='https://github.com/mozilla/sweet.js/issues'>github</a>.</li>
 
@@ -186,375 +205,8 @@ bob.say(&quot;Macros are sweet!&quot;);</code></pre>
 
 <li>Join the <a href='https://groups.google.com/forum/#!forum/sweetjs'>mailing list</a>.</li>
 
-<li>Ping <a href='https://twitter.com/disnet'>@disnet</a> on Twitter.</li>
 </ul>
 
-<h1 id='getting_started'>Getting Started</h1>
-
-<p>You can think of macros as functions that work on syntax. Much like a normal function you write a macro <em>definition</em> and then later <em>invoke</em> the macro with a syntax argument to produce new syntax. Running sweet.js code through the compiler will <em>expand</em> all macros and produce pure JavaScript that can be run in any JS environment.</p>
-
-<p>Sweet.js provides two ways to define a macro: the simpler pattern-based <em>rule</em> macros and the more powerful procedural <em>case</em> macros (if you are familiar with Scheme or Racket these correspond to <code>syntax-rules</code> and <code>syntax-case</code>).</p>
-
-<h2 id='patternbased_macros__macros_rule'>Pattern-Based Macros &#8211; Macros Rule!</h2>
-
-<p>Rule macros work by matching a syntax <em>pattern</em> and generating new syntax based on a <em>template</em>.</p>
-
-<p>To define a macro sweet.js provides a new <code>macro</code> keyword that looks something like this:</p>
-
-<pre><code>macro &lt;name&gt; {
-  rule { &lt;pattern&gt; } =&gt; { &lt;template&gt; }
-}</code></pre>
-
-<p>For example, here&#8217;s a really simple identity macro that just expands to its syntax argument:</p>
-
-<pre><code>macro id {
-  rule {
-    // after the macro name, match:
-    // (1) a open paren 
-    // (2) a single token and bind it to `$x`
-    // (3) a close paren
-    ($x)
-  } =&gt; {
-    // just return the token that is bound to `$x`
-    $x
-  }
-}</code></pre>
-
-<p>We can then invoke <code>id</code> with:</p>
-
-<pre><code>id (42)
-// --&gt; expands to
-42</code></pre>
-
-<p>A pattern that begins with <code>$</code> matches any token and binds it to that name in the template while everything else matches literally.</p>
-
-<p>Note that a single token includes matched delimiters not just numbers and identifiers. For example, an array with all of its elements counts as one token:</p>
-
-<pre><code>id ([1, 2, 3])
-// --&gt; expands to
-[1, 2, 3]</code></pre>
-
-<h3 id='hygiene__keeping_it_clean'>Hygiene &#8211; Keeping it clean</h3>
-
-<p>To make things slightly more interesting, let&#8217;s say we want to write a macro that swaps the values stored in two variables.</p>
-
-<pre><code>macro swap {
-  rule { {$a &lt;=&gt; $b} } =&gt; {
-    var tmp = $a;
-    $a = $b;
-    $b = tmp;
-  }
-}
-
-var a = 10;
-var b = 20;
-
-swap {a &lt;=&gt; b}</code></pre>
-
-<p>After running this through sweet.js we get the expanded code:</p>
-
-<pre><code>var a$1 = 10;
-var b$2 = 20;
-
-var tmp$3 = a$1;
-a$1 = b$2;
-b$2 = tmp$3;</code></pre>
-
-<p>As you can see, the variables names have been changed with a <code>$n</code> postfix. This is hygiene at work. One of the critical features of sweet.js is protecting macros from unintentionally binding or capturing variables they weren&#8217;t supposed to. This is called hygiene and to enforce hygiene sweet.js must carefully rename all variables.</p>
-
-<p>If sweet.js did not protect hygiene a naive expansion would do the wrong thing:</p>
-
-<pre><code>var tmp = 10;
-var b = 20;
-
-swap {tmp &lt;=&gt; b}
-
-// --&gt; naive expansion
-var tmp = 10;
-var b = 20;
-
-var tmp = tmp;
-tmp = b;
-b = tmp;</code></pre>
-
-<p>But since sweet.js protects hygiene, all variable names are correctly renamed:</p>
-
-<pre><code>var tmp = 10;
-var b = 20;
-
-swap {tmp &lt;=&gt; b}
-
-// --&gt; hygienic expansion
-var tmp$1 = 10;
-var b$2 = 20;
-
-var tmp$3 = tmp$1;
-tmp$3 = b$2;
-b$2 = tmp$1;</code></pre>
-
-<p>In the cases where you want to intentionally break hygiene you can use the procedural case macros described in the next section.</p>
-
-<h3 id='patterns_and_macros__a_match_made_in_heaven'>Patterns and Macros - A match made in heaven</h3>
-
-<p>A pattern name can be restricted to a particular parse class by using <code>$name:class</code> in which case rather than matching a token the pattern matches all the tokens matched by the class.</p>
-
-<pre><code>macro m {
-  rule { ($x:expr) } =&gt; {
-    $x
-  }
-}
-m (2 + 5 * 10)
-// --&gt; expands to
-2 + 5 * 10</code></pre>
-
-<p>The parse classes currently supported are:</p>
-
-<ul>
-<li><code>expr</code> &#8211; matches an expression</li>
-
-<li><code>ident</code> &#8211; matches an identifier</li>
-
-<li><code>lit</code> &#8211; matches a literal</li>
-</ul>
-
-<p>Repeated patterns can be matched with the <code>...</code> syntax.</p>
-
-<pre><code>macro m {
-  rule { ($x ...) } =&gt; {
-    // ...
-  }
-}
-m (1 2 3 4)</code></pre>
-
-<p>A repeated pattern with a separator between each item can be matched by adding <code>(,)</code> between <code>...</code> and the pattern being repeated.</p>
-
-<pre><code>macro m {
-  rule { ($x (,) ...) } =&gt; {
-    [$x (,) ...]
-  }
-}
-m (1, 2, 3, 4)</code></pre>
-
-<p>Repeated groups of patterns can be matched using <code>$()</code>.</p>
-
-<pre><code>macro m {
-  rule { ( $($id:ident = $val:expr) (,) ...) } =&gt; {
-    $(var $id = $val;) ...
-  }
-}
-m (x = 10, y = 2+10)</code></pre>
-
-<p>Macros can have multiple rules.</p>
-
-<pre><code>macro m {
-  rule { ($x:lit) } =&gt; { $x }
-  rule { ($x:lit, $y:lit) } =&gt; { [$x, $y] }
-}
-
-m (1);
-m (1, 2);</code></pre>
-
-<p>Rules are matched in-order and the first one to match the pattern will be used.</p>
-
-<p>And macros can be recursively defined:</p>
-
-<pre><code>macro m {
-  rule { ($base) } =&gt; { [$base] }
-  rule { ($head $tail ...) } =&gt; { [$head, m ($tail ...)] }
-}
-m (1 2 3 4 5)  // --&gt; [1, [2, [3, [4, [5]]]]]</code></pre>
-
-<h2 id='procedural_macros__just_in_case'>Procedural Macros &#8211; Just in Case</h2>
-
-<p>Sweet.js also provides a more powerful way to define macros: case macros. Case macros allow you to manipulate syntax using the full power of JavaScript. Case macros look like this:</p>
-
-<pre><code>macro &lt;name&gt; {
-  case { &lt;pattern&gt; } =&gt; { &lt;body&gt; }
-}</code></pre>
-
-<p>Case macros look similar to rule macros with a few important differences. First, the patterns also match the macro name instead of just the syntax that comes after it:</p>
-
-<pre><code>macro m {
-  case { $name $x } =&gt; { ... }
-}
-m 42  // `$name` will be bound to the `m` token
-      // in the macro body</code></pre>
-
-<p>Most of the time you won&#8217;t need to match the name and can use the wildcard <code>_</code> pattern (which matches any token but doesn&#8217;t bind it to a name) to ignore it:</p>
-
-<pre><code>macro m {
-  case { _ $x } =&gt; { ... }
-}</code></pre>
-
-<p>The other difference from rule macros is that the body of a macro contains a mixture of templates and normal JavaScript that can create and manipulate syntax. For example, here&#8217;s the identity macro defined with a case macro:</p>
-
-<pre><code>macro id {
-  case {_ $x } =&gt; {
-    return #{ $x }
-  }
-}</code></pre>
-
-<p>Templates are now created with the <code>#{...}</code> form (which is technically shorthand for <code>syntax {...}</code>). The <code>#{...}</code> form creates an array of <em>syntax objects</em> using any pattern bindings that are in scope (i.e. were matched by the pattern).</p>
-
-<p><em>Syntax objects</em> are the representation of tokens that sweet.js uses to keep track of lexical context (which is used to maintain hygiene). They can be created with templates (<code>#{}</code>) but you can also create individual syntax objects using the lexical context of an existing syntax object:</p>
-
-<pre><code>macro m {
-  case {_ $x } =&gt; {
-    var y = makeValue(42, #{$x});
-    return [y]
-  }
-}
-m foo
-// --&gt; expands to
-42</code></pre>
-
-<p>Sweet.js provides the following functions to create syntax objects:</p>
-
-<ul>
-<li><code>makeValue(val, stx)</code> &#8211; <code>val</code> can be a <code>boolean</code>, <code>number</code>, <code>string</code>, or <code>null</code>/<code>undefined</code></li>
-
-<li><code>makeRegex(pattern, flags, stx)</code> &#8211; <code>pattern</code> is the string representaiton of the regex pattern and <code>flags</code> is the string representation of the regex flags</li>
-
-<li><code>makeIdent(val, stx)</code> &#8211; <code>val</code> is a string representing an identifier</li>
-
-<li><code>makePunc(val, stx)</code> &#8211; <code>val</code> is a string representing a punctuation (e.g. <code>=</code>, <code>,</code>, <code>&gt;</code>, etc.)</li>
-
-<li><code>makeDelim(val, inner, stx)</code> &#8211; <code>val</code> represents which delimiter to make and can be either <code>&quot;()&quot;</code>, <code>&quot;[]&quot;</code>, or <code>&quot;{}&quot;</code> and <code>inner</code> is an array of syntax objects for all of the tokens inside the delimiter.</li>
-</ul>
-
-<p>(These functions broadly correspond to the Scheme/Racket function <code>datum-&gt;syntax</code>)</p>
-
-<p>If you want strip a syntax object of its lexical context and get directly at the token you can use <code>unwrapSyntax(stx)</code> (corresponding to Scheme&#8217;s <code>syntax-e</code>).</p>
-
-<p>When using these functions to create new syntax objects it is convenient to refer to them in <code>#{}</code> templates. To do this sweet.js provides the <code>letstx</code> macro that binds syntax objects to pattern variables:</p>
-
-<pre><code>macro m {
-  case {_ $x } =&gt; {
-    var y = makeValue(42, #{$x});
-    letstx $y = [y], $z = [makeValue(2, #{$x})];
-    return #{$x + $y - $z}
-  }
-}
-m 1
-// --&gt; expands to
-1 + 42 - 2</code></pre>
-
-<h3 id='getting_dirty__breaking_hygiene'>Getting Dirty &#8211; Breaking Hygiene</h3>
-
-<p>Sometimes you really do need to break the wonderful protections provided by hygiene. Breaking hygiene is usually a bad idea but sweet.js won&#8217;t judge.</p>
-
-<p>Breaking hygiene is done by stealing the lexical context from syntax objects in the &#8220;right place&#8221;. To clarify, consider <code>aif</code> the <a href='http://en.wikipedia.org/wiki/Anaphoric_macro'>anaphoric</a> if macro that binds its condition to the identifier <code>it</code> in the body.</p>
-
-<pre><code>var it = &quot;foo&quot;;
-long.obj.path = [1, 2, 3];
-aif (long.obj.path) {
-  console.log(it);
-}
-// logs: [1, 2, 3]</code></pre>
-
-<p>This is a violation of hygiene because normally <code>it</code> should be bound to the surrounding environment (<code>&quot;foo&quot;</code> in the example above) but <code>aif</code> wants to capture <code>it</code>. To do this we can create an <code>it</code> binding in the macro that has the lexical context associated with the surrounding environment. The lexical context we want is actually found on the <code>aif</code> macro name itself. So we just need to create a new <code>it</code> binding using the lexical context of <code>aif</code>:</p>
-
-<pre><code>macro aif {
-  case {
-    // bind the macro name to `$aif_name`
-    $aif_name 
-    ($cond ...) {$body ...}
-  } =&gt; {
-    // make a new `it` identifier using the lexical context
-    // from `$aif_name`
-	var it = makeIdent(&quot;it&quot;, #{$aif_name});
-	letstx $it = [it];
-  return #{ 
-      // create an IIFE that binds `$cond` to `$it`
-      (function ($it) {
-  		  if ($cond ...) {
-          // all `it` identifiers in `$body` will now
-          // be bound to `$it` 
-          $body ...
-        }
-      })($cond ...);
-	  }
-  }
-}</code></pre>
-
-<h2 id='let_it_beless_recursive'>Let it be&#8230;less recursive</h2>
-
-<p>Sometimes you don&#8217;t want a macro to recursively call itself. For example, say you want to override <code>function</code> to add some logging information before the rest of the function executes:</p>
-
-<pre><code>macro function {
-  case {_ $name ($params ...) { $body ...} } =&gt; {
-    return #{
-      function $name ($params ...) {
-        console.log(&quot;Imma let you finish...&quot;);
-        $body ...
-      }
-    }
-  }
-}</code></pre>
-
-<p>If you tried to run this through the compiler it will loop forever since the <code>function</code> identifier in the macro expansion is bound to the <code>function</code> macro. To prevent this you can use the <code>let</code> macro binding form:</p>
-
-<pre><code>let function = macro {
-  case {_ $name ($params ...) { $body ...} } =&gt; {
-    return #{
-      function $name ($params ...) {
-        console.log(&quot;Imma let you finish...&quot;);
-        $body ...
-      }
-    }
-  }
-}</code></pre>
-
-<p>This binds <code>function</code> to the macro in the rest of the code but not in the body of the <code>function</code> macro.</p>
-
-<h2 id='macros_with_lookbehind__watch_your_back'>Macros with Lookbehind &#8211; Watch Your Back</h2>
-
-<p>Sweet.js also lets you match on previous syntax using <code>infix</code> rules. Use a vertical bar (<code>|</code>) to separate your left-hand-side from your right-hand-side.</p>
-
-<pre><code>macro unless {
-  rule infix { return $value:expr | $guard:expr } =&gt; {
-    if (!($guard)) {
-      return $value;
-    }
-  }
-}
-
-function foo(x) {
-  return true unless x &gt; 42;
-  return false;
-}</code></pre>
-
-<p>You can use the <code>infix</code> keyword with procedural macros, too. The macro name is just the first token on the right-hand-side.</p>
-
-<pre><code>macro m {
-  case infix { $lhs | $name $rhs } =&gt; { ... }
-}</code></pre>
-
-<p>Infix rules can be mixed and matched with normal rules:</p>
-
-<pre><code>macro m {
-  rule infix { $lhs | $rhs } =&gt; { ... }
-  rule { $rhs } =&gt; { ... }
-}</code></pre>
-
-<p>You can even leave off the right-hand-side for a postfix macro:</p>
-
-<pre><code>macro m {
-  rule infix { $lhs | } =&gt; { ... }
-}</code></pre>
-
-<p>Sweet.js does its best to keep you from clobbering previous syntax.</p>
-
-<pre><code>macro m {
-  rule infix { ($args ...) | $call:expr } =&gt; {
-    $call($args ...)
-  }
-}
-
-(42) m foo; // This works
-bar(42) m foo; // This is a match error</code></pre>
-
-<p>The second example fails to match because you&#8217;d be splitting the good function call on the left-hand-side in half. The result would have been nonsense, giving you a nasty parse error.</p>
 
     </div>
   </div>
