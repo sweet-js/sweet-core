@@ -872,6 +872,13 @@ macro id {
 
 exports.one = id (1);</code></pre>
 <p>Note that <code>require('sweet.js')</code> must come before any requires of <code>.sjs</code> code. Also note that this does not import any macros, it just uses sweet.js to compile files that contain macros before requiring them.</p>
+<p>Alternatively, you can use <code>sweet.loadMacro</code> to achieve a similar effect to the <code>--module</code> command line flag:</p>
+<pre class="js"><code>var sweet = require(&#39;sweet.js&#39;);
+// load all exported macros in `macros/str.sjs`
+sweet.loadMacro(&#39;./macros/str&#39;);
+// test.sjs uses macros that have been defined and exported in `macros/str.sjs`
+require(&#39;./test.sjs&#39;);</code></pre>
+<p>This is basically equivalent to running <code>sjs --module ./macros/str test.sjs</code>.</p>
 <h1 id="faq"><span class="header-section-number">10</span> FAQ</h1>
 <h2 id="how-do-i-break-hygiene"><span class="header-section-number">10.1</span> How do I break hygiene?</h2>
 <p>Sometimes you really do need to break the wonderful protections provided by hygiene. Breaking hygiene is usually a bad idea but sweet.js won't judge.</p>

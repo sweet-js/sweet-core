@@ -871,6 +871,18 @@ exports.one = id (1);
 
 Note that `require('sweet.js')` must come before any requires of `.sjs` code. Also note that this does not import any macros, it just uses sweet.js to compile files that contain macros before requiring them. 
 
+Alternatively, you can use `sweet.loadMacro` to achieve a similar effect to the `--module` command line flag:
+
+```js
+var sweet = require('sweet.js');
+// load all exported macros in `macros/str.sjs`
+sweet.loadMacro('./macros/str');
+// test.sjs uses macros that have been defined and exported in `macros/str.sjs`
+require('./test.sjs');
+```
+
+This is basically equivalent to running `sjs --module ./macros/str test.sjs`.
+
 # FAQ
 
 ## How do I break hygiene?
