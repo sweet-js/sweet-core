@@ -1661,7 +1661,7 @@
                 else if (head.token.type === parser.Token.NumericLiteral || head.token.type === parser.Token.StringLiteral || head.token.type === parser.Token.BooleanLiteral || head.token.type === parser.Token.RegularExpression || head.token.type === parser.Token.NullLiteral) {
                     return step(Lit.create(head), rest, opCtx);
                 }    // export
-                else if (head.token.type === parser.Token.Keyword && unwrapSyntax(head) === 'export' && rest[0] && (rest[0].token.type === parser.Token.Identifier || rest[0].token.type === parser.Token.Keyword || rest[0].token.type === parser.Token.Punctuator)) {
+                else if (head.token.type === parser.Token.Keyword && unwrapSyntax(head) === 'export' && rest[0] && (rest[0].token.type === parser.Token.Identifier || rest[0].token.type === parser.Token.Keyword || rest[0].token.type === parser.Token.Punctuator || rest[0].token.type === parser.Token.Delimiter && rest[0].token.value === '()')) {
                     return step(Export.create(rest[0]), rest.slice(1), opCtx);
                 }    // identifier
                 else if (head.token.type === parser.Token.Identifier) {
@@ -2410,9 +2410,17 @@
             ], context);
         builtinMode = false;
         context.exports = _.map(moduleRes[0].exports, function (term) {
+            var nameStr, name;
+            if (term.name.token.type === parser.Token.Delimiter) {
+                nameStr = term.name.token.inner.map(unwrapSyntax).join('');
+                name = syn.makeIdent(nameStr, term.name);
+            } else {
+                name = term.name;
+                nameStr = unwrapSyntax(name);
+            }
             return {
-                oldExport: term.name,
-                newParam: syn.makeIdent(term.name.token.value, null)
+                oldExport: name,
+                newParam: syn.makeIdent(nameStr, null)
             };
         });
         return context;
@@ -2420,8 +2428,13 @@
     function loadModuleExports(stx, newEnv, exports$3, oldEnv) {
         return _.reduce(exports$3, function (acc, param) {
             var newName = fresh();
-            newEnv.set(resolve(param.newParam.rename(param.newParam, newName)), oldEnv.get(resolve(param.oldExport)));
-            return acc.rename(param.newParam, newName);
+            var transformer = oldEnv.get(resolve(param.oldExport));
+            if (transformer) {
+                newEnv.set(resolve(param.newParam.rename(param.newParam, newName)), transformer);
+                return acc.rename(param.newParam, newName);
+            } else {
+                return acc;
+            }
         }, stx);
     }
     // break delimiter tree structure down to flat array of syntax objects
