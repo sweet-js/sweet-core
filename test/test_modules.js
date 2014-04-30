@@ -42,4 +42,14 @@ describe("module loading", function() {
         expect(modExp.token.value).to.be('m');
         expect(modEnv.has(expander.resolve(modExp))).to.be(true);
     });
+
+    it("should export multi-token macro names", function() {
+        var modCtx = sweet.loadModule('macro (???) { rule {} => { 42 } } export (???)');
+        var modExp = modCtx.exports[0].oldExport;
+        var modEnv = modCtx.env;
+
+        expect(modCtx.exports.length).to.be(1);
+        expect(modExp.token.value).to.be('???');
+        expect(modEnv.has(expander.resolve(modExp))).to.be(true);
+    });
 });
