@@ -841,19 +841,22 @@
         var name = getName(head, rest);
         // simple case, don't need to create a new syntax object
         if (name.length === 1) {
-            var resolvedName = resolve(name[0]);
-            if (env.has(resolvedName)) {
-                return env.get(resolvedName);
+            if (env.names.get(unwrapSyntax(name[0]))) {
+                var resolvedName = resolve(name[0]);
+                if (env.has(resolvedName)) {
+                    return env.get(resolvedName);
+                }
             }
             return null;
         } else {
             while (name.length > 0) {
                 var nameStr = name.map(unwrapSyntax).join("");
-                var nameStx = syn.makeIdent(nameStr, name[0]);
-                var resolvedName = resolve(nameStx);
-                var inEnv = env.has(resolvedName);
-                if (inEnv) {
-                    return env.get(resolvedName);
+                if (env.names.get(nameStr)) {
+                    var nameStx = syn.makeIdent(nameStr, name[0]);
+                    var resolvedName = resolve(nameStx);
+                    if (env.has(resolvedName)) {
+                        return env.get(resolvedName);
+                    }
                 }
                 name.pop();
             }
@@ -865,11 +868,18 @@
         return getMacroInEnv(head, rest, env) !== null;
     }
 
-    function expandMacro(stx, context, opCtx, opType) {
+    // This should only be used on things that can't be rebound except by
+    // macros (puncs, keywords).
+    function resolveFast(stx, env) {
+        var name = unwrapSyntax(stx);
+        return env.names.get(name) ? resolve(stx) : name;
+    }
+
+    function expandMacro(stx, context, opCtx, opType, macroObj) {
         // pull the macro transformer out the environment
         var head = stx[0];
         var rest = stx.slice(1);
-        var macroObj = getMacroInEnv(head, rest, context.env);
+        macroObj = macroObj || getMacroInEnv(head, rest, context.env);
         var stxArg = rest.slice(macroObj.fullName.length - 1);
         var transformer;
         if (opType != null) {
@@ -1177,14 +1187,14 @@
                     }
                 // Conditional ( x ? true : false)
                 } else if (head.isExpr &&
-                           (rest[0] && resolve(rest[0]) === "?")) {
+                           (rest[0] && resolveFast(rest[0], context.env) === "?")) {
                     var question = rest[0];
                     var condRes = enforest(rest.slice(1), context);
                     if (condRes.result) {
                         var truExpr = condRes.result;
                         var condRight = condRes.rest;
                         if (truExpr.isExpr &&
-                            condRight[0] && resolve(condRight[0]) === ":") {
+                            condRight[0] && resolveFast(condRight[0], context.env) === ":") {
                             var colon = condRight[0];
                             var flsRes = enforest(condRight.slice(1), context);
                             var flsExpr = flsRes.result;
@@ -1201,7 +1211,7 @@
                     }
                 // Constructor
                 } else if (head.isKeyword &&
-                          (resolve(head.keyword) === "new" && rest[0])) {
+                           resolveFast(head.keyword, context.env) === "new" && rest[0]) {
                     var newCallRes = enforest(rest, context);
                     if (newCallRes && newCallRes.result.isCall) {
                         return step(Const.create(head, newCallRes.result),
@@ -1211,10 +1221,10 @@
 
                 // Arrow functions with expression bodies
                 } else if (head.isDelimiter &&
-                           (head.delim.token.value === "()" &&
-                             rest[0] &&
-                             rest[0].token.type === parser.Token.Punctuator &&
-                             resolve(rest[0]) === "=>")) {
+                           head.delim.token.value === "()" &&
+                           rest[0] &&
+                           rest[0].token.type === parser.Token.Punctuator &&
+                           resolveFast(rest[0], context.env) === "=>") {
                     var arrowRes = enforest(rest.slice(1), context);
                     if (arrowRes.result && arrowRes.result.isExpr) {
                         return step(ArrowFun.create(head.delim,
@@ -1228,9 +1238,10 @@
                             rest.slice(1));
                     }
                 // Arrow functions with expression bodies
-                } else if (head.isId && (rest[0] &&
-                             rest[0].token.type === parser.Token.Punctuator &&
-                             resolve(rest[0]) === "=>")) {
+                } else if (head.isId &&
+                           rest[0] &&
+                           rest[0].token.type === parser.Token.Punctuator &&
+                           resolveFast(rest[0], context.env) === "=>") {
                     var res = enforest(rest.slice(1), context);
                     if (res.result && res.result.isExpr) {
                         return step(ArrowFun.create(head.id,
@@ -1282,7 +1293,7 @@
                             (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
                                          unwrapSyntax(rest[0]) === "--"))) {
                     // Check if the operator is a macro first.
-                    if (context.env.has(resolve(rest[0]))) {
+                    if (context.env.has(resolveFast(rest[0], context.env))) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         var opPrevStx = headStx.concat(prevStx);
                         var opPrevTerms = [head].concat(prevTerms);
@@ -1308,12 +1319,12 @@
                 // ObjectGet
                 } else if (head.isExpr &&
                             (rest[0] && unwrapSyntax(rest[0]) === "." &&
-                             !context.env.has(resolve(rest[0])) &&
+                             !context.env.has(resolveFast(rest[0], context.env)) &&
                              rest[1] &&
                              (rest[1].token.type === parser.Token.Identifier ||
                               rest[1].token.type === parser.Token.Keyword))) {
                     // Check if the identifier is a macro first.
-                    if (context.env.has(resolve(rest[1]))) {
+                    if (context.env.has(resolveFast(rest[1], context.env))) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         var dotTerm = Punc.create(rest[0]);
                         var dotTerms = [dotTerm].concat(head, prevTerms);
@@ -1351,7 +1362,7 @@
                                 opCtx);
                 // let statements
                 } else if (head.isKeyword &&
-                            resolve(head.keyword) === "let") {
+                           unwrapSyntax(head.keyword) === "let") {
                     var nameTokens = [];
                     if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                         rest[0].token.value === "()") {
@@ -1383,7 +1394,7 @@
                     }
                 // VariableStatement
                 } else if (head.isKeyword &&
-                           resolve(head.keyword) === "var" && rest[0]) {
+                           unwrapSyntax(head.keyword) === "var" && rest[0]) {
                     var vsRes = enforestVarStatement(rest, context, head.keyword);
                     if (vsRes && vsRes.result) {
                         return step(VariableStatement.create(head, vsRes.result),
@@ -1392,7 +1403,7 @@
                     }
                 // Const Statement
                 } else if (head.isKeyword &&
-                           resolve(head.keyword) === "const" && rest[0]) {
+                           unwrapSyntax(head.keyword) === "const" && rest[0]) {
                     var csRes = enforestVarStatement(rest, context, head.keyword);
                     if (csRes && csRes.result) {
                         return step(ConstStatement.create(head, csRes.result),
@@ -1401,14 +1412,14 @@
                     }
                 // for statement
                 } else if (head.isKeyword &&
-                           resolve(head.keyword) === "for" &&
+                           unwrapSyntax(head.keyword) === "for" &&
                            rest[0] && rest[0].token.value === "()") {
                     return step(ForStatement.create(head.keyword, rest[0]),
                                 rest.slice(1),
                                 opCtx);
                 // yield statement
                 } else if (head.isKeyword &&
-                           resolve(head.keyword) === "yield") {
+                           unwrapSyntax(head.keyword) === "yield") {
                     var yieldExprRes = enforest(rest, context);
 
                     if (yieldExprRes.result && yieldExprRes.result.isExpr) {
@@ -1420,15 +1431,11 @@
             } else {
                 assert(head && head.token, "assuming head is a syntax object");
 
-                // macro invocation
-                if ((head.token.type === parser.Token.Identifier ||
-                     head.token.type === parser.Token.Keyword ||
-                     head.token.type === parser.Token.Punctuator) &&
-                    (expandCount < maxExpands) &&
-                    nameInEnv(head, rest, context.env) &&
-                    !getMacroInEnv(head, rest, context.env).isOp) {
+                var macroObj = expandCount < maxExpands && getMacroInEnv(head, rest, context.env);
 
-                    var rt = expandMacro([head].concat(rest), context, opCtx);
+                // macro invocation
+                if (macroObj && !macroObj.isOp) {
+                    var rt = expandMacro([head].concat(rest), context, opCtx, null, macroObj);
                     var newOpCtx = opCtx;
 
                     if (rt.prevTerms && rt.prevTerms.length < opCtx.prevTerms.length) {
@@ -1579,7 +1586,7 @@
                             head.token.value === "()") ||
                             head.token.type === parser.Token.Identifier) &&
                             rest[0] && rest[0].token.type === parser.Token.Punctuator &&
-                            resolve(rest[0]) === "=>" &&
+                            resolveFast(rest[0], context.env) === "=>" &&
                             rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                             rest[1].token.value === "{}") {
                     return step(ArrowFun.create(head, rest[0], rest[1]),
@@ -1973,6 +1980,7 @@
                 var name = head.name.map(unwrapSyntax).join("");
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false);
+                context.env.names.set(name, true);
                 context.env.set(resolve(nameStx), {
                     fn: macroDefinition,
                     isOp: false,
@@ -1994,6 +2002,7 @@
                     return stx.rename(nameStx, freshName);
                 });
 
+                context.env.names.set(name, true);
                 context.env.set(resolve(renamedName), {
                     fn: macroDefinition,
                     isOp: false,
@@ -2025,6 +2034,7 @@
                     prec: head.prec.token.value,
                     assoc: head.assoc ? head.assoc.token.value : null
                 };
+                context.env.names.set(name, true);
                 context.env.set(resolvedName, opObj);
                 continue;
             }
@@ -2349,13 +2359,19 @@
 
     function makeExpanderContext(o) {
         o = o || {};
+
+        var env = o.env || new StringMap();
+        if (!env.names) {
+            env.names = new StringMap();
+        }
+
         // read-only but can enumerate
         return Object.create(Object.prototype, {
             filename: {value: o.filename,
                        writable: false, enumerable: true, configurable: false},
             requireModule: {value: o.requireModule,
                             writable: false, enumerable: true, configurable: false},
-            env: {value: o.env || new StringMap(),
+            env: {value: env,
                   writable: false, enumerable: true, configurable: false},
             defscope: {value: o.defscope,
                        writable: false, enumerable: true, configurable: false},
@@ -2387,6 +2403,7 @@
         var modBody = syn.makeDelim("{}", stx, null);
         modBody = _.reduce(moduleContexts, function(acc, mod) {
             context.env.extend(mod.env);
+            context.env.names.extend(mod.env.names);
             return loadModuleExports(acc, context.env, mod.exports, mod.env);
         }, modBody);
 
@@ -2404,6 +2421,7 @@
         var modBody = syn.makeDelim("{}", stx, null);
         modBody = _.reduce(moduleContexts, function(acc, mod) {
             context.env.extend(mod.env);
+            context.env.names.extend(mod.env.names);
             return loadModuleExports(acc, context.env, mod.exports, mod.env);
         }, modBody);
 
