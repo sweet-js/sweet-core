@@ -49,43 +49,6 @@
     var unwrapSyntax = syn.unwrapSyntax;
     // used to export "private" methods for unit testing
     exports$2._test = {};
-    // some convenience monkey patching
-    Object.defineProperties(Object.prototype, {
-        'create': {
-            value: function () {
-                var o = Object.create(this);
-                if (typeof o.construct === 'function') {
-                    o.construct.apply(o, arguments);
-                }
-                return o;
-            },
-            enumerable: false,
-            writable: true
-        },
-        'extend': {
-            value: function (properties) {
-                var result = Object.create(this);
-                for (var prop in properties) {
-                    if (properties.hasOwnProperty(prop)) {
-                        result[prop] = properties[prop];
-                    }
-                }
-                return result;
-            },
-            enumerable: false,
-            writable: true
-        },
-        'hasPrototype': {
-            value: function (proto) {
-                function F() {
-                }
-                F.prototype = proto;
-                return this instanceof F;
-            },
-            enumerable: false,
-            writable: true
-        }
-    });
     function StringMap(o) {
         this.__data = o || {};
     }
@@ -144,79 +107,78 @@
         return [];
     }
     function resolve(stx) {
-        var cache = {};
-        // This call memoizes intermediate results in the recursive invocation.
-        // The scope of the memo cache is the resolve() call, so that multiple
-        // resolve() calls don't walk all over each other, and memory used for
-        // the memoization can be garbage collected.
-        //
-        // The memoization addresses issue #232.
-        //
-        // It looks like the memoization uses only the context and doesn't look
-        // at originalName, stop_spine and stop_branch arguments. This is valid
-        // because whenever in every recursive call operates on a "deeper" or
-        // else a newly created context.  Therefore the collection of
-        // [originalName, stop_spine, stop_branch] can all be associated with a
-        // unique context. This argument is easier to see in a recursive
-        // rewrite of the resolveCtx function than with the while loop
-        // optimization - https://gist.github.com/srikumarks/9847260 - where the
-        // recursive steps always operate on a different context.
-        //
-        // This might make it seem that the resolution results can be stored on
-        // the context object itself, but that would not work in general
-        // because multiple resolve() calls will walk over each other's cache
-        // results, which fails tests. So the memoization uses only a context's
-        // unique instance numbers as the memoization key and is local to each
-        // resolve() call.
-        //
-        // With this memoization, the time complexity of the resolveCtx call is
-        // no longer exponential for the cases in issue #232.
-        function resolveCtx(originalName, ctx, stop_spine, stop_branch) {
+        return resolveCtx(stx.token.value, stx.context, [], [], {});
+    }
+    // This call memoizes intermediate results in the recursive invocation.
+    // The scope of the memo cache is the resolve() call, so that multiple
+    // resolve() calls don't walk all over each other, and memory used for
+    // the memoization can be garbage collected.
+    //
+    // The memoization addresses issue #232.
+    //
+    // It looks like the memoization uses only the context and doesn't look
+    // at originalName, stop_spine and stop_branch arguments. This is valid
+    // because whenever in every recursive call operates on a "deeper" or
+    // else a newly created context.  Therefore the collection of
+    // [originalName, stop_spine, stop_branch] can all be associated with a
+    // unique context. This argument is easier to see in a recursive
+    // rewrite of the resolveCtx function than with the while loop
+    // optimization - https://gist.github.com/srikumarks/9847260 - where the
+    // recursive steps always operate on a different context.
+    //
+    // This might make it seem that the resolution results can be stored on
+    // the context object itself, but that would not work in general
+    // because multiple resolve() calls will walk over each other's cache
+    // results, which fails tests. So the memoization uses only a context's
+    // unique instance numbers as the memoization key and is local to each
+    // resolve() call.
+    //
+    // With this memoization, the time complexity of the resolveCtx call is
+    // no longer exponential for the cases in issue #232.
+    function resolveCtx(originalName, ctx, stop_spine, stop_branch, cache) {
+        if (!ctx) {
+            return originalName;
+        }
+        var key = ctx.instNum;
+        return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache));
+    }
+    // (Syntax) -> String
+    function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache) {
+        while (true) {
             if (!ctx) {
                 return originalName;
             }
-            var key = ctx.instNum;
-            return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch));
-        }
-        // (Syntax) -> String
-        function resolveCtxFull(originalName, ctx, stop_spine, stop_branch) {
-            while (true) {
-                if (!ctx) {
-                    return originalName;
-                }
-                if (ctx.constructor === Mark) {
+            if (ctx.constructor === Mark) {
+                ctx = ctx.context;
+                continue;
+            }
+            if (ctx.constructor === Def) {
+                if (stop_spine.indexOf(ctx.defctx) !== -1) {
                     ctx = ctx.context;
                     continue;
+                } else {
+                    stop_branch = unionEl(stop_branch, ctx.defctx);
+                    ctx = renames(ctx.defctx, ctx.context, originalName);
+                    continue;
                 }
-                if (ctx.constructor === Def) {
-                    if (stop_spine.indexOf(ctx.defctx) !== -1) {
-                        ctx = ctx.context;
-                        continue;
-                    } else {
-                        stop_branch = unionEl(stop_branch, ctx.defctx);
-                        ctx = renames(ctx.defctx, ctx.context, originalName);
-                        continue;
-                    }
-                }
-                if (ctx.constructor === Rename) {
-                    if (originalName === ctx.id.token.value) {
-                        var idName = resolveCtx(ctx.id.token.value, ctx.id.context, stop_branch, stop_branch);
-                        var subName = resolveCtx(originalName, ctx.context, unionEl(stop_spine, ctx.def), stop_branch);
-                        if (idName === subName) {
-                            var idMarks = marksof(ctx.id.context, originalName + '$' + ctx.name, originalName);
-                            var subMarks = marksof(ctx.context, originalName + '$' + ctx.name, originalName);
-                            if (arraysEqual(idMarks, subMarks)) {
-                                return originalName + '$' + ctx.name;
-                            }
+            }
+            if (ctx.constructor === Rename) {
+                if (originalName === ctx.id.token.value) {
+                    var idName = resolveCtx(ctx.id.token.value, ctx.id.context, stop_branch, stop_branch, cache);
+                    var subName = resolveCtx(originalName, ctx.context, unionEl(stop_spine, ctx.def), stop_branch, cache);
+                    if (idName === subName) {
+                        var idMarks = marksof(ctx.id.context, originalName + '$' + ctx.name, originalName);
+                        var subMarks = marksof(ctx.context, originalName + '$' + ctx.name, originalName);
+                        if (arraysEqual(idMarks, subMarks)) {
+                            return originalName + '$' + ctx.name;
                         }
                     }
-                    ctx = ctx.context;
-                    continue;
                 }
-                return originalName;
+                ctx = ctx.context;
+                continue;
             }
+            return originalName;
         }
-        return resolveCtx(stx.token.value, stx.context, [], []);
     }
     function arraysEqual(a, b) {
         if (a.length !== b.length) {
@@ -276,509 +238,622 @@
             assert(false, 'expecting a delimiter or a single identifier for function parameters');
         }
     }
+    function inherit(parent, child, methods) {
+        var P = function () {
+        };
+        P.prototype = parent.prototype;
+        child.prototype = new P();
+        child.prototype.constructor = child;
+        _.extend(child.prototype, methods);
+    }
     // A TermTree is the core data structure for the macro expansion process.
     // It acts as a semi-structured representation of the syntax.
-    var TermTree = {
-            destruct: function () {
-                return _.reduce(this.properties, _.bind(function (acc, prop) {
-                    if (this[prop] && this[prop].hasPrototype(TermTree)) {
-                        push.apply(acc, this[prop].destruct());
-                        return acc;
-                    } else if (this[prop] && this[prop].token && this[prop].token.inner) {
-                        var clone = syntaxFromToken(_.clone(this[prop].token), this[prop]);
-                        clone.token.inner = _.reduce(clone.token.inner, function (acc$2, t) {
-                            if (t.hasPrototype(TermTree)) {
+    function TermTree() {
+    }
+    TermTree.properties = [];
+    TermTree.create = function () {
+        return new TermTree();
+    };
+    TermTree.prototype = {
+        'isTermTree': true,
+        'destruct': function () {
+            var self = this;
+            return _.reduce(this.constructor.properties, function (acc, prop) {
+                if (self[prop] && self[prop].isTermTree) {
+                    push.apply(acc, self[prop].destruct());
+                    return acc;
+                } else if (self[prop] && self[prop].token && self[prop].token.inner) {
+                    var src = self[prop].token;
+                    var keys = Object.keys(src);
+                    var newtok = {};
+                    for (var i = 0, len = keys.length, key; i < len; i++) {
+                        key = keys[i];
+                        newtok[key] = src[key];
+                    }
+                    var clone = syntaxFromToken(newtok, self[prop]);
+                    clone.token.inner = _.reduce(clone.token.inner, function (acc$2, t) {
+                        if (t && t.isTermTree) {
+                            push.apply(acc$2, t.destruct());
+                            return acc$2;
+                        }
+                        acc$2.push(t);
+                        return acc$2;
+                    }, []);
+                    acc.push(clone);
+                    return acc;
+                } else if (Array.isArray(self[prop])) {
+                    var destArr = _.reduce(self[prop], function (acc$2, t) {
+                            if (t && t.isTermTree) {
                                 push.apply(acc$2, t.destruct());
                                 return acc$2;
                             }
                             acc$2.push(t);
                             return acc$2;
                         }, []);
-                        acc.push(clone);
-                        return acc;
-                    } else if (Array.isArray(this[prop])) {
-                        var destArr = _.reduce(this[prop], function (acc$2, t) {
-                                if (t.hasPrototype(TermTree)) {
-                                    push.apply(acc$2, t.destruct());
-                                    return acc$2;
-                                }
-                                acc$2.push(t);
-                                return acc$2;
-                            }, []);
-                        push.apply(acc, destArr);
-                        return acc;
-                    } else if (this[prop]) {
-                        acc.push(this[prop]);
-                        return acc;
-                    } else {
-                        return acc;
-                    }
-                }, this), []);
-            },
-            addDefCtx: function (def) {
-                _.each(_.range(this.properties.length), _.bind(function (i) {
-                    var prop = this.properties[i];
-                    if (Array.isArray(this[prop])) {
-                        this[prop] = _.map(this[prop], function (item) {
-                            return item.addDefCtx(def);
-                        });
-                    } else if (this[prop]) {
-                        this[prop] = this[prop].addDefCtx(def);
-                    }
-                }, this));
-                return this;
-            },
-            rename: function (id, name) {
-                _.each(_.range(this.properties.length), _.bind(function (i) {
-                    var prop = this.properties[i];
-                    if (Array.isArray(this[prop])) {
-                        this[prop] = _.map(this[prop], function (item) {
-                            return item.rename(id, name);
-                        });
-                    } else if (this[prop]) {
-                        this[prop] = this[prop].rename(id, name);
-                    }
-                }, this));
-                return this;
-            }
-        };
-    var EOF = TermTree.extend({
-            properties: ['eof'],
-            construct: function (e) {
-                this.eof = e;
-            }
-        });
-    var Statement = TermTree.extend({
-            construct: function () {
-            }
-        });
-    var Expr = Statement.extend({
-            construct: function () {
-            }
-        });
-    var PrimaryExpression = Expr.extend({
-            construct: function () {
-            }
-        });
-    var ThisExpression = PrimaryExpression.extend({
-            properties: ['this'],
-            construct: function (that) {
-                this.this = that;
-            }
-        });
-    var Lit = PrimaryExpression.extend({
-            properties: ['lit'],
-            construct: function (l) {
-                this.lit = l;
-            }
-        });
-    exports$2._test.PropertyAssignment = PropertyAssignment;
-    var PropertyAssignment = TermTree.extend({
-            properties: [
-                'propName',
-                'assignment'
-            ],
-            construct: function (propName, assignment) {
-                this.propName = propName;
-                this.assignment = assignment;
-            }
-        });
-    var Block = PrimaryExpression.extend({
-            properties: ['body'],
-            construct: function (body) {
-                this.body = body;
-            }
-        });
-    var ArrayLiteral = PrimaryExpression.extend({
-            properties: ['array'],
-            construct: function (ar) {
-                this.array = ar;
-            }
-        });
-    var ParenExpression = PrimaryExpression.extend({
-            properties: ['expr'],
-            construct: function (expr) {
-                this.expr = expr;
-            }
-        });
-    var UnaryOp = Expr.extend({
-            properties: [
-                'op',
-                'expr'
-            ],
-            construct: function (op, expr) {
-                this.op = op;
-                this.expr = expr;
-            }
-        });
-    var PostfixOp = Expr.extend({
-            properties: [
-                'expr',
-                'op'
-            ],
-            construct: function (expr, op) {
-                this.expr = expr;
-                this.op = op;
-            }
-        });
-    var BinOp = Expr.extend({
-            properties: [
-                'left',
-                'op',
-                'right'
-            ],
-            construct: function (op, left, right) {
-                this.op = op;
-                this.left = left;
-                this.right = right;
-            }
-        });
-    var ConditionalExpression = Expr.extend({
-            properties: [
-                'cond',
-                'question',
-                'tru',
-                'colon',
-                'fls'
-            ],
-            construct: function (cond, question, tru, colon, fls) {
-                this.cond = cond;
-                this.question = question;
-                this.tru = tru;
-                this.colon = colon;
-                this.fls = fls;
-            }
-        });
-    var AssignmentExpression = Expr.extend({
-            properties: [
-                'left',
-                'op',
-                'right'
-            ],
-            construct: function (op, left, right) {
-                this.op = op;
-                this.left = left;
-                this.right = right;
-            }
-        });
-    var Keyword = TermTree.extend({
-            properties: ['keyword'],
-            construct: function (k) {
-                this.keyword = k;
-            }
-        });
-    var Punc = TermTree.extend({
-            properties: ['punc'],
-            construct: function (p) {
-                this.punc = p;
-            }
-        });
-    var Delimiter = TermTree.extend({
-            properties: ['delim'],
-            construct: function (d) {
-                this.delim = d;
-            }
-        });
-    var Id = PrimaryExpression.extend({
-            properties: ['id'],
-            construct: function (id) {
-                this.id = id;
-            }
-        });
-    var NamedFun = Expr.extend({
-            properties: [
-                'keyword',
-                'star',
-                'name',
-                'params',
-                'body'
-            ],
-            construct: function (keyword, star, name, params, body) {
-                this.keyword = keyword;
-                this.star = star;
-                this.name = name;
-                this.params = params;
-                this.body = body;
-            }
-        });
-    var AnonFun = Expr.extend({
-            properties: [
-                'keyword',
-                'star',
-                'params',
-                'body'
-            ],
-            construct: function (keyword, star, params, body) {
-                this.keyword = keyword;
-                this.star = star;
-                this.params = params;
-                this.body = body;
-            }
-        });
-    var ArrowFun = Expr.extend({
-            properties: [
-                'params',
-                'arrow',
-                'body'
-            ],
-            construct: function (params, arrow, body) {
-                this.params = params;
-                this.arrow = arrow;
-                this.body = body;
-            }
-        });
-    var LetMacro = TermTree.extend({
-            properties: [
-                'name',
-                'body'
-            ],
-            construct: function (name, body) {
-                this.name = name;
-                this.body = body;
-            }
-        });
-    var Macro = TermTree.extend({
-            properties: [
-                'name',
-                'body'
-            ],
-            construct: function (name, body) {
-                this.name = name;
-                this.body = body;
-            }
-        });
-    var AnonMacro = TermTree.extend({
-            properties: ['body'],
-            construct: function (body) {
-                this.body = body;
-            }
-        });
-    var Const = Expr.extend({
-            properties: [
-                'newterm',
-                'call'
-            ],
-            construct: function (newterm, call) {
-                this.newterm = newterm;
-                this.call = call;
-            }
-        });
-    var Call = Expr.extend({
-            properties: [
-                'fun',
-                'args',
-                'delim',
-                'commas'
-            ],
-            destruct: function () {
-                assert(this.fun.hasPrototype(TermTree), 'expecting a term tree in destruct of call');
-                var commas = this.commas.slice();
-                var delim = syntaxFromToken(_.clone(this.delim.token), this.delim);
-                delim.token.inner = _.reduce(this.args, function (acc, term) {
-                    assert(term && term.hasPrototype(TermTree), 'expecting term trees in destruct of Call');
-                    push.apply(acc, term.destruct());
-                    // add all commas except for the last one
-                    if (commas.length > 0) {
-                        acc.push(commas.shift());
-                    }
+                    push.apply(acc, destArr);
                     return acc;
-                }, []);
-                var res = this.fun.destruct();
-                push.apply(res, Delimiter.create(delim).destruct());
-                return res;
-            },
-            construct: function (funn, args, delim, commas) {
-                assert(Array.isArray(args), 'requires an array of arguments terms');
-                this.fun = funn;
-                this.args = args;
-                this.delim = delim;
-                // an ugly little hack to keep the same syntax objects
-                // (with associated line numbers etc.) for all the commas
-                // separating the arguments
-                this.commas = commas;
-            }
-        });
-    var ObjDotGet = Expr.extend({
-            properties: [
-                'left',
-                'dot',
-                'right'
-            ],
-            construct: function (left, dot, right) {
-                this.left = left;
-                this.dot = dot;
-                this.right = right;
-            }
-        });
-    var ObjGet = Expr.extend({
-            properties: [
-                'left',
-                'right'
-            ],
-            construct: function (left, right) {
-                this.left = left;
-                this.right = right;
-            }
-        });
-    var VariableDeclaration = TermTree.extend({
-            properties: [
-                'ident',
-                'eqstx',
-                'init',
-                'comma'
-            ],
-            construct: function (ident, eqstx, init, comma) {
-                this.ident = ident;
-                this.eqstx = eqstx;
-                this.init = init;
-                this.comma = comma;
-            }
-        });
-    var VariableStatement = Statement.extend({
-            properties: [
-                'varkw',
-                'decls'
-            ],
-            destruct: function () {
-                return this.varkw.destruct().concat(_.reduce(this.decls, function (acc, decl) {
-                    push.apply(acc, decl.destruct());
+                } else if (self[prop]) {
+                    acc.push(self[prop]);
                     return acc;
-                }, []));
-            },
-            construct: function (varkw, decls) {
-                assert(Array.isArray(decls), 'decls must be an array');
-                this.varkw = varkw;
-                this.decls = decls;
-            }
-        });
-    var LetStatement = Statement.extend({
-            properties: [
-                'letkw',
-                'decls'
-            ],
-            destruct: function () {
-                return this.letkw.destruct().concat(_.reduce(this.decls, function (acc, decl) {
-                    push.apply(acc, decl.destruct());
+                } else {
                     return acc;
-                }, []));
-            },
-            construct: function (letkw, decls) {
-                assert(Array.isArray(decls), 'decls must be an array');
-                this.letkw = letkw;
-                this.decls = decls;
+                }
+            }, []);
+        },
+        'addDefCtx': function (def) {
+            var self = this;
+            _.each(this.constructor.properties, function (prop) {
+                if (Array.isArray(self[prop])) {
+                    self[prop] = _.map(self[prop], function (item) {
+                        return item.addDefCtx(def);
+                    });
+                } else if (self[prop]) {
+                    self[prop] = self[prop].addDefCtx(def);
+                }
+            });
+            return this;
+        },
+        'rename': function (id, name) {
+            var self = this;
+            _.each(this.constructor.properties, function (prop) {
+                if (Array.isArray(self[prop])) {
+                    self[prop] = _.map(self[prop], function (item) {
+                        return item.rename(id, name);
+                    });
+                } else if (self[prop]) {
+                    self[prop] = self[prop].rename(id, name);
+                }
+            });
+            return this;
+        }
+    };
+    function EOF(eof) {
+        this.eof = eof;
+    }
+    EOF.properties = ['eof'];
+    EOF.create = function (eof) {
+        return new EOF(eof);
+    };
+    inherit(TermTree, EOF, { 'isEOF': true });
+    function Keyword(keyword) {
+        this.keyword = keyword;
+    }
+    Keyword.properties = ['keyword'];
+    Keyword.create = function (keyword) {
+        return new Keyword(keyword);
+    };
+    inherit(TermTree, Keyword, { 'isKeyword': true });
+    function Punc(punc) {
+        this.punc = punc;
+    }
+    Punc.properties = ['punc'];
+    Punc.create = function (punc) {
+        return new Punc(punc);
+    };
+    inherit(TermTree, Punc, { 'isPunc': true });
+    function Delimiter(delim) {
+        this.delim = delim;
+    }
+    Delimiter.properties = ['delim'];
+    Delimiter.create = function (delim) {
+        return new Delimiter(delim);
+    };
+    inherit(TermTree, Delimiter, { 'isDelimiter': true });
+    function LetMacro(name, body) {
+        this.name = name;
+        this.body = body;
+    }
+    LetMacro.properties = [
+        'name',
+        'body'
+    ];
+    LetMacro.create = function (name, body) {
+        return new LetMacro(name, body);
+    };
+    inherit(TermTree, LetMacro, { 'isLetMacro': true });
+    function Macro(name, body) {
+        this.name = name;
+        this.body = body;
+    }
+    Macro.properties = [
+        'name',
+        'body'
+    ];
+    Macro.create = function (name, body) {
+        return new Macro(name, body);
+    };
+    inherit(TermTree, Macro, { 'isMacro': true });
+    function AnonMacro(body) {
+        this.body = body;
+    }
+    AnonMacro.properties = ['body'];
+    AnonMacro.create = function (body) {
+        return new AnonMacro(body);
+    };
+    inherit(TermTree, AnonMacro, { 'isAnonMacro': true });
+    function OperatorDefinition(type, name, prec, assoc, body) {
+        this.type = type;
+        this.name = name;
+        this.prec = prec;
+        this.assoc = assoc;
+        this.body = body;
+    }
+    OperatorDefinition.properties = [
+        'type',
+        'name',
+        'prec',
+        'assoc',
+        'body'
+    ];
+    OperatorDefinition.create = function (type, name, prec, assoc, body) {
+        return new OperatorDefinition(type, name, prec, assoc, body);
+    };
+    inherit(TermTree, OperatorDefinition, { 'isOperatorDefinition': true });
+    function Module(body, exports$3) {
+        this.body = body;
+        this.exports = exports$3;
+    }
+    Module.properties = [
+        'body',
+        'exports'
+    ];
+    Module.create = function (body, exports$3) {
+        return new Module(body, exports$3);
+    };
+    inherit(TermTree, Module, { 'isModule': true });
+    function Export(name) {
+        this.name = name;
+    }
+    Export.properties = ['name'];
+    Export.create = function (name) {
+        return new Export(name);
+    };
+    inherit(TermTree, Export, { 'isExport': true });
+    function VariableDeclaration(ident, eq, init, comma) {
+        this.ident = ident;
+        this.eq = eq;
+        this.init = init;
+        this.comma = comma;
+    }
+    VariableDeclaration.properties = [
+        'ident',
+        'eq',
+        'init',
+        'comma'
+    ];
+    VariableDeclaration.create = function (ident, eq, init, comma) {
+        return new VariableDeclaration(ident, eq, init, comma);
+    };
+    inherit(TermTree, VariableDeclaration, { 'isVariableDeclaration': true });
+    function Statement() {
+    }
+    Statement.properties = [];
+    Statement.create = function () {
+        return new Statement();
+    };
+    inherit(TermTree, Statement, { 'isStatement': true });
+    function Empty() {
+    }
+    Empty.properties = [];
+    Empty.create = function () {
+        return new Empty();
+    };
+    inherit(Statement, Empty, { 'isEmpty': true });
+    function CatchClause(keyword, params, body) {
+        this.keyword = keyword;
+        this.params = params;
+        this.body = body;
+    }
+    CatchClause.properties = [
+        'keyword',
+        'params',
+        'body'
+    ];
+    CatchClause.create = function (keyword, params, body) {
+        return new CatchClause(keyword, params, body);
+    };
+    inherit(Statement, CatchClause, { 'isCatchClause': true });
+    function ForStatement(keyword, cond) {
+        this.keyword = keyword;
+        this.cond = cond;
+    }
+    ForStatement.properties = [
+        'keyword',
+        'cond'
+    ];
+    ForStatement.create = function (keyword, cond) {
+        return new ForStatement(keyword, cond);
+    };
+    inherit(Statement, ForStatement, { 'isForStatement': true });
+    function Expr() {
+    }
+    Expr.properties = [];
+    Expr.create = function () {
+        return new Expr();
+    };
+    inherit(Statement, Expr, { 'isExpr': true });
+    function UnaryOp(op, expr) {
+        this.op = op;
+        this.expr = expr;
+    }
+    UnaryOp.properties = [
+        'op',
+        'expr'
+    ];
+    UnaryOp.create = function (op, expr) {
+        return new UnaryOp(op, expr);
+    };
+    inherit(Expr, UnaryOp, { 'isUnaryOp': true });
+    function PostfixOp(expr, op) {
+        this.expr = expr;
+        this.op = op;
+    }
+    PostfixOp.properties = [
+        'expr',
+        'op'
+    ];
+    PostfixOp.create = function (expr, op) {
+        return new PostfixOp(expr, op);
+    };
+    inherit(Expr, PostfixOp, { 'isPostfixOp': true });
+    function BinOp(left, op, right) {
+        this.left = left;
+        this.op = op;
+        this.right = right;
+    }
+    BinOp.properties = [
+        'left',
+        'op',
+        'right'
+    ];
+    BinOp.create = function (left, op, right) {
+        return new BinOp(left, op, right);
+    };
+    inherit(Expr, BinOp, { 'isBinOp': true });
+    function AssignmentExpression(left, op, right) {
+        this.left = left;
+        this.op = op;
+        this.right = right;
+    }
+    AssignmentExpression.properties = [
+        'left',
+        'op',
+        'right'
+    ];
+    AssignmentExpression.create = function (left, op, right) {
+        return new AssignmentExpression(left, op, right);
+    };
+    inherit(Expr, AssignmentExpression, { 'isAssignmentExpression': true });
+    function ConditionalExpression(cond, question, tru, colon, fls) {
+        this.cond = cond;
+        this.question = question;
+        this.tru = tru;
+        this.colon = colon;
+        this.fls = fls;
+    }
+    ConditionalExpression.properties = [
+        'cond',
+        'question',
+        'tru',
+        'colon',
+        'fls'
+    ];
+    ConditionalExpression.create = function (cond, question, tru, colon, fls) {
+        return new ConditionalExpression(cond, question, tru, colon, fls);
+    };
+    inherit(Expr, ConditionalExpression, { 'isConditionalExpression': true });
+    function NamedFun(keyword, star, name, params, body) {
+        this.keyword = keyword;
+        this.star = star;
+        this.name = name;
+        this.params = params;
+        this.body = body;
+    }
+    NamedFun.properties = [
+        'keyword',
+        'star',
+        'name',
+        'params',
+        'body'
+    ];
+    NamedFun.create = function (keyword, star, name, params, body) {
+        return new NamedFun(keyword, star, name, params, body);
+    };
+    inherit(Expr, NamedFun, { 'isNamedFun': true });
+    function AnonFun(keyword, star, params, body) {
+        this.keyword = keyword;
+        this.star = star;
+        this.params = params;
+        this.body = body;
+    }
+    AnonFun.properties = [
+        'keyword',
+        'star',
+        'params',
+        'body'
+    ];
+    AnonFun.create = function (keyword, star, params, body) {
+        return new AnonFun(keyword, star, params, body);
+    };
+    inherit(Expr, AnonFun, { 'isAnonFun': true });
+    function ArrowFun(params, arrow, body) {
+        this.params = params;
+        this.arrow = arrow;
+        this.body = body;
+    }
+    ArrowFun.properties = [
+        'params',
+        'arrow',
+        'body'
+    ];
+    ArrowFun.create = function (params, arrow, body) {
+        return new ArrowFun(params, arrow, body);
+    };
+    inherit(Expr, ArrowFun, { 'isArrowFun': true });
+    function Const(keyword, call) {
+        this.keyword = keyword;
+        this.call = call;
+    }
+    Const.properties = [
+        'keyword',
+        'call'
+    ];
+    Const.create = function (keyword, call) {
+        return new Const(keyword, call);
+    };
+    inherit(Expr, Const, { 'isConst': true });
+    function ObjDotGet(left, dot, right) {
+        this.left = left;
+        this.dot = dot;
+        this.right = right;
+    }
+    ObjDotGet.properties = [
+        'left',
+        'dot',
+        'right'
+    ];
+    ObjDotGet.create = function (left, dot, right) {
+        return new ObjDotGet(left, dot, right);
+    };
+    inherit(Expr, ObjDotGet, { 'isObjDotGet': true });
+    function ObjGet(left, right) {
+        this.left = left;
+        this.right = right;
+    }
+    ObjGet.properties = [
+        'left',
+        'right'
+    ];
+    ObjGet.create = function (left, right) {
+        return new ObjGet(left, right);
+    };
+    inherit(Expr, ObjGet, { 'isObjGet': true });
+    function YieldExpression(keyword, expr) {
+        this.keyword = keyword;
+        this.expr = expr;
+    }
+    YieldExpression.properties = [
+        'keyword',
+        'expr'
+    ];
+    YieldExpression.create = function (keyword, expr) {
+        return new YieldExpression(keyword, expr);
+    };
+    inherit(Expr, YieldExpression, { 'isYieldExpression': true });
+    function Template(template) {
+        this.template = template;
+    }
+    Template.properties = ['template'];
+    Template.create = function (template) {
+        return new Template(template);
+    };
+    inherit(Expr, Template, { 'isTemplate': true });
+    function PrimaryExpression() {
+    }
+    PrimaryExpression.properties = [];
+    PrimaryExpression.create = function () {
+        return new PrimaryExpression();
+    };
+    inherit(Expr, PrimaryExpression, { 'isPrimaryExpression': true });
+    function ThisExpression(keyword) {
+        this.keyword = keyword;
+    }
+    ThisExpression.properties = ['keyword'];
+    ThisExpression.create = function (keyword) {
+        return new ThisExpression(keyword);
+    };
+    inherit(PrimaryExpression, ThisExpression, { 'isThisExpression': true });
+    function Lit(lit) {
+        this.lit = lit;
+    }
+    Lit.properties = ['lit'];
+    Lit.create = function (lit) {
+        return new Lit(lit);
+    };
+    inherit(PrimaryExpression, Lit, { 'isLit': true });
+    function Block(body) {
+        this.body = body;
+    }
+    Block.properties = ['body'];
+    Block.create = function (body) {
+        return new Block(body);
+    };
+    inherit(PrimaryExpression, Block, { 'isBlock': true });
+    function ArrayLiteral(array) {
+        this.array = array;
+    }
+    ArrayLiteral.properties = ['array'];
+    ArrayLiteral.create = function (array) {
+        return new ArrayLiteral(array);
+    };
+    inherit(PrimaryExpression, ArrayLiteral, { 'isArrayLiteral': true });
+    function ParenExpression(expr) {
+        this.expr = expr;
+    }
+    ParenExpression.properties = ['expr'];
+    ParenExpression.create = function (expr) {
+        return new ParenExpression(expr);
+    };
+    inherit(PrimaryExpression, ParenExpression, { 'isParenExpression': true });
+    function Id(id) {
+        this.id = id;
+    }
+    Id.properties = ['id'];
+    Id.create = function (id) {
+        return new Id(id);
+    };
+    inherit(PrimaryExpression, Id, { 'isId': true });
+    function Partial() {
+    }
+    Partial.properties = [];
+    Partial.create = function () {
+        return new Partial();
+    };
+    inherit(TermTree, Partial, { 'isPartial': true });
+    function PartialOperation(stx, left) {
+        this.stx = stx;
+        this.left = left;
+    }
+    PartialOperation.properties = [
+        'stx',
+        'left'
+    ];
+    PartialOperation.create = function (stx, left) {
+        return new PartialOperation(stx, left);
+    };
+    inherit(Partial, PartialOperation, { 'isPartialOperation': true });
+    function PartialExpression(stx, left, combine) {
+        this.stx = stx;
+        this.left = left;
+        this.combine = combine;
+    }
+    PartialExpression.properties = [
+        'stx',
+        'left',
+        'combine'
+    ];
+    PartialExpression.create = function (stx, left, combine) {
+        return new PartialExpression(stx, left, combine);
+    };
+    inherit(Partial, PartialExpression, { 'isPartialExpression': true });
+    function BindingStatement(keyword, decls) {
+        this.keyword = keyword;
+        this.decls = decls;
+    }
+    BindingStatement.properties = [
+        'keyword',
+        'decls'
+    ];
+    BindingStatement.create = function (keyword, decls) {
+        return new BindingStatement(keyword, decls);
+    };
+    inherit(Statement, BindingStatement, {
+        'isBindingStatement': true,
+        'destruct': function () {
+            return this.keyword.destruct().concat(_.reduce(this.decls, function (acc, decl) {
+                push.apply(acc, decl.destruct());
+                return acc;
+            }, []));
+        }
+    });
+    function VariableStatement(keyword, decls) {
+        this.keyword = keyword;
+        this.decls = decls;
+    }
+    VariableStatement.properties = [
+        'keyword',
+        'decls'
+    ];
+    VariableStatement.create = function (keyword, decls) {
+        return new VariableStatement(keyword, decls);
+    };
+    inherit(BindingStatement, VariableStatement, { 'isVariableStatement': true });
+    function LetStatement(keyword, decls) {
+        this.keyword = keyword;
+        this.decls = decls;
+    }
+    LetStatement.properties = [
+        'keyword',
+        'decls'
+    ];
+    LetStatement.create = function (keyword, decls) {
+        return new LetStatement(keyword, decls);
+    };
+    inherit(BindingStatement, LetStatement, { 'isLetStatement': true });
+    function ConstStatement(keyword, decls) {
+        this.keyword = keyword;
+        this.decls = decls;
+    }
+    ConstStatement.properties = [
+        'keyword',
+        'decls'
+    ];
+    ConstStatement.create = function (keyword, decls) {
+        return new ConstStatement(keyword, decls);
+    };
+    inherit(BindingStatement, ConstStatement, { 'isConstStatement': true });
+    function Call(fun, args, delim, commas) {
+        this.fun = fun;
+        this.args = args;
+        this.delim = delim;
+        this.commas = commas;
+    }
+    Call.properties = [
+        'fun',
+        'args',
+        'delim',
+        'commas'
+    ];
+    Call.create = function (fun, args, delim, commas) {
+        return new Call(fun, args, delim, commas);
+    };
+    inherit(Expr, Call, {
+        'isCall': true,
+        'destruct': function () {
+            assert(this.fun.isTermTree, 'expecting a term tree in destruct of call');
+            var commas = this.commas.slice();
+            var src = this.delim.token;
+            var keys = Object.keys(src);
+            var newtok = {};
+            for (var i = 0, len = keys.length, key; i < len; i++) {
+                key = keys[i];
+                newtok[key] = src[key];
             }
-        });
-    var ConstStatement = Statement.extend({
-            properties: [
-                'constkw',
-                'decls'
-            ],
-            destruct: function () {
-                return this.constkw.destruct().concat(_.reduce(this.decls, function (acc, decl) {
-                    push.apply(acc, decl.destruct());
-                    return acc;
-                }, []));
-            },
-            construct: function (constkw, decls) {
-                assert(Array.isArray(decls), 'decls must be an array');
-                this.constkw = constkw;
-                this.decls = decls;
-            }
-        });
-    var CatchClause = Statement.extend({
-            properties: [
-                'catchkw',
-                'params',
-                'body'
-            ],
-            construct: function (catchkw, params, body) {
-                this.catchkw = catchkw;
-                this.params = params;
-                this.body = body;
-            }
-        });
-    var Module = TermTree.extend({
-            properties: [
-                'body',
-                'exports'
-            ],
-            construct: function (body) {
-                this.body = body;
-                this.exports = [];
-            }
-        });
-    var Empty = Statement.extend({
-            properties: [],
-            construct: function () {
-            }
-        });
-    var Export = TermTree.extend({
-            properties: ['name'],
-            construct: function (name) {
-                this.name = name;
-            }
-        });
-    var ForStatement = Statement.extend({
-            properties: [
-                'forkw',
-                'cond'
-            ],
-            construct: function (forkw, cond) {
-                this.forkw = forkw;
-                this.cond = cond;
-            }
-        });
-    var YieldExpression = Expr.extend({
-            properties: [
-                'yieldkw',
-                'expr'
-            ],
-            construct: function (yieldkw, expr) {
-                this.yieldkw = yieldkw;
-                this.expr = expr;
-            }
-        });
-    var Template = Expr.extend({
-            properties: ['template'],
-            construct: function (template) {
-                this.template = template;
-            }
-        });
-    var OperatorDefinition = TermTree.extend({
-            properties: [
-                'type',
-                'name',
-                'prec',
-                'assoc',
-                'transformer'
-            ],
-            construct: function (type, name, prec, assoc, transformer) {
-                this.type = type;
-                this.name = name;
-                this.prec = prec;
-                this.assoc = assoc;
-                this.transformer = transformer;
-            }
-        });
-    var Partial = TermTree.extend({
-            constructor: function () {
-            }
-        });
-    var PartialOperation = Partial.extend({
-            properties: [],
-            construct: function (stx, left) {
-                this.stx = stx;
-                this.left = left;
-            }
-        });
-    var PartialExpression = Partial.extend({
-            properties: [],
-            construct: function (stx, left, combine) {
-                this.stx = stx;
-                this.left = left;
-                this.combine = combine;
-            }
-        });
+            var delim = syntaxFromToken(newtok, this.delim);
+            delim.token.inner = _.reduce(this.args, function (acc, term) {
+                assert(term && term.isTermTree, 'expecting term trees in destruct of Call');
+                push.apply(acc, term.destruct());
+                // add all commas except for the last one
+                if (commas.length > 0) {
+                    acc.push(commas.shift());
+                }
+                return acc;
+            }, []);
+            var res = this.fun.destruct();
+            push.apply(res, Delimiter.create(delim).destruct());
+            return res;
+        }
+    });
     function stxIsUnaryOp(stx) {
         var staticOperators = [
                 '+',
@@ -971,8 +1046,8 @@
             var right = opRes.result;
             // only a binop if the right is a real expression
             // so 2+2++ will only match 2+2
-            if (right.hasPrototype(Expr)) {
-                var term = AssignmentExpression.create(op, left, right);
+            if (right.isExpr) {
+                var term = AssignmentExpression.create(left, op, right);
                 return {
                     result: term,
                     rest: opRes.rest,
@@ -1027,7 +1102,7 @@
             // just write once).
             stx$2.token.sm_lineNumber = typeof stx$2.token.sm_lineNumber == 'undefined' ? stx$2.token.lineNumber : stx$2.token.sm_lineNumber;
             stx$2.token.sm_lineStart = typeof stx$2.token.sm_lineStart == 'undefined' ? stx$2.token.lineStart : stx$2.token.sm_lineStart;
-            stx$2.token.sm_range = typeof stx$2.token.sm_range == 'undefined' ? _.clone(stx$2.token.range) : stx$2.token.sm_range;
+            stx$2.token.sm_range = typeof stx$2.token.sm_range == 'undefined' ? stx$2.token.range.slice() : stx$2.token.sm_range;
             // move the line info to line up with the macro name
             // (line info starting from the macro name)
             if (stx$2.token.lineNumber === current.lastLineNumber && current.lastLineNumber !== current.lineNumber) {
@@ -1062,19 +1137,22 @@
         var name = getName(head, rest);
         // simple case, don't need to create a new syntax object
         if (name.length === 1) {
-            var resolvedName = resolve(name[0]);
-            if (env.has(resolvedName)) {
-                return env.get(resolvedName);
+            if (env.names.get(unwrapSyntax(name[0]))) {
+                var resolvedName = resolve(name[0]);
+                if (env.has(resolvedName)) {
+                    return env.get(resolvedName);
+                }
             }
             return null;
         } else {
             while (name.length > 0) {
                 var nameStr = name.map(unwrapSyntax).join('');
-                var nameStx = syn.makeIdent(nameStr, name[0]);
-                var resolvedName = resolve(nameStx);
-                var inEnv = env.has(resolvedName);
-                if (inEnv) {
-                    return env.get(resolvedName);
+                if (env.names.get(nameStr)) {
+                    var nameStx = syn.makeIdent(nameStr, name[0]);
+                    var resolvedName = resolve(nameStx);
+                    if (env.has(resolvedName)) {
+                        return env.get(resolvedName);
+                    }
                 }
                 name.pop();
             }
@@ -1084,11 +1162,17 @@
     function nameInEnv(head, rest, env) {
         return getMacroInEnv(head, rest, env) !== null;
     }
-    function expandMacro(stx, context, opCtx, opType) {
+    // This should only be used on things that can't be rebound except by
+    // macros (puncs, keywords).
+    function resolveFast(stx, env) {
+        var name = unwrapSyntax(stx);
+        return env.names.get(name) ? resolve(stx) : name;
+    }
+    function expandMacro(stx, context, opCtx, opType, macroObj) {
         // pull the macro transformer out the environment
         var head = stx[0];
         var rest = stx.slice(1);
-        var macroObj = getMacroInEnv(head, rest, context.env);
+        macroObj = macroObj || getMacroInEnv(head, rest, context.env);
         var stxArg = rest.slice(macroObj.fullName.length - 1);
         var transformer;
         if (opType != null) {
@@ -1167,16 +1251,16 @@
         function step(head, rest, opCtx) {
             var innerTokens;
             assert(Array.isArray(rest), 'result must at least be an empty array');
-            if (head.hasPrototype(TermTree)) {
+            if (head.isTermTree) {
                 var isCustomOp = false;
                 var uopMacroObj;
                 var uopSyntax;
-                if (head.hasPrototype(Punc) || head.hasPrototype(Keyword) || head.hasPrototype(Id)) {
-                    if (head.hasPrototype(Punc)) {
+                if (head.isPunc || head.isKeyword || head.isId) {
+                    if (head.isPunc) {
                         uopSyntax = head.punc;
-                    } else if (head.hasPrototype(Keyword)) {
+                    } else if (head.isKeyword) {
                         uopSyntax = head.keyword;
-                    } else if (head.hasPrototype(Id)) {
+                    } else if (head.isId) {
                         uopSyntax = head.id;
                     }
                     uopMacroObj = getMacroInEnv(uopSyntax, rest, context.env);
@@ -1202,13 +1286,13 @@
                         uopMacroName = [uopSyntax].concat(rest.slice(0, uopMacroObj.fullName.length - 1));
                         opRest = rest.slice(uopMacroObj.fullName.length - 1);
                     }
-                    var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].hasPrototype(Partial) ? opCtx.prevTerms[0] : null;
+                    var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial ? opCtx.prevTerms[0] : null;
                     var unopTerm = PartialOperation.create(head, leftLeft);
                     var unopPrevStx = tagWithTerm(unopTerm, head.destruct().reverse()).concat(opCtx.prevStx);
                     var unopPrevTerms = [unopTerm].concat(opCtx.prevTerms);
                     var unopOpCtx = _.extend({}, opCtx, {
                             combine: function (t) {
-                                if (t.hasPrototype(Expr)) {
+                                if (t.isExpr) {
                                     if (isCustomOp && uopMacroObj.unary) {
                                         var rt$2 = expandMacro(uopMacroName.concat(t.destruct()), context, opCtx, 'unary');
                                         var newt = get_expression(rt$2.result, context);
@@ -1229,12 +1313,12 @@
                         });
                     return step(opRest[0], opRest.slice(1), unopOpCtx);
                 }    // BinOp
-                else if (head.hasPrototype(Expr) && (rest[0] && rest[1] && (stxIsBinOp(rest[0]) && !bopMacroObj || bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary))) {
+                else if (head.isExpr && (rest[0] && rest[1] && (stxIsBinOp(rest[0]) && !bopMacroObj || bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary))) {
                     var opRes;
                     var op = rest[0];
                     var left = head;
                     var rightStx = rest.slice(1);
-                    var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].hasPrototype(Partial) ? opCtx.prevTerms[0] : null;
+                    var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial ? opCtx.prevTerms[0] : null;
                     var leftTerm = PartialExpression.create(head.destruct(), leftLeft, function () {
                             return step(head, [], opCtx);
                         });
@@ -1278,7 +1362,7 @@
                     }
                     var bopOpCtx = _.extend({}, opCtx, {
                             combine: function (right) {
-                                if (right.hasPrototype(Expr)) {
+                                if (right.isExpr) {
                                     if (isCustomOp && bopMacroObj.binary) {
                                         var leftStx = left.destruct();
                                         var rightStx$2 = right.destruct();
@@ -1292,7 +1376,7 @@
                                         };
                                     }
                                     return {
-                                        term: BinOp.create(op, left, right),
+                                        term: BinOp.create(left, op, right),
                                         prevStx: opCtx.prevStx,
                                         prevTerms: opCtx.prevTerms
                                     };
@@ -1312,7 +1396,7 @@
                         });
                     return step(opRightStx[0], opRightStx.slice(1), bopOpCtx);
                 }    // Call
-                else if (head.hasPrototype(Expr) && (rest[0] && rest[0].token.type === parser.Token.Delimiter && rest[0].token.value === '()')) {
+                else if (head.isExpr && (rest[0] && rest[0].token.type === parser.Token.Delimiter && rest[0].token.value === '()')) {
                     var argRes, enforestedArgs = [], commas = [];
                     rest[0].expose();
                     innerTokens = rest[0].token.inner;
@@ -1336,7 +1420,7 @@
                         }
                     }
                     var argsAreExprs = _.all(enforestedArgs, function (argTerm) {
-                            return argTerm.hasPrototype(Expr);
+                            return argTerm.isExpr;
                         });
                     // only a call if we can completely enforest each argument and
                     // each argument is an expression
@@ -1344,45 +1428,45 @@
                         return step(Call.create(head, enforestedArgs, rest[0], commas), rest.slice(1), opCtx);
                     }
                 }    // Conditional ( x ? true : false)
-                else if (head.hasPrototype(Expr) && (rest[0] && resolve(rest[0]) === '?')) {
+                else if (head.isExpr && (rest[0] && resolveFast(rest[0], context.env) === '?')) {
                     var question = rest[0];
                     var condRes = enforest(rest.slice(1), context);
                     if (condRes.result) {
                         var truExpr = condRes.result;
                         var condRight = condRes.rest;
-                        if (truExpr.hasPrototype(Expr) && condRight[0] && resolve(condRight[0]) === ':') {
+                        if (truExpr.isExpr && condRight[0] && resolveFast(condRight[0], context.env) === ':') {
                             var colon = condRight[0];
                             var flsRes = enforest(condRight.slice(1), context);
                             var flsExpr = flsRes.result;
-                            if (flsExpr.hasPrototype(Expr)) {
+                            if (flsExpr.isExpr) {
                                 return step(ConditionalExpression.create(head, question, truExpr, colon, flsExpr), flsRes.rest, opCtx);
                             }
                         }
                     }
                 }    // Constructor
-                else if (head.hasPrototype(Keyword) && (resolve(head.keyword) === 'new' && rest[0])) {
+                else if (head.isKeyword && resolveFast(head.keyword, context.env) === 'new' && rest[0]) {
                     var newCallRes = enforest(rest, context);
-                    if (newCallRes && newCallRes.result.hasPrototype(Call)) {
+                    if (newCallRes && newCallRes.result.isCall) {
                         return step(Const.create(head, newCallRes.result), newCallRes.rest, opCtx);
                     }
                 }    // Arrow functions with expression bodies
-                else if (head.hasPrototype(Delimiter) && (head.delim.token.value === '()' && rest[0] && rest[0].token.type === parser.Token.Punctuator && resolve(rest[0]) === '=>')) {
+                else if (head.isDelimiter && head.delim.token.value === '()' && rest[0] && rest[0].token.type === parser.Token.Punctuator && resolveFast(rest[0], context.env) === '=>') {
                     var arrowRes = enforest(rest.slice(1), context);
-                    if (arrowRes.result && arrowRes.result.hasPrototype(Expr)) {
+                    if (arrowRes.result && arrowRes.result.isExpr) {
                         return step(ArrowFun.create(head.delim, rest[0], arrowRes.result.destruct()), arrowRes.rest, opCtx);
                     } else {
                         throwSyntaxError('enforest', 'Body of arrow function must be an expression', rest.slice(1));
                     }
                 }    // Arrow functions with expression bodies
-                else if (head.hasPrototype(Id) && (rest[0] && rest[0].token.type === parser.Token.Punctuator && resolve(rest[0]) === '=>')) {
+                else if (head.isId && rest[0] && rest[0].token.type === parser.Token.Punctuator && resolveFast(rest[0], context.env) === '=>') {
                     var res = enforest(rest.slice(1), context);
-                    if (res.result && res.result.hasPrototype(Expr)) {
+                    if (res.result && res.result.isExpr) {
                         return step(ArrowFun.create(head.id, rest[0], res.result.destruct()), res.rest, opCtx);
                     } else {
                         throwSyntaxError('enforest', 'Body of arrow function must be an expression', rest.slice(1));
                     }
                 }    // ParenExpr
-                else if (head.hasPrototype(Delimiter) && head.delim.token.value === '()') {
+                else if (head.isDelimiter && head.delim.token.value === '()') {
                     innerTokens = head.delim.expose().token.inner;
                     // empty parens are acceptable but enforest
                     // doesn't accept empty arrays so short
@@ -1392,14 +1476,14 @@
                         return step(ParenExpression.create(head), rest, opCtx);
                     } else {
                         var innerTerm = get_expression(innerTokens, context);
-                        if (innerTerm.result && innerTerm.result.hasPrototype(Expr) && innerTerm.rest.length === 0) {
+                        if (innerTerm.result && innerTerm.result.isExpr && innerTerm.rest.length === 0) {
                             head.delim.token.inner = [innerTerm.result];
                             return step(ParenExpression.create(head), rest, opCtx);
                         }
                     }    // if the tokens inside the paren aren't an expression
                          // we just leave it as a delimiter
                 }    // AssignmentExpression
-                else if (head.hasPrototype(Expr) && ((head.hasPrototype(Id) || head.hasPrototype(ObjGet) || head.hasPrototype(ObjDotGet) || head.hasPrototype(ThisExpression)) && rest[0] && rest[1] && !bopMacroObj && stxIsAssignOp(rest[0]))) {
+                else if (head.isExpr && ((head.isId || head.isObjGet || head.isObjDotGet || head.isThisExpression) && rest[0] && rest[1] && !bopMacroObj && stxIsAssignOp(rest[0]))) {
                     var opRes = enforestAssignment(rest, context, head, prevStx, prevTerms);
                     if (opRes && opRes.result) {
                         return step(opRes.result, opRes.rest, _.extend({}, opCtx, {
@@ -1408,9 +1492,9 @@
                         }));
                     }
                 }    // Postfix
-                else if (head.hasPrototype(Expr) && (rest[0] && (unwrapSyntax(rest[0]) === '++' || unwrapSyntax(rest[0]) === '--'))) {
+                else if (head.isExpr && (rest[0] && (unwrapSyntax(rest[0]) === '++' || unwrapSyntax(rest[0]) === '--'))) {
                     // Check if the operator is a macro first.
-                    if (context.env.has(resolve(rest[0]))) {
+                    if (context.env.has(resolveFast(rest[0], context.env))) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         var opPrevStx = headStx.concat(prevStx);
                         var opPrevTerms = [head].concat(prevTerms);
@@ -1423,12 +1507,12 @@
                     }
                     return step(PostfixOp.create(head, rest[0]), rest.slice(1), opCtx);
                 }    // ObjectGet (computed)
-                else if (head.hasPrototype(Expr) && (rest[0] && rest[0].token.value === '[]')) {
+                else if (head.isExpr && (rest[0] && rest[0].token.value === '[]')) {
                     return step(ObjGet.create(head, Delimiter.create(rest[0].expose())), rest.slice(1), opCtx);
                 }    // ObjectGet
-                else if (head.hasPrototype(Expr) && (rest[0] && unwrapSyntax(rest[0]) === '.' && !context.env.has(resolve(rest[0])) && rest[1] && (rest[1].token.type === parser.Token.Identifier || rest[1].token.type === parser.Token.Keyword))) {
+                else if (head.isExpr && (rest[0] && unwrapSyntax(rest[0]) === '.' && !context.env.has(resolveFast(rest[0], context.env)) && rest[1] && (rest[1].token.type === parser.Token.Identifier || rest[1].token.type === parser.Token.Keyword))) {
                     // Check if the identifier is a macro first.
-                    if (context.env.has(resolve(rest[1]))) {
+                    if (context.env.has(resolveFast(rest[1], context.env))) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         var dotTerm = Punc.create(rest[0]);
                         var dotTerms = [dotTerm].concat(head, prevTerms);
@@ -1442,18 +1526,18 @@
                     }
                     return step(ObjDotGet.create(head, rest[0], rest[1]), rest.slice(2), opCtx);
                 }    // ArrayLiteral
-                else if (head.hasPrototype(Delimiter) && head.delim.token.value === '[]') {
+                else if (head.isDelimiter && head.delim.token.value === '[]') {
                     return step(ArrayLiteral.create(head), rest, opCtx);
                 }    // Block
-                else if (head.hasPrototype(Delimiter) && head.delim.token.value === '{}') {
+                else if (head.isDelimiter && head.delim.token.value === '{}') {
                     return step(Block.create(head), rest, opCtx);
                 }    // quote syntax
-                else if (head.hasPrototype(Id) && unwrapSyntax(head.id) === '#quoteSyntax' && rest[0] && rest[0].token.value === '{}') {
+                else if (head.isId && unwrapSyntax(head.id) === '#quoteSyntax' && rest[0] && rest[0].token.value === '{}') {
                     var tempId = fresh();
                     context.templateMap.set(tempId, rest[0].token.inner);
                     return step(syn.makeIdent('getTemplate', head.id), [syn.makeDelim('()', [syn.makeValue(tempId, head.id)], head.id)].concat(rest.slice(1)), opCtx);
                 }    // let statements
-                else if (head.hasPrototype(Keyword) && resolve(head.keyword) === 'let') {
+                else if (head.isKeyword && unwrapSyntax(head.keyword) === 'let') {
                     var nameTokens = [];
                     if (rest[0] && rest[0].token.type === parser.Token.Delimiter && rest[0].token.value === '()') {
                         nameTokens = rest[0].token.inner;
@@ -1464,7 +1548,7 @@
                     if (rest[1] && rest[1].token.value === '=' && rest[2] && rest[2].token.value === 'macro') {
                         var mac = enforest(rest.slice(2), context);
                         if (mac.result) {
-                            if (!mac.result.hasPrototype(AnonMacro)) {
+                            if (!mac.result.isAnonMacro) {
                                 throwSyntaxError('enforest', 'expecting an anonymous macro definition in syntax let binding', rest.slice(2));
                             }
                             return step(LetMacro.create(nameTokens, mac.result.body), mac.rest, opCtx);
@@ -1477,32 +1561,33 @@
                         }
                     }
                 }    // VariableStatement
-                else if (head.hasPrototype(Keyword) && resolve(head.keyword) === 'var' && rest[0]) {
+                else if (head.isKeyword && unwrapSyntax(head.keyword) === 'var' && rest[0]) {
                     var vsRes = enforestVarStatement(rest, context, head.keyword);
                     if (vsRes && vsRes.result) {
                         return step(VariableStatement.create(head, vsRes.result), vsRes.rest, opCtx);
                     }
                 }    // Const Statement
-                else if (head.hasPrototype(Keyword) && resolve(head.keyword) === 'const' && rest[0]) {
+                else if (head.isKeyword && unwrapSyntax(head.keyword) === 'const' && rest[0]) {
                     var csRes = enforestVarStatement(rest, context, head.keyword);
                     if (csRes && csRes.result) {
                         return step(ConstStatement.create(head, csRes.result), csRes.rest, opCtx);
                     }
                 }    // for statement
-                else if (head.hasPrototype(Keyword) && resolve(head.keyword) === 'for' && rest[0] && rest[0].token.value === '()') {
+                else if (head.isKeyword && unwrapSyntax(head.keyword) === 'for' && rest[0] && rest[0].token.value === '()') {
                     return step(ForStatement.create(head.keyword, rest[0]), rest.slice(1), opCtx);
                 }    // yield statement
-                else if (head.hasPrototype(Keyword) && resolve(head.keyword) === 'yield') {
+                else if (head.isKeyword && unwrapSyntax(head.keyword) === 'yield') {
                     var yieldExprRes = enforest(rest, context);
-                    if (yieldExprRes.result && yieldExprRes.result.hasPrototype(Expr)) {
+                    if (yieldExprRes.result && yieldExprRes.result.isExpr) {
                         return step(YieldExpression.create(head.keyword, yieldExprRes.result), yieldExprRes.rest, opCtx);
                     }
                 }
             } else {
                 assert(head && head.token, 'assuming head is a syntax object');
+                var macroObj = expandCount < maxExpands && getMacroInEnv(head, rest, context.env);
                 // macro invocation
-                if ((head.token.type === parser.Token.Identifier || head.token.type === parser.Token.Keyword || head.token.type === parser.Token.Punctuator) && expandCount < maxExpands && nameInEnv(head, rest, context.env) && !getMacroInEnv(head, rest, context.env).isOp) {
-                    var rt = expandMacro([head].concat(rest), context, opCtx);
+                if (macroObj && !macroObj.isOp) {
+                    var rt = expandMacro([head].concat(rest), context, opCtx, null, macroObj);
                     var newOpCtx = opCtx;
                     if (rt.prevTerms && rt.prevTerms.length < opCtx.prevTerms.length) {
                         newOpCtx = rewindOpCtx(opCtx, rt);
@@ -1540,7 +1625,7 @@
                     return step(OperatorDefinition.create('binary', rest[0].expose().token.inner, rest[1], rest[2], trans.result.body), rest.slice(4), opCtx);
                 }    // module definition
                 else if (unwrapSyntax(head) === 'module' && rest[0] && rest[0].token.value === '{}') {
-                    return step(Module.create(rest[0]), rest.slice(1), opCtx);
+                    return step(Module.create(rest[0], []), rest.slice(1), opCtx);
                 }    // function definition
                 else if (head.token.type === parser.Token.Keyword && unwrapSyntax(head) === 'function' && rest[0] && rest[0].token.type === parser.Token.Identifier && rest[1] && rest[1].token.type === parser.Token.Delimiter && rest[1].token.value === '()' && rest[2] && rest[2].token.type === parser.Token.Delimiter && rest[2].token.value === '{}') {
                     rest[1].token.inner = rest[1].expose().token.inner;
@@ -1562,7 +1647,7 @@
                     rest[2].token.inner = rest[2].expose().token.inner;
                     return step(AnonFun.create(head, rest[0], rest[1], rest[2]), rest.slice(3), opCtx);
                 }    // arrow function
-                else if ((head.token.type === parser.Token.Delimiter && head.token.value === '()' || head.token.type === parser.Token.Identifier) && rest[0] && rest[0].token.type === parser.Token.Punctuator && resolve(rest[0]) === '=>' && rest[1] && rest[1].token.type === parser.Token.Delimiter && rest[1].token.value === '{}') {
+                else if ((head.token.type === parser.Token.Delimiter && head.token.value === '()' || head.token.type === parser.Token.Identifier) && rest[0] && rest[0].token.type === parser.Token.Punctuator && resolveFast(rest[0], context.env) === '=>' && rest[1] && rest[1].token.type === parser.Token.Delimiter && rest[1].token.value === '{}') {
                     return step(ArrowFun.create(head, rest[0], rest[1]), rest.slice(2), opCtx);
                 }    // catch statement
                 else if (head.token.type === parser.Token.Keyword && unwrapSyntax(head) === 'catch' && rest[0] && rest[0].token.type === parser.Token.Delimiter && rest[0].token.value === '()' && rest[1] && rest[1].token.type === parser.Token.Delimiter && rest[1].token.value === '{}') {
@@ -1604,8 +1689,8 @@
                 }
             }
             // Potentially an infix macro
-            if (head.hasPrototype(Expr) && rest.length && nameInEnv(rest[0], rest.slice(1), context.env)) {
-                var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].hasPrototype(Partial) ? opCtx.prevTerms[0] : null;
+            if (head.isExpr && rest.length && nameInEnv(rest[0], rest.slice(1), context.env)) {
+                var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial ? opCtx.prevTerms[0] : null;
                 var infTerm = PartialExpression.create(head.destruct(), infLeftTerm, function () {
                         return step(head, [], opCtx);
                     });
@@ -1654,7 +1739,7 @@
         // If we've consumed all pending operators, we can just start over.
         // It's important that we always thread the new prevStx and prevTerms
         // through, otherwise the old ones will still persist.
-        if (!res.prevTerms.length || !res.prevTerms[0].hasPrototype(Partial)) {
+        if (!res.prevTerms.length || !res.prevTerms[0].isPartial) {
             return _.extend({}, opCtx, {
                 combine: function (t) {
                     return {
@@ -1675,10 +1760,10 @@
         // back.
         var op = null;
         for (var i = 0; i < res.prevTerms.length; i++) {
-            if (!res.prevTerms[i].hasPrototype(Partial)) {
+            if (!res.prevTerms[i].isPartial) {
                 break;
             }
-            if (res.prevTerms[i].hasPrototype(PartialOperation)) {
+            if (res.prevTerms[i].isPartialOperation) {
                 op = res.prevTerms[i];
                 break;
             }
@@ -1711,11 +1796,11 @@
             // Guard the termLen because we can have a multi-token term that
             // we don't want to split. TODO: is there something we can do to
             // get around this safely?
-            if (stx[0].term.hasPrototype(PartialExpression) && termLen === stx[0].term.stx.length) {
+            if (stx[0].term.isPartialExpression && termLen === stx[0].term.stx.length) {
                 var expr = stx[0].term.combine().result;
                 for (var i = 1, term = stx[0].term; i < stx.length; i++) {
                     if (stx[i].term !== term) {
-                        if (term && term.hasPrototype(Partial)) {
+                        if (term && term.isPartial) {
                             term = term.left;
                             i--;
                         } else {
@@ -1727,7 +1812,7 @@
                     result: expr,
                     rest: stx.slice(i)
                 };
-            } else if (stx[0].term.hasPrototype(Expr)) {
+            } else if (stx[0].term.isExpr) {
                 return {
                     result: stx[0].term,
                     rest: stx.slice(termLen)
@@ -1740,7 +1825,7 @@
             }
         }
         var res = enforest(stx, context);
-        if (!res.result || !res.result.hasPrototype(Expr)) {
+        if (!res.result || !res.result.isExpr) {
             return {
                 result: null,
                 rest: stx
@@ -1750,7 +1835,14 @@
     }
     function tagWithTerm(term, stx) {
         return stx.map(function (s) {
-            s = syntaxFromToken(_.clone(s.token), s);
+            var src = s.token;
+            var keys = Object.keys(src);
+            var newtok = {};
+            for (var i = 0, len = keys.length, key; i < len; i++) {
+                key = keys[i];
+                newtok[key] = src[key];
+            }
+            s = syntaxFromToken(newtok, s);
             s.term = term;
             return s;
         });
@@ -1895,12 +1987,13 @@
                 restStx = rest;
                 break;
             }
-            if (head.hasPrototype(Macro) && expandCount < maxExpands) {
+            if (head.isMacro && expandCount < maxExpands) {
                 // load the macro definition into the environment and continue expanding
                 macroDefinition = loadMacroDef(head.body, context);
                 var name = head.name.map(unwrapSyntax).join('');
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false);
+                context.env.names.set(name, true);
                 context.env.set(resolve(nameStx), {
                     fn: macroDefinition,
                     isOp: false,
@@ -1909,7 +2002,7 @@
                 });
                 continue;
             }
-            if (head.hasPrototype(LetMacro) && expandCount < maxExpands) {
+            if (head.isLetMacro && expandCount < maxExpands) {
                 // load the macro definition into the environment and continue expanding
                 macroDefinition = loadMacroDef(head.body, context);
                 var freshName = fresh();
@@ -1919,6 +2012,7 @@
                 rest = _.map(rest, function (stx$2) {
                     return stx$2.rename(nameStx, freshName);
                 });
+                context.env.names.set(name, true);
                 context.env.set(resolve(renamedName), {
                     fn: macroDefinition,
                     isOp: false,
@@ -1927,8 +2021,8 @@
                 });
                 continue;
             }
-            if (head.hasPrototype(OperatorDefinition)) {
-                var opDefinition = loadMacroDef(head.transformer, context);
+            if (head.isOperatorDefinition) {
+                var opDefinition = loadMacroDef(head.body, context);
                 var name = head.name.map(unwrapSyntax).join('');
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false);
@@ -1947,6 +2041,7 @@
                     prec: head.prec.token.value,
                     assoc: head.assoc ? head.assoc.token.value : null
                 };
+                context.env.names.set(name, true);
                 context.env.set(resolvedName, opObj);
                 continue;
             }
@@ -1955,33 +2050,33 @@
             var destructed = tagWithTerm(head, f.result.destruct());
             prevTerms = [head].concat(f.prevTerms);
             prevStx = destructed.reverse().concat(f.prevStx);
-            if (head.hasPrototype(NamedFun)) {
+            if (head.isNamedFun) {
                 addToDefinitionCtx([head.name], context.defscope, true);
             }
-            if (head.hasPrototype(VariableStatement) || head.hasPrototype(LetStatement) || head.hasPrototype(ConstStatement)) {
+            if (head.isVariableStatement || head.isLetStatement || head.isConstStatement) {
                 addToDefinitionCtx(_.map(head.decls, function (decl) {
                     return decl.ident;
                 }), context.defscope, true);
             }
-            if (head.hasPrototype(Block) && head.body.hasPrototype(Delimiter)) {
+            if (head.isBlock && head.body.isDelimiter) {
                 head.body.delim.token.inner.forEach(function (term) {
-                    if (term.hasPrototype(VariableStatement)) {
+                    if (term.isVariableStatement) {
                         addToDefinitionCtx(_.map(term.decls, function (decl) {
                             return decl.ident;
                         }), context.defscope, true);
                     }
                 });
             }
-            if (head.hasPrototype(Delimiter)) {
+            if (head.isDelimiter) {
                 head.delim.token.inner.forEach(function (term) {
-                    if (term.hasPrototype(VariableStatement)) {
+                    if (term.isVariableStatement) {
                         addToDefinitionCtx(_.map(term.decls, function (decl) {
                             return decl.ident;
                         }), context.defscope, true);
                     }
                 });
             }
-            if (head.hasPrototype(ForStatement)) {
+            if (head.isForStatement) {
                 head.cond.expose();
                 var forCond = head.cond.token.inner;
                 if (forCond[0] && resolve(forCond[0]) === 'let' && forCond[1] && forCond[1].token.type === parser.Token.Identifier) {
@@ -2053,60 +2148,60 @@
     // (TermTree, Map, Map) -> TermTree
     function expandTermTreeToFinal(term, context) {
         assert(context && context.env, 'environment map is required');
-        if (term.hasPrototype(ArrayLiteral)) {
+        if (term.isArrayLiteral) {
             term.array.delim.token.inner = expand(term.array.delim.expose().token.inner, context);
             return term;
-        } else if (term.hasPrototype(Block)) {
+        } else if (term.isBlock) {
             term.body.delim.token.inner = expand(term.body.delim.expose().token.inner, context);
             return term;
-        } else if (term.hasPrototype(ParenExpression)) {
+        } else if (term.isParenExpression) {
             assert(term.expr.delim.token.inner.length === 1, 'Paren expressions always have a single term inside the delimiter');
             term.expr.delim.token.inner = [expandTermTreeToFinal(term.expr.delim.token.inner[0], context)];
             return term;
-        } else if (term.hasPrototype(Call)) {
+        } else if (term.isCall) {
             term.fun = expandTermTreeToFinal(term.fun, context);
             term.args = _.map(term.args, function (arg) {
                 return expandTermTreeToFinal(arg, context);
             });
             return term;
-        } else if (term.hasPrototype(Const)) {
+        } else if (term.isConst) {
             term.call = expandTermTreeToFinal(term.call, context);
             return term;
-        } else if (term.hasPrototype(UnaryOp)) {
+        } else if (term.isUnaryOp) {
             term.expr = expandTermTreeToFinal(term.expr, context);
             return term;
-        } else if (term.hasPrototype(BinOp) || term.hasPrototype(AssignmentExpression)) {
+        } else if (term.isBinOp || term.isAssignmentExpression) {
             term.left = expandTermTreeToFinal(term.left, context);
             term.right = expandTermTreeToFinal(term.right, context);
             return term;
-        } else if (term.hasPrototype(ObjGet)) {
+        } else if (term.isObjGet) {
             term.left = expandTermTreeToFinal(term.left, context);
             term.right.delim.token.inner = expand(term.right.delim.expose().token.inner, context);
             return term;
-        } else if (term.hasPrototype(ObjDotGet)) {
+        } else if (term.isObjDotGet) {
             term.left = expandTermTreeToFinal(term.left, context);
             term.right = expandTermTreeToFinal(term.right, context);
             return term;
-        } else if (term.hasPrototype(ConditionalExpression)) {
+        } else if (term.isConditionalExpression) {
             term.cond = expandTermTreeToFinal(term.cond, context);
             term.tru = expandTermTreeToFinal(term.tru, context);
             term.fls = expandTermTreeToFinal(term.fls, context);
             return term;
-        } else if (term.hasPrototype(VariableDeclaration)) {
+        } else if (term.isVariableDeclaration) {
             if (term.init) {
                 term.init = expandTermTreeToFinal(term.init, context);
             }
             return term;
-        } else if (term.hasPrototype(VariableStatement)) {
+        } else if (term.isVariableStatement) {
             term.decls = _.map(term.decls, function (decl) {
                 return expandTermTreeToFinal(decl, context);
             });
             return term;
-        } else if (term.hasPrototype(Delimiter)) {
+        } else if (term.isDelimiter) {
             // expand inside the delimiter and then continue on
             term.delim.token.inner = expand(term.delim.expose().token.inner, context);
             return term;
-        } else if (term.hasPrototype(NamedFun) || term.hasPrototype(AnonFun) || term.hasPrototype(CatchClause) || term.hasPrototype(ArrowFun) || term.hasPrototype(Module)) {
+        } else if (term.isNamedFun || term.isAnonFun || term.isCatchClause || term.isArrowFun || term.isModule) {
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
             var newDef = [];
@@ -2172,7 +2267,7 @@
                 // add the definition context to the result of
                 // expansion (this makes sure that syntax objects
                 // introduced by expansion have the def context)
-                if (bodyTerm.hasPrototype(Block)) {
+                if (bodyTerm.isBlock) {
                     // we need to expand blocks before adding the defctx since
                     // blocks defer macro expansion.
                     var blockFinal = expandTermTreeToFinal(bodyTerm, expandedResult.context);
@@ -2183,9 +2278,9 @@
                     return expandTermTreeToFinal(termWithCtx, expandedResult.context);
                 }
             });
-            if (term.hasPrototype(Module)) {
+            if (term.isModule) {
                 bodyTerms = _.filter(bodyTerms, function (bodyTerm) {
-                    if (bodyTerm.hasPrototype(Export)) {
+                    if (bodyTerm.isExport) {
                         term.exports.push(bodyTerm);
                         return false;
                     } else {
@@ -2220,6 +2315,10 @@
     }
     function makeExpanderContext(o) {
         o = o || {};
+        var env = o.env || new StringMap();
+        if (!env.names) {
+            env.names = new StringMap();
+        }
         // read-only but can enumerate
         return Object.create(Object.prototype, {
             filename: {
@@ -2235,7 +2334,7 @@
                 configurable: false
             },
             env: {
-                value: o.env || new StringMap(),
+                value: env,
                 writable: false,
                 enumerable: true,
                 configurable: false
@@ -2283,6 +2382,7 @@
         var modBody = syn.makeDelim('{}', stx, null);
         modBody = _.reduce(moduleContexts, function (acc, mod) {
             context.env.extend(mod.env);
+            context.env.names.extend(mod.env.names);
             return loadModuleExports(acc, context.env, mod.exports, mod.env);
         }, modBody);
         var res = expand([
@@ -2300,6 +2400,7 @@
         var modBody = syn.makeDelim('{}', stx, null);
         modBody = _.reduce(moduleContexts, function (acc, mod) {
             context.env.extend(mod.env);
+            context.env.names.extend(mod.env.names);
             return loadModuleExports(acc, context.env, mod.exports, mod.env);
         }, modBody);
         builtinMode = true;

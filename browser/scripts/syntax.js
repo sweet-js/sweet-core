@@ -102,20 +102,21 @@
                     assert(false, 'unknown context type');
                 }
             }
-            this.token.inner = _.map(this.token.inner, _.bind(function (stx) {
+            var self = this;
+            this.token.inner = _.map(this.token.inner, function (stx) {
                 // when not a syntax object (aka a TermTree) then no need to push down the expose
                 if (!stx.token) {
                     return stx;
                 }
                 if (stx.token.inner) {
                     return syntaxFromToken(stx.token, {
-                        deferredContext: applyContext(stx.deferredContext, this.deferredContext),
-                        context: applyContext(stx.context, this.deferredContext)
+                        deferredContext: applyContext(stx.deferredContext, self.deferredContext),
+                        context: applyContext(stx.context, self.deferredContext)
                     });
                 } else {
-                    return syntaxFromToken(stx.token, { context: applyContext(stx.context, this.deferredContext) });
+                    return syntaxFromToken(stx.token, { context: applyContext(stx.context, self.deferredContext) });
                 }
-            }, this));
+            });
             this.deferredContext = null;
             return this;
         },
