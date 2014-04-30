@@ -700,6 +700,128 @@ let letstx = macro {
 export letstx;
 
 
+macro make_pattern {
+    function(stx, context, prevStx, prevTerms) {
+        // TODO: get rid of this. It's only needed because loadPattern doesn't
+        // return this directly, but it should.
+        function patternToObject(pat) {
+            var obj = {value: pat.token.value};
+            if (pat.token.type === parser.Token.Delimiter) {
+                obj.inner = pat.token.inner.map(patternToObject);
+            }
+            if (pat.class) obj.class = pat.class;
+            if (pat.repeat) obj.repeat = pat.repeat;
+            if (pat.separator) obj.separator = pat.separator;
+            if (pat.leading) obj.leading = pat.leading;
+            if (pat.macroName) obj.macroName = pat.macroName;
+            return obj;
+        }
+
+        // Silly
+        function joiner(arr, o, punc) {
+            var res = [];
+            for (var i = 0; i < arr.length; i++) {
+                if (punc && i > 0) {
+                    res.push(makePunc(punc, here));
+                }
+                res.push.apply(res, arr[i][o]);
+            }
+            return res;
+        }
+
+        var here = quoteSyntax{ here };
+        var macName = stx[0];
+        var stxName = stx[1];
+        var ctxName = stx[2];
+        var matchName = stx[3];
+
+        var ruleStx = [makeIdent('_', here)].concat(stx[4].expose().token.inner);
+        var ruleId = __fresh();
+        var rule = patternModule.loadPattern(ruleStx).map(patternToObject);
+        context.patternMap.set(ruleId, rule);
+
+        // Ugh. Transplant for #{} in where bindings. All this ugliness is to
+        // get around the fact that #{} can't be used in withSyntax.
+        stx[5].deferredContext = macName.context;
+        var whereStx = stx[5].expose().token.inner;
+        var whereBindings = whereStx.map(function(where, i) {
+            where.expose(); 
+            var lhs = where.token.inner[0].expose().token.inner;
+            var rhs = where.token.inner[1].expose().token.inner;
+            var ref = [makeKeyword('var', here), makeIdent('w' + i, here), 
+                       makePunc('=', here)].concat(rhs, makePunc(';', here));
+            var stx = lhs.concat(makePunc('=', here), makeIdent('w' + i, here));
+            return [ref, stx];
+        });
+
+        var ret = [
+            makeKeyword('return', here), makeDelim('{}', [
+                makeIdent('result', here), makePunc(':', here), makeDelim('[]', [], here),
+                makePunc(',', here),
+                makeIdent('rest', here), makePunc(':', here),
+                matchName, makePunc('.', here), makeIdent('rest', here),
+                makePunc(',', here),
+                makeIdent('patterns', here), makePunc(':', here),
+                matchName, makePunc('.', here), makeIdent('patternEnv', here),
+            ], here)
+        ];
+
+        var inner = ret;
+        if (whereBindings.length) {
+            inner = joiner(whereBindings, 0).concat(
+                makeKeyword('return', macName), makeIdent('withSyntax', macName),
+                makeDelim('()', joiner(whereBindings, 1, ','), here),
+                makeDelim('{}', ret, here)
+            );
+        }
+
+        var res = [
+            matchName, makePunc('=', here),
+            makeIdent('patternModule', here), makePunc('.', here),
+            makeIdent('matchPatterns', here), makeDelim('()', [
+                makeIdent('getPattern', here), makeDelim('()', [
+                    makeValue(ruleId, here)
+                ], here),
+                makePunc(',', here), stxName,
+                makePunc(',', here), ctxName, makePunc('.', here), makeIdent('env', here),
+                makePunc(',', here), makeValue(true, here)
+            ], here),
+            makePunc(';', here),
+            makeKeyword('if', here), makeDelim('()', [
+                matchName, makePunc('.', here), makeIdent('success', here)
+            ], here), makeDelim('{}', inner, here)
+        ];
+
+        return {
+            result: res,
+            rest: stx.slice(6)
+        };
+    }
+}
+
+macro patt {
+    rule { pattern { $patt ... } where ($($lhs ... = $rhs ...) (,) ...) }
+      => { ($patt ...) ($((($lhs ...) ($rhs ...))) ...) }
+
+    rule { pattern { $patt ... } }
+      => { ($patt ...) () }
+}
+
+
+let macroclass = macro {
+    rule { $name:ident { $pattern:patt ... } } => {
+        macro $name {
+            function (stx, context, prevStx, prevTerms) {
+                var name_stx = stx[0];
+                var match;
+                $(make_pattern stx context match $pattern) ...
+                throwSyntaxCaseError('No match', stx[1]);
+            }
+        }
+    }
+}
+export macroclass;
+
 
 macro safemacro {
     rule { $name:ident { rule $body ... } } => {
