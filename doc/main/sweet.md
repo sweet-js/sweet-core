@@ -887,7 +887,98 @@ require('./test.sjs');
 
 This is basically equivalent to running `sjs --module ./macros/str test.sjs`.
 
+
+# Compiler API
+
+## `sweet.compile`
+
+Expands all macros and return the expanded code as a string.
+
+```js
+(Str, {
+        sourceMap: Bool,
+        filename: Str,
+        readableNames: Bool,
+        maxExpands: Num
+    }) -> {
+        code: Str,
+        sourceMap: Str
+    }
+sweet.compile(code, options)
+```
+
+**Parameters**:
+
+- `code` the code to expand
+- `options` options object:
+    + `sourceMap` if `true` generate a source map
+    + `filename` file name of the source file to go into the source map
+    + `readableNames` clean up variables that were renamed from hygiene (`foo$100` becomes `foo` where ever possible). Only supports ES5 code.
+    + `maxExpands` maximum number of times to expand macros. Used to implement macro stepping.
+
+**Return**:
+
+An object with two fields:
+
+- `code` the expanded code
+- `sourceMap` the source map
+
+## `sweet.parse`
+
+Expands all macros and returns an AST.
+
+```js
+(Str, [...[...Syntax]], { maxExpands: Num }) -> AST
+sweet.parse(code, modules, options)
+```
+
+**Parameters**:
+
+- `code` the code to expand
+- `modules` each array should be the result of `expand` on a module. Any macros in the module that were `export`ed will be in scope while expanding `code`.
+- `options` options object:
+    + `maxExpands` maximum number of times to expand macros. Used to implement macro stepping.
+
+**Return**:
+
+The abstract syntax tree. See the [Parser API](https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API) for details. 
+
+## `sweet.expand`
+
+Expands all macros and returns an array of syntax objects.
+
+```js
+(Str, [...[...Syntax]], { maxExpands: Num }) -> [...Syntax]
+sweet.expand(code, modules, options)
+```
+
+**Parameters**:
+
+- `code` the code to expand
+- `modules` each array should be the result of `expand` on a module. Any macros in the module that were `export`ed will be in scope while expanding `code`.
+- `options` options object:
+    + `maxExpands` maximum number of times to expand macros. Used to implement macro stepping.
+
+**Return**:
+
+An array of syntax objects. Syntax objects are an object with two fields:
+
+- `token` which is a token object that [esprima](http://esprima.org/) understands.
+- `context` holds hygiene information. 
+
 # FAQ
+
+## How do I Run Sweet.js in the Browser?
+
+Load sweet.js using AMD/require.js:
+
+```js
+require(["./sweet"], function(sweet) {
+    // ...
+});
+```
+
+Then just use the sweet.js compiler [API](#compiler-api). You can see an example of this in action with the sweet.js editor [here](https://github.com/mozilla/sweet.js/blob/3062bde9d3464adee868c98a2ced44d2316a6763/browser/editor.html) and [here](https://github.com/mozilla/sweet.js/blob/3062bde9d3464adee868c98a2ced44d2316a6763/browser/scripts/editor.js).
 
 ## How do I break hygiene?
 

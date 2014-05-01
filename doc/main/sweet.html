@@ -165,12 +165,18 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <li><a href="#using-modules"><span class="toc-section-number">9.1</span> Using Modules</a></li>
 <li><a href="#node-loader"><span class="toc-section-number">9.2</span> Node Loader</a></li>
 </ul></li>
-<li><a href="#faq"><span class="toc-section-number">10</span> FAQ</a><ul>
-<li><a href="#how-do-i-break-hygiene"><span class="toc-section-number">10.1</span> How do I break hygiene?</a></li>
-<li><a href="#how-do-i-output-comments"><span class="toc-section-number">10.2</span> How do I output comments?</a></li>
-<li><a href="#how-do-i-debug-macros"><span class="toc-section-number">10.3</span> How do I debug macros?</a><ul>
-<li><a href="#stepping-through-expansion"><span class="toc-section-number">10.3.1</span> Stepping Through Expansion</a></li>
-<li><a href="#understanding-case-macros"><span class="toc-section-number">10.3.2</span> Understanding Case Macros</a></li>
+<li><a href="#compiler-api"><span class="toc-section-number">10</span> Compiler API</a><ul>
+<li><a href="#sweet.compile"><span class="toc-section-number">10.1</span> <code>sweet.compile</code></a></li>
+<li><a href="#sweet.parse"><span class="toc-section-number">10.2</span> <code>sweet.parse</code></a></li>
+<li><a href="#sweet.expand"><span class="toc-section-number">10.3</span> <code>sweet.expand</code></a></li>
+</ul></li>
+<li><a href="#faq"><span class="toc-section-number">11</span> FAQ</a><ul>
+<li><a href="#how-do-i-run-sweet.js-in-the-browser"><span class="toc-section-number">11.1</span> How do I Run Sweet.js in the Browser?</a></li>
+<li><a href="#how-do-i-break-hygiene"><span class="toc-section-number">11.2</span> How do I break hygiene?</a></li>
+<li><a href="#how-do-i-output-comments"><span class="toc-section-number">11.3</span> How do I output comments?</a></li>
+<li><a href="#how-do-i-debug-macros"><span class="toc-section-number">11.4</span> How do I debug macros?</a><ul>
+<li><a href="#stepping-through-expansion"><span class="toc-section-number">11.4.1</span> Stepping Through Expansion</a></li>
+<li><a href="#understanding-case-macros"><span class="toc-section-number">11.4.2</span> Understanding Case Macros</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -881,8 +887,78 @@ sweet.loadMacro(&#39;./macros/str&#39;);
 // test.sjs uses macros that have been defined and exported in `macros/str.sjs`
 require(&#39;./test.sjs&#39;);</code></pre>
 <p>This is basically equivalent to running <code>sjs --module ./macros/str test.sjs</code>.</p>
-<h1 id="faq"><span class="header-section-number">10</span> FAQ</h1>
-<h2 id="how-do-i-break-hygiene"><span class="header-section-number">10.1</span> How do I break hygiene?</h2>
+<h1 id="compiler-api"><span class="header-section-number">10</span> Compiler API</h1>
+<h2 id="sweet.compile"><span class="header-section-number">10.1</span> <code>sweet.compile</code></h2>
+<p>Expands all macros and return the expanded code as a string.</p>
+<pre class="js"><code>(Str, {
+        sourceMap: Bool,
+        filename: Str,
+        readableNames: Bool,
+        maxExpands: Num
+    }) -&gt; {
+        code: Str,
+        sourceMap: Str
+    }
+sweet.compile(code, options)</code></pre>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>code</code> the code to expand</li>
+<li><code>options</code> options object:
+<ul>
+<li><code>sourceMap</code> if <code>true</code> generate a source map</li>
+<li><code>filename</code> file name of the source file to go into the source map</li>
+<li><code>readableNames</code> clean up variables that were renamed from hygiene (<code>foo$100</code> becomes <code>foo</code> where ever possible). Only supports ES5 code.</li>
+<li><code>maxExpands</code> maximum number of times to expand macros. Used to implement macro stepping.</li>
+</ul></li>
+</ul>
+<p><strong>Return</strong>:</p>
+<p>An object with two fields:</p>
+<ul>
+<li><code>code</code> the expanded code</li>
+<li><code>sourceMap</code> the source map</li>
+</ul>
+<h2 id="sweet.parse"><span class="header-section-number">10.2</span> <code>sweet.parse</code></h2>
+<p>Expands all macros and returns an AST.</p>
+<pre class="js"><code>(Str, [...[...Syntax]], { maxExpands: Num }) -&gt; AST
+sweet.parse(code, modules, options)</code></pre>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>code</code> the code to expand</li>
+<li><code>modules</code> each array should be the result of <code>expand</code> on a module. Any macros in the module that were <code>export</code>ed will be in scope while expanding <code>code</code>.</li>
+<li><code>options</code> options object:
+<ul>
+<li><code>maxExpands</code> maximum number of times to expand macros. Used to implement macro stepping.</li>
+</ul></li>
+</ul>
+<p><strong>Return</strong>:</p>
+<p>The abstract syntax tree. See the <a href="https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API">Parser API</a> for details.</p>
+<h2 id="sweet.expand"><span class="header-section-number">10.3</span> <code>sweet.expand</code></h2>
+<p>Expands all macros and returns an array of syntax objects.</p>
+<pre class="js"><code>(Str, [...[...Syntax]], { maxExpands: Num }) -&gt; [...Syntax]
+sweet.expand(code, modules, options)</code></pre>
+<p><strong>Parameters</strong>:</p>
+<ul>
+<li><code>code</code> the code to expand</li>
+<li><code>modules</code> each array should be the result of <code>expand</code> on a module. Any macros in the module that were <code>export</code>ed will be in scope while expanding <code>code</code>.</li>
+<li><code>options</code> options object:
+<ul>
+<li><code>maxExpands</code> maximum number of times to expand macros. Used to implement macro stepping.</li>
+</ul></li>
+</ul>
+<p><strong>Return</strong>:</p>
+<p>An array of syntax objects. Syntax objects are an object with two fields:</p>
+<ul>
+<li><code>token</code> which is a token object that <a href="http://esprima.org/">esprima</a> understands.</li>
+<li><code>context</code> holds hygiene information.</li>
+</ul>
+<h1 id="faq"><span class="header-section-number">11</span> FAQ</h1>
+<h2 id="how-do-i-run-sweet.js-in-the-browser"><span class="header-section-number">11.1</span> How do I Run Sweet.js in the Browser?</h2>
+<p>Load sweet.js using AMD/require.js:</p>
+<pre class="js"><code>require([&quot;./sweet&quot;], function(sweet) {
+    // ...
+});</code></pre>
+<p>Then just use the sweet.js compiler <a href="#compiler-api">API</a>. You can see an example of this in action with the sweet.js editor <a href="https://github.com/mozilla/sweet.js/blob/3062bde9d3464adee868c98a2ced44d2316a6763/browser/editor.html">here</a> and <a href="https://github.com/mozilla/sweet.js/blob/3062bde9d3464adee868c98a2ced44d2316a6763/browser/scripts/editor.js">here</a>.</p>
+<h2 id="how-do-i-break-hygiene"><span class="header-section-number">11.2</span> How do I break hygiene?</h2>
 <p>Sometimes you really do need to break the wonderful protections provided by hygiene. Breaking hygiene is usually a bad idea but sweet.js won't judge.</p>
 <p>Breaking hygiene is done by stealing the lexical context from syntax objects in the &quot;right place&quot;. To clarify, consider <code>aif</code> the <a href="http://en.wikipedia.org/wiki/Anaphoric_macro">anaphoric</a> if macro that binds its condition to the identifier <code>it</code> in the body.</p>
 <pre class="js"><code>var it = &quot;foo&quot;;
@@ -914,7 +990,7 @@ aif (long.obj.path) {
       }
   }
 }</code></pre>
-<h2 id="how-do-i-output-comments"><span class="header-section-number">10.2</span> How do I output comments?</h2>
+<h2 id="how-do-i-output-comments"><span class="header-section-number">11.3</span> How do I output comments?</h2>
 <p>Comments in a rule macro or inside a <code>#{...}</code> template should &quot;just work&quot;. If you want to create comment strings programmatically you can use a token's <code>leadingComments</code> property.</p>
 <pre class="js"><code>macro m {
     case {_ () } =&gt; {
@@ -932,11 +1008,11 @@ m()</code></pre>
 <p>will expand to</p>
 <pre class="js"><code>//hello, world
 42;</code></pre>
-<h2 id="how-do-i-debug-macros"><span class="header-section-number">10.3</span> How do I debug macros?</h2>
-<h3 id="stepping-through-expansion"><span class="header-section-number">10.3.1</span> Stepping Through Expansion</h3>
+<h2 id="how-do-i-debug-macros"><span class="header-section-number">11.4</span> How do I debug macros?</h2>
+<h3 id="stepping-through-expansion"><span class="header-section-number">11.4.1</span> Stepping Through Expansion</h3>
 <p>You can use <code>sjs --num-expands &lt;number&gt;</code> to walk through macro expansion one step at a time. This is particularly helpful when writing recursive macros.</p>
 <p>The <a href="http://sweetjs.org/browser/editor.html">editor</a> also supports stepping.</p>
-<h3 id="understanding-case-macros"><span class="header-section-number">10.3.2</span> Understanding Case Macros</h3>
+<h3 id="understanding-case-macros"><span class="header-section-number">11.4.2</span> Understanding Case Macros</h3>
 <p>If you're trying to understand how a case macro is working two useful techniques are logging syntax objects to see what they actually contain and inserting <code>debugger</code> statements to pause the debugger during expansion.</p>
 <pre class="js"><code>macro m {
     case { _ $x } =&gt; {
