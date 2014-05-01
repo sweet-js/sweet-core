@@ -483,10 +483,8 @@
     dataclass NamedFun              (keyword, star, name, params, body) extends Expr;
     dataclass AnonFun               (keyword, star, params, body)       extends Expr;
     dataclass ArrowFun              (params, arrow, body)               extends Expr;
-    dataclass Const                 (keyword, call)                     extends Expr;
     dataclass ObjDotGet             (left, dot, right)                  extends Expr;
     dataclass ObjGet                (left, right)                       extends Expr;
-    dataclass YieldExpression       (keyword, expr)                     extends Expr;
     dataclass Template              (template)                          extends Expr;
 
     dataclass PrimaryExpression     ()                                  extends Expr;
@@ -541,7 +539,7 @@
 
     function stxIsUnaryOp(stx) {
         var staticOperators = ["+", "-", "~", "!",
-                                "delete", "void", "typeof",
+                                "delete", "void", "typeof", "yield", "new",
                                 "++", "--"];
         return _.contains(staticOperators, unwrapSyntax(stx));
     }
@@ -1220,16 +1218,6 @@
                             }
                         }
                     }
-                // Constructor
-                } else if (head.isKeyword &&
-                           resolveFast(head.keyword, context.env) === "new" && rest[0]) {
-                    var newCallRes = enforest(rest, context);
-                    if (newCallRes && newCallRes.result.isCall) {
-                        return step(Const.create(head, newCallRes.result),
-                                    newCallRes.rest,
-                                    opCtx);
-                    }
-
                 // Arrow functions with expression bodies
                 } else if (head.isDelimiter &&
                            head.delim.token.value === "()" &&
@@ -1428,16 +1416,6 @@
                     return step(ForStatement.create(head.keyword, rest[0]),
                                 rest.slice(1),
                                 opCtx);
-                // yield statement
-                } else if (head.isKeyword &&
-                           unwrapSyntax(head.keyword) === "yield") {
-                    var yieldExprRes = enforest(rest, context);
-
-                    if (yieldExprRes.result && yieldExprRes.result.isExpr) {
-                        return step(YieldExpression.create(head.keyword, yieldExprRes.result),
-                                    yieldExprRes.rest,
-                                    opCtx);
-                    }
                 }
             } else {
                 assert(head && head.token, "assuming head is a syntax object");
@@ -2197,9 +2175,6 @@
             term.args = _.map(term.args, function(arg) {
                 return expandTermTreeToFinal(arg, context);
             });
-            return term;
-        } else if (term.isConst) {
-            term.call = expandTermTreeToFinal(term.call, context);
             return term;
         } else if (term.isUnaryOp) {
             term.expr = expandTermTreeToFinal(term.expr, context);
