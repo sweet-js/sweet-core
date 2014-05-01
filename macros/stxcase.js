@@ -873,49 +873,49 @@ safemacro operator {
 }
 export operator;
 
-macro __log {
-    case { _ defctx $stx } => {
-        var context = #{ $stx }[0].context;
-        console.log("defctx context for " + unwrapSyntax(#{$stx}) + "]");
-        while (context) {
-            if (context.defctx) {
-                console.log(context.defctx.map(function(d) {
-                    return d.id.token.value
-                }));
-            }
-            context = context.context;
-        }
-        return [];
-    }
-    case {_ rename $stx } => {
-        var context = #{ $stx }[0].context;
-        console.log("rename context for " + unwrapSyntax(#{$stx}) + ":");
-        while (context) {
-            if (context.name) {
-                console.log("[name: " + context.name + ", id: " + context.id.token.value + "]");
-            }
-            context = context.context;
-        }
-        return [];
-    }
-    case {_ all $stx } => {
-        var context = #{ $stx }[0].context;
-        console.log("context for " + unwrapSyntax(#{$stx}) + ":");
-        while (context) {
-            if (context.name) {
-                console.log("rename@[name: " + context.name + ", id: " + context.id.token.value + "]");
-            }
-            if (context.mark) {
-                console.log("mark@[mark: " + context.mark + "]");
-            }
-            if (context.defctx) {
-                console.log("defctx@[" + context.defctx.map(function(d) {
-                    return d.id.token.value
-                }) + "]");
-            }
-            context = context.context;
-        }
-        return [];
-    }
-}
+// macro __log {
+//     case { _ defctx $stx } => {
+//         var context = #{ $stx }[0].context;
+//         console.log("defctx context for " + unwrapSyntax(#{$stx}) + "]");
+//         while (context) {
+//             if (context.defctx) {
+//                 console.log(context.defctx.map(function(d) {
+//                     return d.id.token.value
+//                 }));
+//             }
+//             context = context.context;
+//         }
+//         return [];
+//     }
+//     case {_ rename $stx } => {
+//         var context = #{ $stx }[0].context;
+//         console.log("rename context for " + unwrapSyntax(#{$stx}) + ":");
+//         while (context) {
+//             if (context.name) {
+//                 console.log("[name: " + context.name + ", id: " + context.id.token.value + "]");
+//             }
+//             context = context.context;
+//         }
+//         return [];
+//     }
+//     case {_ all $stx } => {
+//         var context = #{ $stx }[0].context;
+//         console.log("context for " + unwrapSyntax(#{$stx}) + ":");
+//         while (context) {
+//             if (context.name) {
+//                 console.log("rename@[name: " + context.name + ", id: " + context.id.token.value + "]");
+//             }
+//             if (context.mark) {
+//                 console.log("mark@[mark: " + context.mark + "]");
+//             }
+//             if (context.defctx) {
+//                 console.log("defctx@[" + context.defctx.map(function(d) {
+//                     return d.id.token.value
+//                 }) + "]");
+//             }
+//             context = context.context;
+//         }
+//         return [];
+//     }
+// }
 // export __log;
