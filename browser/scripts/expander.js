@@ -610,18 +610,6 @@
         return new ArrowFun(params, arrow, body);
     };
     inherit(Expr, ArrowFun, { 'isArrowFun': true });
-    function Const(keyword, call) {
-        this.keyword = keyword;
-        this.call = call;
-    }
-    Const.properties = [
-        'keyword',
-        'call'
-    ];
-    Const.create = function (keyword, call) {
-        return new Const(keyword, call);
-    };
-    inherit(Expr, Const, { 'isConst': true });
     function ObjDotGet(left, dot, right) {
         this.left = left;
         this.dot = dot;
@@ -648,18 +636,6 @@
         return new ObjGet(left, right);
     };
     inherit(Expr, ObjGet, { 'isObjGet': true });
-    function YieldExpression(keyword, expr) {
-        this.keyword = keyword;
-        this.expr = expr;
-    }
-    YieldExpression.properties = [
-        'keyword',
-        'expr'
-    ];
-    YieldExpression.create = function (keyword, expr) {
-        return new YieldExpression(keyword, expr);
-    };
-    inherit(Expr, YieldExpression, { 'isYieldExpression': true });
     function Template(template) {
         this.template = template;
     }
@@ -863,6 +839,8 @@
                 'delete',
                 'void',
                 'typeof',
+                'yield',
+                'new',
                 '++',
                 '--'
             ];
@@ -1443,12 +1421,6 @@
                             }
                         }
                     }
-                }    // Constructor
-                else if (head.isKeyword && resolveFast(head.keyword, context.env) === 'new' && rest[0]) {
-                    var newCallRes = enforest(rest, context);
-                    if (newCallRes && newCallRes.result.isExpr) {
-                        return step(Const.create(head, newCallRes.result), newCallRes.rest, opCtx);
-                    }
                 }    // Arrow functions with expression bodies
                 else if (head.isDelimiter && head.delim.token.value === '()' && rest[0] && rest[0].token.type === parser.Token.Punctuator && resolveFast(rest[0], context.env) === '=>') {
                     var arrowRes = enforest(rest.slice(1), context);
@@ -1575,12 +1547,6 @@
                 }    // for statement
                 else if (head.isKeyword && unwrapSyntax(head.keyword) === 'for' && rest[0] && rest[0].token.value === '()') {
                     return step(ForStatement.create(head.keyword, rest[0]), rest.slice(1), opCtx);
-                }    // yield statement
-                else if (head.isKeyword && unwrapSyntax(head.keyword) === 'yield') {
-                    var yieldExprRes = enforest(rest, context);
-                    if (yieldExprRes.result && yieldExprRes.result.isExpr) {
-                        return step(YieldExpression.create(head.keyword, yieldExprRes.result), yieldExprRes.rest, opCtx);
-                    }
                 }
             } else {
                 assert(head && head.token, 'assuming head is a syntax object');
@@ -2163,9 +2129,6 @@
             term.args = _.map(term.args, function (arg) {
                 return expandTermTreeToFinal(arg, context);
             });
-            return term;
-        } else if (term.isConst) {
-            term.call = expandTermTreeToFinal(term.call, context);
             return term;
         } else if (term.isUnaryOp) {
             term.expr = expandTermTreeToFinal(term.expr, context);
