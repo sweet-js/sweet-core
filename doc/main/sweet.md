@@ -493,9 +493,29 @@ colors_options (red, green, blue, blue)
 // ["#FF0000", "#00FF00", "#0000FF", "#0000FF"]
 ```
 
-Invoke will only expand the parameterized macro once; if the macro expands to other macros they will not be expanded before being bound to the pattern variable. If you need to fully expand the output of the parameterized macro use `:invokeRec`. 
+Invoke will only expand the parameterized macro once; if the macro expands to another macro it will not be expanded before being bound to the pattern variable. 
 
-Note that this is a change from the default behavior of version 0.5.0 which full expanded macros in `:invoke` and provided `:invokeOnce` for the current default behavior.
+If you need to keep expanding, use `:invokeRec` which will continue to expand as long as a macro name is returned as the first token. This is useful if you have a recursive macro but is not the default because it can be unintuitive if the macro is not a recursive macro. For example,
+
+```js
+macro a {
+  rule {} => { 1 + 2 }
+}
+macro b {
+  rule { $x } => { a + $x }
+}
+macro c {
+  rule { $y:invokeRec(b) } => { [$y] }
+}
+
+c 3
+// expands to:
+// [1 + 2] + 3
+```
+
+The `b` macro returns `a + $x` as its result. Since `a` is another macro which returns `1 + 2` as a result, so `1 + 2` is what gets loaded into the `$y` pattern variable, and the `+ 3` is inexplicably pushed outside the scope of the macro.
+
+This is a change from the default behavior of version 0.5.0 in which `:invoke` behaved like `:invokeRec` and `:invokeOnce` was available for the current default behavior.
 
 ## Implicit Invoke
 
