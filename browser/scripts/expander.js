@@ -1446,7 +1446,7 @@
                 }    // Constructor
                 else if (head.isKeyword && resolveFast(head.keyword, context.env) === 'new' && rest[0]) {
                     var newCallRes = enforest(rest, context);
-                    if (newCallRes && newCallRes.result.isCall) {
+                    if (newCallRes && newCallRes.result.isExpr) {
                         return step(Const.create(head, newCallRes.result), newCallRes.rest, opCtx);
                     }
                 }    // Arrow functions with expression bodies
