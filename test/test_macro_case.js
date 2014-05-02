@@ -283,4 +283,18 @@ describe "procedural (syntax-case) macros" {
         expect(m ()).to.be(100);
     }
 
+    it "should handle localExpand" {
+        let m = macro {
+            case {_ ($e ...) } => {
+                var e = localExpand(#{$e ...});
+                if (unwrapSyntax(e[0]) === 42) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        let id = macro { rule { $x } => { $x } }
+        expect(m (id 42)).to.be(true);
+    }
+
 }
