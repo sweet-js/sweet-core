@@ -513,7 +513,7 @@ c 3
 // [1 + 2] + 3
 ```
 
-The `b` macro returns `a + $x` as its result. Since `a` is another macro which returns `1 + 2` as a result, so `1 + 2` is what gets loaded into the `$y` pattern variable, and the `+ 3` is inexplicably pushed outside the scope of the macro.
+The `b` macro returns `a + $x` as its result. Since `a` is another macro which returns `1 + 2` as a result, so `1 + 2` is what gets loaded into the `$y` pattern variable, and the `+ 3` is surprisingly pushed outside the scope of the macro.
 
 This is a change from the default behavior of version 0.5.0 in which `:invoke` behaved like `:invokeRec` and `:invokeOnce` was available for the current default behavior.
 
