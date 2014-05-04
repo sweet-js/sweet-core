@@ -473,6 +473,17 @@
     dataclass Empty                 ()                                  extends Statement;
     dataclass CatchClause           (keyword, params, body)             extends Statement;
     dataclass ForStatement          (keyword, cond)                     extends Statement;
+    dataclass ReturnStatement       (keyword, expr)                     extends Statement {
+        destruct() {
+            var expr = this.expr.destruct();        
+            // need to adjust the line numbers to make sure that the expr
+            // starts on the same line as the return keyword. This might
+            // not be the case if an operator or infix macro perturbed the
+            // line numbers during expansion.
+            expr = adjustLineContext(expr, this.keyword.keyword);
+            return this.keyword.destruct().concat(expr);
+        }
+    }
 
     dataclass Expr                  ()                                  extends Statement;
     dataclass UnaryOp               (op, expr)                          extends Expr;
@@ -721,8 +732,8 @@
 
     function adjustLineContext(stx, original, current) {
         current = current || {
-            lastLineNumber: original.token.lineNumber,
-            lineNumber: original.token.lineNumber - 1
+            lastLineNumber: stx[0].token.lineNumber || stx[0].token.startLineNumber,
+            lineNumber: original.token.lineNumber
         };
 
         return _.map(stx, function(stx) {
@@ -766,13 +777,16 @@
                                                 ? stx.token.endRange
                                                 : stx.token.sm_endRange;
 
-                if (stx.token.startLineNumber === current.lastLineNumber &&
-                    current.lastLineNumber !== current.lineNumber) {
-                    stx.token.startLineNumber = current.lineNumber;
-                } else if (stx.token.startLineNumber !== current.lastLineNumber) {
-                    current.lineNumber++;
-                    current.lastLineNumber = stx.token.startLineNumber;
-                    stx.token.startLineNumber = current.lineNumber;
+                if (stx.token.startLineNumber !== current.lineNumber) {
+                    if (stx.token.startLineNumber !== current.lastLineNumber) {
+                        current.lineNumber++;
+                        current.lastLineNumber = stx.token.startLineNumber;
+                        stx.token.startLineNumber = current.lineNumber;
+                    } else {
+                        current.lastLineNumber = stx.token.startLineNumber;
+                        stx.token.startLineNumber = current.lineNumber;
+                    }
+
                 }
 
                 if (stx.token.inner.length > 0) {
@@ -808,13 +822,15 @@
 
             // move the line info to line up with the macro name
             // (line info starting from the macro name)
-            if (stx.token.lineNumber === current.lastLineNumber &&
-                current.lastLineNumber !== current.lineNumber) {
-                stx.token.lineNumber = current.lineNumber;
-            } else if (stx.token.lineNumber !== current.lastLineNumber) {
-                current.lineNumber++;
-                current.lastLineNumber = stx.token.lineNumber;
-                stx.token.lineNumber = current.lineNumber;
+            if (stx.token.lineNumber !== current.lineNumber) {
+                if (stx.token.lineNumber !== current.lastLineNumber) {
+                    current.lineNumber++;
+                    current.lastLineNumber = stx.token.lineNumber;
+                    stx.token.lineNumber = current.lineNumber;
+                } else {
+                    current.lastLineNumber = stx.token.lineNumber;
+                    stx.token.lineNumber = current.lineNumber;
+                }
             }
 
             return stx;
@@ -1359,6 +1375,17 @@
                     return step(syn.makeIdent("getTemplate", head.id),
                                 [syn.makeDelim("()", [syn.makeValue(tempId, head.id)], head.id)].concat(rest.slice(1)),
                                 opCtx);
+                // return statement
+                } else if (head.isKeyword && unwrapSyntax(head.keyword) === "return") {
+                    if (rest[0]) {
+                        var originalLineNumber = rest[0].token.lineNumber;
+                        var returnExpr = get_expression(rest, context);
+                        if (returnExpr.result) {
+                            return step(ReturnStatement.create(head, returnExpr.result), 
+                                        returnExpr.rest, 
+                                        opCtx);
+                        }
+                    }
                 // let statements
                 } else if (head.isKeyword &&
                            unwrapSyntax(head.keyword) === "let") {
@@ -2175,6 +2202,9 @@
             term.args = _.map(term.args, function(arg) {
                 return expandTermTreeToFinal(arg, context);
             });
+            return term;
+        } else if (term.isReturnStatement) {
+            term.expr = expandTermTreeToFinal(term.expr, context);
             return term;
         } else if (term.isUnaryOp) {
             term.expr = expandTermTreeToFinal(term.expr, context);

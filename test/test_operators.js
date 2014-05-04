@@ -108,4 +108,14 @@ describe("binary custom operators", function() {
 		expect(10 - -10).to.be(20);
 	});
 
+	it("should work with return statements and line numbers", function() {
+		function id(x) { return x; }
+		operator (|>)  1 left  { $l, $r } => #{ $r($l) }
+		function doIt(data) {
+			return data
+					|> id
+		}
+		expect(doIt(100)).to.be(100)
+	})
+
 });
