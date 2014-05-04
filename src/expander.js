@@ -1378,10 +1378,14 @@
                 // return statement
                 } else if (head.isKeyword && unwrapSyntax(head.keyword) === "return") {
                     if (rest[0]) {
-                        var originalLineNumber = rest[0].token.lineNumber;
-                        var returnExpr = get_expression(rest, context);
-                        if (returnExpr.result) {
-                            return step(ReturnStatement.create(head, returnExpr.result), 
+                        var returnPrevStx = tagWithTerm(head, head.destruct()).concat(opCtx.prevStx);
+                        var returnPrevTerms = [head].concat(opCtx.prevTerms);
+                        var returnExpr = enforest(rest, context, returnPrevStx, returnPrevTerms);
+                        if (returnExpr.prevTerms.length < opCtx.prevTerms.length) {
+                            return returnExpr;
+                        }
+                        if (returnExpr.result.isExpr) {
+                            return step(ReturnStatement.create(head, returnExpr.result),
                                         returnExpr.rest, 
                                         opCtx);
                         }
