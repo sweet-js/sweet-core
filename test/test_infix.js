@@ -136,4 +136,16 @@ describe("infix macros", function() {
         expect(a).to.be(-9);
     });
 
+    it("should allow infix matching on a return statement", function() {
+        macro m {
+            rule infix { return $value:expr | } => {
+                return 42
+            }
+        }
+        function f() {
+            return 12 m;
+        }
+        expect(f()).to.be(42);
+    });
+
 });
