@@ -1039,4 +1039,17 @@ describe("macro expander", function() {
         expect((m (1==1)) ? (m x) : (m y)).to.be(x);
         expect((m (1!=1)) ? (m x) : (m y)).to.be(y);
     });
+
+    it("should allow transcription of empty higher-level repeaters", function() {
+        function a(){ return 1; }
+        function b(){ return 2; }
+        macro m {
+            rule { ($($name ($args (,) ...)) (,) ...) } => {
+                [$($name($args (,) ...)) (,) ...];
+            }
+        }
+        var res = m(a(1, 2), b());
+        expect(res[0]).to.be(1);
+        expect(res[1]).to.be(2);
+    });
 });
