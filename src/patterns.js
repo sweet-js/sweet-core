@@ -771,7 +771,7 @@
         if (m.level === 0) {
             return m.match.length > 0;
         }
-        return m.match.every(function(m) { return hasMatch(m); });
+        return !!m.match;
     }
 
     // given the given the macroBody (list of Pattern syntax objects) and the
