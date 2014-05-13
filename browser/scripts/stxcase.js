@@ -799,12 +799,22 @@ macro make_pattern {
     }
 }
 
-macro patt {
-    rule { pattern { $patt ... } where ($($lhs ... = $rhs ...) (,) ...) }
-      => { ($patt ...) ($((($lhs ...) ($rhs ...))) ...) }
+macro where_binding {
+    rule { $lhs ... = $rhs ... , } => {
+        (($lhs ...) ($rhs ...))
+    }
+    rule { $lhs ... = $rhs ... } => {
+        (($lhs ...) ($rhs ...))
+    }
+}
 
-    rule { pattern { $patt ... } }
-      => { ($patt ...) () }
+macro patt {
+    rule { pattern { $patt ... } where ($wheres:where_binding ...) } => {
+      ($patt ...) ($wheres ...)
+    }
+    rule { pattern { $patt ... } } => {
+      ($patt ...) ()
+    }
 }
 
 
