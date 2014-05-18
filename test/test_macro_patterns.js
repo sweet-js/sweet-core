@@ -1026,10 +1026,40 @@ describe("macro expander", function() {
         expect(m([1, 2, 3])).to.eql([1, 2, 3, 1, 2, 3]);
     });
 
+    it("should allow named pattern groups", function() {
+        macro m {
+            rule { $x:(1 + 2) } => { $x - 3 }
+        }
+        expect(m 1 + 2).to.be(0);
+    });
+
+    it("should allow named pattern groups with sub-bindings", function() {
+        macro m {
+            rule { $x:(1 + $y) } => { $x$y - 3 }
+        }
+        expect(m 1 + 2).to.be(-1);
+    });
+
+    it("should allow nested named pattern groups", function() {
+        macro m {
+            rule { $x:($y:($z) ...) } => { $x$y$z (-) ... }
+        }
+        expect(m 3 2 1).to.be(0);
+    });
+
+    it("should allow named escape groups", function() {
+        var $ = [42];
+        macro m {
+            rule { $x:[$[0]] } => { $x }
+        }
+        expect(m $[0]).to.be(42);
+    });
+
     it("should allow expansion on the left side of an object get", function () {
         macro m { rule { $x } => { $x } }
         expect((m [100])[0]).to.be(100);
     });
+
     it("should allow expansion in a ternary expression", function () {
         macro m { rule { $x } => { $x } }
         var x = 42;
