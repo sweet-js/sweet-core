@@ -1645,6 +1645,10 @@
                                         rest[0].token.type === parser.Token.Punctuator ||
                                         rest[0].token.type === parser.Token.Delimiter &&
                                         rest[0].token.value === "()")) {
+                    // Consume optional semicolon                      
+                    if (unwrapSyntax(rest[1]) === ";") {
+                        rest.splice(1, 1);
+                    }
                     return step(Export.create(rest[0]), rest.slice(1), opCtx);
                 // identifier
                 } else if (head.token.type === parser.Token.Identifier) {
