@@ -59,6 +59,7 @@
   morestring=[b]"
 }
 
+
 \lstset{
    language=JavaScript,
    extendedchars=true,
@@ -99,12 +100,12 @@ programmers to craft their own languages.
 
 While macro systems have found success in many Lisp-derived languages,
 they have not been widely adopted in languages such as JavaScript. In
-part, this failure is due to the difficulty in implementing macro
-systems in languages that are not fully delimited. A key feature of a
-sufficiently expressive macro system is the ability for macros to
-manipulate unparsed and unexpanded subexpressions. In a language with
-parentheses like Scheme, manipulating unparsed subexpressions is
-simple:
+part, this failure is due to the difficulty of implementing macro
+systems for languages without fully delimited s-expressions. A key
+feature of a sufficiently expressive macro system is the ability for
+macros to manipulate unparsed and unexpanded subexpressions. In a
+language with parentheses like Scheme, manipulating unparsed
+subexpressions is simple:
 \begin{lstlisting}
 (if (> denom 0)
     (/ x denom)
@@ -137,7 +138,7 @@ before being macro expanded and parsed into an abstract syntax tree.
 
 As a first step to designing a Scheme-like macro system for
 JavaScript, it is necessary to introduce a read step into the compiler
-pipline. However, the design of a correct reader for full JavaScript
+pipeline. However, the design of a correct reader for full JavaScript
 turns out to be surprisingly subtle, due to ambiguities in how regular
 expression literals (such as \verb!/[0-9]*/!) and the divide
 operator (\verb!/!) should be lexed. In traditional JavaScript
@@ -582,13 +583,14 @@ function makeRegex() {
 }
 \end{lstlisting}
 
-A key novelty in sweet.js is the design and implementation of a
-reader that correctly distinguishes between regular expression literals and the divide operator for full ES5 JavaScript\footnote{Our implementation
-  also has initial support for the upcoming ES6 version of
-  JavaScript.}. For clarity of presentation, this paper describes the
-implementation of read for the subset of JavaScript shown in Figure
-\ref{fig:grammar}, which retains the essential complications of
-the full version of read.
+A key novelty in sweet.js is the design and implementation of a reader
+that correctly distinguishes between regular expression literals and
+the divide operator for full ES5 JavaScript\footnote{Our
+  implementation also has initial support for code written in the
+  upcoming ES6 version of JavaScript.}. For clarity of presentation,
+this paper describes the implementation of read for the subset of
+JavaScript shown in Figure \ref{fig:grammar}, which retains the
+essential complications of the full version of read.
 
 In our formalism in Figure \ref{fig:simpleread}, read takes a \textit{Token} sequence. Tokens are the output of a very simple lexer, which we do not define here. This lexer does not receive feedback from the parser like the ES5 lexer does, and so does not distinguish between regular expressions and the divide operator. Rather it simply lexes slashes into the ambiguous \texttt{/} token. Tokens also include keywords, puncutators, the (unmatched) delimiters, and variable identifiers.
 \[
@@ -652,11 +654,11 @@ is lexed into a sequence
 of six tokens \( \texttt{foo}\cdot \texttt{(} \cdot \div \cdot \texttt{)}
 \cdot \div \cdot \texttt{)} \). The equivalent token tree sequence is
 \(
-\texttt{foo} \cdot \parens{\texttt{/} \texttt{)} \texttt{/} }
+\texttt{foo} \cdot \parens{\cdot \texttt{/} \texttt{)} \texttt{/} \cdot }
 \).
 
 
-The key idea of read is to maintain of prefix of already read token
+The key idea of read is to maintain a prefix of already read token
 trees. When the reader comes to a slash and needs to decide if it
 should read the slash as a divide token or the start of a regular
 expression literal, it consults the prefix. Looking back at most five
@@ -686,15 +688,15 @@ braces).
 if (x) /}/   // regex
 \end{lstlisting}
 
-One of the most complicated cases is a slash after curly braces.
-Part of the  complication here is that curly braces can be either an object
-literal (in which case the slash should be a divide) or it could be a
-block (in which case the slash should be a regular expression), but
-even more problematic is that both object literals and blocks with
-labeled statements can nest. For example, in the following code snippet
-the outer curly brace is a block with a labeled statement
-\verb!x!, which is another block with a labeled statement
-\verb!y! followed by a regular expression literal.
+One of the most complicated cases is a slash after curly braces. Part
+of the complication here is that curly braces can either indicate an
+object literal (in which case the slash should be a divide) or a block
+(in which case the slash should be a regular expression), but even
+more problematic is that both object literals and blocks with labeled
+statements can nest. For example, in the following code snippet the
+outer curly brace is a block with a labeled statement \verb!x!, which
+is another block with a labeled statement \verb!y! followed by a
+regular expression literal.
 \begin{lstlisting}
 {
   x:{y: z} /}/  // regex
@@ -814,7 +816,11 @@ strategies give identical behavior:
 
 \end{theorem}
 \begin{proof}\mbox{}
-The proof proceeds by induction on ASTs to show that parse equivalence holds between all corresponding nonterminals in the two grammars. We present the details of this proof in Appendix \ref{sec:readproof}.
+  The proof proceeds by induction on ASTs to show that parse
+  equivalence holds between all corresponding nonterminals in the two
+  grammars. We present the details of this proof in an
+  appendix available online~\cite{sweetjsappendix}.
+  % Appendix \ref{sec:readproof}.
 \end{proof}
 
 
@@ -900,11 +906,22 @@ var s = fromFile ("./file.txt")
 // expands to:
 // s = "contents of file";
 \end{lstlisting}
-Syntax bound in the macro pattern can be referenced inside of JavaScript code
-using the notation \verb!#{ ... }!.
-Here we take the file name token matched by the macro (\verb!#{$path}!), unwrap it, and 
-read\footnote{Note that \verb!readFile! will depend on the particular JavaScript environment in which sweet.js is being run (\eg in node.js it might be \verb!fs.readFile! and in the browser it might an \verb!XMLHttpRequest!).} 
-the file into a variable. The \verb!makeValue! function is used to create a string syntax object (\verb!#{here}! is just a placeholder for the lexical context used for hygiene) from the context of the file and \verb!letstx! (analogous to \verb!with-syntax! in Scheme) binds that new syntax object to a pattern variable \verb!$content! that can be used inside of a template.
+Syntax bound in the macro pattern can be referenced inside of
+JavaScript code using the notation \verb!#{ ... }!. Here we take the
+file name token matched by the macro (\verb!#{$path}!), unwrap it
+(like in Scheme, tokens that can be manipulated by a case macro are
+represented as a \emph{syntax object} which wraps a token with its
+lexical context used to maintain hygiene so unwrapping extracts just
+the token), and read\footnote{Note that \verb!readFile! will depend on
+  the particular JavaScript environment in which sweet.js is being run
+  (\eg in node.js it might be \verb!fs.readFile! and in the browser it
+  might be an \verb!XMLHttpRequest!).} the file into a variable. The
+\verb!makeValue! function is used to create a string syntax object
+(\verb!#{here}! is just a placeholder for the lexical context used for
+hygiene) from the context of the file and \verb!letstx! (analogous to
+\verb!with-syntax! in Scheme) binds that new syntax object to a
+pattern variable \verb!$content! that can be used inside of a
+template.
 
 \section{Enforestation}
 \label{sec:enforest}
@@ -1017,7 +1034,7 @@ shorthand syntax for defining functions with arrow notation:
 \begin{lstlisting}
 id = (x) => x
 // equivalent to:
-// id = (function(x) { return x; }).bind(this);
+// id = (function(x) { return x; });
 \end{lstlisting}
 
 One of the primary goals of sweet.js is to enable the kinds of syntax
@@ -1308,9 +1325,10 @@ syntax object.
 \label{sec:macroBinding}
 
 Unfortunately, the syntax of JavaScript does place a limitations on
-our system that is not present in Scheme. In Scheme, definitions and
-uses of macros can be freely mixed in a given lexical scope. In
-particular, a macro can be used in an internal definition before its definition:
+our system that is not present in Scheme. The hygiene algorithm in
+Scheme allows definitions and uses of macros to be freely mixed in a
+given lexical scope. In particular, a macro can be used in an internal
+definition before its definition:
 
 \begin{lstlisting}[language=lisp]
 (define (foo)
@@ -1417,9 +1435,17 @@ Dylan~\cite{Bachrach1999} however they only provide support for term rewriting m
 Dylan's auxilary rules are similar to our \verb!invoke! pattern class.
 Nemerle~\cite{Skalski2004} also uses a similar technique but does not allow local definitions of macros.
 
+The Marco system~\cite{Lee2012a} is an interesting alternative
+approach that presents a cross-language macro system. Rather than
+tightly integrate the macro system with a specific language Marco
+provides a separate macro definition language that can compile to
+multiple languages. While this approach provides generality it
+sacrifices language specific expressiveness (\eg name clashes are
+errors in their system while they are just renamed in ours).
+
 C++ templates~\cite{Alexandrescu2001} are a powerful compile time meta programming facility for C++. In contrast to C++ templates sweet.js provides more syntactic flexibility in the definable syntactic forms along with the ability to define transformations in the host language rather than the just the template language.
 
-Template Haskell~\cite{Sheard2002} makes a treadoff by forcing the macro call sites to always be demarcated. The means that macros are always a second class citizen; macros in Haskell cannot seamlessly build a language on top of Haskell in the same way that Scheme and Racket can.
+Template Haskell~\cite{Sheard2002} makes a tradeoff by forcing the macro call sites to always be demarcated. The means that macros are always a second class citizen; macros in Haskell cannot seamlessly build a language on top of Haskell in the same way that Scheme and Racket can.
 
 Some systems such as 
 SugarJ~\cite{Erdweg2011},
@@ -1436,717 +1462,717 @@ We have presented sweet.js, a hygienic macro system for JavaScript. Our macro sy
 
 In addition we presented an algorithm for read that correctly handles key ambiguities in the JavaScript grammar that allows the lexer and parser to be separated for the first time in JavaScript.
 
-\bibliographystyle{plain}
+\bibliographystyle{abbrv}
 \bibliography{sweet.js}
 
-\appendix
+% \appendix
 
-\clearpage
+% \clearpage
 
-\section{Proof of Parse Equivalence}
-\label{sec:readproof}
+% \section{Proof of Parse Equivalence}
+% \label{sec:readproof}
 
 
-To help reason about prefixes,
-we use two disjoint sets, \reprefix~and \divprefix, that
-contain the prefixes that determine if a slash should be
-either a divide or the start of a regular expression. Theses sets are parametrized by a boolean indicating if the prefix is inside an object literal or a block statement:
-\[
-\begin{array}{rrl}
-\reprefix_b &::=& \epsilon
-\\
-&|& p \cdot k \quad \textit{if}~k \in \textit{Punctuator} \cup \textit{Keyword}
-\\
-&|& p \cdot \texttt{if} \cdot \parens{t}
-\\
-&|& p \cdot \texttt{function}^l \cdot x \cdot \parens{t} \cdot \curlies{t'}
-\\
-&& \quad \textit{if}~\isobject(p,~b,~l) = \false
-\\
-&|& p \cdot \curlies{t}^l
-\\
-&& \quad \textit{if}~\isobject(p,~b,~l) = \false
+% To help reason about prefixes,
+% we use two disjoint sets, \reprefix~and \divprefix, that
+% contain the prefixes that determine if a slash should be
+% either a divide or the start of a regular expression. Theses sets are parametrized by a boolean indicating if the prefix is inside an object literal or a block statement:
+% \[
+% \begin{array}{rrl}
+% \reprefix_b &::=& \epsilon
+% \\
+% &|& p \cdot k \quad \textit{if}~k \in \textit{Punctuator} \cup \textit{Keyword}
+% \\
+% &|& p \cdot \texttt{if} \cdot \parens{t}
+% \\
+% &|& p \cdot \texttt{function}^l \cdot x \cdot \parens{t} \cdot \curlies{t'}
+% \\
+% && \quad \textit{if}~\isobject(p,~b,~l) = \false
+% \\
+% &|& p \cdot \curlies{t}^l
+% \\
+% && \quad \textit{if}~\isobject(p,~b,~l) = \false
 
-\\ \\
-\divprefix_b &::=& p \cdot x
-\\
-&|& p \cdot \rett
-\\
-&|& p \cdot k \cdot \parens{t} \quad \textit{if}~k \not = \texttt{if}
-\\
-&& \quad \textit{if}~\isobject(p,~b,~l) = \true
-\\
-&|& p \cdot \curlies{t}^l
-\\
-&& \quad \textit{if}~\isobject(p,~b,~l) = \true
-\end{array}
-\]
-These sets correspond to the prefixes 
-in the read function that determine if a slash should be regular expression or a divide operator.
+% \\ \\
+% \divprefix_b &::=& p \cdot x
+% \\
+% &|& p \cdot \rett
+% \\
+% &|& p \cdot k \cdot \parens{t} \quad \textit{if}~k \not = \texttt{if}
+% \\
+% && \quad \textit{if}~\isobject(p,~b,~l) = \true
+% \\
+% &|& p \cdot \curlies{t}^l
+% \\
+% && \quad \textit{if}~\isobject(p,~b,~l) = \true
+% \end{array}
+% \]
+% These sets correspond to the prefixes 
+% in the read function that determine if a slash should be regular expression or a divide operator.
 
-\begin{theorem}[\label{thrm:readProgram}Parse Equivalence for Program]\mbox{}
+% \begin{theorem}[\label{thrm:readProgram}Parse Equivalence for Program]\mbox{}
 
-  \( \forall s \in \Tok^*. \)
-  \[
-  \begin{array}{rl}
-  &s \in \gprod{Program}{e} \\
-  \Leftrightarrow&
-  \readfn{s}{\epsilon}{\textit{false}} \in \gprod{Program'}{e}
-  \end{array}
-  \]
-\end{theorem}
-\begin{proof}
+%   \( \forall s \in \Tok^*. \)
+%   \[
+%   \begin{array}{rl}
+%   &s \in \gprod{Program}{e} \\
+%   \Leftrightarrow&
+%   \readfn{s}{\epsilon}{\textit{false}} \in \gprod{Program'}{e}
+%   \end{array}
+%   \]
+% \end{theorem}
+% \begin{proof}
 
-  For the left-to-right direction, the are two production rules for 
-  \( \gprod{Program}{e} \).
-  \begin{itemize}
-  \item \( s \in \epsilon \). The result is immediate.
+%   For the left-to-right direction, the are two production rules for 
+%   \( \gprod{Program}{e} \).
+%   \begin{itemize}
+%   \item \( s \in \epsilon \). The result is immediate.
 
-  \item \( s \in \gprod{SourceElements}{e} \).
-    Holds by Lemma~\ref{lem:readSourceElements}.
-  \end{itemize}
+%   \item \( s \in \gprod{SourceElements}{e} \).
+%     Holds by Lemma~\ref{lem:readSourceElements}.
+%   \end{itemize}
 
-  A similar argument holds for the other direction.
-\end{proof}
+%   A similar argument holds for the other direction.
+% \end{proof}
 
-\begin{lemma}[\label{lem:readSourceElements}Parse Equivalence for SourceElements]\mbox{}
+% \begin{lemma}[\label{lem:readSourceElements}Parse Equivalence for SourceElements]\mbox{}
 
-  \( \forall s \in \Tok^*. \)
-  \[
-  \begin{array}{rl}
-  &s \in \gprod{SourceElements}{e} 
-  \\
-  \Leftrightarrow&
-  \readfn{s}{\epsilon}{\textit{false}} \in \gprod{SourceElements'}{e} 
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  For the left-to-right direction there are two production rules for
-  \( \gprod{SourceElements}{e} \).
-  \begin{itemize}
-  \item \( s \in \gprod{SourceElement}{e} \). This holds by Lemma
-    \ref{lem:readSourceElement}.
+%   \( \forall s \in \Tok^*. \)
+%   \[
+%   \begin{array}{rl}
+%   &s \in \gprod{SourceElements}{e} 
+%   \\
+%   \Leftrightarrow&
+%   \readfn{s}{\epsilon}{\textit{false}} \in \gprod{SourceElements'}{e} 
+%   \end{array}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   For the left-to-right direction there are two production rules for
+%   \( \gprod{SourceElements}{e} \).
+%   \begin{itemize}
+%   \item \( s \in \gprod{SourceElement}{e} \). This holds by Lemma
+%     \ref{lem:readSourceElement}.
     
-  \item \( s \in \gprod{SourceElements}{e} \cdot \gprod{SourceElement}{e'} \).
-    We have
-    \( s = s' \cdot s'' \) where \( s' \in \gprod{SourceElements}{e}
-    \) and \( s'' \in \gprod{SourceElement}{e'} \).
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{s'\cdot s''}{\epsilon}{\textit{false}}
-      \\
-      &=& \readfn{s'}{\epsilon}{\false}\cdot  
-      \readfn{s''}{\readfn{s'}{\epsilon}{\false}}{\false}
-    \end{array}
-    \]
-    By induction \( \readfn{s'}{\epsilon}{\false} \in
-    \gprod{SourceElements'}{e} \) and by Lemma
-    \ref{lem:readSourceElement}, \( \readfn{s''}{
-      \readfn{s'}{\epsilon}{\false}}{\false} \in \gprod{SourceElement'}{e'} \) (since
-    by Lemma \ref{lem:readSourceElementPrefix}, \( 
-    \readfn{s'}{\epsilon}{\false} \in \reprefix_b \)). Thus \( t \in
-    \gprod{SourceElements'}{e~e'} \).
-  \end{itemize}
+%   \item \( s \in \gprod{SourceElements}{e} \cdot \gprod{SourceElement}{e'} \).
+%     We have
+%     \( s = s' \cdot s'' \) where \( s' \in \gprod{SourceElements}{e}
+%     \) and \( s'' \in \gprod{SourceElement}{e'} \).
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{s'\cdot s''}{\epsilon}{\textit{false}}
+%       \\
+%       &=& \readfn{s'}{\epsilon}{\false}\cdot  
+%       \readfn{s''}{\readfn{s'}{\epsilon}{\false}}{\false}
+%     \end{array}
+%     \]
+%     By induction \( \readfn{s'}{\epsilon}{\false} \in
+%     \gprod{SourceElements'}{e} \) and by Lemma
+%     \ref{lem:readSourceElement}, \( \readfn{s''}{
+%       \readfn{s'}{\epsilon}{\false}}{\false} \in \gprod{SourceElement'}{e'} \) (since
+%     by Lemma \ref{lem:readSourceElementPrefix}, \( 
+%     \readfn{s'}{\epsilon}{\false} \in \reprefix_b \)). Thus \( t \in
+%     \gprod{SourceElements'}{e~e'} \).
+%   \end{itemize}
   
-  The argument is similar for the other direction.
-\end{proof}
+%   The argument is similar for the other direction.
+% \end{proof}
 
 
-\begin{lemma}[\label{lem:readSourceElement}Parse Equivalence for SourceElement]\mbox{}
+% \begin{lemma}[\label{lem:readSourceElement}Parse Equivalence for SourceElement]\mbox{}
   
-  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
-  \[
-  \begin{array}{rl}
-  &s \in \gprod{SourceElement}{e} 
-  \\
-  \Leftrightarrow &
-  \readfn{s}{p}{\false} \in \gprod{SourceElement'}{e}
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  For the left-to-right direction there are two production rules for 
-  \( \gprod{SourceElement}{e} \).
-  \begin{itemize}
-  \item \( s \in \gprod{Stmt}{e} \).
-    This holds by Lemma \ref{lem:readStmt} since \( p \in \reprefix_b \).
+%   \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+%   \[
+%   \begin{array}{rl}
+%   &s \in \gprod{SourceElement}{e} 
+%   \\
+%   \Leftrightarrow &
+%   \readfn{s}{p}{\false} \in \gprod{SourceElement'}{e}
+%   \end{array}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   For the left-to-right direction there are two production rules for 
+%   \( \gprod{SourceElement}{e} \).
+%   \begin{itemize}
+%   \item \( s \in \gprod{Stmt}{e} \).
+%     This holds by Lemma \ref{lem:readStmt} since \( p \in \reprefix_b \).
     
-  \item \( s \in \gprod{FunctionDecl}{e} \). This holds by Lemma
-    \ref{lem:readFunctionDecl}.
-  \end{itemize}
+%   \item \( s \in \gprod{FunctionDecl}{e} \). This holds by Lemma
+%     \ref{lem:readFunctionDecl}.
+%   \end{itemize}
 
-  The argument is similar for the other direction.
-\end{proof}
+%   The argument is similar for the other direction.
+% \end{proof}
 
-\begin{lemma}[\label{lem:readFunctionDecl}Parse Equivalence for Function]\mbox{}
+% \begin{lemma}[\label{lem:readFunctionDecl}Parse Equivalence for Function]\mbox{}
   
-  \( \forall s \in \Tok^*, b \in \bool, p \in \TT^*. \)
-  \[
-  \begin{array}{rl}
-  &s \in \gprod{Function}{e} 
-  \\
-  \Leftrightarrow &
-  \readfn{s}{p}{b} \in \gprod{Function'}{e} 
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  For the left-to-right direction there is one production rule for
-  \( \gprod{Function}{e} \):
-  \[ 
-  \begin{array}{lcl}
-  s \in
-  \texttt{function} \cdot x \cdot \texttt{(} \cdot x' \cdot \texttt{)} \cdot
-  \texttt{\{} \cdot \gprod{SourceElements}{e} \cdot \texttt{\}}
-  \end{array}
-  \]
+%   \( \forall s \in \Tok^*, b \in \bool, p \in \TT^*. \)
+%   \[
+%   \begin{array}{rl}
+%   &s \in \gprod{Function}{e} 
+%   \\
+%   \Leftrightarrow &
+%   \readfn{s}{p}{b} \in \gprod{Function'}{e} 
+%   \end{array}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   For the left-to-right direction there is one production rule for
+%   \( \gprod{Function}{e} \):
+%   \[ 
+%   \begin{array}{lcl}
+%   s \in
+%   \texttt{function} \cdot x \cdot \texttt{(} \cdot x' \cdot \texttt{)} \cdot
+%   \texttt{\{} \cdot \gprod{SourceElements}{e} \cdot \texttt{\}}
+%   \end{array}
+%   \]
 
- We have \( s = \texttt{function} \cdot x \cdot \texttt{(} \cdot x \cdot \texttt{)}~
- \cdot \texttt{\{} \cdot s' \cdot \texttt{\}}
- \) where \( s' \in \gprod{SourceElements}{e} \) so:
- \[
- \begin{array}{rcl}
-   t &=& \readfn{\texttt{function} \cdot x \cdot \texttt{(} \cdot x \cdot \texttt{)}~
-   \cdot \texttt{\{} \cdot s' \cdot \texttt{\}}
-   }{p}{b}
-   \\
-   &=& \texttt{function} \cdot x \cdot \parens{x}\cdot \curlies{t'}
+%  We have \( s = \texttt{function} \cdot x \cdot \texttt{(} \cdot x \cdot \texttt{)}~
+%  \cdot \texttt{\{} \cdot s' \cdot \texttt{\}}
+%  \) where \( s' \in \gprod{SourceElements}{e} \) so:
+%  \[
+%  \begin{array}{rcl}
+%    t &=& \readfn{\texttt{function} \cdot x \cdot \texttt{(} \cdot x \cdot \texttt{)}~
+%    \cdot \texttt{\{} \cdot s' \cdot \texttt{\}}
+%    }{p}{b}
+%    \\
+%    &=& \texttt{function} \cdot x \cdot \parens{x}\cdot \curlies{t'}
 
- \end{array}
- \]
- where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). 
- Since by Lemma \ref{lem:readSourceElements},
- \( t' \in \gprod{SourceElements'}{e} \) we have \( t \in \gprod{FunctionDecl'}{\texttt{function}~x~
- \texttt{(}x \texttt{)}~
- \texttt{\{}e \texttt{\}}} \).
+%  \end{array}
+%  \]
+%  where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). 
+%  Since by Lemma \ref{lem:readSourceElements},
+%  \( t' \in \gprod{SourceElements'}{e} \) we have \( t \in \gprod{FunctionDecl'}{\texttt{function}~x~
+%  \texttt{(}x \texttt{)}~
+%  \texttt{\{}e \texttt{\}}} \).
  
- The argument is similar for the other direction.
-\end{proof}
+%  The argument is similar for the other direction.
+% \end{proof}
 
-\begin{lemma}[\label{lem:readStmt}Parse Equivalence for Stmt]\mbox{}
+% \begin{lemma}[\label{lem:readStmt}Parse Equivalence for Stmt]\mbox{}
   
-  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
-  \[
-  \begin{array}{rl}
-  &s \in \gprod{Stmt}{e} 
-  \\
-  \Leftrightarrow &
-  \readfn{s}{p}{\false} \in \gprod{Stmt'}{e}
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  For the left-to-right direction we have several production rules for
-  \( \gprod{Stmt}{e} \).
-  \begin{itemize}
+%   \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+%   \[
+%   \begin{array}{rl}
+%   &s \in \gprod{Stmt}{e} 
+%   \\
+%   \Leftrightarrow &
+%   \readfn{s}{p}{\false} \in \gprod{Stmt'}{e}
+%   \end{array}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   For the left-to-right direction we have several production rules for
+%   \( \gprod{Stmt}{e} \).
+%   \begin{itemize}
 
-  \item \( s \in \texttt{\{} \cdot \gprod{StmtList}{e} \cdot \texttt{\}} \). 
-    We have \( s =
-    \texttt{\{} \cdot s' \cdot \texttt{\}} \) where \( s' \in \gprod{StmtList}{e} \). Then:
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{\texttt{\{} \cdot s' \cdot \texttt{\}}}{p}{\false}
-      \\
-      &=& \curlies{t'}
-    \end{array}
-    \]
-    where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). By Lemma
-    \ref{lem:readStmtList}, \( t' \in \gprod{StmtList'}{e} \)
-    so \( t \in \gprod{Stmt'}{\curlies{e}} \).
+%   \item \( s \in \texttt{\{} \cdot \gprod{StmtList}{e} \cdot \texttt{\}} \). 
+%     We have \( s =
+%     \texttt{\{} \cdot s' \cdot \texttt{\}} \) where \( s' \in \gprod{StmtList}{e} \). Then:
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{\texttt{\{} \cdot s' \cdot \texttt{\}}}{p}{\false}
+%       \\
+%       &=& \curlies{t'}
+%     \end{array}
+%     \]
+%     where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). By Lemma
+%     \ref{lem:readStmtList}, \( t' \in \gprod{StmtList'}{e} \)
+%     so \( t \in \gprod{Stmt'}{\curlies{e}} \).
 
 
-  \item \( s \in \gprod{AssignExpr}{e} \cdot \texttt{;}
-    \). We have \( s = s' \cdot \texttt{;} \) where \( s' \in
-    \gprod{AssignExpr}{e} \). Then:
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{s'\cdot \texttt{;}}{p}{\false}
-      \\
-      &=& \readfn{s'}{p}{\false} \cdot \texttt{;}
-    \end{array}
-    \]
-    Since \( p \in \reprefix_b \) by Lemma
-    \ref{lem:readAssignExpr}, \( \readfn{s'}{p}{\false} \in
-    \gprod{AssignExpr'}{e} \) we have \( t \in
-    \gprod{Stmt'}{e} \).
+%   \item \( s \in \gprod{AssignExpr}{e} \cdot \texttt{;}
+%     \). We have \( s = s' \cdot \texttt{;} \) where \( s' \in
+%     \gprod{AssignExpr}{e} \). Then:
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{s'\cdot \texttt{;}}{p}{\false}
+%       \\
+%       &=& \readfn{s'}{p}{\false} \cdot \texttt{;}
+%     \end{array}
+%     \]
+%     Since \( p \in \reprefix_b \) by Lemma
+%     \ref{lem:readAssignExpr}, \( \readfn{s'}{p}{\false} \in
+%     \gprod{AssignExpr'}{e} \) we have \( t \in
+%     \gprod{Stmt'}{e} \).
 
-  \item \( s \in \texttt{if} \cdot \texttt{(} \cdot \gprod{AssignExpr}{e}
-    \cdot \texttt{)} \cdot \gprod{Stmt}{e'}  \). We have \( s =
-    \texttt{if}\cdot \texttt{(}\cdot s' \cdot \texttt{)} \cdot s'' \) where \( s' \in
-    \gprod{AssignExpr}{e} \) and \( s'' \in \gprod{Stmt}{e'} \).
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{
-        \texttt{if}\cdot \texttt{(} \cdot s' \cdot \texttt{)} \cdot s'' 
-      }{p}{\false}
-      \\
-      &=& \texttt{if} \cdot \parens{t'} \cdot t'' 
-    \end{array}
-    \]
-    where 
-    \[ 
-    \begin{array}{lcl}
-      t' &=& \readfn{s'}{\epsilon}{\false}
-      \\
-      t'' &=& \readfn{s''}{
-        p \cdot \texttt{if} \cdot \parens{t'}
-      }{\false}
-    \end{array}
-    \]
-    By Lemma \ref{lem:readAssignExpr} \( t' \in
-    \gprod{AssignExpr'}{e} \). By induction, 
-    \( t'' \in \gprod{Stmt'}{e'} \) (since
-    \( p \cdot \parens{t'} \in \reprefix_b \)). Thus \( t \in
-    \gprod{Stmt'}{\texttt{if}~\texttt{(} e \texttt{)}~e'} \).
+%   \item \( s \in \texttt{if} \cdot \texttt{(} \cdot \gprod{AssignExpr}{e}
+%     \cdot \texttt{)} \cdot \gprod{Stmt}{e'}  \). We have \( s =
+%     \texttt{if}\cdot \texttt{(}\cdot s' \cdot \texttt{)} \cdot s'' \) where \( s' \in
+%     \gprod{AssignExpr}{e} \) and \( s'' \in \gprod{Stmt}{e'} \).
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{
+%         \texttt{if}\cdot \texttt{(} \cdot s' \cdot \texttt{)} \cdot s'' 
+%       }{p}{\false}
+%       \\
+%       &=& \texttt{if} \cdot \parens{t'} \cdot t'' 
+%     \end{array}
+%     \]
+%     where 
+%     \[ 
+%     \begin{array}{lcl}
+%       t' &=& \readfn{s'}{\epsilon}{\false}
+%       \\
+%       t'' &=& \readfn{s''}{
+%         p \cdot \texttt{if} \cdot \parens{t'}
+%       }{\false}
+%     \end{array}
+%     \]
+%     By Lemma \ref{lem:readAssignExpr} \( t' \in
+%     \gprod{AssignExpr'}{e} \). By induction, 
+%     \( t'' \in \gprod{Stmt'}{e'} \) (since
+%     \( p \cdot \parens{t'} \in \reprefix_b \)). Thus \( t \in
+%     \gprod{Stmt'}{\texttt{if}~\texttt{(} e \texttt{)}~e'} \).
 
-  \item \( s \in \texttt{return} \). Since \( s = \texttt{return} \)
-    and \( \readfn{s}{p}{\false} = \texttt{return} \in
-    \gprod{Stmt'}{\texttt{return}} \) we have our result directly.
+%   \item \( s \in \texttt{return} \). Since \( s = \texttt{return} \)
+%     and \( \readfn{s}{p}{\false} = \texttt{return} \in
+%     \gprod{Stmt'}{\texttt{return}} \) we have our result directly.
 
-  \item \( s \in \texttt{return} \cdot \gprod{AssignExpr}{e} \texttt{;} \).
-    We have \( s = \texttt{return}\cdot s' \cdot \texttt{;} \) where
-    \( s' \in \gprod{AssignExpr}{e} \). Then:
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{\texttt{return} \cdot s' \cdot \texttt{;}}{p}{\false}
-      \\
-      &=& \texttt{return}\cdot \readfn{s'}{p \cdot \texttt{return}}{\false}
-      \cdot \texttt{;}
-    \end{array}
-    \]
-    By Lemma \ref{lem:readAssignExpr}, \( \readfn{s'}{p
-      \cdot \texttt{return}}{\false} \in \gprod{AssignExpr'}{e}
-    \) thus \( t \in \gprod{Stmt'}{\texttt{return}~e} \).
+%   \item \( s \in \texttt{return} \cdot \gprod{AssignExpr}{e} \texttt{;} \).
+%     We have \( s = \texttt{return}\cdot s' \cdot \texttt{;} \) where
+%     \( s' \in \gprod{AssignExpr}{e} \). Then:
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{\texttt{return} \cdot s' \cdot \texttt{;}}{p}{\false}
+%       \\
+%       &=& \texttt{return}\cdot \readfn{s'}{p \cdot \texttt{return}}{\false}
+%       \cdot \texttt{;}
+%     \end{array}
+%     \]
+%     By Lemma \ref{lem:readAssignExpr}, \( \readfn{s'}{p
+%       \cdot \texttt{return}}{\false} \in \gprod{AssignExpr'}{e}
+%     \) thus \( t \in \gprod{Stmt'}{\texttt{return}~e} \).
 
-  \item \( s \in \var \cdot \texttt{:} \cdot \gprod{Stmt}{e} \). We have \( s =
-    \var \cdot \texttt{:} \cdot s' \) where \( s' \in \gprod{Stmt}{e}
-    \). Then:
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{\var \cdot \texttt{:} \cdot s'}{p}{\false}
-      \\
-      &=& \var \cdot \texttt{:} \cdot 
-      \readfn{s'}{
-        p \cdot \var \cdot \texttt{:}
-      }{\false}
-    \end{array}
-    \]
-    By induction, \( \readfn{s'}{p \cdot \var \cdot
-      \texttt{:}}{\false} \in \gprod{Stmt'}{e} \) so \( t \in
-    \gprod{Stmt'}{\var~\texttt{:}~e} \).
-  \end{itemize}
+%   \item \( s \in \var \cdot \texttt{:} \cdot \gprod{Stmt}{e} \). We have \( s =
+%     \var \cdot \texttt{:} \cdot s' \) where \( s' \in \gprod{Stmt}{e}
+%     \). Then:
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{\var \cdot \texttt{:} \cdot s'}{p}{\false}
+%       \\
+%       &=& \var \cdot \texttt{:} \cdot 
+%       \readfn{s'}{
+%         p \cdot \var \cdot \texttt{:}
+%       }{\false}
+%     \end{array}
+%     \]
+%     By induction, \( \readfn{s'}{p \cdot \var \cdot
+%       \texttt{:}}{\false} \in \gprod{Stmt'}{e} \) so \( t \in
+%     \gprod{Stmt'}{\var~\texttt{:}~e} \).
+%   \end{itemize}
 
-  The argument for the other direction is similar.
-\end{proof}
+%   The argument for the other direction is similar.
+% \end{proof}
 
-\begin{lemma}[\label{lem:readStmtList}Parse Equivalence for StmtList]\mbox{}
+% \begin{lemma}[\label{lem:readStmtList}Parse Equivalence for StmtList]\mbox{}
 
-  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
-  \[
-  \begin{array}{rl}
-  &s \in \gprod{StmtList}{e} 
-  \\
-  \Leftrightarrow &
-  \readfn{s}{p}{\false} \in \gprod{StmtList'}{e}
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  For the left-to-right direction we have two production rules for
-  \( \gprod{StmtList}{e} \).
-  \begin{itemize}
-  \item \( s \in \gprod{Stmt}{e} \).
-    This follows by Lemma \ref{lem:readStmt} since \( p \in \reprefix_b \).
+%   \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+%   \[
+%   \begin{array}{rl}
+%   &s \in \gprod{StmtList}{e} 
+%   \\
+%   \Leftrightarrow &
+%   \readfn{s}{p}{\false} \in \gprod{StmtList'}{e}
+%   \end{array}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   For the left-to-right direction we have two production rules for
+%   \( \gprod{StmtList}{e} \).
+%   \begin{itemize}
+%   \item \( s \in \gprod{Stmt}{e} \).
+%     This follows by Lemma \ref{lem:readStmt} since \( p \in \reprefix_b \).
 
-  \item \( s \in \gprod{StmtList}{e} \cdot \gprod{Stmt}{e'} \). So \( s =
-    s' \cdot s'' \) where \( s' \in \gprod{StmtList}{e} \) and \( s''
-    \in \gprod{Stmt}{e'} \). Then,
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{s' \cdot s''}{p}{\false}
-      \\
-      &=& \readfn{s'}{p}{\false} \cdot \readfn{s''}{p 
-        \cdot \readfn{s'}{p}{\false}}{\false}
-    \end{array}
-    \]
-    By induction \( \readfn{s'}{p}{\false} \in \gprod{StmtList'}{e} \)
-    and by Lemma \ref{lem:readStmt}, \( \readfn{s''}{p \cdot
-      \readfn{s'}{p}{\false}}{\false} \in \gprod{Stmt'}{e'} \) (since
-    by Lemma \ref{lem:readStmtPrefix}, \( p \cdot
-    \readfn{s'}{p}{\false} \in \reprefix_b \)). Thus, \( t \in
-    \gprod{StmtList'}{e~e'} \).
-  \end{itemize}
+%   \item \( s \in \gprod{StmtList}{e} \cdot \gprod{Stmt}{e'} \). So \( s =
+%     s' \cdot s'' \) where \( s' \in \gprod{StmtList}{e} \) and \( s''
+%     \in \gprod{Stmt}{e'} \). Then,
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{s' \cdot s''}{p}{\false}
+%       \\
+%       &=& \readfn{s'}{p}{\false} \cdot \readfn{s''}{p 
+%         \cdot \readfn{s'}{p}{\false}}{\false}
+%     \end{array}
+%     \]
+%     By induction \( \readfn{s'}{p}{\false} \in \gprod{StmtList'}{e} \)
+%     and by Lemma \ref{lem:readStmt}, \( \readfn{s''}{p \cdot
+%       \readfn{s'}{p}{\false}}{\false} \in \gprod{Stmt'}{e'} \) (since
+%     by Lemma \ref{lem:readStmtPrefix}, \( p \cdot
+%     \readfn{s'}{p}{\false} \in \reprefix_b \)). Thus, \( t \in
+%     \gprod{StmtList'}{e~e'} \).
+%   \end{itemize}
   
-  The argument for the other direction is similar.
-\end{proof}
+%   The argument for the other direction is similar.
+% \end{proof}
 
-\begin{lemma}[\label{lem:readAssignExpr}Parse Equivalence for
-  AssignExpr]\mbox{}
+% \begin{lemma}[\label{lem:readAssignExpr}Parse Equivalence for
+%   AssignExpr]\mbox{}
   
-  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
-  Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \), we have that
-  \[ 
-  \begin{array}{rl}
-  &s \in \gprod{AssignExpr}{e} 
-  \\
-  \Leftrightarrow&
-  \readfn{s}{p}{b} \in \gprod{AssignExpr'}{e} 
-  \end{array}
-  \]
+%   \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+%   Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \), we have that
+%   \[ 
+%   \begin{array}{rl}
+%   &s \in \gprod{AssignExpr}{e} 
+%   \\
+%   \Leftrightarrow&
+%   \readfn{s}{p}{b} \in \gprod{AssignExpr'}{e} 
+%   \end{array}
+%   \]
   
-\end{lemma}
-\begin{proof}
-  The constraint on \( s \) when \( b \) is false is due to the
-  lookahead check in the production \( \gprod{Stmt}{e} ::=
-  \gprod{AssignExpr}{e}~\texttt{;} \). Lemma \ref{lem:readPrimaryExpr}
-  will make use of this constraint.
+% \end{lemma}
+% \begin{proof}
+%   The constraint on \( s \) when \( b \) is false is due to the
+%   lookahead check in the production \( \gprod{Stmt}{e} ::=
+%   \gprod{AssignExpr}{e}~\texttt{;} \). Lemma \ref{lem:readPrimaryExpr}
+%   will make use of this constraint.
 
-  For the left-to-right direction we have two production rules for
-  \( \gprod{AssignExpr}{e} \).
-  \begin{itemize}
-  \item \( s \in \gprod{BinaryExpr}{e} \). This holds by Lemma
-    \ref{lem:readBinaryExpr}.
+%   For the left-to-right direction we have two production rules for
+%   \( \gprod{AssignExpr}{e} \).
+%   \begin{itemize}
+%   \item \( s \in \gprod{BinaryExpr}{e} \). This holds by Lemma
+%     \ref{lem:readBinaryExpr}.
     
-  \item \( s \in \gprod{CallExpr}{e} \cdot \texttt{=} \cdot
-    \gprod{AssignExpr}{e'} \).
-    Then \( s = s' \cdot \texttt{=} \cdot s'' \) where \( s' \in
-    \gprod{CallExpr}{e} \) and \( s'' \in
-    \gprod{AssignExpr}{e'} \). Then:
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{s' \cdot \texttt{=} \cdot s''}{p}{b}
-      \\
-      &=& \readfn{s'}{p}{b}
-      \cdot \readfn{\texttt{=}\cdot s''}{p \cdot \readfn{s'}{p}{b}}{b}
-      \\
-      &=& \readfn{s'}{p}{b} \cdot \texttt{=} \cdot
-      \readfn{s''}{p \cdot \readfn{s'}{p}{b} \cdot \texttt{=}}{b}
-    \end{array}
-    \]
-    Since \( p \in \reprefix_b \) by Lemma
-    \ref{lem:readCallExpr}, \( \readfn{s'}{p}{b} \in
-    \gprod{CallExpr'}{e} \) and by induction \( \readfn{s''}{p
-      \cdot \readfn{s'}{p}{b} \cdot \texttt{=}}{b} \in
-    \gprod{AssignExpr'}{e'} \) 
-    (since \( p \cdot \readfn{s'}{p}{b} \cdot \texttt{=} \in \reprefix_b \)) so \( t \in
-    \gprod{AssignExpr'}{e~\texttt{=}~e'} \).
-  \end{itemize}
+%   \item \( s \in \gprod{CallExpr}{e} \cdot \texttt{=} \cdot
+%     \gprod{AssignExpr}{e'} \).
+%     Then \( s = s' \cdot \texttt{=} \cdot s'' \) where \( s' \in
+%     \gprod{CallExpr}{e} \) and \( s'' \in
+%     \gprod{AssignExpr}{e'} \). Then:
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{s' \cdot \texttt{=} \cdot s''}{p}{b}
+%       \\
+%       &=& \readfn{s'}{p}{b}
+%       \cdot \readfn{\texttt{=}\cdot s''}{p \cdot \readfn{s'}{p}{b}}{b}
+%       \\
+%       &=& \readfn{s'}{p}{b} \cdot \texttt{=} \cdot
+%       \readfn{s''}{p \cdot \readfn{s'}{p}{b} \cdot \texttt{=}}{b}
+%     \end{array}
+%     \]
+%     Since \( p \in \reprefix_b \) by Lemma
+%     \ref{lem:readCallExpr}, \( \readfn{s'}{p}{b} \in
+%     \gprod{CallExpr'}{e} \) and by induction \( \readfn{s''}{p
+%       \cdot \readfn{s'}{p}{b} \cdot \texttt{=}}{b} \in
+%     \gprod{AssignExpr'}{e'} \) 
+%     (since \( p \cdot \readfn{s'}{p}{b} \cdot \texttt{=} \in \reprefix_b \)) so \( t \in
+%     \gprod{AssignExpr'}{e~\texttt{=}~e'} \).
+%   \end{itemize}
   
-  The argument for the other direction is similar.
-\end{proof}
+%   The argument for the other direction is similar.
+% \end{proof}
 
-\begin{lemma}[\label{lem:readBinaryExpr}Parse Equivalence for BinaryExpr]\mbox{}
+% \begin{lemma}[\label{lem:readBinaryExpr}Parse Equivalence for BinaryExpr]\mbox{}
   
-  \( \forall s \in \Tok^*, b \in \bool,  p \in \reprefix_b. \)
-  Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \), we have that
-  \[
-  \begin{array}{rl}
-  &s \in \gprod{BinaryExpr}{e} 
-  \\
-  \Leftrightarrow &
-  \readfn{s}{p}{b} \in \gprod{BinaryExpr'}{e} 
-  \end{array}
-  \]
+%   \( \forall s \in \Tok^*, b \in \bool,  p \in \reprefix_b. \)
+%   Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \), we have that
+%   \[
+%   \begin{array}{rl}
+%   &s \in \gprod{BinaryExpr}{e} 
+%   \\
+%   \Leftrightarrow &
+%   \readfn{s}{p}{b} \in \gprod{BinaryExpr'}{e} 
+%   \end{array}
+%   \]
 
-\end{lemma}
-\begin{proof}
-  For the left-to-right direction there are three productions for
-  \( \gprod{BinaryExpr}{e} \).
-  \begin{itemize}
-  \item \( s \in \gprod{CallExpr}{e} \). This holds by Lemma
-    \ref{lem:readCallExpr} since \( p \in \reprefix_b \).
+% \end{lemma}
+% \begin{proof}
+%   For the left-to-right direction there are three productions for
+%   \( \gprod{BinaryExpr}{e} \).
+%   \begin{itemize}
+%   \item \( s \in \gprod{CallExpr}{e} \). This holds by Lemma
+%     \ref{lem:readCallExpr} since \( p \in \reprefix_b \).
 
-  \item \( s \in \gprod{BinaryExpr}{e} \cdot \div \cdot \gprod{BinaryExpr}{e'}
-    \). We have \( s = s' \cdot \div \cdot s'' \) where \( s' \in
-    \gprod{BinaryExpr}{e} \) and \( s'' \in \gprod{BinaryExpr}{e'} \).
-    Then:
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{s'\cdot \div \cdot s''}{p}{b}
-      \\
-      &=& 
-      \readfn{s'}{p}{b} \cdot 
-      \readfn{\div \cdot s''}{
-        p \cdot \readfn{s'}{p}{b}
-      }{b}
-      \\
-      &=& \readfn{s'}{p}{b} \cdot \div \cdot 
-      \readfn{s''}{
-        p \cdot \readfn{s'}{p}{b} \cdot \div
-      }{b}
-      \\ 
-      && \textrm{(since \( p \cdot \readfn{s'}{p}{b} \in \divprefix_b \))}
+%   \item \( s \in \gprod{BinaryExpr}{e} \cdot \div \cdot \gprod{BinaryExpr}{e'}
+%     \). We have \( s = s' \cdot \div \cdot s'' \) where \( s' \in
+%     \gprod{BinaryExpr}{e} \) and \( s'' \in \gprod{BinaryExpr}{e'} \).
+%     Then:
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{s'\cdot \div \cdot s''}{p}{b}
+%       \\
+%       &=& 
+%       \readfn{s'}{p}{b} \cdot 
+%       \readfn{\div \cdot s''}{
+%         p \cdot \readfn{s'}{p}{b}
+%       }{b}
+%       \\
+%       &=& \readfn{s'}{p}{b} \cdot \div \cdot 
+%       \readfn{s''}{
+%         p \cdot \readfn{s'}{p}{b} \cdot \div
+%       }{b}
+%       \\ 
+%       && \textrm{(since \( p \cdot \readfn{s'}{p}{b} \in \divprefix_b \))}
 
-    \end{array}
-    \]
-    By induction \( \readfn{s'}{p}{b} \in \gprod{BinaryExpr'}{e} \)
-    and \( 
-      \readfn{s''}{
-        p \cdot \readfn{s'}{p}{b} \cdot \div
-      }{b} \in \gprod{BinaryExpr'}{e'}
-      \) (since \( p \cdot \readfn{s'}{p}{b} \cdot \div \in \reprefix_b \)) thus \( t \in \gprod{BinaryExpr'}{e~\div~e'} \).
+%     \end{array}
+%     \]
+%     By induction \( \readfn{s'}{p}{b} \in \gprod{BinaryExpr'}{e} \)
+%     and \( 
+%       \readfn{s''}{
+%         p \cdot \readfn{s'}{p}{b} \cdot \div
+%       }{b} \in \gprod{BinaryExpr'}{e'}
+%       \) (since \( p \cdot \readfn{s'}{p}{b} \cdot \div \in \reprefix_b \)) thus \( t \in \gprod{BinaryExpr'}{e~\div~e'} \).
 
-    \item \( s \in \gprod{BinaryExpr}{e} \cdot \texttt{+} \cdot
-      \gprod{BinaryExpr}{e'} \). We have \( s = s' \cdot \texttt{+}
-      \cdot s'' \) where \( s' \in \gprod{BinaryExpr}{e} \) and \( s''
-      \in \gprod{BinaryExpr}{e'} \). Then:
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{s'\cdot \texttt{+} \cdot s''}{p}{b}
-      \\
-      &=& \readfn{s'}{p}{b} \cdot \texttt{+} \cdot 
-      \readfn{s''}{
-        p \cdot \readfn{s'}{p}{b} \cdot \texttt{+}
-      }{b}
-    \end{array}
-    \]
-    By induction \( \readfn{s'}{p}{b} \in \gprod{BinaryExpr'}{e}
-    \) and \( \readfn{s''}{ p \cdot \readfn{s'}{p}{b} \cdot \texttt{+}
-    }{b} \in \gprod{BinaryExpr'}{e'} \) (since \( p \cdot
-    \readfn{s'}{p}{b} \cdot \texttt{+} \in \reprefix_b \)) thus \( t \in
-    \gprod{BinaryExpr'}{e~\texttt{+}~e'} \).
-  \end{itemize}
+%     \item \( s \in \gprod{BinaryExpr}{e} \cdot \texttt{+} \cdot
+%       \gprod{BinaryExpr}{e'} \). We have \( s = s' \cdot \texttt{+}
+%       \cdot s'' \) where \( s' \in \gprod{BinaryExpr}{e} \) and \( s''
+%       \in \gprod{BinaryExpr}{e'} \). Then:
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{s'\cdot \texttt{+} \cdot s''}{p}{b}
+%       \\
+%       &=& \readfn{s'}{p}{b} \cdot \texttt{+} \cdot 
+%       \readfn{s''}{
+%         p \cdot \readfn{s'}{p}{b} \cdot \texttt{+}
+%       }{b}
+%     \end{array}
+%     \]
+%     By induction \( \readfn{s'}{p}{b} \in \gprod{BinaryExpr'}{e}
+%     \) and \( \readfn{s''}{ p \cdot \readfn{s'}{p}{b} \cdot \texttt{+}
+%     }{b} \in \gprod{BinaryExpr'}{e'} \) (since \( p \cdot
+%     \readfn{s'}{p}{b} \cdot \texttt{+} \in \reprefix_b \)) thus \( t \in
+%     \gprod{BinaryExpr'}{e~\texttt{+}~e'} \).
+%   \end{itemize}
   
-  The argument for the other direction is similar.
-\end{proof}
+%   The argument for the other direction is similar.
+% \end{proof}
 
-\begin{lemma}[\label{lem:readCallExpr}Parse Equivalence for CallExpr]\mbox{}
+% \begin{lemma}[\label{lem:readCallExpr}Parse Equivalence for CallExpr]\mbox{}
   
-  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
-  Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \),
-  we have that
-  \[ 
-  \begin{array}{rl}
-  &s \in \gprod{CallExpr}{e} 
-  \\
-  \Leftrightarrow &
-  \readfn{s}{p}{b} \in \gprod{CallExpr'}{e} 
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  For the left-to-right direction there are two production rules for
-  \( \gprod{CallExpr}{e} \).
-  \begin{itemize}
-  \item \( s \in
-    \gprod{MemberExpr}{e} \cdot \texttt{(} \cdot \gprod{AssignExpr'}{e'} \cdot \texttt{)} \). We
-    have \( s = s' \cdot 
-    \texttt{(} \cdot s'' \cdot \texttt{)} \) where \( s' \in
-    \gprod{MemberExpr}{e} \) and \( s'' \in \gprod{AssignExpr}{e'} \).
-    Then
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{s' \cdot 
-      \texttt{(} \cdot s'' \cdot \texttt{)}
-      }{p}{b}
-      \\
-      &=& \readfn{s'}{p}{b} \cdot
-      \readfn{
-      \texttt{(} \cdot s'' \cdot \texttt{)}
-      }{
-        p \cdot \readfn{s'}{p}{b}
-      }{b}
-    \end{array}
-    \]
-    Since \( p \in \reprefix_b \), by Lemma
-    \ref{lem:readMemberExpr} we have \( \readfn{s'}{p}{b} \in
-    \gprod{MemberExpr'}{e} \) and my Lemma
-    \ref{lem:readAssignExpr} we have
-    \(\readfn{s''}{\epsilon}{\textit{false}} \in
-    \gprod{AssignExpr'}{e'} \) thus \( t \in
-    \gprod{CallExpr'}{e~\texttt{(} e' \texttt{)}} \).
+%   \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+%   Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \),
+%   we have that
+%   \[ 
+%   \begin{array}{rl}
+%   &s \in \gprod{CallExpr}{e} 
+%   \\
+%   \Leftrightarrow &
+%   \readfn{s}{p}{b} \in \gprod{CallExpr'}{e} 
+%   \end{array}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   For the left-to-right direction there are two production rules for
+%   \( \gprod{CallExpr}{e} \).
+%   \begin{itemize}
+%   \item \( s \in
+%     \gprod{MemberExpr}{e} \cdot \texttt{(} \cdot \gprod{AssignExpr'}{e'} \cdot \texttt{)} \). We
+%     have \( s = s' \cdot 
+%     \texttt{(} \cdot s'' \cdot \texttt{)} \) where \( s' \in
+%     \gprod{MemberExpr}{e} \) and \( s'' \in \gprod{AssignExpr}{e'} \).
+%     Then
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{s' \cdot 
+%       \texttt{(} \cdot s'' \cdot \texttt{)}
+%       }{p}{b}
+%       \\
+%       &=& \readfn{s'}{p}{b} \cdot
+%       \readfn{
+%       \texttt{(} \cdot s'' \cdot \texttt{)}
+%       }{
+%         p \cdot \readfn{s'}{p}{b}
+%       }{b}
+%     \end{array}
+%     \]
+%     Since \( p \in \reprefix_b \), by Lemma
+%     \ref{lem:readMemberExpr} we have \( \readfn{s'}{p}{b} \in
+%     \gprod{MemberExpr'}{e} \) and my Lemma
+%     \ref{lem:readAssignExpr} we have
+%     \(\readfn{s''}{\epsilon}{\textit{false}} \in
+%     \gprod{AssignExpr'}{e'} \) thus \( t \in
+%     \gprod{CallExpr'}{e~\texttt{(} e' \texttt{)}} \).
 
-  \item \( s \in \gprod{CallExpr}{e} \cdot \texttt{.} \cdot \var \). Then \( s =
-    s' \cdot \texttt{.}\cdot \var \) where \( s' \in
-    \gprod{CallExpr}{e} \). Then
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{s' \cdot \texttt{.} \cdot \var}{p}{b}
-      \\
-      &=& \readfn{s'}{p}{b} \cdot \texttt{.}\cdot \var
-    \end{array}
-    \]
-    By induction \( \readfn{s'}{p}{b} \in \gprod{CallExpr'}{e}
-    \). Thus \( t \in \gprod{CallExpr'}{e~\texttt{.\var}} \).
-  \end{itemize}
+%   \item \( s \in \gprod{CallExpr}{e} \cdot \texttt{.} \cdot \var \). Then \( s =
+%     s' \cdot \texttt{.}\cdot \var \) where \( s' \in
+%     \gprod{CallExpr}{e} \). Then
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{s' \cdot \texttt{.} \cdot \var}{p}{b}
+%       \\
+%       &=& \readfn{s'}{p}{b} \cdot \texttt{.}\cdot \var
+%     \end{array}
+%     \]
+%     By induction \( \readfn{s'}{p}{b} \in \gprod{CallExpr'}{e}
+%     \). Thus \( t \in \gprod{CallExpr'}{e~\texttt{.\var}} \).
+%   \end{itemize}
   
-  The argument for the other direction is similar.
-\end{proof}
+%   The argument for the other direction is similar.
+% \end{proof}
 
-\begin{lemma}[\label{lem:readMemberExpr}Parse Equivalence for MemberExpr]\mbox{}
+% \begin{lemma}[\label{lem:readMemberExpr}Parse Equivalence for MemberExpr]\mbox{}
 
-  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
-  Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \),
-  we have that
-  \[
-  \begin{array}{rl}
-  &s \in \gprod{MemberExpr}{e} 
-  \\
-  \Leftrightarrow&
-  \readfn{s}{p}{b} \in \gprod{MemberExpr'}{e} 
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  For the left-to-right direction there are two three production rules
-  for \( \gprod{MemberExpr}{e} \).
-  \begin{itemize}
-  \item \( s \in \gprod{PrimaryExpr}{e} \). This follows from Lemma
-    \ref{lem:readPrimaryExpr} since \( p \in \reprefix_b \).
+%   \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+%   Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \),
+%   we have that
+%   \[
+%   \begin{array}{rl}
+%   &s \in \gprod{MemberExpr}{e} 
+%   \\
+%   \Leftrightarrow&
+%   \readfn{s}{p}{b} \in \gprod{MemberExpr'}{e} 
+%   \end{array}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   For the left-to-right direction there are two three production rules
+%   for \( \gprod{MemberExpr}{e} \).
+%   \begin{itemize}
+%   \item \( s \in \gprod{PrimaryExpr}{e} \). This follows from Lemma
+%     \ref{lem:readPrimaryExpr} since \( p \in \reprefix_b \).
     
-  \item \( s \in \gprod{Function}{e} \). This follows from Lemma
-    \ref{lem:readFunctionDecl}.
+%   \item \( s \in \gprod{Function}{e} \). This follows from Lemma
+%     \ref{lem:readFunctionDecl}.
     
-  \item \( s \in \gprod{MemberExpr}{e} \cdot \texttt{.} \cdot \var \). We have \(
-    s = s' \cdot \texttt{.} \var \) where \( s \in
-    \gprod{MemberExpr}{e} \). Then
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{s' \cdot \texttt{.} \cdot \var}{p}{b}
-      \\
-      &=& \readfn{s'}{p}{b} \cdot \texttt{.} \cdot \var
-    \end{array}
-    \]
-    By induction \( \readfn{s'}{p}{b} \in \gprod{MemberExpr'}{e}
-    \) thus \( t \in \gprod{MemberExpr'}{e\texttt{.\var}} \).
-  \end{itemize}
+%   \item \( s \in \gprod{MemberExpr}{e} \cdot \texttt{.} \cdot \var \). We have \(
+%     s = s' \cdot \texttt{.} \var \) where \( s \in
+%     \gprod{MemberExpr}{e} \). Then
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{s' \cdot \texttt{.} \cdot \var}{p}{b}
+%       \\
+%       &=& \readfn{s'}{p}{b} \cdot \texttt{.} \cdot \var
+%     \end{array}
+%     \]
+%     By induction \( \readfn{s'}{p}{b} \in \gprod{MemberExpr'}{e}
+%     \) thus \( t \in \gprod{MemberExpr'}{e\texttt{.\var}} \).
+%   \end{itemize}
   
-  The argument for the other direction is similar.
-\end{proof}
+%   The argument for the other direction is similar.
+% \end{proof}
 
 
-\begin{lemma}[\label{lem:readPrimaryExpr}Parse Equivalence for PrimaryExpr]\mbox{}
+% \begin{lemma}[\label{lem:readPrimaryExpr}Parse Equivalence for PrimaryExpr]\mbox{}
   
-  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
-  Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \),
-  we have that
-  \[ 
-  \begin{array}{rl}
-  &s \in \gprod{PrimaryExpr}{e} 
-  \\
-  \Leftrightarrow &
-  \readfn{s}{p}{b} \in \gprod{PrimaryExpr'}{e} 
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  For the left-to-right direction there are several production rules for
-  \( \gprod{PrimaryExpr}{e} \).
-  \begin{itemize}
-  \item \( s \in \var \). Then \( s
-    = \var \) and \( \readfn{\var}{p}{b} \in
-    \gprod{PrimaryExpr'}{\var} \) directly.
+%   \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+%   Where if \( b = \false \) then \( s \not = \texttt{\{} \cdot s' \),
+%   we have that
+%   \[ 
+%   \begin{array}{rl}
+%   &s \in \gprod{PrimaryExpr}{e} 
+%   \\
+%   \Leftrightarrow &
+%   \readfn{s}{p}{b} \in \gprod{PrimaryExpr'}{e} 
+%   \end{array}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   For the left-to-right direction there are several production rules for
+%   \( \gprod{PrimaryExpr}{e} \).
+%   \begin{itemize}
+%   \item \( s \in \var \). Then \( s
+%     = \var \) and \( \readfn{\var}{p}{b} \in
+%     \gprod{PrimaryExpr'}{\var} \) directly.
 
-  \item \( s \in \re \). Then \( s
-    = \re \) and \( \readfn{\re}{p}{b} = \rett \in
-    \gprod{PrimaryExpr'}{\rett} \) since \( p \in \reprefix_b \).
+%   \item \( s \in \re \). Then \( s
+%     = \re \) and \( \readfn{\re}{p}{b} = \rett \in
+%     \gprod{PrimaryExpr'}{\rett} \) since \( p \in \reprefix_b \).
 
-  \item \( s \in 
-  \texttt{\{} \cdot
-    \var \cdot \texttt{:} \cdot \gprod{AssignExpr}{e}
-    \cdot \texttt{\}}
-    \).
-    Then \( s = \texttt{\{} \cdot \var \cdot \texttt{:} \cdot 
-    s' \cdot \texttt{\}} \) where \(
-    s' \in \gprod{AssignExpr}{e} \). Then:
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{\texttt{\{} \cdot \var\cdot  
-        \texttt{:} \cdot s' \cdot \texttt{\}}}{p}{\true}
-      \\
-      &=& \curlies{\var \cdot \texttt{:} \cdot t'}
-    \end{array}
-    \]
-    where \( t' = \readfn{s'}{\var \cdot \texttt{:}}{\textit{true}} \). By Lemma
-    \ref{lem:readAssignExpr}, \( t' \in
-    \gprod{AssignExpr'}{e} \) and thus \( t \in
-    \gprod{PrimaryExpr'}{
-    \texttt{\{}\var\texttt{:}e \texttt{\}}} \).
+%   \item \( s \in 
+%   \texttt{\{} \cdot
+%     \var \cdot \texttt{:} \cdot \gprod{AssignExpr}{e}
+%     \cdot \texttt{\}}
+%     \).
+%     Then \( s = \texttt{\{} \cdot \var \cdot \texttt{:} \cdot 
+%     s' \cdot \texttt{\}} \) where \(
+%     s' \in \gprod{AssignExpr}{e} \). Then:
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{\texttt{\{} \cdot \var\cdot  
+%         \texttt{:} \cdot s' \cdot \texttt{\}}}{p}{\true}
+%       \\
+%       &=& \curlies{\var \cdot \texttt{:} \cdot t'}
+%     \end{array}
+%     \]
+%     where \( t' = \readfn{s'}{\var \cdot \texttt{:}}{\textit{true}} \). By Lemma
+%     \ref{lem:readAssignExpr}, \( t' \in
+%     \gprod{AssignExpr'}{e} \) and thus \( t \in
+%     \gprod{PrimaryExpr'}{
+%     \texttt{\{}\var\texttt{:}e \texttt{\}}} \).
     
-  \item \( s \in \texttt{(} \cdot \gprod{AssignExpr}{e} \cdot \texttt{)} \). 
-    Then \( s = \texttt{(} \cdot s' \cdot \texttt{)} \)
-    where \( s' \in \gprod{AssignExpr}{e} \). So,
-    \[
-    \begin{array}{rcl}
-      t &=& \readfn{\texttt{(} \cdot s' \cdot \texttt{)}}{p}{b}
-      \\
-      &=& \parens{t'}
-    \end{array}
-    \]
-    where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). By Lemma
-    \ref{lem:readAssignExpr} \( t' \in
-    \gprod{AssignExpr'}{e} \). So, \( t \in
-    \gprod{PrimaryExpr'}{\texttt{(} e \texttt{)}} \).
-  \end{itemize}
+%   \item \( s \in \texttt{(} \cdot \gprod{AssignExpr}{e} \cdot \texttt{)} \). 
+%     Then \( s = \texttt{(} \cdot s' \cdot \texttt{)} \)
+%     where \( s' \in \gprod{AssignExpr}{e} \). So,
+%     \[
+%     \begin{array}{rcl}
+%       t &=& \readfn{\texttt{(} \cdot s' \cdot \texttt{)}}{p}{b}
+%       \\
+%       &=& \parens{t'}
+%     \end{array}
+%     \]
+%     where \( t' = \readfn{s'}{\epsilon}{\textit{false}} \). By Lemma
+%     \ref{lem:readAssignExpr} \( t' \in
+%     \gprod{AssignExpr'}{e} \). So, \( t \in
+%     \gprod{PrimaryExpr'}{\texttt{(} e \texttt{)}} \).
+%   \end{itemize}
   
-  For the other direction the argument is similar.
-\end{proof}
+%   For the other direction the argument is similar.
+% \end{proof}
 
-\begin{lemma}[\label{lem:readSourceElementPrefix}SourceElement Prefix]\mbox{}
+% \begin{lemma}[\label{lem:readSourceElementPrefix}SourceElement Prefix]\mbox{}
   
-  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+%   \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
 
-  \[
-  \begin{array}{rl}
-  &s \in \gprod{SourceElement}{e} 
-  \\
-  \Rightarrow &
-  \readfn{s}{p}{\false} \in \reprefix_b
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  There are two cases:
-  \begin{itemize}
-  \item \( s \in \gprod{Stmt}{e} \). This holds by
-    Lemma \ref{lem:readStmtPrefix}.
+%   \[
+%   \begin{array}{rl}
+%   &s \in \gprod{SourceElement}{e} 
+%   \\
+%   \Rightarrow &
+%   \readfn{s}{p}{\false} \in \reprefix_b
+%   \end{array}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   There are two cases:
+%   \begin{itemize}
+%   \item \( s \in \gprod{Stmt}{e} \). This holds by
+%     Lemma \ref{lem:readStmtPrefix}.
 
-  \item \( s \in \gprod{Function}{e} \). Follows directly.
-  \end{itemize}
-\end{proof}
+%   \item \( s \in \gprod{Function}{e} \). Follows directly.
+%   \end{itemize}
+% \end{proof}
 
-\begin{lemma}[\label{lem:readStmtPrefix}Stmt Prefix]\mbox{}
+% \begin{lemma}[\label{lem:readStmtPrefix}Stmt Prefix]\mbox{}
 
-  \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
-  \[
-  \begin{array}{rl}
-  &\readfn{s}{p}{\false} \in \gprod{Stmt'}{e} 
-  \\
-  \Rightarrow& p \cdot \readfn{s}{p}{\false} \in \reprefix_b
-  \end{array}
-  \]
-\end{lemma}
-\begin{proof}
-  We have several cases:
-  \begin{itemize}
-  \item \( \readfn{s}{p}{\false} \in \curlies{\gprod{StmtList'}{e}}
-    \). Follows since \( p \in \reprefix_b \).
+%   \( \forall s \in \Tok^*, b \in \bool, p \in \reprefix_b. \)
+%   \[
+%   \begin{array}{rl}
+%   &\readfn{s}{p}{\false} \in \gprod{Stmt'}{e} 
+%   \\
+%   \Rightarrow& p \cdot \readfn{s}{p}{\false} \in \reprefix_b
+%   \end{array}
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   We have several cases:
+%   \begin{itemize}
+%   \item \( \readfn{s}{p}{\false} \in \curlies{\gprod{StmtList'}{e}}
+%     \). Follows since \( p \in \reprefix_b \).
 
-  \item \( \readfn{s}{p}{\false} \in \gprod{AssignExpr'}{e} \cdot \texttt{;}
-    \). Follows since \( t \cdot \texttt{;} \in \reprefix_b \) for any
-    \( t \).
+%   \item \( \readfn{s}{p}{\false} \in \gprod{AssignExpr'}{e} \cdot \texttt{;}
+%     \). Follows since \( t \cdot \texttt{;} \in \reprefix_b \) for any
+%     \( t \).
     
-  \item \( t = \readfn{s}{p}{\false} \in \texttt{if}\cdot \parens{\gprod{AssignExpr'}{e}}~\gprod{Stmt}{e'} \). Since
-    \( t = \texttt{if}\cdot \parens{t'}\cdot t'' \) where \( t'' \in
-    \gprod{Stmt'}{e'} \) by induction \( t'' \in \reprefix_b \) and
-    thus \( p \cdot t \in \reprefix_b \).
+%   \item \( t = \readfn{s}{p}{\false} \in \texttt{if}\cdot \parens{\gprod{AssignExpr'}{e}}~\gprod{Stmt}{e'} \). Since
+%     \( t = \texttt{if}\cdot \parens{t'}\cdot t'' \) where \( t'' \in
+%     \gprod{Stmt'}{e'} \) by induction \( t'' \in \reprefix_b \) and
+%     thus \( p \cdot t \in \reprefix_b \).
 
-  \item \( \readfn{s}{p}{\false} \in \texttt{return} \).
-    Follows since \( p \cdot \texttt{return} \in \reprefix_b \).
+%   \item \( \readfn{s}{p}{\false} \in \texttt{return} \).
+%     Follows since \( p \cdot \texttt{return} \in \reprefix_b \).
     
-  \item \( t = \readfn{s}{p}{\false} \in
-    \texttt{return}\cdot\gprod{AssignExpr'}{e}\cdot \texttt{;} \). 
-    Since \( \texttt{;} \in \reprefix_b \) then \( p \cdot t \in
-    \reprefix_b \).
+%   \item \( t = \readfn{s}{p}{\false} \in
+%     \texttt{return}\cdot\gprod{AssignExpr'}{e}\cdot \texttt{;} \). 
+%     Since \( \texttt{;} \in \reprefix_b \) then \( p \cdot t \in
+%     \reprefix_b \).
 
-  \item \( t = \readfn{s}{p}{\false} \in
-    \var \cdot \texttt{:} \cdot \gprod{Stmt'}{e} \). Since \( t = \texttt{x}\cdot
-    \texttt{:}\cdot t' \) where \( t' \in \gprod{Stmt'}{e} \). Since
-    \( p \in \reprefix_b \) and by induction \( t' \in \reprefix_b \) we
-    have \( p \cdot t \in \reprefix_b \).
+%   \item \( t = \readfn{s}{p}{\false} \in
+%     \var \cdot \texttt{:} \cdot \gprod{Stmt'}{e} \). Since \( t = \texttt{x}\cdot
+%     \texttt{:}\cdot t' \) where \( t' \in \gprod{Stmt'}{e} \). Since
+%     \( p \in \reprefix_b \) and by induction \( t' \in \reprefix_b \) we
+%     have \( p \cdot t \in \reprefix_b \).
 
-  \end{itemize}
-\end{proof}
+%   \end{itemize}
+% \end{proof}
 
 \end{document}
