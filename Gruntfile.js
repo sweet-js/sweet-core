@@ -1,7 +1,8 @@
 module.exports = function(grunt) {
     var path = require("path");
     var exec = require("child_process").exec;
-    var test_fuzzer = require("./test/fuzzer/test_fuzzer");
+    var esfuzz= require("esfuzz");
+    var sweet = require("./build/lib/sweet");
 
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-jshint');
@@ -173,7 +174,20 @@ module.exports = function(grunt) {
     });
 
     grunt.registerTask("fuzz", function() {
-        test_fuzzer.runFuzzer();
+        var iterations = 20;
+        try {
+            for (var i = 0; i < iterations; i++) {
+                var code = esfuzz.render(esfuzz.generate({maxDepth: 10}))
+                // ignore `with` since we can't handle it anyway
+                if (code.indexOf("with") !== -1) continue;
+                sweet.compile(code);
+            }
+            console.log("done fuzzing");
+        } catch (e) {
+            console.log("Attempted to expand:");
+            console.log(code);
+            console.log(e);
+        }
     });
 
 

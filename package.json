@@ -37,7 +37,8 @@
     "grunt-contrib-copy": "~0.4.1",
     "grunt-contrib-jshint": "~0.7.2",
     "grunt-mocha-test": "~0.7.0",
-    "grunt-contrib-watch": "~0.6.1"
+    "grunt-contrib-watch": "~0.6.1",
+    "esfuzz": "disnet/esfuzz"
   },
   "repository": {
     "type": "git",
