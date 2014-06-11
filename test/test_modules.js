@@ -52,4 +52,9 @@ describe("module loading", function() {
         expect(modExp.token.value).to.be('???');
         expect(modEnv.has(expander.resolve(modExp))).to.be(true);
     });
+    
+    it("should consume an optional trailing semicolon", function() {
+        var testRes = sweet.compile('macro m { rule {} => { 42 } } export m;').code;
+        expect(testRes).to.be('');
+    });
 });
