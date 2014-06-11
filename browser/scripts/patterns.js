@@ -542,7 +542,9 @@
                 };
             }
             success = subMatch.success;
-            patternEnv = loadPatternEnv(patternEnv, subMatch.patternEnv, topLevel, pattern.repeat);
+            if (success) {
+                patternEnv = loadPatternEnv(patternEnv, subMatch.patternEnv, topLevel, pattern.repeat);
+            }
         } else {
             if (pattern.class === 'wildcard') {
                 success = true;
