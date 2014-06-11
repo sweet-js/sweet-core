@@ -16,6 +16,8 @@
     var get_expression = expander.get_expression;
     var syntaxFromToken = syntax.syntaxFromToken;
     var makePunc = syntax.makePunc;
+    var makeIdent = syntax.makeIdent;
+    var makeDelim = syntax.makeDelim;
     var joinSyntax = syntax.joinSyntax;
     var joinSyntaxArray = syntax.joinSyntaxArray;
     var cloneSyntaxArray = syntax.cloneSyntaxArray;
@@ -154,8 +156,8 @@
         var len = patterns.length;
         var pat;
         return _.reduceRight(patterns, function (acc, pat$2) {
-            if (pat$2.class === 'pattern_group') {
-                pat$2.token.inner = reversePattern(pat$2.token.inner);
+            if (pat$2.class === 'pattern_group' || pat$2.class === 'named_group') {
+                pat$2.inner = reversePattern(pat$2.inner);
             }
             if (pat$2.repeat) {
                 pat$2.leading = !pat$2.leading;
@@ -165,14 +167,25 @@
         }, []);
     }
     function loadLiteralGroup(patterns) {
-        _.forEach(patterns, function (patStx) {
-            if (patStx.token.type === parser.Token.Delimiter) {
-                patStx.token.inner = loadLiteralGroup(patStx.token.inner);
+        return patterns.map(function (patStx) {
+            var pat = patternToObject(patStx);
+            if (pat.inner) {
+                pat.inner = loadLiteralGroup(pat.inner);
             } else {
-                patStx.class = 'pattern_literal';
+                pat.class = 'pattern_literal';
             }
+            return pat;
         });
-        return patterns;
+    }
+    function patternToObject(pat) {
+        var obj = {
+                type: pat.token.type,
+                value: pat.token.value
+            };
+        if (pat.token.inner) {
+            obj.inner = pat.token.inner;
+        }
+        return obj;
     }
     function isPrimaryClass(name) {
         return [
@@ -206,10 +219,16 @@
                 last.separator = ' ';
                 continue;
             } else if (isPatternVar(tok1)) {
-                patt = tok1;
-                if (tok2 && tok2.token.type === parser.Token.Punctuator && tok2.token.value === ':' && tok3 && tok3.token.type === parser.Token.Identifier) {
+                patt = patternToObject(tok1);
+                if (tok2 && tok2.token.type === parser.Token.Punctuator && tok2.token.value === ':' && tok3 && (tok3.token.type === parser.Token.Identifier || tok3.token.type === parser.Token.Delimiter && (tok3.token.value === '[]' || tok3.token.value === '()'))) {
                     i += 2;
-                    if (isPrimaryClass(tok3.token.value)) {
+                    if (tok3.token.value === '[]') {
+                        patt.class = 'named_group';
+                        patt.inner = loadLiteralGroup(tok3.expose().token.inner);
+                    } else if (tok3.token.value === '()') {
+                        patt.class = 'named_group';
+                        patt.inner = loadPattern(tok3.expose().token.inner);
+                    } else if (isPrimaryClass(tok3.token.value)) {
                         patt.class = tok3.token.value;
                         if (patt.class === 'invokeRec' || patt.class === 'invoke') {
                             i += 1;
@@ -228,21 +247,21 @@
                 }
             } else if (tok1.token.type === parser.Token.Identifier && tok1.token.value === '$' && tok2.token.type === parser.Token.Delimiter) {
                 i += 1;
-                patt = tok2;
+                patt = patternToObject(tok2);
                 patt.class = 'pattern_group';
-                if (patt.token.value === '[]') {
-                    patt.token.inner = loadLiteralGroup(patt.token.inner);
+                if (patt.value === '[]') {
+                    patt.inner = loadLiteralGroup(patt.inner);
                 } else {
-                    patt.token.inner = loadPattern(patt.expose().token.inner);
+                    patt.inner = loadPattern(tok2.expose().token.inner);
                 }
             } else if (tok1.token.type === parser.Token.Identifier && tok1.token.value === '_') {
-                patt = tok1;
+                patt = patternToObject(tok1);
                 patt.class = 'wildcard';
             } else {
-                patt = tok1;
+                patt = patternToObject(tok1);
                 patt.class = 'pattern_literal';
-                if (patt.token.inner) {
-                    patt.token.inner = loadPattern(patt.expose().token.inner);
+                if (patt.inner) {
+                    patt.inner = loadPattern(tok1.expose().token.inner);
                 }
             }
             // Macro classes aren't allowed in lookbehind because we wouldn't
@@ -523,6 +542,18 @@
                 // pattern groups don't match the delimiters
                 subMatch = matchPatterns(pattern.inner, stx, env, true);
                 rest = subMatch.rest;
+            } else if (pattern.class === 'named_group') {
+                subMatch = matchPatterns(pattern.inner, stx, env, true);
+                rest = subMatch.rest;
+                if (subMatch.success) {
+                    var namedMatch = {};
+                    namedMatch[pattern.value] = {
+                        level: 0,
+                        match: subMatch.result,
+                        topLevel: topLevel
+                    };
+                    subMatch.patternEnv = loadPatternEnv(namedMatch, subMatch.patternEnv, topLevel, false, pattern.value);
+                }
             } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter && stx[0].token.value === pattern.value) {
                 stx[0].expose();
                 if (pattern.inner.length === 0 && stx[0].token.inner.length !== 0) {
@@ -816,57 +847,27 @@
         }
         return newMatch;
     }
-    function makeIdentityRule(pattern, isInfix) {
-        var _s = 1;
-        function traverse(s, infix) {
-            var pat = [];
-            var stx = [];
-            for (var i = 0; i < s.length; i++) {
-                var tok1 = s[i];
-                var tok2 = s[i + 1];
-                var tok3 = s[i + 2];
-                var tok4 = s[i + 3];
-                // Pattern vars, ignore classes
-                if (isPatternVar(tok1)) {
-                    pat.push(tok1);
-                    stx.push(tok1);
-                    if (tok2 && tok2.token.type === parser.Token.Punctuator && tok2.token.value === ':' && tok3 && tok3.token.type === parser.Token.Identifier) {
-                        pat.push(tok2, tok3);
-                        i += 2;
-                        if (tok3.token.value === 'invoke' || tok3.token.value === 'invokeRec' && tok4) {
-                            pat.push(tok4);
-                            i += 1;
-                        }
-                    }
-                } else if (tok1.token.type === parser.Token.Identifier && tok1.token.value === '_') {
-                    var uident = syntax.makeIdent('$__wildcard' + _s++, tok1);
-                    pat.push(uident);
-                    stx.push(uident);
-                } else if (tok1.token.type === parser.Token.Identifier && tok1.token.value === '$' && tok2 && tok2.token.type === parser.Token.Delimiter && tok2.token.value === '[]') {
-                    pat.push(tok1, tok2);
-                    stx.push(tok1, tok2);
-                    i += 1;
-                } else if (tok1.token.type === parser.Token.Delimiter) {
-                    var sub = traverse(tok1.token.inner, false);
-                    var clone = syntaxFromToken(_.clone(tok1.token), tok1);
-                    tok1.token.inner = sub.pattern;
-                    clone.token.inner = sub.body;
-                    pat.push(tok1);
-                    stx.push(clone);
-                } else if (infix && tok1.token.type === parser.Token.Punctuator && tok1.token.value === '|') {
-                    infix = false;
-                    pat.push(tok1);
-                } else {
-                    pat.push(tok1);
-                    stx.push(tok1);
+    function makeIdentityRule(pattern, isInfix, context) {
+        var inf = [];
+        var pat = [];
+        var stx = [];
+        if (isInfix) {
+            for (var i = 0; i < pattern.length; i++) {
+                if (pattern[i].token.type === parser.Token.Punctuator && pattern[i].token.value === '|') {
+                    pat.push(makeIdent('$inf', context), makePunc(':', context), makeDelim('()', inf, context), pattern[0], makeIdent('$id', context), makePunc(':', context), makeDelim('()', pat.slice(i + 1), context));
+                    stx.push(makeIdent('$inf', context), makeIdent('$id', context));
+                    break;
                 }
+                inf.push(pattern[i]);
             }
-            return {
-                pattern: pat,
-                body: stx
-            };
+        } else {
+            pat.push(makeIdent('$id', context), makePunc(':', context), makeDelim('()', pattern, context));
+            stx.push(makeIdent('$id', context));
         }
-        return traverse(pattern, isInfix);
+        return {
+            pattern: pat,
+            body: stx
+        };
     }
     exports$2.loadPattern = loadPattern;
     exports$2.matchPatterns = matchPatterns;

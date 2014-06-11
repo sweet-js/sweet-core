@@ -183,38 +183,13 @@ let syntaxCase = macro {
             }
         }
 
-        function patternToObject(pat) {
-            var obj = {value: pat.token.value};
-
-            if (pat.token.type === Token.Delimiter) {
-                obj.inner = pat.token.inner.map(patternToObject);
-            }
-            if (pat.class) {
-                obj.class = pat.class;
-            }
-            if (pat.repeat) {
-                obj.repeat = pat.repeat;
-            }
-            if (pat.separator) {
-                obj.separator = pat.separator;
-            }
-            if (pat.leading) {
-                obj.leading = pat.leading;
-            }
-            if (pat.macroName) {
-                obj.macroName = pat.macroName;
-            }
-
-            return obj;
-        }
-
         function patternsToObject(pats) {
             if (!pats.length) {
                 return makeDelim("[]", [], here);
             }
 
             var freshId = __fresh();
-            context.patternMap.set(freshId, pats.map(patternToObject));
+            context.patternMap.set(freshId, pats);
 
             return [
                 makeIdent("getPattern", here),
@@ -535,7 +510,7 @@ let macro = macro {
                                                        rule_def.expose().token.inner,
                                                        isInfix));
                 } else if (rule_pattern) {
-                    var idRule = makeIdentityRule(rule_pattern.expose().token.inner, isInfix);
+                    var idRule = makeIdentityRule(rule_pattern.token.inner, isInfix, rule_pattern);
                     rules = rules.concat(translateRule(idRule.pattern, idRule.body, isInfix));
                     i -= 2;
                 } else {
@@ -702,21 +677,6 @@ export letstx;
 
 macro make_pattern {
     function(stx, context, prevStx, prevTerms) {
-        // TODO: get rid of this. It's only needed because loadPattern doesn't
-        // return this directly, but it should.
-        function patternToObject(pat) {
-            var obj = {value: pat.token.value};
-            if (pat.token.type === parser.Token.Delimiter) {
-                obj.inner = pat.token.inner.map(patternToObject);
-            }
-            if (pat.class) obj.class = pat.class;
-            if (pat.repeat) obj.repeat = pat.repeat;
-            if (pat.separator) obj.separator = pat.separator;
-            if (pat.leading) obj.leading = pat.leading;
-            if (pat.macroName) obj.macroName = pat.macroName;
-            return obj;
-        }
-
         // Silly
         function joiner(arr, o, punc) {
             var res = [];
@@ -737,7 +697,7 @@ macro make_pattern {
 
         var ruleStx = [makeIdent('_', here)].concat(stx[4].expose().token.inner);
         var ruleId = __fresh();
-        var rule = patternModule.loadPattern(ruleStx).map(patternToObject);
+        var rule = patternModule.loadPattern(ruleStx);
         context.patternMap.set(ruleId, rule);
 
         // Ugh. Transplant for #{} in where bindings. All this ugliness is to
