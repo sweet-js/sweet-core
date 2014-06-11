@@ -1,6 +1,7 @@
 module.exports = function(grunt) {
     var path = require("path");
     var exec = require("child_process").exec;
+    var test_fuzzer = require("./test/fuzzer/test_fuzzer");
 
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-jshint');
@@ -169,7 +170,11 @@ module.exports = function(grunt) {
                 exec("pandoc " + args.join(" "), cb);
             })
         })
-    })
+    });
+
+    grunt.registerTask("fuzz", function() {
+        test_fuzzer.runFuzzer();
+    });
 
 
     grunt.registerMultiTask("build", function() {

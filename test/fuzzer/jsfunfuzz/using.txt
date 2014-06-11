@@ -1,0 +1,27 @@
+TESTING SPIDERMONKEY
+
+Bugs in SpiderMonkey found with this fuzzer are tracked by https://bugzilla.mozilla.org/show_bug.cgi?id=349611.Recommended command line:  python -u ~/jsfunfuzz/multi_timed_run.py 300 ./js ~/jsfunfuzz/jsfunfuzz.js | tee log1
+
+Hints for building spidermonkey:
+  http://developer.mozilla.org/en/docs/SpiderMonkey_Build_Documentation
+  Spidermonkey shell                        make -f Makefile.ref  Spidermonkey shell without assertions     make BUILD_OPT=1 OPTIMIZER=-Os -f Makefile.ref
+
+
+TESTING JAVASCRIPTCORE
+
+Bugs in JavaScriptCore found with this fuzzer are tracked by http://bugs.webkit.org/show_bug.cgi?id=13638.
+
+Recommended command line:  python -u ~/jsfunfuzz/multi_timed_run.py 300 ./testkjs -f ~/jsfunfuzz/jsfunfuzz.js | tee log2Hints for building testkjs:  http://webkit.org/building/checkout.html  |make release| or |make debug| in WebKit/JavaScriptCore/
+  The shell will be a file called testkjs in WebKit/WebKitBuild/Release/ or WebKit/WebKitBuild/Debug/.
+
+
+TESTING WEB BROWSERS
+
+Load jsfunfuzz.html in a web browser.  For Firefox, you might need to set the <script>'s type attribute.
+
+
+LANGUAGE REFERENCES
+
+http://www.codehouse.com/javascript/precedence/http://www.ecma-international.org/publications/standards/Ecma-262.htm
+http://developer.mozilla.org/en/docs/Core_JavaScript_1.5_Referencehttp://developer.mozilla.org/en/docs/New_in_JavaScript_1.6http://developer.mozilla.org/en/docs/New_in_JavaScript_1.7http://developer.mozilla.org/en/docs/New_in_JavaScript_1.8
+http://www.ecmascript.org/
