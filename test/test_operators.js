@@ -117,5 +117,11 @@ describe("binary custom operators", function() {
 		}
 		expect(doIt(100)).to.be(100)
 	})
-
 });
+
+describe("builtin operators", function() {
+	it("should work with mixing unary and binary operators", function() {
+		var i = 100;
+		expect(--i >= 0).to.be(true);
+	})
+})
