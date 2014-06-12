@@ -2,7 +2,6 @@ module.exports = function(grunt) {
     var path = require("path");
     var exec = require("child_process").exec;
     var esfuzz= require("esfuzz");
-    var sweet = require("./build/lib/sweet");
 
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-jshint');
@@ -174,6 +173,7 @@ module.exports = function(grunt) {
     });
 
     grunt.registerTask("fuzz", function() {
+        var sweet = require("./build/lib/sweet");
         var i, iterations = 20;
         try {
             for (i = 0; i < iterations; i++) {
