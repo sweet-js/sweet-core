@@ -174,9 +174,9 @@ module.exports = function(grunt) {
     });
 
     grunt.registerTask("fuzz", function() {
-        var iterations = 20;
+        var i, iterations = 20;
         try {
-            for (var i = 0; i < iterations; i++) {
+            for (i = 0; i < iterations; i++) {
                 var code = esfuzz.render(esfuzz.generate({maxDepth: 10}))
                 // ignore `with` since we can't handle it anyway
                 if (code.indexOf("with") !== -1) continue;
@@ -184,9 +184,9 @@ module.exports = function(grunt) {
             }
             console.log("done fuzzing");
         } catch (e) {
-            console.log("Attempted to expand:");
+            console.log("On loop " + i + " attempted to expand:");
             console.log(code);
-            console.log(e);
+            console.log("\n" + e);
         }
     });
 
