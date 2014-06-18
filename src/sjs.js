@@ -34,7 +34,9 @@ var argv = require("optimist")
     .describe('r', 'remove as many hygienic renames as possible (ES5 code only!)')
     .boolean('readable-names')
     .describe('format-indent', 'number of spaces for indentation')
+    .describe('load-readtable', 'readtable module to install')
     .argv;
+
 
 exports.run = function() {
     var infile = argv._[0];
@@ -48,6 +50,7 @@ exports.run = function() {
     var displayHygiene = argv['step-hygiene'];
     var readableNames = argv['readable-names'];
     var formatIndent = parseInt(argv['format-indent'], 10);
+    var readtableModule = argv['load-readtable'];
     if (formatIndent !== formatIndent) {
         formatIndent = 4;
     }
@@ -62,13 +65,16 @@ exports.run = function() {
         return;
     }
 
-
     var cwd = process.cwd();
     var modules = typeof argv.module === 'string' ? [argv.module] : argv.module;
 
     modules = (modules || []).map(function(path) {
         return sweet.loadNodeModule(cwd, path);
     });
+
+    if(readtableModule) {
+        sweet.setReadtable(readtableModule);
+    }
 
     var options = {
         filename: infile,
@@ -83,7 +89,7 @@ exports.run = function() {
             }
         }
     };
-    
+
     if (watch && outfile) {
         fs.watch(infile, function(){
             file = fs.readFileSync(infile, "utf8");
@@ -108,7 +114,7 @@ exports.run = function() {
     } else if (ast) {
         console.log(JSON.stringify(sweet.compile(file, options), null, formatIndent));
     } else if (noparse) {
-        var unparsedString = syn.prettyPrint(sweet.expand(file, modules, numexpands), displayHygiene);        
+        var unparsedString = syn.prettyPrint(sweet.expand(file, modules, numexpands), displayHygiene);
         console.log(unparsedString);
     } else {
         options.maxExpands = numexpands;

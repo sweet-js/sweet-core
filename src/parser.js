@@ -5500,6 +5500,95 @@ parseYieldExpression: true
         }
     }
 
+    // Readtables
+    var readtables = {
+        currentReadtable: {},
+
+        // A readtable is invoked within `readToken`, but it can
+        // return multiple tokens. We need to "queue" the stream of
+        // tokens so that subsequent calls to `readToken` gets the
+        // rest of the stream.
+        queued: [],
+
+        has: function(ch) {
+            return readtables.currentReadtable[ch];
+        },
+
+        getQueued: function() {
+            return readtables.queued.length ? readtables.queued.shift() : null;
+        },
+
+        peekQueued: function(lookahead) {
+            lookahead = lookahead ? lookahead : 1;
+            return readtables.queued.length ? readtables.queued[lookahead - 1] : null;
+        },
+
+        invoke: function(ch, toks) {
+            var prevState = {
+                index: index,
+                lineNumber: lineNumber,
+                lineStart: lineStart,
+            };
+
+            var newStream = readtables.currentReadtable[ch](
+                ch, readtables.parserAccessor, toks, source, index
+            );
+
+            if(!newStream) {
+                // Reset the state
+                index = prevState.index;
+                lineNumber = prevState.lineNumber;
+                lineStart = prevState.lineStart;
+                return null;
+            }
+            else if(!Array.isArray(newStream)) {
+                newStream = [newStream];
+            }
+
+            this.queued = this.queued.concat(newStream);
+            return this.getQueued();
+        }
+    };
+
+    // Since an actual parser object doesn't exist and all of this
+    // works on closures, we need to create a parser object that
+    // can be passed to readtables.
+    var parserAccessor = {
+        Token: Token,
+
+        get source() { return source; },
+        get index() { return index; },
+        set index(x) { index = x; },
+        get length() { return length; },
+        set length(x) { length = x; },
+        get lineNumber() { return lineNumber; },
+        set lineNumber(x) { lineNumber = x; },
+        get lineStart() { return lineStart; },
+        set lineStart(x) { lineStart = x; },
+
+        isIdentifierStart: isIdentifierStart,
+        isIdentifierPart: isIdentifierPart,
+        isLineTerminator: isLineTerminator,
+
+        scanIdentifier: scanIdentifier,
+        scanPunctuator: scanPunctuator,
+        scanStringLiteral: scanStringLiteral,
+        scanNumericLiteral: scanNumericLiteral,
+        scanRegExp: scanRegExp,
+        scanComment: scanComment,
+        //scanTemplateElement: scanTemplateElement, (not ready yet)
+        
+        readToken: readToken,
+        peekQueued: readtables.peekQueued,
+        getQueued: readtables.getQueued,
+
+        isScanError: function(e) {
+            var msg = e.message.toLowerCase();
+            return (msg.indexOf('unexpected token') !== -1 ||
+                    msg.indexOf('assert') !== -1);
+        }
+    };
+    readtables.parserAccessor = parserAccessor;
 
     // Read the next token. Takes the previously read tokens, a
     // boolean indicating if the parent delimiter is () or [], and a
@@ -5526,6 +5615,7 @@ parseYieldExpression: true
         function _scanRegExp() { return attachComments(scanRegExp()); }
         
         skipComment();
+        var ch = source[index];
 
         if (extra.comments.length > commentsLen) {
             comments = extra.comments.slice(commentsLen);
@@ -5533,9 +5623,17 @@ parseYieldExpression: true
         
         if (isIn(source[index], delimiters)) {
             return attachComments(readDelim(toks, inExprDelim, parentIsBlock));
-        } 
+        }
 
-        if (source[index] === "/") {
+        // Check if we should get the token from the readtable
+        var readtableToken;
+        if((readtableToken = readtables.getQueued()) ||
+           (readtables.has(ch) &&
+            (readtableToken = readtables.invoke(ch, toks)))) {
+            return readtableToken;
+        }
+
+        if (ch === "/") {
             var prev = back(1);
             if (prev) {
                 if (prev.value === "()") {
@@ -5658,9 +5756,23 @@ parseYieldExpression: true
         delimToken.endRange = endRange;
         return delimToken;
     }
-    
-    
-    
+
+    function setReadtable(readtable, syn) {
+        readtables.currentReadtable = readtable;
+
+        if(syn) {
+            readtables.parserAccessor.throwSyntaxError = function(name, message, tok) {
+                var sx = syn.syntaxFromToken(tok);
+                var err = new syn.MacroSyntaxError(name, message, sx)
+                throw new SyntaxError(syn.printSyntaxError(source, err));
+            }
+        }
+    }
+
+    function currentReadtable() {
+        return readtables.currentReadtable;
+    }
+
     // (Str) -> [...CSyntax]
     function read(code) {
         var token, tokenTree = [];
@@ -5682,9 +5794,8 @@ parseYieldExpression: true
             inIteration: false,
             inSwitch: false
         };
-        
-        
-        while(index < length) {
+
+        while(index < length || readtables.peekQueued()) {
             tokenTree.push(readToken(tokenTree, false, false));
         }
         var last = tokenTree[tokenTree.length-1];
@@ -5809,6 +5920,8 @@ parseYieldExpression: true
     exports.read = read;
     exports.Token = Token;
 
+    exports.setReadtable = setReadtable;
+    exports.currentReadtable = currentReadtable;
     exports.parse = parse;
 
     // Deep copy.
