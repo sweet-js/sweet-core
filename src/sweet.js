@@ -134,11 +134,17 @@
             stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
         }
 
+        var isSyntax = syn.isSyntax(stx);
         options = options || {};
         options.flatten = false;
 
+        if (!isSyntax) {
+            stx = syn.tokensToSyntax(stx);
+        }
+        
         try {
-            return expander.expand(stx, [stxcaseCtx].concat(modules), options);
+            var result = expander.expand(stx, [stxcaseCtx].concat(modules), options);
+            return isSyntax ? result : syn.syntaxToTokens(result);
         } catch(err) {
             if (err instanceof syn.MacroSyntaxError) {
                 throw new SyntaxError(syn.printSyntaxError(source, err));
