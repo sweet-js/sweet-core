@@ -110,11 +110,12 @@ exports.run = function() {
             fs.writeFileSync(outfile, sweet.compile(file, options).code, "utf8");
         }
     } else if (tokens) {
-        console.log(sweet.expand(file, modules, numexpands));
+        console.log(sweet.expand(file, modules, { maxExpands: numexpands }));
     } else if (ast) {
         console.log(JSON.stringify(sweet.compile(file, options), null, formatIndent));
     } else if (noparse) {
-        var unparsedString = syn.prettyPrint(sweet.expand(file, modules, numexpands), displayHygiene);
+        var expanded = sweet.expand(file, modules, { maxExpands: numexpands });
+        var unparsedString = syn.prettyPrint(expanded, displayHygiene);
         console.log(unparsedString);
     } else {
         options.maxExpands = numexpands;

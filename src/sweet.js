@@ -129,6 +129,25 @@
         }
     }
 
+    function expandSyntax(stx, modules, options) {
+        if (!stxcaseCtx) {
+            stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
+        }
+
+        options = options || {};
+        options.flatten = false;
+
+        try {
+            return expander.expand(stx, [stxcaseCtx].concat(modules), options);
+        } catch(err) {
+            if (err instanceof syn.MacroSyntaxError) {
+                throw new SyntaxError(syn.printSyntaxError(source, err));
+            } else {
+                throw err;
+            }
+        }
+    };
+
     // fun (Str, {}) -> AST
     function parse(code, modules, options) {
         if (code === "") {
@@ -304,6 +323,7 @@
     }
 
     exports.expand = expand;
+    exports.expandSyntax = expandSyntax;
     exports.parse = parse;
     exports.compile = compile;
     exports.setReadtable = setReadtable;
