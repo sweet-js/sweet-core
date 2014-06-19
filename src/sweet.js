@@ -137,6 +137,7 @@
             code = " ";
         }
 
+        modules = modules ? loadedMacros.concat(modules) : modules;
         return parser.parse(expand(code, modules, options));
     }
 
