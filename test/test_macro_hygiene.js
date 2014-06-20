@@ -103,6 +103,14 @@ describe "macro hygiene" {
         expect(z).to.be("foo")
     }
 
+    it "should not rename a var redeclaration of a param" {
+        function foo(x) {
+            var x;
+            return x;
+        }
+        expect(foo("param")).to.be("param");
+    }
+
     it "should do the correct renaming with macros for vars" {
         macro m {
             case {_ ()} => { return #{var x = 5;}  }

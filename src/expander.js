@@ -1996,7 +1996,7 @@
                 macroDefinition = loadMacroDef(head.body, context);
                 var name = head.name.map(unwrapSyntax).join("");
                 var nameStx = syn.makeIdent(name, head.name[0]);
-                addToDefinitionCtx([nameStx], context.defscope, false);
+                addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
                 context.env.names.set(name, true);
                 context.env.set(resolve(nameStx), {
                     fn: macroDefinition,
@@ -2035,7 +2035,7 @@
 
                 var name = head.name.map(unwrapSyntax).join("");
                 var nameStx = syn.makeIdent(name, head.name[0]);
-                addToDefinitionCtx([nameStx], context.defscope, false);
+                addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
                 var resolvedName = resolve(nameStx);
                 var opObj = context.env.get(resolvedName);
                 if (!opObj) {
@@ -2065,7 +2065,7 @@
             prevStx = destructed.reverse().concat(f.prevStx);
 
             if (head.isNamedFun) {
-                addToDefinitionCtx([head.name], context.defscope, true);
+                addToDefinitionCtx([head.name], context.defscope, true, context.paramscope);
             }
 
             if (head.isVariableStatement ||
@@ -2073,7 +2073,8 @@
                 head.isConstStatement) {
                 addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
                                    context.defscope,
-                                   true)
+                                   true,
+                                   context.paramscope);
             }
 
             if(head.isBlock && head.body.isDelimiter) {
@@ -2081,7 +2082,8 @@
                     if (term.isVariableStatement) {
                         addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
                                            context.defscope,
-                                           true);
+                                           true,
+                                           context.paramscope);
                     }
                 });
 
@@ -2092,7 +2094,8 @@
                     if (term.isVariableStatement) {
                         addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
                                            context.defscope,
-                                           true);
+                                           true,
+                                           context.paramscope);
 
                     }
                 });
@@ -2145,37 +2148,53 @@
         };
     }
 
-    function addToDefinitionCtx(idents, defscope, skipRep) {
+    function addToDefinitionCtx(idents, defscope, skipRep, paramscope) {
         assert(idents && idents.length > 0, "expecting some variable identifiers");
+        // flag for skipping repeats since we reuse this function to place both
+        // variables declarations (which need to skip redeclarations) and
+        // macro definitions which don't
         skipRep = skipRep || false;
-        _.each(idents, function(id) {
-            var skip = false;
-            if (skipRep) {
-                var declRepeat = _.find(defscope, function(def) {
-                    return def.id.token.value === id.token.value &&
-                        arraysEqual(marksof(def.id.context), marksof(id.context));
-                });
-                skip = typeof declRepeat !== 'undefined';
-            }
-            /*
-               When var declarations repeat in the same function scope:
+        _.chain(idents)
+            .filter(function(id) {
+                if (skipRep) {
+                    /*
+                       When var declarations repeat in the same function scope:
 
-               var x = 24;
-               ...
-               var x = 42;
+                       var x = 24;
+                       ...
+                       var x = 42;
 
-               we just need to use the first renaming and leave the
-               definition context as is.
-            */
-            if (!skip) {
+                       we just need to use the first renaming and leave the
+                       definition context as is.
+                    */
+                    var varDeclRep = _.find(defscope, function(def) {
+                        return def.id.token.value === id.token.value &&
+                            arraysEqual(marksof(def.id.context), marksof(id.context));
+                    });
+                    /* 
+                        When var declaration repeat one of the function parameters:
+
+                        function foo(x) {
+                            var x;
+                        }
+
+                        we don't need to add the var to the definition context.
+                    */
+                    var paramDeclRep = _.find(paramscope, function(param) {
+                        return param.token.value === id.token.value &&
+                            arraysEqual(marksof(param.context), marksof(id.context));
+                    });
+                    return (typeof varDeclRep === 'undefined') && 
+                           (typeof paramDeclRep === 'undefined');
+                }
+                return true;
+            }).each(function(id) {
                 var name = fresh();
                 defscope.push({
                     id: id,
                     name: name
                 });
-
-            }
-        });
+            });
     }
 
 
@@ -2245,7 +2264,6 @@
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
             var newDef = [];
-            var bodyContext = makeExpanderContext(_.defaults({defscope: newDef}, context));
 
             var paramSingleIdent = term.params && term.params.token.type === parser.Token.Identifier;
 
@@ -2273,6 +2291,14 @@
                     renamedParam: param.rename(param, freshName)
                 };
             });
+
+            var bodyContext = makeExpanderContext(_.defaults({
+                defscope: newDef, 
+                // paramscope is used to filter out var redeclarations
+                paramscope: paramNames.map(function(p) {
+                    return p.renamedParam;
+                })
+            }, context));
 
 
             // rename the function body for each of the parameters
@@ -2391,6 +2417,8 @@
                   writable: false, enumerable: true, configurable: false},
             defscope: {value: o.defscope,
                        writable: false, enumerable: true, configurable: false},
+            paramscope: {value: o.paramscope,
+                         writable: false, enumerable: true, configurable: false},
             templateMap: {value: o.templateMap || new StringMap(),
                           writable: false, enumerable: true, configurable: false},
             patternMap: {value: o.patternMap || new StringMap(),
