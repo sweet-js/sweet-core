@@ -4786,7 +4786,7 @@ parseYieldExpression: true
                     // ... + /...
                     return _scanRegExp();
                 }
-                if (isKeyword(prev.value) && prev.value !== 'this' && prev.value !== 'let') {
+                if (isKeyword(prev.value) && prev.value !== 'this' && prev.value !== 'let' && prev.value !== 'export') {
                     // typeof /...
                     return _scanRegExp();
                 }
