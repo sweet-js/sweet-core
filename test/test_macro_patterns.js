@@ -744,7 +744,18 @@ describe("macro expander", function() {
         }
 
         expect(:= 100).to.be(100);
-    })
+    });
+
+    it("should work with nested multi token macro names", function() {
+        let (->) = macro {
+            rule infix { $arg:ident | $body:expr } => {
+                function($arg) { return $body }
+            }
+        }
+
+        var fn = x -> [y -> x + y];
+        expect(fn(1)[0](3)).to.be(4);
+    });
 
     it("should allow macros to override binary operators", function() {
         macro + {
