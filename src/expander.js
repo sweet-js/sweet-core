@@ -847,7 +847,9 @@
                 (next.token.type === parser.Token.Punctuator ||
                  next.token.type === parser.Token.Identifier ||
                  next.token.type === parser.Token.Keyword) &&
-                curr.token.range[1] === next.token.range[0]) {
+                 (curr.token.sm_range && next.token.sm_range &&
+                  curr.token.sm_range[1] === next.token.sm_range[0] ||
+                  curr.token.range[1] === next.token.range[0])) {
                 name.push(next);
                 curr = next;
                 next = rest[++idx];

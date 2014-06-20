@@ -287,11 +287,11 @@
             rest: stx.slice(res.length)
         };
     }
-    function expandWithMacro(macroName, stx, env, rec) {
+    function expandWithMacro(macroName, stx, context, rec) {
         var name = macroName.map(syntax.unwrapSyntax).join('');
         var ident = syntax.makeIdent(name, macroName[0]);
-        var macroObj = env.get(expander.resolve(ident));
-        var newContext = expander.makeExpanderContext({ env: env });
+        var macroObj = context.env.get(expander.resolve(ident));
+        var newContext = expander.makeExpanderContext(context);
         if (!macroObj) {
             throwSyntaxError('invoke', 'Macro not in scope', macroName[0]);
         }
@@ -316,7 +316,7 @@
                 var resultHead = result[0];
                 var resultRest = result.slice(1);
                 var nextName = expander.getName(resultHead, resultRest);
-                var nextMacro = expander.getMacroInEnv(resultHead, resultRest, env);
+                var nextMacro = expander.getMacroInEnv(resultHead, resultRest, context.env);
                 if (nextName && nextMacro) {
                     macroObj = nextMacro;
                     next = result.concat(rest);
@@ -334,7 +334,7 @@
         };
     }
     // (Pattern, [...CSyntax], MacroEnv) -> {result: null or [...CSyntax], rest: [...CSyntax]}
-    function matchPatternClass(patternObj, stx, env) {
+    function matchPatternClass(patternObj, stx, context) {
         var result, rest, match, patternEnv;
         // pattern has no parse class
         if (patternObj.class === 'token' && stx[0] && stx[0].token.type !== parser.Token.EOF) {
@@ -347,7 +347,7 @@
             result = [stx[0]];
             rest = stx.slice(1);
         } else if (stx.length > 0 && patternObj.class === 'VariableStatement') {
-            match = stx[0].term ? cachedTermMatch(stx, stx[0].term) : expander.enforest(stx, expander.makeExpanderContext({ env: env }));
+            match = stx[0].term ? cachedTermMatch(stx, stx[0].term) : expander.enforest(stx, expander.makeExpanderContext(context));
             if (match.result && match.result.isVariableStatement) {
                 result = match.destructed || match.result.destruct(false);
                 rest = match.rest;
@@ -356,7 +356,7 @@
                 rest = stx;
             }
         } else if (stx.length > 0 && patternObj.class === 'expr') {
-            match = expander.get_expression(stx, expander.makeExpanderContext({ env: env }));
+            match = expander.get_expression(stx, expander.makeExpanderContext(context));
             if (match.result === null || !match.result.isExpr) {
                 result = null;
                 rest = stx;
@@ -366,7 +366,7 @@
                 rest = match.rest;
             }
         } else if (stx.length > 0 && (patternObj.class === 'invoke' || patternObj.class === 'invokeRec')) {
-            match = expandWithMacro(patternObj.macroName, stx, env, patternObj.class === 'invokeRec');
+            match = expandWithMacro(patternObj.macroName, stx, context, patternObj.class === 'invokeRec');
             result = match.result;
             rest = match.result ? match.rest : stx;
             patternEnv = match.patternEnv;
@@ -382,7 +382,7 @@
     }
     // attempt to match patterns against stx
     // ([...Pattern], [...Syntax], Env) -> { result: [...Syntax], rest: [...Syntax], patternEnv: PatternEnv }
-    function matchPatterns(patterns, stx, env, topLevel) {
+    function matchPatterns(patterns, stx, context, topLevel) {
         // topLevel lets us know if the patterns are on the top level or nested inside
         // a delimiter:
         //     case $topLevel (,) ... => { }
@@ -415,11 +415,11 @@
                 do {
                     // handles cases where patterns trail a repeated pattern like `$x ... ;`
                     if (pattern.repeat && i + 1 < patterns.length) {
-                        var restMatch = matchPatterns(patterns.slice(i + 1), rest, env, topLevel);
+                        var restMatch = matchPatterns(patterns.slice(i + 1), rest, context, topLevel);
                         if (restMatch.success) {
                             // match the repeat pattern on the empty array to fill in its
                             // pattern variable in the environment
-                            match = matchPattern(pattern, [], env, patternEnv, topLevel);
+                            match = matchPattern(pattern, [], context, patternEnv, topLevel);
                             patternEnv = _.extend(restMatch.patternEnv, match.patternEnv);
                             rest = restMatch.rest;
                             break patternLoop;
@@ -439,7 +439,7 @@
                             }
                         }
                     }
-                    match = matchPattern(pattern, rest, env, patternEnv, topLevel);
+                    match = matchPattern(pattern, rest, context, patternEnv, topLevel);
                     if (!match.success && pattern.repeat) {
                         // a repeat can match zero tokens and still be a
                         // "success" so break out of the inner loop and
@@ -532,7 +532,7 @@
         "$y" : ...
     }
     */
-    function matchPattern(pattern, stx, env, patternEnv, topLevel) {
+    function matchPattern(pattern, stx, context, patternEnv, topLevel) {
         var subMatch;
         var match, matchEnv;
         var rest;
@@ -540,10 +540,10 @@
         if (typeof pattern.inner !== 'undefined') {
             if (pattern.class === 'pattern_group') {
                 // pattern groups don't match the delimiters
-                subMatch = matchPatterns(pattern.inner, stx, env, true);
+                subMatch = matchPatterns(pattern.inner, stx, context, true);
                 rest = subMatch.rest;
             } else if (pattern.class === 'named_group') {
-                subMatch = matchPatterns(pattern.inner, stx, env, true);
+                subMatch = matchPatterns(pattern.inner, stx, context, true);
                 rest = subMatch.rest;
                 if (subMatch.success) {
                     var namedMatch = {};
@@ -563,7 +563,7 @@
                         patternEnv: patternEnv
                     };
                 }
-                subMatch = matchPatterns(pattern.inner, stx[0].token.inner, env, false);
+                subMatch = matchPatterns(pattern.inner, stx[0].token.inner, context, false);
                 rest = stx.slice(1);
             } else {
                 return {
@@ -590,7 +590,7 @@
                     rest = stx;
                 }
             } else {
-                match = matchPatternClass(pattern, stx, env);
+                match = matchPatternClass(pattern, stx, context);
                 success = match.result !== null;
                 rest = match.rest;
                 matchEnv = {
@@ -644,7 +644,7 @@
         });
         return toEnv;
     }
-    function matchLookbehind(patterns, stx, terms, env) {
+    function matchLookbehind(patterns, stx, terms, context) {
         var success, patternEnv, prevStx, prevTerms;
         // No lookbehind, noop.
         if (!patterns.length) {
@@ -653,7 +653,7 @@
             prevStx = stx;
             prevTerms = terms;
         } else {
-            var match = matchPatterns(patterns, stx, env, true);
+            var match = matchPatterns(patterns, stx, context, true);
             var last = match.result[match.result.length - 1];
             success = match.success;
             patternEnv = match.patternEnv;
