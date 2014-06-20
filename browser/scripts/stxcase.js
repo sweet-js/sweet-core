@@ -214,7 +214,7 @@ let syntaxCase = macro {
                     makePunc(",", here),
                     makeIdent("prevTerms", name_stx),
                     makePunc(",", here),
-                    makeIdent("context", name_stx), makePunc(".", here), makeIdent("env", name_stx)
+                    makeIdent("context", name_stx)
                 ], here)
             ]);
 
@@ -227,7 +227,7 @@ let syntaxCase = macro {
                     makePunc(",", here),
                     makeIdent("arg", name_stx),
                     makePunc(",", here),
-                    makeIdent("context", name_stx), makePunc(".", here), makeIdent("env", name_stx),
+                    makeIdent("context", name_stx),
                     makePunc(",", here),
                     makeValue(true, here)
                 ], here)
@@ -623,52 +623,56 @@ macro withSyntax_done {
     }
 }
 
-
-macro withSyntax_collect {
-    rule { $ctx ($vars ...) ($name:ident $[...] = $rhs:expr , $rest ...) { $body ... } } => {
-        withSyntax_collect $ctx ($vars ... $name (true) ($rhs)) ($rest ...) { $body ... }
+macro withSyntax_bind {
+    rule { $name:ident $[...] = $rhs:expr } => {
+        $name (true) $rhs
     }
-    rule { $ctx ($vars ...) ($name:ident $[...] = $rhs:expr) { $body ... } } => {
-        withSyntax_done $ctx ($vars ... $name (true) ($rhs)) { $body ... }
+    rule { $name:ident = $rhs:expr } => {
+        $name () $rhs
     }
-    rule { $ctx ($vars ...) ($name:ident = $rhs:expr , $rest ...) { $body ... } } => {
-        withSyntax_collect $ctx ($vars ... $name () ($rhs)) ($rest ...) { $body ... }
-    }
-    rule { $ctx ($vars ...) ($name:ident = $rhs:expr) { $body ...} } => {
-        withSyntax_done $ctx ($vars ... $name () ($rhs)) { $body ... }
-    }
-
 }
 
 let withSyntax = macro {
-    case { $name ($vars ...) { $body ...} } => {
+    case { $name ($binders:withSyntax_bind (,) ...) { $body ... } } => {
         return #{
-            withSyntax_collect $name () ($vars ...) { $body ... }
+            withSyntax_done $name ($binders ...) { $body ... }
         }
     }
-
-    case { $name ($vars ...) #{$body ...} } => {
-        var here = #{ here };
+    case { $name ($binders:withSyntax_bind (,) ...) $quote:[#] { $body ... } } => {
         return #{
-            withSyntax_collect $name () ($vars ...)
-        }.concat(makeDelim("{}", [
-            makeKeyword("return", here),
-            makePunc("#", #{ $name }),
-            makeDelim("{}", #{$body ...}, here)
-        ], here));
+            withSyntax_done $name ($binders ...) {
+                return $quote { $body ... }
+            }
+        }
     }
 }
 export withSyntax;
 
+macro letstx_bind {
+    rule { $name:ident = $rhs:expr , $more:letstx_bind } => {
+        $name () $rhs $more
+    }
+    rule { $name:ident = $rhs:expr ;... letstx $more:letstx_bind } => {
+        $name () $rhs $more
+    }
+    rule { $name:ident = $rhs:expr ;... } => {
+        $name () $rhs
+    }
+    rule { $name:ident $[...] = $rhs:expr , $more:letstx_bind } => {
+        $name (true) $rhs $more
+    }
+    rule { $name:ident $[...] = $rhs:expr ;... letstx $more:letstx_bind } => {
+        $name (true) $rhs $more
+    }
+    rule { $name:ident $[...] = $rhs:expr ;... } => {
+        $name (true) $rhs
+    }
+}
+
 let letstx = macro {
-    case {$letname $($pat ... = $e:expr) (,) ...; $rest ...} => {
-        // need to capture the lexical context
-        return withSyntax($withSyntax_name = [makeIdent("withSyntax", #{$letname})]) {
-            return #{
-                return $withSyntax_name ($($pat ... = $e) (,) ...) {
-                    $rest ...
-                }
-            }
+    case { $name $binders:letstx_bind $rest ... } => {
+        return #{
+            return withSyntax_done $name ($binders) { $rest ... }
         }
     }
 }
@@ -743,7 +747,7 @@ macro make_pattern {
                     makeValue(ruleId, here)
                 ], here),
                 makePunc(',', here), stxName,
-                makePunc(',', here), ctxName, makePunc('.', here), makeIdent('env', here),
+                makePunc(',', here), ctxName,
                 makePunc(',', here), makeValue(true, here)
             ], here),
             makePunc(';', here),
