@@ -497,13 +497,13 @@
     dataclass ObjDotGet             (left, dot, right)                  extends Expr;
     dataclass ObjGet                (left, right)                       extends Expr;
     dataclass Template              (template)                          extends Expr;
+    dataclass Call                  (fun, args)                         extends Expr;
 
     dataclass PrimaryExpression     ()                                  extends Expr;
     dataclass ThisExpression        (keyword)                           extends PrimaryExpression;
     dataclass Lit                   (lit)                               extends PrimaryExpression;
     dataclass Block                 (body)                              extends PrimaryExpression;
     dataclass ArrayLiteral          (array)                             extends PrimaryExpression;
-    dataclass ParenExpression       (expr)                              extends PrimaryExpression;
     dataclass Id                    (id)                                extends PrimaryExpression;
 
     dataclass Partial               ()                                  extends TermTree;
@@ -525,16 +525,14 @@
     dataclass LetStatement      (keyword, decls) extends BindingStatement;
     dataclass ConstStatement    (keyword, decls) extends BindingStatement;
 
-    dataclass Call(fun, args, delim, commas) extends Expr {
+    dataclass ParenExpression(args, delim, commas) extends PrimaryExpression {
         destruct() {
-            assert(this.fun.isTermTree,
-                "expecting a term tree in destruct of call");
             var commas = this.commas.slice();
             cloned newtok <- this.delim.token;
             var delim = syntaxFromToken(newtok, this.delim);
             delim.token.inner = _.reduce(this.args, function(acc, term) {
                 assert(term && term.isTermTree,
-                       "expecting term trees in destruct of Call");
+                       "expecting term trees in destruct of ParenExpression");
                 push.apply(acc, term.destruct());
                 // add all commas except for the last one
                 if (commas.length > 0) {
@@ -542,9 +540,7 @@
                 }
                 return acc;
             }, []);
-            var res = this.fun.destruct();
-            push.apply(res, Delimiter.create(delim).destruct());
-            return res;
+            return Delimiter.create(delim).destruct();
         }
     }
 
@@ -728,6 +724,31 @@
         } else {
             return opRes;
         }
+    }
+
+    function enforestParenExpression(parens, context) {
+        var argRes, enforestedArgs = [], commas = [];
+        var innerTokens = parens.expose().token.inner;
+        while (innerTokens.length > 0) {
+            argRes = enforest(innerTokens, context);
+            if (!argRes.result || !argRes.result.isExpr) {
+                return null;
+            }
+            enforestedArgs.push(argRes.result);
+            innerTokens = argRes.rest;
+            if (innerTokens[0] && innerTokens[0].token.value === ",") {
+                // record the comma for later
+                commas.push(innerTokens[0]);
+                // but dump it for the next loop turn
+                innerTokens = innerTokens.slice(1);
+            } else {
+                // either there are no more tokens or
+                // they aren't a comma, either way we
+                // are done with the loop
+                break;
+            }
+        }
+        return innerTokens.length ? null : ParenExpression.create(enforestedArgs, parens, commas);
     }
 
     function adjustLineContext(stx, original, current) {
@@ -1174,39 +1195,10 @@
                 } else if (head.isExpr && (rest[0] &&
                              rest[0].token.type === parser.Token.Delimiter &&
                              rest[0].token.value === "()")) {
-                    var argRes, enforestedArgs = [], commas = [];
-                    rest[0].expose();
-                    innerTokens = rest[0].token.inner;
-                    while (innerTokens.length > 0) {
-                        argRes = enforest(innerTokens, context);
-                        if(!argRes.result) {
-                            break;
-                        }
-                        enforestedArgs.push(argRes.result);
-                        innerTokens = argRes.rest;
-                        if (innerTokens[0] && innerTokens[0].token.value === ",") {
-                            // record the comma for later
-                            commas.push(innerTokens[0]);
-                            // but dump it for the next loop turn
-                            innerTokens = innerTokens.slice(1);
-                        } else {
-                            // either there are no more tokens or
-                            // they aren't a comma, either way we
-                            // are done with the loop
-                            break;
-                        }
-                    }
-                    var argsAreExprs = _.all(enforestedArgs, function(argTerm) {
-                        return argTerm.isExpr;
-                    });
 
-                    // only a call if we can completely enforest each argument and
-                    // each argument is an expression
-                    if (innerTokens.length === 0 && argsAreExprs) {
-                        return step(Call.create(head,
-                                                enforestedArgs,
-                                                rest[0],
-                                                commas),
+                    var parenRes = enforestParenExpression(rest[0], context);
+                    if (parenRes) {
+                        return step(Call.create(head, parenRes),
                                     rest.slice(1),
                                     opCtx);
                     }
@@ -1272,22 +1264,18 @@
                 // ParenExpr
                 } else if (head.isDelimiter &&
                            head.delim.token.value === "()") {
-                    innerTokens = head.delim.expose().token.inner;
                     // empty parens are acceptable but enforest
                     // doesn't accept empty arrays so short
                     // circuit here
-                    if (innerTokens.length === 0) {
-                        head.delim.token.inner = [Empty.create()];
-                        return step(ParenExpression.create(head), rest, opCtx);
+                    if (head.delim.token.inner.length === 0) {
+                        return step(ParenExpression.create([Empty.create()], head.delim.expose(), []),
+                                   rest,
+                                   opCtx);
                     } else {
-                        var innerTerm = get_expression(innerTokens, context);
-                        if (innerTerm.result && innerTerm.result.isExpr &&
-                            innerTerm.rest.length === 0) {
-                            head.delim.token.inner = [innerTerm.result];
-                            return step(ParenExpression.create(head), rest, opCtx);
+                        var parenRes = enforestParenExpression(head.delim, context);
+                        if (parenRes) {
+                            return step(parenRes, rest, opCtx);
                         }
-                        // if the tokens inside the paren aren't an expression
-                        // we just leave it as a delimiter
                     }
                 // AssignmentExpression
                 } else if (head.isExpr &&
@@ -2202,14 +2190,13 @@
             term.body.delim.token.inner = expand(term.body.delim.expose().token.inner, context);
             return term;
         } else if (term.isParenExpression) {
-            assert(term.expr.delim.token.inner.length === 1, "Paren expressions always have a single term inside the delimiter");
-            term.expr.delim.token.inner = [expandTermTreeToFinal(term.expr.delim.token.inner[0], context)];
-            return term;
-        } else if (term.isCall) {
-            term.fun = expandTermTreeToFinal(term.fun, context);
             term.args = _.map(term.args, function(arg) {
                 return expandTermTreeToFinal(arg, context);
             });
+            return term;
+        } else if (term.isCall) {
+            term.fun = expandTermTreeToFinal(term.fun, context);
+            term.args = expandTermTreeToFinal(term.args, context);
             return term;
         } else if (term.isReturnStatement) {
             term.expr = expandTermTreeToFinal(term.expr, context);

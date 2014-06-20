@@ -54,6 +54,12 @@ describe("enforest", function() {
         expect(res.result.fun.id.token.value).to.be('foo');
     });
 
+    it("should enforest ParenExpressions with multiple expressions", function() {
+      var res = enforest(read("(1, 2, 3)"), makeExpanderContext());
+      expect(res.result.isParenExpression).to.be(true);
+      expect(res.result.args.length).to.be(3);
+    });
+
     // Currently disabled because it requires --harmony mode
     // it("should maintain let hygiene when enforesting an expression with ASI", function() {
     //     'use strict';
