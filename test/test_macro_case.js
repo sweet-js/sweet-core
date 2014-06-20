@@ -227,6 +227,16 @@ describe "procedural (syntax-case) macros" {
         expect(l 5).to.be(65);
     }
 
+    it "should handle syntax quotes on the rhs of letstx" {
+        let l = macro {
+            case {_ $x } => {
+                letstx $y = #{ $x + 1 };
+                return #{ $y };
+            }
+        }
+        expect(l 1).to.be(2);
+    }
+
     it "should handle getExpr" {
         let m = macro {
             case {_ ($e ...) } => {
