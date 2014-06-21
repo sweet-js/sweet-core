@@ -148,4 +148,14 @@ describe("infix macros", function() {
         expect(f()).to.be(42);
     });
 
+    it("should allow infix matching on 1 non-expr term in expression position", function() {
+        macro m {
+            rule infix { for | $x } => {
+                $x
+            }
+        }
+        var a = for m 42;
+        expect(a).to.be(42);
+    });
+
 });
