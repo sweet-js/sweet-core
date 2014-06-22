@@ -1055,6 +1055,15 @@ describe("macro expander", function() {
         expect(m).to.be(42);
     });
 
+    it("should allow repeated parens to match zero or more", function() {
+        macro m {
+            rule { ($val) ... } => {
+                42 $val ...
+            }
+        }
+        expect(m).to.be(42);
+    });
+
     it("should allow repeated delimiters match at least one", function() {
         macro m {
             rule { [$faz] ... }  => {

@@ -452,10 +452,18 @@ let macro = macro {
                     if (pattern[i].token.type === parser.Token.Punctuator &&
                         pattern[i].token.value === '|') {
                         translatedPatt.push(makeIdent("_", here));
+                        translatedPatt = translatedPatt.concat([makeIdent("$", here),
+                                                                makeDelim("()", pattern.slice(i + 1), here)]);
+                        break;
                     }
                 }
             } else {
-                translatedPatt = [makeIdent("_", here)].concat(pattern);
+                translatedPatt = [makeIdent("_", here),
+                                  // wrapping the patterns in a group to disambiguate
+                                  // `_ (foo) ...`
+                                  // since the `(foo)` would be interpreted as a separator
+                                  makeIdent("$", here),
+                                  makeDelim("()", pattern, here)];
             }
 
             var translatedDef = [
