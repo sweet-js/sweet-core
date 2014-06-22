@@ -1669,8 +1669,9 @@
             }
 
             // Potentially an infix macro
-            if (head.isExpr && rest.length &&
-                nameInEnv(rest[0], rest.slice(1), context.env)) {
+            // This should only be invoked on runtime syntax terms
+            if (!head.isMacro && !head.isLetMacro && !head.isAnonMacro && !head.isOperatorDefinition &&
+                rest.length && nameInEnv(rest[0], rest.slice(1), context.env)) {
                 var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
                                   ? opCtx.prevTerms[0]
                                   : null;
