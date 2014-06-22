@@ -632,10 +632,12 @@
                 // pattern groups don't match the delimiters
                 subMatch = matchPatterns(pattern.inner, stx, context, true);
                 rest = subMatch.rest;
+                success = subMatch.success;
             } else if (pattern.class === "named_group") {
                 subMatch = matchPatterns(pattern.inner, stx, context, true);
                 rest = subMatch.rest;
-                if (subMatch.success) {
+                success = subMatch.success;
+                if (success) {
                     var namedMatch = {};
                     namedMatch[pattern.value] = {
                         level: 0,
@@ -663,14 +665,14 @@
                                          context,
                                          false);
                 rest = stx.slice(1);
+                success = subMatch.success;
             } else {
-                return {
-                    success: false,
-                    rest: stx,
-                    patternEnv: patternEnv
-                };
+                subMatch = matchPatterns(pattern.inner,
+                                         [],
+                                         context,
+                                         false);
+                success = false;
             }
-            success = subMatch.success;
             if(success || (!success && pattern.repeat)) {
                 patternEnv = loadPatternEnv(patternEnv,
                                             subMatch.patternEnv,
