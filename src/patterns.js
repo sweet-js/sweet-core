@@ -673,11 +673,15 @@
                                          false);
                 success = false;
             }
-            if(success || (!success && pattern.repeat)) {
+            if(success) {
                 patternEnv = loadPatternEnv(patternEnv,
                                             subMatch.patternEnv,
                                             topLevel,
                                             pattern.repeat);
+            } else if (pattern.repeat) {
+                patternEnv = initPatternEnv(patternEnv,
+                                            subMatch.patternEnv,
+                                            topLevel);
             }
         } else {
             if (pattern.class === "wildcard") {
@@ -731,6 +735,19 @@
             patternEnv: patternEnv
         };
 
+    }
+
+    function initPatternEnv(toEnv, fromEnv, topLevel) {
+        _.forEach(fromEnv, function(patternVal, patternKey) {
+            if (!toEnv[patternKey]) {
+                toEnv[patternKey] = {
+                    level: patternVal.level + 1,
+                    match: [patternVal],
+                    topLevel: topLevel
+                };
+            }
+        });
+        return toEnv;
     }
 
     function loadPatternEnv(toEnv, fromEnv, topLevel, repeat, prefix) {

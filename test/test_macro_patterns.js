@@ -1053,6 +1053,16 @@ describe("macro expander", function() {
             }
         }
         expect(m).to.be(42);
+    });
+
+    it("should allow repeated delimiters match at least one", function() {
+        macro m {
+            rule { [$faz] ... }  => {
+                [$faz (,) ...]   
+            }
+        }
+
+        expect(m [1]).to.eql([1]);
     })
 
     it("should allow named pattern groups", function() {
