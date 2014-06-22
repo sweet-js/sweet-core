@@ -671,7 +671,7 @@
                 };
             }
             success = subMatch.success;
-            if(success) {
+            if(success || (!success && pattern.repeat)) {
                 patternEnv = loadPatternEnv(patternEnv,
                                             subMatch.patternEnv,
                                             topLevel,

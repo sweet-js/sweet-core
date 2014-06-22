@@ -1037,6 +1037,15 @@ describe("macro expander", function() {
         expect(m([1, 2, 3])).to.eql([1, 2, 3, 1, 2, 3]);
     });
 
+    it("should allow repeated pattern groups to match zero or more", function() {
+        macro m {
+            rule { $($val) ... } => {
+                42 $val ...
+            }
+        }
+        expect(m).to.be(42);
+    })
+
     it("should allow named pattern groups", function() {
         macro m {
             rule { $x:(1 + 2) } => { $x - 3 }
