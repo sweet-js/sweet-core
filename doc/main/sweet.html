@@ -137,8 +137,9 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <li><a href="#patterns"><span class="toc-section-number">2.1</span> Patterns</a><ul>
 <li><a href="#repetition"><span class="toc-section-number">2.1.1</span> Repetition</a></li>
 <li><a href="#literal-patterns"><span class="toc-section-number">2.1.2</span> Literal patterns</a></li>
-<li><a href="#pattern-classes"><span class="toc-section-number">2.1.3</span> Pattern Classes</a></li>
-<li><a href="#custom-pattern-classes-experimental"><span class="toc-section-number">2.1.4</span> Custom Pattern Classes (Experimental)</a></li>
+<li><a href="#named-patterns"><span class="toc-section-number">2.1.3</span> Named patterns</a></li>
+<li><a href="#pattern-classes"><span class="toc-section-number">2.1.4</span> Pattern Classes</a></li>
+<li><a href="#custom-pattern-classes-experimental"><span class="toc-section-number">2.1.5</span> Custom Pattern Classes (Experimental)</a></li>
 </ul></li>
 </ul></li>
 <li><a href="#hygiene"><span class="toc-section-number">3</span> Hygiene</a><ul>
@@ -256,7 +257,22 @@ m (1, 2, 3, 4)</code></pre>
 m (x = 10, y = 2)</code></pre>
 <h3 id="literal-patterns"><span class="header-section-number">2.1.2</span> Literal patterns</h3>
 <p>The syntax <code>$[]</code> will match what is inside the brackets literally. For example, if you need to match <code>...</code> in a pattern (rather than have <code>...</code> mean repetition) you can escape it with <code>$[...]</code>.</p>
-<h3 id="pattern-classes"><span class="header-section-number">2.1.3</span> Pattern Classes</h3>
+<h3 id="named-patterns"><span class="header-section-number">2.1.3</span> Named patterns</h3>
+<p>You can name pattern groups and literal groups. Sub-bindings can be referenced by concatenating the group name and binding name. All the syntax matched by the group will be bound to the group name.</p>
+<pre class="js"><code>macro m {
+  rule { ($binding:($id = $val) (,) ...) =&gt; {
+    $(var $binding;) ...
+    // Or with sub-bindings
+    $(var $binding$id = $binding$val;) ...
+  }
+}
+
+macro m {
+  rule { $ellipsis:[...] } =&gt; {
+    // ...
+  }
+}</code></pre>
+<h3 id="pattern-classes"><span class="header-section-number">2.1.4</span> Pattern Classes</h3>
 <p>A pattern name can be restricted to a particular parse class by using <code>$name:class</code> in which case rather than matching a token the pattern matches all the tokens matched by the class.</p>
 <pre class="js"><code>macro m {
   rule { ($x:expr) } =&gt; {
@@ -272,12 +288,14 @@ m (2 + 5 * 10)
 <li><code>:lit</code> -- matches a literal (eg. <code>100</code> or <code>&quot;a string&quot;</code>)</li>
 <li><code>:expr</code> -- matches an expression (eg. <code>foo(&quot;a string&quot;) + 100</code>)</li>
 </ul>
-<h3 id="custom-pattern-classes-experimental"><span class="header-section-number">2.1.4</span> Custom Pattern Classes (Experimental)</h3>
+<h3 id="custom-pattern-classes-experimental"><span class="header-section-number">2.1.5</span> Custom Pattern Classes (Experimental)</h3>
 <p>Note that the syntax of custom pattern classes is currently experimental and subject to change.</p>
 <p>You can define your own custom pattern classes with <code>macroclass</code>.</p>
 <pre class="js"><code>// define the cond_clause pattern class
 macroclass cond_clause {
-    pattern { $check:expr =&gt; $body:expr }
+  pattern {
+    rule { $check:expr =&gt; $body:expr }
+  }
 }
 
 macro cond {
@@ -304,20 +322,25 @@ cond
 // } else if (x &gt; 3) {
 //     console.log(&#39;greater than 3&#39;);
 // }</code></pre>
-<p>You can also define multiple patterns and bind missing sub-pattern variables with <code>where</code>:</p>
+<p>You can also define multiple patterns and bind missing sub-pattern variables using <code>with</code>. You may supply multiple <code>with</code> declarations or separate bindings by commas.</p>
 <pre class="js"><code>macroclass alias_pair {
-    pattern { $from:ident as $to:ident }
-    pattern { $from:ident } where ($to = #{ $from })
+  pattern {
+    rule { $from:ident as $to:ident }
+  }
+  pattern { 
+    rule { $from:ident }
+    with $to = #{ $from };
+  }
 }
  
 macro import {
-    rule { { $import:alias_pair (,) ... } from $mod:lit ;... } =&gt; {
-        var __module = require($mod);
-        $(var $import$to = __module.$import$from;) ...
-    }
-    rule { $default:ident from $mod:lit ;... } =&gt; {
-        var $default = require($mod).default;
-    }
+  rule { { $import:alias_pair (,) ... } from $mod:lit ;... } =&gt; {
+    var __module = require($mod);
+    $(var $import$to = __module.$import$from;) ...
+  }
+  rule { $default:ident from $mod:lit ;... } =&gt; {
+    var $default = require($mod).default;
+  }
 }
  
 import { a, b as c, d } from &#39;foo&#39;
@@ -326,6 +349,7 @@ import { a, b as c, d } from &#39;foo&#39;
 // var a = __module.a;
 // var c = __module.b;
 // var d = __module.d;</code></pre>
+<p>Patterns with only a <code>rule</code> declaration may be collapsed into just a <code>rule</code> declaration in lieu of a <code>pattern</code>.</p>
 <h1 id="hygiene"><span class="header-section-number">3</span> Hygiene</h1>
 <p>The most important property of sweet.js is hygiene. Hygiene prevents variables names inside of macros from clashing with variables in the surrounding code. It's what gives macros the power to actually be syntactic abstractions by hiding implementation details and allowing you to use a hygienic macro <em>anywhere</em> in your code.</p>
 <p>Hygiene protects against two kinds of naming collisions: binding collisions and reference collisions.</p>
@@ -494,7 +518,7 @@ macro c {
 c 3
 // expands to:
 // [1 + 2] + 3</code></pre>
-<p>The <code>b</code> macro returns <code>a + $x</code> as its result. Since <code>a</code> is another macro which returns <code>1 + 2</code> as a result, so <code>1 + 2</code> is what gets loaded into the <code>$y</code> pattern variable, and the <code>+ 3</code> is inexplicably pushed outside the scope of the macro.</p>
+<p>The <code>b</code> macro returns <code>a + $x</code> as its result. Since <code>a</code> is another macro which returns <code>1 + 2</code> as a result, so <code>1 + 2</code> is what gets loaded into the <code>$y</code> pattern variable, and the <code>+ 3</code> is surprisingly pushed outside the scope of the macro.</p>
 <p>This is a change from the default behavior of version 0.5.0 in which <code>:invoke</code> behaved like <code>:invokeRec</code> and <code>:invokeOnce</code> was available for the current default behavior.</p>
 <h2 id="implicit-invoke"><span class="header-section-number">5.2</span> Implicit Invoke</h2>
 <p>Custom pattern classes act as an implicit invoke. This means that <code>$opt:invoke(color)</code> is equivalent to <code>$opt:color</code>:</p>
