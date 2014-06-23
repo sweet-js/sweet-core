@@ -147,6 +147,28 @@ m (x = 10, y = 2)
 The syntax `$[]` will match what is inside the brackets literally. 
 For example, if you need to match `...` in a pattern (rather than have `...` mean repetition) you can escape it with `$[...]`.
 
+### Named patterns
+
+You can name pattern groups and literal groups. Sub-bindings can be referenced
+by concatenating the group name and binding name. All the syntax matched by
+the group will be bound to the group name.
+
+```js
+macro m {
+  rule { ($binding:($id = $val) (,) ...) => {
+    $(var $binding;) ...
+    // Or with sub-bindings
+    $(var $binding$id = $binding$val;) ...
+  }
+}
+
+macro m {
+  rule { $ellipsis:[...] } => {
+    // ...
+  }
+}
+```
+
 
 ### Pattern Classes
 
@@ -180,7 +202,9 @@ You can define your own custom pattern classes with `macroclass`.
 ```js
 // define the cond_clause pattern class
 macroclass cond_clause {
-    pattern { $check:expr => $body:expr }
+  pattern {
+    rule { $check:expr => $body:expr }
+  }
 }
 
 macro cond {
@@ -209,22 +233,28 @@ cond
 // }
 ```
 
-You can also define multiple patterns and bind missing sub-pattern variables with `where`:
+You can also define multiple patterns and bind missing sub-pattern variables using `with`.
+You may supply multiple `with` declarations or separate bindings by commas.
 
 ```js
 macroclass alias_pair {
-    pattern { $from:ident as $to:ident }
-    pattern { $from:ident } where ($to = #{ $from })
+  pattern {
+    rule { $from:ident as $to:ident }
+  }
+  pattern { 
+    rule { $from:ident }
+    with $to = #{ $from };
+  }
 }
  
 macro import {
-    rule { { $import:alias_pair (,) ... } from $mod:lit ;... } => {
-        var __module = require($mod);
-        $(var $import$to = __module.$import$from;) ...
-    }
-    rule { $default:ident from $mod:lit ;... } => {
-        var $default = require($mod).default;
-    }
+  rule { { $import:alias_pair (,) ... } from $mod:lit ;... } => {
+    var __module = require($mod);
+    $(var $import$to = __module.$import$from;) ...
+  }
+  rule { $default:ident from $mod:lit ;... } => {
+    var $default = require($mod).default;
+  }
 }
  
 import { a, b as c, d } from 'foo'
@@ -234,6 +264,9 @@ import { a, b as c, d } from 'foo'
 // var c = __module.b;
 // var d = __module.d;
 ```
+
+Patterns with only a `rule` declaration may be collapsed into just a `rule`
+declaration in lieu of a `pattern`.
 
 # Hygiene
 
