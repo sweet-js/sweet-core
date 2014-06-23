@@ -5510,8 +5510,12 @@ parseYieldExpression: true
         // rest of the stream.
         queued: [],
 
+        // A readtable can only override punctuators
+        punctuators: ';,.:!?~=%&*+-/<>^|#@',
+
         has: function(ch) {
-            return readtables.currentReadtable[ch];
+            return readtables.currentReadtable[ch] &&
+                readtables.punctuators.indexOf(ch) !== -1;
         },
 
         getQueued: function() {
