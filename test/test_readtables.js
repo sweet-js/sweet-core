@@ -78,14 +78,26 @@ describe("readtables", function() {
             '^': function(ch, parser) {
                 parser.scanPunctuator();
                 var token = parser.readToken([]);
-                return {
-                    type: parser.Token.StringLiteral,
-                    value: token.value + '-good'
-                };
+
+                // readToken can add more tokens to the buffer if
+                // another readtable was invoked, which can be
+                // confusing, but it's up to you to interact with it
+                // properly
+                while(parser.peekQueued()) {
+                    token.value += '-' + parser.readToken([]).value;
+                }
+                
+                return [
+                    {  type: parser.Token.StringLiteral,
+                       value: token.value },
+                    {  type: parser.Token.StringLiteral,
+                       value: 'good' }
+                ];
             }
         }));
 
         var tokens = read('^^foo');
-        expect(tokens[0].value).to.be('foo-good-good');
+        expect(tokens[0].value).to.be('foo-good');
+        expect(tokens[1].value).to.be('good');
     })
 })
