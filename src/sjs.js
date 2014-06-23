@@ -1,11 +1,14 @@
 var fs = require("fs");
 var path = require("path");
-
+var pkg = require('../package.json');
 var sweet = require("./sweet.js");
 var syn = require("./syntax.js");
 
 var argv = require("optimist")
     .usage("Usage: sjs [options] path/to/file.js")
+    .alias('v', 'version')
+    .describe('v', 'Output version info')
+    .boolean('version')
     .alias('o', 'output')
     .describe('o', 'Output file path')
     .alias('m', 'module')
@@ -37,6 +40,9 @@ var argv = require("optimist")
     .argv;
 
 exports.run = function() {
+    if (argv.version){
+        return console.log("Sweet.js version: " + pkg.version);
+    }
     var infile = argv._[0];
     var outfile = argv.output;
     var watch = argv.watch;
