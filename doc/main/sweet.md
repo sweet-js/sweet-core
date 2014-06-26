@@ -882,7 +882,7 @@ var readtable = sweet.currentReadtable().extend({
 
 And you can set the readtable programmatically:
 
-```
+```javascript
 sweet.setReadtable(readtable);
 ```
 
@@ -891,15 +891,18 @@ value of the module must be the readtable:
 
 ```
 sjs --load-readtable ./readtable.js
+
+# Or the shorthand
+sjs -l ./readtable.js
 ```
 
 By continually extending the current readtable, we can install the
 extensions in a modular way and build up a final readtable with our
-desired behaviors. You can pass multiple `--load-readtable` flags to
-load multiple readtables extensions. If multiple readtables with the
-same character are installed, the last one loaded wins. There is
-currently no way to handle these kinds of collisions; every character
-must have a single unique handler (or none).
+desired behaviors. You can pass multiple `-l` (or `--load-readtable`)
+flags to load multiple readtables extensions. If multiple readtables
+with the same character are installed, the last one loaded wins. There
+is currently no way to handle these kinds of collisions; every
+character must have a single unique handler (or none).
 
 ## Readtables
 
@@ -952,7 +955,7 @@ There are two functions on the sweet module for working with readtables:
 
 * `sweet.setReadtable(rt)` &mdash; Mutates the reader state to use the
   specified readtable when reading. Most likely users will use one or
-  more `--load-readtable` flags to `sjs`, but you can set it
+  more `-l` or `--load-readtable` flags to `sjs`, but you can set it
   progammatically with this method.
 
 
@@ -1032,7 +1035,7 @@ The following functions are simple utility functions:
   `readToken`, but can return multiple tokens, so the rest are pushed
   onto a queue. You may need to be aware of this with recursive reader
   extensions or other complicated scenarios.
-* `reader.getQueued` &mdash; Gets the next token from the reader queue
+* `reader.getQueued()` &mdash; Gets the next token from the reader queue
   and removes it from the queue
 * `reader.suppressReadError(readFunc)` &mdash; Suppresses exceptions
   from any of the `read*` functions and returns `null` instead if

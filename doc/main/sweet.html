@@ -878,10 +878,13 @@ if (&quot;42&quot; == 42) {
     }
 });</code></pre>
 <p>And you can set the readtable programmatically:</p>
-<pre><code>sweet.setReadtable(readtable);</code></pre>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="ot">sweet</span>.<span class="fu">setReadtable</span>(readtable);</code></pre>
 <p>Or load it via a command line option. If you do this, the exported value of the module must be the readtable:</p>
-<pre><code>sjs --load-readtable ./readtable.js</code></pre>
-<p>By continually extending the current readtable, we can install the extensions in a modular way and build up a final readtable with our desired behaviors. You can pass multiple <code>--load-readtable</code> flags to load multiple readtables extensions. If multiple readtables with the same character are installed, the last one loaded wins. There is currently no way to handle these kinds of collisions; every character must have a single unique handler (or none).</p>
+<pre><code>sjs --load-readtable ./readtable.js
+
+# Or the shorthand
+sjs -l ./readtable.js</code></pre>
+<p>By continually extending the current readtable, we can install the extensions in a modular way and build up a final readtable with our desired behaviors. You can pass multiple <code>-l</code> (or <code>--load-readtable</code>) flags to load multiple readtables extensions. If multiple readtables with the same character are installed, the last one loaded wins. There is currently no way to handle these kinds of collisions; every character must have a single unique handler (or none).</p>
 <h2 id="readtables"><span class="header-section-number">9.1</span> Readtables</h2>
 <p>A readtable is an object that maps characters to handler functions, and an <code>extend</code> method. Internally, a base readtable exists which is the current readtable by default. To create a new one, you always extend an existing one as explained above:</p>
 <pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> readtable = <span class="ot">sweet</span>.<span class="fu">currentReadtable</span>().<span class="fu">extend</span>({
@@ -904,7 +907,7 @@ if (&quot;42&quot; == 42) {
 <p>There are two functions on the sweet module for working with readtables:</p>
 <ul>
 <li><p><code>sweet.currentReadtable()</code> — Gets the current readtable, which always has an <code>extend</code> method on it to install new extensions.</p></li>
-<li><p><code>sweet.setReadtable(rt)</code> — Mutates the reader state to use the specified readtable when reading. Most likely users will use one or more <code>--load-readtable</code> flags to <code>sjs</code>, but you can set it progammatically with this method.</p></li>
+<li><p><code>sweet.setReadtable(rt)</code> — Mutates the reader state to use the specified readtable when reading. Most likely users will use one or more <code>-l</code> or <code>--load-readtable</code> flags to <code>sjs</code>, but you can set it progammatically with this method.</p></li>
 </ul>
 <h2 id="reader-api"><span class="header-section-number">9.2</span> Reader API</h2>
 <p>A reader object is always passed as the second argument when invoking a reader extension. It has several properties that are readable and writable:</p>
@@ -946,7 +949,7 @@ if (&quot;42&quot; == 42) {
 <li><code>reader.isIdentifierPart(charCode)</code> — Check if <code>charCode</code> is a valid non-starting character for an identifier</li>
 <li><code>reader.isLineTerminator(charCode)</code> — Check if <code>charCode</code> is a character that terminates a line</li>
 <li><code>reader.peekQueued(offset)</code> — Inspects the tokens on the reader queue, returning the nth (based on <code>offset</code>) token from the front (0 is the next token). Reader extensions are invoked from <code>readToken</code>, but can return multiple tokens, so the rest are pushed onto a queue. You may need to be aware of this with recursive reader extensions or other complicated scenarios.</li>
-<li><code>reader.getQueued</code> — Gets the next token from the reader queue and removes it from the queue</li>
+<li><code>reader.getQueued()</code> — Gets the next token from the reader queue and removes it from the queue</li>
 <li><code>reader.suppressReadError(readFunc)</code> — Suppresses exceptions from any of the <code>read*</code> functions and returns <code>null</code> instead if something went wrong. Example: <code>reader.suppressReadError(reader.readIdentifier)</code></li>
 <li><code>reader.throwSyntaxError(name, message, token)</code> — Throws a syntax error. <code>name</code> is just a general identifier for your project, and <code>message</code> is the specific message to display. You must pass a <code>token</code> so it can properly locate where the error occurred in the original source.</li>
 </ul>

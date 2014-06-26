@@ -34,6 +34,7 @@ var argv = require("optimist")
     .describe('r', 'remove as many hygienic renames as possible (ES5 code only!)')
     .boolean('readable-names')
     .describe('format-indent', 'number of spaces for indentation')
+    .alias('l', 'load-readtable')
     .describe('load-readtable', 'readtable module to install')
     .argv;
 
@@ -50,7 +51,7 @@ exports.run = function() {
     var displayHygiene = argv['step-hygiene'];
     var readableNames = argv['readable-names'];
     var formatIndent = parseInt(argv['format-indent'], 10);
-    var readtableModule = argv['load-readtable'];
+    var readtableModules = argv['load-readtable'];
     if (formatIndent !== formatIndent) {
         formatIndent = 4;
     }
@@ -72,8 +73,14 @@ exports.run = function() {
         return sweet.loadNodeModule(cwd, path);
     });
 
-    if(readtableModule) {
-        sweet.setReadtable(readtableModule);
+    if(readtableModules) {
+        readtableModules = (Array.isArray(readtableModules) ?
+                            readtableModules :
+                            [readtableModules]);
+
+        readtableModules.forEach(function(mod) {
+            sweet.setReadtable(mod);
+        });
     }
 
     var options = {
