@@ -5693,7 +5693,7 @@ parseYieldExpression: true
         readToken: function() {
             return readToken([], false, false);
         },
-        readDelim: function() {
+        readDelimiter: function() {
             return readDelim([], false, false);
         },
         skipComment: scanComment,

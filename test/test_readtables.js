@@ -11,12 +11,9 @@ var read = _.wrap(parser.read, function(read_func, read_arg) {
 describe("readtables", function() {
     it("should replace a single token", function() {
         parser.setReadtable(parser.currentReadtable().extend({
-            '*': function(ch, parser) {
-                parser.scanPunctuator();
-                return {
-                    type: parser.Token.StringLiteral,
-                    value: 'Hello'
-                };
+            '*': function(ch, reader) {
+                reader.readPunctuator();
+                return reader.makeStringLiteral('Hello');
             }
         }));
 
@@ -28,13 +25,11 @@ describe("readtables", function() {
 
     it("should splice in several tokens", function() {
         parser.setReadtable(parser.currentReadtable().extend({
-            '^': function(ch, parser) {
-                parser.scanPunctuator();
+            '^': function(ch, reader) {
+                reader.readPunctuator();
                 return [
-                    {  type: parser.Token.StringLiteral,
-                       value: 'splice1' },
-                    {  type: parser.Token.StringLiteral,
-                       value: 'splice2' }
+                    reader.makeStringLiteral('splice1'),
+                    reader.makeStringLiteral('splice2')
                 ];
             }
         }));
@@ -48,24 +43,21 @@ describe("readtables", function() {
 
     it("should only trigger on punctuators", function() {
         parser.setReadtable(parser.currentReadtable().extend({
-            'a': function(ch, parser) {
+            'a': function(ch, reader) {
                 throw new Error('bad');
             },
-            '$': function(ch, parser) {
+            '$': function(ch, reader) {
                 throw new Error('bad');
             },
-            '(': function(ch, parser) {
+            '(': function(ch, reader) {
                 throw new Error('bad');
             },
-            '{': function(ch, parser) {
+            '{': function(ch, reader) {
                 throw new Error('bad');
             },
-            '&': function(ch, parser) {
-                parser.scanPunctuator();
-                return {
-                    type: parser.Token.StringLiteral,
-                    value: 'good'
-                };
+            '&': function(ch, reader) {
+                reader.readPunctuator();
+                return reader.makeStringLiteral('good');
             }
         }));
 
@@ -75,23 +67,21 @@ describe("readtables", function() {
 
     it("should handle recursive invocations", function() {
         parser.setReadtable(parser.currentReadtable().extend({
-            '^': function(ch, parser) {
-                parser.scanPunctuator();
-                var token = parser.readToken([]);
+            '^': function(ch, reader) {
+                reader.readPunctuator();
+                var token = reader.readToken();
 
                 // readToken can add more tokens to the buffer if
                 // another readtable was invoked, which can be
                 // confusing, but it's up to you to interact with it
                 // properly
-                while(parser.peekQueued()) {
-                    token.value += '-' + parser.readToken([]).value;
+                while(reader.peekQueued()) {
+                    token.value += '-' + reader.readToken().value;
                 }
                 
                 return [
-                    {  type: parser.Token.StringLiteral,
-                       value: token.value },
-                    {  type: parser.Token.StringLiteral,
-                       value: 'good' }
+                    reader.makeStringLiteral(token.value),
+                    reader.makeStringLiteral('good'),
                 ];
             }
         }));
