@@ -5633,12 +5633,12 @@ parseYieldExpression: true
         };
     }
 
-    function makeRegExp(value, flags, opts) {
+    function makeRegExp(value, opts) {
         opts = opts || {};
         return {
             type: Token.RegularExpression,
-            value: new Regex(value, flags),
-            literal: value,
+            value: value,
+            literal: value.toString(),
             lineNumber: lineNumber,
             lineStart: lineStart,
             range: [opts.start || index, index]
