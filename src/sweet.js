@@ -152,7 +152,7 @@
                 throw err;
             }
         }
-    };
+    }
 
     // fun (Str, {}) -> AST
     function parse(code, modules, options) {
