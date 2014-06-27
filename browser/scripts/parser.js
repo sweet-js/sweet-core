@@ -4811,11 +4811,12 @@ parseYieldExpression: true
             ]
         };
     }
-    function makeRegExp(value, opts) {
+    function makeRegExp(value, flags, opts) {
         opts = opts || {};
         return {
             type: Token.RegularExpression,
-            value: value,
+            value: new Regex(value, flags),
+            literal: value,
             lineNumber: lineNumber,
             lineStart: lineStart,
             range: [
