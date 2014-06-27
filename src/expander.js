@@ -2441,7 +2441,10 @@
     // a hack to make the top level hygiene work out
     function expandTopLevel(stx, moduleContexts, options) {
         moduleContexts = moduleContexts || [];
-        maxExpands = (_.isNumber(options) ? options : options && options._maxExpands) || Infinity;
+        options = options || {};
+        options.flatten = options.flatten != null ? options.flatten : true;
+        
+        maxExpands = options.maxExpands || Infinity;
         expandCount = 0;
 
         var context = makeTopLevelExpanderContext(options);
@@ -2454,7 +2457,8 @@
 
         var res = expand([syn.makeIdent("module", null), modBody], context);
         res = res[0].destruct();
-        return flatten(res[0].token.inner);
+        res = res[0].token.inner;
+        return options.flatten ? flatten(res) : res;
     }
 
     function expandModule(stx, moduleContexts, options) {

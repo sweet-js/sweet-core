@@ -868,6 +868,220 @@ The following charts note the precedence and associativity of the builtin operat
 | `&&`| 5| left
 | <code>&#124;&#124;</code>|4| left
 
+# Reader Extensions
+
+The reader is what turns a string of code into tokens for the expander
+to work with. While it doesn't know anything about the semantics of
+JavaScript, it parses the code into tokens with several assumptions
+tailored to JavaScript. For example, it reads `/abc/` as a single
+RegExp token, but it reads `abc/d` as three distinct tokens: an
+identifier, a punctuator, and another identifier. In fact, the
+algorithm for determining when `/` starts a regex or is a simple
+division without fully parsing the code is a key breakthrough that
+enables macros in JavaScript.
+
+The default reader separates code into identifiers, literals, and
+punctuators. It also matches delimiters (`{}()[]`) and creates a
+*tree* of tokens, so everything inside matching delimiters exist as
+children of a delimiter token.
+
+You may want to extend the behavior of the reader, just like you would
+extend the semantics of a language with macros. Doing so allows you to
+embed custom syntax that may not even be valid according to the
+default reader, for example changing how the forward slash `/` is
+handled. For the most part, you will use macros to extend JavaScript,
+but it might be useful to control exactly how the reader parses tokens.
+
+sweet.js allows reader customization through **readtables**. A readtable
+is simple mapping from single characters to procedures that do the
+reading when the specified character is encountered in the source. For
+example, you can install a function to be called when `<` is
+encountered, and you are responsible for reading as much of the source
+as you need and producing tokens.
+
+Readtables allow composable extensions to the tokenizing phase,
+similar to how macros allow composable extensions to the parsing
+phase. You create a new readtable by extending an existing one. For
+example, here's how you extend the existing readtable with new
+functionality for `<`:
+
+```javascript
+var readtable = sweet.currentReadtable().extend({
+    '<': function(ch, reader) {
+        // read stuff here
+    }
+});
+```
+
+And you can set the readtable programmatically:
+
+```javascript
+sweet.setReadtable(readtable);
+```
+
+Or load it via a command line option. If you do this, the exported
+value of the module must be the readtable:
+
+```
+sjs --load-readtable ./readtable.js
+
+# Or the shorthand
+sjs -l ./readtable.js
+```
+
+By continually extending the current readtable, we can install the
+extensions in a modular way and build up a final readtable with our
+desired behaviors. You can pass multiple `-l` (or `--load-readtable`)
+flags to load multiple readtables extensions. If multiple readtables
+with the same character are installed, the last one loaded wins. There
+is currently no way to handle these kinds of collisions; every
+character must have a single unique handler (or none).
+
+## Readtables
+
+A readtable is an object that maps characters to handler functions,
+and an `extend` method. Internally, a base readtable exists which is
+the current readtable by default. To create a new one, you always
+extend an existing one as explained above:
+
+```javascript
+var readtable = sweet.currentReadtable().extend({
+    '<': function(ch, reader) {
+        reader.readPunctuator();
+        var token = reader.readToken();
+        if(token.type !== reader.Token.Identifier) {
+          return null;
+        }
+
+        // Continue parsing and return a single token or
+        // an array of tokens
+    }
+});
+```
+
+Handler functions take two arguments: the character that invoked the
+handler and a reader object. You access the reader API through this
+reader object.
+
+Currently, readtables are only invoked on punctuators. That means you
+can't customize what happens on a double quote `"` or a delimiter like
+`(`. This might be possible in the future.
+
+The reader has not read the punctuator that invoked your handler, so
+you must always read past it with `reader.readPunctuator()` first.
+
+You can return `null` from a handler function and the reader will
+automatically reset the state of the parser and continue reading
+normally. This lets you parse grammar that is ambiguous, and when
+something doesn't match you can simply bail. If you want to throw an
+error instead, you can use `throwSyntaxError` in the reader API to
+show a nice error message to the user.
+
+Lastly, you can return either a single token or an array of tokens
+from the handler. If you return multiple tokens, `readToken` will only
+return the first one and queue up the rest.
+
+There are two functions on the sweet module for working with readtables:
+
+* `sweet.currentReadtable()` &mdash; Gets the current readtable, which
+  always has an `extend` method on it to install new extensions.
+
+* `sweet.setReadtable(rt)` &mdash; Mutates the reader state to use the
+  specified readtable when reading. Most likely users will use one or
+  more `-l` or `--load-readtable` flags to `sjs`, but you can set it
+  progammatically with this method.
+
+
+## Reader API
+
+A reader object is always passed as the second argument when invoking
+a reader extension. It has several properties that are readable and
+writable:
+
+* `reader.source` &mdash; The full raw string of the code being read
+* `reader.length` &mdash; The length of `reader.source`
+* `reader.index` &mdash; The current position of the reader into the source
+* `reader.lineNumber` &mdash; The current line number
+* `reader.lineStart` &mdash; The index into the source which the current line began
+* `reader.extra` &mdash; read-only; an object that holds temporary data like comments
+
+The following functions are also available on the reader object. You
+can read tokens and skip comments with these. All of this functions
+(except `skipComment`) with throw an error if it fails to read a valid
+token. You can use `suppressReadError` to suppress this (explained
+more below).
+
+* `reader.readIdentifier()` &mdash; Read an identifier (variable name,
+  keyword, null and boolean literals)
+* `reader.readPunctuator()` &mdash; Read a punctuator
+* `reader.readStringLiteral()` &mdash; Read a string literal
+* `reader.readNumericLiteral()` &mdash; Read a numeric literal
+* `reader.readRegExp()` &mdash; Read a regular expression
+* `reader.readDelimiter()` &mdash; Read a delimiter, including
+  everything inside it and up to the matching end delimiter
+* `reader.readToken()` &mdash; Read a token of any type. Note that
+  this can trigger another readtable invocation if the current
+  punctuator has an entry in the current readtable. If you use this,
+  your reader extension could potentially be called recursively. In
+  addition, you might need to be aware of how readtables queue tokens
+  (see `peekQueued` below).
+* `reader.skipComment()` &mdash; Skip past a comment and any
+  whitespace, if it exits.
+
+The following functions are available for manually constructing
+tokens. You give it the parsed value and any options. The constructed
+tokens will automatically be given source location information, but it
+can't automatically infer the range. You should pass where the token
+theoretically started in the original source with the `start` option.
+So a common pattern looks like this:
+
+```javascript
+var start = reader.index;
+// do some reading
+return reader.makeIdentifier('foo', { start: start });
+```
+
+`makeDelimiter` does not take any options because it can infer the
+range from the first and last inner tokens.
+
+* `reader.makeIdentifier(value, opts)` &mdash; Make an identifier token
+* `reader.makePunctuator(value, opts)` &mdash; Make a punctuator token
+* `reader.makeStringLiteral(value, opts)` &mdash; Make a string
+  literal token. It takes an addition boolean parameter `octal` in
+  `opts`
+* `reader.makeNumericLiteral(value, opts)` &mdash; Make a numeric literal token
+* `reader.makeRegExp(value, opts)` &mdash; Make a regexp token
+* `reader.makeDelimiter(value, inner)` &mdash; Make a delimiter token
+  with the token array `inner` as its children
+
+The following functions are simple utility functions:
+
+* `reader.isIdentifierStart(charCode)` &mdash; Check if `charCode` is
+  a valid character for starting an identifier
+* `reader.isIdentifierPart(charCode)` &mdash; Check if `charCode` is a
+  valid non-starting character for an identifier
+* `reader.isLineTerminator(charCode)` &mdash; Check if `charCode` is a
+  character that terminates a line
+* `reader.peekQueued(offset)` &mdash; Inspects the tokens on the
+  reader queue, returning the nth (based on `offset`) token from the
+  front (0 is the next token). Reader extensions are invoked from
+  `readToken`, but can return multiple tokens, so the rest are pushed
+  onto a queue. You may need to be aware of this with recursive reader
+  extensions or other complicated scenarios.
+* `reader.getQueued()` &mdash; Gets the next token from the reader queue
+  and removes it from the queue
+* `reader.suppressReadError(readFunc)` &mdash; Suppresses exceptions
+  from any of the `read*` functions and returns `null` instead if
+  something went wrong. Example: `reader.suppressReadError(reader.readIdentifier)`
+* `reader.throwSyntaxError(name, message, token)` &mdash; Throws a
+  syntax error. `name` is just a general identifier for your project,
+  and `message` is the specific message to display. You must pass a
+  `token` so it can properly locate where the error occurred in the
+  original source.
+
+If you want to look at some examples, check out the [readtables
+tests](https://github.com/jlongster/sweet.js/blob/reader-extensions/test/test_readtables.js).
+TODO: update this link
 
 # Modules
 

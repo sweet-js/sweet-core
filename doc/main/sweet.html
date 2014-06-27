@@ -162,22 +162,26 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <li><a href="#binary-operators"><span class="toc-section-number">8.2.2</span> Binary Operators</a></li>
 </ul></li>
 </ul></li>
-<li><a href="#modules"><span class="toc-section-number">9</span> Modules</a><ul>
-<li><a href="#using-modules"><span class="toc-section-number">9.1</span> Using Modules</a></li>
-<li><a href="#node-loader"><span class="toc-section-number">9.2</span> Node Loader</a></li>
+<li><a href="#reader-extensions"><span class="toc-section-number">9</span> Reader Extensions</a><ul>
+<li><a href="#readtables"><span class="toc-section-number">9.1</span> Readtables</a></li>
+<li><a href="#reader-api"><span class="toc-section-number">9.2</span> Reader API</a></li>
 </ul></li>
-<li><a href="#compiler-api"><span class="toc-section-number">10</span> Compiler API</a><ul>
-<li><a href="#sweet.compile"><span class="toc-section-number">10.1</span> <code>sweet.compile</code></a></li>
-<li><a href="#sweet.parse"><span class="toc-section-number">10.2</span> <code>sweet.parse</code></a></li>
-<li><a href="#sweet.expand"><span class="toc-section-number">10.3</span> <code>sweet.expand</code></a></li>
+<li><a href="#modules"><span class="toc-section-number">10</span> Modules</a><ul>
+<li><a href="#using-modules"><span class="toc-section-number">10.1</span> Using Modules</a></li>
+<li><a href="#node-loader"><span class="toc-section-number">10.2</span> Node Loader</a></li>
 </ul></li>
-<li><a href="#faq"><span class="toc-section-number">11</span> FAQ</a><ul>
-<li><a href="#how-do-i-run-sweet.js-in-the-browser"><span class="toc-section-number">11.1</span> How do I Run Sweet.js in the Browser?</a></li>
-<li><a href="#how-do-i-break-hygiene"><span class="toc-section-number">11.2</span> How do I break hygiene?</a></li>
-<li><a href="#how-do-i-output-comments"><span class="toc-section-number">11.3</span> How do I output comments?</a></li>
-<li><a href="#how-do-i-debug-macros"><span class="toc-section-number">11.4</span> How do I debug macros?</a><ul>
-<li><a href="#stepping-through-expansion"><span class="toc-section-number">11.4.1</span> Stepping Through Expansion</a></li>
-<li><a href="#understanding-case-macros"><span class="toc-section-number">11.4.2</span> Understanding Case Macros</a></li>
+<li><a href="#compiler-api"><span class="toc-section-number">11</span> Compiler API</a><ul>
+<li><a href="#sweet.compile"><span class="toc-section-number">11.1</span> <code>sweet.compile</code></a></li>
+<li><a href="#sweet.parse"><span class="toc-section-number">11.2</span> <code>sweet.parse</code></a></li>
+<li><a href="#sweet.expand"><span class="toc-section-number">11.3</span> <code>sweet.expand</code></a></li>
+</ul></li>
+<li><a href="#faq"><span class="toc-section-number">12</span> FAQ</a><ul>
+<li><a href="#how-do-i-run-sweet.js-in-the-browser"><span class="toc-section-number">12.1</span> How do I Run Sweet.js in the Browser?</a></li>
+<li><a href="#how-do-i-break-hygiene"><span class="toc-section-number">12.2</span> How do I break hygiene?</a></li>
+<li><a href="#how-do-i-output-comments"><span class="toc-section-number">12.3</span> How do I output comments?</a></li>
+<li><a href="#how-do-i-debug-macros"><span class="toc-section-number">12.4</span> How do I debug macros?</a><ul>
+<li><a href="#stepping-through-expansion"><span class="toc-section-number">12.4.1</span> Stepping Through Expansion</a></li>
+<li><a href="#understanding-case-macros"><span class="toc-section-number">12.4.2</span> Understanding Case Macros</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -886,8 +890,96 @@ if (&quot;42&quot; == 42) {
 </tr>
 </tbody>
 </table>
-<h1 id="modules"><span class="header-section-number">9</span> Modules</h1>
-<h2 id="using-modules"><span class="header-section-number">9.1</span> Using Modules</h2>
+<h1 id="reader-extensions"><span class="header-section-number">9</span> Reader Extensions</h1>
+<p>The reader is what turns a string of code into tokens for the expander to work with. While it doesn't know anything about the semantics of JavaScript, it parses the code into tokens with several assumptions tailored to JavaScript. For example, it reads <code>/abc/</code> as a single RegExp token, but it reads <code>abc/d</code> as three distinct tokens: an identifier, a punctuator, and another identifier. In fact, the algorithm for determining when <code>/</code> starts a regex or is a simple division without fully parsing the code is a key breakthrough that enables macros in JavaScript.</p>
+<p>The default reader separates code into identifiers, literals, and punctuators. It also matches delimiters (<code>{}()[]</code>) and creates a <em>tree</em> of tokens, so everything inside matching delimiters exist as children of a delimiter token.</p>
+<p>You may want to extend the behavior of the reader, just like you would extend the semantics of a language with macros. Doing so allows you to embed custom syntax that may not even be valid according to the default reader, for example changing how the forward slash <code>/</code> is handled. For the most part, you will use macros to extend JavaScript, but it might be useful to control exactly how the reader parses tokens.</p>
+<p>sweet.js allows reader customization through <strong>readtables</strong>. A readtable is simple mapping from single characters to procedures that do the reading when the specified character is encountered in the source. For example, you can install a function to be called when <code>&lt;</code> is encountered, and you are responsible for reading as much of the source as you need and producing tokens.</p>
+<p>Readtables allow composable extensions to the tokenizing phase, similar to how macros allow composable extensions to the parsing phase. You create a new readtable by extending an existing one. For example, here's how you extend the existing readtable with new functionality for <code>&lt;</code>:</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> readtable = <span class="ot">sweet</span>.<span class="fu">currentReadtable</span>().<span class="fu">extend</span>({
+    <span class="st">&#39;&lt;&#39;</span>: <span class="kw">function</span>(ch, reader) {
+        <span class="co">// read stuff here</span>
+    }
+});</code></pre>
+<p>And you can set the readtable programmatically:</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="ot">sweet</span>.<span class="fu">setReadtable</span>(readtable);</code></pre>
+<p>Or load it via a command line option. If you do this, the exported value of the module must be the readtable:</p>
+<pre><code>sjs --load-readtable ./readtable.js
+
+# Or the shorthand
+sjs -l ./readtable.js</code></pre>
+<p>By continually extending the current readtable, we can install the extensions in a modular way and build up a final readtable with our desired behaviors. You can pass multiple <code>-l</code> (or <code>--load-readtable</code>) flags to load multiple readtables extensions. If multiple readtables with the same character are installed, the last one loaded wins. There is currently no way to handle these kinds of collisions; every character must have a single unique handler (or none).</p>
+<h2 id="readtables"><span class="header-section-number">9.1</span> Readtables</h2>
+<p>A readtable is an object that maps characters to handler functions, and an <code>extend</code> method. Internally, a base readtable exists which is the current readtable by default. To create a new one, you always extend an existing one as explained above:</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> readtable = <span class="ot">sweet</span>.<span class="fu">currentReadtable</span>().<span class="fu">extend</span>({
+    <span class="st">&#39;&lt;&#39;</span>: <span class="kw">function</span>(ch, reader) {
+        <span class="ot">reader</span>.<span class="fu">readPunctuator</span>();
+        <span class="kw">var</span> token = <span class="ot">reader</span>.<span class="fu">readToken</span>();
+        <span class="kw">if</span>(<span class="ot">token</span>.<span class="fu">type</span> !== <span class="ot">reader</span>.<span class="ot">Token</span>.<span class="fu">Identifier</span>) {
+          <span class="kw">return</span> <span class="kw">null</span>;
+        }
+
+        <span class="co">// Continue parsing and return a single token or</span>
+        <span class="co">// an array of tokens</span>
+    }
+});</code></pre>
+<p>Handler functions take two arguments: the character that invoked the handler and a reader object. You access the reader API through this reader object.</p>
+<p>Currently, readtables are only invoked on punctuators. That means you can't customize what happens on a double quote <code>&quot;</code> or a delimiter like <code>(</code>. This might be possible in the future.</p>
+<p>The reader has not read the punctuator that invoked your handler, so you must always read past it with <code>reader.readPunctuator()</code> first.</p>
+<p>You can return <code>null</code> from a handler function and the reader will automatically reset the state of the parser and continue reading normally. This lets you parse grammar that is ambiguous, and when something doesn't match you can simply bail. If you want to throw an error instead, you can use <code>throwSyntaxError</code> in the reader API to show a nice error message to the user.</p>
+<p>Lastly, you can return either a single token or an array of tokens from the handler. If you return multiple tokens, <code>readToken</code> will only return the first one and queue up the rest.</p>
+<p>There are two functions on the sweet module for working with readtables:</p>
+<ul>
+<li><p><code>sweet.currentReadtable()</code> — Gets the current readtable, which always has an <code>extend</code> method on it to install new extensions.</p></li>
+<li><p><code>sweet.setReadtable(rt)</code> — Mutates the reader state to use the specified readtable when reading. Most likely users will use one or more <code>-l</code> or <code>--load-readtable</code> flags to <code>sjs</code>, but you can set it progammatically with this method.</p></li>
+</ul>
+<h2 id="reader-api"><span class="header-section-number">9.2</span> Reader API</h2>
+<p>A reader object is always passed as the second argument when invoking a reader extension. It has several properties that are readable and writable:</p>
+<ul>
+<li><code>reader.source</code> — The full raw string of the code being read</li>
+<li><code>reader.length</code> — The length of <code>reader.source</code></li>
+<li><code>reader.index</code> — The current position of the reader into the source</li>
+<li><code>reader.lineNumber</code> — The current line number</li>
+<li><code>reader.lineStart</code> — The index into the source which the current line began</li>
+<li><code>reader.extra</code> — read-only; an object that holds temporary data like comments</li>
+</ul>
+<p>The following functions are also available on the reader object. You can read tokens and skip comments with these. All of this functions (except <code>skipComment</code>) with throw an error if it fails to read a valid token. You can use <code>suppressReadError</code> to suppress this (explained more below).</p>
+<ul>
+<li><code>reader.readIdentifier()</code> — Read an identifier (variable name, keyword, null and boolean literals)</li>
+<li><code>reader.readPunctuator()</code> — Read a punctuator</li>
+<li><code>reader.readStringLiteral()</code> — Read a string literal</li>
+<li><code>reader.readNumericLiteral()</code> — Read a numeric literal</li>
+<li><code>reader.readRegExp()</code> — Read a regular expression</li>
+<li><code>reader.readDelimiter()</code> — Read a delimiter, including everything inside it and up to the matching end delimiter</li>
+<li><code>reader.readToken()</code> — Read a token of any type. Note that this can trigger another readtable invocation if the current punctuator has an entry in the current readtable. If you use this, your reader extension could potentially be called recursively. In addition, you might need to be aware of how readtables queue tokens (see <code>peekQueued</code> below).</li>
+<li><code>reader.skipComment()</code> — Skip past a comment and any whitespace, if it exits.</li>
+</ul>
+<p>The following functions are available for manually constructing tokens. You give it the parsed value and any options. The constructed tokens will automatically be given source location information, but it can't automatically infer the range. You should pass where the token theoretically started in the original source with the <code>start</code> option. So a common pattern looks like this:</p>
+<pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> start = <span class="ot">reader</span>.<span class="fu">index</span>;
+<span class="co">// do some reading</span>
+<span class="kw">return</span> <span class="ot">reader</span>.<span class="fu">makeIdentifier</span>(<span class="st">&#39;foo&#39;</span>, { <span class="dt">start</span>: start });</code></pre>
+<p><code>makeDelimiter</code> does not take any options because it can infer the range from the first and last inner tokens.</p>
+<ul>
+<li><code>reader.makeIdentifier(value, opts)</code> — Make an identifier token</li>
+<li><code>reader.makePunctuator(value, opts)</code> — Make a punctuator token</li>
+<li><code>reader.makeStringLiteral(value, opts)</code> — Make a string literal token. It takes an addition boolean parameter <code>octal</code> in <code>opts</code></li>
+<li><code>reader.makeNumericLiteral(value, opts)</code> — Make a numeric literal token</li>
+<li><code>reader.makeRegExp(value, opts)</code> — Make a regexp token</li>
+<li><code>reader.makeDelimiter(value, inner)</code> — Make a delimiter token with the token array <code>inner</code> as its children</li>
+</ul>
+<p>The following functions are simple utility functions:</p>
+<ul>
+<li><code>reader.isIdentifierStart(charCode)</code> — Check if <code>charCode</code> is a valid character for starting an identifier</li>
+<li><code>reader.isIdentifierPart(charCode)</code> — Check if <code>charCode</code> is a valid non-starting character for an identifier</li>
+<li><code>reader.isLineTerminator(charCode)</code> — Check if <code>charCode</code> is a character that terminates a line</li>
+<li><code>reader.peekQueued(offset)</code> — Inspects the tokens on the reader queue, returning the nth (based on <code>offset</code>) token from the front (0 is the next token). Reader extensions are invoked from <code>readToken</code>, but can return multiple tokens, so the rest are pushed onto a queue. You may need to be aware of this with recursive reader extensions or other complicated scenarios.</li>
+<li><code>reader.getQueued()</code> — Gets the next token from the reader queue and removes it from the queue</li>
+<li><code>reader.suppressReadError(readFunc)</code> — Suppresses exceptions from any of the <code>read*</code> functions and returns <code>null</code> instead if something went wrong. Example: <code>reader.suppressReadError(reader.readIdentifier)</code></li>
+<li><code>reader.throwSyntaxError(name, message, token)</code> — Throws a syntax error. <code>name</code> is just a general identifier for your project, and <code>message</code> is the specific message to display. You must pass a <code>token</code> so it can properly locate where the error occurred in the original source.</li>
+</ul>
+<p>If you want to look at some examples, check out the <a href="https://github.com/jlongster/sweet.js/blob/reader-extensions/test/test_readtables.js">readtables tests</a>. TODO: update this link</p>
+<h1 id="modules"><span class="header-section-number">10</span> Modules</h1>
+<h2 id="using-modules"><span class="header-section-number">10.1</span> Using Modules</h2>
 <p>At the moment sweet.js supports a primitive form of module support with the <code>--module</code> flag.</p>
 <p>For example, if you have a file <code>macros.js</code> that defines the <code>m</code> macro:</p>
 <pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="co">// macros.js</span>
@@ -903,7 +995,7 @@ m 42</code></pre>
 <p>Note that modules must use the <code>export</code> keyword. This allows modules to define &quot;private&quot; macros that are not visible to the main code.</p>
 <p>The <code>--module</code> flag uses the node path to look up the module file so you can publish and use macro modules on npm. Checkout <a href="https://github.com/natefaubion/lambda-chop">lambda-chop</a> for an example of this.</p>
 <p>The biggest limitation with the current approach is that you can't arbitrarily interleave importing compile-time values (macros) and run-time values (functions). This will eventually be handled with support for &quot;proper&quot; modules (issue #43).</p>
-<h2 id="node-loader"><span class="header-section-number">9.2</span> Node Loader</h2>
+<h2 id="node-loader"><span class="header-section-number">10.2</span> Node Loader</h2>
 <p>If you'd like to skip using the <code>sjs</code> binary to compile your sweet.js code, you can use the node loader. This allows you to <code>require</code> sweet.js files that have the <code>.sjs</code> extension:</p>
 <pre class="js"><code>var sjs = require(&#39;sweet.js&#39;),
     example = require(&#39;./example.sjs&#39;);
@@ -926,8 +1018,8 @@ sweet.loadMacro(&#39;./macros/str&#39;);
 // test.sjs uses macros that have been defined and exported in `macros/str.sjs`
 require(&#39;./test.sjs&#39;);</code></pre>
 <p>This is basically equivalent to running <code>sjs --module ./macros/str test.sjs</code>.</p>
-<h1 id="compiler-api"><span class="header-section-number">10</span> Compiler API</h1>
-<h2 id="sweet.compile"><span class="header-section-number">10.1</span> <code>sweet.compile</code></h2>
+<h1 id="compiler-api"><span class="header-section-number">11</span> Compiler API</h1>
+<h2 id="sweet.compile"><span class="header-section-number">11.1</span> <code>sweet.compile</code></h2>
 <p>Expands all macros and return the expanded code as a string.</p>
 <pre class="js"><code>(Str, {
         sourceMap: Bool,
@@ -956,7 +1048,7 @@ sweet.compile(code, options)</code></pre>
 <li><code>code</code> the expanded code</li>
 <li><code>sourceMap</code> the source map</li>
 </ul>
-<h2 id="sweet.parse"><span class="header-section-number">10.2</span> <code>sweet.parse</code></h2>
+<h2 id="sweet.parse"><span class="header-section-number">11.2</span> <code>sweet.parse</code></h2>
 <p>Expands all macros and returns an AST.</p>
 <pre class="js"><code>(Str, [...[...Syntax]], { maxExpands: Num }) -&gt; AST
 sweet.parse(code, modules, options)</code></pre>
@@ -971,7 +1063,7 @@ sweet.parse(code, modules, options)</code></pre>
 </ul>
 <p><strong>Return</strong>:</p>
 <p>The abstract syntax tree. See the <a href="https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API">Parser API</a> for details.</p>
-<h2 id="sweet.expand"><span class="header-section-number">10.3</span> <code>sweet.expand</code></h2>
+<h2 id="sweet.expand"><span class="header-section-number">11.3</span> <code>sweet.expand</code></h2>
 <p>Expands all macros and returns an array of syntax objects.</p>
 <pre class="js"><code>(Str, [...[...Syntax]], { maxExpands: Num }) -&gt; [...Syntax]
 sweet.expand(code, modules, options)</code></pre>
@@ -990,14 +1082,14 @@ sweet.expand(code, modules, options)</code></pre>
 <li><code>token</code> which is a token object that <a href="http://esprima.org/">esprima</a> understands.</li>
 <li><code>context</code> holds hygiene information.</li>
 </ul>
-<h1 id="faq"><span class="header-section-number">11</span> FAQ</h1>
-<h2 id="how-do-i-run-sweet.js-in-the-browser"><span class="header-section-number">11.1</span> How do I Run Sweet.js in the Browser?</h2>
+<h1 id="faq"><span class="header-section-number">12</span> FAQ</h1>
+<h2 id="how-do-i-run-sweet.js-in-the-browser"><span class="header-section-number">12.1</span> How do I Run Sweet.js in the Browser?</h2>
 <p>Load sweet.js using AMD/require.js:</p>
 <pre class="js"><code>require([&quot;./sweet&quot;], function(sweet) {
     // ...
 });</code></pre>
 <p>Then just use the sweet.js compiler <a href="#compiler-api">API</a>. You can see an example of this in action with the sweet.js editor <a href="https://github.com/mozilla/sweet.js/blob/3062bde9d3464adee868c98a2ced44d2316a6763/browser/editor.html">here</a> and <a href="https://github.com/mozilla/sweet.js/blob/3062bde9d3464adee868c98a2ced44d2316a6763/browser/scripts/editor.js">here</a>.</p>
-<h2 id="how-do-i-break-hygiene"><span class="header-section-number">11.2</span> How do I break hygiene?</h2>
+<h2 id="how-do-i-break-hygiene"><span class="header-section-number">12.2</span> How do I break hygiene?</h2>
 <p>Sometimes you really do need to break the wonderful protections provided by hygiene. Breaking hygiene is usually a bad idea but sweet.js won't judge.</p>
 <p>Breaking hygiene is done by stealing the lexical context from syntax objects in the &quot;right place&quot;. To clarify, consider <code>aif</code> the <a href="http://en.wikipedia.org/wiki/Anaphoric_macro">anaphoric</a> if macro that binds its condition to the identifier <code>it</code> in the body.</p>
 <pre class="js"><code>var it = &quot;foo&quot;;
@@ -1029,7 +1121,7 @@ aif (long.obj.path) {
       }
   }
 }</code></pre>
-<h2 id="how-do-i-output-comments"><span class="header-section-number">11.3</span> How do I output comments?</h2>
+<h2 id="how-do-i-output-comments"><span class="header-section-number">12.3</span> How do I output comments?</h2>
 <p>Comments in a rule macro or inside a <code>#{...}</code> template should &quot;just work&quot;. If you want to create comment strings programmatically you can use a token's <code>leadingComments</code> property.</p>
 <pre class="js"><code>macro m {
     case {_ () } =&gt; {
@@ -1047,11 +1139,11 @@ m()</code></pre>
 <p>will expand to</p>
 <pre class="js"><code>//hello, world
 42;</code></pre>
-<h2 id="how-do-i-debug-macros"><span class="header-section-number">11.4</span> How do I debug macros?</h2>
-<h3 id="stepping-through-expansion"><span class="header-section-number">11.4.1</span> Stepping Through Expansion</h3>
+<h2 id="how-do-i-debug-macros"><span class="header-section-number">12.4</span> How do I debug macros?</h2>
+<h3 id="stepping-through-expansion"><span class="header-section-number">12.4.1</span> Stepping Through Expansion</h3>
 <p>You can use <code>sjs --num-expands &lt;number&gt;</code> to walk through macro expansion one step at a time. This is particularly helpful when writing recursive macros.</p>
 <p>The <a href="http://sweetjs.org/browser/editor.html">editor</a> also supports stepping.</p>
-<h3 id="understanding-case-macros"><span class="header-section-number">11.4.2</span> Understanding Case Macros</h3>
+<h3 id="understanding-case-macros"><span class="header-section-number">12.4.2</span> Understanding Case Macros</h3>
 <p>If you're trying to understand how a case macro is working two useful techniques are logging syntax objects to see what they actually contain and inserting <code>debugger</code> statements to pause the debugger during expansion.</p>
 <pre class="js"><code>macro m {
     case { _ $x } =&gt; {

@@ -29,7 +29,7 @@
         var fs          = require('fs');
         var resolveSync = require('resolve/lib/sync');
         var codegen     = require('escodegen');
-        
+
         var lib  = path.join(path.dirname(fs.realpathSync(__filename)), "../macros");
 
         var stxcaseModule = fs.readFileSync(lib + "/stxcase.js", 'utf8');
@@ -72,8 +72,8 @@
                 './parser',
                 './expander',
                 './syntax',
-                'text!./stxcase.js', 
-                'escodegen', 
+                'text!./stxcase.js',
+                'escodegen',
                 'escope'], factory);
     }
 }(this, function (exports, _, parser, expander, syn, stxcaseModule, gen, escope, fs, path, resolveSync, requireModule) {
@@ -97,7 +97,7 @@
             if (typeof code !== 'string' && !(code instanceof String)) {
                 code = toString(code);
             }
-            
+
             var source = code;
 
             if (source.length > 0) {
@@ -129,6 +129,31 @@
         }
     }
 
+    function expandSyntax(stx, modules, options) {
+        if (!stxcaseCtx) {
+            stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
+        }
+
+        var isSyntax = syn.isSyntax(stx);
+        options = options || {};
+        options.flatten = false;
+
+        if (!isSyntax) {
+            stx = syn.tokensToSyntax(stx);
+        }
+        
+        try {
+            var result = expander.expand(stx, [stxcaseCtx].concat(modules), options);
+            return isSyntax ? result : syn.syntaxToTokens(result);
+        } catch(err) {
+            if (err instanceof syn.MacroSyntaxError) {
+                throw new SyntaxError(syn.printSyntaxError(source, err));
+            } else {
+                throw err;
+            }
+        }
+    };
+
     // fun (Str, {}) -> AST
     function parse(code, modules, options) {
         if (code === "") {
@@ -137,6 +162,7 @@
             code = " ";
         }
 
+        modules = modules ? loadedMacros.concat(modules) : modules;
         return parser.parse(expand(code, modules, options));
     }
 
@@ -147,7 +173,7 @@
         options = options || {};
         options.requireModule = options.requireModule || requireModule;
 
-        var ast = parse(code, 
+        var ast = parse(code,
                         options.modules || [],
                         options);
 
@@ -170,7 +196,7 @@
                 code: output.code,
                 sourceMap: output.map.toString()
             };
-        } 
+        }
         return {
             code: codegen.generate(ast, _.extend({
                 comment: true
@@ -178,6 +204,29 @@
         };
     }
 
+    var baseReadtable = Object.create({
+        extend: function(obj) {
+            var extended = Object.create(this);
+            Object.keys(obj).forEach(function(ch) {
+                extended[ch] = obj[ch];
+            });
+            return extended;
+        }
+    });
+    parser.setReadtable(baseReadtable, syn);
+    
+    function setReadtable(readtableModule) {
+        var filename = resolveSync(readtableModule, {
+            basedir: process.cwd()
+        });
+        var readtable = require(filename);
+        parser.setReadtable(require(filename));
+    }
+
+    function currentReadtable() {
+        return parser.currentReadtable();
+    }
+    
     function loadNodeModule(root, moduleName, options) {
         options = options || {};
         if (moduleName[0] === '.') {
@@ -280,12 +329,13 @@
     }
 
     exports.expand = expand;
+    exports.expandSyntax = expandSyntax;
     exports.parse = parse;
     exports.compile = compile;
+    exports.setReadtable = setReadtable;
+    exports.currentReadtable = currentReadtable;
     exports.loadModule = expandModule;
     exports.loadNodeModule = loadNodeModule;
     exports.loadedMacros = loadedMacros;
     exports.loadMacro = loadMacro;
 }));
-
-

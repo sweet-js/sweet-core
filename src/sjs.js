@@ -37,7 +37,10 @@ var argv = require("optimist")
     .describe('r', 'remove as many hygienic renames as possible (ES5 code only!)')
     .boolean('readable-names')
     .describe('format-indent', 'number of spaces for indentation')
+    .alias('l', 'load-readtable')
+    .describe('load-readtable', 'readtable module to install')
     .argv;
+
 
 exports.run = function() {
     if (argv.version){
@@ -54,6 +57,7 @@ exports.run = function() {
     var displayHygiene = argv['step-hygiene'];
     var readableNames = argv['readable-names'];
     var formatIndent = parseInt(argv['format-indent'], 10);
+    var readtableModules = argv['load-readtable'];
     if (formatIndent !== formatIndent) {
         formatIndent = 4;
     }
@@ -68,13 +72,22 @@ exports.run = function() {
         return;
     }
 
-
     var cwd = process.cwd();
     var modules = typeof argv.module === 'string' ? [argv.module] : argv.module;
 
     modules = (modules || []).map(function(path) {
         return sweet.loadNodeModule(cwd, path);
     });
+
+    if(readtableModules) {
+        readtableModules = (Array.isArray(readtableModules) ?
+                            readtableModules :
+                            [readtableModules]);
+
+        readtableModules.forEach(function(mod) {
+            sweet.setReadtable(mod);
+        });
+    }
 
     var options = {
         filename: infile,
@@ -89,7 +102,7 @@ exports.run = function() {
             }
         }
     };
-    
+
     if (watch && outfile) {
         fs.watch(infile, function(){
             file = fs.readFileSync(infile, "utf8");
@@ -110,11 +123,12 @@ exports.run = function() {
             fs.writeFileSync(outfile, sweet.compile(file, options).code, "utf8");
         }
     } else if (tokens) {
-        console.log(sweet.expand(file, modules, numexpands));
+        console.log(sweet.expand(file, modules, { maxExpands: numexpands }));
     } else if (ast) {
         console.log(JSON.stringify(sweet.compile(file, options), null, formatIndent));
     } else if (noparse) {
-        var unparsedString = syn.prettyPrint(sweet.expand(file, modules, numexpands), displayHygiene);        
+        var expanded = sweet.expand(file, modules, { maxExpands: numexpands });
+        var unparsedString = syn.prettyPrint(expanded, displayHygiene);
         console.log(unparsedString);
     } else {
         options.maxExpands = numexpands;

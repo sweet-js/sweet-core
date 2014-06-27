@@ -438,6 +438,10 @@
     exports.syntaxFromToken = syntaxFromToken;
     exports.tokensToSyntax = tokensToSyntax;
     exports.syntaxToTokens = syntaxToTokens;
+    exports.isSyntax = function(obj) {
+        obj = Array.isArray(obj) ? obj[0] : obj;
+        return obj instanceof Syntax;
+    };
 
     exports.joinSyntax = joinSyntax;
     exports.joinSyntaxArray = joinSyntaxArray;
