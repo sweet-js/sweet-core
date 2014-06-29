@@ -26,3 +26,4 @@ test.js
 _site
 
 .tern-port
+.projectile
