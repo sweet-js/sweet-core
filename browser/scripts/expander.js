@@ -1211,6 +1211,7 @@
         } else {
             transformer = macroObj.fn;
         }
+        assert(typeof transformer === 'function', 'Macro transformer not bound for: ' + head.token.value);
         // create a new mark to be used for the input to
         // the macro
         var newMark = fresh();
@@ -1695,7 +1696,7 @@
             }
             // Potentially an infix macro
             // This should only be invoked on runtime syntax terms
-            if (!head.isMacro && !head.isLetMacro && !head.isAnonMacro && !head.isOperatorDefinition && rest.length && nameInEnv(rest[0], rest.slice(1), context.env)) {
+            if (!head.isMacro && !head.isLetMacro && !head.isAnonMacro && !head.isOperatorDefinition && rest.length && nameInEnv(rest[0], rest.slice(1), context.env) && getMacroInEnv(rest[0], rest.slice(1), context.env).isOp === false) {
                 var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial ? opCtx.prevTerms[0] : null;
                 var infTerm = PartialExpression.create(head.destruct(), infLeftTerm, function () {
                         return step(head, [], opCtx);
