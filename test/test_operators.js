@@ -116,7 +116,23 @@ describe("binary custom operators", function() {
 					|> id
 		}
 		expect(doIt(100)).to.be(100)
-	})
+	});
+
+    it("should handle mixing unary and binary operators", function() {
+        // testing a regression that was causing expressions with
+        // custom operators separated by ; to break
+        function foo() {
+            operator ! 14 { $op } => #{ not($op) }
+            operator + 12 left { $left, $right } => #{ add($left, $right) }
+            function add() {}
+            function not() {}
+
+            2 + 2;
+            !2;
+            return true;
+        }
+        expect(foo()).to.be(true);
+    })
 });
 
 describe("builtin operators", function() {
