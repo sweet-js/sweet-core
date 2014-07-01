@@ -2563,13 +2563,13 @@
                 acc.push(closeParen);
                 return acc;
             }
-            stx.token.sm_lineNumber = stx.token.sm_lineNumber
+            stx.token.sm_lineNumber = typeof stx.token.sm_lineNumber != 'undefined'
                                     ? stx.token.sm_lineNumber
                                     : stx.token.lineNumber;
-            stx.token.sm_lineStart = stx.token.sm_lineStart
+            stx.token.sm_lineStart = typeof stx.token.sm_lineStart != 'undefined'
                                     ? stx.token.sm_lineStart
                                     : stx.token.lineStart;
-            stx.token.sm_range = stx.token.sm_range
+            stx.token.sm_range = typeof stx.token.sm_range != 'undefined'
                                     ? stx.token.sm_range
                                     : stx.token.range;
             acc.push(stx);
