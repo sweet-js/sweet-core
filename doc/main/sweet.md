@@ -1080,8 +1080,7 @@ The following functions are simple utility functions:
   original source.
 
 If you want to look at some examples, check out the [readtables
-tests](https://github.com/jlongster/sweet.js/blob/reader-extensions/test/test_readtables.js).
-TODO: update this link
+tests](https://github.com/mozilla/sweet.js/blob/master/test/test_readtables.js).
 
 # Modules
 

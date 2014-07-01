@@ -977,7 +977,7 @@ sjs -l ./readtable.js</code></pre>
 <li><code>reader.suppressReadError(readFunc)</code> — Suppresses exceptions from any of the <code>read*</code> functions and returns <code>null</code> instead if something went wrong. Example: <code>reader.suppressReadError(reader.readIdentifier)</code></li>
 <li><code>reader.throwSyntaxError(name, message, token)</code> — Throws a syntax error. <code>name</code> is just a general identifier for your project, and <code>message</code> is the specific message to display. You must pass a <code>token</code> so it can properly locate where the error occurred in the original source.</li>
 </ul>
-<p>If you want to look at some examples, check out the <a href="https://github.com/jlongster/sweet.js/blob/reader-extensions/test/test_readtables.js">readtables tests</a>. TODO: update this link</p>
+<p>If you want to look at some examples, check out the <a href="https://github.com/mozilla/sweet.js/blob/master/test/test_readtables.js">readtables tests</a>.</p>
 <h1 id="modules"><span class="header-section-number">10</span> Modules</h1>
 <h2 id="using-modules"><span class="header-section-number">10.1</span> Using Modules</h2>
 <p>At the moment sweet.js supports a primitive form of module support with the <code>--module</code> flag.</p>
