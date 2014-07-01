@@ -4742,8 +4742,7 @@ parseYieldExpression: true
         try {
             return func();
         } catch (e) {
-            var msg = e.message.toLowerCase();
-            if (msg.indexOf('unexpected token') !== -1 || msg.indexOf('assert') !== -1) {
+            if (!(e instanceof SyntaxError) && !(e instanceof TypeError)) {
                 restoreParserState(prevState);
                 return null;
             }
