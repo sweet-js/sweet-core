@@ -264,7 +264,7 @@ m (x = 10, y = 2)</code></pre>
 <h3 id="named-patterns"><span class="header-section-number">2.1.3</span> Named patterns</h3>
 <p>You can name pattern groups and literal groups. Sub-bindings can be referenced by concatenating the group name and binding name. All the syntax matched by the group will be bound to the group name.</p>
 <pre class="js"><code>macro m {
-  rule { ($binding:($id = $val) (,) ...) =&gt; {
+  rule { ($binding:($id = $val) (,) ...) } =&gt; {
     $(var $binding;) ...
     // Or with sub-bindings
     $(var $binding$id = $binding$val;) ...

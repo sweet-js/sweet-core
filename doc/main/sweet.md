@@ -155,7 +155,7 @@ the group will be bound to the group name.
 
 ```js
 macro m {
-  rule { ($binding:($id = $val) (,) ...) => {
+  rule { ($binding:($id = $val) (,) ...) } => {
     $(var $binding;) ...
     // Or with sub-bindings
     $(var $binding$id = $binding$val;) ...
