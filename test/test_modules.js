@@ -33,6 +33,17 @@ describe("module loading", function() {
         expect(testRes).to.be('42 + 12;');
     });
 
+    it("should import module exports and avoid the source map regression", function() {
+        var modCtx = sweet.loadModule("macro m {\nrule { $m } => {\n$m }} export m;");
+        var testStx = parser.read('m foo;');
+        var testRes = sweet.compile("m foo", {
+            modules: [modCtx],
+            sourceMap: true,
+            filename: "foo.js"
+        });
+        expect(testRes.code).to.be("foo;");
+    });
+
     it("should load module contexts from code with loadModule", function() {
         var modCtx = sweet.loadModule('macro m { rule {} => { 42 } } export m');
         var modExp = modCtx.exports[0].oldExport;
