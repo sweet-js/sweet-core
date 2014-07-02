@@ -2507,9 +2507,9 @@
                 acc.push(closeParen);
                 return acc;
             }
-            stx$2.token.sm_lineNumber = stx$2.token.sm_lineNumber ? stx$2.token.sm_lineNumber : stx$2.token.lineNumber;
-            stx$2.token.sm_lineStart = stx$2.token.sm_lineStart ? stx$2.token.sm_lineStart : stx$2.token.lineStart;
-            stx$2.token.sm_range = stx$2.token.sm_range ? stx$2.token.sm_range : stx$2.token.range;
+            stx$2.token.sm_lineNumber = typeof stx$2.token.sm_lineNumber != 'undefined' ? stx$2.token.sm_lineNumber : stx$2.token.lineNumber;
+            stx$2.token.sm_lineStart = typeof stx$2.token.sm_lineStart != 'undefined' ? stx$2.token.sm_lineStart : stx$2.token.lineStart;
+            stx$2.token.sm_range = typeof stx$2.token.sm_range != 'undefined' ? stx$2.token.sm_range : stx$2.token.range;
             acc.push(stx$2);
             return acc;
         }, []);
