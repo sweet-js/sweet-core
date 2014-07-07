@@ -103,25 +103,31 @@ exports.run = function() {
         }
     };
 
-    if (watch && outfile) {
-        fs.watch(infile, function(){
-            file = fs.readFileSync(infile, "utf8");
-            try {
-                fs.writeFileSync(outfile, sweet.compile(file, options).code, "utf8");
-            } catch (e) {
-                console.log(e);
-            }
-        });
-    } else if (outfile) {
-        if (sourcemap) {
+    var doCompile
+    if (sourcemap) {
+        doCompile = function () {
             options.sourceMap = true;
             var result = sweet.compile(file, options);
             var mapfile = path.basename(outfile) + ".map";
             fs.writeFileSync(outfile, result.code + "\n//# sourceMappingURL=" + mapfile, "utf8");
             fs.writeFileSync(outfile + ".map", result.sourceMap, "utf8");
-        } else {
+        }
+    } else {
+        doCompile = function () {
             fs.writeFileSync(outfile, sweet.compile(file, options).code, "utf8");
         }
+    }
+    if (watch && outfile) {
+        fs.watch(infile, function(){
+            file = fs.readFileSync(infile, "utf8");
+            try {
+                doCompile();
+            } catch (e) {
+                console.log(e);
+            }
+        });
+    } else if (outfile) {
+        doCompile();
     } else if (tokens) {
         console.log(sweet.expand(file, modules, { maxExpands: numexpands }));
     } else if (ast) {
