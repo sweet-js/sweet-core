@@ -1900,6 +1900,7 @@
             makeKeyword: syn.makeKeyword,
             makePunc: syn.makePunc,
             makeDelim: syn.makeDelim,
+            filename: context.filename,
             require: function(id) {
                 if (context.requireModule) {
                     return context.requireModule(id, context.filename);
@@ -2436,7 +2437,7 @@
 
     function makeTopLevelExpanderContext(options) {
         var requireModule = options ? options.requireModule : undefined;
-        var filename = options ? options.filename : undefined;
+        var filename = options && options.filename ? options.filename : "<anonymous module>";
         return makeExpanderContext({
             filename: filename,
             requireModule: requireModule
