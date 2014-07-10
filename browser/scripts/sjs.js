@@ -50,19 +50,16 @@ exports.run = function () {
             readableNames: readableNames,
             escodegen: { format: { indent: { style: Array(formatIndent + 1).join(' ') } } }
         };
-    var doCompile;
-    if (sourcemap) {
-        doCompile = function () {
+    function doCompile() {
+        if (sourcemap) {
             options.sourceMap = true;
             var result = sweet.compile(file, options);
             var mapfile = path.basename(outfile) + '.map';
             fs.writeFileSync(outfile, result.code + '\n//# sourceMappingURL=' + mapfile, 'utf8');
             fs.writeFileSync(outfile + '.map', result.sourceMap, 'utf8');
-        };
-    } else {
-        doCompile = function () {
+        } else {
             fs.writeFileSync(outfile, sweet.compile(file, options).code, 'utf8');
-        };
+        }
     }
     if (watch && outfile) {
         fs.watch(infile, function () {
