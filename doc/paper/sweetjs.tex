@@ -212,10 +212,27 @@ Figure \ref{fig:editor} shows the editor in action; a macro implementing classes
 There is already an active community using sweet.js to, for example, implement
 significant features from the upcoming ES6 version of JavaScript \cite{Long} or implement pattern matching in JavaScript \cite{Faubion}.
 
-This paper we present a reader implementation that addresses the complexities of JavaScript (Section \ref{sec:read}), including regular expression literals, together with a correctness proof (Section \ref{sec:provingread}) for this reader.
-We also describe our implementation of a hygienic macro system for JavaScript (Sections \ref{sec:writingMacros} and \ref{sec:enforest}) which includes 
-the ability to define infix macros (Section \ref{sec:infix}) that match on arbitrary surrounding syntax and
- the \texttt{invoke} primitive (Section \ref{sec:invoke}) to allow custom parser classes and more powerful matching.
+\medskip
+
+\textbf{Contributions:} The main contributions of this paper are:
+
+\begin{itemize}
+
+\item We present and prove correct a novel technique for separating
+  the JavaScript lexer and parser with a \emph{reader} (section
+  \ref{sec:read}).
+
+\item We describe our implementation of hygienic macros for JavaScript
+  (section \ref{sec:writingMacros}) which includes the ability to define infix macros (section \ref{sec:infix}) that match on arbitrary surrounding syntax and the \texttt{invoke} primitive (section \ref{sec:invoke}) to allow custom parser classes and more powerful matching.
+
+\item We discuss the applicability of our reader technique for languages other than JavaScript (section \ref{sec:discussion}).
+
+\end{itemize}
+
+% This paper we present a reader implementation that addresses the complexities of JavaScript (Section \ref{sec:read}), including regular expression literals, together with a correctness proof (Section \ref{sec:provingread}) for this reader.
+% We also describe our implementation of a hygienic macro system for JavaScript (Sections \ref{sec:writingMacros} and \ref{sec:enforest}) which includes
+% the ability to define infix macros (Section \ref{sec:infix}) that match on arbitrary surrounding syntax and
+%  the \texttt{invoke} primitive (Section \ref{sec:invoke}) to allow custom parser classes and more powerful matching.
 
 
 
@@ -1427,6 +1444,7 @@ flexible macro definition locations is when writing mutually recursive
 macros, which is fully supported with our approach.
 
 \section{Discussion}
+\label{sec:discussion}
 
 The primary contribution this paper has presented is the separation of
 the lexer and the parser for JavaScript by way of a reader. Though the
