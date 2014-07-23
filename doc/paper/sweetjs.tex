@@ -592,6 +592,8 @@ this paper describes the implementation of read for the subset of
 JavaScript shown in Figure \ref{fig:grammar}, which retains the
 essential complications of the full version of read.
 
+\subsection{Formalism}
+
 In our formalism in Figure \ref{fig:simpleread}, read takes a \textit{Token} sequence. Tokens are the output of a very simple lexer, which we do not define here. This lexer does not receive feedback from the parser like the ES5 lexer does, and so does not distinguish between regular expressions and the divide operator. Rather it simply lexes slashes into the ambiguous \texttt{/} token. Tokens also include keywords, puncutators, the (unmatched) delimiters, and variable identifiers.
 \[
 \begin{array}{lrl}
@@ -657,6 +659,7 @@ of six tokens \( \texttt{foo}\cdot \texttt{(} \cdot \div \cdot \texttt{)}
 \texttt{foo} \cdot \parens{\cdot \texttt{/} \texttt{)} \texttt{/} \cdot }
 \).
 
+\subsection{Read Algorithm}
 
 The key idea of read is to maintain a prefix of already read token
 trees. When the reader comes to a slash and needs to decide if it
@@ -884,10 +887,17 @@ let x = 40 + 2;
 // var x = 40 + 2;
 \end{lstlisting}
 
-The initialization of a \verb!let! can be an arbitrary expression
-so we use the \emph{pattern class} \verb!:expr! to match the
+The initialization of a \verb!let! can be an arbitrary expression so
+we use the \emph{pattern class} \verb!:expr! to greedily match the
 largest possible expression, so in this example the entire expression
 \verb!40 + 2! is bound to \verb!$init!.
+
+Note that sweet.js does not provide a non-greedy form of \verb!:expr!
+so there is no way to, for example, match the pattern
+\verb!$x:expr + 10!. In our experience to date it appears rare to need
+to match on syntax that extends an expression and so have avoided
+increasing the complexity of the implementation and pattern matching
+language by adding a non-greedy form.
 
 Along with the template-based rule macros, sweet.js also provides the
 more powerful procedural \emph{case} macros. 
@@ -1150,7 +1160,7 @@ before invoking the \verb!=>! transformer with both the tokens
 just \verb!(x)!, it detects that the parentheses splits the term
 tree \verb!<call: bar, args: (x)>! and fails the match.
 
-While infix macros fill the gap left by definable operators and allow
+While infix macros fill the gap left by custom operators and allow
 us to write previously undefinable macros such as arrow functions,
 they also come with two limitations. First, there is no way to set
 custom precedence or associativity as with operators. It is unclear
@@ -1179,7 +1189,7 @@ can match after since the syntax following the identifier can contain
 unexpanded macros.
 
 Even with these limitations infix, macros work as a powerful complement
-to definable operators and greatly extend the kinds of syntax forms
+to custom operators and greatly extend the kinds of syntax forms
 that can be implemented with macros.
 
 \subsection{Invoke and Pattern Classes}
