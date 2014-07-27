@@ -350,6 +350,20 @@ describe("macro expander", function() {
         expect(a[1]).to.be(2);
     });
 
+    it("should expand correctly with a keyword delimiter", function() {
+        macro toif {
+            rule { $(($cond) { $body ...}) ... } => {
+                $(if($cond) {
+                    $body ...
+                }) (else) ...
+            }
+        }
+
+        var outer;
+        toif (false) { outer = false; } (true) { outer = true; }
+        expect(outer).to.be(true);
+    });
+
 
     it("should expand an ellipsis with no separator", function() {
         macro semi {

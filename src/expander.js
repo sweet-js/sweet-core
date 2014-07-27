@@ -2335,8 +2335,10 @@
             if (paramSingleIdent) {
                 flatArgs = renamedParams[0];
             } else {
-                flatArgs = syn.makeDelim("()", joinSyntax(renamedParams, ","),
-                                             (term.params || null));
+                var puncCtx = (term.params || null);
+                flatArgs = syn.makeDelim("()",
+                                         joinSyntax(renamedParams, syn.makePunc(",", puncCtx)),
+                                         puncCtx);
             }
 
             var expandedArgs = expand([flatArgs], bodyContext);

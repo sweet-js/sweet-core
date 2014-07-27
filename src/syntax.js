@@ -296,19 +296,19 @@
     }
 
 
-    // ([...CSyntax], Str) -> [...CSyntax])
+    // ([...CSyntax], Syntax) -> [...CSyntax])
     function joinSyntax(tojoin, punc) {
         if (tojoin.length === 0) { return []; }
         if (punc === " ") { return tojoin; }
 
         return _.reduce(_.rest(tojoin, 1), function (acc, join) {
-            acc.push(makePunc(punc, join), join);
+            acc.push(cloneSyntax(punc), join);
             return acc;
         }, [_.first(tojoin)]);
     }
 
 
-    // ([...[...CSyntax]], Str) -> [...CSyntax]
+    // ([...[...CSyntax]], Syntax) -> [...CSyntax]
     function joinSyntaxArray(tojoin, punc) {
         if (tojoin.length === 0) { return []; }
         if (punc === " ") {
@@ -316,7 +316,7 @@
         }
 
         return _.reduce(_.rest(tojoin, 1), function (acc, join){
-            acc.push(makePunc(punc, _.first(join)));
+            acc.push(cloneSyntax(punc));
             Array.prototype.push.apply(acc, join);
             return acc;
         }, _.first(tojoin));

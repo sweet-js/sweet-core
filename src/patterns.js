@@ -17,6 +17,7 @@
     var makeDelim = syntax.makeDelim;
     var joinSyntax = syntax.joinSyntax;
     var joinSyntaxArray = syntax.joinSyntaxArray;
+    var cloneSyntax = syntax.cloneSyntax;
     var cloneSyntaxArray = syntax.cloneSyntaxArray;
     var assert = syntax.assert;
     var throwSyntaxError = syntax.throwSyntaxError;
@@ -70,13 +71,13 @@
     }
 
 
-    // ([...{level: Num, match: [...CSyntax]}], Str) -> [...CSyntax]
+    // ([...{level: Num, match: [...CSyntax]}], Syntax) -> [...CSyntax]
     function joinRepeatedMatch(tojoin, punc) {
         return _.reduce(_.rest(tojoin, 1), function(acc, join) {
             if (punc === " ") {
                 return acc.concat(cloneSyntaxArray(join.match));
             }
-            return acc.concat(makePunc(punc, _.first(join.match)),
+            return acc.concat(cloneSyntax(punc),
                               cloneSyntaxArray(join.match));
         }, cloneSyntaxArray(_.first(tojoin).match));
     }
@@ -250,7 +251,7 @@
 
                 i += 1;
                 last.repeat = true;
-                last.separator = tok1.token.inner[0].token.value;
+                last.separator = tok1.token.inner[0];
                 continue;
 
             } else if (tok1.token.type === parser.Token.Punctuator &&
@@ -504,7 +505,7 @@
                     }
                 }
                 if (pattern.repeat && pattern.leading && pattern.separator !== " ") {
-                    if (rest[0].token.value === pattern.separator) {
+                    if (rest[0].token.value === pattern.separator.token.value) {
                         if (!inLeading) {
                             inLeading = true;
                         }
@@ -555,7 +556,7 @@
                         // no separator specified (using the empty string for this)
                         // so keep going
                         continue;
-                    } else if (rest[0] && rest[0].token.value === pattern.separator) {
+                    } else if (rest[0] && rest[0].token.value === pattern.separator.token.value) {
                         // more tokens and the next token matches the separator
                         rest = rest.slice(1);
                     } else if ((pattern.separator !== " ") &&
@@ -894,7 +895,7 @@
                     } else if (delimIsSeparator(next) &&
                                nextNext && nextNext.token.value === "...") {
                         bodyStx.repeat = true;
-                        bodyStx.separator = next.token.inner[0].token.value;
+                        bodyStx.separator = next.token.inner[0];
                     }
 
                     acc.push(bodyStx);
@@ -979,7 +980,7 @@
                         throwSyntaxError("patterns", "Ellipses level does not match in the template", bodyStx);
                     }
                     push.apply(acc, joinRepeatedMatch(env[bodyStx.token.value].match,
-                                                      bodyStx.separator))
+                                                      bodyStx.separator));
                     return acc;
                 } else {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
