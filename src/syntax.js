@@ -322,9 +322,13 @@
         }, _.first(tojoin));
     }
 
+    function cloneSyntax(stx) {
+        return syntaxFromToken(_.clone(stx.token), stx);
+    }
+
     function cloneSyntaxArray(arr) {
         return arr.map(function(stx) {
-            var o = syntaxFromToken(_.clone(stx.token), stx);
+            var o = cloneSyntax(stx);
             if (o.token.type === parser.Token.Delimiter) {
                 o.token.inner = cloneSyntaxArray(o.token.inner);
             }
@@ -445,6 +449,7 @@
 
     exports.joinSyntax = joinSyntax;
     exports.joinSyntaxArray = joinSyntaxArray;
+    exports.cloneSyntax = cloneSyntax;
     exports.cloneSyntaxArray = cloneSyntaxArray;
 
     exports.prettyPrint = prettyPrint;
