@@ -23,6 +23,8 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+import @ from "contracts.js"
+
 
 (function (root, factory) {
     if (typeof exports === 'object') {
@@ -243,7 +245,7 @@
 
     var nextFresh = 0;
 
-    // fun () -> Num
+    @ () -> Num
     function fresh() { return nextFresh++; }
 
 

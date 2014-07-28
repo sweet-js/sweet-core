@@ -12,19 +12,33 @@ module.exports = function(grunt) {
 
     grunt.initConfig({
         build: {
-            options: {
-                modules: []
-            },
-            sweetjs: {
+            dev: {
                 options: {
-                    compileFrom: "./lib/sweet"
+                    compileFrom: "./lib/sweet",
+                    modules: ["contracts-js/macros/disabled.js"]
                 },
                 src: "src/*.js",
                 dest: ["build/lib/", "browser/scripts/"]
             },
-            test: {
+            devContracts: {
                 options: {
-                    // sourceMap: false,
+                    sourceMap: false,
+                    compileFrom: "./lib/sweet",
+                    modules: ["contracts-js/macros"]
+                },
+                src: "src/*.js",
+                dest: ["build/lib/", "browser/scripts/"]
+            },
+            release: {
+                options: {
+                    compileFrom: "./lib/sweet",
+                    modules: ["contracts-js/macros/disabled.js"]
+                },
+                src: "src/*.js",
+                dest: ["build/lib/", "browser/scripts/"]
+            },
+            tests: {
+                options: {
                     compileFrom: "./build/lib/sweet"
                 },
                 src: "test/*.js",
@@ -126,7 +140,8 @@ module.exports = function(grunt) {
                 boss: true,
                 laxcomma: true,
                 shadow: true,
-                loopfunc: true
+                loopfunc: true,
+                validthis: true
             },
             all: ["build/lib/*.js"]
         },
@@ -168,8 +183,12 @@ module.exports = function(grunt) {
                 var args = ["-o " + f.dest].concat(pandocOpts.slice())
                                           .concat(file);
                 exec("pandoc " + args.join(" "), cb);
-            })
-        })
+            });
+        });
+    });
+
+    grunt.registerTask("clean", function() {
+        grunt.file.delete("build/");
     });
 
     grunt.registerTask("fuzz", function() {
@@ -177,7 +196,7 @@ module.exports = function(grunt) {
         var i, iterations = 20;
         try {
             for (i = 0; i < iterations; i++) {
-                var code = esfuzz.render(esfuzz.generate({maxDepth: 10}))
+                var code = esfuzz.render(esfuzz.generate({maxDepth: 10}));
                 // ignore `with` since we can't handle it anyway
                 if (code.indexOf("with") !== -1) continue;
                 sweet.compile(code);
@@ -199,9 +218,9 @@ module.exports = function(grunt) {
         });
         var sweet = require(options.compileFrom);
 
-        var moduleSrc = options.modules.map(function(m) {
-            return moduleCache[m] || (moduleCache[m] = readModule(m));
-        }).join("\n");
+        var modules = options.modules.map(function(m) {
+            return sweet.loadModule(readModule(m));
+        });
 
         this.files.forEach(function(f) {
             var dest = Array.isArray(f.dest) ? f.dest : [f.dest];
@@ -215,12 +234,12 @@ module.exports = function(grunt) {
                     sourceMap: options.sourceMap,
                     filename: file,
                     readableNames: true,
-                    macros: moduleSrc
+                    modules: modules
                 });
 
                 dest.forEach(function(dest) {
                     var sourceMappingURL = dest + path.basename(file) + ".map";
-                    var outputFile = output.code + "\n//# sourceMappingURL=" + path.basename(file) + ".map"
+                    var outputFile = output.code + "\n//# sourceMappingURL=" + path.basename(file) + ".map";
                     // macro expanded result
                     grunt.file.write(dest + path.basename(file),
                                      outputFile);
@@ -231,27 +250,29 @@ module.exports = function(grunt) {
                         
                     }
                 });
-            })
+            });
         });
         
     });
 
-    grunt.registerTask("dist", ["build:sweetjs", "copy:dist"]);
+    grunt.registerTask("dist", ["build:release", "copy:dist"]);
 
-    grunt.registerTask("test", ["build:test",
+    grunt.registerTask("test", ["build:tests",
                                 "copy:testFixtures",
                                 "mochaTest:test"]);
 
-    grunt.registerTask("unit", ["build:sweetjs", 
+    grunt.registerTask("unit", ["build:dev",
                                 "copy:scopedEval",
                                 "copy:buildMacros",
                                 "copy:nodeSrc",
                                 "copy:testUnit", 
                                 "mochaTest:unit"]);
 
-    grunt.registerTask("default", ["copy:scopedEval",
+    grunt.registerTask("default", ["clean",
+                                   "copy:scopedEval",
                                    "copy:buildMacros",
-                                   "build",
+                                   "build:dev",
+                                   "build:tests",
                                    "copy:browserSrc",
                                    "copy:nodeSrc",
                                    "copy:browserMacros",
@@ -259,6 +280,19 @@ module.exports = function(grunt) {
                                    "copy:testFixtures",
                                    "mochaTest:test",
                                    "jshint"]);
+
+    grunt.registerTask("contracts", ["clean",
+                                     "copy:scopedEval",
+                                     "copy:buildMacros",
+                                     "build:devContracts",
+                                     "build:tests",
+                                     "copy:browserSrc",
+                                     "copy:nodeSrc",
+                                     "copy:browserMacros",
+                                     "copy:scopedEvalBrowser",
+                                     "copy:testFixtures",
+                                     "mochaTest:test",
+                                     "jshint"]);
 
     grunt.registerTask("full", ["default", "mochaTest:es6"]);
     grunt.registerTask("docs", ["pandoc"]);

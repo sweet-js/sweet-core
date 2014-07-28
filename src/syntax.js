@@ -1,3 +1,5 @@
+import @ from "contracts.js"
+
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
@@ -20,6 +22,22 @@
     // of the recursive resolveCtx implementation in expander.js.
     // The memoization addresses issue #232.
     var globalContextInstanceNumber = 1;
+
+    @ let Token = {
+        type: ?Num,
+        value: ?Any,
+        range: ?[Num, Num]
+    }
+
+    @ let Context = Null or {
+        context: Context
+    }
+
+    @ let SyntaxObject = {
+        token: Token,
+        context: Context
+    }
+
 
     // (CSyntax, Str) -> CContext
     function Rename(id, name, ctx, defctx) {
@@ -140,7 +158,6 @@
         }
     };
 
-    // (CToken, CSyntax?) -> CSyntax
     function syntaxFromToken(token, oldstx) {
         return new Syntax(token, oldstx);
     }

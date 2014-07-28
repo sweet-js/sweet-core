@@ -38,6 +38,8 @@
     "grunt-contrib-jshint": "~0.7.2",
     "grunt-mocha-test": "~0.7.0",
     "grunt-contrib-watch": "~0.6.1",
+    "contracts-js": "^0.6.0",
+    "harmony-reflect": "^1.0.0",
     "esfuzz": "disnet/esfuzz"
   },
   "repository": {
