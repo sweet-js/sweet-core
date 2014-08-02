@@ -78,10 +78,18 @@
 
 \maketitle
 
-\abstract{
-Lisp and Scheme have demonstrated the power of macros to enable programmers to evolve and craft languages. In languages with more complex syntax, macros have had less success. In part, this has been due to the difficulty in building expressive hygienic macro systems for such languages. JavaScript in particular presents unique challenges for macro systems due to ambiguities in the lexing stage that force the JavaScript lexer and parser to be intertwined.
+\abstract{ Lisp and Scheme have demonstrated the power of macros to
+  enable programmers to evolve and craft languages. In languages with
+  more complex syntax, macros have had less success. In part, this has
+  been due to the difficulty in building expressive hygienic macro
+  systems for such languages. JavaScript in particular presents unique
+  challenges for macro systems due to ambiguities in the lexing stage
+  that force the JavaScript lexer and parser to be intertwined.
 
-In this paper we present a novel solution to the lexing ambiguity of JavaScript that enables us to cleanly separate the JavaScript lexer and parser. This separated lexer and parser allows us to implement an expressive hygienic macro system for JavaScript called sweet.js.
+  In this paper we present a novel solution to the lexing ambiguity of
+  JavaScript that enables us to cleanly separate the JavaScript lexer
+  and parser. This separated lexer and parser allows us to implement
+  an expressive hygienic macro system for JavaScript called sweet.js.
 }
 
 \section{Introduction}
@@ -172,6 +180,12 @@ correctly decide whether to parse a sequence of tokens
 information needs to be remembered from arbitrarily far back in the
 token stream.
 
+While the algorithm we present in this paper for resolving ambiguities
+in the reader is specific to JavaScript, the technique can be applied
+to other languages that have ambiguities in their grammar. For
+example, the symbol \verb!<! in Rust~\cite{rustlang} is ambiguous and
+our technique here could be applied for Rust and languages like it. We
+expand on this point in Section~\ref{sec:discussion}.
 
 Once JavaScript source has been correctly read, there are still a
 number of challenges to building an expressive macro system. The lack
@@ -1419,6 +1433,7 @@ flexible macro definition locations is when writing mutually recursive
 macros, which is fully supported with our approach.
 
 \section{Discussion}
+\label{sec:discussion}
 
 The primary contribution this paper has presented is the separation of
 the lexer and the parser for JavaScript by way of a reader. Though the
@@ -1456,7 +1471,11 @@ motivation for our work here), a correct reader also enables other
 tools that benefit from the additional structure provided by token
 trees such as robust syntax highlighters or editors that can correctly
 manipulate the structure of code while avoiding the expense of a full
-parse.
+parse. The reader algorithm also allows traditional JavaScript parsers
+to be built with a cleaner design where the lexing and parsing stages
+are separated. The JavaScript parser esprima~\cite{esprima} has
+incorporated our reader algorithm into their lexing stages to
+accomplish exactly this.
 
 
 \section{Related Work}
@@ -1502,6 +1521,8 @@ Stratego~\cite{Visser2004} transforms syntax using its own language, separate fr
 We have presented sweet.js, a hygienic macro system for JavaScript. Our macro system follows in the footsteps of Scheme by providing declarative and procedural macro definition functionality.
 
 In addition we presented an algorithm for read that correctly handles key ambiguities in the JavaScript grammar that allows the lexer and parser to be separated for the first time in JavaScript.
+
+% \paragraph{Acknowledgements} Part of this work was funded by the Mozilla Corporation.
 
 \bibliographystyle{abbrv}
 \bibliography{sweet.js}
