@@ -615,6 +615,8 @@ this paper describes the implementation of read for the subset of
 JavaScript shown in Figure \ref{fig:grammar}, which retains the
 essential complications of the full version of read.
 
+\subsection{Formalism}
+
 In our formalism in Figure \ref{fig:simpleread}, read takes a \textit{Token} sequence. Tokens are the output of a very simple lexer, which we do not define here. This lexer does not receive feedback from the parser like the ES5 lexer does, and so does not distinguish between regular expressions and the divide operator. Rather it simply lexes slashes into the ambiguous \texttt{/} token. Tokens also include keywords, puncutators, the (unmatched) delimiters, and variable identifiers.
 \[
 \begin{array}{lrl}
@@ -680,6 +682,7 @@ of six tokens \( \texttt{foo}\cdot \texttt{(} \cdot \div \cdot \texttt{)}
 \texttt{foo} \cdot \parens{\cdot \texttt{/} \texttt{)} \texttt{/} \cdot }
 \).
 
+\subsection{Read Algorithm}
 
 The key idea of read is to maintain a prefix of already read token
 trees. When the reader comes to a slash and needs to decide if it
@@ -907,10 +910,17 @@ let x = 40 + 2;
 // var x = 40 + 2;
 \end{lstlisting}
 
-The initialization of a \verb!let! can be an arbitrary expression
-so we use the \emph{pattern class} \verb!:expr! to match the
+The initialization of a \verb!let! can be an arbitrary expression so
+we use the \emph{pattern class} \verb!:expr! to greedily match the
 largest possible expression, so in this example the entire expression
 \verb!40 + 2! is bound to \verb!$init!.
+
+Note that sweet.js does not provide a non-greedy form of \verb!:expr!
+so there is no way to, for example, match the pattern
+\verb!$x:expr + 10!. In our experience to date it appears rare to need
+to match on syntax that extends an expression and so have avoided
+increasing the complexity of the implementation and pattern matching
+language by adding a non-greedy form.
 
 Along with the template-based rule macros, sweet.js also provides the
 more powerful procedural \emph{case} macros. 
@@ -973,11 +983,13 @@ expression is an undelimited group of tokens. Building an expressive
 macro system requires that the macro can match and manipulate patterns
 such as an expression.
 
-Sweet.js groups tokens by
-transforming a token tree into a
-\emph{term tree} through \emph{enforestation} \cite{Rafkind2013}.
-Enforestation works by progressively recognizing syntax forms (\eg
-literals, identifiers, expressions, and statements) during expansion.
+Sweet.js groups tokens by transforming a token tree into a \emph{term
+  tree} through a technique pioneered by the Honu language called
+\emph{enforestation} \cite{Rafkind2013}. Enforestation works by
+progressively recognizing and grouping (potentially undelimited)
+syntax forms (\eg literals, identifiers, expressions, and statements)
+during expansion. Essentially, enforestation delimits undelimited
+syntax.
 
 A term tree is a kind of proto-AST that represents a partial parse of
 the program. As the expander passes through the token trees, it
@@ -999,10 +1011,11 @@ function foo(x) {
 }
 foo(100);
 \end{lstlisting}
-Enforestation begins by loading the \verb!let! macro into the
-macro environment and converting the function declaration into a term
-tree (we use angle brackets to denote a term tree). Notice that the
-body of the function has not yet been enforested in the first pass.
+Enforestation begins by loading the \verb!let! macro into the macro
+environment and converting the function declaration into a term tree
+(we use angle brackets to denote the term tree data structure). Notice
+that the body of the function has not yet been enforested in the first
+pass.
 \begin{lstlisting}
 <fn: foo, 
  args: (x), 
@@ -1039,20 +1052,34 @@ The additional structure provided by the term trees allow macros to
 match undelimited groups of tokens like binary expressions, such as
 \verb!<op: +, left: 40, right: 2>!.
 
-The enforestation technique described here was first proposed for the
-Honu language \cite{Rafkind2013}. We take their technique and extend
-it with two features described in the following sections:
-infix macros and the invoke pattern class.
+\subsection{Custom Operators}
+The macros we have described so far are prefix macros: the macro
+identifier appears before the syntax that it matches. While prefix
+macros are sufficient for many syntax forms, other forms require
+additional flexibility.
+
+Following Honu, sweet.js provides \emph{custom operators}, which are
+user definable unary and binary operators. Custom operators provide
+the ability to set custom precedence and associativity along with a
+syntax transformation. For example, using sweet.js the exponentiation
+operator can be defined as:
+\begin{lstlisting}
+operator (^^) 14 right
+{ $base, $exp } => #{ Math.pow($base, $exp) }
+
+y + x ^^ 10 ^^ 100 - z
+// expands to:
+// y + Math.pow(x, Math.pow(10, 100)) - z;
+\end{lstlisting}
+
 
 \subsection{Infix Macros}
 \label{sec:infix}
-The macros we have described so far must all be prefixed by the macro
-identifier and syntax after the macro name is matched. This is
-sufficient for many kinds of macros but some syntax forms require the
-macro identifier to sit between patterns.
-
-For example, the upcoming ES6 version of JavaScript includes a
-shorthand syntax for defining functions with arrow notation:
+While powerful, custom operators are limited in that their operands
+must be expressions, they cannot match on arbitrary syntax.
+This restriction means that with just prefix macros and custom
+operators it is impossible to define syntax forms like the arrow
+functions in the upcoming ES6 version of JavaScript:
 
 \begin{lstlisting}
 id = (x) => x
@@ -1063,31 +1090,10 @@ id = (x) => x
 One of the primary goals of sweet.js is to enable the kinds of syntax
 extension previously only done by the standardization committee. But,
 prefix macros are not capable of implementing syntax extensions like
-arrow functions since the macro name (\verb!=>!) is in the middle
-of its syntax arguments.
-
-Honu addressed this need for more flexible syntax transformation forms
-in a limited fashion via user definable unary and binary
-operators\footnote{Sweet.js will also provide support for definable
-  operators though at the time of this writing they have not yet been
-  fully implemented.}. Definable operators provide the ability to set
-custom precedence and associativity along with a syntax
-transformation. For example, the exponentiation operator could be
-defined as:
-\begin{lstlisting}
-operator ^ 10 left {$lhs, $rhs} => {
-  Math.pow($lhs, $rhs)
-}
-2 ^ 100;
-// expands to:
-// Math.pow(2, 100);
-\end{lstlisting}
-
-Unfortunately, definable operators are limited in that their operands
-must be expressions (this limitation allows setting custom precedence
-and associativity rules). This restriction means it is impossible to
-define syntax forms such as arrow functions via definable operators
-since the syntax surrounding the arrow is not an expression.
+arrow functions since the macro name (\verb!=>!) is in the middle of
+its syntax arguments and the syntax on the left hand side of the arrow
+is not an expression (meaning custom operators are not sufficient to
+implement arrow functions).
 
 To address this limitation, sweet.js introduces \emph{infix macros},
 which allow a macro to match syntax that comes before and after the macro
@@ -1097,7 +1103,9 @@ keyword and placing a pipe (\verb!|!) in the pattern where the
 macro name would appear (the pipe can be thought of as a cursor into
 the token stream).
 
-For example, the following infix macro implements arrow functions:
+For example, the following infix macro implements arrow
+functions\footnote{For simplicity this example does not lexically bind
+  \verb!this! like full ES6 arrow functions}:
 \begin{lstlisting}
 macro => {
   rule infix {
@@ -1175,7 +1183,7 @@ before invoking the \verb!=>! transformer with both the tokens
 just \verb!(x)!, it detects that the parentheses splits the term
 tree \verb!<call: bar, args: (x)>! and fails the match.
 
-While infix macros fill the gap left by definable operators and allow
+While infix macros fill the gap left by custom operators and allow
 us to write previously undefinable macros such as arrow functions,
 they also come with two limitations. First, there is no way to set
 custom precedence or associativity as with operators. It is unclear
@@ -1204,7 +1212,7 @@ can match after since the syntax following the identifier can contain
 unexpanded macros.
 
 Even with these limitations infix, macros work as a powerful complement
-to definable operators and greatly extend the kinds of syntax forms
+to custom operators and greatly extend the kinds of syntax forms
 that can be implemented with macros.
 
 \subsection{Invoke and Pattern Classes}
