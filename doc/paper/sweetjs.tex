@@ -88,7 +88,14 @@
 
   In this paper we present a novel solution to the lexing ambiguity of
   JavaScript that enables us to cleanly separate the JavaScript lexer
-  and parser. This separated lexer and parser allows us to implement
+  and parser by recording enough history during lexing to resolve
+  ambiguities. We give an algorithm for this solution along with a
+  proof that it does in fact correctly resolve ambiguities in the
+  language. Though the algorithm and proof we present is specific to
+  JavaScript, the general technique can be applied to other languages
+  with ambiguous grammars.
+
+  With lexer and parser separated, we then implement
   an expressive hygienic macro system for JavaScript called sweet.js.
 }
 
@@ -172,20 +179,19 @@ parser.
 \textit{expander/parser} \xrightarrow{\textit{AST}}
 \]
 This enables us to finally separate the JavaScript lexer and parser
-and build a fully hygienic macro system for JavaScript.
-The reader records sufficient history information in order to 
-correctly decide whether to parse a sequence of tokens
-\verb!/x/g! as a regular expression or as division operators 
-(as in \verb!4.0/x/g!). Surprisingly, this history
-information needs to be remembered from arbitrarily far back in the
-token stream.
+and build a fully hygienic macro system for JavaScript. The reader
+records sufficient history information in the form of token trees in
+order to correctly decide whether to parse a sequence of tokens
+\verb!/x/g! as a regular expression or as division operators (as in
+\verb!4.0/x/g!). Surprisingly, this history information needs to be
+remembered from arbitrarily far back in the token stream.
 
-While the algorithm we present in this paper for resolving ambiguities
-in the reader is specific to JavaScript, the technique can be applied
-to other languages that have ambiguities in their grammar. For
-example, the symbol \verb!<! in Rust~\cite{rustlang} is ambiguous and
-our technique here could be applied for Rust and languages like it. We
-expand on this point in Section~\ref{sec:discussion}.
+While the algorithm for resolving ambiguities we present in this paper
+is specific to JavaScript, the technique of recording history in the
+reader with token trees can be applied to other languages with
+ambiguous grammars.
+% We expand on this point in
+% Section~\ref{sec:discussion}.
 
 Once JavaScript source has been correctly read, there are still a
 number of challenges to building an expressive macro system. The lack
@@ -211,14 +217,15 @@ statements and then manipulate them appropriately.
 
 This approach, called \emph{enforestation}, was pioneered by Honu
 \cite{Rafkind2012,Rafkind2013}, which we adapt here for
-JavaScript\footnote{Honu does not support regular expression literals,
-  which simplifies their reader. }. In addition, we make two
-extensions to the Honu technique that enable more expressive macros to be built. First, as described in Section
-\ref{sec:infix} we add support for infix macros, which allow macros to
-match syntax both before and after the macro identifier. Secondly, we
-implement the \verb!invoke! pattern class, described in Section
-\ref{sec:invoke}, which allows macro authors to extend the patterns
-used to match syntax.
+JavaScript\footnote{The syntax of Honu is similar to JavaScript but does
+  not support regular expression literals, which simplifies their
+  reader. }. In addition, we make two extensions to the Honu technique
+that enable more expressive macros to be built. First, as described in
+Section \ref{sec:infix} we add support for infix macros, which allow
+macros to match syntax both before and after the macro identifier.
+Secondly, we implement the \verb!invoke! pattern class, described in
+Section \ref{sec:invoke}, which allows macro authors to extend the
+patterns used to match syntax.
 
 Sweet.js is implemented in JavaScript and takes source code written with sweet.js macros and produces the expanded source that can be run in any JavaScript environment. 
 The project web page\footnote{\url{http://sweetjs.org}} includes an interactive browser-based editor that makes it simple to try out writing macros without requiring any installation.
@@ -226,10 +233,10 @@ Figure \ref{fig:editor} shows the editor in action; a macro implementing classes
 There is already an active community using sweet.js to, for example, implement
 significant features from the upcoming ES6 version of JavaScript \cite{Long} or implement pattern matching in JavaScript \cite{Faubion}.
 
-This paper we present a reader implementation that addresses the complexities of JavaScript (Section \ref{sec:read}), including regular expression literals, together with a correctness proof (Section \ref{sec:provingread}) for this reader.
-We also describe our implementation of a hygienic macro system for JavaScript (Sections \ref{sec:writingMacros} and \ref{sec:enforest}) which includes 
-the ability to define infix macros (Section \ref{sec:infix}) that match on arbitrary surrounding syntax and
- the \texttt{invoke} primitive (Section \ref{sec:invoke}) to allow custom parser classes and more powerful matching.
+% This paper we present a reader implementation that addresses the complexities of JavaScript (Section \ref{sec:read}), including regular expression literals, together with a correctness proof (Section \ref{sec:provingread}) for this reader.
+% We also describe our implementation of a hygienic macro system for JavaScript (Sections \ref{sec:writingMacros} and \ref{sec:enforest}) which includes
+% the ability to define infix macros (Section \ref{sec:infix}) that match on arbitrary surrounding syntax and
+%  the \texttt{invoke} primitive (Section \ref{sec:invoke}) to allow custom parser classes and more powerful matching.
 
 
 
@@ -593,7 +600,9 @@ tokens, it is necessary to structure the token stream via a
 As mentioned in the introduction, the design of a correct reader for JavaScript is surprisingly subtle due to ambiguities between lexing regular expression literals and the divide operator. This disambiguation is critical to the correct implementation of read because delimiters can appear inside of a regular expression literal. If the reader failed to distinguish between a regular expression/divide operator, it could result in incorrectly matched delimiters. 
 \begin{lstlisting}
 function makeRegex() {
-  return /}/;  
+  // results in a parse error if the
+  // first / is incorrectly read as divide
+  return /}/;
 }
 \end{lstlisting}
 
@@ -677,7 +686,7 @@ trees. When the reader comes to a slash and needs to decide if it
 should read the slash as a divide token or the start of a regular
 expression literal, it consults the prefix. Looking back at most five
 tokens trees in the prefix is sufficient to disambiguate the slash
-token. Not that this may correspond to looking back an unbounded
+token. Note that this may correspond to looking back an unbounded
 distance in the original token stream.
 
 Some of the cases of read are relatively obvious. For example, if the
@@ -1462,8 +1471,8 @@ token tree (in which delimited tokens are grouped together) provides a
 way to efficiently resolve ambiguities by looking at a relatively
 small prefix of token trees. The specific prefix required to
 disambiguate tokens such as \lstinline!/! or \lstinline!<! will depend
-on the grammar of the language in question but we hypothosise that our
-basic technique could be applied for other languages such as Rust.
+on the grammar of the language in question but we hypothesize that our
+basic technique could be applied for other languages.
 Verifying this hypotheses is an interesting topic for future work.
 
 In addition to enabling the construction of a macro system (the
@@ -1473,9 +1482,9 @@ trees such as robust syntax highlighters or editors that can correctly
 manipulate the structure of code while avoiding the expense of a full
 parse. The reader algorithm also allows traditional JavaScript parsers
 to be built with a cleaner design where the lexing and parsing stages
-are separated. The JavaScript parser esprima~\cite{esprima} has
+are separated. The JavaScript parser Esprima~\cite{esprima} has
 incorporated our reader algorithm into their lexing stages to
-accomplish exactly this.
+accomplish this separation.
 
 
 \section{Related Work}
