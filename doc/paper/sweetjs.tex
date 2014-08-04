@@ -94,7 +94,6 @@
   language. Though the algorithm and proof we present is specific to
   JavaScript, the general technique can be applied to other languages
   with ambiguous grammars.
-
   With lexer and parser separated, we then implement
   an expressive hygienic macro system for JavaScript called sweet.js.
 }
@@ -1339,6 +1338,8 @@ and more in a declarative style.
 
 % \end{lstlisting}
 
+\vspace{-0.5em}
+
 \section{Hygiene}
 \label{sec:hygiene}
 
@@ -1410,7 +1411,6 @@ function foo() {
   macro id { rule { $x } => { $x } }
   return y + y;
 }
-// fails!
 \end{lstlisting}
 When the expander reaches the \verb!var! statement during the
 first pass, it has not yet loaded the \verb!id! macro into the
@@ -1448,6 +1448,7 @@ While it is unfortunate that the syntax of JavaScript prevents fully
 general mixing of macro use and definition, the primary need for
 flexible macro definition locations is when writing mutually recursive
 macros, which is fully supported with our approach.
+\vspace{-0.5em}
 
 \section{Discussion}
 \label{sec:discussion}
@@ -1466,11 +1467,7 @@ intertwining the lexer and parser.
 
 \begin{lstlisting}
 fn foo<T>(x: int, v: Vec<T>) -> bool {
-    if (x > 10) {
-        // ...
-    }
-    // ...
-    return true;
+    return x < 10;
 }
 \end{lstlisting}
 
@@ -1493,7 +1490,7 @@ to be built with a cleaner design where the lexing and parsing stages
 are separated. The JavaScript parser Esprima~\cite{esprima} has
 incorporated our reader algorithm into their lexing stages to
 accomplish this separation.
-
+\vspace{-0.5em}
 
 \section{Related Work}
 \label{sec:related}
@@ -1533,11 +1530,15 @@ Multi stage systems such as mython~\cite{Riehl2009} and MetaML~\cite{Taha1997,Ma
 Systems like
 Stratego~\cite{Visser2004} transforms syntax using its own language, separate from the host language. Metaborg~\cite{Bravenboer2004} and SugarJ~\cite{Erdweg2011} are syntax extension facilities built on top of Stratego.
 
+\vspace{-0.5em}
+
 \section{Conclusion}
 
 We have presented sweet.js, a hygienic macro system for JavaScript. Our macro system follows in the footsteps of Scheme by providing declarative and procedural macro definition functionality.
 
 In addition we presented an algorithm for read that correctly handles key ambiguities in the JavaScript grammar that allows the lexer and parser to be separated for the first time in JavaScript.
+
+\vspace{-0.5em}
 
 % \paragraph{Acknowledgements} Part of this work was funded by the Mozilla Corporation.
 
