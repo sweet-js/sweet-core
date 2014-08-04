@@ -1458,9 +1458,9 @@ algorithm and proof presented here is JavaScript specific, the general
 technique can be leveraged in other languages in which ambiguities are
 present in the lexing phase.
 
-For example, Perl 5 shares the \lstinline!/! ambiguity with
+For example, Perl 5 shares the \verb!/! ambiguity with
 JavaScript~\cite{parsingperl} and in Rust~\cite{rustlang} the token
-\lstinline!<! is ambiguous---it can signify either the less than operator
+\verb!<! is ambiguous---it can signify either the less than operator
 or the start of a template---and this ambiguity is resolved by
 intertwining the lexer and parser.
 
@@ -1478,7 +1478,7 @@ The key insight of our approach is that the structure inherent in a
 token tree (in which delimited tokens are grouped together) provides a
 way to efficiently resolve ambiguities by looking at a relatively
 small prefix of token trees. The specific prefix required to
-disambiguate tokens such as \lstinline!/! or \lstinline!<! will depend
+disambiguate tokens such as \verb!/! or \verb!<! will depend
 on the grammar of the language in question but we hypothesize that our
 basic technique could be applied for other languages.
 Verifying this hypotheses is an interesting topic for future work.
