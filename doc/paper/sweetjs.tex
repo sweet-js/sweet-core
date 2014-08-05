@@ -915,7 +915,7 @@ largest possible expression, so in this example the entire expression
 \verb!40 + 2! is bound to \verb!$init!.
 
 Note that sweet.js does not provide a non-greedy form of \verb!:expr!
-so there is no way to, for example, match the pattern
+so there is no way, for example, to match the pattern
 \verb!$x:expr + 10!. In our experience to date it appears rare to need
 to match on syntax that extends an expression and so have avoided
 increasing the complexity of the implementation and pattern matching
@@ -1103,8 +1103,9 @@ macro name would appear (the pipe can be thought of as a cursor into
 the token stream).
 
 For example, the following infix macro implements arrow
-functions\footnote{For simplicity this example does not lexically bind
-  \verb!this! like full ES6 arrow functions}:
+functions\footnote{For simplicity, this example does not bind
+  \verb!this! in the same manner as full ES6 arrow functions, though
+  it is straightforward to do so.}:
 \begin{lstlisting}
 macro => {
   rule infix {
@@ -1478,19 +1479,18 @@ small prefix of token trees. The specific prefix required to
 disambiguate tokens such as \verb!/! or \verb!<! will depend
 on the grammar of the language in question but we hypothesize that our
 basic technique could be applied for other languages.
-Verifying this hypotheses is an interesting topic for future work.
+Verifying this hypothesis is an interesting topic for future work.
 
 In addition to enabling the construction of a macro system (the
 motivation for our work here), a correct reader also enables other
 tools that benefit from the additional structure provided by token
 trees such as robust syntax highlighters or editors that can correctly
 manipulate the structure of code while avoiding the expense of a full
-parse. The reader algorithm also allows traditional JavaScript parsers
-to be built with a cleaner design where the lexing and parsing stages
-are separated. The JavaScript parser Esprima~\cite{esprima} has
-incorporated our reader algorithm into their lexing stages to
-accomplish this separation.
-\vspace{-0.5em}
+parse or expansion. The reader algorithm also allows traditional
+JavaScript parsers to be built with a cleaner design where the lexing
+and parsing stages are separated. The JavaScript parser
+Esprima~\cite{esprima} has incorporated our reader algorithm into
+their lexing stages to accomplish this separation. \vspace{-0.5em}
 
 \section{Related Work}
 \label{sec:related}
