@@ -1222,13 +1222,25 @@
                             var flsRes = enforest(condRight.slice(1), context);
                             var flsExpr = flsRes.result;
                             if (flsExpr.isExpr) {
-                                return step(ConditionalExpression.create(head,
-                                                                         question,
-                                                                         truExpr,
-                                                                         colon,
-                                                                         flsExpr),
-                                            flsRes.rest,
-                                            opCtx);
+                                // operators are combined before the ternary
+                                var headResult = opCtx.combine(head);
+                                var condTerm = ConditionalExpression.create(headResult.term,
+                                                                            question,
+                                                                            truExpr,
+                                                                            colon,
+                                                                            flsExpr);
+                                if (opCtx.stack.length > 0) {
+                                    return step(condTerm,
+                                                flsRes.rest,
+                                                opCtx.stack[0]);
+                                } else {
+                                    return {
+                                        result: condTerm,
+                                        rest: flsRes.rest,
+                                        prevStx: headResult.prevStx,
+                                        prevTerms: headResult.prevTerms
+                                    };
+                                }
                             }
                         }
                     }

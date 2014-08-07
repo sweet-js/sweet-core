@@ -132,6 +132,13 @@ describe("binary custom operators", function() {
             return true;
         }
         expect(foo()).to.be(true);
+    });
+
+    it("should mix well with the ternary operator", function() {
+        operator + 12 left { $l, $r } => #{ plus($l, $r) }
+        function plus(l, r) { return l - r; }
+
+        expect(2 + 2 ? true : false).to.be(false);
     })
 });
 
