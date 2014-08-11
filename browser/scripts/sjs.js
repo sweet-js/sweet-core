@@ -50,16 +50,7 @@ exports.run = function () {
             readableNames: readableNames,
             escodegen: { format: { indent: { style: Array(formatIndent + 1).join(' ') } } }
         };
-    if (watch && outfile) {
-        fs.watch(infile, function () {
-            file = fs.readFileSync(infile, 'utf8');
-            try {
-                fs.writeFileSync(outfile, sweet.compile(file, options).code, 'utf8');
-            } catch (e) {
-                console.log(e);
-            }
-        });
-    } else if (outfile) {
+    function doCompile() {
         if (sourcemap) {
             options.sourceMap = true;
             var result = sweet.compile(file, options);
@@ -69,6 +60,18 @@ exports.run = function () {
         } else {
             fs.writeFileSync(outfile, sweet.compile(file, options).code, 'utf8');
         }
+    }
+    if (watch && outfile) {
+        fs.watch(infile, function () {
+            file = fs.readFileSync(infile, 'utf8');
+            try {
+                doCompile();
+            } catch (e) {
+                console.log(e);
+            }
+        });
+    } else if (outfile) {
+        doCompile();
     } else if (tokens) {
         console.log(sweet.expand(file, modules, { maxExpands: numexpands }));
     } else if (ast) {
