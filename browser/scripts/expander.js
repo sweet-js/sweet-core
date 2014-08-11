@@ -1444,7 +1444,25 @@
                             var flsRes = enforest(condRight.slice(1), context);
                             var flsExpr = flsRes.result;
                             if (flsExpr.isExpr) {
-                                return step(ConditionalExpression.create(head, question, truExpr, colon, flsExpr), flsRes.rest, opCtx);
+                                // operators are combined before the ternary
+                                if (opCtx.prec >= 4) {
+                                    // ternary is like a operator with prec 4
+                                    var headResult = opCtx.combine(head);
+                                    var condTerm = ConditionalExpression.create(headResult.term, question, truExpr, colon, flsExpr);
+                                    if (opCtx.stack.length > 0) {
+                                        return step(condTerm, flsRes.rest, opCtx.stack[0]);
+                                    } else {
+                                        return {
+                                            result: condTerm,
+                                            rest: flsRes.rest,
+                                            prevStx: headResult.prevStx,
+                                            prevTerms: headResult.prevTerms
+                                        };
+                                    }
+                                } else {
+                                    var condTerm = ConditionalExpression.create(head, question, truExpr, colon, flsExpr);
+                                    return step(condTerm, flsRes.rest, opCtx);
+                                }
                             }
                         }
                     }
