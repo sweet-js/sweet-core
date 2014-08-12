@@ -946,6 +946,18 @@
                                 return hasMatch(renv[pat]);
                             });
                             if (allHaveMatch) {
+                                renv.$$index = {
+                                    level: 0,
+                                    match: [syntax.makeValue(idx, bodyStx)]
+                                };
+                                renv.$$index1 = {
+                                    level: 0,
+                                    match: [syntax.makeValue(idx + 1, bodyStx)]
+                                };
+                                renv.$$length = {
+                                    level: 0,
+                                    match: [syntax.makeValue(repeatLength, bodyStx)]
+                                };
                                 restrictedEnv.push(renv);
                             }
                         });

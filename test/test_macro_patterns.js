@@ -1144,4 +1144,29 @@ describe("macro expander", function() {
         expect(res[0]).to.be(1);
         expect(res[1]).to.be(2);
     });
+
+    it("should allow magic vars in repeaters", function() {
+        macro m {
+            rule { ($t (,) ...) } => {
+              [$([$t, $$index, $$index1, $$length]) (,) ...]
+            }
+        }
+        expect(m(0, 1, 2)).to.eql([[0, 0, 1, 3],
+                                   [1, 1, 2, 3],
+                                   [2, 2, 3, 3]]);
+    });
+
+    it("should allow magic vars in nested repeaters", function() {
+        macro m {
+            rule { $(($t (,) ...)) ... } => {
+              [$([$$index, $$length, $([$$index, $$length, $t]) (,) ...]) (,) ...]
+            }
+        }
+        expect(m (1, 2, 3) (4, 5, 6)).to.eql([[0, 2, [0, 3, 1],
+                                                     [1, 3, 2],
+                                                     [2, 3, 3]],
+                                              [1, 2, [0, 3, 4],
+                                                     [1, 3, 5],
+                                                     [2, 3, 6]]]);
+    });
 });
