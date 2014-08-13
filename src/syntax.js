@@ -363,8 +363,8 @@
         }
 
         var token = err.stx.token;
-        var lineNumber = token.sm_startLineNumber || token.sm_lineNumber || token.startLineNumber || token.lineNumber;
-        var lineStart = token.sm_startLineStart || token.sm_lineStart || token.startLineStart || token.lineStart;
+        var lineNumber = _.find([token.sm_startLineNumber, token.sm_lineNumber, token.startLineNumber, token.lineNumber], _.isNumber);
+        var lineStart = _.find([token.sm_startLineStart, token.sm_lineStart, token.startLineStart, token.lineStart], _.isNumber);
         var start = (token.sm_startRange || token.sm_range || token.startRange || token.range)[0];
         var offset = start - lineStart;
         var line = '';
