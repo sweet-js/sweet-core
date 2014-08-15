@@ -1,0 +1,171 @@
+% ---------------------------------------------------------------------	%
+% Horizontal brackets.							%
+% ---------------------------------------------------------------------	%
+
+\newcommand{\hbra}{
+\hbox to \textwidth{\vrule width0.3mm height 1.8mm depth-0.3mm
+                    \leaders\hrule height1.8mm depth-1.5mm\hfill
+                    \vrule width0.3mm height 1.8mm depth-0.3mm}}
+\newcommand{\hket}{
+\hbox to \textwidth{\vrule width0.3mm height1.5mm
+                    \leaders\hrule height0.3mm\hfill
+                    \vrule width0.3mm height1.5mm}}
+
+
+\renewcommand{\hbra}{
+\hbox to \columnwidth{\vrule width0.3mm height 1.8mm depth-0.3mm
+                    \leaders\hrule height1.8mm depth-1.5mm\hfill
+                    \vrule width0.3mm height 1.8mm depth-0.3mm}}
+\renewcommand{\hket}{
+\hbox to \columnwidth{\vrule width0.3mm height1.5mm
+                    \leaders\hrule height0.3mm\hfill
+                    \vrule width0.3mm height1.5mm}}
+
+
+%\newcounter{figure}
+
+% \newenvironment{proof}%
+%   {%\begin{quote}
+%     %\item[]
+% %   \begin{quote}
+%      \normalsize{\sc Proof:}\hspace*{0mm}
+% }
+%   {\proofcomplete
+% %\end{quote}%
+% \smallskip 
+%    }
+
+
+\newcommand{\proofcomplete}{ %\hspace*{\fill}
+$\square$
+}
+
+
+\newenvironment{display}[1]{
+  \refstepcounter{figure}
+ % \begin{tabbing}
+ % \hspace{1.5em} \= \hspace{.40\linewidth - 2em} \= \hspace{2em} \= \kill
+%  \medskip
+\noindent
+  \textbf{Figure~\thefigure:  #1}\\
+  \hbra\\[-.8ex]
+  \nopagebreak
+  %\small
+ }{ 
+ \\[-2ex]
+ \nopagebreak
+  \hket
+  \nopagebreak
+% \medskip
+ % \end{tabbing}
+ }
+
+
+\newcommand{\htbra}{
+\hbox to \textwidth{\vrule width0.3mm height 1.8mm depth-0.3mm
+                    \leaders\hrule height1.8mm depth-1.5mm\hfill
+                    \vrule width0.3mm height 1.8mm depth-0.3mm}}
+\newcommand{\htket}{
+\hbox to \textwidth{\vrule width0.3mm height1.5mm
+                    \leaders\hrule height0.3mm\hfill
+                    \vrule width0.3mm height1.5mm}}
+
+
+\newenvironment{displayfigure}[1]{
+  \begin{figure}[tp]
+  \refstepcounter{figure}
+  \medskip
+  \textbf{Figure~\thefigure:  #1}\\
+  \hbra\\[-.8ex]
+  \nopagebreak
+  %\small
+ }{ 
+  \\[-.8ex]
+ \nopagebreak
+  \hket
+  \nopagebreak
+ \medskip
+  \end{figure}
+ % \end{tabbing}
+ }
+
+\newenvironment{displayfigure*}[1]{
+  \begin{figure*}[tph!]
+   \refstepcounter{figure}
+ \medskip
+  \textbf{Figure~\thefigure:  #1}\\
+  \htbra\\[-.8ex]
+  \nopagebreak
+%  \footnotesize
+ }{ 
+  \\[-.8ex]
+ \nopagebreak
+  \htket
+  \nopagebreak
+ \medskip
+  \end{figure*}
+ % \end{tabbing}
+ }
+
+\newenvironment{displayname}[1]{
+  \refstepcounter{figure}
+  \begin{tabbing}
+  \hspace{1.5em} \= \hspace{.40\linewidth - 2em} \= \hspace{2em} \= \kill
+  \textbf{Figure~\thefigure: #1}\\[-.8ex]
+  \hbra\\[-.8ex]
+  \nopagebreak
+ }{
+  \\[-.8ex]\hket
+
+  \end{tabbing}
+ }
+
+%%%%%%%% typesetting type rules %%%%%%%%%%%%%
+\newenvironment{trules}
+{\[\begin{array}{@{}c@{}r@{}}}
+{\end{array}\]}
+\newcommand{\headtrule}[2]{
+	\multicolumn{2}{@{}l@{}}{\mbox{#2}} \hfil \fbox{#1}\\
+	\multicolumn{2}{@{}l@{}}{\hskip3.25in}\\
+}
+\newcommand{\trule}[3]{
+\frac 
+	{\strut\begin{array}{@{}c@{}} #2 \end{array}} 
+	{\strut\begin{array}{@{}c@{}} #3 \end{array}}
+&\rel{#1} \\~\\
+}
+\newcommand{\rtrule}[3]{  % restatement in proof
+Suppose $#3$ via the rule:
+\[
+\frac 
+	{\strut\begin{array}{@{}c@{}} #2 \end{array}} 
+	{\strut\begin{array}{@{}c@{}} #3 \end{array}}
+\qquad\rel{#1}
+\]
+}
+\newcommand{\trulespc}[4]{
+\frac 
+	{\strut\begin{array}{@{}c@{}} #2 \end{array}} 
+	{\strut\begin{array}{@{}c@{}} #3 \end{array}}
+#4
+&\rel{#1} \\~\\
+}
+\newcommand{\trulenoname}[2]{
+\frac 
+	{\strut\begin{array}{@{}c@{}} #1 \end{array}} 
+	{\strut\begin{array}{@{}c@{}} #2 \end{array}}
+}
+\newcommand{\nrln}[3]{
+\mbox{
+$\begin{array}{l}
+\rel{#1} \\
+\quad\frac 
+	{\strut\begin{array}{c} #2 \end{array}} 
+	{\strut\begin{array}{c} #3 \end{array}}
+\end{array}
+$}}
+\newcommand{\rel}[1]{\raisebox{0ex}[0ex][0ex]{\small [\textsc{#1}}]}
+\newcommand{\mydefhead}[2]{\multicolumn{2}{l}{{#1}}&\mbox{\emph{#2}}\\}
+\newcommand{\mydefcase}[2]{\qquad& #1 &\mbox{#2}\\}
+\newcommand{\headrule}[2]{\multicolumn{3}{@{}l}{\mbox{#2}} & \fbox{#1}\\}
+
