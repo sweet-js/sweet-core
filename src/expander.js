@@ -35,7 +35,8 @@ import @ from "contracts.js"
                 require('./syntax'),
                 require('./scopedEval'),
                 require("./patterns"),
-                require('escodegen'));
+                require('escodegen'),
+                require('vm'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports',
@@ -46,7 +47,7 @@ import @ from "contracts.js"
                 'patterns',
                 'escodegen'], factory);
     }
-}(this, function(exports, _, parser, syn, se, patternModule, gen) {
+}(this, function(exports, _, parser, syn, se, patternModule, gen, vm) {
     'use strict';
     // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
     var codegen = typeof escodegen !== "undefined" ? escodegen : gen;
@@ -1925,7 +1926,7 @@ import @ from "contracts.js"
         var flattend = flatten(expanded);
         var bodyCode = codegen.generate(parser.parse(flattend));
 
-        var macroFn = scopedEval(bodyCode, {
+        var macroGlobal = {
             makeValue: syn.makeValue,
             makeRegex: syn.makeRegex,
             makeIdent: syn.makeIdent,
@@ -2002,7 +2003,14 @@ import @ from "contracts.js"
                 newMatch.patternEnv = _.extend({}, oldMatch.patternEnv, newMatch.patternEnv);
                 return newMatch;
             }
-        });
+        };
+        var macroFn;
+        if (vm) {
+            macroFn = vm.runInNewContext("(function() { return " + bodyCode + " })()",
+                                         macroGlobal);
+        } else {
+            macroFn = scopedEval(bodyCode, macroGlobal);
+        }
 
         return macroFn;
     }
