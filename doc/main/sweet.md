@@ -425,6 +425,8 @@ m foo
 42
 ```
 
+## Creating Syntax Objects
+
 Sweet.js provides the following functions to create syntax objects:
 
 * `makeValue(val, stx)` -- `val` can be a `boolean`, `number`,
@@ -446,10 +448,11 @@ directly at the token you can use `unwrapSyntax(stx)`.
 
 Case macros also provide `throwSyntaxError(name, message, stx)` when you need to throw an error inside of a case macro. `name` is a string that lets you name the error, `message` is a string to describe what went wrong, and `stx` is a syntax object or array of syntax objects that is used to print out the line number and surrounding tokens in the error message.
 
-When using these functions to create new syntax objects it is
-convenient to refer to them in `#{}` templates. To do this sweet.js
-provides the `letstx` macro that binds syntax objects to pattern
-variables:
+## `letstx`
+
+When using syntax object creation functions, it is convenient to refer
+to them in `#{}` templates. To do this sweet.js provides `letstx`,
+which binds syntax objects to pattern variables:
 
 ```js
 macro m {
@@ -462,6 +465,25 @@ macro m {
 m 1
 // --> expands to
 1 + 42 - 2
+```
+
+The left-hand side of the `=` in a `letstx` is actually a pattern so
+you can, for example, match a repeating pattern:
+
+```js
+macro m {
+  case {_} => {
+    letstx $x ... = [makeValue(1, #{here}),
+                     makeValue(2, #{here}),
+                     makeValue(3, #{here})];
+    return #{
+      [$x (,) ...]
+    }
+  }
+}
+m
+// expands to:
+// [1, 2, 3]
 ```
 
 # Extending Pattern Classes

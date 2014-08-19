@@ -146,7 +146,10 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <li><a href="#hygiene-part-1-binding"><span class="toc-section-number">3.1</span> Hygiene Part 1 (Binding)</a></li>
 <li><a href="#hygiene-part-2-reference"><span class="toc-section-number">3.2</span> Hygiene Part 2 (Reference)</a></li>
 </ul></li>
-<li><a href="#case-macros"><span class="toc-section-number">4</span> Case Macros</a></li>
+<li><a href="#case-macros"><span class="toc-section-number">4</span> Case Macros</a><ul>
+<li><a href="#creating-syntax-objects"><span class="toc-section-number">4.1</span> Creating Syntax Objects</a></li>
+<li><a href="#letstx"><span class="toc-section-number">4.2</span> <code>letstx</code></a></li>
+</ul></li>
 <li><a href="#extending-pattern-classes"><span class="toc-section-number">5</span> Extending Pattern Classes</a><ul>
 <li><a href="#the-invoke-pattern-class"><span class="toc-section-number">5.1</span> The Invoke Pattern Class</a></li>
 <li><a href="#implicit-invoke"><span class="toc-section-number">5.2</span> Implicit Invoke</a></li>
@@ -441,6 +444,7 @@ m 42  // `$name` will be bound to the `m` token
 m foo
 // --&gt; expands to
 42</code></pre>
+<h2 id="creating-syntax-objects"><span class="header-section-number">4.1</span> Creating Syntax Objects</h2>
 <p>Sweet.js provides the following functions to create syntax objects:</p>
 <ul>
 <li><code>makeValue(val, stx)</code> -- <code>val</code> can be a <code>boolean</code>, <code>number</code>, <code>string</code>, or <code>null</code>/<code>undefined</code></li>
@@ -451,7 +455,8 @@ m foo
 </ul>
 <p>If you want strip a syntax object of its lexical context and get directly at the token you can use <code>unwrapSyntax(stx)</code>.</p>
 <p>Case macros also provide <code>throwSyntaxError(name, message, stx)</code> when you need to throw an error inside of a case macro. <code>name</code> is a string that lets you name the error, <code>message</code> is a string to describe what went wrong, and <code>stx</code> is a syntax object or array of syntax objects that is used to print out the line number and surrounding tokens in the error message.</p>
-<p>When using these functions to create new syntax objects it is convenient to refer to them in <code>#{}</code> templates. To do this sweet.js provides the <code>letstx</code> macro that binds syntax objects to pattern variables:</p>
+<h2 id="letstx"><span class="header-section-number">4.2</span> <code>letstx</code></h2>
+<p>When using syntax object creation functions, it is convenient to refer to them in <code>#{}</code> templates. To do this sweet.js provides <code>letstx</code>, which binds syntax objects to pattern variables:</p>
 <pre class="js"><code>macro m {
   case {_ $x } =&gt; {
     var y = makeValue(42, #{$x});
@@ -462,6 +467,20 @@ m foo
 m 1
 // --&gt; expands to
 1 + 42 - 2</code></pre>
+<p>The left-hand side of the <code>=</code> in a <code>letstx</code> is actually a pattern so you can, for example, match a repeating pattern:</p>
+<pre class="js"><code>macro m {
+  case {_} =&gt; {
+    letstx $x ... = [makeValue(1, #{here}),
+                     makeValue(2, #{here}),
+                     makeValue(3, #{here})];
+    return #{
+      [$x (,) ...]
+    }
+  }
+}
+m
+// expands to:
+// [1, 2, 3]</code></pre>
 <h1 id="extending-pattern-classes"><span class="header-section-number">5</span> Extending Pattern Classes</h1>
 <p>Consider the following macro that matches against color options:</p>
 <pre class="js"><code>macro color_options {
