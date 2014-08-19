@@ -1324,6 +1324,24 @@ will expand to
 42;
 ```
 
+## How do I convert a token to a string literal?
+
+Often times you'll have an identifier or numeric literal token that
+you'd like to convert to a string literal. This little helper macro
+does just that:
+
+```js
+macro to_str {
+  case { _ ($toks ...) } => {
+    return [makeValue(#{ $toks ... }.map(unwrapSyntax).join(''), #{ here })];
+  }
+}
+
+to_str(1 foo "bar")
+// expands to:
+// '1foobar'
+```
+
 ## How do I debug macros?
 
 ### Stepping Through Expansion

@@ -179,9 +179,10 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <li><a href="#how-do-i-run-sweet.js-in-the-browser"><span class="toc-section-number">12.1</span> How do I Run Sweet.js in the Browser?</a></li>
 <li><a href="#how-do-i-break-hygiene"><span class="toc-section-number">12.2</span> How do I break hygiene?</a></li>
 <li><a href="#how-do-i-output-comments"><span class="toc-section-number">12.3</span> How do I output comments?</a></li>
-<li><a href="#how-do-i-debug-macros"><span class="toc-section-number">12.4</span> How do I debug macros?</a><ul>
-<li><a href="#stepping-through-expansion"><span class="toc-section-number">12.4.1</span> Stepping Through Expansion</a></li>
-<li><a href="#understanding-case-macros"><span class="toc-section-number">12.4.2</span> Understanding Case Macros</a></li>
+<li><a href="#how-do-i-convert-a-token-to-a-string-literal"><span class="toc-section-number">12.4</span> How do I convert a token to a string literal?</a></li>
+<li><a href="#how-do-i-debug-macros"><span class="toc-section-number">12.5</span> How do I debug macros?</a><ul>
+<li><a href="#stepping-through-expansion"><span class="toc-section-number">12.5.1</span> Stepping Through Expansion</a></li>
+<li><a href="#understanding-case-macros"><span class="toc-section-number">12.5.2</span> Understanding Case Macros</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -1139,11 +1140,22 @@ m()</code></pre>
 <p>will expand to</p>
 <pre class="js"><code>//hello, world
 42;</code></pre>
-<h2 id="how-do-i-debug-macros"><span class="header-section-number">12.4</span> How do I debug macros?</h2>
-<h3 id="stepping-through-expansion"><span class="header-section-number">12.4.1</span> Stepping Through Expansion</h3>
+<h2 id="how-do-i-convert-a-token-to-a-string-literal"><span class="header-section-number">12.4</span> How do I convert a token to a string literal?</h2>
+<p>Often times you'll have an identifier or numeric literal token that you'd like to convert to a string literal. This little helper macro does just that:</p>
+<pre class="js"><code>macro to_str {
+  case { _ ($toks ...) } =&gt; {
+    return [makeValue(#{ $toks ... }.map(unwrapSyntax).join(&#39;&#39;), #{ here })];
+  }
+}
+
+to_str(1 foo &quot;bar&quot;)
+// expands to:
+// &#39;1foobar&#39;</code></pre>
+<h2 id="how-do-i-debug-macros"><span class="header-section-number">12.5</span> How do I debug macros?</h2>
+<h3 id="stepping-through-expansion"><span class="header-section-number">12.5.1</span> Stepping Through Expansion</h3>
 <p>You can use <code>sjs --num-expands &lt;number&gt;</code> to walk through macro expansion one step at a time. This is particularly helpful when writing recursive macros.</p>
 <p>The <a href="http://sweetjs.org/browser/editor.html">editor</a> also supports stepping.</p>
-<h3 id="understanding-case-macros"><span class="header-section-number">12.4.2</span> Understanding Case Macros</h3>
+<h3 id="understanding-case-macros"><span class="header-section-number">12.5.2</span> Understanding Case Macros</h3>
 <p>If you're trying to understand how a case macro is working two useful techniques are logging syntax objects to see what they actually contain and inserting <code>debugger</code> statements to pause the debugger during expansion.</p>
 <pre class="js"><code>macro m {
     case { _ $x } =&gt; {
