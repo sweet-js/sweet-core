@@ -1084,6 +1084,10 @@
         return innerTokens.length ? null : ParenExpression.create(enforestedArgs, parens, commas);
     }
     function adjustLineContext(stx, original, current) {
+        // short circuit when the array is empty;
+        if (stx.length === 0) {
+            return stx;
+        }
         current = current || {
             lastLineNumber: stx[0].token.lineNumber || stx[0].token.startLineNumber,
             lineNumber: original.token.lineNumber
@@ -1112,9 +1116,6 @@
                         current.lastLineNumber = stx$2.token.startLineNumber;
                         stx$2.token.startLineNumber = current.lineNumber;
                     }
-                }
-                if (stx$2.token.inner.length > 0) {
-                    stx$2.token.inner = adjustLineContext(stx$2.token.inner, original, current);
                 }
                 return stx$2;
             }
@@ -1551,7 +1552,7 @@
                     return step(syn.makeIdent('getTemplate', head.id), [syn.makeDelim('()', [syn.makeValue(tempId, head.id)], head.id)].concat(rest.slice(1)), opCtx);
                 }    // return statement
                 else if (head.isKeyword && unwrapSyntax(head.keyword) === 'return') {
-                    if (rest[0]) {
+                    if (rest[0] && rest[0].token.lineNumber === head.keyword.token.lineNumber) {
                         var returnPrevStx = tagWithTerm(head, head.destruct()).concat(opCtx.prevStx);
                         var returnPrevTerms = [head].concat(opCtx.prevTerms);
                         var returnExpr = enforest(rest, context, returnPrevStx, returnPrevTerms);
@@ -1561,6 +1562,8 @@
                         if (returnExpr.result.isExpr) {
                             return step(ReturnStatement.create(head, returnExpr.result), returnExpr.rest, opCtx);
                         }
+                    } else {
+                        return step(ReturnStatement.create(head, Empty.create()), rest, opCtx);
                     }
                 }    // let statements
                 else if (head.isKeyword && unwrapSyntax(head.keyword) === 'let') {
