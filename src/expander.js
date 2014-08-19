@@ -752,6 +752,11 @@
     }
 
     function adjustLineContext(stx, original, current) {
+        // short circuit when the array is empty;
+        if (stx.length === 0) {
+            return stx;
+        }
+
         current = current || {
             lastLineNumber: stx[0].token.lineNumber || stx[0].token.startLineNumber,
             lineNumber: original.token.lineNumber
@@ -1391,8 +1396,9 @@
                                 opCtx);
                 // return statement
                 } else if (head.isKeyword && unwrapSyntax(head.keyword) === "return") {
-                    if (rest[0]) {
-                        var returnPrevStx = tagWithTerm(head, head.destruct()).concat(opCtx.prevStx);
+                    if (rest[0] && rest[0].token.lineNumber === head.keyword.token.lineNumber) {
+                        var returnPrevStx = tagWithTerm(head,
+                                                        head.destruct()).concat(opCtx.prevStx);
                         var returnPrevTerms = [head].concat(opCtx.prevTerms);
                         var returnExpr = enforest(rest, context, returnPrevStx, returnPrevTerms);
                         if (returnExpr.prevTerms.length < opCtx.prevTerms.length) {
@@ -1403,6 +1409,10 @@
                                         returnExpr.rest, 
                                         opCtx);
                         }
+                    } else {
+                        return step(ReturnStatement.create(head, Empty.create()),
+                                   rest,
+                                   opCtx);
                     }
                 // let statements
                 } else if (head.isKeyword &&

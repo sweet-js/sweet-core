@@ -1144,4 +1144,12 @@ describe("macro expander", function() {
         expect(res[0]).to.be(1);
         expect(res[1]).to.be(2);
     });
+
+    it("should follow return ASI", function() {
+        function foo() {
+            return
+            42;
+        }
+        expect(foo()).to.be(undefined);
+    })
 });
