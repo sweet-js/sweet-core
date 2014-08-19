@@ -810,9 +810,6 @@
 
                 }
 
-                if (stx.token.inner.length > 0) {
-                    stx.token.inner = adjustLineContext(stx.token.inner, original, current);
-                }
                 return stx;
             }
             // handle tokens with missing line info
