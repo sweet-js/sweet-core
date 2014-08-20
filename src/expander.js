@@ -126,8 +126,9 @@ import @ from "contracts.js"
         return [];
     }
 
-    function resolve(stx) {
-        return resolveCtx(stx.token.value, stx.context, [], [], {});
+    function resolve(stx, phase) {
+        phase = typeof phase !== 'undefined' ? phase : 0;
+        return resolveCtx(stx.token.value, stx.context, [], [], {}, phase);
     }
 
     // This call memoizes intermediate results in the recursive invocation.
@@ -157,14 +158,14 @@ import @ from "contracts.js"
     // With this memoization, the time complexity of the resolveCtx call is
     // no longer exponential for the cases in issue #232.
 
-    function resolveCtx(originalName, ctx, stop_spine, stop_branch, cache) {
+    function resolveCtx(originalName, ctx, stop_spine, stop_branch, cache, phase) {
         if (!ctx) { return originalName; }
         var key = ctx.instNum;
-        return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache));
+        return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase));
     }
 
     // (Syntax) -> String
-    function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache) {
+    function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase) {
         while (true) {
             if (!ctx) { return originalName; }
 
@@ -185,15 +186,17 @@ import @ from "contracts.js"
             if (ctx.constructor === Rename) {
                 if (originalName === ctx.id.token.value) {
                     var idName  = resolveCtx(ctx.id.token.value,
-                            ctx.id.context,
-                            stop_branch,
-                            stop_branch,
-                            cache);
+                                             ctx.id.context,
+                                             stop_branch,
+                                             stop_branch,
+                                             cache,
+                                             phase);
                     var subName = resolveCtx(originalName,
-                            ctx.context,
-                            unionEl(stop_spine, ctx.def),
-                            stop_branch,
-                            cache);
+                                             ctx.context,
+                                             unionEl(stop_spine, ctx.def),
+                                             stop_branch,
+                                             cache,
+                                             phase);
                     if (idName === subName) {
                         var idMarks  = marksof(ctx.id.context,
                                 originalName + "$" + ctx.name,

@@ -40,7 +40,7 @@ import @ from "contracts.js"
 
 
     // (CSyntax, Str) -> CContext
-    function Rename(id, name, ctx, defctx) {
+    function Rename(id, name, ctx, defctx, phase) {
         defctx = defctx || null;
 
         this.id = id;
@@ -48,6 +48,7 @@ import @ from "contracts.js"
         this.context = ctx;
         this.def = defctx;
         this.instNum = globalContextInstanceNumber++;
+        this.phase = phase;
     }
 
     // (Num) -> CContext
@@ -61,6 +62,14 @@ import @ from "contracts.js"
         this.defctx = defctx;
         this.context = ctx;
         this.instNum = globalContextInstanceNumber++;
+    }
+
+    function Reqd(id, mod, name, ctx, phase) {
+        this.id = id;
+        this.name = name;
+        this.mod = mod;
+        this.context = ctx;
+        this.phase = phase;
     }
 
     function Syntax(token, oldstx) {
@@ -82,16 +91,34 @@ import @ from "contracts.js"
 
         // (CSyntax or [...CSyntax], Str) -> CSyntax
         // non mutating
-        rename: function(id, name, defctx) {
+        rename: function(id, name, defctx, phase) {
             // defer renaming of delimiters
             if (this.token.inner) {
                 return syntaxFromToken(this.token,
-                                       {deferredContext: new Rename(id, name, this.deferredContext, defctx),
-                                        context: new Rename(id, name, this.context, defctx)});
+                                       {deferredContext: new Rename(id, name, this.deferredContext, defctx, phase),
+                                        context: new Rename(id, name, this.context, defctx, phase)});
             }
 
             return syntaxFromToken(this.token,
-                                   {context: new Rename(id, name, this.context, defctx)});
+                                   {context: new Rename(id, name, this.context, defctx, phase)});
+        },
+
+        addReqd: function(id, mod, name, phase) {
+            if (this.token.inner) {
+                return syntaxFromToken(this.token,
+                                      {deferredContext: new Reqd(id,
+                                                                 mod,
+                                                                 name,
+                                                                 this.deferredContext,
+                                                                 phase),
+                                      context: new Reqd(id, mod, name, this.context, phase)});
+
+            }
+            return syntaxFromToken(this.token, {context: new Reqd(id,
+                                                                  mod,
+                                                                  name,
+                                                                  this.context,
+                                                                  phase)});
         },
 
         addDefCtx: function(defctx) {
@@ -123,9 +150,10 @@ import @ from "contracts.js"
                     return stxCtx;
                 } else if (ctx instanceof Rename) {
                     return new Rename(ctx.id,
-                                  ctx.name,
-                                  applyContext(stxCtx, ctx.context),
-                                  ctx.def);
+                                      ctx.name,
+                                      applyContext(stxCtx, ctx.context),
+                                      ctx.def,
+                                      ctx.phase);
                 } else if (ctx instanceof Mark) {
                     return new Mark(ctx.mark, applyContext(stxCtx, ctx.context));
                 } else if (ctx instanceof Def) {
