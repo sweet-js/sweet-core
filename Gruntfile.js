@@ -43,7 +43,15 @@ module.exports = function(grunt) {
                 },
                 src: "test/*.js",
                 dest: "build/"
-            }
+            },
+            single: {
+                options: {
+                    sourceMap: false,
+                    compileFrom: "./build/lib/sweet"
+                },
+                src: "test.js",
+                dest: "build/"
+            },
         },
         copy: {
             buildMacros: {
@@ -265,8 +273,14 @@ module.exports = function(grunt) {
                                 "copy:scopedEval",
                                 "copy:buildMacros",
                                 "copy:nodeSrc",
-                                "copy:testUnit", 
+                                "copy:testUnit",
                                 "mochaTest:unit"]);
+
+    grunt.registerTask("single", ["build:dev",
+                                  "copy:scopedEval",
+                                  "copy:buildMacros",
+                                  "copy:nodeSrc",
+                                  "build:single"]);
 
     grunt.registerTask("default", ["clean",
                                    "copy:scopedEval",
