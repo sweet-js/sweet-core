@@ -129,6 +129,7 @@
         }
     }
 
+
     function expandSyntax(stx, modules, options) {
         if (!stxcaseCtx) {
             stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
@@ -164,6 +165,51 @@
 
         modules = modules ? loadedMacros.concat(modules) : modules;
         return parser.parse(expand(code, modules, options));
+    }
+
+    @ let SweetOptions = {
+        ast: ?Bool,
+        sourceMap: ?Bool
+    }
+
+    @ (Str, SweetOptions) -> {
+        code: Str,
+        sourceMap: ?Str
+    }
+    function compileModule(code, options) {
+        var output;
+        options = options || {};
+        options.requireModule = options.requireModule || requireModule;
+
+        var tokenTree = parser.read(code);
+        var expandedTokens = expander.compileModule(tokenTree, options);
+        var ast = parser.parse(expandedTokens);
+
+        // if (options.readableNames) {
+        //     ast = optimizeHygiene(ast);
+        // }
+
+        // if (options.ast) {
+        //     return ast;
+        // }
+
+        // if (options.sourceMap) {
+        //     output = codegen.generate(ast, _.extend({
+        //         comment: true,
+        //         sourceMap: options.filename,
+        //         sourceMapWithCode: true
+        //     }, options.escodegen));
+
+        //     return {
+        //         code: output.code,
+        //         sourceMap: output.map.toString()
+        //     };
+        // }
+        return {
+            code: codegen.generate(ast, _.extend({
+                comment: true
+            }, options.escodegen))
+        };
     }
 
     // (Str, {sourceMap: ?Bool, filename: ?Str})
@@ -331,7 +377,8 @@
     exports.expand = expand;
     exports.expandSyntax = expandSyntax;
     exports.parse = parse;
-    exports.compile = compile;
+    // exports.compile = compile;
+    exports.compile = compileModule;
     exports.setReadtable = setReadtable;
     exports.currentReadtable = currentReadtable;
     exports.loadModule = expandModule;

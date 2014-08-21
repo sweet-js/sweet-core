@@ -57,6 +57,22 @@ import @ from "contracts.js"
     var SyntaxCaseError = syn.SyntaxCaseError;
     var unwrapSyntax = syn.unwrapSyntax;
 
+    macro (=>) {
+        rule infix { $param:ident | { $body ... } } => {
+            function ($param) { $body ...}.bind(this)
+        }
+        rule infix { $param:ident | $body:expr } => {
+            function ($param) { return $body }.bind(this)
+        }
+        rule infix { ($param:ident (,) ...) | { $body ... } } => {
+            function ($param (,) ...) { $body ... }.bind(this)
+        }
+        rule infix { ($param:ident (,) ...) | $body:expr } => {
+            function ($param (,) ...) { return $body }.bind(this)
+        }
+    }
+    operator (|>) 1 left { $l, $r } => #{ $r($l) }
+
     // used to export "private" methods for unit testing
     exports._test = {};
 
@@ -386,6 +402,42 @@ import @ from "contracts.js"
         }
     }
 
+    @ let TokenObject = {}
+    @ let ContextObject = {}
+
+    @ let SyntaxObject = {
+        token: TokenObject,
+        context: Null or ContextObject
+    }
+    @ let TermTreeObject = {}
+
+    @ let ExpanderContext = {}
+    // {
+    //     filename: Str,
+    //     requireModule: Str,
+    //     env: {},
+    //     defscope: {},
+    //     paramscope: {},
+    //     templateMap: {},
+    //     patternMap: {},
+    //     mark: Num
+    // }
+
+    @ let ExportTerm = {
+        name: SyntaxObject
+    }
+    @ let ImportTerm = {
+        names: SyntaxObject,
+        from: SyntaxObject
+    }
+    @ let ModuleTerm = {
+        name: SyntaxObject,
+        lang: SyntaxObject,
+        body: [...SyntaxObject] or [...TermTreeObject],
+        imports: [...ImportTerm],
+        exports: [...ExportTerm]
+    }
+
     // A TermTree is the core data structure for the macro expansion process.
     // It acts as a semi-structured representation of the syntax.
     dataclass TermTree() {
@@ -471,7 +523,8 @@ import @ from "contracts.js"
     dataclass Macro                 (name, body)                        extends TermTree;
     dataclass AnonMacro             (body)                              extends TermTree;
     dataclass OperatorDefinition    (type, name, prec, assoc, body)     extends TermTree;
-    dataclass Module                (body, exports)                     extends TermTree;
+    dataclass Module                (name, lang, body, imports, exports)extends TermTree;
+    dataclass Import                (names, from)                       extends TermTree;
     dataclass Export                (name)                              extends TermTree;
     dataclass VariableDeclaration   (ident, eq, init, comma)            extends TermTree;
 
@@ -549,6 +602,7 @@ import @ from "contracts.js"
             return Delimiter.create(delim).destruct();
         }
     }
+
 
     function stxIsUnaryOp(stx) {
         var staticOperators = ["+", "-", "~", "!",
@@ -1022,8 +1076,14 @@ import @ from "contracts.js"
         return left < right;
     }
 
+
+
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
+    @ ([...SyntaxObject], ExpanderContext) -> {
+        result: Null or TermTreeObject,
+        rest: [...SyntaxObject]
+    }
     function enforest(toks, context, prevStx, prevTerms) {
         assert(toks.length > 0, "enforest assumes there are tokens to work with");
 
@@ -1559,10 +1619,10 @@ import @ from "contracts.js"
                                                           trans.result.body),
                                 rest.slice(4),
                                 opCtx);
-                // module definition
-                } else if (unwrapSyntax(head) === "module" &&
-                            rest[0] && rest[0].token.value === "{}") {
-                    return step(Module.create(rest[0], []), rest.slice(1), opCtx);
+                // // module definition
+                // } else if (unwrapSyntax(head) === "module" &&
+                //             rest[0] && rest[0].token.value === "{}") {
+                    // return step(Module.create(rest[0], []), rest.slice(1), opCtx);
                 // function definition
                 } else if (head.token.type === parser.Token.Keyword &&
                     unwrapSyntax(head) === "function" &&
@@ -1667,6 +1727,13 @@ import @ from "contracts.js"
                     head.token.type === parser.Token.NullLiteral) {
 
                     return step(Lit.create(head), rest, opCtx);
+                } else if (head.token.type === parser.Token.Keyword &&
+                           unwrapSyntax(head) === "import" &&
+                           rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                           rest[0].token.value === "{}" &&
+                           rest[1] && unwrapSyntax(rest[1]) === "from" &&
+                           rest[2] && rest[2].token.type === parser.Token.StringLiteral) {
+                    return step(Import.create(rest[0], rest[2]), rest.slice(3), opCtx);
                 // export
                 } else if (head.token.type === parser.Token.Keyword &&
                             unwrapSyntax(head) === "export" &&
@@ -2434,8 +2501,10 @@ import @ from "contracts.js"
         return term;
     }
 
+    @ let TermTree = {}
+
     // similar to `parse` in the honu paper
-    // ([Syntax], Map, Map) -> [TermTree]
+    @ ([...SyntaxObject], ExpanderContext) -> [...TermTreeObject]
     function expand(stx, context) {
         assert(context, "must provide an expander context");
 
@@ -2512,6 +2581,121 @@ import @ from "contracts.js"
         return options.flatten ? flatten(res) : res;
     }
 
+
+    @ (ModuleTerm, ExpanderContext) -> ModuleTerm
+    function collectImports(mod, context) {
+        var imports = [];
+        var res;
+        var rest = mod.body;
+        while (true) {
+            res = enforest(rest, context);
+            if (res.result && res.result.isImport) {
+                imports.push(res.result);
+                rest = res.rest;
+            } else {
+                break;
+            }
+        }
+
+        return Module.create(mod.name,
+                             mod.lang,
+                             rest,
+                             imports,
+                             mod.exports);
+    }
+
+
+    @ let SweetOptions = {
+        flatten: ?Bool
+    }
+
+    @ (Str) -> Str
+    function resolvePath(name) {
+        var path = require("path");
+        var fs = require("fs");
+
+        if (name !== "stxcase.js") {
+            assert(false, "not implemented yet");
+        }
+        var lib  = path.join(path.dirname(fs.realpathSync(__filename)), "../macros");
+        return lib + "/" + name;
+    }
+
+    @ (Str) -> ModuleTerm
+    function loadModule(name) {
+        // node specific code
+        var path = require("path");
+        var fs = require("fs");
+
+        return name
+            |> resolvePath |> path => fs.readFileSync(path, 'utf8')
+            |> parser.read |> body => Module.create(syn.makeValue(name, null),
+                                                    syn.makeValue("js"),
+                                                    body,
+                                                    [],
+                                                    [])
+    }
+
+    @ (ModuleTerm, ExpanderContext) -> ExpanderContext
+    function visit(mod, context) {
+        // todo: actually visit
+        return context;
+    }
+
+    @ (ModuleTerm, [...ModuleTerm], ExpanderContext, SweetOptions) -> ModuleTerm
+    function compileModule(mod, available, context, options) {
+        return collectImports(mod, context) |> mod => {
+            mod.imports.forEach(imp => {
+                var modToImport = _.find(available, m => imp.from.token.value === m.name);
+                if(!modToImport) {
+                    var importContext = makeTopLevelExpanderContext(options);
+                    // load it
+                    modToImport = loadModule(imp.from.token.value) |>
+                                                 loaded => compileModule(loaded,
+                                                                         available,
+                                                                         importContext,
+                                                                         options);
+                    available = available.concat(modToImport);
+                }
+
+                // todo: actually visit from the starting context
+                var visitedContext = visit(modToImport, importContext);
+                context.env.extend(visitedContext.env);
+                context.env.names.extend(visitedContext.env.names);
+
+                if (imp.names.token.type === parser.Token.Delimiter) {
+                    imp.names.token.inner.forEach(importName => {
+                        var inExports = _.find(modToImport.exports,
+                                               expTerm => expTerm.name.token.value === importName.token.value);
+                        if (!inExports) {
+                            throwSyntaxError("compile",
+                                             "import was not exported from the module",
+                                             importName);
+                        }
+                        mod = mod.rename(importName, fresh());
+                    });
+                } else {
+                    assert(false, "not implemented yet");
+                }
+            });
+            return expandTermTreeToFinal(mod, context)
+        }
+    }
+
+    @ ([...SyntaxObject], SweetOptions) -> [...SyntaxObject]
+    function compile(stx, options) {
+        var context = makeTopLevelExpanderContext(options);
+        var mod = Module.create(syn.makeValue(options.filename, null),
+                                syn.makeValue("js", null),
+                                stx,
+                                [],
+                                []);
+        var compiled = compileModule(mod, [], context, options);
+        return compiled.body.reduce((acc, term) => {
+            return acc.concat(term.destruct());
+        }, []) |> flatten;
+    }
+
     function expandModule(stx, moduleContexts, options) {
         moduleContexts = moduleContexts || [];
         maxExpands = Infinity;
@@ -2562,6 +2746,7 @@ import @ from "contracts.js"
     }
 
     // break delimiter tree structure down to flat array of syntax objects
+    @ ([...SyntaxObject]) -> [...SyntaxObject]
     function flatten(stx) {
         return _.reduce(stx, function(acc, stx) {
             if (stx.token.type === parser.Token.Delimiter) {
@@ -2626,6 +2811,7 @@ import @ from "contracts.js"
     exports.StringMap = StringMap;
     exports.enforest = enforest;
     exports.expand = expandTopLevel;
+    exports.compileModule = compile;
     exports.expandModule = expandModule;
 
     exports.resolve = resolve;

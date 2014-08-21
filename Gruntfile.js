@@ -276,7 +276,7 @@ module.exports = function(grunt) {
                                 "copy:testUnit",
                                 "mochaTest:unit"]);
 
-    grunt.registerTask("single", ["build:dev",
+    grunt.registerTask("single", ["build:devContracts",
                                   "copy:scopedEval",
                                   "copy:buildMacros",
                                   "copy:nodeSrc",
