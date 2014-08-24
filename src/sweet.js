@@ -182,7 +182,16 @@
         options.requireModule = options.requireModule || requireModule;
 
         var tokenTree = parser.read(code);
-        var expandedTokens = expander.compileModule(tokenTree, options);
+
+        try {
+            var expandedTokens = expander.compileModule(tokenTree, options);
+        } catch(err) {
+            if (err instanceof syn.MacroSyntaxError) {
+                throw new SyntaxError(syn.printSyntaxError(code, err));
+            } else {
+                throw err;
+            }
+        }
         var ast = parser.parse(expandedTokens);
 
         // if (options.readableNames) {

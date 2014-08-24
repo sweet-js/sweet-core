@@ -2550,7 +2550,11 @@ parseYieldExpression: true
 
         if (type === Token.BooleanLiteral) {
             token = lex();
-            token.value = (token.value === 'true');
+            if (typeof token.value !== "boolean") {
+                assert(token.value === 'true' || token.value === 'false',
+                       "exporting either true or false as a string not: " + token.value);
+                token.value = (token.value === 'true');
+            }
             return delegate.createLiteral(token);
         }
 

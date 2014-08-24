@@ -238,6 +238,7 @@ module.exports = function(grunt) {
                 grunt.log.writeln("compiling " + file);
 
                 var code = grunt.file.read(file);
+
                 var output = sweet.compile(code, {
                     sourceMap: options.sourceMap,
                     filename: file,
@@ -247,7 +248,12 @@ module.exports = function(grunt) {
 
                 dest.forEach(function(dest) {
                     var sourceMappingURL = dest + path.basename(file) + ".map";
-                    var outputFile = output.code + "\n//# sourceMappingURL=" + path.basename(file) + ".map";
+                    var outputFile;
+                    if (options.sourceMap) {
+                        outputFile = output.code + "\n//# sourceMappingURL=" + path.basename(file) + ".map";
+                    } else {
+                        outputFile = output.code;
+                    }
                     // macro expanded result
                     grunt.file.write(dest + path.basename(file),
                                      outputFile);
@@ -255,9 +261,10 @@ module.exports = function(grunt) {
                         // sourcemap
                         grunt.file.write(sourceMappingURL,
                                          output.sourceMap);
-                        
+
                     }
                 });
+
             });
         });
         
