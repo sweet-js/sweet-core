@@ -84,6 +84,7 @@ parseYieldExpression: true
         lookahead,
         lookaheadIndex,
         state,
+        phase,
         extra;
 
     Token = {
@@ -2516,7 +2517,7 @@ parseYieldExpression: true
         type = lookahead.type;
 
         if (type === Token.Identifier) {
-            resolvedIdent = expander.resolve(tokenStream[lookaheadIndex]);
+            resolvedIdent = expander.resolve(tokenStream[lookaheadIndex], phase);
             lex();
             return delegate.createIdentifier(resolvedIdent);
         }
@@ -3213,7 +3214,7 @@ parseYieldExpression: true
             throwUnexpected(token);
         }
 
-        resolvedIdent = expander.resolve(tokenStream[lookaheadIndex]);
+        resolvedIdent = expander.resolve(tokenStream[lookaheadIndex], phase);
 
         lex();
 
@@ -5969,6 +5970,7 @@ parseYieldExpression: true
         sm_index = 0;
         sm_range = [0, 0];
         lookahead = null;
+        phase = options && typeof options.phase !== 'undefined' ? options.phase : 0;
         state = {
             allowKeyword: false,
             allowIn: true,

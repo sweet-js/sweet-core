@@ -107,6 +107,7 @@ import @ from "contracts.js"
     var Rename = syn.Rename;
     var Mark = syn.Mark;
     var Def = syn.Def;
+    var Imported = syn.Imported;
 
     var syntaxFromToken = syn.syntaxFromToken;
     var joinSyntax = syn.joinSyntax;
@@ -141,12 +142,17 @@ import @ from "contracts.js"
                 ctx = ctx.context;
                 continue;
             }
+            if (ctx.constructor === Imported) {
+                ctx = ctx.context;
+                continue;
+            }
+            assert(false, "Unknown context type");
         }
         return [];
     }
 
     function resolve(stx, phase) {
-        phase = typeof phase !== 'undefined' ? phase : 0;
+        assert(phase !== undefined, "must pass in phase");
         return resolveCtx(stx.token.value, stx.context, [], [], {}, phase);
     }
 
@@ -209,13 +215,13 @@ import @ from "contracts.js"
                                              stop_branch,
                                              stop_branch,
                                              cache,
-                                             phase);
+                                             0);
                     var subName = resolveCtx(originalName,
                                              ctx.context,
                                              unionEl(stop_spine, ctx.def),
                                              stop_branch,
                                              cache,
-                                             phase);
+                                             0);
                     if (idName === subName) {
                         var idMarks  = marksof(ctx.id.context,
                                 originalName + "$" + ctx.name,
@@ -231,7 +237,16 @@ import @ from "contracts.js"
                 ctx = ctx.context;
                 continue;
             }
-            return originalName;
+            if (ctx.constructor === Imported) {
+                if (phase === ctx.phase) {
+                    if (originalName === ctx.id.token.value) {
+                        return originalName + "$" + ctx.name;
+                    }
+                }
+                ctx = ctx.context;
+                continue;
+            }
+            assert(false, "Unknown context type");
         }
     }
 
@@ -505,15 +520,29 @@ import @ from "contracts.js"
             return this;
         }
 
-        rename(id, name) {
+        rename(id, name, phase) {
             var self = this;
             _.each(this.constructor.properties, function(prop) {
                 if (Array.isArray(self[prop])) {
                     self[prop] = _.map(self[prop], function (item) {
-                        return item.rename(id, name);
+                        return item.rename(id, name, phase);
                     });
                 } else if (self[prop]) {
-                    self[prop] = self[prop].rename(id, name);
+                    self[prop] = self[prop].rename(id, name, phase);
+                }
+            });
+            return this;
+        }
+
+        imported(id, name, phase) {
+            var self = this;
+            _.each(this.constructor.properties, function(prop) {
+                if (Array.isArray(self[prop])) {
+                    self[prop] = _.map(self[prop], function (item) {
+                        return item.imported(id, name, phase);
+                    });
+                } else if (self[prop]) {
+                    self[prop] = self[prop].imported(id, name, phase);
                 }
             });
             return this;
@@ -948,7 +977,7 @@ import @ from "contracts.js"
         }
     }
 
-    function getMacroInEnv(head, rest, env) {
+    function getMacroInEnv(head, rest, context) {
         if (!(head.token.type === parser.Token.Identifier ||
               head.token.type === parser.Token.Keyword ||
               head.token.type === parser.Token.Punctuator)) {
@@ -957,21 +986,21 @@ import @ from "contracts.js"
         var name = getName(head, rest);
         // simple case, don't need to create a new syntax object
         if (name.length === 1) {
-            if (env.names.get(unwrapSyntax(name[0]))) {
-                var resolvedName = resolve(name[0]);
-                if (env.has(resolvedName)) {
-                    return env.get(resolvedName);
+            if (context.env.names.get(unwrapSyntax(name[0]))) {
+                var resolvedName = resolve(name[0], context.phase);
+                if (context.env.has(resolvedName)) {
+                    return context.env.get(resolvedName);
                 }
             }
             return null;
         } else {
             while (name.length > 0) {
                 var nameStr = name.map(unwrapSyntax).join("");
-                if (env.names.get(nameStr)) {
+                if (context.env.names.get(nameStr)) {
                     var nameStx = syn.makeIdent(nameStr, name[0]);
-                    var resolvedName = resolve(nameStx);
-                    if (env.has(resolvedName)) {
-                        return env.get(resolvedName);
+                    var resolvedName = resolve(nameStx, context.phase);
+                    if (context.env.has(resolvedName)) {
+                        return context.env.get(resolvedName);
                     }
                 }
                 name.pop();
@@ -980,22 +1009,22 @@ import @ from "contracts.js"
         }
     }
 
-    function nameInEnv(head, rest, env) {
-        return getMacroInEnv(head, rest, env) !== null;
+    function nameInEnv(head, rest, context) {
+        return getMacroInEnv(head, rest, context) !== null;
     }
 
     // This should only be used on things that can't be rebound except by
     // macros (puncs, keywords).
-    function resolveFast(stx, env) {
+    function resolveFast(stx, env, phase) {
         var name = unwrapSyntax(stx);
-        return env.names.get(name) ? resolve(stx) : name;
+        return env.names.get(name) ? resolve(stx, phase) : name;
     }
 
     function expandMacro(stx, context, opCtx, opType, macroObj) {
         // pull the macro transformer out the environment
         var head = stx[0];
         var rest = stx.slice(1);
-        macroObj = macroObj || getMacroInEnv(head, rest, context.env);
+        macroObj = macroObj || getMacroInEnv(head, rest, context);
         var stxArg = rest.slice(macroObj.fullName.length - 1);
         var transformer;
         if (opType != null) {
@@ -1118,7 +1147,7 @@ import @ from "contracts.js"
                     } else if (head.isId) {
                         uopSyntax = head.id;
                     }
-                    uopMacroObj = getMacroInEnv(uopSyntax, rest, context.env);
+                    uopMacroObj = getMacroInEnv(uopSyntax, rest, context);
                     isCustomOp = uopMacroObj && uopMacroObj.isOp;
                 }
 
@@ -1126,7 +1155,7 @@ import @ from "contracts.js"
                 // without repeatedly calling getMacroInEnv)
                 var bopMacroObj;
                 if (rest[0] && rest[1]) {
-                    bopMacroObj = getMacroInEnv(rest[0], rest.slice(1), context.env);
+                    bopMacroObj = getMacroInEnv(rest[0], rest.slice(1), context);
                 }
 
                 // unary operator
@@ -1284,14 +1313,14 @@ import @ from "contracts.js"
                     }
                 // Conditional ( x ? true : false)
                 } else if (head.isExpr &&
-                           (rest[0] && resolveFast(rest[0], context.env) === "?")) {
+                           (rest[0] && resolveFast(rest[0], context.env, context.phase) === "?")) {
                     var question = rest[0];
                     var condRes = enforest(rest.slice(1), context);
                     if (condRes.result) {
                         var truExpr = condRes.result;
                         var condRight = condRes.rest;
                         if (truExpr.isExpr &&
-                            condRight[0] && resolveFast(condRight[0], context.env) === ":") {
+                            condRight[0] && resolveFast(condRight[0], context.env, context.phase) === ":") {
                             var colon = condRight[0];
                             var flsRes = enforest(condRight.slice(1), context);
                             var flsExpr = flsRes.result;
@@ -1334,7 +1363,7 @@ import @ from "contracts.js"
                            head.delim.token.value === "()" &&
                            rest[0] &&
                            rest[0].token.type === parser.Token.Punctuator &&
-                           resolveFast(rest[0], context.env) === "=>") {
+                           resolveFast(rest[0], context.env, context.phase) === "=>") {
                     var arrowRes = enforest(rest.slice(1), context);
                     if (arrowRes.result && arrowRes.result.isExpr) {
                         return step(ArrowFun.create(head.delim,
@@ -1351,7 +1380,7 @@ import @ from "contracts.js"
                 } else if (head.isId &&
                            rest[0] &&
                            rest[0].token.type === parser.Token.Punctuator &&
-                           resolveFast(rest[0], context.env) === "=>") {
+                           resolveFast(rest[0], context.env, context.phase) === "=>") {
                     var res = enforest(rest.slice(1), context);
                     if (res.result && res.result.isExpr) {
                         return step(ArrowFun.create(head.id,
@@ -1399,7 +1428,7 @@ import @ from "contracts.js"
                             (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
                                          unwrapSyntax(rest[0]) === "--"))) {
                     // Check if the operator is a macro first.
-                    if (context.env.has(resolveFast(rest[0], context.env))) {
+                    if (context.env.has(resolveFast(rest[0], context.env, context.phase))) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         var opPrevStx = headStx.concat(prevStx);
                         var opPrevTerms = [head].concat(prevTerms);
@@ -1425,12 +1454,12 @@ import @ from "contracts.js"
                 // ObjectGet
                 } else if (head.isExpr &&
                             (rest[0] && unwrapSyntax(rest[0]) === "." &&
-                             !context.env.has(resolveFast(rest[0], context.env)) &&
+                             !context.env.has(resolveFast(rest[0], context.env, context.phase)) &&
                              rest[1] &&
                              (rest[1].token.type === parser.Token.Identifier ||
                               rest[1].token.type === parser.Token.Keyword))) {
                     // Check if the identifier is a macro first.
-                    if (context.env.has(resolveFast(rest[1], context.env))) {
+                    if (context.env.has(resolveFast(rest[1], context.env, context.phase))) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         var dotTerm = Punc.create(rest[0]);
                         var dotTerms = [dotTerm].concat(head, prevTerms);
@@ -1547,7 +1576,7 @@ import @ from "contracts.js"
             } else {
                 assert(head && head.token, "assuming head is a syntax object");
 
-                var macroObj = expandCount < maxExpands && getMacroInEnv(head, rest, context.env);
+                var macroObj = expandCount < maxExpands && getMacroInEnv(head, rest, context);
 
                 // macro invocation
                 if (macroObj && !macroObj.isOp) {
@@ -1567,7 +1596,8 @@ import @ from "contracts.js"
                     }
                 // anon macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
-                           resolve(head) === "macro" &&
+                           unwrapSyntax(head) === "macro" &&
+                           resolve(head, context.phase) === "macro" &&
                            rest[0] && rest[0].token.value === "{}") {
 
                     return step(AnonMacro.create(rest[0].expose().token.inner),
@@ -1575,7 +1605,8 @@ import @ from "contracts.js"
                                 opCtx);
                 // macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
-                           resolve(head) === "macro") {
+                           unwrapSyntax(head) === "macro" &&
+                           resolve(head, context.phase) === "macro") {
                     var nameTokens = [];
                     if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                         rest[0].token.value === "()") {
@@ -1702,7 +1733,7 @@ import @ from "contracts.js"
                             head.token.value === "()") ||
                             head.token.type === parser.Token.Identifier) &&
                             rest[0] && rest[0].token.type === parser.Token.Punctuator &&
-                            resolveFast(rest[0], context.env) === "=>" &&
+                            resolveFast(rest[0], context.env, context.phase) === "=>" &&
                             rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                             rest[1].token.value === "{}") {
                     return step(ArrowFun.create(head, rest[0], rest[1]),
@@ -1807,8 +1838,8 @@ import @ from "contracts.js"
             // Potentially an infix macro
             // This should only be invoked on runtime syntax terms
             if (!head.isMacro && !head.isLetMacro && !head.isAnonMacro && !head.isOperatorDefinition &&
-                rest.length && nameInEnv(rest[0], rest.slice(1), context.env) &&
-                getMacroInEnv(rest[0], rest.slice(1), context.env).isOp === false) {
+                rest.length && nameInEnv(rest[0], rest.slice(1), context) &&
+                getMacroInEnv(rest[0], rest.slice(1), context).isOp === false) {
                 var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
                                   ? opCtx.prevTerms[0]
                                   : null;
@@ -2007,16 +2038,15 @@ import @ from "contracts.js"
         });
     }
 
-
     // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
-    function loadMacroDef(body, context) {
+    function loadMacroDef(body, context, phase) {
 
         var expanded = body[0].destruct();
         var stub = parser.read("()");
         stub[0].token.inner = expanded;
         var flattend = flatten(stub);
-        var bodyCode = codegen.generate(parser.parse(flattend));
+        var bodyCode = codegen.generate(parser.parse(flattend, {phase: phase}));
         var macroGlobal = {
             makeValue: syn.makeValue,
             makeRegex: syn.makeRegex,
@@ -2147,14 +2177,16 @@ import @ from "contracts.js"
                                      head.body);
                 }
                 // expand the body
-                head.body = expand(head.body, context);
+                head.body = expand(head.body,
+                                   makeExpanderContext(_.extend({phase: context.phase + 1},
+                                                                context)));
                 //  and load the macro definition into the environment
-                macroDefinition = loadMacroDef(head.body, context);
+                macroDefinition = loadMacroDef(head.body, context, context.phase + 1);
                 var name = head.name.map(unwrapSyntax).join("");
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
                 context.env.names.set(name, true);
-                context.env.set(resolve(nameStx), {
+                context.env.set(resolve(nameStx, context.phase), {
                     fn: macroDefinition,
                     isOp: false,
                     builtin: builtinMode,
@@ -2171,9 +2203,11 @@ import @ from "contracts.js"
                                      head.body);
                 }
                 // expand the body
-                head.body = expand(head.body, context);
+                head.body = expand(head.body,
+                                   makeExpanderContext(_.extend({phase: context.phase + 1},
+                                                                context)));
                 //  and load the macro definition into the environment
-                macroDefinition = loadMacroDef(head.body, context);
+                macroDefinition = loadMacroDef(head.body, context, context.phase + 1);
                 var freshName = fresh();
                 var name = head.name.map(unwrapSyntax).join("");
                 var oldName = head.name;
@@ -2185,7 +2219,7 @@ import @ from "contracts.js"
                 });
 
                 context.env.names.set(name, true);
-                context.env.set(resolve(renamedName), {
+                context.env.set(resolve(renamedName, context.phase), {
                     fn: macroDefinition,
                     isOp: false,
                     builtin: builtinMode,
@@ -2202,14 +2236,16 @@ import @ from "contracts.js"
                                      head.body);
                 }
                 // expand the body
-                head.body = expand(head.body, context);
+                head.body = expand(head.body,
+                                   makeExpanderContext(_.extend({phase: context.phase + 1},
+                                                                context)));
                 //  and load the macro definition into the environment
-                var opDefinition = loadMacroDef(head.body, context);
+                var opDefinition = loadMacroDef(head.body, context, context.phase + 1);
 
                 var name = head.name.map(unwrapSyntax).join("");
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
-                var resolvedName = resolve(nameStx);
+                var resolvedName = resolve(nameStx, context.phase);
                 var opObj = context.env.get(resolvedName);
                 if (!opObj) {
                     opObj = {
@@ -2268,7 +2304,7 @@ import @ from "contracts.js"
             if (head.isForStatement) {
                 head.cond.expose();
                 var forCond = head.cond.token.inner;
-                if(forCond[0] && resolve(forCond[0]) === "let" &&
+                if(forCond[0] && resolve(forCond[0], context.phase) === "let" &&
                    forCond[1] && forCond[1].token.type === parser.Token.Identifier) {
                     var letNew = fresh();
                     var letId = forCond[1];
@@ -2589,18 +2625,21 @@ import @ from "contracts.js"
             patternMap: {value: o.patternMap || new StringMap(),
                          writable: false, enumerable: true, configurable: false},
             mark: {value: o.mark,
+                          writable: false, enumerable: true, configurable: false},
+            phase: {value: o.phase,
                           writable: false, enumerable: true, configurable: false}
         });
     }
 
-    function makeModuleExpanderContext(options, templateMap, patternMap) {
+    function makeModuleExpanderContext(options, templateMap, patternMap, phase) {
         var requireModule = options ? options.requireModule : undefined;
         var filename = options && options.filename ? options.filename : "<anonymous module>";
         return makeExpanderContext({
             filename: filename,
             requireModule: requireModule,
             templateMap: templateMap,
-            patternMap: patternMap
+            patternMap: patternMap,
+            phase: phase
         });
     }
 
@@ -2699,12 +2738,12 @@ import @ from "contracts.js"
             var name;
             var macroDefinition;
             if (term.isMacro) {
-                macroDefinition = loadMacroDef(term.body, context);
+                macroDefinition = loadMacroDef(term.body, context, phase + 1);
                 // compilation collapses multi-token macro names into single identifier
                 name = unwrapSyntax(term.name[0]);
 
                 context.env.names.set(name, true);
-                context.env.set(resolve(term.name[0]), {
+                context.env.set(resolve(term.name[0], phase), {
                     fn: macroDefinition,
                     isOp: false,
                     builtin: builtinMode,
@@ -2713,12 +2752,12 @@ import @ from "contracts.js"
             }
 
             if (term.isLetMacro) {
-                macroDefinition = loadMacroDef(term.body, context);
+                macroDefinition = loadMacroDef(term.body, context, phase + 1);
                 // compilation collapses multi-token macro names into single identifier
                 name = unwrapSyntax(term.name[0]);
 
                 context.env.names.set(name, true);
-                context.env.set(resolve(term.name[0]), {
+                context.env.set(resolve(term.name[0], phase), {
                     fn: macroDefinition,
                     isOp: false,
                     builtin: builtinMode,
@@ -2727,11 +2766,11 @@ import @ from "contracts.js"
             }
 
             if (term.isOperatorDefinition) {
-                var opDefinition = loadMacroDef(term.body, context);
+                var opDefinition = loadMacroDef(term.body, context, phase + 1);
                 // compilation collapses multi-token macro names into single identifier
                 name = unwrapSyntax(term.name[0]);
 
-                var resolvedName = resolve(term.name[0]);
+                var resolvedName = resolve(term.name[0], phase);
                 var opObj = context.env.get(resolvedName);
                 if (!opObj) {
                     opObj = {
@@ -2767,7 +2806,7 @@ import @ from "contracts.js"
         vm.runInNewContext(code, global);
 
         mod.exports.forEach(exp => {
-            var expName = resolve(exp.name);
+            var expName = resolve(exp.name, phase);
             var expVal = global[expName];
             context.env.set(expName, expVal);
             context.env.names.set(expName, true);
@@ -2777,7 +2816,7 @@ import @ from "contracts.js"
 
     @ (ModuleTerm, [...ModuleTerm], SweetOptions, TemplateMap, PatternMap) -> ModuleTerm
     function compileModule(mod, available, options, templateMap, patternMap) {
-        var context = makeModuleExpanderContext(options, templateMap, patternMap);
+        var context = makeModuleExpanderContext(options, templateMap, patternMap, 0);
         return collectImports(mod, context) |> mod => {
             mod.imports.forEach(imp => {
                 var modToImport = _.find(available, m => imp.from.token.value === m.name);
@@ -2799,6 +2838,7 @@ import @ from "contracts.js"
                 } else {
                     assert(false, "not implemented yet");
                 }
+                var importPhase = imp.isImport ? 0 : 1;
 
                 if (imp.names.token.type === parser.Token.Delimiter) {
                     if (imp.names.token.inner.length === 0) {
@@ -2807,11 +2847,17 @@ import @ from "contracts.js"
                                              imp.names);
                     } else if (unwrapSyntax(imp.names.token.inner[0]) === "*") {
                         modToImport.exports.forEach(exp => {
-                            var trans = context.env.get(resolve(exp.name));
+                            var trans = context.env.get(resolve(exp.name, 0));
                             var newParam = syn.makeIdent(unwrapSyntax(exp.name), null);
                             var newName = fresh();
-                            context.env.set(resolve(newParam.rename(newParam, newName)), trans);
-                            mod = mod.rename(newParam, newName);
+                            context.env.set(resolve(newParam.imported(newParam,
+                                                                      newName,
+                                                                      importPhase),
+                                                    importPhase),
+                                            trans);
+                            mod.body = mod.body.map(stx => stx.imported(newParam,
+                                                                        newName,
+                                                                        importPhase));
                         });
                     } else {
                         // todo: handle comma separated
@@ -2826,11 +2872,17 @@ import @ from "contracts.js"
                                                  importName);
                             }
 
-                            var trans = context.env.get(resolve(inExports.name));
+                            var trans = context.env.get(resolve(inExports.name, 0));
                             var newParam = syn.makeIdent(unwrapSyntax(inExports.name), null);
                             var newName = fresh();
-                            context.env.set(resolve(newParam.rename(newParam, newName)), trans);
-                            mod = mod.rename(newParam, newName);
+                            context.env.set(resolve(newParam.imported(newParam,
+                                                                      newName,
+                                                                      importPhase),
+                                                    importPhase),
+                                            trans);
+                            mod.body = mod.body.map(stx => stx.imported(newParam,
+                                                                        newName,
+                                                                        importPhase));
                         });
                     }
                 } else {
@@ -2856,7 +2908,7 @@ import @ from "contracts.js"
         var patternMap = new StringMap();
         var compiled = compileModule(mod, [], options, templateMap, patternMap);
         return compiled.body.reduce((acc, term) => {
-            // todo: walk the term tree to remove all macro forms
+            // todo: walk down the term tree to remove all macro forms
             if (term.isMacro || term.isLetMacro || term.isOperatorDefinition) {
                 return acc;
             }

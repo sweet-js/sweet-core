@@ -64,12 +64,12 @@ import @ from "contracts.js"
         this.instNum = globalContextInstanceNumber++;
     }
 
-    function Reqd(id, mod, name, ctx, phase) {
+    function Imported(id, name, ctx, phase) {
         this.id = id;
         this.name = name;
-        this.mod = mod;
-        this.context = ctx;
         this.phase = phase;
+        this.context = ctx;
+        this.instNum = globalContextInstanceNumber++;
     }
 
     function Syntax(token, oldstx) {
@@ -103,22 +103,20 @@ import @ from "contracts.js"
                                    {context: new Rename(id, name, this.context, defctx, phase)});
         },
 
-        addReqd: function(id, mod, name, phase) {
+        imported: function(id, name, phase) {
             if (this.token.inner) {
                 return syntaxFromToken(this.token,
-                                      {deferredContext: new Reqd(id,
-                                                                 mod,
-                                                                 name,
-                                                                 this.deferredContext,
-                                                                 phase),
-                                      context: new Reqd(id, mod, name, this.context, phase)});
+                                       {deferredContext: new Imported(id,
+                                                                      name,
+                                                                      this.deferredContext,
+                                                                      phase),
+                                      context: new Imported(id, name, this.context, phase)});
 
             }
-            return syntaxFromToken(this.token, {context: new Reqd(id,
-                                                                  mod,
-                                                                  name,
-                                                                  this.context,
-                                                                  phase)});
+            return syntaxFromToken(this.token, {context: new Imported(id,
+                                                                      name,
+                                                                      this.context,
+                                                                      phase)});
         },
 
         addDefCtx: function(defctx) {
@@ -158,6 +156,11 @@ import @ from "contracts.js"
                     return new Mark(ctx.mark, applyContext(stxCtx, ctx.context));
                 } else if (ctx instanceof Def) {
                     return new Def(ctx.defctx, applyContext(stxCtx, ctx.context));
+                } else if (ctx instanceof Imported) {
+                    return new Imported(ctx.id,
+                                        ctx.name,
+                                        applyContext(stxCtx, ctx.context),
+                                        ctx.phase);
                 } else {
                     assert(false, "unknown context type");
                 }
@@ -483,6 +486,7 @@ import @ from "contracts.js"
     exports.Rename = Rename;
     exports.Mark = Mark;
     exports.Def = Def;
+    exports.Imported = Imported;
 
     exports.syntaxFromToken = syntaxFromToken;
     exports.tokensToSyntax = tokensToSyntax;
