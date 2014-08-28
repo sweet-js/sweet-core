@@ -2706,13 +2706,16 @@ import @ from "contracts.js"
     @ (Str) -> Str
     function resolvePath(name) {
         var path = require("path");
+        var resolveSync = require("resolve/lib/sync");
         var fs = require("fs");
-
-        if (!(name === "stxcase.js" || name === "helper.js")) {
-            assert(false, "not implemented yet");
+        var cwd = process.cwd();
+        if (name[0] === ".") {
+            name = path.resolve(cwd, name);
         }
-        var lib  = path.join(path.dirname(fs.realpathSync(__filename)), "../macros");
-        return lib + "/" + name;
+        return resolveSync(name, {
+            basedir: cwd,
+            extensions: ['.js', '.sjs']
+        });
     }
 
     @ (Str) -> ModuleTerm
