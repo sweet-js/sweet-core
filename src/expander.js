@@ -2704,29 +2704,28 @@ import @ from "contracts.js"
     }
 
     @ (Str) -> Str
-    function resolvePath(name) {
+    function resolvePath(name, root) {
         var path = require("path");
         var resolveSync = require("resolve/lib/sync");
         var fs = require("fs");
-        var cwd = process.cwd();
         if (name[0] === ".") {
-            name = path.resolve(cwd, name);
+            name = path.resolve(root, name);
         }
         return resolveSync(name, {
-            basedir: cwd,
+            basedir: root,
             extensions: ['.js', '.sjs']
         });
     }
 
-    @ (Str) -> ModuleTerm
-    function loadModule(name) {
+    @ (Str, ModuleTerm) -> ModuleTerm
+    function loadModule(name, parent) {
         // node specific code
         var path = require("path");
         var fs = require("fs");
-
-        return name
-            |> resolvePath |> path => fs.readFileSync(path, 'utf8')
-            |> parser.read |> body => Module.create(syn.makeValue(name, null),
+        var root  = path.dirname(syn.unwrapSyntax(parent.name));
+        var fullpath = resolvePath(name, root);
+        return fs.readFileSync(fullpath, 'utf8')
+            |> parser.read |> body => Module.create(syn.makeValue(fullpath, null),
                                                     syn.makeValue("js", null),
                                                     body,
                                                     [],
@@ -2818,14 +2817,14 @@ import @ from "contracts.js"
     }
 
     @ (ModuleTerm, [...ModuleTerm], SweetOptions, TemplateMap, PatternMap) -> ModuleTerm
-    function compileModule(mod, available, options, templateMap, patternMap) {
+    function compileModule(mod, available, options, templateMap, patternMap, root) {
         var context = makeModuleExpanderContext(options, templateMap, patternMap, 0);
         return collectImports(mod, context) |> mod => {
             mod.imports.forEach(imp => {
                 var modToImport = _.find(available, m => imp.from.token.value === m.name);
                 if(!modToImport) {
                     // load it
-                    modToImport = loadModule(imp.from.token.value) |>
+                    modToImport = loadModule(imp.from.token.value, mod) |>
                                                  loaded => compileModule(loaded,
                                                                          available,
                                                                          options,
@@ -2899,9 +2898,10 @@ import @ from "contracts.js"
 
     @ ([...SyntaxObject], {filename: Str}) -> [...SyntaxObject]
     function compile(stx, options) {
+        var fs = require("fs");
         maxExpands = Infinity;
         expandCount = 0;
-        var mod = Module.create(syn.makeValue(options.filename, null),
+        var mod = Module.create(syn.makeValue(fs.realpathSync(options.filename), null),
                                 syn.makeValue("js", null),
                                 stx,
                                 [],
