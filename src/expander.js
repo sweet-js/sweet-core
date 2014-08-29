@@ -2731,6 +2731,21 @@ import @ from "contracts.js"
                                                     [])
     }
 
+    // todo: need to walk down the term tree
+    function stripCompiletime(terms) {
+        return terms.filter(term => !(term.isMacro ||
+                            term.isLetMacro ||
+                            term.isExport ||
+                            term.isOperatorDefinition));
+    }
+
+    function stripRuntime(terms) {
+        return terms.filter(term => term.isMacro ||
+                            term.isLetMacro ||
+                            term.isExport ||
+                            term.isOperatorDefinition);
+    }
+
     @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
     function invoke(mod, phase, context, options) {
         mod.imports.forEach(imp => {
@@ -2740,7 +2755,8 @@ import @ from "contracts.js"
             }
         });
 
-        var code = mod.body.map(term => term.destruct())
+        var code = mod.body |> stripCompiletime
+            |> terms => terms.map(term => term.destruct())
             |> _.flatten
             |> flatten
             |> parser.parse
@@ -2768,7 +2784,7 @@ import @ from "contracts.js"
                 context = visit(modToImport, phase, context, options);
             } else if (imp.isImportForMacros) {
                 context = invoke(modToImport, phase + 1, context, options);
-                context = visit(modToImport, phase + 1, context, options);
+                // context = visit(modToImport, phase + 1, context, options);
             } else {
                 console.log(imp);
                 assert(false, "not implemented yet");
@@ -2865,7 +2881,7 @@ import @ from "contracts.js"
                                      imp.names);
             } else if (unwrapSyntax(imp.names.token.inner[0]) === "*") {
                 modToImport.exports.forEach(exp => {
-                    var trans = context.env.get(resolve(exp.name, 0));
+                    var trans = context.env.get(resolve(exp.name, phase));
                     var newParam = syn.makeIdent(unwrapSyntax(exp.name), null);
                     var newName = fresh();
                     context.env.set(resolve(newParam.imported(newParam,
@@ -2890,7 +2906,7 @@ import @ from "contracts.js"
                                          importName);
                     }
 
-                    var trans = context.env.get(resolve(inExports.name, 0));
+                    var trans = context.env.get(resolve(inExports.name, phase));
                     var newParam = syn.makeIdent(unwrapSyntax(inExports.name), null);
                     var newName = fresh();
                     context.env.set(resolve(newParam.imported(newParam,
@@ -2920,6 +2936,7 @@ import @ from "contracts.js"
                     context = visit(modToImport, 0, context, options);
                 } else if (imp.isImportForMacros) {
                     context = invoke(modToImport, 1, context, options);
+                    // context = visit(modToImport, 1, context, options);
                 } else {
                     assert(false, "not implemented yet");
                 }
