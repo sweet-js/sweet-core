@@ -2731,8 +2731,15 @@ import @ from "contracts.js"
                                                     [])
     }
 
-    @ (ModuleTerm, Num, ExpanderContext) -> ExpanderContext
-    function invoke(mod, phase, context) {
+    @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
+    function invoke(mod, phase, context, options) {
+        mod.imports.forEach(imp => {
+            var modToImport = loadImport(imp, mod, options, context);
+            if (imp.isImport) {
+                context = invoke(modToImport, phase, context, options);
+            }
+        });
+
         var code = mod.body.map(term => term.destruct())
             |> _.flatten
             |> flatten
@@ -2760,7 +2767,8 @@ import @ from "contracts.js"
             if(imp.isImport) {
                 context = visit(modToImport, phase, context, options);
             } else if (imp.isImportForMacros) {
-                context = invoke(modToImport, phase + 1, context);
+                context = invoke(modToImport, phase + 1, context, options);
+                context = visit(modToImport, phase + 1, context, options);
             } else {
                 console.log(imp);
                 assert(false, "not implemented yet");
@@ -2911,7 +2919,7 @@ import @ from "contracts.js"
                 if(imp.isImport) {
                     context = visit(modToImport, 0, context, options);
                 } else if (imp.isImportForMacros) {
-                    context = invoke(modToImport, 1, context);
+                    context = invoke(modToImport, 1, context, options);
                 } else {
                     assert(false, "not implemented yet");
                 }
