@@ -22,7 +22,6 @@ browser/scripts/src
 
 *.map
 
-test.js
 _site
 
 .tern-port
