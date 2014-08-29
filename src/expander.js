@@ -115,6 +115,7 @@ import @ from "contracts.js"
     var builtinMode = false;
     var expandCount = 0;
     var maxExpands;
+    var availableModules = new StringMap();
 
     var push = Array.prototype.push;
 
@@ -2703,10 +2704,11 @@ import @ from "contracts.js"
         flatten: ?Bool
     }
 
-    @ (Str) -> Str
-    function resolvePath(name, root) {
+    @ (Str, ModuleTerm) -> Str
+    function resolvePath(name, parent) {
         var path = require("path");
         var resolveSync = require("resolve/lib/sync");
+        var root  = path.dirname(syn.unwrapSyntax(parent.name));
         var fs = require("fs");
         if (name[0] === ".") {
             name = path.resolve(root, name);
@@ -2717,15 +2719,12 @@ import @ from "contracts.js"
         });
     }
 
-    @ (Str, ModuleTerm) -> ModuleTerm
-    function loadModule(name, parent) {
+    @ (Str) -> ModuleTerm
+    function loadModule(name) {
         // node specific code
-        var path = require("path");
         var fs = require("fs");
-        var root  = path.dirname(syn.unwrapSyntax(parent.name));
-        var fullpath = resolvePath(name, root);
-        return fs.readFileSync(fullpath, 'utf8')
-            |> parser.read |> body => Module.create(syn.makeValue(fullpath, null),
+        return fs.readFileSync(name, 'utf8')
+            |> parser.read |> body => Module.create(syn.makeValue(name, null),
                                                     syn.makeValue("js", null),
                                                     body,
                                                     [],
@@ -2816,21 +2815,22 @@ import @ from "contracts.js"
         return context;
     }
 
-    @ (ModuleTerm, [...ModuleTerm], SweetOptions, TemplateMap, PatternMap) -> ModuleTerm
-    function compileModule(mod, available, options, templateMap, patternMap, root) {
+    @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> ModuleTerm
+    function compileModule(mod, options, templateMap, patternMap, root) {
         var context = makeModuleExpanderContext(options, templateMap, patternMap, 0);
         return collectImports(mod, context) |> mod => {
             mod.imports.forEach(imp => {
-                var modToImport = _.find(available, m => imp.from.token.value === m.name);
-                if(!modToImport) {
+                var modToImport; // = _.find(available, m => imp.from.token.value === m.name);
+                var modFullPath = resolvePath(syn.unwrapSyntax(imp.from), mod);
+                if(!availableModules.has(modFullPath)) {
                     // load it
-                    modToImport = loadModule(imp.from.token.value, mod) |>
-                                                 loaded => compileModule(loaded,
-                                                                         available,
-                                                                         options,
-                                                                         context.templateMap,
-                                                                         context.patternMap);
-                    available = available.concat(modToImport);
+                    modToImport = loadModule(modFullPath) |> loaded => compileModule(loaded,
+                                                                                     options,
+                                                                                     context.templateMap,
+                                                                                     context.patternMap);
+                    availableModules.set(modFullPath, modToImport);
+                } else {
+                    modToImport = availableModules.get(modFullPath);
                 }
 
                 if(imp.isImport) {
@@ -2909,7 +2909,7 @@ import @ from "contracts.js"
         // the template map right now is global for every module
         var templateMap = new StringMap();
         var patternMap = new StringMap();
-        var compiled = compileModule(mod, [], options, templateMap, patternMap);
+        var compiled = compileModule(mod, options, templateMap, patternMap);
         return compiled.body.reduce((acc, term) => {
             // todo: walk down the term tree to remove all macro forms
             if (term.isMacro || term.isLetMacro || term.isOperatorDefinition) {
