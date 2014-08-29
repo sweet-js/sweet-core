@@ -167,15 +167,15 @@
         return parser.parse(expand(code, modules, options));
     }
 
-    @ let SweetOptions = {
-        ast: ?Bool,
-        sourceMap: ?Bool
-    }
+    // @ let SweetOptions = {
+    //     ast: ?Bool,
+    //     sourceMap: ?Bool
+    // }
 
-    @ (Str, SweetOptions) -> {
-        code: Str,
-        sourceMap: ?Str
-    }
+    // @ (Str, SweetOptions) -> {
+    //     code: Str,
+    //     sourceMap: ?Str
+    // }
     function compileModule(code, options) {
         var output;
         options = options || {};

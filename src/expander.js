@@ -23,7 +23,7 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import @ from "contracts.js"
+// import @ from "contracts.js"
 
 
 (function (root, factory) {
@@ -284,7 +284,7 @@ import @ from "contracts.js"
 
     var nextFresh = 0;
 
-    @ () -> Num
+    // @ () -> Num
     function fresh() { return nextFresh++; }
 
 
@@ -421,18 +421,18 @@ import @ from "contracts.js"
         }
     }
 
-    @ let TemplateMap = {}
-    @ let PatternMap = {}
-    @ let TokenObject = {}
-    @ let ContextObject = {}
+    // @ let TemplateMap = {}
+    // @ let PatternMap = {}
+    // @ let TokenObject = {}
+    // @ let ContextObject = {}
 
-    @ let SyntaxObject = {
-        token: TokenObject,
-        context: Null or ContextObject
-    }
-    @ let TermTreeObject = {}
+    // @ let SyntaxObject = {
+    //     token: TokenObject,
+    //     context: Null or ContextObject
+    // }
+    // @ let TermTreeObject = {}
 
-    @ let ExpanderContext = {}
+    // @ let ExpanderContext = {}
     // {
     //     filename: Str,
     //     requireModule: Str,
@@ -444,20 +444,20 @@ import @ from "contracts.js"
     //     mark: Num
     // }
 
-    @ let ExportTerm = {
-        name: SyntaxObject
-    }
-    @ let ImportTerm = {
-        names: SyntaxObject,
-        from: SyntaxObject
-    }
-    @ let ModuleTerm = {
-        name: SyntaxObject,
-        lang: SyntaxObject,
-        body: [...SyntaxObject] or [...TermTreeObject],
-        imports: [...ImportTerm],
-        exports: [...ExportTerm]
-    }
+    // @ let ExportTerm = {
+    //     name: SyntaxObject
+    // }
+    // @ let ImportTerm = {
+    //     names: SyntaxObject,
+    //     from: SyntaxObject
+    // }
+    // @ let ModuleTerm = {
+    //     name: SyntaxObject,
+    //     lang: SyntaxObject,
+    //     body: [...SyntaxObject] or [...TermTreeObject],
+    //     imports: [...ImportTerm],
+    //     exports: [...ExportTerm]
+    // }
 
     // A TermTree is the core data structure for the macro expansion process.
     // It acts as a semi-structured representation of the syntax.
@@ -2139,11 +2139,11 @@ import @ from "contracts.js"
     }
 
     // similar to `parse1` in the honu paper
-    @ ([...SyntaxObject], ExpanderContext) -> {
-        terms: [...TermTreeObject],
-        context: ExpanderContext,
-        restStx: Undefined or [...SyntaxObject]
-    }
+    // @ ([...SyntaxObject], ExpanderContext) -> {
+    //     terms: [...TermTreeObject],
+    //     context: ExpanderContext,
+    //     restStx: Undefined or [...SyntaxObject]
+    // }
     function expandToTermTree(stx, context) {
         assert(context, "expander context is required");
 
@@ -2401,7 +2401,7 @@ import @ from "contracts.js"
 
     // similar to `parse2` in the honu paper except here we
     // don't generate an AST yet
-    @ (TermTreeObject, ExpanderContext) -> TermTreeObject
+    // @ (TermTreeObject, ExpanderContext) -> TermTreeObject
     function expandTermTreeToFinal (term, context) {
         assert(context && context.env, "environment map is required");
 
@@ -2582,10 +2582,10 @@ import @ from "contracts.js"
         return term;
     }
 
-    @ let TermTree = {}
+    // @ let TermTree = {}
 
     // similar to `parse` in the honu paper
-    @ ([...SyntaxObject], ExpanderContext) -> [...TermTreeObject]
+    // @ ([...SyntaxObject], ExpanderContext) -> [...TermTreeObject]
     function expand(stx, context) {
         assert(context, "must provide an expander context");
 
@@ -2677,7 +2677,7 @@ import @ from "contracts.js"
     }
 
 
-    @ (ModuleTerm, ExpanderContext) -> ModuleTerm
+    // @ (ModuleTerm, ExpanderContext) -> ModuleTerm
     function collectImports(mod, context) {
         var imports = [];
         var res;
@@ -2700,11 +2700,11 @@ import @ from "contracts.js"
     }
 
 
-    @ let SweetOptions = {
-        flatten: ?Bool
-    }
+    // @ let SweetOptions = {
+    //     flatten: ?Bool
+    // }
 
-    @ (Str, ModuleTerm) -> Str
+    // @ (Str, ModuleTerm) -> Str
     function resolvePath(name, parent) {
         var path = require("path");
         var resolveSync = require("resolve/lib/sync");
@@ -2719,7 +2719,7 @@ import @ from "contracts.js"
         });
     }
 
-    @ (Str) -> ModuleTerm
+    // @ (Str) -> ModuleTerm
     function loadModule(name) {
         // node specific code
         var fs = require("fs");
@@ -2746,7 +2746,7 @@ import @ from "contracts.js"
                             term.isOperatorDefinition);
     }
 
-    @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
+    // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
     function invoke(mod, phase, context, options) {
         mod.imports.forEach(imp -> {
             var modToImport = loadImport(imp, mod, options, context);
@@ -2775,7 +2775,7 @@ import @ from "contracts.js"
     }
 
 
-    @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
+    // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
     function visit(mod, phase, context, options) {
         mod.imports.forEach(imp -> {
             var modToImport = loadImport(imp, mod, options, context);
@@ -2854,7 +2854,7 @@ import @ from "contracts.js"
     }
 
 
-    @ (ImportTerm, ModuleTerm, SweetOptions, ExpanderContext) -> ModuleTerm
+    // @ (ImportTerm, ModuleTerm, SweetOptions, ExpanderContext) -> ModuleTerm
     function loadImport(imp, parent, options, context) {
         var modToImport;
         var modFullPath = resolvePath(unwrapSyntax(imp.from), parent);
@@ -2871,7 +2871,7 @@ import @ from "contracts.js"
         return modToImport;
     }
 
-    @ (ImportTerm, ModuleTerm, ModuleTerm, ExpanderContext, Num) -> Void
+    // @ (ImportTerm, ModuleTerm, ModuleTerm, ExpanderContext, Num) -> Void
     // mutating mod
     function bindImportInMod(imp, mod, modToImport, context, phase) {
         if (imp.names.token.type === parser.Token.Delimiter) {
@@ -2924,7 +2924,7 @@ import @ from "contracts.js"
         }
     }
 
-    @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> ModuleTerm
+    // @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> ModuleTerm
     function compileModule(mod, options, templateMap, patternMap, root) {
         var context = makeModuleExpanderContext(options, templateMap, patternMap, 0);
 
@@ -2948,7 +2948,7 @@ import @ from "contracts.js"
         }
     }
 
-    @ ([...SyntaxObject], {filename: Str}) -> [...SyntaxObject]
+    // @ ([...SyntaxObject], {filename: Str}) -> [...SyntaxObject]
     function compile(stx, options) {
         var fs = require("fs");
         maxExpands = Infinity;
