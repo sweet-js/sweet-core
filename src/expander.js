@@ -2708,7 +2708,7 @@ import @ from "contracts.js"
     function resolvePath(name, parent) {
         var path = require("path");
         var resolveSync = require("resolve/lib/sync");
-        var root  = path.dirname(syn.unwrapSyntax(parent.name));
+        var root  = path.dirname(unwrapSyntax(parent.name));
         var fs = require("fs");
         if (name[0] === ".") {
             name = path.resolve(root, name);
@@ -2731,9 +2731,43 @@ import @ from "contracts.js"
                                                     [])
     }
 
-
     @ (ModuleTerm, Num, ExpanderContext) -> ExpanderContext
-    function visit(mod, phase, context) {
+    function invoke(mod, phase, context) {
+        var code = mod.body.map(term => term.destruct())
+            |> _.flatten
+            |> flatten
+            |> parser.parse
+            |> codegen.generate
+        var global = {};
+
+        vm.runInNewContext(code, global);
+
+        mod.exports.forEach(exp => {
+            var expName = resolve(exp.name, phase);
+            var expVal = global[expName];
+            context.env.set(expName, expVal);
+            context.env.names.set(expName, true);
+        });
+        return context;
+    }
+
+
+    @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
+    function visit(mod, phase, context, options) {
+        mod.imports.forEach(imp => {
+            var modToImport = loadImport(imp, mod, options, context);
+
+            if(imp.isImport) {
+                context = visit(modToImport, phase, context, options);
+            } else if (imp.isImportForMacros) {
+                context = invoke(modToImport, phase + 1, context);
+            } else {
+                console.log(imp);
+                assert(false, "not implemented yet");
+            }
+
+            bindImportInMod(imp, mod, modToImport, context, phase);
+        });
 
         mod.body.forEach(term => {
             var name;
@@ -2795,101 +2829,94 @@ import @ from "contracts.js"
         return context;
     }
 
-    @ (ModuleTerm, Num, ExpanderContext) -> ExpanderContext
-    function invoke(mod, phase, context) {
-        var code = mod.body.map(term => term.destruct())
-            |> _.flatten
-            |> flatten
-            |> parser.parse
-            |> codegen.generate
-        var global = {};
 
-        vm.runInNewContext(code, global);
+    @ (ImportTerm, ModuleTerm, SweetOptions, ExpanderContext) -> ModuleTerm
+    function loadImport(imp, parent, options, context) {
+        var modToImport;
+        var modFullPath = resolvePath(unwrapSyntax(imp.from), parent);
+        if(!availableModules.has(modFullPath)) {
+            // load it
+            modToImport = loadModule(modFullPath) |> loaded => compileModule(loaded,
+                                                                             options,
+                                                                             context.templateMap,
+                                                                             context.patternMap);
+            availableModules.set(modFullPath, modToImport);
+        } else {
+            modToImport = availableModules.get(modFullPath);
+        }
+        return modToImport;
+    }
 
-        mod.exports.forEach(exp => {
-            var expName = resolve(exp.name, phase);
-            var expVal = global[expName];
-            context.env.set(expName, expVal);
-            context.env.names.set(expName, true);
-        });
-        return context;
+    @ (ImportTerm, ModuleTerm, ModuleTerm, ExpanderContext, Num) -> Void
+    // mutating mod
+    function bindImportInMod(imp, mod, modToImport, context, phase) {
+        if (imp.names.token.type === parser.Token.Delimiter) {
+            if (imp.names.token.inner.length === 0) {
+                throwSyntaxCaseError("compileModule",
+                                     "must include names to import",
+                                     imp.names);
+            } else if (unwrapSyntax(imp.names.token.inner[0]) === "*") {
+                modToImport.exports.forEach(exp => {
+                    var trans = context.env.get(resolve(exp.name, 0));
+                    var newParam = syn.makeIdent(unwrapSyntax(exp.name), null);
+                    var newName = fresh();
+                    context.env.set(resolve(newParam.imported(newParam,
+                                                              newName,
+                                                              phase),
+                                            phase),
+                                    trans);
+                    mod.body = mod.body.map(stx => stx.imported(newParam,
+                                                                newName,
+                                                                phase));
+                });
+            } else {
+                // todo: handle comma separated
+                imp.names.token.inner.forEach(importName => {
+                    var inExports = _.find(modToImport.exports,
+                                           expTerm => expTerm.name.token.value === importName.token.value);
+                    if (!inExports) {
+                        throwSyntaxError("compile",
+                                         "the imported name `" +
+                                         unwrapSyntax(importName ) +
+                                         "` was not exported from the module",
+                                         importName);
+                    }
+
+                    var trans = context.env.get(resolve(inExports.name, 0));
+                    var newParam = syn.makeIdent(unwrapSyntax(inExports.name), null);
+                    var newName = fresh();
+                    context.env.set(resolve(newParam.imported(newParam,
+                                                              newName,
+                                                              phase),
+                                            phase),
+                                    trans);
+                    mod.body = mod.body.map(stx => stx.imported(newParam,
+                                                                newName,
+                                                                phase));
+                });
+            }
+        } else {
+            assert(false, "not implemented yet");
+        }
     }
 
     @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> ModuleTerm
     function compileModule(mod, options, templateMap, patternMap, root) {
         var context = makeModuleExpanderContext(options, templateMap, patternMap, 0);
+
         return collectImports(mod, context) |> mod => {
             mod.imports.forEach(imp => {
-                var modToImport; // = _.find(available, m => imp.from.token.value === m.name);
-                var modFullPath = resolvePath(syn.unwrapSyntax(imp.from), mod);
-                if(!availableModules.has(modFullPath)) {
-                    // load it
-                    modToImport = loadModule(modFullPath) |> loaded => compileModule(loaded,
-                                                                                     options,
-                                                                                     context.templateMap,
-                                                                                     context.patternMap);
-                    availableModules.set(modFullPath, modToImport);
-                } else {
-                    modToImport = availableModules.get(modFullPath);
-                }
+                var modToImport = loadImport(imp, mod, options, context);
 
                 if(imp.isImport) {
-                    context = visit(modToImport, 0, context);
+                    context = visit(modToImport, 0, context, options);
                 } else if (imp.isImportForMacros) {
                     context = invoke(modToImport, 1, context);
                 } else {
                     assert(false, "not implemented yet");
                 }
                 var importPhase = imp.isImport ? 0 : 1;
-
-                if (imp.names.token.type === parser.Token.Delimiter) {
-                    if (imp.names.token.inner.length === 0) {
-                        throwSyntaxCaseError("compileModule",
-                                             "must include names to import",
-                                             imp.names);
-                    } else if (unwrapSyntax(imp.names.token.inner[0]) === "*") {
-                        modToImport.exports.forEach(exp => {
-                            var trans = context.env.get(resolve(exp.name, 0));
-                            var newParam = syn.makeIdent(unwrapSyntax(exp.name), null);
-                            var newName = fresh();
-                            context.env.set(resolve(newParam.imported(newParam,
-                                                                      newName,
-                                                                      importPhase),
-                                                    importPhase),
-                                            trans);
-                            mod.body = mod.body.map(stx => stx.imported(newParam,
-                                                                        newName,
-                                                                        importPhase));
-                        });
-                    } else {
-                        // todo: handle comma separated
-                        imp.names.token.inner.forEach(importName => {
-                            var inExports = _.find(modToImport.exports,
-                                                   expTerm => expTerm.name.token.value === importName.token.value);
-                            if (!inExports) {
-                                throwSyntaxError("compile",
-                                                 "the imported name `" +
-                                                 unwrapSyntax(importName ) +
-                                                 "` was not exported from the module",
-                                                 importName);
-                            }
-
-                            var trans = context.env.get(resolve(inExports.name, 0));
-                            var newParam = syn.makeIdent(unwrapSyntax(inExports.name), null);
-                            var newName = fresh();
-                            context.env.set(resolve(newParam.imported(newParam,
-                                                                      newName,
-                                                                      importPhase),
-                                                    importPhase),
-                                            trans);
-                            mod.body = mod.body.map(stx => stx.imported(newParam,
-                                                                        newName,
-                                                                        importPhase));
-                        });
-                    }
-                } else {
-                    assert(false, "not implemented yet");
-                }
+                bindImportInMod(imp, mod, modToImport, context, importPhase);
             });
             var res = expandTermTreeToFinal(mod, context);
             return res;
