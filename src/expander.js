@@ -57,18 +57,18 @@ import @ from "contracts.js"
     var SyntaxCaseError = syn.SyntaxCaseError;
     var unwrapSyntax = syn.unwrapSyntax;
 
-    macro (=>) {
+    macro (->) {
         rule infix { $param:ident | { $body ... } } => {
-            function ($param) { $body ...}.bind(this)
+            function ($param) { $body ...}
         }
         rule infix { $param:ident | $body:expr } => {
-            function ($param) { return $body }.bind(this)
+            function ($param) { return $body }
         }
         rule infix { ($param:ident (,) ...) | { $body ... } } => {
-            function ($param (,) ...) { $body ... }.bind(this)
+            function ($param (,) ...) { $body ... }
         }
         rule infix { ($param:ident (,) ...) | $body:expr } => {
-            function ($param (,) ...) { return $body }.bind(this)
+            function ($param (,) ...) { return $body }
         }
     }
     operator (|>) 1 left { $l, $r } => #{ $r($l) }
@@ -2126,7 +2126,7 @@ import @ from "contracts.js"
                 return newMatch;
             }
         };
-        context.env.keys().forEach(key => macroGlobal[key] = context.env.get(key));
+        context.env.keys().forEach(key -> macroGlobal[key] = context.env.get(key));
         var macroFn;
         if (vm) {
             macroFn = vm.runInNewContext("(function() { return " + bodyCode + " })()",
@@ -2561,7 +2561,7 @@ import @ from "contracts.js"
             })
 
             if (term.isModule) {
-                bodyTerms.forEach(bodyTerm => {
+                bodyTerms.forEach(bodyTerm -> {
                     if (bodyTerm.isExport) {
                         term.exports.push(bodyTerm);
                     }
@@ -2724,7 +2724,7 @@ import @ from "contracts.js"
         // node specific code
         var fs = require("fs");
         return fs.readFileSync(name, 'utf8')
-            |> parser.read |> body => Module.create(syn.makeValue(name, null),
+            |> parser.read |> body -> Module.create(syn.makeValue(name, null),
                                                     syn.makeValue("js", null),
                                                     body,
                                                     [],
@@ -2733,14 +2733,14 @@ import @ from "contracts.js"
 
     // todo: need to walk down the term tree
     function stripCompiletime(terms) {
-        return terms.filter(term => !(term.isMacro ||
+        return terms.filter(term -> !(term.isMacro ||
                             term.isLetMacro ||
                             term.isExport ||
                             term.isOperatorDefinition));
     }
 
     function stripRuntime(terms) {
-        return terms.filter(term => term.isMacro ||
+        return terms.filter(term -> term.isMacro ||
                             term.isLetMacro ||
                             term.isExport ||
                             term.isOperatorDefinition);
@@ -2748,7 +2748,7 @@ import @ from "contracts.js"
 
     @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
     function invoke(mod, phase, context, options) {
-        mod.imports.forEach(imp => {
+        mod.imports.forEach(imp -> {
             var modToImport = loadImport(imp, mod, options, context);
             if (imp.isImport) {
                 context = invoke(modToImport, phase, context, options);
@@ -2756,7 +2756,7 @@ import @ from "contracts.js"
         });
 
         var code = mod.body |> stripCompiletime
-            |> terms => terms.map(term => term.destruct())
+            |> terms -> terms.map(term -> term.destruct())
             |> _.flatten
             |> flatten
             |> parser.parse
@@ -2765,7 +2765,7 @@ import @ from "contracts.js"
 
         vm.runInNewContext(code, global);
 
-        mod.exports.forEach(exp => {
+        mod.exports.forEach(exp -> {
             var expName = resolve(exp.name, phase);
             var expVal = global[expName];
             context.env.set(expName, expVal);
@@ -2777,7 +2777,7 @@ import @ from "contracts.js"
 
     @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
     function visit(mod, phase, context, options) {
-        mod.imports.forEach(imp => {
+        mod.imports.forEach(imp -> {
             var modToImport = loadImport(imp, mod, options, context);
 
             if(imp.isImport) {
@@ -2793,7 +2793,7 @@ import @ from "contracts.js"
             bindImportInMod(imp, mod, modToImport, context, phase);
         });
 
-        mod.body.forEach(term => {
+        mod.body.forEach(term -> {
             var name;
             var macroDefinition;
             if (term.isMacro) {
@@ -2860,7 +2860,7 @@ import @ from "contracts.js"
         var modFullPath = resolvePath(unwrapSyntax(imp.from), parent);
         if(!availableModules.has(modFullPath)) {
             // load it
-            modToImport = loadModule(modFullPath) |> loaded => compileModule(loaded,
+            modToImport = loadModule(modFullPath) |> loaded -> compileModule(loaded,
                                                                              options,
                                                                              context.templateMap,
                                                                              context.patternMap);
@@ -2880,7 +2880,7 @@ import @ from "contracts.js"
                                      "must include names to import",
                                      imp.names);
             } else if (unwrapSyntax(imp.names.token.inner[0]) === "*") {
-                modToImport.exports.forEach(exp => {
+                modToImport.exports.forEach(exp -> {
                     var trans = context.env.get(resolve(exp.name, phase));
                     var newParam = syn.makeIdent(unwrapSyntax(exp.name), null);
                     var newName = fresh();
@@ -2889,15 +2889,15 @@ import @ from "contracts.js"
                                                               phase),
                                             phase),
                                     trans);
-                    mod.body = mod.body.map(stx => stx.imported(newParam,
+                    mod.body = mod.body.map(stx -> stx.imported(newParam,
                                                                 newName,
                                                                 phase));
                 });
             } else {
                 // todo: handle comma separated
-                imp.names.token.inner.forEach(importName => {
+                imp.names.token.inner.forEach(importName -> {
                     var inExports = _.find(modToImport.exports,
-                                           expTerm => expTerm.name.token.value === importName.token.value);
+                                           expTerm -> expTerm.name.token.value === importName.token.value);
                     if (!inExports) {
                         throwSyntaxError("compile",
                                          "the imported name `" +
@@ -2914,7 +2914,7 @@ import @ from "contracts.js"
                                                               phase),
                                             phase),
                                     trans);
-                    mod.body = mod.body.map(stx => stx.imported(newParam,
+                    mod.body = mod.body.map(stx -> stx.imported(newParam,
                                                                 newName,
                                                                 phase));
                 });
@@ -2928,8 +2928,8 @@ import @ from "contracts.js"
     function compileModule(mod, options, templateMap, patternMap, root) {
         var context = makeModuleExpanderContext(options, templateMap, patternMap, 0);
 
-        return collectImports(mod, context) |> mod => {
-            mod.imports.forEach(imp => {
+        return collectImports(mod, context) |> mod -> {
+            mod.imports.forEach(imp -> {
                 var modToImport = loadImport(imp, mod, options, context);
 
                 if(imp.isImport) {
@@ -2962,7 +2962,7 @@ import @ from "contracts.js"
         var templateMap = new StringMap();
         var patternMap = new StringMap();
         var compiled = compileModule(mod, options, templateMap, patternMap);
-        return compiled.body.reduce((acc, term) => {
+        return compiled.body.reduce((acc, term) -> {
             // todo: walk down the term tree to remove all macro forms
             if (term.isMacro || term.isLetMacro || term.isOperatorDefinition) {
                 return acc;
