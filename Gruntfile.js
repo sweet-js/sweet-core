@@ -24,7 +24,7 @@ module.exports = function(grunt) {
                 options: {
                     sourceMap: false,
                     compileFrom: "./lib/sweet",
-                    // modules: ["contracts-js/macros/"]
+                    modules: ["contracts-js/macros/"]
                     // modules: ["contracts-js/macros/disabled.js"]
                 },
                 src: "src/*.js",
@@ -49,7 +49,7 @@ module.exports = function(grunt) {
                 options: {
                     compileFrom: "./build/lib/sweet"
                 },
-                src: "test/modules/*.js",
+                src: "test/modules/test_*.js",
                 dest: "build/modules/"
             },
             single: {

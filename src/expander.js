@@ -472,6 +472,9 @@
         destruct(options) {
             options = options || {};
             var self = this;
+            if (options.stripCompiletime && this.isCompileTimeTerm)  {
+                return [];
+            }
             return _.reduce(this.constructor.properties, function(acc, prop) {
                 if (self[prop] && self[prop].isTermTree) {
                     if (options.stripCompiletime && self[prop].isCompileTimeTerm) {
@@ -2058,7 +2061,7 @@
     // (Macro) -> (([...CSyntax]) -> ReadTree)
     function loadMacroDef(body, context, phase) {
 
-        var expanded = body[0].destruct();
+        var expanded = body[0].destruct({stripCompiletime: true});
         var stub = parser.read("()");
         stub[0].token.inner = expanded;
         var flattend = flatten(stub);
@@ -2686,7 +2689,7 @@
         }, modBody);
 
         var res = expand([syn.makeIdent("module", null), modBody], context);
-        res = res[0].destruct();
+        res = res[0].destruct({stripCompiletime: true});
         res = res[0].token.inner;
         return options.flatten ? flatten(res) : res;
     }
@@ -2964,6 +2967,7 @@
         var compiled = compileModule(mod, options, templateMap, patternMap);
         return compiled.body.reduce((acc, term) -> {
             return acc.concat(term.destruct({stripCompiletime: true}));
+
         }, []) |> flatten;
     }
 

@@ -1,4 +1,6 @@
 import { * } from "../../macros/stxcase.js";
+import { id } from "./id.js";
+import { map } from "./map.js" for macros;
 var expect = require("expect.js");
 
 
@@ -9,4 +11,21 @@ describe("importing the basics", function() {
         }
         expect(id 42).to.be(42);
     });
+
+    it("should import a macro from another module", function() {
+        expect(id 42).to.be(42);
+    });
+
+    it("should import a runtime value from another module", function() {
+        macro m {
+            case {_ } => {
+                var nums = map([1, 2, 3], function(n) {
+                    return makeValue(n, #{here});
+                })
+                letstx $nums ... = nums;
+                return #{[$nums (,) ...]}
+            }
+        }
+        expect(m).to.eql([1, 2, 3]);
+    })
 });
