@@ -22,6 +22,7 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+// import { * } from "./macros/stxcase.js";
 
 // import @ from "contracts.js"
 
@@ -467,19 +468,26 @@
         // ordered list of properties that each subclass sets to
         // determine the order in which multiple children are
         // destructed.
-        // () -> [...Syntax]
-        destruct() {
+        // ({stripCompiletime: ?Boolean}) -> [...Syntax]
+        destruct(options) {
+            options = options || {};
             var self = this;
             return _.reduce(this.constructor.properties, function(acc, prop) {
                 if (self[prop] && self[prop].isTermTree) {
-                    push.apply(acc, self[prop].destruct());
+                    if (options.stripCompiletime && self[prop].isCompileTimeTerm) {
+                        return acc;
+                    }
+                    push.apply(acc, self[prop].destruct(options));
                     return acc;
                 } else if (self[prop] && self[prop].token && self[prop].token.inner) {
                     cloned newtok <- self[prop].token;
                     var clone = syntaxFromToken(newtok, self[prop]);
                     clone.token.inner = _.reduce(clone.token.inner, function(acc, t) {
+                        if (t && options.stripCompiletime && t.isCompileTimeTerm) {
+                            return acc;
+                        }
                         if (t && t.isTermTree) {
-                            push.apply(acc, t.destruct());
+                            push.apply(acc, t.destruct(options));
                             return acc;
                         }
                         acc.push(t);
@@ -489,8 +497,11 @@
                     return acc;
                 } else if (Array.isArray(self[prop])) {
                     var destArr = _.reduce(self[prop], function(acc, t) {
+                        if (t && options.stripCompiletime && t.isCompileTimeTerm) {
+                            return acc;
+                        }
                         if (t && t.isTermTree) {
-                            push.apply(acc, t.destruct());
+                            push.apply(acc, t.destruct(options));
                             return acc;
                         }
                         acc.push(t);
@@ -554,14 +565,18 @@
     dataclass Keyword               (keyword)                           extends TermTree;
     dataclass Punc                  (punc)                              extends TermTree;
     dataclass Delimiter             (delim)                             extends TermTree;
-    dataclass LetMacro              (name, body)                        extends TermTree;
-    dataclass Macro                 (name, body)                        extends TermTree;
-    dataclass AnonMacro             (body)                              extends TermTree;
-    dataclass OperatorDefinition    (type, name, prec, assoc, body)     extends TermTree;
-    dataclass Module                (name, lang, body, imports, exports)extends TermTree;
-    dataclass Import                (names, from)                       extends TermTree;
-    dataclass ImportForMacros       (names, from)                       extends TermTree;
-    dataclass Export                (name)                              extends TermTree;
+
+    dataclass CompileTimeTerm       ()                                  extends TermTree;
+
+    dataclass LetMacro              (name, body)                        extends CompileTimeTerm;
+    dataclass Macro                 (name, body)                        extends CompileTimeTerm;
+    dataclass AnonMacro             (body)                              extends CompileTimeTerm;
+    dataclass OperatorDefinition    (type, name, prec, assoc, body)     extends CompileTimeTerm;
+    dataclass Module                (name, lang, body, imports, exports)extends CompileTimeTerm;
+    dataclass Import                (names, from)                       extends CompileTimeTerm;
+    dataclass ImportForMacros       (names, from)                       extends CompileTimeTerm;
+    dataclass Export                (name)                              extends CompileTimeTerm;
+
     dataclass VariableDeclaration   (ident, eq, init, comma)            extends TermTree;
 
     dataclass Statement             ()                                  extends TermTree;
@@ -569,14 +584,14 @@
     dataclass CatchClause           (keyword, params, body)             extends Statement;
     dataclass ForStatement          (keyword, cond)                     extends Statement;
     dataclass ReturnStatement       (keyword, expr)                     extends Statement {
-        destruct() {
-            var expr = this.expr.destruct();        
+        destruct(options) {
+            var expr = this.expr.destruct(options);
             // need to adjust the line numbers to make sure that the expr
             // starts on the same line as the return keyword. This might
             // not be the case if an operator or infix macro perturbed the
             // line numbers during expansion.
             expr = adjustLineContext(expr, this.keyword.keyword);
-            return this.keyword.destruct().concat(expr);
+            return this.keyword.destruct(options).concat(expr);
         }
     }
 
@@ -606,11 +621,11 @@
     dataclass PartialExpression     (stx, left, combine)                extends Partial;
 
     dataclass BindingStatement(keyword, decls) extends Statement {
-        destruct() {
+        destruct(options) {
             return this.keyword
-                .destruct()
+                .destruct(options)
                 .concat(_.reduce(this.decls, function(acc, decl) {
-                    push.apply(acc, decl.destruct());
+                    push.apply(acc, decl.destruct(options));
                     return acc;
                 }, []));
         }
@@ -621,21 +636,21 @@
     dataclass ConstStatement    (keyword, decls) extends BindingStatement;
 
     dataclass ParenExpression(args, delim, commas) extends PrimaryExpression {
-        destruct() {
+        destruct(options) {
             var commas = this.commas.slice();
             cloned newtok <- this.delim.token;
             var delim = syntaxFromToken(newtok, this.delim);
             delim.token.inner = _.reduce(this.args, function(acc, term) {
                 assert(term && term.isTermTree,
                        "expecting term trees in destruct of ParenExpression");
-                push.apply(acc, term.destruct());
+                push.apply(acc, term.destruct(options));
                 // add all commas except for the last one
                 if (commas.length > 0) {
                     acc.push(commas.shift());
                 }
                 return acc;
             }, []);
-            return Delimiter.create(delim).destruct();
+            return Delimiter.create(delim).destruct(options);
         }
     }
 
@@ -2731,21 +2746,6 @@
                                                     [])
     }
 
-    // todo: need to walk down the term tree
-    function stripCompiletime(terms) {
-        return terms.filter(term -> !(term.isMacro ||
-                            term.isLetMacro ||
-                            term.isExport ||
-                            term.isOperatorDefinition));
-    }
-
-    function stripRuntime(terms) {
-        return terms.filter(term -> term.isMacro ||
-                            term.isLetMacro ||
-                            term.isExport ||
-                            term.isOperatorDefinition);
-    }
-
     // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
     function invoke(mod, phase, context, options) {
         mod.imports.forEach(imp -> {
@@ -2755,8 +2755,8 @@
             }
         });
 
-        var code = mod.body |> stripCompiletime
-            |> terms -> terms.map(term -> term.destruct())
+        var code = mod.body
+            |> terms -> terms.map(term -> term.destruct({stripCompiletime: true}))
             |> _.flatten
             |> flatten
             |> parser.parse
@@ -2963,11 +2963,7 @@
         var patternMap = new StringMap();
         var compiled = compileModule(mod, options, templateMap, patternMap);
         return compiled.body.reduce((acc, term) -> {
-            // todo: walk down the term tree to remove all macro forms
-            if (term.isMacro || term.isLetMacro || term.isOperatorDefinition) {
-                return acc;
-            }
-            return acc.concat(term.destruct());
+            return acc.concat(term.destruct({stripCompiletime: true}));
         }, []) |> flatten;
     }
 

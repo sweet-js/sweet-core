@@ -45,6 +45,13 @@ module.exports = function(grunt) {
                 src: "test/*.js",
                 dest: "build/"
             },
+            test_modules: {
+                options: {
+                    compileFrom: "./build/lib/sweet"
+                },
+                src: "test/modules/*.js",
+                dest: "build/modules/"
+            },
             single: {
                 options: {
                     sourceMap: false,
@@ -134,6 +141,12 @@ module.exports = function(grunt) {
                 filter: function(name) {
                     return /.*test_es6.*/.test(name);
                 }
+            },
+            modules: {
+                options:{
+                    colors: !grunt.option('no-color')
+                },
+                src: ["build/modules/*.js"],
             },
             unit: {
                 options:{
@@ -289,6 +302,13 @@ module.exports = function(grunt) {
                                   "copy:buildMacros",
                                   "copy:nodeSrc",
                                   "build:single"]);
+
+    grunt.registerTask("test_modules", ["build:devContracts",
+                                        "build:test_modules",
+                                        "copy:scopedEval",
+                                        "copy:buildMacros",
+                                        "copy:nodeSrc",
+                                        "mochaTest:modules"]);
 
     grunt.registerTask("default", ["clean",
                                    "copy:scopedEval",
