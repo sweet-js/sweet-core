@@ -2948,9 +2948,12 @@ import { * } from "../macros/stxcase.js";
     // @ ([...SyntaxObject], {filename: Str}) -> [...SyntaxObject]
     function compile(stx, options) {
         var fs = require("fs");
+        var filename = options && typeof options.filename !== 'undefined'
+            ? fs.realpathSync(options.filename)
+            : "(anonymous module)";
         maxExpands = Infinity;
         expandCount = 0;
-        var mod = Module.create(syn.makeValue(fs.realpathSync(options.filename), null),
+        var mod = Module.create(syn.makeValue(filename, null),
                                 syn.makeValue("js", null),
                                 stx,
                                 [],
