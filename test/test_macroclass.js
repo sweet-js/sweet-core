@@ -1,3 +1,4 @@
+import { * } from "../macros/stxcase.js";
 var expect = require("expect.js");
 
 describe("macroclass", function() {

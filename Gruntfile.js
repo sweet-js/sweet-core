@@ -15,25 +15,13 @@ module.exports = function(grunt) {
             dev: {
                 options: {
                     compileFrom: "./lib/sweet",
-                    modules: ["contracts-js/macros/disabled.js"]
-                },
-                src: "src/*.js",
-                dest: ["build/lib/", "browser/scripts/"]
-            },
-            devContracts: {
-                options: {
-                    sourceMap: false,
-                    compileFrom: "./lib/sweet",
-                    modules: ["contracts-js/macros/"]
-                    // modules: ["contracts-js/macros/disabled.js"]
                 },
                 src: "src/*.js",
                 dest: ["build/lib/", "browser/scripts/"]
             },
             release: {
                 options: {
-                    compileFrom: "./lib/sweet",
-                    modules: ["contracts-js/macros/disabled.js"]
+                    compileFrom: "./lib/sweet"
                 },
                 src: "src/*.js",
                 dest: ["build/lib/", "browser/scripts/"]
@@ -297,13 +285,13 @@ module.exports = function(grunt) {
                                 "copy:testUnit",
                                 "mochaTest:unit"]);
 
-    grunt.registerTask("single", ["build:devContracts",
+    grunt.registerTask("single", ["build:dev",
                                   "copy:scopedEval",
                                   "copy:buildMacros",
                                   "copy:nodeSrc",
                                   "build:single"]);
 
-    grunt.registerTask("test_modules", ["build:devContracts",
+    grunt.registerTask("test_modules", ["build:dev",
                                         "build:test_modules",
                                         "copy:scopedEval",
                                         "copy:buildMacros",
@@ -322,19 +310,6 @@ module.exports = function(grunt) {
                                    "copy:testFixtures",
                                    "mochaTest:test",
                                    "jshint"]);
-
-    grunt.registerTask("contracts", ["clean",
-                                     "copy:scopedEval",
-                                     "copy:buildMacros",
-                                     "build:devContracts",
-                                     "build:tests",
-                                     "copy:browserSrc",
-                                     "copy:nodeSrc",
-                                     "copy:browserMacros",
-                                     "copy:scopedEvalBrowser",
-                                     "copy:testFixtures",
-                                     "mochaTest:test",
-                                     "jshint"]);
 
     grunt.registerTask("full", ["default", "mochaTest:es6"]);
     grunt.registerTask("docs", ["pandoc"]);

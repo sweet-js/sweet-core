@@ -12,6 +12,15 @@ describe("importing the basics", function() {
         expect(id 42).to.be(42);
     });
 
+    it("should work for case macros", function() {
+        macro m {
+            case { _ $x } => {
+                return #{ $x }
+            }
+        }
+        expect((function(macro) { return m macro })(42)).to.eql(42)
+    })
+
     it("should import a macro from another module", function() {
         expect(id 42).to.be(42);
     });
