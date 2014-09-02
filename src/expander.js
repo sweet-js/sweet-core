@@ -477,18 +477,12 @@
             }
             return _.reduce(this.constructor.properties, function(acc, prop) {
                 if (self[prop] && self[prop].isTermTree) {
-                    if (options.stripCompiletime && self[prop].isCompileTimeTerm) {
-                        return acc;
-                    }
                     push.apply(acc, self[prop].destruct(options));
                     return acc;
                 } else if (self[prop] && self[prop].token && self[prop].token.inner) {
                     cloned newtok <- self[prop].token;
                     var clone = syntaxFromToken(newtok, self[prop]);
                     clone.token.inner = _.reduce(clone.token.inner, function(acc, t) {
-                        if (t && options.stripCompiletime && t.isCompileTimeTerm) {
-                            return acc;
-                        }
                         if (t && t.isTermTree) {
                             push.apply(acc, t.destruct(options));
                             return acc;
@@ -500,9 +494,6 @@
                     return acc;
                 } else if (Array.isArray(self[prop])) {
                     var destArr = _.reduce(self[prop], function(acc, t) {
-                        if (t && options.stripCompiletime && t.isCompileTimeTerm) {
-                            return acc;
-                        }
                         if (t && t.isTermTree) {
                             push.apply(acc, t.destruct(options));
                             return acc;
