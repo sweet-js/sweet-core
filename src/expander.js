@@ -116,7 +116,7 @@ import { * } from "../macros/stxcase.js";
     var builtinMode = false;
     var expandCount = 0;
     var maxExpands;
-    var availableModules = new StringMap();
+    var availableModules;
 
     var push = Array.prototype.push;
 
@@ -2958,6 +2958,12 @@ import { * } from "../macros/stxcase.js";
         // the template map right now is global for every module
         var templateMap = new StringMap();
         var patternMap = new StringMap();
+        // todo: this is a little bit of a hack, since both the
+        // templateMap and patternMap must be persisted between calls
+        // to compile we need to throw away any work done on the
+        // availableModules between calls to compile. The better
+        // solution is to not store stuff in a template/patternMap
+        availableModules = new StringMap();
         var compiled = compileModule(mod, options, templateMap, patternMap);
         return compiled.body.reduce((acc, term) -> {
             return acc.concat(term.destruct({stripCompiletime: true}));
