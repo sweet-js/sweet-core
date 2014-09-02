@@ -16,7 +16,7 @@ describe("importing the basics", function() {
         expect(id 42).to.be(42);
     });
 
-    it("should import a runtime value from another module", function() {
+    it("should import a runtime value from another module for macros", function() {
         macro m {
             case {_ } => {
                 var nums = map([1, 2, 3], function(n) {

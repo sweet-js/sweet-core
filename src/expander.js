@@ -22,7 +22,7 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-// import { * } from "./macros/stxcase.js";
+import { * } from "../macros/stxcase.js";
 
 // import @ from "contracts.js"
 
@@ -1641,7 +1641,7 @@
                            rest[2] && rest[2].token.type === parser.Token.Delimiter &&
                            rest[2] && rest[2].token.value === "{}") {
                     var trans = enforest(rest[2].expose().token.inner, context);
-                    return step(OperatorDefinition.create("unary",
+                    return step(OperatorDefinition.create(syn.makeValue("unary", head),
                                                           rest[0].expose().token.inner,
                                                           rest[1],
                                                           null,
@@ -1659,7 +1659,7 @@
                            rest[3] && rest[3].token.type === parser.Token.Delimiter &&
                            rest[3] && rest[3].token.value === "{}") {
                     var trans = enforest(rest[3].expose().token.inner, context);
-                    return step(OperatorDefinition.create("binary",
+                    return step(OperatorDefinition.create(syn.makeValue("binary", head),
                                                           rest[0].expose().token.inner,
                                                           rest[1],
                                                           rest[2],
@@ -2264,8 +2264,10 @@
                         fullName: head.name
                     }
                 }
-                assert(head.type === "binary" || head.type === "unary", "operator must either be binary or unary");
-                opObj[head.type] = {
+                assert(unwrapSyntax(head.type) === "binary" ||
+                       unwrapSyntax(head.type) === "unary",
+                       "operator must either be binary or unary");
+                opObj[unwrapSyntax(head.type)] = {
                     fn: opDefinition,
                     prec: head.prec.token.value,
                     assoc: head.assoc ? head.assoc.token.value : null
@@ -2832,9 +2834,10 @@
                         fullName: term.name
                     }
                 }
-                assert(term.type === "binary" || term.type === "unary",
+                assert(unwrapSyntax(term.type) === "binary" ||
+                       unwrapSyntax(term.type) === "unary",
                        "operator must either be binary or unary");
-                opObj[term.type] = {
+                opObj[unwrapSyntax(term.type)] = {
                     fn: opDefinition,
                     prec: term.prec.token.value,
                     assoc: term.assoc ? term.assoc.token.value : null
