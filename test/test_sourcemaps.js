@@ -1,3 +1,4 @@
+#lang "js";
 import { * } from "../macros/stxcase.js";
 var expect = require("expect.js");
 var sm = require("source-map");

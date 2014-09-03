@@ -1,3 +1,4 @@
+#lang "js";
 /*
   Copyright (C) 2012 Tim Disney <tim@disnet.me>
 

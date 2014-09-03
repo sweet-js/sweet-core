@@ -1,3 +1,4 @@
+#lang "js";
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS

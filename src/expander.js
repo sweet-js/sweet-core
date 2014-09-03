@@ -1,3 +1,4 @@
+#lang "js";
 /*
   Copyright (C) 2012 Tim Disney <tim@disnet.me>
 
@@ -2689,7 +2690,9 @@ import { * } from "../macros/stxcase.js";
         var imports = [];
         var res;
         var rest = mod.body;
-        if (unwrapSyntax(mod.lang) === "js") {
+        // #lang "sjs" expands to imports for the basic macros for sweet.js
+        // eventually this should hook into module level extensions
+        if (unwrapSyntax(mod.lang) === "sjs") {
             imports.push(Import.create(syn.makeDelim("{}", [syn.makePunc("*", null)], null),
                                        syn.makeValue("sweet.js", null)));
         }

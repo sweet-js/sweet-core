@@ -1,4 +1,4 @@
-// import { * } from "../../macros/stxcase.js";
+#lang "js";
 import { id } from "./id.js";
 
 function map(l, f) {

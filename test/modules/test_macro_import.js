@@ -1,3 +1,4 @@
+#lang "js";
 import { * } from "../../macros/stxcase.js";
 import { id } from "./id.js";
 import { map } from "./map.js" for macros;

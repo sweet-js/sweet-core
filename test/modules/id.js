@@ -1,3 +1,4 @@
+#lang "js";
 import { * } from "../../macros/stxcase.js";
 
 macro id {

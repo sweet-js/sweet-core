@@ -1,3 +1,4 @@
+#lang "js";
 // import @ from "contracts.js"
 
 (function (root, factory) {
