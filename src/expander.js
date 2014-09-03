@@ -1666,10 +1666,6 @@ import { * } from "../macros/stxcase.js";
                                                           trans.result.body),
                                 rest.slice(4),
                                 opCtx);
-                // // module definition
-                // } else if (unwrapSyntax(head) === "module" &&
-                //             rest[0] && rest[0].token.value === "{}") {
-                    // return step(Module.create(rest[0], []), rest.slice(1), opCtx);
                 // function definition
                 } else if (head.token.type === parser.Token.Keyword &&
                     unwrapSyntax(head) === "function" &&
@@ -2693,6 +2689,10 @@ import { * } from "../macros/stxcase.js";
         var imports = [];
         var res;
         var rest = mod.body;
+        if (unwrapSyntax(mod.lang) === "js") {
+            imports.push(Import.create(syn.makeDelim("{}", [syn.makePunc("*", null)], null),
+                                       syn.makeValue("sweet.js", null)));
+        }
         while (true) {
             res = enforest(rest, context);
             if (res.result && (res.result.isImport || res.result.isImportForMacros)) {
@@ -2730,16 +2730,35 @@ import { * } from "../macros/stxcase.js";
         });
     }
 
+    // @ (Str, [...SyntaxObject]) -> ModuleTerm
+    function createModule(name, body) {
+        if (body && body[0] && body[1] && body[2] &&
+            unwrapSyntax(body[0]) === "#" &&
+            unwrapSyntax(body[1]) === "lang" &&
+            body[2].token.type === parser.Token.StringLiteral) {
+            // consume optional semicolon
+            var rest = body[3] && body[3].token.value === ";" &&
+                body[3].token.type == parser.Token.Punctuator ? body.slice(4) : body.slice(3);
+            return Module.create(syn.makeValue(name, null),
+                                 body[2],
+                                 rest,
+                                 [],
+                                 []);
+        }
+        return Module.create(syn.makeValue(name, null),
+                             syn.makeValue("base", null),
+                             body,
+                             [],
+                             []);
+    }
+
     // @ (Str) -> ModuleTerm
     function loadModule(name) {
         // node specific code
         var fs = require("fs");
         return fs.readFileSync(name, 'utf8')
-            |> parser.read |> body -> Module.create(syn.makeValue(name, null),
-                                                    syn.makeValue("js", null),
-                                                    body,
-                                                    [],
-                                                    [])
+            |> parser.read |> body -> createModule(name, body);
+
     }
 
     // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
@@ -2953,11 +2972,7 @@ import { * } from "../macros/stxcase.js";
             : "(anonymous module)";
         maxExpands = Infinity;
         expandCount = 0;
-        var mod = Module.create(syn.makeValue(filename, null),
-                                syn.makeValue("js", null),
-                                stx,
-                                [],
-                                []);
+        var mod = createModule(filename, stx);
         // the template map right now is global for every module
         var templateMap = new StringMap();
         var patternMap = new StringMap();
