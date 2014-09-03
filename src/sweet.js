@@ -163,8 +163,7 @@
             code = " ";
         }
 
-        modules = modules ? loadedMacros.concat(modules) : modules;
-        return parser.parse(expand(code, modules, options));
+        return parser.parse(compileModule(code, options));
     }
 
     // @ let SweetOptions = {
@@ -182,9 +181,9 @@
         options.requireModule = options.requireModule || requireModule;
 
         var tokenTree = parser.read(code);
-
+        var expandedTokens;
         try {
-            var expandedTokens = expander.compileModule(tokenTree, options);
+            expandedTokens = expander.compileModule(tokenTree, options);
         } catch(err) {
             if (err instanceof syn.MacroSyntaxError) {
                 throw new SyntaxError(syn.printSyntaxError(code, err));
@@ -194,26 +193,26 @@
         }
         var ast = parser.parse(expandedTokens);
 
-        // if (options.readableNames) {
-        //     ast = optimizeHygiene(ast);
-        // }
+        if (options.readableNames) {
+            ast = optimizeHygiene(ast);
+        }
 
-        // if (options.ast) {
-        //     return ast;
-        // }
+        if (options.ast) {
+            return ast;
+        }
 
-        // if (options.sourceMap) {
-        //     output = codegen.generate(ast, _.extend({
-        //         comment: true,
-        //         sourceMap: options.filename,
-        //         sourceMapWithCode: true
-        //     }, options.escodegen));
+        if (options.sourceMap) {
+            output = codegen.generate(ast, _.extend({
+                comment: true,
+                sourceMap: options.filename,
+                sourceMapWithCode: true
+            }, options.escodegen));
 
-        //     return {
-        //         code: output.code,
-        //         sourceMap: output.map.toString()
-        //     };
-        // }
+            return {
+                code: output.code,
+                sourceMap: output.map.toString()
+            };
+        }
         return {
             code: codegen.generate(ast, _.extend({
                 comment: true

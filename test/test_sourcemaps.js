@@ -86,18 +86,18 @@ describe "source mapping" {
         expect(pos.column).to.be(1)
     }
 
-    it "should work with a simple rule macro" {
-        var pos = run("macro id { rule { $x } => { $x }}\nid 42;", {
-            //                                               ^
-            // 42;
-            // ^
-            line: 1,
-            column:0
-        });
+    // it "should work with a simple rule macro" {
+    //     var pos = run("import { * } from './macros/stxcase.js';\nmacro id { rule { $x } => { $x }}\nid 42;", {
+    //         //                                               ^
+    //         // 42;
+    //         // ^
+    //         line: 1,
+    //         column:0
+    //     });
 
-        expect(pos.line).to.be(2);
-        expect(pos.column).to.be(3);
-    }
+    //     expect(pos.line).to.be(2);
+    //     expect(pos.column).to.be(3);
+    // }
 
     // it "should work with a case macro" {
     //     var pos = run("macro m {case {_ } => {return withSyntax($y = [makeValue(42, #{here})]) { return #{$y}}}}\nm;", {
@@ -112,18 +112,18 @@ describe "source mapping" {
     //     expect(pos.column).to.be(63);
     // }
 
-    it "should work with nested delimiters in a macro expansion" {
-        var pos = run("macro m {case{_} => {return #{[[42]]}}}\nm", {
-            //                                        ^
-            // [[42]]
-            //  ^
-            line: 1,
-            column: 2
-        }); 
+    // it "should work with nested delimiters in a macro expansion" {
+    //     var pos = run("macro m {case{_} => {return #{[[42]]}}}\nm", {
+    //         //                                        ^
+    //         // [[42]]
+    //         //  ^
+    //         line: 1,
+    //         column: 2
+    //     });
 
-        expect(pos.line).to.be(1);
-        expect(pos.column).to.be(32);
-    }
+    //     expect(pos.line).to.be(1);
+    //     expect(pos.column).to.be(32);
+    // }
 
     
 }
