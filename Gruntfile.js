@@ -303,12 +303,14 @@ module.exports = function(grunt) {
                                    "copy:buildMacros",
                                    "build:dev",
                                    "build:tests",
+                                   "build:test_modules",
                                    "copy:browserSrc",
                                    "copy:nodeSrc",
                                    "copy:browserMacros",
                                    "copy:scopedEvalBrowser",
                                    "copy:testFixtures",
                                    "mochaTest:test",
+                                   "mochaTest:modules",
                                    "jshint"]);
 
     grunt.registerTask("full", ["default", "mochaTest:es6"]);
