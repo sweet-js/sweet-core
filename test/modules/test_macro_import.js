@@ -1,7 +1,8 @@
 #lang "js";
 import { * } from "../../macros/stxcase.js";
-import { id } from "./id.js";
+import { id, di } from "./id.js";
 import { map } from "./map.js" for macros;
+
 var expect = require("expect.js");
 
 
@@ -24,6 +25,7 @@ describe("importing the basics", function() {
 
     it("should import a macro from another module", function() {
         expect(id 42).to.be(42);
+        expect(di 42).to.be(42);
     });
 
     it("should import a runtime value from another module for macros", function() {

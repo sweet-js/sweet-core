@@ -2913,29 +2913,36 @@ import { * } from "../macros/stxcase.js";
                                                                 phase));
                 });
             } else {
-                // todo: handle comma separated
-                imp.names.token.inner.forEach(importName -> {
-                    var inExports = _.find(modToImport.exports,
-                                           expTerm -> expTerm.name.token.value === importName.token.value);
-                    if (!inExports) {
-                        throwSyntaxError("compile",
-                                         "the imported name `" +
-                                         unwrapSyntax(importName ) +
-                                         "` was not exported from the module",
+                imp.names.token.inner.forEach((importName, idx)-> {
+                    if (idx % 2 !== 0 && (importName.token.type !== parser.Token.Punctuator ||
+                                          importName.token.value !== ",")) {
+                        throwSyntaxError("import",
+                                         "expecting a comma separated list",
                                          importName);
+                    } else if (idx % 2 === 0) {
+                        var inExports = _.find(modToImport.exports,
+                                               expTerm -> expTerm.name.token.value === importName.token.value);
+                        if (!inExports) {
+                            throwSyntaxError("compile",
+                                             "the imported name `" +
+                                             unwrapSyntax(importName) +
+                                             "` was not exported from the module",
+                                             importName);
+                        }
+
+                        var trans = context.env.get(resolve(inExports.name, phase));
+                        var newParam = syn.makeIdent(unwrapSyntax(inExports.name), null);
+                        var newName = fresh();
+                        context.env.set(resolve(newParam.imported(newParam,
+                                                                  newName,
+                                                                  phase),
+                                                phase),
+                                        trans);
+                        mod.body = mod.body.map(stx -> stx.imported(newParam,
+                                                                    newName,
+                                                                    phase));
                     }
 
-                    var trans = context.env.get(resolve(inExports.name, phase));
-                    var newParam = syn.makeIdent(unwrapSyntax(inExports.name), null);
-                    var newName = fresh();
-                    context.env.set(resolve(newParam.imported(newParam,
-                                                              newName,
-                                                              phase),
-                                            phase),
-                                    trans);
-                    mod.body = mod.body.map(stx -> stx.imported(newParam,
-                                                                newName,
-                                                                phase));
                 });
             }
         } else {
