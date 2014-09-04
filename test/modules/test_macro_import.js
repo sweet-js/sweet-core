@@ -2,6 +2,7 @@
 import { * } from "../../macros/stxcase.js";
 import { id, di } from "./id.js";
 import { map } from "./map.js" for macros;
+import { (**) } from "./operators.js";
 
 var expect = require("expect.js");
 
@@ -39,5 +40,9 @@ describe("importing the basics", function() {
             }
         }
         expect(m).to.eql([1, 2, 3]);
+    })
+
+    it("should import operators from another module", function() {
+        expect(2 ** 10).to.be(Math.pow(2, 10));
     })
 });

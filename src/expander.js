@@ -976,9 +976,7 @@ import { * } from "../macros/stxcase.js";
                 (next.token.type === parser.Token.Punctuator ||
                  next.token.type === parser.Token.Identifier ||
                  next.token.type === parser.Token.Keyword) &&
-                 (curr.token.sm_range && next.token.sm_range &&
-                  curr.token.sm_range[1] === next.token.sm_range[0] ||
-                  curr.token.range[1] === next.token.range[0])) {
+                (toksAdjacent(curr, next))) {
                 name.push(next);
                 curr = next;
                 next = rest[++idx];
@@ -988,7 +986,7 @@ import { * } from "../macros/stxcase.js";
         }
     }
 
-    function getMacroInEnv(head, rest, context) {
+    function getMacroInEnv(head, rest, context, phase) {
         if (!(head.token.type === parser.Token.Identifier ||
               head.token.type === parser.Token.Keyword ||
               head.token.type === parser.Token.Punctuator)) {
@@ -998,7 +996,7 @@ import { * } from "../macros/stxcase.js";
         // simple case, don't need to create a new syntax object
         if (name.length === 1) {
             if (context.env.names.get(unwrapSyntax(name[0]))) {
-                var resolvedName = resolve(name[0], context.phase);
+                var resolvedName = resolve(name[0], phase);
                 if (context.env.has(resolvedName)) {
                     return context.env.get(resolvedName);
                 }
@@ -1009,7 +1007,7 @@ import { * } from "../macros/stxcase.js";
                 var nameStr = name.map(unwrapSyntax).join("");
                 if (context.env.names.get(nameStr)) {
                     var nameStx = syn.makeIdent(nameStr, name[0]);
-                    var resolvedName = resolve(nameStx, context.phase);
+                    var resolvedName = resolve(nameStx, phase);
                     if (context.env.has(resolvedName)) {
                         return context.env.get(resolvedName);
                     }
@@ -1020,8 +1018,8 @@ import { * } from "../macros/stxcase.js";
         }
     }
 
-    function nameInEnv(head, rest, context) {
-        return getMacroInEnv(head, rest, context) !== null;
+    function nameInEnv(head, rest, context, phase) {
+        return getMacroInEnv(head, rest, context, phase) !== null;
     }
 
     // This should only be used on things that can't be rebound except by
@@ -1035,7 +1033,7 @@ import { * } from "../macros/stxcase.js";
         // pull the macro transformer out the environment
         var head = stx[0];
         var rest = stx.slice(1);
-        macroObj = macroObj || getMacroInEnv(head, rest, context);
+        macroObj = macroObj || getMacroInEnv(head, rest, context, context.phase);
         var stxArg = rest.slice(macroObj.fullName.length - 1);
         var transformer;
         if (opType != null) {
@@ -1123,6 +1121,23 @@ import { * } from "../macros/stxcase.js";
     }
 
 
+    // @ (SyntaxObject, SyntaxObject) -> Bool
+    function toksAdjacent(a, b) {
+        return a.token.sm_range && b.token.sm_range &&
+            (a.token.sm_range[1] === b.token.sm_range[0]) ||
+            (a.token.range[1] === b.token.range[0]);
+
+    }
+
+    // @ (SyntaxObject, SyntaxObject) -> Bool
+    function syntaxInnerValuesEq(synA, synB) {
+        var a = synA.token.inner, b = synB.token.inner;
+        return a.length === b.length &&
+            _.zip(a, b) |> ziped -> _.all(ziped, pair -> {
+                return unwrapSyntax(pair[0]) === unwrapSyntax(pair[1]);
+            });
+
+    }
 
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
@@ -1158,7 +1173,7 @@ import { * } from "../macros/stxcase.js";
                     } else if (head.isId) {
                         uopSyntax = head.id;
                     }
-                    uopMacroObj = getMacroInEnv(uopSyntax, rest, context);
+                    uopMacroObj = getMacroInEnv(uopSyntax, rest, context, context.phase);
                     isCustomOp = uopMacroObj && uopMacroObj.isOp;
                 }
 
@@ -1166,7 +1181,7 @@ import { * } from "../macros/stxcase.js";
                 // without repeatedly calling getMacroInEnv)
                 var bopMacroObj;
                 if (rest[0] && rest[1]) {
-                    bopMacroObj = getMacroInEnv(rest[0], rest.slice(1), context);
+                    bopMacroObj = getMacroInEnv(rest[0], rest.slice(1), context, context.phase);
                 }
 
                 // unary operator
@@ -1587,7 +1602,7 @@ import { * } from "../macros/stxcase.js";
             } else {
                 assert(head && head.token, "assuming head is a syntax object");
 
-                var macroObj = expandCount < maxExpands && getMacroInEnv(head, rest, context);
+                var macroObj = expandCount < maxExpands && getMacroInEnv(head, rest, context, context.phase);
 
                 // macro invocation
                 if (macroObj && !macroObj.isOp) {
@@ -1809,6 +1824,11 @@ import { * } from "../macros/stxcase.js";
                                         rest[0].token.type === parser.Token.Punctuator ||
                                         rest[0].token.type === parser.Token.Delimiter &&
                                         rest[0].token.value === "()")) {
+                    if (unwrapSyntax(rest[1]) !== ";" && toksAdjacent(rest[0], rest[1])) {
+                        throwSyntaxError("enforest",
+                                         "multi-token macro/operator names must be wrapped in () when exporting",
+                                         rest[1]);
+                    }
                     // Consume optional semicolon                      
                     if (unwrapSyntax(rest[1]) === ";") {
                         rest.splice(1, 1);
@@ -1845,8 +1865,8 @@ import { * } from "../macros/stxcase.js";
             // Potentially an infix macro
             // This should only be invoked on runtime syntax terms
             if (!head.isMacro && !head.isLetMacro && !head.isAnonMacro && !head.isOperatorDefinition &&
-                rest.length && nameInEnv(rest[0], rest.slice(1), context) &&
-                getMacroInEnv(rest[0], rest.slice(1), context).isOp === false) {
+                rest.length && nameInEnv(rest[0], rest.slice(1), context, context.phase) &&
+                getMacroInEnv(rest[0], rest.slice(1), context, context.phase).isOp === false) {
                 var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
                                   ? opCtx.prevTerms[0]
                                   : null;
@@ -2787,7 +2807,7 @@ import { * } from "../macros/stxcase.js";
             var expName = resolve(exp.name, phase);
             var expVal = global[expName];
             context.env.set(expName, expVal);
-            context.env.names.set(expName, true);
+            context.env.names.set(unwrapSyntax(exp.name), true);
         });
         return context;
     }
@@ -2920,8 +2940,13 @@ import { * } from "../macros/stxcase.js";
                                          "expecting a comma separated list",
                                          importName);
                     } else if (idx % 2 === 0) {
-                        var inExports = _.find(modToImport.exports,
-                                               expTerm -> expTerm.name.token.value === importName.token.value);
+                        var inExports = _.find(modToImport.exports, expTerm -> {
+                            if (importName.token.type === parser.Token.Delimiter) {
+                                return expTerm.name.token.type === parser.Token.Delimiter &&
+                                    syntaxInnerValuesEq(importName, expTerm.name);
+                            }
+                            return expTerm.name.token.value === importName.token.value
+                        });
                         if (!inExports) {
                             throwSyntaxError("compile",
                                              "the imported name `" +
@@ -2930,7 +2955,22 @@ import { * } from "../macros/stxcase.js";
                                              importName);
                         }
 
-                        var trans = context.env.get(resolve(inExports.name, phase));
+                        var exportName, trans;
+                        if (inExports.name.token.type === parser.Token.Delimiter) {
+                            exportName = inExports.name.token.inner;
+                            trans = getMacroInEnv(exportName[0],
+                                                  exportName.slice(1),
+                                                  context,
+                                                  phase);
+                        } else {
+                            exportName = inExports.name;
+                            trans = getMacroInEnv(exportName,
+                                                  [],
+                                                  context,
+                                                  phase);
+                        }
+                        assert(inExports.name.token.type !== parser.Token.Delimiter,
+                               "need to handle making the right params for multi-token names");
                         var newParam = syn.makeIdent(unwrapSyntax(inExports.name), null);
                         var newName = fresh();
                         context.env.set(resolve(newParam.imported(newParam,
