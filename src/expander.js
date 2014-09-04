@@ -2842,7 +2842,6 @@ import { * } from "../macros/stxcase.js";
             var macroDefinition;
             if (term.isMacro) {
                 macroDefinition = loadMacroDef(term.body, context, phase + 1);
-                // compilation collapses multi-token macro names into single identifier
                 name = unwrapSyntax(term.name[0]);
 
                 context.env.names.set(name, true);
