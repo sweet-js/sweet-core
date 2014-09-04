@@ -77,6 +77,7 @@
         this.token = token;
         this.context = (oldstx && oldstx.context) ? oldstx.context : null;
         this.deferredContext = (oldstx && oldstx.deferredContext) ? oldstx.deferredContext : null;
+        this.props = (oldstx && oldstx.props) ? oldstx.props : {};
     }
 
     Syntax.prototype = {
@@ -85,9 +86,11 @@
         mark: function(newMark) {
             if (this.token.inner) {
                 return syntaxFromToken(this.token, {deferredContext: new Mark(newMark, this.deferredContext),
-                                                    context: new Mark(newMark, this.context)});
+                                                    context: new Mark(newMark, this.context),
+                                                    props: this.props});
             }
-            return syntaxFromToken(this.token, {context: new Mark(newMark, this.context)});
+            return syntaxFromToken(this.token, {context: new Mark(newMark, this.context),
+                                                props: this.props});
         },
 
         // (CSyntax or [...CSyntax], Str) -> CSyntax
@@ -97,11 +100,13 @@
             if (this.token.inner) {
                 return syntaxFromToken(this.token,
                                        {deferredContext: new Rename(id, name, this.deferredContext, defctx, phase),
-                                        context: new Rename(id, name, this.context, defctx, phase)});
+                                        context: new Rename(id, name, this.context, defctx, phase),
+                                        props: this.props});
             }
 
             return syntaxFromToken(this.token,
-                                   {context: new Rename(id, name, this.context, defctx, phase)});
+                                   {context: new Rename(id, name, this.context, defctx, phase),
+                                    props: this.props});
         },
 
         imported: function(id, name, phase) {
@@ -111,22 +116,26 @@
                                                                       name,
                                                                       this.deferredContext,
                                                                       phase),
-                                      context: new Imported(id, name, this.context, phase)});
+                                        context: new Imported(id, name, this.context, phase),
+                                        props: this.props});
 
             }
             return syntaxFromToken(this.token, {context: new Imported(id,
                                                                       name,
                                                                       this.context,
-                                                                      phase)});
+                                                                      phase),
+                                                props: this.props});
         },
 
         addDefCtx: function(defctx) {
             if (this.token.inner) {
                 return syntaxFromToken(this.token,
                                        {deferredContext: new Def(defctx, this.deferredContext),
-                                        context: new Def(defctx, this.context)});
+                                        context: new Def(defctx, this.context),
+                                        props: this.props});
             }
-            return syntaxFromToken(this.token, {context: new Def(defctx, this.context)});
+            return syntaxFromToken(this.token, {context: new Def(defctx, this.context),
+                                                props: this.props});
         },
 
         getDefCtx: function() {
@@ -174,10 +183,12 @@
                 if (stx.token.inner) {
                     return syntaxFromToken(stx.token,
                                            {deferredContext: applyContext(stx.deferredContext, self.deferredContext),
-                                            context: applyContext(stx.context, self.deferredContext)});
+                                            context: applyContext(stx.context, self.deferredContext),
+                                            props: self.props});
                 } else {
                     return syntaxFromToken(stx.token,
-                                           {context: applyContext(stx.context, self.deferredContext)});
+                                           {context: applyContext(stx.context, self.deferredContext),
+                                            props: self.props});
                 }
             });
             this.deferredContext = null;
