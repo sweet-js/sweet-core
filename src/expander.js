@@ -2240,6 +2240,10 @@ import { * } from "../macros/stxcase.js";
                 var oldName = head.name;
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 var renamedName = nameStx.rename(nameStx, freshName);
+                // store a reference to the full name in the props object.
+                // this allows us to communicate the original full name to
+                // `visit` later on.
+                renamedName.props.fullName = oldName;
                 head.name = [renamedName];
                 rest = _.map(rest, function(stx) {
                     return stx.rename(nameStx, freshName);
@@ -2860,7 +2864,7 @@ import { * } from "../macros/stxcase.js";
                     fn: macroDefinition,
                     isOp: false,
                     builtin: builtinMode,
-                    fullName: term.name
+                    fullName: term.name[0].props.fullName
                 });
             }
 

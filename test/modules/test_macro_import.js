@@ -3,6 +3,7 @@ import { * } from "../../macros/stxcase.js";
 import { id, di } from "./id.js";
 import { map } from "./map.js" for macros;
 import { (**) } from "./operators.js";
+import { (number?) } from "./multi-tok.js";
 
 var expect = require("expect.js");
 
@@ -31,4 +32,8 @@ describe("importing modules", function() {
         function ident(x) { return x; }
         expect(2 ** 10).to.be(Math.pow(2, 10));
     });
+
+    it("should import multi-token macros from another module", function() {
+        expect(number?(100)).to.be(true);
+    })
 });
