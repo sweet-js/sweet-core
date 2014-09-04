@@ -7,26 +7,11 @@ import { (**) } from "./operators.js";
 var expect = require("expect.js");
 
 
-describe("importing the basics", function() {
-    it("should work for rule macros", function() {
-        macro id {
-            rule { $x } => { $x }
-        }
-        expect(id 42).to.be(42);
-    });
+describe("importing modules", function() {
 
-    it("should work for case macros", function() {
-        macro m {
-            case { _ $x } => {
-                return #{ $x }
-            }
-        }
-        expect((function(macro) { return m macro })(42)).to.eql(42)
-    })
-
-    it("should import a macro from another module", function() {
-        expect(id 42).to.be(42);
-        expect(di 42).to.be(42);
+    it("should import two macros from another module", function() {
+        expect(id(42)).to.be(42);
+        expect(di(42)).to.be(42);
     });
 
     it("should import a runtime value from another module for macros", function() {
@@ -40,9 +25,10 @@ describe("importing the basics", function() {
             }
         }
         expect(m).to.eql([1, 2, 3]);
-    })
+    });
 
-    it("should import operators from another module", function() {
+    it("should import a multi-token operator from another module", function() {
+        function ident(x) { return x; }
         expect(2 ** 10).to.be(Math.pow(2, 10));
-    })
+    });
 });

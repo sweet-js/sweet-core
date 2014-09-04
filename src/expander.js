@@ -2815,6 +2815,8 @@ import { * } from "../macros/stxcase.js";
 
     // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
     function visit(mod, phase, context, options) {
+        var defctx = [];
+        mod.body = mod.body.map(term -> term.addDefCtx(defctx));
         mod.imports.forEach(imp -> {
             var modToImport = loadImport(imp, mod, options, context);
 
@@ -2864,10 +2866,10 @@ import { * } from "../macros/stxcase.js";
 
             if (term.isOperatorDefinition) {
                 var opDefinition = loadMacroDef(term.body, context, phase + 1);
-                // compilation collapses multi-token macro names into single identifier
-                name = unwrapSyntax(term.name[0]);
-
-                var resolvedName = resolve(term.name[0], phase);
+                name = term.name.map(unwrapSyntax).join("");
+                var nameStx = syn.makeIdent(name, term.name[0]);
+                addToDefinitionCtx([nameStx], defctx, false, []);
+                var resolvedName = resolve(nameStx, phase);
                 var opObj = context.env.get(resolvedName);
                 if (!opObj) {
                     opObj = {
@@ -2955,23 +2957,23 @@ import { * } from "../macros/stxcase.js";
                                              importName);
                         }
 
-                        var exportName, trans;
+                        var exportName, trans, exportNameStr;
                         if (inExports.name.token.type === parser.Token.Delimiter) {
-                            exportName = inExports.name.token.inner;
+                            exportName = inExports.name.expose().token.inner;
+                            exportNameStr = exportName.map(unwrapSyntax).join('');
                             trans = getMacroInEnv(exportName[0],
                                                   exportName.slice(1),
                                                   context,
                                                   phase);
                         } else {
                             exportName = inExports.name;
+                            exportNameStr = unwrapSyntax(exportName);
                             trans = getMacroInEnv(exportName,
                                                   [],
                                                   context,
                                                   phase);
                         }
-                        assert(inExports.name.token.type !== parser.Token.Delimiter,
-                               "need to handle making the right params for multi-token names");
-                        var newParam = syn.makeIdent(unwrapSyntax(inExports.name), null);
+                        var newParam = syn.makeIdent(exportNameStr, null);
                         var newName = fresh();
                         context.env.set(resolve(newParam.imported(newParam,
                                                                   newName,
