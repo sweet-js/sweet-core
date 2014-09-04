@@ -380,7 +380,7 @@
                 var resultHead = result[0];
                 var resultRest = result.slice(1);
                 var nextName = expander.getName(resultHead, resultRest);
-                var nextMacro = expander.getMacroInEnv(resultHead, resultRest, context);
+                var nextMacro = expander.getMacroInEnv(resultHead, resultRest, context, context.phase);
 
                 if (nextName && nextMacro) {
                     macroObj = nextMacro;
