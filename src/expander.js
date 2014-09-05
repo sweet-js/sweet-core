@@ -2828,7 +2828,7 @@ import { * } from "../macros/stxcase.js";
                 context = visit(modToImport, phase, context, options);
             } else if (imp.isImportForMacros) {
                 context = invoke(modToImport, phase + 1, context, options);
-                // context = visit(modToImport, phase + 1, context, options);
+                context = visit(modToImport, phase + 1, context, options);
             } else {
                 console.log(imp);
                 assert(false, "not implemented yet");
@@ -2855,7 +2855,7 @@ import { * } from "../macros/stxcase.js";
 
             if (term.isLetMacro) {
                 macroDefinition = loadMacroDef(term.body, context, phase + 1);
-                // compilation collapses multi-token macro names into single identifier
+                // compilation collapses multi-token let macro names into single identifier
                 name = unwrapSyntax(term.name[0]);
 
                 context.env.names.set(name, true);
