@@ -2830,7 +2830,6 @@ import { * } from "../macros/stxcase.js";
                 context = invoke(modToImport, phase + 1, context, options);
                 context = visit(modToImport, phase + 1, context, options);
             } else {
-                console.log(imp);
                 assert(false, "not implemented yet");
             }
 
