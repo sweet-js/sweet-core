@@ -5736,6 +5736,13 @@ parseYieldExpression: true
             yieldAllowed: false
         };
 
+        extra.attachComment = true;
+        extra.range = true;
+        extra.comments = [];
+        extra.bottomRightStack = [];
+        extra.trailingComments = [];
+        extra.leadingComments = [];
+
         if (typeof options !== 'undefined') {
             extra.range = (typeof options.range === 'boolean') && options.range;
             extra.loc = (typeof options.loc === 'boolean') && options.loc;
@@ -5759,13 +5766,6 @@ parseYieldExpression: true
             if (typeof options.tolerant === 'boolean' && options.tolerant) {
                 extra.errors = [];
             }
-            if (extra.attachComment) {
-                extra.range = true;
-                extra.comments = [];
-                extra.bottomRightStack = [];
-                extra.trailingComments = [];
-                extra.leadingComments = [];
-            }
         }
 
         if (length > 0) {
@@ -5779,12 +5779,12 @@ parseYieldExpression: true
             }
         }
 
-        extra = {loc: true, errors: []};
+        extra.loc = true;
+        extra.errors = [];
         patch();
         try {
             program = parseProgram();
             if (typeof extra.comments !== 'undefined') {
-                filterCommentLocation();
                 program.comments = extra.comments;
             }
             if (typeof extra.tokens !== 'undefined') {
