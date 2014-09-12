@@ -5665,6 +5665,8 @@ parseYieldExpression: true
         
         extra = {};
         extra.comments = [];
+        extra.range = true;
+        extra.loc = true;
         patch();
 
         source = code;
@@ -5745,6 +5747,14 @@ parseYieldExpression: true
         extra.bottomRightStack = [];
         extra.trailingComments = [];
         extra.leadingComments = [];
+
+        tokenStream.forEach(function(stx) {
+            if (stx.token.leadingComments) {
+                extra.comments = extra.comments.concat(stx.token.leadingComments);
+                extra.trailingComments = extra.trailingComments.concat(stx.token.leadingComments);
+                extra.leadingComments = extra.leadingComments.concat(stx.token.leadingComments);
+            }
+        });
 
         if (typeof options !== 'undefined') {
             extra.range = (typeof options.range === 'boolean') && options.range;
