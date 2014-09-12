@@ -1507,6 +1507,12 @@ parseYieldExpression: true
 
         index = lookahead.range[0];
 
+        if (token.leadingComments) {
+            extra.comments = extra.comments.concat(token.leadingComments);
+            extra.trailingComments = extra.trailingComments.concat(token.leadingComments);
+            extra.leadingComments = extra.leadingComments.concat(token.leadingComments);
+        }
+
 
         return token;
     }
@@ -4335,7 +4341,7 @@ parseYieldExpression: true
     }
 
     function parseParams(firstRestricted) {
-        var options, marker = markerCreate();
+        var options;
 
         options = {
             params: [],
@@ -4363,7 +4369,7 @@ parseYieldExpression: true
             options.defaults = [];
         }
 
-        return markerApply(marker, options);
+        return options;
     }
 
     function parseFunctionDeclaration() {
@@ -5744,14 +5750,6 @@ parseYieldExpression: true
         extra.bottomRightStack = [];
         extra.trailingComments = [];
         extra.leadingComments = [];
-
-        tokenStream.forEach(function(stx) {
-            if (stx.token.leadingComments) {
-                extra.comments = extra.comments.concat(stx.token.leadingComments);
-                extra.trailingComments = extra.trailingComments.concat(stx.token.leadingComments);
-                extra.leadingComments = extra.leadingComments.concat(stx.token.leadingComments);
-            }
-        });
 
         if (typeof options !== 'undefined') {
             extra.range = (typeof options.range === 'boolean') && options.range;
