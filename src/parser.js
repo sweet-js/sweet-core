@@ -2486,7 +2486,7 @@ parseYieldExpression: true
             marker = markerCreate();
 
         token = lookahead;
-        computed = (token.value === '[');
+        computed = (token.value === '[' && token.type === Token.Punctuator);
 
         if (token.type === Token.Identifier || computed) {
 
