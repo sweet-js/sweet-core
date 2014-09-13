@@ -2562,7 +2562,6 @@
             env.names = new StringMap();
         }
 
-        // read-only but can enumerate
         return Object.create(Object.prototype, {
             filename: {value: o.filename,
                        writable: false, enumerable: true, configurable: false},
