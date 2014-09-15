@@ -3005,7 +3005,7 @@ import { * } from "../macros/stxcase.js";
                     context = visit(modToImport, 0, context, options);
                 } else if (imp.isImportForMacros) {
                     context = invoke(modToImport, 1, context, options);
-                    // context = visit(modToImport, 1, context, options);
+                    context = visit(modToImport, 1, context, options);
                 } else {
                     assert(false, "not implemented yet");
                 }
