@@ -570,7 +570,7 @@ import { * } from "../macros/stxcase.js";
     dataclass Module                (name, lang, body, imports, exports)extends CompileTimeTerm;
     dataclass Import                (names, from)                       extends CompileTimeTerm;
     dataclass ImportForMacros       (names, from)                       extends CompileTimeTerm;
-    dataclass Export                (name)                              extends CompileTimeTerm;
+    dataclass Export                (kw, name)                          extends CompileTimeTerm;
 
     dataclass VariableDeclaration   (ident, eq, init, comma)            extends TermTree;
 
@@ -1833,7 +1833,7 @@ import { * } from "../macros/stxcase.js";
                     if (unwrapSyntax(rest[1]) === ";") {
                         rest.splice(1, 1);
                     }
-                    return step(Export.create(rest[0]), rest.slice(1), opCtx);
+                    return step(Export.create(head, rest[0]), rest.slice(1), opCtx);
                 // identifier
                 } else if (head.token.type === parser.Token.Identifier) {
                     return step(Id.create(head), rest, opCtx);
