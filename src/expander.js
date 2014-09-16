@@ -2601,7 +2601,7 @@ import { * } from "../macros/stxcase.js";
                                     term.exports.push(name);
                                 });
                         } else {
-                            term.exports.push(bodyTerm.name);
+                            throwSyntaxError("expand", "not valid export type", bodyTerm.name);
                         }
                     }
                 });
@@ -2910,7 +2910,7 @@ import { * } from "../macros/stxcase.js";
                             mod.exports.push(name);
                         });
                 } else {
-                    mod.exports.push(term.name);
+                    throwSyntaxError("visit", "not valid export", term.name);
                 }
             }
         });
