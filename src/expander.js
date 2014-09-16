@@ -1822,8 +1822,7 @@ import { * } from "../macros/stxcase.js";
                             rest[0] && (rest[0].token.type === parser.Token.Identifier ||
                                         rest[0].token.type === parser.Token.Keyword ||
                                         rest[0].token.type === parser.Token.Punctuator ||
-                                        rest[0].token.type === parser.Token.Delimiter &&
-                                        rest[0].token.value === "()")) {
+                                        rest[0].token.type === parser.Token.Delimiter)) {
                     if (unwrapSyntax(rest[1]) !== ";" && toksAdjacent(rest[0], rest[1])) {
                         throwSyntaxError("enforest",
                                          "multi-token macro/operator names must be wrapped in () when exporting",
@@ -2595,7 +2594,16 @@ import { * } from "../macros/stxcase.js";
             if (term.isModule) {
                 bodyTerms.forEach(bodyTerm -> {
                     if (bodyTerm.isExport) {
-                        term.exports.push(bodyTerm);
+                        if (bodyTerm.name.token.type == parser.Token.Delimiter &&
+                            bodyTerm.name.token.value === "{}") {
+                            bodyTerm.name.expose().token.inner
+                                |> filterCommaSep
+                                |> names -> names.forEach(name -> {
+                                    term.exports.push(name);
+                                });
+                        } else {
+                            term.exports.push(bodyTerm.name);
+                        }
                     }
                 });
             }
@@ -2807,10 +2815,10 @@ import { * } from "../macros/stxcase.js";
         vm.runInNewContext(code, global);
 
         mod.exports.forEach(exp -> {
-            var expName = resolve(exp.name, phase);
+            var expName = resolve(exp, phase);
             var expVal = global[expName];
             context.env.set(expName, expVal);
-            context.env.names.set(unwrapSyntax(exp.name), true);
+            context.env.names.set(unwrapSyntax(exp), true);
         });
         return context;
     }
@@ -2820,6 +2828,9 @@ import { * } from "../macros/stxcase.js";
     function visit(mod, phase, context, options) {
         var defctx = [];
         mod.body = mod.body.map(term -> term.addDefCtx(defctx));
+        // reset the exports
+        mod.exports = [];
+
         mod.imports.forEach(imp -> {
             var modToImport = loadImport(imp, mod, options, context);
 
@@ -2890,9 +2901,37 @@ import { * } from "../macros/stxcase.js";
                 context.env.names.set(name, true);
                 context.env.set(resolvedName, opObj);
             }
+
+            if (term.isExport) {
+                if (term.name.token.type === parser.Token.Delimiter &&
+                    term.name.token.value === "{}") {
+                    term.name.expose().token.inner
+                        |> filterCommaSep
+                        |> names -> names.forEach(name -> {
+                            mod.exports.push(name);
+                        });
+                } else {
+                    mod.exports.push(term.name);
+                }
+            }
         });
 
         return context;
+    }
+
+    function filterCommaSep(stx) {
+        return stx.filter((stx, idx) -> {
+            if (idx % 2 !== 0 && (stx.token.type !== parser.Token.Punctuator ||
+                                  stx.token.value !== ",")) {
+                throwSyntaxError("import",
+                                 "expecting a comma separated list",
+                                 stx);
+            } else if (idx % 2 !== 0) {
+                return false;
+            } else {
+                return true;
+            }
+        });
     }
 
 
@@ -2923,8 +2962,8 @@ import { * } from "../macros/stxcase.js";
                                      imp.names);
             } else if (unwrapSyntax(imp.names.token.inner[0]) === "*") {
                 modToImport.exports.forEach(exp -> {
-                    var trans = context.env.get(resolve(exp.name, phase));
-                    var newParam = syn.makeIdent(unwrapSyntax(exp.name), null);
+                    var trans = context.env.get(resolve(exp, phase));
+                    var newParam = syn.makeIdent(unwrapSyntax(exp), null);
                     var newName = fresh();
                     context.env.set(resolve(newParam.imported(newParam,
                                                               newName,
@@ -2945,10 +2984,10 @@ import { * } from "../macros/stxcase.js";
                     } else if (idx % 2 === 0) {
                         var inExports = _.find(modToImport.exports, expTerm -> {
                             if (importName.token.type === parser.Token.Delimiter) {
-                                return expTerm.name.token.type === parser.Token.Delimiter &&
-                                    syntaxInnerValuesEq(importName, expTerm.name);
+                                return expTerm.token.type === parser.Token.Delimiter &&
+                                    syntaxInnerValuesEq(importName, expTerm);
                             }
-                            return expTerm.name.token.value === importName.token.value
+                            return expTerm.token.value === importName.token.value
                         });
                         if (!inExports) {
                             throwSyntaxError("compile",
@@ -2959,15 +2998,15 @@ import { * } from "../macros/stxcase.js";
                         }
 
                         var exportName, trans, exportNameStr;
-                        if (inExports.name.token.type === parser.Token.Delimiter) {
-                            exportName = inExports.name.expose().token.inner;
+                        if (inExports.token.type === parser.Token.Delimiter) {
+                            exportName = inExports.expose().token.inner;
                             exportNameStr = exportName.map(unwrapSyntax).join('');
                             trans = getMacroInEnv(exportName[0],
                                                   exportName.slice(1),
                                                   context,
                                                   phase);
                         } else {
-                            exportName = inExports.name;
+                            exportName = inExports;
                             exportNameStr = unwrapSyntax(exportName);
                             trans = getMacroInEnv(exportName,
                                                   [],
