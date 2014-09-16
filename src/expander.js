@@ -2975,13 +2975,9 @@ import { * } from "../macros/stxcase.js";
                                                                 phase));
                 });
             } else {
-                imp.names.token.inner.forEach((importName, idx)-> {
-                    if (idx % 2 !== 0 && (importName.token.type !== parser.Token.Punctuator ||
-                                          importName.token.value !== ",")) {
-                        throwSyntaxError("import",
-                                         "expecting a comma separated list",
-                                         importName);
-                    } else if (idx % 2 === 0) {
+                imp.names.token.inner
+                    |> filterCommaSep
+                    |> names -> names.forEach(importName-> {
                         var inExports = _.find(modToImport.exports, expTerm -> {
                             if (importName.token.type === parser.Token.Delimiter) {
                                 return expTerm.token.type === parser.Token.Delimiter &&
@@ -3023,7 +3019,6 @@ import { * } from "../macros/stxcase.js";
                         mod.body = mod.body.map(stx -> stx.imported(newParam,
                                                                     newName,
                                                                     phase));
-                    }
 
                 });
             }
