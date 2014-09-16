@@ -1123,10 +1123,9 @@ import { * } from "../macros/stxcase.js";
 
     // @ (SyntaxObject, SyntaxObject) -> Bool
     function toksAdjacent(a, b) {
-        return a.token.sm_range && b.token.sm_range &&
-            (a.token.sm_range[1] === b.token.sm_range[0]) ||
-            (a.token.range[1] === b.token.range[0]);
-
+        var arange = a.token.sm_range || a.token.range || a.token.endRange;
+        var brange = b.token.sm_range || b.token.range || b.token.endRange;
+        return arange && brange && arange[1] === brange[0];
     }
 
     // @ (SyntaxObject, SyntaxObject) -> Bool

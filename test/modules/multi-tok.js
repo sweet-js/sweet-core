@@ -6,11 +6,14 @@ let (number?) = macro {
         typeof ($cond ...) === 'number'
     }
 }
-export (number?);
 
 macro (string?) {
     rule { ($cond ...) } => {
         typeof ($cond ...) === 'string'
     }
 }
-export (string?);
+
+export {
+    (string?),
+    (number?)
+}
