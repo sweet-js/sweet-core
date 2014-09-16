@@ -3052,8 +3052,7 @@ import { * } from "../macros/stxcase.js";
                 var importPhase = imp.isImport ? 0 : 1;
                 bindImportInMod(imp, mod, modToImport, context, importPhase);
             });
-            var res = expandTermTreeToFinal(mod, context);
-            return res;
+            return expandTermTreeToFinal(mod, context);
         }
     }
 
