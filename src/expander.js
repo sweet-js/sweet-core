@@ -469,11 +469,14 @@ import { * } from "../macros/stxcase.js";
         // ordered list of properties that each subclass sets to
         // determine the order in which multiple children are
         // destructed.
-        // ({stripCompiletime: ?Boolean}) -> [...Syntax]
+        // ({stripCompileTerm: ?Boolean}) -> [...Syntax]
         destruct(options) {
             options = options || {};
             var self = this;
-            if (options.stripCompiletime && this.isCompileTimeTerm)  {
+            if (options.stripCompileTerm && this.isCompileTimeTerm)  {
+                return [];
+            }
+            if (options.stripModuleTerm && this.isModuleTerm)  {
                 return [];
             }
             return _.reduce(this.constructor.properties, function(acc, prop) {
@@ -561,16 +564,19 @@ import { * } from "../macros/stxcase.js";
     dataclass Punc                  (punc)                              extends TermTree;
     dataclass Delimiter             (delim)                             extends TermTree;
 
+    dataclass ModuleTerm            ()                                  extends TermTree;
+
+    dataclass Module                (name, lang, body, imports, exports)extends ModuleTerm;
+    dataclass Import                (names, from)                       extends ModuleTerm;
+    dataclass ImportForMacros       (names, from)                       extends ModuleTerm;
+    dataclass Export                (kw, name)                          extends ModuleTerm;
+
     dataclass CompileTimeTerm       ()                                  extends TermTree;
 
     dataclass LetMacro              (name, body)                        extends CompileTimeTerm;
     dataclass Macro                 (name, body)                        extends CompileTimeTerm;
     dataclass AnonMacro             (body)                              extends CompileTimeTerm;
     dataclass OperatorDefinition    (type, name, prec, assoc, body)     extends CompileTimeTerm;
-    dataclass Module                (name, lang, body, imports, exports)extends CompileTimeTerm;
-    dataclass Import                (names, from)                       extends CompileTimeTerm;
-    dataclass ImportForMacros       (names, from)                       extends CompileTimeTerm;
-    dataclass Export                (kw, name)                          extends CompileTimeTerm;
 
     dataclass VariableDeclaration   (ident, eq, init, comma)            extends TermTree;
 
@@ -2067,7 +2073,7 @@ import { * } from "../macros/stxcase.js";
     // (Macro) -> (([...CSyntax]) -> ReadTree)
     function loadMacroDef(body, context, phase) {
 
-        var expanded = body[0].destruct({stripCompiletime: true});
+        var expanded = body[0].destruct({stripCompileTerm: true});
         var stub = parser.read("()");
         stub[0].token.inner = expanded;
         var flattend = flatten(stub);
@@ -2709,7 +2715,7 @@ import { * } from "../macros/stxcase.js";
         }, modBody);
 
         var res = expand([syn.makeIdent("module", null), modBody], context);
-        res = res[0].destruct({stripCompiletime: true});
+        res = res[0].destruct({stripCompileTerm: true});
         res = res[0].token.inner;
         return options.flatten ? flatten(res) : res;
     }
@@ -2804,7 +2810,8 @@ import { * } from "../macros/stxcase.js";
         });
 
         var code = mod.body
-            |> terms -> terms.map(term -> term.destruct({stripCompiletime: true}))
+            |> terms -> terms.map(term -> term.destruct({stripCompileTerm: true,
+                                                         stripModuleTerm: true}))
             |> _.flatten
             |> flatten
             |> parser.parse
@@ -3070,7 +3077,7 @@ import { * } from "../macros/stxcase.js";
         availableModules = new StringMap();
         var compiled = compileModule(mod, options, templateMap, patternMap);
         return compiled.body.reduce((acc, term) -> {
-            return acc.concat(term.destruct({stripCompiletime: true}));
+            return acc.concat(term.destruct({stripCompileTerm: true}));
 
         }, []) |> flatten;
     }
