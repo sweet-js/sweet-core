@@ -1151,5 +1151,15 @@ describe("macro expander", function() {
             42;
         }
         expect(foo()).to.be(undefined);
-    })
+    });
+
+    it("should allow empty trailing macroclasses in delimiters", function() {
+        macroclass foo {
+            rule {}
+        }
+        macro m {
+            rule { (1 2 $x:foo) } => { true }
+        }
+        expect(m(1 2)).to.be(true);
+    });
 });
