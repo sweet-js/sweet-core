@@ -1,3 +1,5 @@
+#lang "js";
+import { * } from "../macros/stxcase.js";
 var expect = require("expect.js");
 
 describe("macro expander", function() {

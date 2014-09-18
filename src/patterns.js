@@ -1,3 +1,4 @@
+#lang "js";
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
@@ -349,7 +350,7 @@
     function expandWithMacro(macroName, stx, context, rec) {
         var name = macroName.map(syntax.unwrapSyntax).join("");
         var ident = syntax.makeIdent(name, macroName[0]);
-        var macroObj = context.env.get(expander.resolve(ident));
+        var macroObj = context.env.get(expander.resolve(ident, context.phase));
         var newContext = expander.makeExpanderContext(context);
 
         if (!macroObj) {
@@ -379,7 +380,7 @@
                 var resultHead = result[0];
                 var resultRest = result.slice(1);
                 var nextName = expander.getName(resultHead, resultRest);
-                var nextMacro = expander.getMacroInEnv(resultHead, resultRest, context.env);
+                var nextMacro = expander.getMacroInEnv(resultHead, resultRest, context, context.phase);
 
                 if (nextName && nextMacro) {
                     macroObj = nextMacro;

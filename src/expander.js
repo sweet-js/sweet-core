@@ -1,3 +1,4 @@
+#lang "js";
 /*
   Copyright (C) 2012 Tim Disney <tim@disnet.me>
 
@@ -22,8 +23,9 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+import { * } from "../macros/stxcase.js";
 
-import @ from "contracts.js"
+// import @ from "contracts.js"
 
 
 (function (root, factory) {
@@ -35,7 +37,8 @@ import @ from "contracts.js"
                 require('./syntax'),
                 require('./scopedEval'),
                 require("./patterns"),
-                require('escodegen'));
+                require('escodegen'),
+                require('vm'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports',
@@ -46,7 +49,7 @@ import @ from "contracts.js"
                 'patterns',
                 'escodegen'], factory);
     }
-}(this, function(exports, _, parser, syn, se, patternModule, gen) {
+}(this, function(exports, _, parser, syn, se, patternModule, gen, vm) {
     'use strict';
     // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
     var codegen = typeof escodegen !== "undefined" ? escodegen : gen;
@@ -56,6 +59,22 @@ import @ from "contracts.js"
     var SyntaxCaseError = syn.SyntaxCaseError;
     var unwrapSyntax = syn.unwrapSyntax;
 
+    macro (->) {
+        rule infix { $param:ident | { $body ... } } => {
+            function ($param) { $body ...}
+        }
+        rule infix { $param:ident | $body:expr } => {
+            function ($param) { return $body }
+        }
+        rule infix { ($param:ident (,) ...) | { $body ... } } => {
+            function ($param (,) ...) { $body ... }
+        }
+        rule infix { ($param:ident (,) ...) | $body:expr } => {
+            function ($param (,) ...) { return $body }
+        }
+    }
+    operator (|>) 1 left { $l, $r } => #{ $r($l) }
+
     // used to export "private" methods for unit testing
     exports._test = {};
 
@@ -64,6 +83,9 @@ import @ from "contracts.js"
     }
 
     StringMap.prototype = {
+        keys: function() {
+            return Object.keys(this.__data);
+        },
         has: function(key) {
             return Object.prototype.hasOwnProperty.call(this.__data, key);
         },
@@ -87,6 +109,7 @@ import @ from "contracts.js"
     var Rename = syn.Rename;
     var Mark = syn.Mark;
     var Def = syn.Def;
+    var Imported = syn.Imported;
 
     var syntaxFromToken = syn.syntaxFromToken;
     var joinSyntax = syn.joinSyntax;
@@ -94,6 +117,7 @@ import @ from "contracts.js"
     var builtinMode = false;
     var expandCount = 0;
     var maxExpands;
+    var availableModules;
 
     var push = Array.prototype.push;
 
@@ -121,12 +145,18 @@ import @ from "contracts.js"
                 ctx = ctx.context;
                 continue;
             }
+            if (ctx.constructor === Imported) {
+                ctx = ctx.context;
+                continue;
+            }
+            assert(false, "Unknown context type");
         }
         return [];
     }
 
-    function resolve(stx) {
-        return resolveCtx(stx.token.value, stx.context, [], [], {});
+    function resolve(stx, phase) {
+        assert(phase !== undefined, "must pass in phase");
+        return resolveCtx(stx.token.value, stx.context, [], [], {}, phase);
     }
 
     // This call memoizes intermediate results in the recursive invocation.
@@ -156,14 +186,14 @@ import @ from "contracts.js"
     // With this memoization, the time complexity of the resolveCtx call is
     // no longer exponential for the cases in issue #232.
 
-    function resolveCtx(originalName, ctx, stop_spine, stop_branch, cache) {
+    function resolveCtx(originalName, ctx, stop_spine, stop_branch, cache, phase) {
         if (!ctx) { return originalName; }
         var key = ctx.instNum;
-        return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache));
+        return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase));
     }
 
     // (Syntax) -> String
-    function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache) {
+    function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase) {
         while (true) {
             if (!ctx) { return originalName; }
 
@@ -184,15 +214,17 @@ import @ from "contracts.js"
             if (ctx.constructor === Rename) {
                 if (originalName === ctx.id.token.value) {
                     var idName  = resolveCtx(ctx.id.token.value,
-                            ctx.id.context,
-                            stop_branch,
-                            stop_branch,
-                            cache);
+                                             ctx.id.context,
+                                             stop_branch,
+                                             stop_branch,
+                                             cache,
+                                             0);
                     var subName = resolveCtx(originalName,
-                            ctx.context,
-                            unionEl(stop_spine, ctx.def),
-                            stop_branch,
-                            cache);
+                                             ctx.context,
+                                             unionEl(stop_spine, ctx.def),
+                                             stop_branch,
+                                             cache,
+                                             0);
                     if (idName === subName) {
                         var idMarks  = marksof(ctx.id.context,
                                 originalName + "$" + ctx.name,
@@ -208,7 +240,16 @@ import @ from "contracts.js"
                 ctx = ctx.context;
                 continue;
             }
-            return originalName;
+            if (ctx.constructor === Imported) {
+                if (phase === ctx.phase) {
+                    if (originalName === ctx.id.token.value) {
+                        return originalName + "$" + ctx.name;
+                    }
+                }
+                ctx = ctx.context;
+                continue;
+            }
+            assert(false, "Unknown context type");
         }
     }
 
@@ -245,7 +286,7 @@ import @ from "contracts.js"
 
     var nextFresh = 0;
 
-    @ () -> Num
+    // @ () -> Num
     function fresh() { return nextFresh++; }
 
 
@@ -382,6 +423,44 @@ import @ from "contracts.js"
         }
     }
 
+    // @ let TemplateMap = {}
+    // @ let PatternMap = {}
+    // @ let TokenObject = {}
+    // @ let ContextObject = {}
+
+    // @ let SyntaxObject = {
+    //     token: TokenObject,
+    //     context: Null or ContextObject
+    // }
+    // @ let TermTreeObject = {}
+
+    // @ let ExpanderContext = {}
+    // {
+    //     filename: Str,
+    //     requireModule: Str,
+    //     env: {},
+    //     defscope: {},
+    //     paramscope: {},
+    //     templateMap: {},
+    //     patternMap: {},
+    //     mark: Num
+    // }
+
+    // @ let ExportTerm = {
+    //     name: SyntaxObject
+    // }
+    // @ let ImportTerm = {
+    //     names: SyntaxObject,
+    //     from: SyntaxObject
+    // }
+    // @ let ModuleTerm = {
+    //     name: SyntaxObject,
+    //     lang: SyntaxObject,
+    //     body: [...SyntaxObject] or [...TermTreeObject],
+    //     imports: [...ImportTerm],
+    //     exports: [...ExportTerm]
+    // }
+
     // A TermTree is the core data structure for the macro expansion process.
     // It acts as a semi-structured representation of the syntax.
     dataclass TermTree() {
@@ -390,19 +469,26 @@ import @ from "contracts.js"
         // ordered list of properties that each subclass sets to
         // determine the order in which multiple children are
         // destructed.
-        // () -> [...Syntax]
-        destruct() {
+        // ({stripCompileTerm: ?Boolean}) -> [...Syntax]
+        destruct(options) {
+            options = options || {};
             var self = this;
+            if (options.stripCompileTerm && this.isCompileTimeTerm)  {
+                return [];
+            }
+            if (options.stripModuleTerm && this.isModuleTerm)  {
+                return [];
+            }
             return _.reduce(this.constructor.properties, function(acc, prop) {
                 if (self[prop] && self[prop].isTermTree) {
-                    push.apply(acc, self[prop].destruct());
+                    push.apply(acc, self[prop].destruct(options));
                     return acc;
                 } else if (self[prop] && self[prop].token && self[prop].token.inner) {
                     cloned newtok <- self[prop].token;
                     var clone = syntaxFromToken(newtok, self[prop]);
                     clone.token.inner = _.reduce(clone.token.inner, function(acc, t) {
                         if (t && t.isTermTree) {
-                            push.apply(acc, t.destruct());
+                            push.apply(acc, t.destruct(options));
                             return acc;
                         }
                         acc.push(t);
@@ -413,7 +499,7 @@ import @ from "contracts.js"
                 } else if (Array.isArray(self[prop])) {
                     var destArr = _.reduce(self[prop], function(acc, t) {
                         if (t && t.isTermTree) {
-                            push.apply(acc, t.destruct());
+                            push.apply(acc, t.destruct(options));
                             return acc;
                         }
                         acc.push(t);
@@ -444,15 +530,29 @@ import @ from "contracts.js"
             return this;
         }
 
-        rename(id, name) {
+        rename(id, name, phase) {
             var self = this;
             _.each(this.constructor.properties, function(prop) {
                 if (Array.isArray(self[prop])) {
                     self[prop] = _.map(self[prop], function (item) {
-                        return item.rename(id, name);
+                        return item.rename(id, name, phase);
                     });
                 } else if (self[prop]) {
-                    self[prop] = self[prop].rename(id, name);
+                    self[prop] = self[prop].rename(id, name, phase);
+                }
+            });
+            return this;
+        }
+
+        imported(id, name, phase) {
+            var self = this;
+            _.each(this.constructor.properties, function(prop) {
+                if (Array.isArray(self[prop])) {
+                    self[prop] = _.map(self[prop], function (item) {
+                        return item.imported(id, name, phase);
+                    });
+                } else if (self[prop]) {
+                    self[prop] = self[prop].imported(id, name, phase);
                 }
             });
             return this;
@@ -463,12 +563,21 @@ import @ from "contracts.js"
     dataclass Keyword               (keyword)                           extends TermTree;
     dataclass Punc                  (punc)                              extends TermTree;
     dataclass Delimiter             (delim)                             extends TermTree;
-    dataclass LetMacro              (name, body)                        extends TermTree;
-    dataclass Macro                 (name, body)                        extends TermTree;
-    dataclass AnonMacro             (body)                              extends TermTree;
-    dataclass OperatorDefinition    (type, name, prec, assoc, body)     extends TermTree;
-    dataclass Module                (body, exports)                     extends TermTree;
-    dataclass Export                (name)                              extends TermTree;
+
+    dataclass ModuleTerm            ()                                  extends TermTree;
+
+    dataclass Module                (name, lang, body, imports, exports)extends ModuleTerm;
+    dataclass Import                (names, from)                       extends ModuleTerm;
+    dataclass ImportForMacros       (names, from)                       extends ModuleTerm;
+    dataclass Export                (kw, name)                          extends ModuleTerm;
+
+    dataclass CompileTimeTerm       ()                                  extends TermTree;
+
+    dataclass LetMacro              (name, body)                        extends CompileTimeTerm;
+    dataclass Macro                 (name, body)                        extends CompileTimeTerm;
+    dataclass AnonMacro             (body)                              extends CompileTimeTerm;
+    dataclass OperatorDefinition    (type, name, prec, assoc, body)     extends CompileTimeTerm;
+
     dataclass VariableDeclaration   (ident, eq, init, comma)            extends TermTree;
 
     dataclass Statement             ()                                  extends TermTree;
@@ -476,14 +585,14 @@ import @ from "contracts.js"
     dataclass CatchClause           (keyword, params, body)             extends Statement;
     dataclass ForStatement          (keyword, cond)                     extends Statement;
     dataclass ReturnStatement       (keyword, expr)                     extends Statement {
-        destruct() {
-            var expr = this.expr.destruct();        
+        destruct(options) {
+            var expr = this.expr.destruct(options);
             // need to adjust the line numbers to make sure that the expr
             // starts on the same line as the return keyword. This might
             // not be the case if an operator or infix macro perturbed the
             // line numbers during expansion.
             expr = adjustLineContext(expr, this.keyword.keyword);
-            return this.keyword.destruct().concat(expr);
+            return this.keyword.destruct(options).concat(expr);
         }
     }
 
@@ -513,11 +622,11 @@ import @ from "contracts.js"
     dataclass PartialExpression     (stx, left, combine)                extends Partial;
 
     dataclass BindingStatement(keyword, decls) extends Statement {
-        destruct() {
+        destruct(options) {
             return this.keyword
-                .destruct()
+                .destruct(options)
                 .concat(_.reduce(this.decls, function(acc, decl) {
-                    push.apply(acc, decl.destruct());
+                    push.apply(acc, decl.destruct(options));
                     return acc;
                 }, []));
         }
@@ -528,23 +637,24 @@ import @ from "contracts.js"
     dataclass ConstStatement    (keyword, decls) extends BindingStatement;
 
     dataclass ParenExpression(args, delim, commas) extends PrimaryExpression {
-        destruct() {
+        destruct(options) {
             var commas = this.commas.slice();
             cloned newtok <- this.delim.token;
             var delim = syntaxFromToken(newtok, this.delim);
             delim.token.inner = _.reduce(this.args, function(acc, term) {
                 assert(term && term.isTermTree,
                        "expecting term trees in destruct of ParenExpression");
-                push.apply(acc, term.destruct());
+                push.apply(acc, term.destruct(options));
                 // add all commas except for the last one
                 if (commas.length > 0) {
                     acc.push(commas.shift());
                 }
                 return acc;
             }, []);
-            return Delimiter.create(delim).destruct();
+            return Delimiter.create(delim).destruct(options);
         }
     }
+
 
     function stxIsUnaryOp(stx) {
         var staticOperators = ["+", "-", "~", "!",
@@ -872,9 +982,7 @@ import @ from "contracts.js"
                 (next.token.type === parser.Token.Punctuator ||
                  next.token.type === parser.Token.Identifier ||
                  next.token.type === parser.Token.Keyword) &&
-                 (curr.token.sm_range && next.token.sm_range &&
-                  curr.token.sm_range[1] === next.token.sm_range[0] ||
-                  curr.token.range[1] === next.token.range[0])) {
+                (toksAdjacent(curr, next))) {
                 name.push(next);
                 curr = next;
                 next = rest[++idx];
@@ -884,7 +992,7 @@ import @ from "contracts.js"
         }
     }
 
-    function getMacroInEnv(head, rest, env) {
+    function getMacroInEnv(head, rest, context, phase) {
         if (!(head.token.type === parser.Token.Identifier ||
               head.token.type === parser.Token.Keyword ||
               head.token.type === parser.Token.Punctuator)) {
@@ -893,21 +1001,21 @@ import @ from "contracts.js"
         var name = getName(head, rest);
         // simple case, don't need to create a new syntax object
         if (name.length === 1) {
-            if (env.names.get(unwrapSyntax(name[0]))) {
-                var resolvedName = resolve(name[0]);
-                if (env.has(resolvedName)) {
-                    return env.get(resolvedName);
+            if (context.env.names.get(unwrapSyntax(name[0]))) {
+                var resolvedName = resolve(name[0], phase);
+                if (context.env.has(resolvedName)) {
+                    return context.env.get(resolvedName);
                 }
             }
             return null;
         } else {
             while (name.length > 0) {
                 var nameStr = name.map(unwrapSyntax).join("");
-                if (env.names.get(nameStr)) {
+                if (context.env.names.get(nameStr)) {
                     var nameStx = syn.makeIdent(nameStr, name[0]);
-                    var resolvedName = resolve(nameStx);
-                    if (env.has(resolvedName)) {
-                        return env.get(resolvedName);
+                    var resolvedName = resolve(nameStx, phase);
+                    if (context.env.has(resolvedName)) {
+                        return context.env.get(resolvedName);
                     }
                 }
                 name.pop();
@@ -916,22 +1024,22 @@ import @ from "contracts.js"
         }
     }
 
-    function nameInEnv(head, rest, env) {
-        return getMacroInEnv(head, rest, env) !== null;
+    function nameInEnv(head, rest, context, phase) {
+        return getMacroInEnv(head, rest, context, phase) !== null;
     }
 
     // This should only be used on things that can't be rebound except by
     // macros (puncs, keywords).
-    function resolveFast(stx, env) {
+    function resolveFast(stx, env, phase) {
         var name = unwrapSyntax(stx);
-        return env.names.get(name) ? resolve(stx) : name;
+        return env.names.get(name) ? resolve(stx, phase) : name;
     }
 
     function expandMacro(stx, context, opCtx, opType, macroObj) {
         // pull the macro transformer out the environment
         var head = stx[0];
         var rest = stx.slice(1);
-        macroObj = macroObj || getMacroInEnv(head, rest, context.env);
+        macroObj = macroObj || getMacroInEnv(head, rest, context, context.phase);
         var stxArg = rest.slice(macroObj.fullName.length - 1);
         var transformer;
         if (opType != null) {
@@ -1018,8 +1126,30 @@ import @ from "contracts.js"
         return left < right;
     }
 
+
+    // @ (SyntaxObject, SyntaxObject) -> Bool
+    function toksAdjacent(a, b) {
+        var arange = a.token.sm_range || a.token.range || a.token.endRange;
+        var brange = b.token.sm_range || b.token.range || b.token.endRange;
+        return arange && brange && arange[1] === brange[0];
+    }
+
+    // @ (SyntaxObject, SyntaxObject) -> Bool
+    function syntaxInnerValuesEq(synA, synB) {
+        var a = synA.token.inner, b = synB.token.inner;
+        return a.length === b.length &&
+            _.zip(a, b) |> ziped -> _.all(ziped, pair -> {
+                return unwrapSyntax(pair[0]) === unwrapSyntax(pair[1]);
+            });
+
+    }
+
     // enforest the tokens, returns an object with the `result` TermTree and
     // the uninterpreted `rest` of the syntax
+    // @ ([...SyntaxObject], ExpanderContext) -> {
+    //     result: Null or TermTreeObject,
+    //     rest: [...SyntaxObject]
+    // }
     function enforest(toks, context, prevStx, prevTerms) {
         assert(toks.length > 0, "enforest assumes there are tokens to work with");
 
@@ -1048,7 +1178,7 @@ import @ from "contracts.js"
                     } else if (head.isId) {
                         uopSyntax = head.id;
                     }
-                    uopMacroObj = getMacroInEnv(uopSyntax, rest, context.env);
+                    uopMacroObj = getMacroInEnv(uopSyntax, rest, context, context.phase);
                     isCustomOp = uopMacroObj && uopMacroObj.isOp;
                 }
 
@@ -1056,7 +1186,7 @@ import @ from "contracts.js"
                 // without repeatedly calling getMacroInEnv)
                 var bopMacroObj;
                 if (rest[0] && rest[1]) {
-                    bopMacroObj = getMacroInEnv(rest[0], rest.slice(1), context.env);
+                    bopMacroObj = getMacroInEnv(rest[0], rest.slice(1), context, context.phase);
                 }
 
                 // unary operator
@@ -1214,14 +1344,14 @@ import @ from "contracts.js"
                     }
                 // Conditional ( x ? true : false)
                 } else if (head.isExpr &&
-                           (rest[0] && resolveFast(rest[0], context.env) === "?")) {
+                           (rest[0] && resolveFast(rest[0], context.env, context.phase) === "?")) {
                     var question = rest[0];
                     var condRes = enforest(rest.slice(1), context);
                     if (condRes.result) {
                         var truExpr = condRes.result;
                         var condRight = condRes.rest;
                         if (truExpr.isExpr &&
-                            condRight[0] && resolveFast(condRight[0], context.env) === ":") {
+                            condRight[0] && resolveFast(condRight[0], context.env, context.phase) === ":") {
                             var colon = condRight[0];
                             var flsRes = enforest(condRight.slice(1), context);
                             var flsExpr = flsRes.result;
@@ -1264,7 +1394,7 @@ import @ from "contracts.js"
                            head.delim.token.value === "()" &&
                            rest[0] &&
                            rest[0].token.type === parser.Token.Punctuator &&
-                           resolveFast(rest[0], context.env) === "=>") {
+                           resolveFast(rest[0], context.env, context.phase) === "=>") {
                     var arrowRes = enforest(rest.slice(1), context);
                     if (arrowRes.result && arrowRes.result.isExpr) {
                         return step(ArrowFun.create(head.delim,
@@ -1281,7 +1411,7 @@ import @ from "contracts.js"
                 } else if (head.isId &&
                            rest[0] &&
                            rest[0].token.type === parser.Token.Punctuator &&
-                           resolveFast(rest[0], context.env) === "=>") {
+                           resolveFast(rest[0], context.env, context.phase) === "=>") {
                     var res = enforest(rest.slice(1), context);
                     if (res.result && res.result.isExpr) {
                         return step(ArrowFun.create(head.id,
@@ -1329,7 +1459,7 @@ import @ from "contracts.js"
                             (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
                                          unwrapSyntax(rest[0]) === "--"))) {
                     // Check if the operator is a macro first.
-                    if (context.env.has(resolveFast(rest[0], context.env))) {
+                    if (context.env.has(resolveFast(rest[0], context.env, context.phase))) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         var opPrevStx = headStx.concat(prevStx);
                         var opPrevTerms = [head].concat(prevTerms);
@@ -1355,12 +1485,12 @@ import @ from "contracts.js"
                 // ObjectGet
                 } else if (head.isExpr &&
                             (rest[0] && unwrapSyntax(rest[0]) === "." &&
-                             !context.env.has(resolveFast(rest[0], context.env)) &&
+                             !context.env.has(resolveFast(rest[0], context.env, context.phase)) &&
                              rest[1] &&
                              (rest[1].token.type === parser.Token.Identifier ||
                               rest[1].token.type === parser.Token.Keyword))) {
                     // Check if the identifier is a macro first.
-                    if (context.env.has(resolveFast(rest[1], context.env))) {
+                    if (context.env.has(resolveFast(rest[1], context.env, context.phase))) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         var dotTerm = Punc.create(rest[0]);
                         var dotTerms = [dotTerm].concat(head, prevTerms);
@@ -1477,7 +1607,7 @@ import @ from "contracts.js"
             } else {
                 assert(head && head.token, "assuming head is a syntax object");
 
-                var macroObj = expandCount < maxExpands && getMacroInEnv(head, rest, context.env);
+                var macroObj = expandCount < maxExpands && getMacroInEnv(head, rest, context, context.phase);
 
                 // macro invocation
                 if (macroObj && !macroObj.isOp) {
@@ -1497,7 +1627,8 @@ import @ from "contracts.js"
                     }
                 // anon macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
-                           resolve(head) === "macro" &&
+                           unwrapSyntax(head) === "macro" &&
+                           resolve(head, context.phase) === "macro" &&
                            rest[0] && rest[0].token.value === "{}") {
 
                     return step(AnonMacro.create(rest[0].expose().token.inner),
@@ -1505,7 +1636,8 @@ import @ from "contracts.js"
                                 opCtx);
                 // macro definition
                 } else if (head.token.type === parser.Token.Identifier &&
-                           resolve(head) === "macro") {
+                           unwrapSyntax(head) === "macro" &&
+                           resolve(head, context.phase) === "macro") {
                     var nameTokens = [];
                     if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                         rest[0].token.value === "()") {
@@ -1530,7 +1662,7 @@ import @ from "contracts.js"
                            rest[2] && rest[2].token.type === parser.Token.Delimiter &&
                            rest[2] && rest[2].token.value === "{}") {
                     var trans = enforest(rest[2].expose().token.inner, context);
-                    return step(OperatorDefinition.create("unary",
+                    return step(OperatorDefinition.create(syn.makeValue("unary", head),
                                                           rest[0].expose().token.inner,
                                                           rest[1],
                                                           null,
@@ -1548,17 +1680,13 @@ import @ from "contracts.js"
                            rest[3] && rest[3].token.type === parser.Token.Delimiter &&
                            rest[3] && rest[3].token.value === "{}") {
                     var trans = enforest(rest[3].expose().token.inner, context);
-                    return step(OperatorDefinition.create("binary",
+                    return step(OperatorDefinition.create(syn.makeValue("binary", head),
                                                           rest[0].expose().token.inner,
                                                           rest[1],
                                                           rest[2],
                                                           trans.result.body),
                                 rest.slice(4),
                                 opCtx);
-                // module definition
-                } else if (unwrapSyntax(head) === "module" &&
-                            rest[0] && rest[0].token.value === "{}") {
-                    return step(Module.create(rest[0], []), rest.slice(1), opCtx);
                 // function definition
                 } else if (head.token.type === parser.Token.Keyword &&
                     unwrapSyntax(head) === "function" &&
@@ -1632,7 +1760,7 @@ import @ from "contracts.js"
                             head.token.value === "()") ||
                             head.token.type === parser.Token.Identifier) &&
                             rest[0] && rest[0].token.type === parser.Token.Punctuator &&
-                            resolveFast(rest[0], context.env) === "=>" &&
+                            resolveFast(rest[0], context.env, context.phase) === "=>" &&
                             rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                             rest[1].token.value === "{}") {
                     return step(ArrowFun.create(head, rest[0], rest[1]),
@@ -1663,19 +1791,53 @@ import @ from "contracts.js"
                     head.token.type === parser.Token.NullLiteral) {
 
                     return step(Lit.create(head), rest, opCtx);
+                } else if (head.token.type === parser.Token.Keyword &&
+                           unwrapSyntax(head) === "import" &&
+                           rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                           rest[0].token.value === "{}" &&
+                           rest[1] && unwrapSyntax(rest[1]) === "from" &&
+                           rest[2] && rest[2].token.type === parser.Token.StringLiteral &&
+                           rest[3] && unwrapSyntax(rest[3]) === "for" &&
+                           rest[4] && unwrapSyntax(rest[4]) === "macros") {
+                    var importRest;
+                    if (rest[5] && rest[5].token.type === parser.Token.Punctuator &&
+                        rest[5].token.value === ";") {
+                        importRest = rest.slice(6);
+                    } else {
+                        importRest = rest.slice(5);
+                    }
+                    return step(ImportForMacros.create(rest[0], rest[2]), importRest, opCtx);
+                } else if (head.token.type === parser.Token.Keyword &&
+                           unwrapSyntax(head) === "import" &&
+                           rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                           rest[0].token.value === "{}" &&
+                           rest[1] && unwrapSyntax(rest[1]) === "from" &&
+                           rest[2] && rest[2].token.type === parser.Token.StringLiteral) {
+                    var importRest;
+                    if (rest[3] && rest[3].token.type === parser.Token.Punctuator &&
+                        rest[3].token.value === ";") {
+                        importRest = rest.slice(4);
+                    } else {
+                        importRest = rest.slice(3);
+                    }
+                    return step(Import.create(rest[0], rest[2]), importRest, opCtx);
                 // export
                 } else if (head.token.type === parser.Token.Keyword &&
                             unwrapSyntax(head) === "export" &&
                             rest[0] && (rest[0].token.type === parser.Token.Identifier ||
                                         rest[0].token.type === parser.Token.Keyword ||
                                         rest[0].token.type === parser.Token.Punctuator ||
-                                        rest[0].token.type === parser.Token.Delimiter &&
-                                        rest[0].token.value === "()")) {
+                                        rest[0].token.type === parser.Token.Delimiter)) {
+                    if (unwrapSyntax(rest[1]) !== ";" && toksAdjacent(rest[0], rest[1])) {
+                        throwSyntaxError("enforest",
+                                         "multi-token macro/operator names must be wrapped in () when exporting",
+                                         rest[1]);
+                    }
                     // Consume optional semicolon                      
                     if (unwrapSyntax(rest[1]) === ";") {
                         rest.splice(1, 1);
                     }
-                    return step(Export.create(rest[0]), rest.slice(1), opCtx);
+                    return step(Export.create(head, rest[0]), rest.slice(1), opCtx);
                 // identifier
                 } else if (head.token.type === parser.Token.Identifier) {
                     return step(Id.create(head), rest, opCtx);
@@ -1707,8 +1869,8 @@ import @ from "contracts.js"
             // Potentially an infix macro
             // This should only be invoked on runtime syntax terms
             if (!head.isMacro && !head.isLetMacro && !head.isAnonMacro && !head.isOperatorDefinition &&
-                rest.length && nameInEnv(rest[0], rest.slice(1), context.env) &&
-                getMacroInEnv(rest[0], rest.slice(1), context.env).isOp === false) {
+                rest.length && nameInEnv(rest[0], rest.slice(1), context, context.phase) &&
+                getMacroInEnv(rest[0], rest.slice(1), context, context.phase).isOp === false) {
                 var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
                                   ? opCtx.prevTerms[0]
                                   : null;
@@ -1907,25 +2069,16 @@ import @ from "contracts.js"
         });
     }
 
-
     // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
-    function loadMacroDef(body, context) {
+    function loadMacroDef(body, context, phase) {
 
-        // raw function primitive form
-        if(!(body[0] && body[0].token.type === parser.Token.Keyword &&
-             body[0].token.value === "function")) {
-            throwSyntaxError("load macro", "Primitive macro form must contain a function for the macro body", body);
-        }
-
+        var expanded = body[0].destruct({stripCompileTerm: true});
         var stub = parser.read("()");
-        stub[0].token.inner = body;
-        var expanded = expand(stub, context);
-        expanded = expanded[0].destruct().concat(expanded[1].eof);
-        var flattend = flatten(expanded);
-        var bodyCode = codegen.generate(parser.parse(flattend));
-
-        var macroFn = scopedEval(bodyCode, {
+        stub[0].token.inner = expanded;
+        var flattend = flatten(stub);
+        var bodyCode = codegen.generate(parser.parse(flattend, {phase: phase}));
+        var macroGlobal = {
             makeValue: syn.makeValue,
             makeRegex: syn.makeRegex,
             makeIdent: syn.makeIdent,
@@ -2002,13 +2155,25 @@ import @ from "contracts.js"
                 newMatch.patternEnv = _.extend({}, oldMatch.patternEnv, newMatch.patternEnv);
                 return newMatch;
             }
-        });
+        };
+        context.env.keys().forEach(key -> macroGlobal[key] = context.env.get(key));
+        var macroFn;
+        if (vm) {
+            macroFn = vm.runInNewContext("(function() { return " + bodyCode + " })()",
+                                         macroGlobal);
+        } else {
+            macroFn = scopedEval(bodyCode, macroGlobal);
+        }
 
         return macroFn;
     }
 
     // similar to `parse1` in the honu paper
-    // ([Syntax], Map) -> {terms: [TermTree], env: Map}
+    // @ ([...SyntaxObject], ExpanderContext) -> {
+    //     terms: [...TermTreeObject],
+    //     context: ExpanderContext,
+    //     restStx: Undefined or [...SyntaxObject]
+    // }
     function expandToTermTree(stx, context) {
         assert(context, "expander context is required");
 
@@ -2030,52 +2195,92 @@ import @ from "contracts.js"
                 break;
             }
 
+            var destructed = tagWithTerm(head, f.result.destruct());
+            prevTerms = [head].concat(f.prevTerms);
+            prevStx = destructed.reverse().concat(f.prevStx);
+
             if (head.isMacro && expandCount < maxExpands) {
-                // load the macro definition into the environment and continue expanding
-                macroDefinition = loadMacroDef(head.body, context);
+                // raw function primitive form
+                if(!(head.body[0] && head.body[0].token.type === parser.Token.Keyword &&
+                     head.body[0].token.value === "function")) {
+                    throwSyntaxError("load macro",
+                                     "Primitive macro form must contain a function for the macro body",
+                                     head.body);
+                }
+                // expand the body
+                head.body = expand(head.body,
+                                   makeExpanderContext(_.extend({phase: context.phase + 1},
+                                                                context)));
+                //  and load the macro definition into the environment
+                macroDefinition = loadMacroDef(head.body, context, context.phase + 1);
                 var name = head.name.map(unwrapSyntax).join("");
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
                 context.env.names.set(name, true);
-                context.env.set(resolve(nameStx), {
+                context.env.set(resolve(nameStx, context.phase), {
                     fn: macroDefinition,
                     isOp: false,
                     builtin: builtinMode,
                     fullName: head.name
                 });
-
-                continue;
             }
 
             if (head.isLetMacro && expandCount < maxExpands) {
-                // load the macro definition into the environment and continue expanding
-                macroDefinition = loadMacroDef(head.body, context);
+                // raw function primitive form
+                if(!(head.body[0] && head.body[0].token.type === parser.Token.Keyword &&
+                     head.body[0].token.value === "function")) {
+                    throwSyntaxError("load macro",
+                                     "Primitive macro form must contain a function for the macro body",
+                                     head.body);
+                }
+                // expand the body
+                head.body = expand(head.body,
+                                   makeExpanderContext(_.extend({phase: context.phase + 1},
+                                                                context)));
+                //  and load the macro definition into the environment
+                macroDefinition = loadMacroDef(head.body, context, context.phase + 1);
                 var freshName = fresh();
                 var name = head.name.map(unwrapSyntax).join("");
+                var oldName = head.name;
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 var renamedName = nameStx.rename(nameStx, freshName);
+                // store a reference to the full name in the props object.
+                // this allows us to communicate the original full name to
+                // `visit` later on.
+                renamedName.props.fullName = oldName;
+                head.name = [renamedName];
                 rest = _.map(rest, function(stx) {
                     return stx.rename(nameStx, freshName);
                 });
 
                 context.env.names.set(name, true);
-                context.env.set(resolve(renamedName), {
+                context.env.set(resolve(renamedName, context.phase), {
                     fn: macroDefinition,
                     isOp: false,
                     builtin: builtinMode,
-                    fullName: head.name
+                    fullName: oldName
                 });
-
-                continue;
             }
 
             if (head.isOperatorDefinition) {
-                var opDefinition = loadMacroDef(head.body, context);
+                // raw function primitive form
+                if(!(head.body[0] && head.body[0].token.type === parser.Token.Keyword &&
+                     head.body[0].token.value === "function")) {
+                    throwSyntaxError("load macro",
+                                     "Primitive macro form must contain a function for the macro body",
+                                     head.body);
+                }
+                // expand the body
+                head.body = expand(head.body,
+                                   makeExpanderContext(_.extend({phase: context.phase + 1},
+                                                                context)));
+                //  and load the macro definition into the environment
+                var opDefinition = loadMacroDef(head.body, context, context.phase + 1);
 
                 var name = head.name.map(unwrapSyntax).join("");
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
-                var resolvedName = resolve(nameStx);
+                var resolvedName = resolve(nameStx, context.phase);
                 var opObj = context.env.get(resolvedName);
                 if (!opObj) {
                     opObj = {
@@ -2084,24 +2289,17 @@ import @ from "contracts.js"
                         fullName: head.name
                     }
                 }
-                assert(head.type === "binary" || head.type === "unary", "operator must either be binary or unary");
-                opObj[head.type] = {
+                assert(unwrapSyntax(head.type) === "binary" ||
+                       unwrapSyntax(head.type) === "unary",
+                       "operator must either be binary or unary");
+                opObj[unwrapSyntax(head.type)] = {
                     fn: opDefinition,
                     prec: head.prec.token.value,
                     assoc: head.assoc ? head.assoc.token.value : null
                 };
                 context.env.names.set(name, true);
                 context.env.set(resolvedName, opObj);
-                continue;
             }
-
-
-
-            // We build the newPrevTerms/Stx here (instead of at the beginning) so
-            // that macro definitions don't get added to it.
-            var destructed = tagWithTerm(head, f.result.destruct());
-            prevTerms = [head].concat(f.prevTerms);
-            prevStx = destructed.reverse().concat(f.prevStx);
 
             if (head.isNamedFun) {
                 addToDefinitionCtx([head.name], context.defscope, true, context.paramscope);
@@ -2143,7 +2341,7 @@ import @ from "contracts.js"
             if (head.isForStatement) {
                 head.cond.expose();
                 var forCond = head.cond.token.inner;
-                if(forCond[0] && resolve(forCond[0]) === "let" &&
+                if(forCond[0] && resolve(forCond[0], context.phase) === "let" &&
                    forCond[1] && forCond[1].token.type === parser.Token.Identifier) {
                     var letNew = fresh();
                     var letId = forCond[1];
@@ -2239,7 +2437,7 @@ import @ from "contracts.js"
 
     // similar to `parse2` in the honu paper except here we
     // don't generate an AST yet
-    // (TermTree, Map, Map) -> TermTree
+    // @ (TermTreeObject, ExpanderContext) -> TermTreeObject
     function expandTermTreeToFinal (term, context) {
         assert(context && context.env, "environment map is required");
 
@@ -2399,12 +2597,18 @@ import @ from "contracts.js"
             })
 
             if (term.isModule) {
-                bodyTerms = _.filter(bodyTerms, function(bodyTerm) {
+                bodyTerms.forEach(bodyTerm -> {
                     if (bodyTerm.isExport) {
-                        term.exports.push(bodyTerm);
-                        return false;
-                    } else {
-                        return true;
+                        if (bodyTerm.name.token.type == parser.Token.Delimiter &&
+                            bodyTerm.name.token.value === "{}") {
+                            bodyTerm.name.expose().token.inner
+                                |> filterCommaSep
+                                |> names -> names.forEach(name -> {
+                                    term.exports.push(name);
+                                });
+                        } else {
+                            throwSyntaxError("expand", "not valid export type", bodyTerm.name);
+                        }
                     }
                 });
             }
@@ -2423,8 +2627,10 @@ import @ from "contracts.js"
         return term;
     }
 
+    // @ let TermTree = {}
+
     // similar to `parse` in the honu paper
-    // ([Syntax], Map, Map) -> [TermTree]
+    // @ ([...SyntaxObject], ExpanderContext) -> [...TermTreeObject]
     function expand(stx, context) {
         assert(context, "must provide an expander context");
 
@@ -2448,7 +2654,6 @@ import @ from "contracts.js"
             env.names = new StringMap();
         }
 
-        // read-only but can enumerate
         return Object.create(Object.prototype, {
             filename: {value: o.filename,
                        writable: false, enumerable: true, configurable: false},
@@ -2465,7 +2670,21 @@ import @ from "contracts.js"
             patternMap: {value: o.patternMap || new StringMap(),
                          writable: false, enumerable: true, configurable: false},
             mark: {value: o.mark,
+                          writable: false, enumerable: true, configurable: false},
+            phase: {value: o.phase,
                           writable: false, enumerable: true, configurable: false}
+        });
+    }
+
+    function makeModuleExpanderContext(options, templateMap, patternMap, phase) {
+        var requireModule = options ? options.requireModule : undefined;
+        var filename = options && options.filename ? options.filename : "<anonymous module>";
+        return makeExpanderContext({
+            filename: filename,
+            requireModule: requireModule,
+            templateMap: templateMap,
+            patternMap: patternMap,
+            phase: phase
         });
     }
 
@@ -2496,9 +2715,370 @@ import @ from "contracts.js"
         }, modBody);
 
         var res = expand([syn.makeIdent("module", null), modBody], context);
-        res = res[0].destruct();
+        res = res[0].destruct({stripCompileTerm: true});
         res = res[0].token.inner;
         return options.flatten ? flatten(res) : res;
+    }
+
+
+    // @ (ModuleTerm, ExpanderContext) -> ModuleTerm
+    function collectImports(mod, context) {
+        var imports = [];
+        var res;
+        var rest = mod.body;
+        // #lang "sjs" expands to imports for the basic macros for sweet.js
+        // eventually this should hook into module level extensions
+        if (unwrapSyntax(mod.lang) === "sjs") {
+            imports.push(Import.create(syn.makeDelim("{}", [syn.makePunc("*", null)], null),
+                                       syn.makeValue("sweet.js", null)));
+        }
+        while (true) {
+            res = enforest(rest, context);
+            if (res.result && (res.result.isImport || res.result.isImportForMacros)) {
+                imports.push(res.result);
+                rest = res.rest;
+            } else {
+                break;
+            }
+        }
+
+        return Module.create(mod.name,
+                             mod.lang,
+                             rest,
+                             imports,
+                             mod.exports);
+    }
+
+
+    // @ let SweetOptions = {
+    //     flatten: ?Bool
+    // }
+
+    // @ (Str, ModuleTerm) -> Str
+    function resolvePath(name, parent) {
+        var path = require("path");
+        var resolveSync = require("resolve/lib/sync");
+        var root  = path.dirname(unwrapSyntax(parent.name));
+        var fs = require("fs");
+        if (name[0] === ".") {
+            name = path.resolve(root, name);
+        }
+        return resolveSync(name, {
+            basedir: root,
+            extensions: ['.js', '.sjs']
+        });
+    }
+
+    // @ (Str, [...SyntaxObject]) -> ModuleTerm
+    function createModule(name, body) {
+        if (body && body[0] && body[1] && body[2] &&
+            unwrapSyntax(body[0]) === "#" &&
+            unwrapSyntax(body[1]) === "lang" &&
+            body[2].token.type === parser.Token.StringLiteral) {
+            // consume optional semicolon
+            var rest = body[3] && body[3].token.value === ";" &&
+                body[3].token.type == parser.Token.Punctuator ? body.slice(4) : body.slice(3);
+            return Module.create(syn.makeValue(name, null),
+                                 body[2],
+                                 rest,
+                                 [],
+                                 []);
+        }
+        return Module.create(syn.makeValue(name, null),
+                             syn.makeValue("base", null),
+                             body,
+                             [],
+                             []);
+    }
+
+    // @ (Str) -> ModuleTerm
+    function loadModule(name) {
+        // node specific code
+        var fs = require("fs");
+        return fs.readFileSync(name, 'utf8')
+            |> parser.read |> body -> createModule(name, body);
+
+    }
+
+    // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
+    function invoke(mod, phase, context, options) {
+        mod.imports.forEach(imp -> {
+            var modToImport = loadImport(imp, mod, options, context);
+            if (imp.isImport) {
+                context = invoke(modToImport, phase, context, options);
+            }
+        });
+
+        var code = mod.body
+            |> terms -> terms.map(term -> term.destruct({stripCompileTerm: true,
+                                                         stripModuleTerm: true}))
+            |> _.flatten
+            |> flatten
+            |> parser.parse
+            |> codegen.generate
+        var global = {};
+
+        vm.runInNewContext(code, global);
+
+        mod.exports.forEach(exp -> {
+            var expName = resolve(exp, phase);
+            var expVal = global[expName];
+            context.env.set(expName, expVal);
+            context.env.names.set(unwrapSyntax(exp), true);
+        });
+        return context;
+    }
+
+
+    // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
+    function visit(mod, phase, context, options) {
+        var defctx = [];
+        mod.body = mod.body.map(term -> term.addDefCtx(defctx));
+        // reset the exports
+        mod.exports = [];
+
+        mod.imports.forEach(imp -> {
+            var modToImport = loadImport(imp, mod, options, context);
+
+            if(imp.isImport) {
+                context = visit(modToImport, phase, context, options);
+            } else if (imp.isImportForMacros) {
+                context = invoke(modToImport, phase + 1, context, options);
+                context = visit(modToImport, phase + 1, context, options);
+            } else {
+                assert(false, "not implemented yet");
+            }
+
+            bindImportInMod(imp, mod, modToImport, context, phase);
+        });
+
+        mod.body.forEach(term -> {
+            var name;
+            var macroDefinition;
+            if (term.isMacro) {
+                macroDefinition = loadMacroDef(term.body, context, phase + 1);
+                name = unwrapSyntax(term.name[0]);
+
+                context.env.names.set(name, true);
+                context.env.set(resolve(term.name[0], phase), {
+                    fn: macroDefinition,
+                    isOp: false,
+                    builtin: builtinMode,
+                    fullName: term.name
+                });
+            }
+
+            if (term.isLetMacro) {
+                macroDefinition = loadMacroDef(term.body, context, phase + 1);
+                // compilation collapses multi-token let macro names into single identifier
+                name = unwrapSyntax(term.name[0]);
+
+                context.env.names.set(name, true);
+                context.env.set(resolve(term.name[0], phase), {
+                    fn: macroDefinition,
+                    isOp: false,
+                    builtin: builtinMode,
+                    fullName: term.name[0].props.fullName
+                });
+            }
+
+            if (term.isOperatorDefinition) {
+                var opDefinition = loadMacroDef(term.body, context, phase + 1);
+                name = term.name.map(unwrapSyntax).join("");
+                var nameStx = syn.makeIdent(name, term.name[0]);
+                addToDefinitionCtx([nameStx], defctx, false, []);
+                var resolvedName = resolve(nameStx, phase);
+                var opObj = context.env.get(resolvedName);
+                if (!opObj) {
+                    opObj = {
+                        isOp: true,
+                        builtin: builtinMode,
+                        fullName: term.name
+                    }
+                }
+                assert(unwrapSyntax(term.type) === "binary" ||
+                       unwrapSyntax(term.type) === "unary",
+                       "operator must either be binary or unary");
+                opObj[unwrapSyntax(term.type)] = {
+                    fn: opDefinition,
+                    prec: term.prec.token.value,
+                    assoc: term.assoc ? term.assoc.token.value : null
+                };
+                context.env.names.set(name, true);
+                context.env.set(resolvedName, opObj);
+            }
+
+            if (term.isExport) {
+                if (term.name.token.type === parser.Token.Delimiter &&
+                    term.name.token.value === "{}") {
+                    term.name.expose().token.inner
+                        |> filterCommaSep
+                        |> names -> names.forEach(name -> {
+                            mod.exports.push(name);
+                        });
+                } else {
+                    throwSyntaxError("visit", "not valid export", term.name);
+                }
+            }
+        });
+
+        return context;
+    }
+
+    function filterCommaSep(stx) {
+        return stx.filter((stx, idx) -> {
+            if (idx % 2 !== 0 && (stx.token.type !== parser.Token.Punctuator ||
+                                  stx.token.value !== ",")) {
+                throwSyntaxError("import",
+                                 "expecting a comma separated list",
+                                 stx);
+            } else if (idx % 2 !== 0) {
+                return false;
+            } else {
+                return true;
+            }
+        });
+    }
+
+
+    // @ (ImportTerm, ModuleTerm, SweetOptions, ExpanderContext) -> ModuleTerm
+    function loadImport(imp, parent, options, context) {
+        var modToImport;
+        var modFullPath = resolvePath(unwrapSyntax(imp.from), parent);
+        if(!availableModules.has(modFullPath)) {
+            // load it
+            modToImport = loadModule(modFullPath) |> loaded -> compileModule(loaded,
+                                                                             options,
+                                                                             context.templateMap,
+                                                                             context.patternMap);
+            availableModules.set(modFullPath, modToImport);
+        } else {
+            modToImport = availableModules.get(modFullPath);
+        }
+        return modToImport;
+    }
+
+    // @ (ImportTerm, ModuleTerm, ModuleTerm, ExpanderContext, Num) -> Void
+    // mutating mod
+    function bindImportInMod(imp, mod, modToImport, context, phase) {
+        if (imp.names.token.type === parser.Token.Delimiter) {
+            if (imp.names.token.inner.length === 0) {
+                throwSyntaxCaseError("compileModule",
+                                     "must include names to import",
+                                     imp.names);
+            } else if (unwrapSyntax(imp.names.token.inner[0]) === "*") {
+                modToImport.exports.forEach(exp -> {
+                    var trans = context.env.get(resolve(exp, phase));
+                    var newParam = syn.makeIdent(unwrapSyntax(exp), null);
+                    var newName = fresh();
+                    context.env.set(resolve(newParam.imported(newParam,
+                                                              newName,
+                                                              phase),
+                                            phase),
+                                    trans);
+                    mod.body = mod.body.map(stx -> stx.imported(newParam,
+                                                                newName,
+                                                                phase));
+                });
+            } else {
+                imp.names.token.inner
+                    |> filterCommaSep
+                    |> names -> names.forEach(importName-> {
+                        var inExports = _.find(modToImport.exports, expTerm -> {
+                            if (importName.token.type === parser.Token.Delimiter) {
+                                return expTerm.token.type === parser.Token.Delimiter &&
+                                    syntaxInnerValuesEq(importName, expTerm);
+                            }
+                            return expTerm.token.value === importName.token.value
+                        });
+                        if (!inExports) {
+                            throwSyntaxError("compile",
+                                             "the imported name `" +
+                                             unwrapSyntax(importName) +
+                                             "` was not exported from the module",
+                                             importName);
+                        }
+
+                        var exportName, trans, exportNameStr;
+                        if (inExports.token.type === parser.Token.Delimiter) {
+                            exportName = inExports.expose().token.inner;
+                            exportNameStr = exportName.map(unwrapSyntax).join('');
+                            trans = getMacroInEnv(exportName[0],
+                                                  exportName.slice(1),
+                                                  context,
+                                                  phase);
+                        } else {
+                            exportName = inExports;
+                            exportNameStr = unwrapSyntax(exportName);
+                            trans = getMacroInEnv(exportName,
+                                                  [],
+                                                  context,
+                                                  phase);
+                        }
+                        var newParam = syn.makeIdent(exportNameStr, null);
+                        var newName = fresh();
+                        context.env.set(resolve(newParam.imported(newParam,
+                                                                  newName,
+                                                                  phase),
+                                                phase),
+                                        trans);
+                        mod.body = mod.body.map(stx -> stx.imported(newParam,
+                                                                    newName,
+                                                                    phase));
+
+                });
+            }
+        } else {
+            assert(false, "not implemented yet");
+        }
+    }
+
+    // @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> ModuleTerm
+    function compileModule(mod, options, templateMap, patternMap, root) {
+        var context = makeModuleExpanderContext(options, templateMap, patternMap, 0);
+
+        return collectImports(mod, context) |> mod -> {
+            mod.imports.forEach(imp -> {
+                var modToImport = loadImport(imp, mod, options, context);
+
+                if(imp.isImport) {
+                    context = visit(modToImport, 0, context, options);
+                } else if (imp.isImportForMacros) {
+                    context = invoke(modToImport, 1, context, options);
+                    context = visit(modToImport, 1, context, options);
+                } else {
+                    assert(false, "not implemented yet");
+                }
+                var importPhase = imp.isImport ? 0 : 1;
+                bindImportInMod(imp, mod, modToImport, context, importPhase);
+            });
+            return expandTermTreeToFinal(mod, context);
+        }
+    }
+
+    // @ ([...SyntaxObject], {filename: Str}) -> [...SyntaxObject]
+    function compile(stx, options) {
+        var fs = require("fs");
+        var filename = options && typeof options.filename !== 'undefined'
+            ? fs.realpathSync(options.filename)
+            : "(anonymous module)";
+        maxExpands = Infinity;
+        expandCount = 0;
+        var mod = createModule(filename, stx);
+        // the template map right now is global for every module
+        var templateMap = new StringMap();
+        var patternMap = new StringMap();
+        // todo: this is a little bit of a hack, since both the
+        // templateMap and patternMap must be persisted between calls
+        // to compile we need to throw away any work done on the
+        // availableModules between calls to compile. The better
+        // solution is to not store stuff in a template/patternMap
+        availableModules = new StringMap();
+        var compiled = compileModule(mod, options, templateMap, patternMap);
+        return compiled.body.reduce((acc, term) -> {
+            return acc.concat(term.destruct({stripCompileTerm: true}));
+
+        }, []) |> flatten;
     }
 
     function expandModule(stx, moduleContexts, options) {
@@ -2551,6 +3131,7 @@ import @ from "contracts.js"
     }
 
     // break delimiter tree structure down to flat array of syntax objects
+    // @ ([...SyntaxObject]) -> [...SyntaxObject]
     function flatten(stx) {
         return _.reduce(stx, function(acc, stx) {
             if (stx.token.type === parser.Token.Delimiter) {
@@ -2615,6 +3196,7 @@ import @ from "contracts.js"
     exports.StringMap = StringMap;
     exports.enforest = enforest;
     exports.expand = expandTopLevel;
+    exports.compileModule = compile;
     exports.expandModule = expandModule;
 
     exports.resolve = resolve;

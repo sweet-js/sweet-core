@@ -1,3 +1,4 @@
+#lang "js";
 /*
   Copyright (C) 2012 Tim Disney <tim@disnet.me>
 
@@ -129,6 +130,7 @@
         }
     }
 
+
     function expandSyntax(stx, modules, options) {
         if (!stxcaseCtx) {
             stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
@@ -162,8 +164,61 @@
             code = " ";
         }
 
-        modules = modules ? loadedMacros.concat(modules) : modules;
-        return parser.parse(expand(code, modules, options));
+        return parser.parse(compileModule(code, options));
+    }
+
+    // @ let SweetOptions = {
+    //     ast: ?Bool,
+    //     sourceMap: ?Bool
+    // }
+
+    // @ (Str, SweetOptions) -> {
+    //     code: Str,
+    //     sourceMap: ?Str
+    // }
+    function compileModule(code, options) {
+        var output;
+        options = options || {};
+        options.requireModule = options.requireModule || requireModule;
+
+        var tokenTree = parser.read(code);
+        var expandedTokens;
+        try {
+            expandedTokens = expander.compileModule(tokenTree, options);
+        } catch(err) {
+            if (err instanceof syn.MacroSyntaxError) {
+                throw new SyntaxError(syn.printSyntaxError(code, err));
+            } else {
+                throw err;
+            }
+        }
+        var ast = parser.parse(expandedTokens);
+
+        if (options.readableNames) {
+            ast = optimizeHygiene(ast);
+        }
+
+        if (options.ast) {
+            return ast;
+        }
+
+        if (options.sourceMap) {
+            output = codegen.generate(ast, _.extend({
+                comment: true,
+                sourceMap: options.filename,
+                sourceMapWithCode: true
+            }, options.escodegen));
+
+            return {
+                code: output.code,
+                sourceMap: output.map.toString()
+            };
+        }
+        return {
+            code: codegen.generate(ast, _.extend({
+                comment: true
+            }, options.escodegen))
+        };
     }
 
     // (Str, {sourceMap: ?Bool, filename: ?Str})
@@ -331,7 +386,8 @@
     exports.expand = expand;
     exports.expandSyntax = expandSyntax;
     exports.parse = parse;
-    exports.compile = compile;
+    // exports.compile = compile;
+    exports.compile = compileModule;
     exports.setReadtable = setReadtable;
     exports.currentReadtable = currentReadtable;
     exports.loadModule = expandModule;

@@ -1,4 +1,5 @@
-import @ from "contracts.js"
+#lang "js";
+// import @ from "contracts.js"
 
 (function (root, factory) {
     if (typeof exports === 'object') {
@@ -23,24 +24,24 @@ import @ from "contracts.js"
     // The memoization addresses issue #232.
     var globalContextInstanceNumber = 1;
 
-    @ let Token = {
-        type: ?Num,
-        value: ?Any,
-        range: ?[Num, Num]
-    }
+    // @ let Token = {
+    //     type: ?Num,
+    //     value: ?Any,
+    //     range: ?[Num, Num]
+    // }
 
-    @ let Context = Null or {
-        context: Context
-    }
+    // @ let Context = Null or {
+    //     context: Context
+    // }
 
-    @ let SyntaxObject = {
-        token: Token,
-        context: Context
-    }
+    // @ let SyntaxObject = {
+    //     token: Token,
+    //     context: Context
+    // }
 
 
     // (CSyntax, Str) -> CContext
-    function Rename(id, name, ctx, defctx) {
+    function Rename(id, name, ctx, defctx, phase) {
         defctx = defctx || null;
 
         this.id = id;
@@ -48,6 +49,7 @@ import @ from "contracts.js"
         this.context = ctx;
         this.def = defctx;
         this.instNum = globalContextInstanceNumber++;
+        this.phase = phase;
     }
 
     // (Num) -> CContext
@@ -63,10 +65,19 @@ import @ from "contracts.js"
         this.instNum = globalContextInstanceNumber++;
     }
 
+    function Imported(id, name, ctx, phase) {
+        this.id = id;
+        this.name = name;
+        this.phase = phase;
+        this.context = ctx;
+        this.instNum = globalContextInstanceNumber++;
+    }
+
     function Syntax(token, oldstx) {
         this.token = token;
         this.context = (oldstx && oldstx.context) ? oldstx.context : null;
         this.deferredContext = (oldstx && oldstx.deferredContext) ? oldstx.deferredContext : null;
+        this.props = (oldstx && oldstx.props) ? oldstx.props : {};
     }
 
     Syntax.prototype = {
@@ -75,32 +86,56 @@ import @ from "contracts.js"
         mark: function(newMark) {
             if (this.token.inner) {
                 return syntaxFromToken(this.token, {deferredContext: new Mark(newMark, this.deferredContext),
-                                                    context: new Mark(newMark, this.context)});
+                                                    context: new Mark(newMark, this.context),
+                                                    props: this.props});
             }
-            return syntaxFromToken(this.token, {context: new Mark(newMark, this.context)});
+            return syntaxFromToken(this.token, {context: new Mark(newMark, this.context),
+                                                props: this.props});
         },
 
         // (CSyntax or [...CSyntax], Str) -> CSyntax
         // non mutating
-        rename: function(id, name, defctx) {
+        rename: function(id, name, defctx, phase) {
             // defer renaming of delimiters
             if (this.token.inner) {
                 return syntaxFromToken(this.token,
-                                       {deferredContext: new Rename(id, name, this.deferredContext, defctx),
-                                        context: new Rename(id, name, this.context, defctx)});
+                                       {deferredContext: new Rename(id, name, this.deferredContext, defctx, phase),
+                                        context: new Rename(id, name, this.context, defctx, phase),
+                                        props: this.props});
             }
 
             return syntaxFromToken(this.token,
-                                   {context: new Rename(id, name, this.context, defctx)});
+                                   {context: new Rename(id, name, this.context, defctx, phase),
+                                    props: this.props});
+        },
+
+        imported: function(id, name, phase) {
+            if (this.token.inner) {
+                return syntaxFromToken(this.token,
+                                       {deferredContext: new Imported(id,
+                                                                      name,
+                                                                      this.deferredContext,
+                                                                      phase),
+                                        context: new Imported(id, name, this.context, phase),
+                                        props: this.props});
+
+            }
+            return syntaxFromToken(this.token, {context: new Imported(id,
+                                                                      name,
+                                                                      this.context,
+                                                                      phase),
+                                                props: this.props});
         },
 
         addDefCtx: function(defctx) {
             if (this.token.inner) {
                 return syntaxFromToken(this.token,
                                        {deferredContext: new Def(defctx, this.deferredContext),
-                                        context: new Def(defctx, this.context)});
+                                        context: new Def(defctx, this.context),
+                                        props: this.props});
             }
-            return syntaxFromToken(this.token, {context: new Def(defctx, this.context)});
+            return syntaxFromToken(this.token, {context: new Def(defctx, this.context),
+                                                props: this.props});
         },
 
         getDefCtx: function() {
@@ -123,13 +158,19 @@ import @ from "contracts.js"
                     return stxCtx;
                 } else if (ctx instanceof Rename) {
                     return new Rename(ctx.id,
-                                  ctx.name,
-                                  applyContext(stxCtx, ctx.context),
-                                  ctx.def);
+                                      ctx.name,
+                                      applyContext(stxCtx, ctx.context),
+                                      ctx.def,
+                                      ctx.phase);
                 } else if (ctx instanceof Mark) {
                     return new Mark(ctx.mark, applyContext(stxCtx, ctx.context));
                 } else if (ctx instanceof Def) {
                     return new Def(ctx.defctx, applyContext(stxCtx, ctx.context));
+                } else if (ctx instanceof Imported) {
+                    return new Imported(ctx.id,
+                                        ctx.name,
+                                        applyContext(stxCtx, ctx.context),
+                                        ctx.phase);
                 } else {
                     assert(false, "unknown context type");
                 }
@@ -142,10 +183,12 @@ import @ from "contracts.js"
                 if (stx.token.inner) {
                     return syntaxFromToken(stx.token,
                                            {deferredContext: applyContext(stx.deferredContext, self.deferredContext),
-                                            context: applyContext(stx.context, self.deferredContext)});
+                                            context: applyContext(stx.context, self.deferredContext),
+                                            props: self.props});
                 } else {
                     return syntaxFromToken(stx.token,
-                                           {context: applyContext(stx.context, self.deferredContext)});
+                                           {context: applyContext(stx.context, self.deferredContext),
+                                            props: self.props});
                 }
             });
             this.deferredContext = null;
@@ -455,6 +498,7 @@ import @ from "contracts.js"
     exports.Rename = Rename;
     exports.Mark = Mark;
     exports.Def = Def;
+    exports.Imported = Imported;
 
     exports.syntaxFromToken = syntaxFromToken;
     exports.tokensToSyntax = tokensToSyntax;

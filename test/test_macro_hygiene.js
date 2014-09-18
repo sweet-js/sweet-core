@@ -1,3 +1,5 @@
+#lang "js";
+import { * } from "../macros/stxcase.js";
 var expect = require("expect.js");
 var sweet = require("../build/lib/sweet.js");
 
@@ -395,6 +397,7 @@ describe "macro hygiene" {
 
     it "should account for global leaks when using readableNames" {
         var before = [
+            'import { * } from "./macros/stxcase.js";',
             'macro clobber {',
             '    case { _ $tok } => {',
             '        var tok = #{ $tok };',

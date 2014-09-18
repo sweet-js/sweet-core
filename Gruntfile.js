@@ -15,24 +15,13 @@ module.exports = function(grunt) {
             dev: {
                 options: {
                     compileFrom: "./lib/sweet",
-                    modules: ["contracts-js/macros/disabled.js"]
-                },
-                src: "src/*.js",
-                dest: ["build/lib/", "browser/scripts/"]
-            },
-            devContracts: {
-                options: {
-                    sourceMap: false,
-                    compileFrom: "./lib/sweet",
-                    modules: ["contracts-js/macros"]
                 },
                 src: "src/*.js",
                 dest: ["build/lib/", "browser/scripts/"]
             },
             release: {
                 options: {
-                    compileFrom: "./lib/sweet",
-                    modules: ["contracts-js/macros/disabled.js"]
+                    compileFrom: "./lib/sweet"
                 },
                 src: "src/*.js",
                 dest: ["build/lib/", "browser/scripts/"]
@@ -43,7 +32,22 @@ module.exports = function(grunt) {
                 },
                 src: "test/*.js",
                 dest: "build/"
-            }
+            },
+            test_modules: {
+                options: {
+                    compileFrom: "./build/lib/sweet"
+                },
+                src: "test/modules/test_*.js",
+                dest: "build/modules/"
+            },
+            single: {
+                options: {
+                    sourceMap: false,
+                    compileFrom: "./build/lib/sweet"
+                },
+                src: "test.js",
+                dest: "build/"
+            },
         },
         copy: {
             buildMacros: {
@@ -125,6 +129,12 @@ module.exports = function(grunt) {
                 filter: function(name) {
                     return /.*test_es6.*/.test(name);
                 }
+            },
+            modules: {
+                options:{
+                    colors: !grunt.option('no-color')
+                },
+                src: ["build/modules/*.js"],
             },
             unit: {
                 options:{
@@ -230,6 +240,7 @@ module.exports = function(grunt) {
                 grunt.log.writeln("compiling " + file);
 
                 var code = grunt.file.read(file);
+
                 var output = sweet.compile(code, {
                     sourceMap: options.sourceMap,
                     filename: file,
@@ -239,7 +250,12 @@ module.exports = function(grunt) {
 
                 dest.forEach(function(dest) {
                     var sourceMappingURL = dest + path.basename(file) + ".map";
-                    var outputFile = output.code + "\n//# sourceMappingURL=" + path.basename(file) + ".map";
+                    var outputFile;
+                    if (options.sourceMap) {
+                        outputFile = output.code + "\n//# sourceMappingURL=" + path.basename(file) + ".map";
+                    } else {
+                        outputFile = output.code;
+                    }
                     // macro expanded result
                     grunt.file.write(dest + path.basename(file),
                                      outputFile);
@@ -247,9 +263,10 @@ module.exports = function(grunt) {
                         // sourcemap
                         grunt.file.write(sourceMappingURL,
                                          output.sourceMap);
-                        
+
                     }
                 });
+
             });
         });
         
@@ -265,34 +282,36 @@ module.exports = function(grunt) {
                                 "copy:scopedEval",
                                 "copy:buildMacros",
                                 "copy:nodeSrc",
-                                "copy:testUnit", 
+                                "copy:testUnit",
                                 "mochaTest:unit"]);
+
+    grunt.registerTask("single", ["build:dev",
+                                  "copy:scopedEval",
+                                  "copy:buildMacros",
+                                  "copy:nodeSrc",
+                                  "build:single"]);
+
+    grunt.registerTask("test_modules", ["build:dev",
+                                        "build:test_modules",
+                                        "copy:scopedEval",
+                                        "copy:buildMacros",
+                                        "copy:nodeSrc",
+                                        "mochaTest:modules"]);
 
     grunt.registerTask("default", ["clean",
                                    "copy:scopedEval",
                                    "copy:buildMacros",
                                    "build:dev",
                                    "build:tests",
+                                   "build:test_modules",
                                    "copy:browserSrc",
                                    "copy:nodeSrc",
                                    "copy:browserMacros",
                                    "copy:scopedEvalBrowser",
                                    "copy:testFixtures",
                                    "mochaTest:test",
+                                   "mochaTest:modules",
                                    "jshint"]);
-
-    grunt.registerTask("contracts", ["clean",
-                                     "copy:scopedEval",
-                                     "copy:buildMacros",
-                                     "build:devContracts",
-                                     "build:tests",
-                                     "copy:browserSrc",
-                                     "copy:nodeSrc",
-                                     "copy:browserMacros",
-                                     "copy:scopedEvalBrowser",
-                                     "copy:testFixtures",
-                                     "mochaTest:test",
-                                     "jshint"]);
 
     grunt.registerTask("full", ["default", "mochaTest:es6"]);
     grunt.registerTask("docs", ["pandoc"]);

@@ -44,12 +44,12 @@ exports.run = function () {
         });
     }
     var options = {
-            filename: infile,
-            modules: modules,
-            ast: ast,
-            readableNames: readableNames,
-            escodegen: { format: { indent: { style: Array(formatIndent + 1).join(' ') } } }
-        };
+        filename: infile,
+        modules: modules,
+        ast: ast,
+        readableNames: readableNames,
+        escodegen: { format: { indent: { style: Array(formatIndent + 1).join(' ') } } }
+    };
     function doCompile() {
         if (sourcemap) {
             options.sourceMap = true;
@@ -85,4 +85,3 @@ exports.run = function () {
         console.log(sweet.compile(file, options).code);
     }
 };
-//# sourceMappingURL=sjs.js.map
