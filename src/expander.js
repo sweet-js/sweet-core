@@ -1833,10 +1833,6 @@ import { * } from "../macros/stxcase.js";
                                          "multi-token macro/operator names must be wrapped in () when exporting",
                                          rest[1]);
                     }
-                    // Consume optional semicolon                      
-                    if (unwrapSyntax(rest[1]) === ";") {
-                        rest.splice(1, 1);
-                    }
                     return step(Export.create(head, rest[0]), rest.slice(1), opCtx);
                 // identifier
                 } else if (head.token.type === parser.Token.Identifier) {
@@ -2947,10 +2943,10 @@ import { * } from "../macros/stxcase.js";
         var modFullPath = resolvePath(unwrapSyntax(imp.from), parent);
         if(!availableModules.has(modFullPath)) {
             // load it
-            modToImport = loadModule(modFullPath) |> loaded -> compileModule(loaded,
-                                                                             options,
-                                                                             context.templateMap,
-                                                                             context.patternMap);
+            modToImport = loadModule(modFullPath) |> loaded -> expandModule(loaded,
+                                                                            options,
+                                                                            context.templateMap,
+                                                                            context.patternMap).mod;
             availableModules.set(modFullPath, modToImport);
         } else {
             modToImport = availableModules.get(modFullPath);
@@ -3033,27 +3029,70 @@ import { * } from "../macros/stxcase.js";
         }
     }
 
-    // @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> ModuleTerm
-    function compileModule(mod, options, templateMap, patternMap, root) {
+    function expandModule(mod, options, templateMap, patternMap, root) {
         var context = makeModuleExpanderContext(options, templateMap, patternMap, 0);
 
-        return collectImports(mod, context) |> mod -> {
-            mod.imports.forEach(imp -> {
-                var modToImport = loadImport(imp, mod, options, context);
+        return {
+            context: context,
+            mod: collectImports(mod, context) |> mod -> {
+                mod.imports.forEach(imp -> {
+                    var modToImport = loadImport(imp, mod, options, context);
 
-                if(imp.isImport) {
-                    context = visit(modToImport, 0, context, options);
-                } else if (imp.isImportForMacros) {
-                    context = invoke(modToImport, 1, context, options);
-                    context = visit(modToImport, 1, context, options);
+                    if(imp.isImport) {
+                        context = visit(modToImport, 0, context, options);
+                    } else if (imp.isImportForMacros) {
+                        context = invoke(modToImport, 1, context, options);
+                        context = visit(modToImport, 1, context, options);
+                    } else {
+                        assert(false, "not implemented yet");
+                    }
+                    var importPhase = imp.isImport ? 0 : 1;
+                    bindImportInMod(imp, mod, modToImport, context, importPhase);
+                });
+                return expandTermTreeToFinal(mod, context);
+            }
+        };
+    }
+
+    // @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> [...SyntaxObject]
+    function compileModule(mod, options, templateMap, patternMap, root) {
+        var expanded = expandModule(mod, options, templateMap, patternMap, root);
+
+        return expanded.mod.body.reduce((acc, term) -> {
+            if (term.isExport) {
+                if (term.name.token.type === parser.Token.Delimiter) {
+                    var runtimeNames = term.name.expose().token.inner
+                        |> filterCommaSep
+                        |> names -> {
+                            return names.filter(name -> {
+                                if (name.token.type === parser.Token.Delimiter) {
+                                    return !nameInEnv(name.expose().token.inner[0],
+                                                      name.token.inner.slice(1),
+                                                      expanded.context,
+                                                      0);
+                                } else {
+                                    return !nameInEnv(name, [], expanded.context, 0);
+                                }
+                            });
+                        };
+                    var newInner = runtimeNames.reduce((acc, name, idx, orig) -> {
+                        acc.push(name);
+                        if (orig.length - 1 !== idx) { // don't add trailing comma
+                            acc.push(syn.makePunc(",", name));
+                        }
+                        return acc;
+                    }, []);
+                    if (newInner.length === 0) {
+                        // don't need to export nothing
+                        return acc;
+                    }
+                    term.name = syn.makeDelim("{}", newInner, term.name);
                 } else {
                     assert(false, "not implemented yet");
                 }
-                var importPhase = imp.isImport ? 0 : 1;
-                bindImportInMod(imp, mod, modToImport, context, importPhase);
-            });
-            return expandTermTreeToFinal(mod, context);
-        }
+            }
+            return acc.concat(term.destruct({stripCompileTerm: true}));
+        }, []) |> flatten;
     }
 
     // @ ([...SyntaxObject], {filename: Str}) -> [...SyntaxObject]
@@ -3074,47 +3113,9 @@ import { * } from "../macros/stxcase.js";
         // availableModules between calls to compile. The better
         // solution is to not store stuff in a template/patternMap
         availableModules = new StringMap();
-        var compiled = compileModule(mod, options, templateMap, patternMap);
-        return compiled.body.reduce((acc, term) -> {
-            return acc.concat(term.destruct({stripCompileTerm: true}));
-
-        }, []) |> flatten;
+        return compileModule(mod, options, templateMap, patternMap);
     }
 
-    function expandModule(stx, moduleContexts, options) {
-        moduleContexts = moduleContexts || [];
-        maxExpands = Infinity;
-        expandCount = 0;
-
-        var context = makeTopLevelExpanderContext(options);
-        var modBody = syn.makeDelim("{}", stx, null);
-        modBody = _.reduce(moduleContexts, function(acc, mod) {
-            context.env.extend(mod.env);
-            context.env.names.extend(mod.env.names);
-            return loadModuleExports(acc, context.env, mod.exports, mod.env);
-        }, modBody);
-
-        builtinMode = true;
-        var moduleRes = expand([syn.makeIdent("module", null), modBody], context);
-        builtinMode = false;
-
-        context.exports = _.map(moduleRes[0].exports, function(term) {
-            var nameStr, name;
-            if (term.name.token.type === parser.Token.Delimiter) {
-                nameStr = term.name.token.inner.map(unwrapSyntax).join('');
-                name = syn.makeIdent(nameStr, term.name);
-            } else {
-                name = term.name;
-                nameStr = unwrapSyntax(name);
-            }
-            return {
-                oldExport: name,
-                newParam: syn.makeIdent(nameStr, null)
-            }
-        });
-
-        return context;
-    }
 
     function loadModuleExports(stx, newEnv, exports, oldEnv) {
         return _.reduce(exports, function(acc, param) {
@@ -3197,7 +3198,6 @@ import { * } from "../macros/stxcase.js";
     exports.enforest = enforest;
     exports.expand = expandTopLevel;
     exports.compileModule = compile;
-    exports.expandModule = expandModule;
 
     exports.resolve = resolve;
     exports.get_expression = get_expression;
