@@ -1048,10 +1048,10 @@ import { * } from "../macros/stxcase.js";
         } else {
             transformer = macroObj.fn;
         }
-        
-        assert(typeof transformer === "function", "Macro transformer not bound for: " 
+
+        assert(typeof transformer === "function", "Macro transformer not bound for: "
                + head.token.value);
-        
+
 
         // create a new mark to be used for the input to
         // the macro
@@ -1538,7 +1538,7 @@ import { * } from "../macros/stxcase.js";
                         }
                         if (returnExpr.result.isExpr) {
                             return step(ReturnStatement.create(head, returnExpr.result),
-                                        returnExpr.rest, 
+                                        returnExpr.rest,
                                         opCtx);
                         }
                     } else {
@@ -2404,7 +2404,7 @@ import { * } from "../macros/stxcase.js";
                         return def.id.token.value === id.token.value &&
                             arraysEqual(marksof(def.id.context), marksof(id.context));
                     });
-                    /* 
+                    /*
                         When var declaration repeat one of the function parameters:
 
                         function foo(x) {
@@ -2417,7 +2417,7 @@ import { * } from "../macros/stxcase.js";
                         return param.token.value === id.token.value &&
                             arraysEqual(marksof(param.context), marksof(id.context));
                     });
-                    return (typeof varDeclRep === 'undefined') && 
+                    return (typeof varDeclRep === 'undefined') &&
                            (typeof paramDeclRep === 'undefined');
                 }
                 return true;
@@ -2526,7 +2526,7 @@ import { * } from "../macros/stxcase.js";
             });
 
             var bodyContext = makeExpanderContext(_.defaults({
-                defscope: newDef, 
+                defscope: newDef,
                 // paramscope is used to filter out var redeclarations
                 paramscope: paramNames.map(function(p) {
                     return p.renamedParam;
@@ -2698,7 +2698,7 @@ import { * } from "../macros/stxcase.js";
         moduleContexts = moduleContexts || [];
         options = options || {};
         options.flatten = options.flatten != null ? options.flatten : true;
-        
+
         maxExpands = options.maxExpands || Infinity;
         expandCount = 0;
 
@@ -2926,6 +2926,7 @@ import { * } from "../macros/stxcase.js";
             if (idx % 2 !== 0 && (stx.token.type !== parser.Token.Punctuator ||
                                   stx.token.value !== ",")) {
                 throwSyntaxError("import",
+
                                  "expecting a comma separated list",
                                  stx);
             } else if (idx % 2 !== 0) {
