@@ -567,7 +567,7 @@ import { * } from "../macros/stxcase.js";
     dataclass ModuleTerm            ()                                  extends TermTree;
 
     dataclass Module                (name, lang, body, imports, exports)extends ModuleTerm;
-    dataclass Import                (names, from)                       extends ModuleTerm;
+    dataclass Import                (kw, names, fromkw, from)           extends ModuleTerm;
     dataclass ImportForMacros       (names, from)                       extends ModuleTerm;
     dataclass Export                (kw, name)                          extends ModuleTerm;
 
@@ -1820,7 +1820,7 @@ import { * } from "../macros/stxcase.js";
                     } else {
                         importRest = rest.slice(3);
                     }
-                    return step(Import.create(rest[0], rest[2]), importRest, opCtx);
+                    return step(Import.create(head, rest[0], rest[1], rest[2]), importRest, opCtx);
                 // export
                 } else if (head.token.type === parser.Token.Keyword &&
                             unwrapSyntax(head) === "export" &&
@@ -2719,6 +2719,9 @@ import { * } from "../macros/stxcase.js";
 
     // @ (ModuleTerm, ExpanderContext) -> ModuleTerm
     function collectImports(mod, context) {
+        // TODO: this is currently just grabbing the imports from the
+        // very beginning of the file. It really should be able to mix
+        // imports/exports/statements at the top level.
         var imports = [];
         var res;
         var rest = mod.body;
@@ -3055,45 +3058,64 @@ import { * } from "../macros/stxcase.js";
         };
     }
 
+    function filterCompileNames(stx, context) {
+        assert(stx.token.type === parser.Token.Delimiter, "must be a delimter");
+
+        var runtimeNames = stx.expose().token.inner
+            |> filterCommaSep
+            |> names -> {
+                return names.filter(name -> {
+                    if (name.token.type === parser.Token.Delimiter) {
+                        return !nameInEnv(name.expose().token.inner[0],
+                                          name.token.inner.slice(1),
+                                          context,
+                                          0);
+                    } else {
+                        return name.token.value !== "*" &&
+                            !nameInEnv(name, [], context, 0);
+                    }
+                });
+            };
+        var newInner = runtimeNames.reduce((acc, name, idx, orig) -> {
+            acc.push(name);
+            if (orig.length - 1 !== idx) { // don't add trailing comma
+                acc.push(syn.makePunc(",", name));
+            }
+            return acc;
+        }, []);
+        if (newInner.length === 0) {
+            // don't need to export nothing
+            return acc;
+        }
+        return syn.makeDelim("{}", newInner, stx);
+    }
+
     // @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> [...SyntaxObject]
     function compileModule(mod, options, templateMap, patternMap, root) {
         var expanded = expandModule(mod, options, templateMap, patternMap, root);
 
-        return expanded.mod.body.reduce((acc, term) -> {
+        var imports = expanded.mod.imports.reduce((acc, imp) -> {
+            if (imp.names.token.type === parser.Token.Delimiter) {
+                imp.names = filterCompileNames(imp.names, expanded.context);
+                return acc.concat(imp.destruct());
+            } else {
+                assert(false, "not implemented yet");
+            }
+        }, []);
+
+        var output = expanded.mod.body.reduce((acc, term) -> {
+            // only compile export forms with runtime names
             if (term.isExport) {
                 if (term.name.token.type === parser.Token.Delimiter) {
-                    var runtimeNames = term.name.expose().token.inner
-                        |> filterCommaSep
-                        |> names -> {
-                            return names.filter(name -> {
-                                if (name.token.type === parser.Token.Delimiter) {
-                                    return !nameInEnv(name.expose().token.inner[0],
-                                                      name.token.inner.slice(1),
-                                                      expanded.context,
-                                                      0);
-                                } else {
-                                    return !nameInEnv(name, [], expanded.context, 0);
-                                }
-                            });
-                        };
-                    var newInner = runtimeNames.reduce((acc, name, idx, orig) -> {
-                        acc.push(name);
-                        if (orig.length - 1 !== idx) { // don't add trailing comma
-                            acc.push(syn.makePunc(",", name));
-                        }
-                        return acc;
-                    }, []);
-                    if (newInner.length === 0) {
-                        // don't need to export nothing
-                        return acc;
-                    }
-                    term.name = syn.makeDelim("{}", newInner, term.name);
+                    term.name = filterCompileNames(term.name, expanded.context);
                 } else {
                     assert(false, "not implemented yet");
                 }
             }
             return acc.concat(term.destruct({stripCompileTerm: true}));
-        }, []) |> flatten;
+        }, []);
+
+        return imports.concat(output) |> flatten;
     }
 
     // @ ([...SyntaxObject], {filename: Str}) -> [...SyntaxObject]
