@@ -2924,12 +2924,28 @@ import { * } from "../macros/stxcase.js";
         return context;
     }
 
+    // a version of map where the callback only runs on the non comma items in
+    // the comma separated list.
+    function mapCommaSep(l, f) {
+        return l.map((stx, idx)-> {
+            if (idx % 2 !== 0 && (stx.token.type !== parser.Token.Punctuator ||
+                                  stx.token.value !== ",")) {
+                throwSyntaxError("import",
+                                 "expecting a comma separated list",
+                                 stx);
+            } else if (idx % 2 !== 0) {
+                return stx;
+            } else {
+                return f(stx);
+            }
+        });
+    }
+
     function filterCommaSep(stx) {
         return stx.filter((stx, idx) -> {
             if (idx % 2 !== 0 && (stx.token.type !== parser.Token.Punctuator ||
                                   stx.token.value !== ",")) {
                 throwSyntaxError("import",
-
                                  "expecting a comma separated list",
                                  stx);
             } else if (idx % 2 !== 0) {
@@ -2971,6 +2987,7 @@ import { * } from "../macros/stxcase.js";
                     var trans = context.env.get(resolve(exp, phase));
                     var newParam = syn.makeIdent(unwrapSyntax(exp), null);
                     var newName = fresh();
+                    context.env.names.set(unwrapSyntax(newParam), true);
                     context.env.set(resolve(newParam.imported(newParam,
                                                               newName,
                                                               phase),
@@ -2981,9 +2998,10 @@ import { * } from "../macros/stxcase.js";
                                                                 phase));
                 });
             } else {
-                imp.names.token.inner
+                // first collect the import names and their associated bindings
+                var renamedNames = imp.names.token.inner
                     |> filterCommaSep
-                    |> names -> names.forEach(importName-> {
+                    |> names -> names.map(importName -> {
                         var inExports = _.find(modToImport.exports, expTerm -> {
                             if (importName.token.type === parser.Token.Delimiter) {
                                 return expTerm.token.type === parser.Token.Delimiter &&
@@ -3015,18 +3033,31 @@ import { * } from "../macros/stxcase.js";
                                                   context,
                                                   phase);
                         }
+
                         var newParam = syn.makeIdent(exportNameStr, null);
                         var newName = fresh();
-                        context.env.set(resolve(newParam.imported(newParam,
-                                                                  newName,
-                                                                  phase),
-                                                phase),
-                                        trans);
-                        mod.body = mod.body.map(stx -> stx.imported(newParam,
-                                                                    newName,
-                                                                    phase));
+                        return {
+                            original: newParam,
+                            renamed: newParam.imported(newParam, newName, phase),
+                            name: newName,
+                            trans: trans
+                        };
+                    });
 
+                // set the new bindings in the context
+                renamedNames.forEach(name -> {
+                    context.env.names.set(unwrapSyntax(name.renamed), true);
+                    context.env.set(resolve(name.renamed, phase),
+                                    name.trans);
+                    mod.body = mod.body.map(stx -> stx.imported(name.original,
+                                                                name.name,
+                                                                phase));
                 });
+                imp.names = syn.makeDelim("{}",
+                                          joinSyntax(renamedNames.map(name -> name.renamed),
+                                                     syn.makePunc(",", imp.names)),
+                                          imp.names);
+
             }
         } else {
             assert(false, "not implemented yet");
@@ -3083,10 +3114,6 @@ import { * } from "../macros/stxcase.js";
             }
             return acc;
         }, []);
-        if (newInner.length === 0) {
-            // don't need to export nothing
-            return acc;
-        }
         return syn.makeDelim("{}", newInner, stx);
     }
 
@@ -3095,8 +3122,14 @@ import { * } from "../macros/stxcase.js";
         var expanded = expandModule(mod, options, templateMap, patternMap, root);
 
         var imports = expanded.mod.imports.reduce((acc, imp) -> {
+            if (imp.isImportForMacros) {
+                return acc;
+            }
             if (imp.names.token.type === parser.Token.Delimiter) {
                 imp.names = filterCompileNames(imp.names, expanded.context);
+                if (imp.names.token.inner.length === 0) {
+                    return acc;
+                }
                 return acc.concat(imp.destruct());
             } else {
                 assert(false, "not implemented yet");
@@ -3108,6 +3141,9 @@ import { * } from "../macros/stxcase.js";
             if (term.isExport) {
                 if (term.name.token.type === parser.Token.Delimiter) {
                     term.name = filterCompileNames(term.name, expanded.context);
+                    if (term.name.token.inner.length === 0) {
+                        return acc;
+                    }
                 } else {
                     assert(false, "not implemented yet");
                 }
