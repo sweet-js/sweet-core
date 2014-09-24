@@ -35,7 +35,8 @@ module.exports = function(grunt) {
             },
             test_modules: {
                 options: {
-                    compileFrom: "./build/lib/sweet"
+                    compileFrom: "./build/lib/sweet",
+                    readableNames: true
                 },
                 src: "test/modules/test_*.js",
                 dest: "build/modules/"
@@ -224,6 +225,7 @@ module.exports = function(grunt) {
         var options = this.options({
             modules: [],
             sourceMap: true,
+            readableNames: true,
             compileFrom: "./lib/sweet"
         });
         var sweet = require(options.compileFrom);
@@ -244,7 +246,7 @@ module.exports = function(grunt) {
                 var output = sweet.compile(code, {
                     sourceMap: options.sourceMap,
                     filename: file,
-                    readableNames: true,
+                    readableNames: options.readableNames,
                     modules: modules
                 });
 
