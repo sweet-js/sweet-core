@@ -1,3 +1,5 @@
+#lang "js";
+
 let quoteSyntax = macro {
     function(stx) {
         var name_stx = stx[0];

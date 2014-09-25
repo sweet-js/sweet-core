@@ -2150,7 +2150,8 @@ import { * } from "../macros/stxcase.js";
             mergeMatches: function(newMatch, oldMatch) {
                 newMatch.patternEnv = _.extend({}, oldMatch.patternEnv, newMatch.patternEnv);
                 return newMatch;
-            }
+            },
+            console: console
         };
         context.env.keys().forEach(key -> macroGlobal[key] = context.env.get(key));
         var macroFn;
@@ -2795,36 +2796,54 @@ import { * } from "../macros/stxcase.js";
         // node specific code
         var fs = require("fs");
         return fs.readFileSync(name, 'utf8')
-            |> parser.read |> body -> createModule(name, body);
+            |> parser.read |> body -> {
+                return createModule(name, body)
+            };
 
     }
 
     // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
     function invoke(mod, phase, context, options) {
-        mod.imports.forEach(imp -> {
-            var modToImport = loadImport(imp, mod, options, context);
-            if (imp.isImport) {
-                context = invoke(modToImport, phase, context, options);
-            }
-        });
+        if (unwrapSyntax(mod.lang) === "base") {
+            var exported = require(unwrapSyntax(mod.name));
+            Object.keys(exported).forEach(exp -> {
+                var freshName = fresh();
+                var expName = syn.makeIdent(exp, null);
+                var renamed = expName.rename(expName, freshName)
 
-        var code = mod.body
-            |> terms -> terms.map(term -> term.destruct({stripCompileTerm: true,
-                                                         stripModuleTerm: true}))
-            |> _.flatten
-            |> flatten
-            |> parser.parse
-            |> codegen.generate
-        var global = {};
+                mod.exports.push(renamed);
+                context.env.set(resolve(renamed, phase), exported[exp]);
+                context.env.names.set(exp, true);
+            })
+        } else {
+            mod.imports.forEach(imp -> {
+                var modToImport = loadImport(imp, mod, options, context);
+                if (imp.isImport) {
+                    context = invoke(modToImport, phase, context, options);
+                }
+            });
 
-        vm.runInNewContext(code, global);
+            var code = mod.body
+                |> terms -> terms.map(term -> term.destruct({stripCompileTerm: true,
+                                                             stripModuleTerm: true}))
+                |> _.flatten
+                |> flatten
+                |> parser.parse
+                |> codegen.generate
+            var global = {
+                console: console
+            };
 
-        mod.exports.forEach(exp -> {
-            var expName = resolve(exp, phase);
-            var expVal = global[expName];
-            context.env.set(expName, expVal);
-            context.env.names.set(unwrapSyntax(exp), true);
-        });
+            vm.runInNewContext(code, global);
+
+            mod.exports.forEach(exp -> {
+                var expName = resolve(exp, phase);
+                var expVal = global[expName];
+                context.env.set(expName, expVal);
+                context.env.names.set(unwrapSyntax(exp), true);
+            });
+        }
+
         return context;
     }
 
@@ -2832,6 +2851,10 @@ import { * } from "../macros/stxcase.js";
     // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
     function visit(mod, phase, context, options) {
         var defctx = [];
+        // we don't need to visit base modules
+        if (unwrapSyntax(mod.lang) === "base") {
+            return context;
+        }
         mod.body = mod.body.map(term -> term.addDefCtx(defctx));
         // reset the exports
         mod.exports = [];
