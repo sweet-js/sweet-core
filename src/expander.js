@@ -1,4 +1,4 @@
-#lang "js";
+#lang "../macros/stxcase.js";
 /*
   Copyright (C) 2012 Tim Disney <tim@disnet.me>
 
@@ -23,7 +23,6 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-import { * } from "../macros/stxcase.js";
 
 // import @ from "contracts.js"
 
