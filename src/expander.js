@@ -2726,11 +2726,28 @@ import { * } from "../macros/stxcase.js";
         var imports = [];
         var res;
         var rest = mod.body;
-        // #lang "sjs" expands to imports for the basic macros for sweet.js
+        // #lang "sweet" expands to imports for the basic macros for sweet.js
         // eventually this should hook into module level extensions
-        if (unwrapSyntax(mod.lang) === "sjs") {
-            imports.push(Import.create(syn.makeDelim("{}", [syn.makePunc("*", null)], null),
-                                       syn.makeValue("sweet.js", null)));
+        if (unwrapSyntax(mod.lang) !== "base" &&
+            unwrapSyntax(mod.lang) !== "js") {
+            var defaultImports = [
+                "quoteSyntax",
+                "syntax",
+                "#",
+                "syntaxCase",
+                "macro",
+                "withSyntax",
+                "letstx",
+                "macroclass",
+                "operator"
+            ];
+            defaultImports = defaultImports.map(name -> syn.makeIdent(name, null));
+            imports.push(Import.create(syn.makeKeyword("import", null),
+                                       syn.makeDelim("{}", joinSyntax(defaultImports,
+                                                                      syn.makePunc(",", null)),
+                                                     null),
+                                       syn.makeIdent("from", null),
+                                       mod.lang));
         }
         while (true) {
             res = enforest(rest, context);
@@ -3005,21 +3022,6 @@ import { * } from "../macros/stxcase.js";
                 throwSyntaxCaseError("compileModule",
                                      "must include names to import",
                                      imp.names);
-            } else if (unwrapSyntax(imp.names.token.inner[0]) === "*") {
-                modToImport.exports.forEach(exp -> {
-                    var trans = context.env.get(resolve(exp, phase));
-                    var newParam = syn.makeIdent(unwrapSyntax(exp), null);
-                    var newName = fresh();
-                    context.env.names.set(unwrapSyntax(newParam), true);
-                    context.env.set(resolve(newParam.imported(newParam,
-                                                              newName,
-                                                              phase),
-                                            phase),
-                                    trans);
-                    mod.body = mod.body.map(stx -> stx.imported(newParam,
-                                                                newName,
-                                                                phase));
-                });
             } else {
                 // first collect the import names and their associated bindings
                 var renamedNames = imp.names.token.inner
@@ -3125,8 +3127,7 @@ import { * } from "../macros/stxcase.js";
                                           context,
                                           0);
                     } else {
-                        return name.token.value !== "*" &&
-                            !nameInEnv(name, [], context, 0);
+                        return !nameInEnv(name, [], context, 0);
                     }
                 });
             };
