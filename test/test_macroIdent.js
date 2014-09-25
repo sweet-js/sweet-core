@@ -1,5 +1,4 @@
-#lang "js";
-import { * } from "../macros/stxcase.js";
+#lang "../macros/stxcase.js";
 var expect = require("expect.js");
 
 // describe("macroIdent", function() {

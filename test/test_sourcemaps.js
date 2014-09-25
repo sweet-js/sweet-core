@@ -1,5 +1,4 @@
-#lang "js";
-import { * } from "../macros/stxcase.js";
+#lang "../macros/stxcase.js";
 var expect = require("expect.js");
 var sm = require("source-map");
 var sweet = require("../build/lib/sweet");

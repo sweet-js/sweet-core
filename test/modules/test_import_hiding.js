@@ -1,5 +1,4 @@
-#lang "js";
-import { * } from "../../macros/stxcase.js";
+#lang "../../macros/stxcase.js";
 import { id } from "./id.js";   // module also exports `di`
 
 var expect = require("expect.js");

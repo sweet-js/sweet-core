@@ -1,5 +1,4 @@
-#lang "js";
-import { * } from "../../macros/stxcase.js";
+#lang "../../macros/stxcase.js";
 import { eql } from "expect.js" for macros;
 
 var expect = require("expect.js");

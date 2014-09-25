@@ -1,5 +1,5 @@
-#lang "js";
-import { * } from "../../macros/stxcase.js";
+#lang "../../macros/stxcase.js";
+
 import { id, di } from "./id.js";
 import { map } from "./map.js" for macros;
 import { (**) } from "./operators.js";

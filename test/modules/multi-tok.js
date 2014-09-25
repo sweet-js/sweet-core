@@ -1,5 +1,4 @@
-#lang "js";
-import { * } from "../../macros/stxcase.js";
+#lang "../../macros/stxcase.js";
 
 let (number?) = macro {
     rule { ($cond ...) } => {
