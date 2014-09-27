@@ -991,7 +991,7 @@
         }
     }
 
-    function getMacroInEnv(head, rest, context, phase) {
+    function getValueInEnv(head, rest, context, phase) {
         if (!(head.token.type === parser.Token.Identifier ||
               head.token.type === parser.Token.Keyword ||
               head.token.type === parser.Token.Punctuator)) {
@@ -1024,7 +1024,7 @@
     }
 
     function nameInEnv(head, rest, context, phase) {
-        return getMacroInEnv(head, rest, context, phase) !== null;
+        return getValueInEnv(head, rest, context, phase) !== null;
     }
 
     // This should only be used on things that can't be rebound except by
@@ -1038,7 +1038,7 @@
         // pull the macro transformer out the environment
         var head = stx[0];
         var rest = stx.slice(1);
-        macroObj = macroObj || getMacroInEnv(head, rest, context, context.phase);
+        macroObj = macroObj || getValueInEnv(head, rest, context, context.phase);
         var stxArg = rest.slice(macroObj.fullName.length - 1);
         var transformer;
         if (opType != null) {
@@ -1177,15 +1177,15 @@
                     } else if (head.isId) {
                         uopSyntax = head.id;
                     }
-                    uopMacroObj = getMacroInEnv(uopSyntax, rest, context, context.phase);
+                    uopMacroObj = getValueInEnv(uopSyntax, rest, context, context.phase);
                     isCustomOp = uopMacroObj && uopMacroObj.isOp;
                 }
 
                 // look up once (we want to check multiple properties on bopMacroObj
-                // without repeatedly calling getMacroInEnv)
+                // without repeatedly calling getValueInEnv)
                 var bopMacroObj;
                 if (rest[0] && rest[1]) {
-                    bopMacroObj = getMacroInEnv(rest[0], rest.slice(1), context, context.phase);
+                    bopMacroObj = getValueInEnv(rest[0], rest.slice(1), context, context.phase);
                 }
 
                 // unary operator
@@ -1606,10 +1606,10 @@
             } else {
                 assert(head && head.token, "assuming head is a syntax object");
 
-                var macroObj = expandCount < maxExpands && getMacroInEnv(head, rest, context, context.phase);
+                var macroObj = expandCount < maxExpands && getValueInEnv(head, rest, context, context.phase);
 
                 // macro invocation
-                if (macroObj && !macroObj.isOp) {
+                if (macroObj && typeof macroObj.fn === "function" && !macroObj.isOp) {
                     var rt = expandMacro([head].concat(rest), context, opCtx, null, macroObj);
                     var newOpCtx = opCtx;
 
@@ -1865,7 +1865,7 @@
             // This should only be invoked on runtime syntax terms
             if (!head.isMacro && !head.isLetMacro && !head.isAnonMacro && !head.isOperatorDefinition &&
                 rest.length && nameInEnv(rest[0], rest.slice(1), context, context.phase) &&
-                getMacroInEnv(rest[0], rest.slice(1), context, context.phase).isOp === false) {
+                getValueInEnv(rest[0], rest.slice(1), context, context.phase).isOp === false) {
                 var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
                                   ? opCtx.prevTerms[0]
                                   : null;
@@ -2152,7 +2152,13 @@
             },
             console: console
         };
-        context.env.keys().forEach(key -> macroGlobal[key] = context.env.get(key));
+        context.env.keys().forEach(key -> {
+            var val = context.env.get(key);
+            // load the compile time values into the global object
+            if (val && val.value) {
+                macroGlobal[key] = val.value;
+            }
+        });
         var macroFn;
         if (vm) {
             macroFn = vm.runInNewContext("(function() { return " + bodyCode + " })()",
@@ -2205,8 +2211,9 @@
                 }
                 // expand the body
                 head.body = expand(head.body,
-                                   makeExpanderContext(_.extend({phase: context.phase + 1},
-                                                                context)));
+                                   makeExpanderContext(_.extend({},
+                                                                context,
+                                                                {phase: context.phase + 1})));
                 //  and load the macro definition into the environment
                 macroDefinition = loadMacroDef(head.body, context, context.phase + 1);
                 var name = head.name.map(unwrapSyntax).join("");
@@ -2741,6 +2748,10 @@
                 "operator"
             ];
             defaultImports = defaultImports.map(name -> syn.makeIdent(name, null));
+            imports.push(ImportForMacros.create(syn.makeDelim("{}", joinSyntax(defaultImports,
+                                                                               syn.makePunc(",", null)),
+                                                              null),
+                                                mod.lang));
             imports.push(Import.create(syn.makeKeyword("import", null),
                                        syn.makeDelim("{}", joinSyntax(defaultImports,
                                                                       syn.makePunc(",", null)),
@@ -2828,7 +2839,9 @@
                 var renamed = expName.rename(expName, freshName)
 
                 mod.exports.push(renamed);
-                context.env.set(resolve(renamed, phase), exported[exp]);
+                context.env.set(resolve(renamed, phase), {
+                    value: exported[exp]
+                });
                 context.env.names.set(exp, true);
             })
         } else {
@@ -2855,7 +2868,7 @@
             mod.exports.forEach(exp -> {
                 var expName = resolve(exp, phase);
                 var expVal = global[expName];
-                context.env.set(expName, expVal);
+                context.env.set(expName, {value: expVal});
                 context.env.names.set(unwrapSyntax(exp), true);
             });
         }
@@ -3002,10 +3015,11 @@
         var modFullPath = resolvePath(unwrapSyntax(imp.from), parent);
         if(!availableModules.has(modFullPath)) {
             // load it
-            modToImport = loadModule(modFullPath) |> loaded -> expandModule(loaded,
-                                                                            options,
-                                                                            context.templateMap,
-                                                                            context.patternMap).mod;
+            modToImport = loadModule(modFullPath)
+                |> loaded -> expandModule(loaded,
+                                          options,
+                                          context.templateMap,
+                                          context.patternMap).mod;
             availableModules.set(modFullPath, modToImport);
         } else {
             modToImport = availableModules.get(modFullPath);
@@ -3045,14 +3059,14 @@
                         if (inExports.token.type === parser.Token.Delimiter) {
                             exportName = inExports.expose().token.inner;
                             exportNameStr = exportName.map(unwrapSyntax).join('');
-                            trans = getMacroInEnv(exportName[0],
+                            trans = getValueInEnv(exportName[0],
                                                   exportName.slice(1),
                                                   context,
                                                   phase);
                         } else {
                             exportName = inExports;
                             exportNameStr = unwrapSyntax(exportName);
-                            trans = getMacroInEnv(exportName,
+                            trans = getValueInEnv(exportName,
                                                   [],
                                                   context,
                                                   phase);
@@ -3097,7 +3111,7 @@
                 mod.imports.forEach(imp -> {
                     var modToImport = loadImport(imp, mod, options, context);
 
-                    if(imp.isImport) {
+                    if (imp.isImport) {
                         context = visit(modToImport, 0, context, options);
                     } else if (imp.isImportForMacros) {
                         context = invoke(modToImport, 1, context, options);
@@ -3284,7 +3298,7 @@
     exports.resolve = resolve;
     exports.get_expression = get_expression;
     exports.getName = getName;
-    exports.getMacroInEnv = getMacroInEnv;
+    exports.getValueInEnv = getValueInEnv;
     exports.nameInEnv = nameInEnv;
 
     exports.makeExpanderContext = makeExpanderContext;
