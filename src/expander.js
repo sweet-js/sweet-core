@@ -3201,7 +3201,7 @@
                 if (imp.names.token.inner.length === 0) {
                     return acc;
                 }
-                return acc.concat(imp.destruct(expanded.context));
+                return acc.concat(flatten(imp.destruct(expanded.context).concat(syn.makePunc(";", imp.names))));
             } else {
                 assert(false, "not implemented yet");
             }
@@ -3223,7 +3223,7 @@
         }, []);
 
         var importsToAdd = [];
-        return output
+        output = output
             |> flatten
             |> output -> output.map(stx -> {
                 var name = resolve(stx, 0);
@@ -3233,6 +3233,7 @@
                 }
                 return stx
             }) |> output -> importsToAdd.concat(output)
+        return imports.concat(output)
     }
 
     // @ ([...SyntaxObject], {filename: Str}) -> [...SyntaxObject]
