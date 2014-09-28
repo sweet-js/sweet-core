@@ -1,13 +1,5 @@
-import { id } from "./macros/id_mod.js";
-import { * } from "./macros/stxcase.js";
-import { map } from "./macros/helper.js" for macros;
+#lang "./macros/stxcase.js";
 
-macro m {
-    case {_ } => {
-        map([1, 2, 3], function(x) { return x; });
-        return #{42};
-    }
-}
-m
+import { m } from "./mod.js";
 
-var x = id 24;
+m(10, 100);

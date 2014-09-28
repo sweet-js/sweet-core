@@ -1,13 +1,17 @@
-macro _destructure {
-    case { $ctx $x } => { return #{ $x } }
-}
-export _destructure;
+#lang "./macros/stxcase.js";
+import { eql } from "expect.js";
 
-let var = macro {
-    case { $ctx $l = $r } => { 
-        return #{
-            _destructure $l
+// macro m {
+//     rule {} => { eql }
+// }
+
+let m = macro {
+    function(stx) {
+        return {
+            result: quoteSyntax{eql},
+            rest: stx.slice(1)
         };
     }
 }
-export var
+
+export { m }

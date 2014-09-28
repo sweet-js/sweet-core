@@ -21,4 +21,4 @@ var tokenTree = parser.read(source);
 var result = expander.compileModule(tokenTree, {filename: "test.js"});
 
 // console.log(result);
-// console.log(codegen.generate(parser.parse(result)));
+console.log(codegen.generate(parser.parse(result)));
