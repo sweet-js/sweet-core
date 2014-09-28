@@ -274,16 +274,16 @@
                     i += 2;
                     if (tok3.token.value === '[]') {
                         patt.class = "named_group";
-                        patt.inner = loadLiteralGroup(tok3.expose().token.inner);
+                        patt.inner = loadLiteralGroup(tok3.token.inner);
                     } else if (tok3.token.value === '()') {
                         patt.class = "named_group";
-                        patt.inner = loadPattern(tok3.expose().token.inner);
+                        patt.inner = loadPattern(tok3.token.inner);
                     } else if (isPrimaryClass(tok3.token.value)) {
                         patt.class = tok3.token.value;
                         if (patt.class === "invokeRec" || patt.class === "invoke") {
                             i += 1;
                             if (tok4.token.value === "()" && tok4.token.inner.length) {
-                                patt.macroName = tok4.expose().token.inner;
+                                patt.macroName = tok4.token.inner;
                             } else {
                                 throwSyntaxError(patt.class, "Expected macro parameter", tok3);
                             }
@@ -305,7 +305,7 @@
                 if (patt.value === "[]") {
                     patt.inner = loadLiteralGroup(patt.inner);
                 } else {
-                    patt.inner = loadPattern(tok2.expose().token.inner);
+                    patt.inner = loadPattern(tok2.token.inner);
                 }
             } else if (tok1.token.type === parser.Token.Identifier &&
                        tok1.token.value === "_") {
@@ -316,7 +316,7 @@
                 patt.class = "pattern_literal";
 
                 if (patt.inner) {
-                    patt.inner = loadPattern(tok1.expose().token.inner);
+                    patt.inner = loadPattern(tok1.token.inner);
                 }
             }
 
@@ -654,7 +654,6 @@
                 }
             } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter &&
                        stx[0].token.value === pattern.value) {
-                stx[0].expose();
                 if (pattern.inner.length === 0 && stx[0].token.inner.length !== 0) {
                     return {
                         success: false,
@@ -905,7 +904,6 @@
                 // then do the actual transcription
                 if (bodyStx.repeat) {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
-                        bodyStx.expose();
 
                         var fv = _.filter(freeVarsInPattern(bodyStx.token.inner),
                                           function(pat) {
@@ -985,7 +983,6 @@
                     return acc;
                 } else {
                     if (bodyStx.token.type === parser.Token.Delimiter) {
-                        bodyStx.expose();
                         var newBody = syntaxFromToken(_.clone(bodyStx.token),
                                                       macroBody);
                         newBody.token.inner = transcribe(bodyStx.token.inner,

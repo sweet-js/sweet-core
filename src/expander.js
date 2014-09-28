@@ -613,7 +613,7 @@
     dataclass QuoteSyntax           (stx)                               extends Expr {
         destruct(context, options) {
             var tempId = fresh();
-            context.templateMap.set(tempId, this.stx.expose().token.inner);
+            context.templateMap.set(tempId, this.stx.token.inner);
             return [syn.makeIdent("getTemplate", this.stx),
                     syn.makeDelim("()", [
                         syn.makeValue(tempId, this.stx)
@@ -853,7 +853,7 @@
 
     function enforestParenExpression(parens, context) {
         var argRes, enforestedArgs = [], commas = [];
-        var innerTokens = parens.expose().token.inner;
+        var innerTokens = parens.token.inner;
         while (innerTokens.length > 0) {
             argRes = enforest(innerTokens, context);
             if (!argRes.result || !argRes.result.isExpr) {
@@ -1444,7 +1444,7 @@
                     // doesn't accept empty arrays so short
                     // circuit here
                     if (head.delim.token.inner.length === 0) {
-                        return step(ParenExpression.create([Empty.create()], head.delim.expose(), []),
+                        return step(ParenExpression.create([Empty.create()], head.delim, []),
                                    rest,
                                    opCtx);
                     } else {
@@ -1492,7 +1492,7 @@
                 // ObjectGet (computed)
                 } else if(head.isExpr &&
                             (rest[0] && rest[0].token.value === "[]"))  {
-                    return step(ObjGet.create(head, Delimiter.create(rest[0].expose())),
+                    return step(ObjGet.create(head, Delimiter.create(rest[0])),
                                 rest.slice(1),
                                 opCtx);
                 // ObjectGet
@@ -1640,7 +1640,7 @@
                            resolve(head, context.phase) === "macro" &&
                            rest[0] && rest[0].token.value === "{}") {
 
-                    return step(AnonMacro.create(rest[0].expose().token.inner),
+                    return step(AnonMacro.create(rest[0].token.inner),
                                 rest.slice(1),
                                 opCtx);
                 // macro definition
@@ -1650,12 +1650,12 @@
                     var nameTokens = [];
                     if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                         rest[0].token.value === "()") {
-                        nameTokens = rest[0].expose().token.inner;
+                        nameTokens = rest[0].token.inner;
                     } else {
                         nameTokens.push(rest[0])
                     }
                     if (rest[1] && rest[1].token.type === parser.Token.Delimiter) {
-                        return step(Macro.create(nameTokens, rest[1].expose().token.inner),
+                        return step(Macro.create(nameTokens, rest[1].token.inner),
                                     rest.slice(2),
                                     opCtx);
                     } else {
@@ -1670,9 +1670,9 @@
                            rest[1] && rest[1].token.type === parser.Token.NumericLiteral &&
                            rest[2] && rest[2].token.type === parser.Token.Delimiter &&
                            rest[2] && rest[2].token.value === "{}") {
-                    var trans = enforest(rest[2].expose().token.inner, context);
+                    var trans = enforest(rest[2].token.inner, context);
                     return step(OperatorDefinition.create(syn.makeValue("unary", head),
-                                                          rest[0].expose().token.inner,
+                                                          rest[0].token.inner,
                                                           rest[1],
                                                           null,
                                                           trans.result.body),
@@ -1688,9 +1688,9 @@
                            rest[2] && rest[2].token.type === parser.Token.Identifier &&
                            rest[3] && rest[3].token.type === parser.Token.Delimiter &&
                            rest[3] && rest[3].token.value === "{}") {
-                    var trans = enforest(rest[3].expose().token.inner, context);
+                    var trans = enforest(rest[3].token.inner, context);
                     return step(OperatorDefinition.create(syn.makeValue("binary", head),
-                                                          rest[0].expose().token.inner,
+                                                          rest[0].token.inner,
                                                           rest[1],
                                                           rest[2],
                                                           trans.result.body),
@@ -1705,8 +1705,8 @@
                     rest[2] && rest[2].token.type === parser.Token.Delimiter &&
                     rest[2].token.value === "{}") {
 
-                    rest[1].token.inner = rest[1].expose().token.inner;
-                    rest[2].token.inner = rest[2].expose().token.inner;
+                    rest[1].token.inner = rest[1].token.inner;
+                    rest[2].token.inner = rest[2].token.inner;
                     return step(NamedFun.create(head, null, rest[0],
                                                 rest[1],
                                                 rest[2]),
@@ -1723,8 +1723,8 @@
                     rest[3] && rest[3].token.type === parser.Token.Delimiter &&
                     rest[3].token.value === "{}") {
 
-                    rest[2].token.inner = rest[2].expose().token.inner;
-                    rest[3].token.inner = rest[3].expose().token.inner;
+                    rest[2].token.inner = rest[2].token.inner;
+                    rest[3].token.inner = rest[3].token.inner;
                     return step(NamedFun.create(head, rest[0], rest[1],
                                                 rest[2],
                                                 rest[3]),
@@ -1738,8 +1738,8 @@
                     rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                     rest[1].token.value === "{}") {
 
-                    rest[0].token.inner = rest[0].expose().token.inner;
-                    rest[1].token.inner = rest[1].expose().token.inner;
+                    rest[0].token.inner = rest[0].token.inner;
+                    rest[1].token.inner = rest[1].token.inner;
                     return step(AnonFun.create(head,
                                                 null,
                                                 rest[0],
@@ -1756,8 +1756,8 @@
                     rest[2] && rest[2].token.type === parser.Token.Delimiter &&
                     rest[2].token.value === "{}") {
 
-                    rest[1].token.inner = rest[1].expose().token.inner;
-                    rest[2].token.inner = rest[2].expose().token.inner;
+                    rest[1].token.inner = rest[1].token.inner;
+                    rest[2].token.inner = rest[2].token.inner;
                     return step(AnonFun.create(head,
                                                 rest[0],
                                                 rest[1],
@@ -1782,8 +1782,8 @@
                            rest[0].token.value === "()" &&
                            rest[1] && rest[1].token.type === parser.Token.Delimiter &&
                            rest[1].token.value === "{}") {
-                    rest[0].token.inner = rest[0].expose().token.inner;
-                    rest[1].token.inner = rest[1].expose().token.inner;
+                    rest[0].token.inner = rest[0].token.inner;
+                    rest[1].token.inner = rest[1].token.inner;
                     return step(CatchClause.create(head, rest[0], rest[1]),
                                 rest.slice(2),
                                 opCtx);
@@ -1857,7 +1857,7 @@
                     return step(Keyword.create(head), rest, opCtx);
                 // Delimiter
                 } else if (head.token.type === parser.Token.Delimiter) {
-                    return step(Delimiter.create(head.expose()), rest, opCtx);
+                    return step(Delimiter.create(head), rest, opCtx);
                 } else if (head.token.type === parser.Token.Template) {
                     return step(Template.create(head), rest, opCtx);
                 // end of file
@@ -2353,7 +2353,6 @@
             }
 
             if (head.isForStatement) {
-                head.cond.expose();
                 var forCond = head.cond.token.inner;
                 if(forCond[0] && resolve(forCond[0], context.phase) === "let" &&
                    forCond[1] && forCond[1].token.type === parser.Token.Identifier) {
@@ -2456,10 +2455,10 @@
         assert(context && context.env, "environment map is required");
 
         if (term.isArrayLiteral) {
-            term.array.delim.token.inner = expand(term.array.delim.expose().token.inner, context);
+            term.array.delim.token.inner = expand(term.array.delim.token.inner, context);
             return term;
         } else if (term.isBlock) {
-            term.body.delim.token.inner = expand(term.body.delim.expose().token.inner, context);
+            term.body.delim.token.inner = expand(term.body.delim.token.inner, context);
             return term;
         } else if (term.isParenExpression) {
             term.args = _.map(term.args, function(arg) {
@@ -2482,7 +2481,7 @@
             return term;
         } else if (term.isObjGet) {
             term.left = expandTermTreeToFinal(term.left, context);
-            term.right.delim.token.inner = expand(term.right.delim.expose().token.inner, context);
+            term.right.delim.token.inner = expand(term.right.delim.token.inner, context);
             return term;
         } else if (term.isObjDotGet) {
             term.left = expandTermTreeToFinal(term.left, context);
@@ -2505,7 +2504,7 @@
             return term;
         } else if (term.isDelimiter) {
             // expand inside the delimiter and then continue on
-            term.delim.token.inner = expand(term.delim.expose().token.inner, context);
+            term.delim.token.inner = expand(term.delim.token.inner, context);
             return term;
         } else if (term.isNamedFun ||
                    term.isAnonFun ||
@@ -2520,7 +2519,7 @@
 
             var params;
             if (term.params && term.params.token.type === parser.Token.Delimiter) {
-                params = term.params.expose();
+                params = term.params;
             } else if (paramSingleIdent) {
                 params = term.params;
             } else {
@@ -2556,7 +2555,7 @@
             var renamedBody = _.reduce(paramNames, function(accBody, p) {
                 return accBody.rename(p.originalParam, p.freshName)
             }, bodies);
-            renamedBody = renamedBody.expose();
+            renamedBody = renamedBody;
 
             var expandedResult = expandToTermTree(renamedBody.token.inner, bodyContext);
             var bodyTerms = expandedResult.terms;
@@ -2615,7 +2614,7 @@
                     if (bodyTerm.isExport) {
                         if (bodyTerm.name.token.type == parser.Token.Delimiter &&
                             bodyTerm.name.token.value === "{}") {
-                            bodyTerm.name.expose().token.inner
+                            bodyTerm.name.token.inner
                                 |> filterCommaSep
                                 |> names -> names.forEach(name -> {
                                     term.exports.push(name);
@@ -2973,7 +2972,7 @@
             if (term.isExport) {
                 if (term.name.token.type === parser.Token.Delimiter &&
                     term.name.token.value === "{}") {
-                    term.name.expose().token.inner
+                    term.name.token.inner
                         |> filterCommaSep
                         |> names -> names.forEach(name -> {
                             mod.exports.push(name);
@@ -3141,12 +3140,12 @@
     function filterCompileNames(stx, context) {
         assert(stx.token.type === parser.Token.Delimiter, "must be a delimter");
 
-        var runtimeNames = stx.expose().token.inner
+        var runtimeNames = stx.token.inner
             |> filterCommaSep
             |> names -> {
                 return names.filter(name -> {
                     if (name.token.type === parser.Token.Delimiter) {
-                        return !nameInEnv(name.expose().token.inner[0],
+                        return !nameInEnv(name.token.inner[0],
                                           name.token.inner.slice(1),
                                           context,
                                           0);
@@ -3243,7 +3242,6 @@
     function flatten(stx) {
         return _.reduce(stx, function(acc, stx) {
             if (stx.token.type === parser.Token.Delimiter) {
-                var exposed = stx.expose();
                 var openParen = syntaxFromToken({
                     type: parser.Token.Punctuator,
                     value: stx.token.value[0],
@@ -3259,7 +3257,7 @@
                     sm_lineStart: (typeof stx.token.sm_startLineStart == 'undefined'
                                    ? stx.token.startLineStart
                                    : stx.token.sm_startLineStart)
-                }, exposed);
+                }, stx);
                 var closeParen = syntaxFromToken({
                     type: parser.Token.Punctuator,
                     value: stx.token.value[1],
@@ -3275,7 +3273,7 @@
                     sm_lineStart: (typeof stx.token.sm_endLineStart == 'undefined'
                                     ? stx.token.endLineStart
                                     : stx.token.sm_endLineStart)
-                }, exposed);
+                }, stx);
                 if (stx.token.leadingComments) {
                     openParen.token.leadingComments = stx.token.leadingComments;
                 }
@@ -3283,7 +3281,7 @@
                     openParen.token.trailingComments = stx.token.trailingComments;
                 }
                 acc.push(openParen);
-                push.apply(acc, flatten(exposed.token.inner));
+                push.apply(acc, flatten(stx.token.inner));
                 acc.push(closeParen);
                 return acc;
             }
