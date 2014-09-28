@@ -154,53 +154,6 @@
             return null;
         },
 
-        expose: function() {
-            return this;
-            // assert(this.token.type === parser.Token.Delimiter,
-            //               "Only delimiters can be exposed");
-
-            // function applyContext(stxCtx, ctx) {
-            //     if (ctx == null) {
-            //         return stxCtx;
-            //     } else if (ctx instanceof Rename) {
-            //         return new Rename(ctx.id,
-            //                           ctx.name,
-            //                           applyContext(stxCtx, ctx.context),
-            //                           ctx.def,
-            //                           ctx.phase);
-            //     } else if (ctx instanceof Mark) {
-            //         return new Mark(ctx.mark, applyContext(stxCtx, ctx.context));
-            //     } else if (ctx instanceof Def) {
-            //         return new Def(ctx.defctx, applyContext(stxCtx, ctx.context));
-            //     } else if (ctx instanceof Imported) {
-            //         return new Imported(ctx.id,
-            //                             ctx.name,
-            //                             applyContext(stxCtx, ctx.context),
-            //                             ctx.phase);
-            //     } else {
-            //         assert(false, "unknown context type");
-            //     }
-            // }
-
-            // var self = this;
-            // this.token.inner = _.map(this.token.inner, function(stx) {
-            //     // when not a syntax object (aka a TermTree) then no need to push down the expose
-            //     if (!stx.token) { return stx; }
-            //     if (stx.token.inner) {
-            //         return syntaxFromToken(stx.token,
-            //                                {deferredContext: applyContext(stx.deferredContext, self.deferredContext),
-            //                                 context: applyContext(stx.context, self.deferredContext),
-            //                                 props: self.props});
-            //     } else {
-            //         return syntaxFromToken(stx.token,
-            //                                {context: applyContext(stx.context, self.deferredContext),
-            //                                 props: self.props});
-            //     }
-            // });
-            // this.deferredContext = null;
-            // return this;
-        },
-
         toString: function() {
             var val = this.token.type === parser.Token.EOF ? "EOF" : this.token.value;
             return "[Syntax: " + val + "]";
