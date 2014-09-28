@@ -1,3 +1,5 @@
+#lang "js";
+
 let quoteSyntax = macro {
     function(stx) {
         var name_stx = stx[0];
@@ -17,7 +19,6 @@ let quoteSyntax = macro {
         };
     }
 }
-export quoteSyntax
 
 let syntax = macro {
     function(stx) {
@@ -54,7 +55,6 @@ let syntax = macro {
         };
     }
 }
-export syntax
 
 macro # {
     function (stx) {
@@ -66,7 +66,6 @@ macro # {
         }
     }
 }
-export #
 
 
 let syntaxCase = macro {
@@ -405,7 +404,6 @@ let syntaxCase = macro {
         }
     }
 }
-export syntaxCase
 
 
 let macro = macro {
@@ -561,7 +559,6 @@ let macro = macro {
         }
     }
 }
-export macro;
 
 macro withSyntax_done {
     case { _ $ctx ($vars ...) {$rest ...} } => {
@@ -654,7 +651,6 @@ let withSyntax = macro {
         }
     }
 }
-export withSyntax;
 
 macro letstx_bind {
     rule { $name:ident = $rhs:expr , $more:letstx_bind } => {
@@ -684,7 +680,6 @@ let letstx = macro {
         }
     }
 }
-export letstx;
 
 
 macro macroclass {
@@ -863,7 +858,6 @@ macro macroclass_create {
     }
 }
 
-export macroclass;
 
 macro safemacro {
     rule { $name:ident { rule $body ... } } => {
@@ -913,7 +907,6 @@ safemacro operator {
         }
     }
 }
-export operator;
 
 // macro __log {
 //     case { _ defctx $stx } => {
@@ -961,3 +954,15 @@ export operator;
 //     }
 // }
 // export __log;
+
+export {
+    quoteSyntax,
+    syntax,
+    #,
+    syntaxCase,
+    macro,
+    withSyntax,
+    letstx,
+    macroclass,
+    operator,
+};
