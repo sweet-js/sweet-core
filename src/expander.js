@@ -469,7 +469,8 @@
         // determine the order in which multiple children are
         // destructed.
         // ({stripCompileTerm: ?Boolean}) -> [...Syntax]
-        destruct(options) {
+        destruct(context, options) {
+            assert(context, "must pass in the context to destruct");
             options = options || {};
             var self = this;
             if (options.stripCompileTerm && this.isCompileTimeTerm)  {
@@ -480,14 +481,14 @@
             }
             return _.reduce(this.constructor.properties, function(acc, prop) {
                 if (self[prop] && self[prop].isTermTree) {
-                    push.apply(acc, self[prop].destruct(options));
+                    push.apply(acc, self[prop].destruct(context, options));
                     return acc;
                 } else if (self[prop] && self[prop].token && self[prop].token.inner) {
                     cloned newtok <- self[prop].token;
                     var clone = syntaxFromToken(newtok, self[prop]);
                     clone.token.inner = _.reduce(clone.token.inner, function(acc, t) {
                         if (t && t.isTermTree) {
-                            push.apply(acc, t.destruct(options));
+                            push.apply(acc, t.destruct(context, options));
                             return acc;
                         }
                         acc.push(t);
@@ -498,7 +499,7 @@
                 } else if (Array.isArray(self[prop])) {
                     var destArr = _.reduce(self[prop], function(acc, t) {
                         if (t && t.isTermTree) {
-                            push.apply(acc, t.destruct(options));
+                            push.apply(acc, t.destruct(context, options));
                             return acc;
                         }
                         acc.push(t);
@@ -584,14 +585,14 @@
     dataclass CatchClause           (keyword, params, body)             extends Statement;
     dataclass ForStatement          (keyword, cond)                     extends Statement;
     dataclass ReturnStatement       (keyword, expr)                     extends Statement {
-        destruct(options) {
-            var expr = this.expr.destruct(options);
+        destruct(context, options) {
+            var expr = this.expr.destruct(context, options);
             // need to adjust the line numbers to make sure that the expr
             // starts on the same line as the return keyword. This might
             // not be the case if an operator or infix macro perturbed the
             // line numbers during expansion.
             expr = adjustLineContext(expr, this.keyword.keyword);
-            return this.keyword.destruct(options).concat(expr);
+            return this.keyword.destruct(context, options).concat(expr);
         }
     }
 
@@ -609,6 +610,19 @@
     dataclass Template              (template)                          extends Expr;
     dataclass Call                  (fun, args)                         extends Expr;
 
+    dataclass QuoteSyntax           (stx)                               extends Expr {
+        destruct(context, options) {
+            var tempId = fresh();
+            context.templateMap.set(tempId, this.stx.expose().token.inner);
+            return [syn.makeIdent("getTemplate", this.stx),
+                    syn.makeDelim("()", [
+                        syn.makeValue(tempId, this.stx)
+                    ], this.stx)];
+
+        }
+    }
+
+
     dataclass PrimaryExpression     ()                                  extends Expr;
     dataclass ThisExpression        (keyword)                           extends PrimaryExpression;
     dataclass Lit                   (lit)                               extends PrimaryExpression;
@@ -621,11 +635,11 @@
     dataclass PartialExpression     (stx, left, combine)                extends Partial;
 
     dataclass BindingStatement(keyword, decls) extends Statement {
-        destruct(options) {
+        destruct(context, options) {
             return this.keyword
-                .destruct(options)
+                .destruct(context, options)
                 .concat(_.reduce(this.decls, function(acc, decl) {
-                    push.apply(acc, decl.destruct(options));
+                    push.apply(acc, decl.destruct(context, options));
                     return acc;
                 }, []));
         }
@@ -636,21 +650,21 @@
     dataclass ConstStatement    (keyword, decls) extends BindingStatement;
 
     dataclass ParenExpression(args, delim, commas) extends PrimaryExpression {
-        destruct(options) {
+        destruct(context, options) {
             var commas = this.commas.slice();
             cloned newtok <- this.delim.token;
             var delim = syntaxFromToken(newtok, this.delim);
             delim.token.inner = _.reduce(this.args, function(acc, term) {
                 assert(term && term.isTermTree,
                        "expecting term trees in destruct of ParenExpression");
-                push.apply(acc, term.destruct(options));
+                push.apply(acc, term.destruct(context, options));
                 // add all commas except for the last one
                 if (commas.length > 0) {
                     acc.push(commas.shift());
                 }
                 return acc;
             }, []);
-            return Delimiter.create(delim).destruct(options);
+            return Delimiter.create(delim).destruct(context, options);
         }
     }
 
@@ -809,7 +823,7 @@
 
         var opTerm = Punc.create(stx[0]);
         var opPrevStx = tagWithTerm(opTerm, [stx[0]])
-                        .concat(tagWithTerm(left, left.destruct().reverse()),
+                        .concat(tagWithTerm(left, left.destruct(context).reverse()),
                                 prevStx);
         var opPrevTerms = [opTerm, left].concat(prevTerms);
         var opRes = enforest(rightStx, context, opPrevStx, opPrevTerms);
@@ -1208,13 +1222,13 @@
                                    ? opCtx.prevTerms[0]
                                    : null;
                     var unopTerm = PartialOperation.create(head, leftLeft);
-                    var unopPrevStx = tagWithTerm(unopTerm, head.destruct().reverse()).concat(opCtx.prevStx);
+                    var unopPrevStx = tagWithTerm(unopTerm, head.destruct(context).reverse()).concat(opCtx.prevStx);
                     var unopPrevTerms = [unopTerm].concat(opCtx.prevTerms);
                     var unopOpCtx = _.extend({}, opCtx, {
                         combine: function(t) {
                             if (t.isExpr) {
                                 if (isCustomOp && uopMacroObj.unary) {
-                                    var rt = expandMacro(uopMacroName.concat(t.destruct()), context, opCtx, "unary");
+                                    var rt = expandMacro(uopMacroName.concat(t.destruct(context)), context, opCtx, "unary");
                                     var newt = get_expression(rt.result, context);
                                     assert(newt.rest.length === 0, "should never have left over syntax");
                                     return opCtx.combine(newt.result);
@@ -1245,12 +1259,12 @@
                     var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
                                    ? opCtx.prevTerms[0]
                                    : null;
-                    var leftTerm = PartialExpression.create(head.destruct(), leftLeft, function() {
+                    var leftTerm = PartialExpression.create(head.destruct(context), leftLeft, function() {
                         return step(head, [], opCtx);
                     });
                     var opTerm = PartialOperation.create(op, leftTerm);
                     var opPrevStx = tagWithTerm(opTerm, [rest[0]])
-                                    .concat(tagWithTerm(leftTerm, head.destruct()).reverse(),
+                                    .concat(tagWithTerm(leftTerm, head.destruct(context)).reverse(),
                                             opCtx.prevStx);
                     var opPrevTerms = [opTerm, leftTerm].concat(opCtx.prevTerms);
                     var isCustomOp = bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary;
@@ -1297,8 +1311,8 @@
                         combine: function(right) {
                             if (right.isExpr) {
                                 if (isCustomOp && bopMacroObj.binary) {
-                                    var leftStx = left.destruct();
-                                    var rightStx = right.destruct();
+                                    var leftStx = left.destruct(context);
+                                    var rightStx = right.destruct(context);
                                     var rt = expandMacro(bopMacroName.concat(syn.makeDelim("()", leftStx, leftStx[0]),
                                                                              syn.makeDelim("()", rightStx, rightStx[0])),
                                                          context, opCtx, "binary");
@@ -1398,7 +1412,7 @@
                     if (arrowRes.result && arrowRes.result.isExpr) {
                         return step(ArrowFun.create(head.delim,
                                                     rest[0],
-                                                    arrowRes.result.destruct()),
+                                                    arrowRes.result.destruct(context)),
                                     arrowRes.rest,
                                     opCtx);
                     } else {
@@ -1415,7 +1429,7 @@
                     if (res.result && res.result.isExpr) {
                         return step(ArrowFun.create(head.id,
                                                     rest[0],
-                                                    res.result.destruct()),
+                                                    res.result.destruct(context)),
                                     res.rest,
                                     opCtx);
                     } else {
@@ -1459,7 +1473,7 @@
                                          unwrapSyntax(rest[0]) === "--"))) {
                     // Check if the operator is a macro first.
                     if (context.env.has(resolveFast(rest[0], context.env, context.phase))) {
-                        var headStx = tagWithTerm(head, head.destruct().reverse());
+                        var headStx = tagWithTerm(head, head.destruct(context).reverse());
                         var opPrevStx = headStx.concat(prevStx);
                         var opPrevTerms = [head].concat(prevTerms);
                         var opRes = enforest(rest, context, opPrevStx, opPrevTerms);
@@ -1468,7 +1482,7 @@
                             return opRes;
                         } else if(opRes.result) {
                             return step(head,
-                                        opRes.result.destruct().concat(opRes.rest),
+                                        opRes.result.destruct(context).concat(opRes.rest),
                                         opCtx);
                         }
                     }
@@ -1490,7 +1504,7 @@
                               rest[1].token.type === parser.Token.Keyword))) {
                     // Check if the identifier is a macro first.
                     if (context.env.has(resolveFast(rest[1], context.env, context.phase))) {
-                        var headStx = tagWithTerm(head, head.destruct().reverse());
+                        var headStx = tagWithTerm(head, head.destruct(context).reverse());
                         var dotTerm = Punc.create(rest[0]);
                         var dotTerms = [dotTerm].concat(head, prevTerms);
                         var dotStx = tagWithTerm(dotTerm, [rest[0]]).concat(headStx, prevStx);
@@ -1500,7 +1514,7 @@
                             return dotRes;
                         } else if(dotRes.result) {
                             return step(head,
-                                        [rest[0]].concat(dotRes.result.destruct(), dotRes.rest),
+                                        [rest[0]].concat(dotRes.result.destruct(context), dotRes.rest),
                                         opCtx);
                         }
                     }
@@ -1520,16 +1534,12 @@
                             unwrapSyntax(head.id) === "#quoteSyntax" &&
                             rest[0] && rest[0].token.value === "{}") {
 
-                    var tempId = fresh();
-                    context.templateMap.set(tempId, rest[0].token.inner);
-                    return step(syn.makeIdent("getTemplate", head.id),
-                                [syn.makeDelim("()", [syn.makeValue(tempId, head.id)], head.id)].concat(rest.slice(1)),
-                                opCtx);
+                    return step(QuoteSyntax.create(rest[0]), rest.slice(1), opCtx);
                 // return statement
                 } else if (head.isKeyword && unwrapSyntax(head.keyword) === "return") {
                     if (rest[0] && rest[0].token.lineNumber === head.keyword.token.lineNumber) {
                         var returnPrevStx = tagWithTerm(head,
-                                                        head.destruct()).concat(opCtx.prevStx);
+                                                        head.destruct(context)).concat(opCtx.prevStx);
                         var returnPrevTerms = [head].concat(opCtx.prevTerms);
                         var returnExpr = enforest(rest, context, returnPrevStx, returnPrevTerms);
                         if (returnExpr.prevTerms.length < opCtx.prevTerms.length) {
@@ -1869,10 +1879,10 @@
                 var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
                                   ? opCtx.prevTerms[0]
                                   : null;
-                var infTerm = PartialExpression.create(head.destruct(), infLeftTerm, function() {
+                var infTerm = PartialExpression.create(head.destruct(context), infLeftTerm, function() {
                     return step(head, [], opCtx);
                 });
-                var infPrevStx = tagWithTerm(infTerm, head.destruct()).reverse().concat(opCtx.prevStx);
+                var infPrevStx = tagWithTerm(infTerm, head.destruct(context)).reverse().concat(opCtx.prevStx);
                 var infPrevTerms = [infTerm].concat(opCtx.prevTerms);
                 var infRes = expandMacro(rest, context, {
                     prevStx: infPrevStx,
@@ -2068,7 +2078,7 @@
     // (Macro) -> (([...CSyntax]) -> ReadTree)
     function loadMacroDef(body, context, phase) {
 
-        var expanded = body[0].destruct({stripCompileTerm: true});
+        var expanded = body[0].destruct(context, {stripCompileTerm: true});
         var stub = parser.read("()");
         stub[0].token.inner = expanded;
         var flattend = flatten(stub);
@@ -2099,7 +2109,7 @@
                 r = get_expression(stx, context);
                 return {
                     success: r.result !== null,
-                    result: r.result === null ? [] : r.result.destruct(),
+                    result: r.result === null ? [] : r.result.destruct(context),
                     rest: r.rest
                 };
             },
@@ -2143,6 +2153,7 @@
                 return context.patternMap.get(id);
             },
             getTemplate: function(id) {
+                assert(context.templateMap.has(id), "missing template");
                 return syn.cloneSyntaxArray(context.templateMap.get(id));
             },
             applyMarkToPatternEnv: applyMarkToPatternEnv,
@@ -2197,7 +2208,7 @@
                 break;
             }
 
-            var destructed = tagWithTerm(head, f.result.destruct());
+            var destructed = tagWithTerm(head, f.result.destruct(context));
             prevTerms = [head].concat(f.prevTerms);
             prevStx = destructed.reverse().concat(f.prevStx);
 
@@ -2365,7 +2376,7 @@
                     } else {
                         // need to deal with things like `for (...) if (...) log(...)`
                         var bodyEnf = enforest(rest, context);
-                        var bodyDestructed = bodyEnf.result.destruct();
+                        var bodyDestructed = bodyEnf.result.destruct(context);
                         var renamedBodyTerm = bodyEnf.result.rename(letId, letNew);
                         tagWithTerm(renamedBodyTerm, bodyDestructed);
                         rest = bodyEnf.rest;
@@ -2718,7 +2729,7 @@
         }, modBody);
 
         var res = expand([syn.makeIdent("module", null), modBody], context);
-        res = res[0].destruct({stripCompileTerm: true});
+        res = res[0].destruct(context, {stripCompileTerm: true});
         res = res[0].token.inner;
         return options.flatten ? flatten(res) : res;
     }
@@ -2853,8 +2864,8 @@
             });
 
             var code = mod.body
-                |> terms -> terms.map(term -> term.destruct({stripCompileTerm: true,
-                                                             stripModuleTerm: true}))
+                |> terms -> terms.map(term -> term.destruct(context, {stripCompileTerm: true,
+                                                                      stripModuleTerm: true}))
                 |> _.flatten
                 |> flatten
                 |> parser.parse
@@ -3167,7 +3178,7 @@
                 if (imp.names.token.inner.length === 0) {
                     return acc;
                 }
-                return acc.concat(imp.destruct());
+                return acc.concat(imp.destruct(expanded.context));
             } else {
                 assert(false, "not implemented yet");
             }
@@ -3185,7 +3196,7 @@
                     assert(false, "not implemented yet");
                 }
             }
-            return acc.concat(term.destruct({stripCompileTerm: true}));
+            return acc.concat(term.destruct(expanded.context, {stripCompileTerm: true}));
         }, []);
 
         return imports.concat(output) |> flatten;

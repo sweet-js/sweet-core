@@ -422,7 +422,7 @@
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.enforest(stx, expander.makeExpanderContext(context));
             if (match.result && match.result.isVariableStatement) {
-                result = match.destructed || match.result.destruct(false);
+                result = match.destructed || match.result.destruct(context);
                 rest = match.rest;
             } else {
                 result = null;
@@ -434,7 +434,7 @@
                 result = null;
                 rest = stx;
             } else {
-                result = match.destructed || match.result.destruct(false);
+                result = match.destructed || match.result.destruct(context);
                 result = [syntax.makeDelim("()", result, result[0])];
                 rest = match.rest;
             }
