@@ -2765,15 +2765,24 @@ parseYieldExpression: true
         return parseAssignmentExpression();
     }
 
-    function parseNonComputedProperty() {
+    function parseNonComputedProperty(toResolve) {
         var marker = markerCreate(),
-            token = lex();
+            resolvedIdent,
+            token;
+
+        if (toResolve) {
+            resolvedIdent = expander.resolve(tokenStream[lookaheadIndex], phase);
+        }
+
+        token = lex();
+        resolvedIdent = toResolve ? resolvedIdent : token.value;
 
         if (!isIdentifierName(token)) {
             throwUnexpected(token);
         }
 
-        return markerApply(marker, delegate.createIdentifier(token.value));
+
+        return markerApply(marker, delegate.createIdentifier(resolvedIdent));
     }
 
     function parseNonComputedMember() {
@@ -3616,7 +3625,7 @@ parseYieldExpression: true
     function parseImportSpecifier() {
         var id, name = null, marker = markerCreate();
 
-        id = parseNonComputedProperty();
+        id = parseNonComputedProperty(true);
         if (matchContextualKeyword('as')) {
             lex();
             name = parseVariableIdentifier();

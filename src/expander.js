@@ -2685,7 +2685,9 @@
             mark: {value: o.mark,
                           writable: false, enumerable: true, configurable: false},
             phase: {value: o.phase,
-                          writable: false, enumerable: true, configurable: false}
+                          writable: false, enumerable: true, configurable: false},
+            implicitImport: {value: o.implicitImport || new StringMap(),
+                             writable: false, enumerable: true, configurable: false}
         });
     }
 
@@ -3050,6 +3052,8 @@
                 var renamedNames = imp.names.token.inner
                     |> filterCommaSep
                     |> names -> names.map(importName -> {
+                        var isBase = unwrapSyntax(modToImport.lang) === "base";
+
                         var inExports = _.find(modToImport.exports, expTerm -> {
                             if (importName.token.type === parser.Token.Delimiter) {
                                 return expTerm.token.type === parser.Token.Delimiter &&
@@ -3057,7 +3061,7 @@
                             }
                             return expTerm.token.value === importName.token.value
                         });
-                        if (!inExports) {
+                        if ((!inExports) && (!isBase)) {
                             throwSyntaxError("compile",
                                              "the imported name `" +
                                              unwrapSyntax(importName) +
@@ -3066,8 +3070,19 @@
                         }
 
                         var exportName, trans, exportNameStr;
-                        if (inExports.token.type === parser.Token.Delimiter) {
-                            exportName = inExports.expose().token.inner;
+                        if (!inExports) {
+                            // case when importing from a non ES6
+                            // module but not for macros so the module
+                            // was not invoked and thus nothing in the
+                            // context for this name
+                            if (importName.token.type === parser.Token.Delimiter) {
+                                exportNameStr = importName.map(unwrapSyntax).join('');
+                            } else {
+                                exportNameStr = unwrapSyntax(importName);
+                            }
+                            trans = null;
+                        } else if (inExports.token.type === parser.Token.Delimiter) {
+                            exportName = inExports.token.inner;
                             exportNameStr = exportName.map(unwrapSyntax).join('');
                             trans = getValueInEnv(exportName[0],
                                                   exportName.slice(1),
@@ -3082,7 +3097,7 @@
                                                   phase);
                         }
 
-                        var newParam = syn.makeIdent(exportNameStr, null);
+                        var newParam = syn.makeIdent(exportNameStr, importName);
                         var newName = fresh();
                         return {
                             original: newParam,
@@ -3097,9 +3112,18 @@
                     context.env.names.set(unwrapSyntax(name.renamed), true);
                     context.env.set(resolve(name.renamed, phase),
                                     name.trans);
+                    // setup a reverse map from each import name to
+                    // the import term but only for runtime values
+                    if (name.trans === null || (name.trans && name.trans.value)) {
+                        var resolvedName = resolve(name.renamed, phase);
+                        var origName = resolve(name.original, phase);
+                        context.implicitImport.set(resolvedName, imp);
+                    }
+
                     mod.body = mod.body.map(stx -> stx.imported(name.original,
                                                                 name.name,
                                                                 phase));
+
                 });
                 imp.names = syn.makeDelim("{}",
                                           joinSyntax(renamedNames.map(name -> name.renamed),
@@ -3198,7 +3222,17 @@
             return acc.concat(term.destruct(expanded.context, {stripCompileTerm: true}));
         }, []);
 
-        return imports.concat(output) |> flatten;
+        var importsToAdd = [];
+        return output
+            |> flatten
+            |> output -> output.map(stx -> {
+                var name = resolve(stx, 0);
+                if (expanded.context.implicitImport.has(name)) {
+                    var imp = expanded.context.implicitImport.get(name);
+                    importsToAdd = importsToAdd.concat(flatten(imp.destruct(expanded.context)));
+                }
+                return stx
+            }) |> output -> importsToAdd.concat(output)
     }
 
     // @ ([...SyntaxObject], {filename: Str}) -> [...SyntaxObject]
