@@ -3250,6 +3250,23 @@
         };
     }
 
+    function flattenImports(mod) {
+        return mod.imports.reduce((acc, imp) -> {
+            var modFullPath = resolvePath(unwrapSyntax(imp.from), mod);
+            if (availableModules.has(modFullPath)) {
+                var flattened = flattenModule(availableModules.get(modFullPath), expanded.context);
+                acc.push({
+                    path: modFullPath,
+                    code: flattened.body
+                });
+                acc = acc.concat(flattenImports(flattened))
+                return acc;
+            } else {
+                assert(false, "module was unexpectedly not available for compilation" + modFullPath);
+            }
+        }, []);
+    }
+
     // The entry point to expanding with modules. Starting from the
     // token tree of a module, compile it and all its imports. Return
     // an array of all the compiled modules.
@@ -3270,18 +3287,7 @@
         var expanded = expandModule(mod, options, templateMap, patternMap);
         var flattened = flattenModule(expanded.mod, expanded.context);
 
-        var compiledModules = flattened.imports.map(imp -> {
-            var modFullPath = resolvePath(unwrapSyntax(imp.from), mod);
-            if (availableModules.has(modFullPath)) {
-                var flattened = flattenModule(availableModules.get(modFullPath), expanded.context);
-                return {
-                    path: modFullPath,
-                    code: flattened.body
-                }
-            } else {
-                assert(false, "module was unexpectedly not available for compilation" + modFullPath);
-            }
-        });
+        var compiledModules = flattenImports(flattened);
         return [{
             path: filename,
             code: flattened.body
