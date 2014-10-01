@@ -3136,7 +3136,7 @@
         }
     }
 
-    function expandModule(mod, options, templateMap, patternMap, root) {
+    function expandModule(mod, options, templateMap, patternMap) {
         var context = makeModuleExpanderContext(options, templateMap, patternMap, 0);
 
         return {
@@ -3188,30 +3188,33 @@
         return syn.makeDelim("{}", newInner, stx);
     }
 
+    // Takes an expanded module term and flattens it.
     // @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> [...SyntaxObject]
-    function compileModule(mod, options, templateMap, patternMap, root) {
-        var expanded = expandModule(mod, options, templateMap, patternMap, root);
+    function flattenModule(mod, context) {
 
-        var imports = expanded.mod.imports.reduce((acc, imp) -> {
+        // filter the imports to just the imports and names that are
+        // actually available at runtime
+        var imports = mod.imports.reduce((acc, imp) -> {
             if (imp.isImportForMacros) {
                 return acc;
             }
             if (imp.names.token.type === parser.Token.Delimiter) {
-                imp.names = filterCompileNames(imp.names, expanded.context);
+                imp.names = filterCompileNames(imp.names, context);
                 if (imp.names.token.inner.length === 0) {
                     return acc;
                 }
-                return acc.concat(flatten(imp.destruct(expanded.context).concat(syn.makePunc(";", imp.names))));
+                return acc.concat(imp);
             } else {
                 assert(false, "not implemented yet");
             }
         }, []);
 
-        var output = expanded.mod.body.reduce((acc, term) -> {
-            // only compile export forms with runtime names
+        // filter the exports to just the exports and names that are
+        // actually available at runtime
+        var output = mod.body.reduce((acc, term) -> {
             if (term.isExport) {
                 if (term.name.token.type === parser.Token.Delimiter) {
-                    term.name = filterCompileNames(term.name, expanded.context);
+                    term.name = filterCompileNames(term.name, context);
                     if (term.name.token.inner.length === 0) {
                         return acc;
                     }
@@ -3219,25 +3222,39 @@
                     assert(false, "not implemented yet");
                 }
             }
-            return acc.concat(term.destruct(expanded.context, {stripCompileTerm: true}));
+            return acc.concat(term.destruct(context, {stripCompileTerm: true}));
         }, []);
 
-        var importsToAdd = [];
+
         output = output
             |> flatten
             |> output -> output.map(stx -> {
                 var name = resolve(stx, 0);
-                if (expanded.context.implicitImport.has(name)) {
-                    var imp = expanded.context.implicitImport.get(name);
-                    importsToAdd = importsToAdd.concat(flatten(imp.destruct(expanded.context)));
+                // collect the implicit imports (those imports that
+                // must be included because a macro expanded to a reference
+                // to an import from some other module)
+                if (context.implicitImport.has(name)) {
+                    imports.push(context.implicitImport.get(name));
                 }
                 return stx
-            }) |> output -> importsToAdd.concat(output)
-        return imports.concat(output)
+            });
+
+        // flatten everything
+        var flatImports = imports.reduce((acc, imp) -> {
+            return acc.concat(flatten(imp.destruct(context).concat(syn.makePunc(";", imp.names))));
+        }, []);
+
+        return {
+            imports: imports,
+            body: flatImports.concat(output)
+        };
     }
 
-    // @ ([...SyntaxObject], {filename: Str}) -> [...SyntaxObject]
-    function compile(stx, options) {
+    // The entry point to expanding with modules. Starting from the
+    // token tree of a module, compile it and all its imports. Return
+    // an array of all the compiled modules.
+    // @ ([...SyntaxObject], {filename: Str}) -> [...{ path: Str, code: [...SyntaxObject]}]
+    function compileModule(stx, options) {
         var fs = require("fs");
         var filename = options && typeof options.filename !== 'undefined'
             ? fs.realpathSync(options.filename)
@@ -3245,16 +3262,30 @@
         maxExpands = Infinity;
         expandCount = 0;
         var mod = createModule(filename, stx);
-        // the template map right now is global for every module
+        // the template and pattern maps are global for every module
         var templateMap = new StringMap();
         var patternMap = new StringMap();
-        // todo: this is a little bit of a hack, since both the
-        // templateMap and patternMap must be persisted between calls
-        // to compile we need to throw away any work done on the
-        // availableModules between calls to compile. The better
-        // solution is to not store stuff in a template/patternMap
         availableModules = new StringMap();
-        return compileModule(mod, options, templateMap, patternMap);
+
+        var expanded = expandModule(mod, options, templateMap, patternMap);
+        var flattened = flattenModule(expanded.mod, expanded.context);
+
+        var compiledModules = flattened.imports.map(imp -> {
+            var modFullPath = resolvePath(unwrapSyntax(imp.from), mod);
+            if (availableModules.has(modFullPath)) {
+                var flattened = flattenModule(availableModules.get(modFullPath), expanded.context);
+                return {
+                    path: modFullPath,
+                    code: flattened.body
+                }
+            } else {
+                assert(false, "module was unexpectedly not available for compilation" + modFullPath);
+            }
+        });
+        return [{
+            path: filename,
+            code: flattened.body
+        }].concat(compiledModules);
     }
 
 
@@ -3337,7 +3368,7 @@
     exports.StringMap = StringMap;
     exports.enforest = enforest;
     exports.expand = expandTopLevel;
-    exports.compileModule = compile;
+    exports.compileModule = compileModule;
 
     exports.resolve = resolve;
     exports.get_expression = get_expression;
