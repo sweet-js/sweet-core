@@ -389,7 +389,7 @@ describe "macro hygiene" {
 
         var compiled = sweet.compile(before, {
             readableNames: true
-        }).code;
+        })[0].code;
 
         expect(compiled).to.be(after);
     }
@@ -421,7 +421,7 @@ describe "macro hygiene" {
 
         var compiled = sweet.compile(before, {
             readableNames: true
-        }).code;
+        })[0].code;
 
         expect(compiled).to.be(after);
     }

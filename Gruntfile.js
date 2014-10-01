@@ -14,6 +14,7 @@ module.exports = function(grunt) {
         build: {
             dev: {
                 options: {
+                    sourceMap: false,
                     compileFrom: "./lib/sweet",
                 },
                 src: "src/*.js",
@@ -248,7 +249,7 @@ module.exports = function(grunt) {
                     filename: file,
                     readableNames: options.readableNames,
                     modules: modules
-                });
+                })[0];
 
                 dest.forEach(function(dest) {
                     var sourceMappingURL = dest + path.basename(file) + ".map";

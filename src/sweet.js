@@ -80,56 +80,6 @@
 }(this, function (exports, _, parser, expander, syn, stxcaseModule, gen, escope, fs, path, resolveSync, requireModule) {
     // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
     var codegen = typeof escodegen !== "undefined" ? escodegen : gen;
-    var expand = makeExpand(expander.expand);
-    var expandModule = makeExpand(expander.expandModule);
-    var stxcaseCtx;
-
-    function makeExpand(expandFn) {
-        // fun (Str) -> [...CSyntax]
-        return function expand(code, modules, options) {
-            var program, toString;
-            modules = modules || [];
-
-            if (!stxcaseCtx) {
-                stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
-            }
-
-            toString = String;
-            if (typeof code !== 'string' && !(code instanceof String)) {
-                code = toString(code);
-            }
-
-            var source = code;
-
-            if (source.length > 0) {
-                if (typeof source[0] === 'undefined') {
-                    // Try first to convert to a string. This is good as fast path
-                    // for old IE which understands string indexing for string
-                    // literals only and not for string object.
-                    if (code instanceof String) {
-                        source = code.valueOf();
-                    }
-
-                    // Force accessing the characters via an array.
-                    if (typeof source[0] === 'undefined') {
-                        source = stringToArray(code);
-                    }
-                }
-            }
-
-            var readTree = parser.read(source);
-            try {
-                return expandFn(readTree, [stxcaseCtx].concat(modules), options);
-            } catch(err) {
-                if (err instanceof syn.MacroSyntaxError) {
-                    throw new SyntaxError(syn.printSyntaxError(source, err));
-                } else {
-                    throw err;
-                }
-            }
-        }
-    }
-
 
     function expandSyntax(stx, modules, options) {
         if (!stxcaseCtx) {
@@ -156,108 +106,111 @@
         }
     }
 
-    // fun (Str, {}) -> AST
-    function parse(code, modules, options) {
-        if (code === "") {
-            // old version of esprima doesn't play nice with the empty string
-            // and loc/range info so until we can upgrade hack in a single space
-            code = " ";
+    // (Str, SweetOptions) -> [...{path: Str, code: [...SyntaxObject]}]
+    function expand(code, options) {
+        var toString = String;
+        if (typeof code !== 'string' && !(code instanceof String)) {
+            code = toString(code);
         }
 
-        return parser.parse(compileModule(code, options));
-    }
+        var source = code;
 
-    // @ let SweetOptions = {
-    //     ast: ?Bool,
-    //     sourceMap: ?Bool
-    // }
+        if (source.length > 0) {
+            if (typeof source[0] === 'undefined') {
+                // Try first to convert to a string. This is good as fast path
+                // for old IE which understands string indexing for string
+                // literals only and not for string object.
+                if (code instanceof String) {
+                    source = code.valueOf();
+                }
 
-    // @ (Str, SweetOptions) -> {
-    //     code: Str,
-    //     sourceMap: ?Str
-    // }
-    function compileModule(code, options) {
-        var output;
-        options = options || {};
-        options.requireModule = options.requireModule || requireModule;
+                // Force accessing the characters via an array.
+                if (typeof source[0] === 'undefined') {
+                    source = stringToArray(code);
+                }
+            }
+        }
 
-        var tokenTree = parser.read(code);
-        var expandedTokens;
+        if (source === "") {
+            // old version of esprima doesn't play nice with the empty string
+            // and loc/range info so until we can upgrade hack in a single space
+            source = " ";
+        }
+
+        var tokenTree = parser.read(source);
         try {
-            expandedTokens = expander.compileModule(tokenTree, options);
+            return expander.compileModule(tokenTree, options);
         } catch(err) {
             if (err instanceof syn.MacroSyntaxError) {
-                throw new SyntaxError(syn.printSyntaxError(code, err));
+                throw new SyntaxError(syn.printSyntaxError(source, err));
             } else {
                 throw err;
             }
         }
-        var ast = parser.parse(expandedTokens);
-
-        if (options.readableNames) {
-            ast = optimizeHygiene(ast);
-        }
-
-        if (options.ast) {
-            return ast;
-        }
-
-        if (options.sourceMap) {
-            output = codegen.generate(ast, _.extend({
-                comment: true,
-                sourceMap: options.filename,
-                sourceMapWithCode: true
-            }, options.escodegen));
-
-            return {
-                code: output.code,
-                sourceMap: output.map.toString()
-            };
-        }
-        return {
-            code: codegen.generate(ast, _.extend({
-                comment: true
-            }, options.escodegen))
-        };
     }
 
-    // (Str, {sourceMap: ?Bool, filename: ?Str})
-    //    -> { code: Str, sourceMap: ?Str }
-    function compile(code, options) {
-        var output;
+    // ([...{path: Str, code: [...SyntaxObject]}], SweetOptions)
+    //         -> [...{path: Str, code: AST}]
+    function parseExpanded(expanded, options) {
+        return expanded.map(function(c) {
+            var ast = parser.parse(c.code);
+
+            if (options.readableNames) {
+                ast = optimizeHygiene(ast);
+            }
+
+            return {
+                path: c.path,
+                code: ast
+            };
+        });
+    }
+
+    // (Str, SweetOptions) -> [...{path: Str, code: AST}]
+    function parse(code, options) {
         options = options || {};
-        options.requireModule = options.requireModule || requireModule;
-
-        var ast = parse(code,
-                        options.modules || [],
-                        options);
-
-        if (options.readableNames) {
-            ast = optimizeHygiene(ast);
-        }
-
-        if (options.ast) {
-            return ast;
-        }
-
-        if (options.sourceMap) {
-            output = codegen.generate(ast, _.extend({
-                comment: true,
-                sourceMap: options.filename,
-                sourceMapWithCode: true
-            }, options.escodegen));
-
-            return {
-                code: output.code,
-                sourceMap: output.map.toString()
-            };
-        }
-        return {
-            code: codegen.generate(ast, _.extend({
-                comment: true
-            }, options.escodegen))
-        };
+        var expanded = expand(code, options);
+        return parseExpanded(expanded, options);
     }
+
+
+    // @ let SweetOptions = {
+    //     sourceMap: ?Bool
+    // }
+
+    // @ (Str, SweetOptions) -> [...{
+    //     path: Str,
+    //     code: Str,
+    //     sourceMap: ?Str
+    // }]
+    function compile(code, options) {
+        options = options || {};
+        var expanded = expand(code, options);
+
+        return parseExpanded(expanded, options).map(function(c) {
+            var output;
+            if (options.sourceMap) {
+                output = codegen.generate(c.code, _.extend({
+                    comment: true,
+                    sourceMap: options.filename,
+                    sourceMapWithCode: true
+                }, options.escodegen));
+
+                return {
+                    path: c.path,
+                    code: output.code,
+                    sourceMap: output.map.toString()
+                };
+            }
+            return {
+                path: c.path,
+                code: codegen.generate(c.code, _.extend({
+                    comment: true
+                }, options.escodegen))
+            };
+        });
+    }
+
 
     var baseReadtable = Object.create({
         extend: function(obj) {
@@ -300,7 +253,7 @@
     function optimizeHygiene(ast) {
         // escope hack: sweet doesn't rename global vars. We wrap in a closure
         // to create a 'static` scope for all of the vars sweet renamed.
-        var wrapper = parse('(function(){})()');
+        var wrapper = parse('(function(){})()')[0].code;
         wrapper.body[0].expression.callee.body.body = ast.body;
 
         function sansUnique(name) {
@@ -386,11 +339,10 @@
     exports.expand = expand;
     exports.expandSyntax = expandSyntax;
     exports.parse = parse;
-    // exports.compile = compile;
-    exports.compile = compileModule;
+    exports.compile = compile;
     exports.setReadtable = setReadtable;
     exports.currentReadtable = currentReadtable;
-    exports.loadModule = expandModule;
+    // exports.loadModule = expandModule;
     exports.loadNodeModule = loadNodeModule;
     exports.loadedMacros = loadedMacros;
     exports.loadMacro = loadMacro;

@@ -10,7 +10,7 @@ let quoteSyntax = macro {
 
         var res = [
             makeIdent("#quoteSyntax", null),
-            stx[1].expose()
+            stx[1]
         ];
 
         return {
@@ -37,7 +37,7 @@ let syntax = macro {
                    makeIdent("transcribe", here),
                    makeDelim("()", [
                        makeIdent("#quoteSyntax", here),
-                       stx[1].expose(),
+                       stx[1],
                        makePunc(",", here),
                        // breaking hygiene to capture `name_stx`, `match`, and
                        // `patternEnv` inside the syntaxCase macro
@@ -78,8 +78,8 @@ let syntaxCase = macro {
             throwSyntaxError("macro", "Macro `syntaxCase` could not be matched" , stx[1]);
         }
 
-        var arg_stx = stx[1].expose().token.inner;
-        var cases_stx = stx[2].expose().token.inner;
+        var arg_stx = stx[1].token.inner;
+        var cases_stx = stx[2].token.inner;
 
         var Token = parser.Token;
         var assert = parser.assert;
@@ -149,7 +149,7 @@ let syntaxCase = macro {
 
             // If infix, loop through the pattern separating the lhs and rhs.
             if (isInfix) {
-                var pattern = cloneSyntax(casePattern).expose().token.inner;
+                var pattern = cloneSyntax(casePattern).token.inner;
                 var lhs = [];
                 var rhs = [];
                 var separator = null;
@@ -171,13 +171,13 @@ let syntaxCase = macro {
                 cases.push({
                     lookbehind: loadPattern(lhs, true),
                     pattern: loadPattern(rhs),
-                    body: caseBody.expose().token.inner
+                    body: caseBody.token.inner
                 });
             } else {
                 cases.push({
                     lookbehind: [],
-                    pattern: loadPattern(cloneSyntax(casePattern).expose().token.inner),
-                    body: caseBody.expose().token.inner
+                    pattern: loadPattern(cloneSyntax(casePattern).token.inner),
+                    body: caseBody.token.inner
                 });
             }
         }
@@ -421,13 +421,13 @@ let macro = macro {
             stx[1].token.value === "{}") {
             mac_name_stx = null;
             body_stx = stx[1];
-            body_inner_stx = stx[1].expose().token.inner;
+            body_inner_stx = stx[1].token.inner;
             rest = stx.slice(2);
         } else {
             mac_name_stx = [];
             mac_name_stx.push(stx[1]);
             body_stx = stx[2];
-            body_inner_stx = stx[2].expose().token.inner;
+            body_inner_stx = stx[2].token.inner;
             rest = stx.slice(3);
         }
 
@@ -512,8 +512,8 @@ let macro = macro {
                 var rule_def = body_inner_stx[i + 3];
 
                 if (rule_pattern && rule_arrow && rule_arrow.token.value === "=>" && rule_def) {
-                    rules = rules.concat(translateRule(rule_pattern.expose().token.inner,
-                                                       rule_def.expose().token.inner,
+                    rules = rules.concat(translateRule(rule_pattern.token.inner,
+                                                       rule_def.token.inner,
                                                        isInfix));
                 } else if (rule_pattern) {
                     var idRule = makeIdentityRule(rule_pattern.token.inner, isInfix, rule_pattern);
@@ -737,7 +737,7 @@ macro macroclass_create {
         var stxName = stx[2];
         var ctxName = stx[3];
         var matchName = stx[4];
-        var decls = stx[5].expose().token.inner;
+        var decls = stx[5].token.inner;
         var mclass = decls.reduce(function(m, decl) {
             var tag = unwrapSyntax(decl.token.inner[0]);
             if (tag === 'name') {
@@ -748,7 +748,7 @@ macro macroclass_create {
                 }
                 m.name = unwrapSyntax(decl.token.inner[1]);
             } else if (tag === 'pattern') {
-                var patternStx = decl.expose().token.inner.slice(1);
+                var patternStx = decl.token.inner.slice(1);
                 var pattern = patternStx.reduce(function(p, mod) {
                     var tag = unwrapSyntax(mod.token.inner[0]);
                     if (tag === 'name') {
@@ -764,19 +764,17 @@ macro macroclass_create {
                                              'Duplicate rule declaration',
                                              mod.token.inner[0])
                         }
-                        p.rule = mod.expose().token.inner[1].expose().token.inner;
+                        p.rule = mod.token.inner[1].token.inner;
                     } else if (tag === 'with') {
-                        mod.expose();
                         p.withs.push({
-                            lhs: mod.token.inner[1].expose().token.inner,
-                            rhs: mod.token.inner[2].expose().token.inner.map(function mapper(s) {
+                            lhs: mod.token.inner[1].token.inner,
+                            rhs: mod.token.inner[2].token.inner.map(function mapper(s) {
                                 // We need to transplant syntax quotes so that it looks
                                 // like they are within the macro body code and not
                                 // the original code, otherwise it won't expand.
                                 if (unwrapSyntax(s) === '#') {
                                     s.context = macName.context;
                                 } else if (s.token.type === parser.Token.Delimiter) {
-                                    s.expose();
                                     s.token.inner = s.token.inner.map(mapper);
                                 }
                                 return s;

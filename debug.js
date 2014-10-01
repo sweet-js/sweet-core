@@ -17,8 +17,8 @@ var fs = require("fs");
 
 var source = fs.readFileSync("./test.js", "utf8");
 
-var tokenTree = parser.read(source);
-var result = expander.compileModule(tokenTree, {filename: "test.js"});
+// var tokenTree = parser.read(source);
+var result = sweet.compile(source, {filename: "test.js"});
 
-// console.log(result);
-console.log(codegen.generate(parser.parse(result)));
+console.log(result);
+// console.log(codegen.generate(parser.parse(result[0].code)));
