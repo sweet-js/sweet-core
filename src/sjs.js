@@ -11,9 +11,8 @@ var argv = require("optimist")
     .describe('v', 'Output version info')
     .boolean('version')
     .alias('o', 'output')
-    .describe('o', 'Output file path')
-    .alias('m', 'module')
-    .describe('m', 'use a module file for loading macro definitions. Use ./ or ../ for relative path otherwise looks up in installed npm packages')
+    .describe('o', 'write out compiled files')
+    .boolean('output')
     .alias('w', 'watch')
     .describe('w', 'watch a file')
     .boolean('watch')
@@ -48,7 +47,7 @@ exports.run = function() {
         return console.log("Sweet.js version: " + pkg.version);
     }
     var infile = argv._[0];
-    var outfile = argv.output;
+    var writeToDisk = argv.output;
     var watch = argv.watch;
     var tokens = argv.tokens;
     var ast = argv.ast;
@@ -74,11 +73,6 @@ exports.run = function() {
     }
 
     var cwd = process.cwd();
-    var modules = typeof argv.module === 'string' ? [argv.module] : argv.module;
-
-    modules = (modules || []).map(function(path) {
-        return sweet.loadNodeModule(cwd, path);
-    });
 
     if(readtableModules) {
         readtableModules = (Array.isArray(readtableModules) ?
@@ -92,8 +86,8 @@ exports.run = function() {
 
     var options = {
         filename: infile,
-        modules: modules,
         ast: ast,
+        sourceMap: sourcemap,
         readableNames: readableNames,
         escodegen: {
             format: {
@@ -105,18 +99,20 @@ exports.run = function() {
     };
 
     function doCompile() {
-        if (sourcemap) {
-            options.sourceMap = true;
-            var result = sweet.compile(file, options);
-            var mapfile = path.basename(outfile) + ".map";
-            fs.writeFileSync(outfile, result.code + "\n//# sourceMappingURL=" + mapfile, "utf8");
-            fs.writeFileSync(outfile + ".map", result.sourceMap, "utf8");
-        } else {
-            fs.writeFileSync(outfile, sweet.compile(file, options).code, "utf8");
-        }
+        var result = sweet.compile(file, options);
+        result.forEach(function(res) {
+            var outfile = res.path + ".sjc";
+            var mapfile = res.path + ".map";
+            if (sourcemap) {
+                fs.writeFileSync(outfile, res.code + "\n//# sourceMappingURL=" + mapfile, "utf8");
+                fs.writeFileSync(mapfile, res.sourceMap, "utf8");
+            } else {
+                fs.writeFileSync(outfile, res.code, "utf8");
+            }
+        });
     }
     
-    if (watch && outfile) {
+    if (watch && writeToDisk) {
         fs.watch(infile, function(){
             file = fs.readFileSync(infile, "utf8");
             try {
@@ -125,7 +121,7 @@ exports.run = function() {
                 console.log(e);
             }
         });
-    } else if (outfile) {
+    } else if (writeToDisk) {
         doCompile();
     } else if (tokens) {
         console.log(sweet.expand(file, modules, { maxExpands: numexpands }));

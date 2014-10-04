@@ -3250,16 +3250,16 @@
         };
     }
 
-    function flattenImports(mod) {
-        return mod.imports.reduce((acc, imp) -> {
+    function flattenImports(imports, mod, context) {
+        return imports.reduce((acc, imp) -> {
             var modFullPath = resolvePath(unwrapSyntax(imp.from), mod);
             if (availableModules.has(modFullPath)) {
-                var flattened = flattenModule(availableModules.get(modFullPath), expanded.context);
+                var flattened = flattenModule(availableModules.get(modFullPath), context);
                 acc.push({
                     path: modFullPath,
                     code: flattened.body
                 });
-                acc = acc.concat(flattenImports(flattened))
+                acc = acc.concat(flattenImports(flattened.imports, mod, context))
                 return acc;
             } else {
                 assert(false, "module was unexpectedly not available for compilation" + modFullPath);
@@ -3287,7 +3287,7 @@
         var expanded = expandModule(mod, options, templateMap, patternMap);
         var flattened = flattenModule(expanded.mod, expanded.context);
 
-        var compiledModules = flattenImports(flattened);
+        var compiledModules = flattenImports(flattened.imports, expanded.mod, expanded.context);
         return [{
             path: filename,
             code: flattened.body
