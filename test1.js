@@ -4,22 +4,26 @@
         ($cond ...) {$tru ...} else { $els ... }
 
     } => {
-        var it = makeIdent("it", #{$aif_name});
-    letstx $it = [it];
-        return #
-	  {
-            (function ($it) {
+       SyntaxParameter(it, $cond ... , aif ,
+        return #{
+             (function () {
+          
                 if ($cond ...) {
                     $tru ...
                 } else {
                     $els ...
                 }
-            })($cond ...)
+            });
+            
 	
-        }
+        } )
     }
 }
 
-aif (long.obj.path) {
+
+long = [1, 2, 3];
+aif (long) {
   console.log(it);
-} else {}
+} else { 
+    console.log(" in else");
+    }
