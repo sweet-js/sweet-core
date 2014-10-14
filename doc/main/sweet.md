@@ -26,7 +26,7 @@ and produce pure JavaScript that can be run in any JS environment.
 Sweet.js provides two ways to define a macro: the simpler
 pattern-based *rule* macros and the more powerful procedural *case*
 macros (if you are familiar with Scheme or Racket these correspond to
-`syntax-rules` and `syntax-case`). 
+`syntax-rules` and `syntax-case`).
 
 Rule macros work by matching a syntax *pattern* and generating new
 syntax based on a *template*.
@@ -47,7 +47,7 @@ to its syntax argument:
 macro id {
   rule {
     // after the macro name, match:
-    // (1) a open paren 
+    // (1) a open paren
     // (2) a single token and bind it to `$x`
     // (3) a close paren
     ($x)
@@ -144,7 +144,7 @@ m (x = 10, y = 2)
 
 ### Literal patterns
 
-The syntax `$[]` will match what is inside the brackets literally. 
+The syntax `$[]` will match what is inside the brackets literally.
 For example, if you need to match `...` in a pattern (rather than have `...` mean repetition) you can escape it with `$[...]`.
 
 ### Named patterns
@@ -209,7 +209,7 @@ macroclass cond_clause {
 
 macro cond {
   rule { $first:cond_clause $rest:cond_clause ... } => {
-    // sub-pattern variables in the custom class are 
+    // sub-pattern variables in the custom class are
     // referenced by concatenation
     if ($first$check) {
       $first$body
@@ -241,12 +241,12 @@ macroclass alias_pair {
   pattern {
     rule { $from:ident as $to:ident }
   }
-  pattern { 
+  pattern {
     rule { $from:ident }
     with $to = #{ $from };
   }
 }
- 
+
 macro import {
   rule { { $import:alias_pair (,) ... } from $mod:lit ;... } => {
     var __module = require($mod);
@@ -256,7 +256,7 @@ macro import {
     var $default = require($mod).default;
   }
 }
- 
+
 import { a, b as c, d } from 'foo'
 // expands to:
 // var __module = require('foo');
@@ -313,11 +313,11 @@ var tmp$2 = tmp$1;
 tmp$1 = b;
 b = tmp$2;
 ```
-    
+
 
 ## Hygiene Part 2 (Reference)
 
-Hygiene also handles variable *references*. The body of a macro can contain references to bindings declared outside of the macro and those references must be consistent no matter the context in which the macro is invoked. 
+Hygiene also handles variable *references*. The body of a macro can contain references to bindings declared outside of the macro and those references must be consistent no matter the context in which the macro is invoked.
 
 Some code to clarify. Let's say you have a macro that uses a random number function:
 
@@ -389,7 +389,7 @@ macro m {
 }
 ```
 
-The other difference from rule macros is that the body of a macro 
+The other difference from rule macros is that the body of a macro
 contains a mixture of templates and normal JavaScript that can create
 and manipulate syntax. For example, here's the identity macro defined
 with a case macro:
@@ -444,7 +444,7 @@ Sweet.js provides the following functions to create syntax objects:
   the delimiter.
 
 If you want strip a syntax object of its lexical context and get
-directly at the token you can use `unwrapSyntax(stx)`. 
+directly at the token you can use `unwrapSyntax(stx)`.
 
 Case macros also provide `throwSyntaxError(name, message, stx)` when you need to throw an error inside of a case macro. `name` is a string that lets you name the error, `message` is a string to describe what went wrong, and `stx` is a syntax object or array of syntax objects that is used to print out the line number and surrounding tokens in the error message.
 
@@ -548,7 +548,7 @@ colors_options (red, green, blue, blue)
 // ["#FF0000", "#00FF00", "#0000FF", "#0000FF"]
 ```
 
-Invoke will only expand the parameterized macro once; if the macro expands to another macro it will not be expanded before being bound to the pattern variable. 
+Invoke will only expand the parameterized macro once; if the macro expands to another macro it will not be expanded before being bound to the pattern variable.
 
 If you need to keep expanding, use `:invokeRec` which will continue to expand as long as a macro name is returned as the first token. This is useful if you have a recursive macro but is not the default because it can be unintuitive if the macro is not a recursive macro. For example,
 
@@ -669,7 +669,7 @@ let function = macro {
 
 
 This binds `function` to the macro in the rest of the code but not in
-the body of the `function` macro. 
+the body of the `function` macro.
 
 # Infix Macros
 
@@ -718,7 +718,7 @@ macro m {
 ```
 
 Sweet.js does its best to keep you from clobbering previous syntax.
-  
+
 ```js
 macro m {
   rule infix { ($args ...) | $call:expr } => {
@@ -736,17 +736,17 @@ you a nasty parse error.
 
 # Custom Operators
 
-Custom operators let you define your own operators or override the builtin operators. They are similar to infix macros except rather than matching arbitrary syntax before and after the identifier name, both the left and right operands must be valid JavaScript expressions. You can think of them as infix macros with a pattern of `{ $left:expr | $right:expr }`. This limitation however means that you can define precedence and associativity for your custom operator. 
+Custom operators let you define your own operators or override the builtin operators. They are similar to infix macros except rather than matching arbitrary syntax before and after the identifier name, both the left and right operands must be valid JavaScript expressions. You can think of them as infix macros with a pattern of `{ $left:expr | $right:expr }`. This limitation however means that you can define precedence and associativity for your custom operator.
 
 There are two definition forms. One for binary operators and one for unary operators:
 
 ```js
 // binary operators
-operator <name> <precedence> <associativity> 
+operator <name> <precedence> <associativity>
     { <left operand>, <right operand> } => #{ <template> }
 
 // unary operators
-operator <name> <precedence> 
+operator <name> <precedence>
     { <operand> } => #{ <template> }
 ```
 
@@ -759,7 +759,7 @@ operator <name> <precedence>
 For example, the following defines `^^` to be the power operator:
 
 ```js
-operator (^^) 14 right 
+operator (^^) 14 right
     { $base, $exp } => #{ Math.pow($base, $exp) }
 
 y + x ^^ 10 ^^ 100 - z
@@ -771,7 +771,7 @@ The precedence of `^^` (14) is higher than the precedence of `+` and `-` (12, se
 
 ## Examples
 
-Custom operators and infix macros complement each other nicely. 
+Custom operators and infix macros complement each other nicely.
 
 ```js
 macro (=>) {
@@ -803,7 +803,7 @@ operator (>>=) 12 left { $l, $r } => #{$l.then($r) }
 
 getPromise('test.json')  >>= JSON.parse >>= (response) => {
   console.log("JSON Response!", response);
-} 
+}
 // expands to:
 // getPromise('test.json').then(JSON.parse).then(function (response) {
 //     console.log('JSON Response!', response);
@@ -822,7 +822,7 @@ function add(x, y) {
 // expands to
 // function add(x, y) {
 //     // custom addition
-// }    
+// }
 // add(add(100, x) - y * 5, 30);
 ```
 
@@ -832,12 +832,12 @@ You can even fix `==`!
 operator == 9 left { $l, $r } => #{ $l === $r }
 
 if ("42" == 42) {
-    // never runs! 
+    // never runs!
 }
 // expands to:
 // if ('42' === 42) {
-//    // never runs! 
-// }    
+//    // never runs!
+// }
 ```
 
 Keep in mind that redefining the builtin operators needs to be done with care. While it's tempting to fix some of the *wat* implicit conversions of `==`/`+`/`-` and company, this could lead to hard to understand code. It should be used sparingly if at all. With great power...
@@ -850,24 +850,24 @@ The following charts note the precedence and associativity of the builtin operat
 
 | Operator   | Precedence |
 | ---------- | ---------- |
-|`new`       | 16         
-|`++`        | 15        
-|`--`        | 15       
-|`!`         | 14        
-|`~`         | 14        
-|`+`         | 14        
-|`-`         | 14        
-|`typeof`    | 14        
-|`void`      | 14        
-|`delete`    | 14        
-|`yield`     | 2         
+|`new`       | 16
+|`++`        | 15
+|`--`        | 15
+|`!`         | 14
+|`~`         | 14
+|`+`         | 14
+|`-`         | 14
+|`typeof`    | 14
+|`void`      | 14
+|`delete`    | 14
+|`yield`     | 2
 
 ### Binary Operators
 
 | Operator   | Precedence | Associativity |
 | ---------- | ---------- | ------------- |
-| `*`| 13| left 
-| `/`| 13|  left 
+| `*`| 13| left
+| `/`| 13|  left
 | `%`| 13| left
 | `+`| 12| left
 | `-`| 12| left
@@ -1106,36 +1106,8 @@ tests](https://github.com/mozilla/sweet.js/blob/master/test/test_readtables.js).
 
 # Modules
 
-## Using Modules
+The modules system in sweet.js is built on top of ES6 modules.
 
-At the moment sweet.js supports a primitive form of module support with the `--module` flag.
-
-For example, if you have a file `macros.js` that defines the `m` macro:
-
-```javascript
-// macros.js
-
-macro m { /* ... */ }
-export m;
-```
-
-and `my_sweet_code.js` uses `m`:
-
-```js
-// my_sweet_code.js
-
-m 42
-```
-
-You would compile this with:
-
-    $ sjs --module ./macros.js  my_sweet_code.js 
-
-Note that modules must use the `export` keyword. This allows modules to define "private" macros that are not visible to the main code.
-
-The `--module` flag uses the node path to look up the module file so you can publish and use macro modules on npm. Checkout [lambda-chop](https://github.com/natefaubion/lambda-chop) for an example of this.
-
-The biggest limitation with the current approach is that you can't arbitrarily interleave importing compile-time values (macros) and run-time values (functions). This will eventually be handled with support for "proper" modules (issue #43).
 
 ## Node Loader
 
@@ -1161,7 +1133,7 @@ macro id {
 exports.one = id (1);
 ```
 
-Note that `require('sweet.js')` must come before any requires of `.sjs` code. Also note that this does not import any macros, it just uses sweet.js to compile files that contain macros before requiring them. 
+Note that `require('sweet.js')` must come before any requires of `.sjs` code. Also note that this does not import any macros, it just uses sweet.js to compile files that contain macros before requiring them.
 
 Alternatively, you can use `sweet.loadMacro` to achieve a similar effect to the `--module` command line flag:
 
@@ -1229,7 +1201,7 @@ sweet.parse(code, modules, options)
 
 **Return**:
 
-The abstract syntax tree. See the [Parser API](https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API) for details. 
+The abstract syntax tree. See the [Parser API](https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API) for details.
 
 ## `sweet.expand`
 
@@ -1252,7 +1224,7 @@ sweet.expand(code, modules, options)
 An array of syntax objects. Syntax objects are an object with two fields:
 
 - `token` which is a token object that [esprima](http://esprima.org/) understands.
-- `context` holds hygiene information. 
+- `context` holds hygiene information.
 
 # FAQ
 
@@ -1300,19 +1272,19 @@ new `it` binding using the lexical context of `aif`:
 macro aif {
   case {
     // bind the macro name to `$aif_name`
-    $aif_name 
+    $aif_name
     ($cond ...) {$body ...}
   } => {
     // make a new `it` identifier using the lexical context
     // from `$aif_name`
     var it = makeIdent("it", #{$aif_name});
     letstx $it = [it];
-  return #{ 
+  return #{
       // create an IIFE that binds `$cond` to `$it`
       (function ($it) {
           if ($cond ...) {
           // all `it` identifiers in `$body` will now
-          // be bound to `$it` 
+          // be bound to `$it`
           $body ...
         }
       })($cond ...);
@@ -1386,6 +1358,3 @@ macro m {
 }
 m 100
 ```
-
-
-
