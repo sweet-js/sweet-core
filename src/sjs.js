@@ -103,6 +103,7 @@ exports.run = function() {
         result.forEach(function(res) {
             var outfile = res.path + ".sjc";
             var mapfile = res.path + ".map";
+            console.log("compiling: " + outfile);
             if (sourcemap) {
                 fs.writeFileSync(outfile, res.code + "\n//# sourceMappingURL=" + mapfile, "utf8");
                 fs.writeFileSync(mapfile, res.sourceMap, "utf8");
@@ -111,7 +112,7 @@ exports.run = function() {
             }
         });
     }
-    
+
     if (watch && writeToDisk) {
         fs.watch(infile, function(){
             file = fs.readFileSync(infile, "utf8");
@@ -133,6 +134,10 @@ exports.run = function() {
         console.log(unparsedString);
     } else {
         options.maxExpands = numexpands;
-        console.log(sweet.compile(file, options).code);
+        var result = sweet.compile(file, options);
+        result.forEach(function(res) {
+            console.log("file: " + res.path);
+            console.log(res.code + "\n");
+        });
     }
 };
