@@ -22,6 +22,7 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+// import @ from "contracts.js"
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
@@ -209,6 +210,7 @@
         return arr;
     }
     var nextFresh = 0;
+    // @ () -> Num
     function fresh() {
         return nextFresh++;
     }
@@ -1690,7 +1692,7 @@
                     return step(Lit.create(head), rest, opCtx);
                 }    // export
                 else if (head.token.type === parser.Token.Keyword && unwrapSyntax(head) === 'export' && rest[0] && (rest[0].token.type === parser.Token.Identifier || rest[0].token.type === parser.Token.Keyword || rest[0].token.type === parser.Token.Punctuator || rest[0].token.type === parser.Token.Delimiter && rest[0].token.value === '()')) {
-                    // Consume optional semicolon                      
+                    // Consume optional semicolon
                     if (unwrapSyntax(rest[1]) === ';') {
                         rest.splice(1, 1);
                     }
@@ -2168,7 +2170,7 @@
                 var varDeclRep = _.find(defscope, function (def) {
                         return def.id.token.value === id.token.value && arraysEqual(marksof(def.id.context), marksof(id.context));
                     });
-                /* 
+                /*
                         When var declaration repeat one of the function parameters:
 
                         function foo(x) {

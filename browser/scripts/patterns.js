@@ -366,7 +366,7 @@
                 result = [syntax.makeDelim('()', result, result[0])];
                 rest = match.rest;
             }
-        } else if (stx.length > 0 && (patternObj.class === 'invoke' || patternObj.class === 'invokeRec')) {
+        } else if (patternObj.class === 'invoke' || patternObj.class === 'invokeRec') {
             match = expandWithMacro(patternObj.macroName, stx, context, patternObj.class === 'invokeRec');
             result = match.result;
             rest = match.result ? match.rest : stx;
