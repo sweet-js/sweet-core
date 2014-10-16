@@ -83,12 +83,14 @@ $ git commit -m "sweet!"
 
 ##Syntax Parameter 
 
+```sh
 SyntaxParameter(it, $cond ... , aif , function ()…)  =>
 
 SyntaxParameter(<parameter>,<Mapped to>,<Scope/Macro Name>,<In Function>)
-
+```
 Example :
 
+```sh
 macro aif {
     case {
         $aif_name  
@@ -119,7 +121,7 @@ aif (long) {
    console.log(" in else");
     }
 
-
+```
 
 ## Credits
 
