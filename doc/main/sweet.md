@@ -736,7 +736,7 @@ you a nasty parse error.
 
 # Custom Operators
 
-Custom operators let you define your own operators or override the builtin operators. They are similar to infix macros except rather than matching arbitrary syntax before and after the identifier name, both the left and right operands must be valid JavaScript expressions. You can think of them as infix macros with a pattern of `{ $left:expr | $right:expr }`. This limitation however means that you can define precedence and associativity for your custom operator. 
+Custom operators let you define your own operators or override the built-in operators. They are similar to infix macros except rather than matching arbitrary syntax before and after the identifier name, both the left and right operands must be valid JavaScript expressions. You can think of them as infix macros with a pattern of `{ $left:expr | $right:expr }`. This limitation however means that you can define precedence and associativity for your custom operator. 
 
 There are two definition forms. One for binary operators and one for unary operators:
 
@@ -810,7 +810,7 @@ getPromise('test.json')  >>= JSON.parse >>= (response) => {
 // });
 ```
 
-Custom operators also let you change the behavior of the builtin operators:
+Custom operators also let you change the behavior of the built-in operators:
 
 ```js
 operator + 12 left { $l, $r } => #{ add($l, $r) }
@@ -840,11 +840,11 @@ if ("42" == 42) {
 // }    
 ```
 
-Keep in mind that redefining the builtin operators needs to be done with care. While it's tempting to fix some of the *wat* implicit conversions of `==`/`+`/`-` and company, this could lead to hard to understand code. It should be used sparingly if at all. With great power...
+Keep in mind that redefining the built-in operators needs to be done with care. While it's tempting to fix some of the *wat* implicit conversions of `==`/`+`/`-` and company, this could lead to hard to understand code. It should be used sparingly if at all. With great power...
 
 ## Operator Precedence
 
-The following charts note the precedence and associativity of the builtin operators. A higher precedence number means the operator binds more tightly.
+The following charts note the precedence and associativity of the built-in operators. A higher precedence number means the operator binds more tightly.
 
 ### Unary Operators
 
