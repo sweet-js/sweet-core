@@ -83,15 +83,33 @@
     var expandModule = makeExpand(expander.expandModule);
     var stxcaseCtx;
 
+    var baseReadtable = Object.create({
+        extend: function(obj) {
+            var extended = Object.create(this);
+            Object.keys(obj).forEach(function(ch) {
+                extended[ch] = obj[ch];
+            });
+            return extended;
+        }
+    });
+    parser.setReadtable(baseReadtable, syn);
+
+    function ensureStxcaseCtx() {
+        if (!stxcaseCtx) {
+            var oldReadtable = parser.currentReadtable();
+            parser.setReadtable(baseReadtable, syn);
+            stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
+            parser.setReadtable(oldReadtable);
+        }
+    }
+
     function makeExpand(expandFn) {
         // fun (Str) -> [...CSyntax]
         return function expand(code, modules, options) {
             var program, toString;
             modules = modules || [];
 
-            if (!stxcaseCtx) {
-                stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
-            }
+            ensureStxcaseCtx();
 
             toString = String;
             if (typeof code !== 'string' && !(code instanceof String)) {
@@ -130,9 +148,7 @@
     }
 
     function expandSyntax(stx, modules, options) {
-        if (!stxcaseCtx) {
-            stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
-        }
+        ensureStxcaseCtx();
 
         var isSyntax = syn.isSyntax(stx);
         options = options || {};
@@ -204,17 +220,6 @@
         };
     }
 
-    var baseReadtable = Object.create({
-        extend: function(obj) {
-            var extended = Object.create(this);
-            Object.keys(obj).forEach(function(ch) {
-                extended[ch] = obj[ch];
-            });
-            return extended;
-        }
-    });
-    parser.setReadtable(baseReadtable, syn);
-    
     function setReadtable(readtableModule) {
         var filename = resolveSync(readtableModule, {
             basedir: process.cwd()
