@@ -1074,6 +1074,11 @@ import @ from "contracts.js"
                         uopMacroName = [uopSyntax].concat(rest.slice(0, uopMacroObj.fullName.length - 1));
                         opRest = rest.slice(uopMacroObj.fullName.length - 1);
                     }
+                    else if(unwrapSyntax(uopSyntax) === 'yield' &&
+                            unwrapSyntax(opRest[0]) === '*') {
+                        uopSyntax = [uopSyntax, opRest[0]];
+                        opRest = opRest.slice(1);
+                    }
 
                     var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
                                    ? opCtx.prevTerms[0]

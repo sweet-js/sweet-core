@@ -21,4 +21,18 @@ describe("es6 support", function() {
             expect(e).to.be.a(ReferenceError);
         });
     });
+
+    it("should support generators", function() {
+        function* first() {
+            yield 1;
+        }
+        function* id() {
+            while(true) {
+                yield* first();
+            }
+        }
+        var gen = id();
+        expect(gen.next().value).to.be(1);
+        expect(gen.next().value).to.be(1);
+    })
 });
