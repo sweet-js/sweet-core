@@ -23,7 +23,7 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-import @ from "contracts.js"
+// import @ from "contracts.js"
 
 
 (function (root, factory) {
@@ -245,7 +245,7 @@ import @ from "contracts.js"
 
     var nextFresh = 0;
 
-    @ () -> Num
+    // @ () -> Num
     function fresh() { return nextFresh++; }
 
 
@@ -477,7 +477,7 @@ import @ from "contracts.js"
     dataclass ForStatement          (keyword, cond)                     extends Statement;
     dataclass ReturnStatement       (keyword, expr)                     extends Statement {
         destruct() {
-            var expr = this.expr.destruct();        
+            var expr = this.expr.destruct();
             // need to adjust the line numbers to make sure that the expr
             // starts on the same line as the return keyword. This might
             // not be the case if an operator or infix macro perturbed the
@@ -940,10 +940,10 @@ import @ from "contracts.js"
         } else {
             transformer = macroObj.fn;
         }
-        
-        assert(typeof transformer === "function", "Macro transformer not bound for: " 
+
+        assert(typeof transformer === "function", "Macro transformer not bound for: "
                + head.token.value);
-        
+
 
         // create a new mark to be used for the input to
         // the macro
@@ -1073,6 +1073,11 @@ import @ from "contracts.js"
                     if (uopMacroObj) {
                         uopMacroName = [uopSyntax].concat(rest.slice(0, uopMacroObj.fullName.length - 1));
                         opRest = rest.slice(uopMacroObj.fullName.length - 1);
+                    }
+                    else if(unwrapSyntax(uopSyntax) === 'yield' &&
+                            unwrapSyntax(opRest[0]) === '*') {
+                        uopSyntax = [uopSyntax, opRest[0]];
+                        opRest = opRest.slice(1);
                     }
 
                     var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
@@ -1408,7 +1413,7 @@ import @ from "contracts.js"
                         }
                         if (returnExpr.result.isExpr) {
                             return step(ReturnStatement.create(head, returnExpr.result),
-                                        returnExpr.rest, 
+                                        returnExpr.rest,
                                         opCtx);
                         }
                     } else {
@@ -1671,7 +1676,7 @@ import @ from "contracts.js"
                                         rest[0].token.type === parser.Token.Punctuator ||
                                         rest[0].token.type === parser.Token.Delimiter &&
                                         rest[0].token.value === "()")) {
-                    // Consume optional semicolon                      
+                    // Consume optional semicolon
                     if (unwrapSyntax(rest[1]) === ";") {
                         rest.splice(1, 1);
                     }
@@ -2210,7 +2215,7 @@ import @ from "contracts.js"
                         return def.id.token.value === id.token.value &&
                             arraysEqual(marksof(def.id.context), marksof(id.context));
                     });
-                    /* 
+                    /*
                         When var declaration repeat one of the function parameters:
 
                         function foo(x) {
@@ -2223,7 +2228,7 @@ import @ from "contracts.js"
                         return param.token.value === id.token.value &&
                             arraysEqual(marksof(param.context), marksof(id.context));
                     });
-                    return (typeof varDeclRep === 'undefined') && 
+                    return (typeof varDeclRep === 'undefined') &&
                            (typeof paramDeclRep === 'undefined');
                 }
                 return true;
@@ -2332,7 +2337,7 @@ import @ from "contracts.js"
             });
 
             var bodyContext = makeExpanderContext(_.defaults({
-                defscope: newDef, 
+                defscope: newDef,
                 // paramscope is used to filter out var redeclarations
                 paramscope: paramNames.map(function(p) {
                     return p.renamedParam;
@@ -2483,7 +2488,7 @@ import @ from "contracts.js"
         moduleContexts = moduleContexts || [];
         options = options || {};
         options.flatten = options.flatten != null ? options.flatten : true;
-        
+
         maxExpands = options.maxExpands || Infinity;
         expandCount = 0;
 

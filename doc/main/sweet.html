@@ -647,7 +647,7 @@ function foo(x) {
 bar(42) m foo; // This is a match error</code></pre>
 <p>The second example fails to match because you'd be splitting the good function call on the left-hand-side in half. The result would have been nonsense, giving you a nasty parse error.</p>
 <h1 id="custom-operators"><span class="header-section-number">8</span> Custom Operators</h1>
-<p>Custom operators let you define your own operators or override the builtin operators. They are similar to infix macros except rather than matching arbitrary syntax before and after the identifier name, both the left and right operands must be valid JavaScript expressions. You can think of them as infix macros with a pattern of <code>{ $left:expr | $right:expr }</code>. This limitation however means that you can define precedence and associativity for your custom operator.</p>
+<p>Custom operators let you define your own operators or override the built-in operators. They are similar to infix macros except rather than matching arbitrary syntax before and after the identifier name, both the left and right operands must be valid JavaScript expressions. You can think of them as infix macros with a pattern of <code>{ $left:expr | $right:expr }</code>. This limitation however means that you can define precedence and associativity for your custom operator.</p>
 <p>There are two definition forms. One for binary operators and one for unary operators:</p>
 <pre class="js"><code>// binary operators
 operator &lt;name&gt; &lt;precedence&gt; &lt;associativity&gt; 
@@ -703,7 +703,7 @@ getPromise(&#39;test.json&#39;)  &gt;&gt;= JSON.parse &gt;&gt;= (response) =&gt;
 // getPromise(&#39;test.json&#39;).then(JSON.parse).then(function (response) {
 //     console.log(&#39;JSON Response!&#39;, response);
 // });</code></pre>
-<p>Custom operators also let you change the behavior of the builtin operators:</p>
+<p>Custom operators also let you change the behavior of the built-in operators:</p>
 <pre class="js"><code>operator + 12 left { $l, $r } =&gt; #{ add($l, $r) }
 function add(x, y) {
     // custom addition
@@ -725,9 +725,9 @@ if (&quot;42&quot; == 42) {
 // if (&#39;42&#39; === 42) {
 //    // never runs! 
 // }    </code></pre>
-<p>Keep in mind that redefining the builtin operators needs to be done with care. While it's tempting to fix some of the <em>wat</em> implicit conversions of <code>==</code>/<code>+</code>/<code>-</code> and company, this could lead to hard to understand code. It should be used sparingly if at all. With great power...</p>
+<p>Keep in mind that redefining the built-in operators needs to be done with care. While it's tempting to fix some of the <em>wat</em> implicit conversions of <code>==</code>/<code>+</code>/<code>-</code> and company, this could lead to hard to understand code. It should be used sparingly if at all. With great power...</p>
 <h2 id="operator-precedence"><span class="header-section-number">8.2</span> Operator Precedence</h2>
-<p>The following charts note the precedence and associativity of the builtin operators. A higher precedence number means the operator binds more tightly.</p>
+<p>The following charts note the precedence and associativity of the built-in operators. A higher precedence number means the operator binds more tightly.</p>
 <h3 id="unary-operators"><span class="header-section-number">8.2.1</span> Unary Operators</h3>
 <table>
 <thead>
