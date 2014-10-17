@@ -989,7 +989,7 @@
                                                       macroBody);
                         newBody.token.inner = transcribe(bodyStx.token.inner,
                                                          macroNameStx, env);
-                        if (parser.syntaxParameter[macroNameStx.token.value] != undefined) {
+                        if (parser.syntaxParameter[macroNameStx.token.value] !== undefined) {
                             syntaxParamMatch(newBody.token.inner, parser.syntaxParameter[macroNameStx.token.value], env);
                         }
 

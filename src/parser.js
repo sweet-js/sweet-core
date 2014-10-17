@@ -6003,7 +6003,7 @@ parseYieldExpression: true
                             // create the syntaxPatameter based on the scope defined in the macro
                         syntaxParameter[paramObj[paramObj.length-1].value]=createSyntaxParamArray(paramObj);
                         //below line to place the "it" value equal to cond value
-                       // UpdateTokenTreeParam(obj.inner[i].inner[0].inner,paramObj)
+                      
 
                        //remove the syntax parameter () and push the value one level up
                         for (var l = 0, len = obj.inner[i].inner[0].inner.length; l < len; ++l) {
@@ -6023,34 +6023,7 @@ parseYieldExpression: true
                "value" : [_paramObj[2],_paramObj[3]]  // Todo: Need to add te remaining array element
                }
      }
-     function  UpdateTokenTreeParam(objAddParam,paramObj)
-     {
-          for (var j in objAddParam)
-            {
-         if(objAddParam[j].value=="{}" || objAddParam[j].value=="()")
-             {
-                  UpdateTokenTreeParam(objAddParam[j].inner,paramObj)
-              }
-         else if(objAddParam[j].value =="function")
-             {
-                 var linenumber=objAddParam[j].lineNumber
-                 var linestart= objAddParam[j].lineStart
-
-                  var startChar= objAddParam[2].startRange[1];
-                 //adjust the line number
-                var arr= createParamObj(paramObj[1],startChar+1,linenumber,linestart)
-                 objAddParam[2].inner.splice(0,0,arr[0])
-                arr= createParamObj(null,arr[1]+1,linenumber,linestart,7,"=")
-                   objAddParam[2].inner.splice(1,0,arr[0]) // have to make equal
-                    arr= createParamObj(paramObj[2],arr[1]+1,linenumber,linestart)
-                 objAddParam[2].inner.splice(2,0,arr[0])
-                 arr= createParamObj(paramObj[3],arr[1]+1,linenumber,linestart)
-                 objAddParam[2].inner.splice(3,0,arr[0])
-                 return;
-              }
-       
-         }
-      }
+   
       function createParamObj(_paramObj,startChar,linenumber,linestart,type,value)
       {
           value= value===undefined ? _paramObj.value.toString() : value 
