@@ -50,13 +50,13 @@ parseYieldExpression: true
     // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js,
     // Rhino, and plain browser loading.
     if (typeof define === 'function' && define.amd) {
-        define(['exports', 'expander'], factory);
+        define(['exports', 'expander','underscore'], factory);
     } else if (typeof exports !== 'undefined') {
         factory(exports, require("./expander"));
     } else {
         factory((root.esprima = {}));
     }
-}(this, function (exports, expander) {
+}(this, function (exports, expander,_) {
     'use strict';
 
     var Token,
@@ -5920,7 +5920,21 @@ parseYieldExpression: true
         };
 
         while(index < length || readtables.peekQueued()) {
-            tokenTree.push(readToken(tokenTree, false, false));
+           var obj=readToken(tokenTree, false, false);
+           if(obj.value=="defineSyntaxParameter")
+             {
+                // obj=readToken(tokenTree, false, false);
+                //defineSyntaxParameter[obj.inner[0].value]=obj.inner.splice(1,obj.inner.length);
+                obj.value="macro"
+               // continue;
+             }
+           if (obj.value=="{}" && obj.inner != undefined) // looking for 
+             {
+               fetchSyntaxParameter(obj);
+              
+             }
+
+            tokenTree.push(obj);
         }
         var last = tokenTree[tokenTree.length-1];
         if(last && last.type !== Token.EOF) {
@@ -5935,7 +5949,120 @@ parseYieldExpression: true
         
         return expander.tokensToSyntax(tokenTree);
     }
+    var defineSyntaxParameter={}
+     var syntaxParameter={}; 
+     var iNumParam=1;
+     function fetchSyntaxParameter(obj)
+     {
+       
+         for (var i in obj.inner)
+                {
+                      var paramObj=[];
+                      var bflag=false;
+                   // obj.inner[i] 
+                    if (obj.inner[i].value =="{}")
+                     {
+                        var tempParameter=obj.inner[i].inner.slice();
+                        
+                         for (var j in tempParameter)
+                        {
+                            if (tempParameter[j].value =="SyntaxParameter")
+                             {
+                                    console.log("found");
+                                    paramObj.push(tempParameter[j])
+                                  obj.inner[i].inner.shift();
+                                  bflag=true;
+                                    
+                             }
+                            else if(tempParameter[j].value =="()" && tempParameter[j].inner != undefined && bflag)
+                                {
+                                    var k=0;
+                                    while (k<7) // fetch the syntax parameter
+                                        {
+                                            if(obj.inner[i].inner[0].inner[0].value !=",")
+                                            {
+                                            paramObj.push(obj.inner[i].inner[0].inner[0])
+                                            }
+                                            obj.inner[i].inner[0].inner.shift();
+                                             k++;
+                                    }
+                                    
+                                    break;
+                                }
+                            else
+                                {
+                                    break;
+                                }
+                          }
 
+
+                         
+                     }
+                    if(paramObj.length>0)
+                        {
+                            // create the syntaxPatameter based on the scope defined in the macro
+                        syntaxParameter[paramObj[paramObj.length-1].value]=createSyntaxParamArray(paramObj);
+                        //below line to place the "it" value equal to cond value
+                       // UpdateTokenTreeParam(obj.inner[i].inner[0].inner,paramObj)
+
+                       //remove the syntax parameter () and push the value one level up
+                        for (var l = 0, len = obj.inner[i].inner[0].inner.length; l < len; ++l) {
+                            obj.inner[i].inner.splice(l+1,0,obj.inner[i].inner[0].inner[l]);
+                        }
+                      
+                       obj.inner[i].inner.shift();
+                        iNumParam++;
+                      }
+                }
+               
+     }
+     function createSyntaxParamArray(_paramObj)
+     {
+          return {
+              "param" : _paramObj[1],
+               "value" : [_paramObj[2],_paramObj[3]]  // Todo: Need to add te remaining array element
+               }
+     }
+     function  UpdateTokenTreeParam(objAddParam,paramObj)
+     {
+          for (var j in objAddParam)
+            {
+         if(objAddParam[j].value=="{}" || objAddParam[j].value=="()")
+             {
+                  UpdateTokenTreeParam(objAddParam[j].inner,paramObj)
+              }
+         else if(objAddParam[j].value =="function")
+             {
+                 var linenumber=objAddParam[j].lineNumber
+                 var linestart= objAddParam[j].lineStart
+
+                  var startChar= objAddParam[2].startRange[1];
+                 //adjust the line number
+                var arr= createParamObj(paramObj[1],startChar+1,linenumber,linestart)
+                 objAddParam[2].inner.splice(0,0,arr[0])
+                arr= createParamObj(null,arr[1]+1,linenumber,linestart,7,"=")
+                   objAddParam[2].inner.splice(1,0,arr[0]) // have to make equal
+                    arr= createParamObj(paramObj[2],arr[1]+1,linenumber,linestart)
+                 objAddParam[2].inner.splice(2,0,arr[0])
+                 arr= createParamObj(paramObj[3],arr[1]+1,linenumber,linestart)
+                 objAddParam[2].inner.splice(3,0,arr[0])
+                 return;
+              }
+       
+         }
+      }
+      function createParamObj(_paramObj,startChar,linenumber,linestart,type,value)
+      {
+          value= value==undefined ? _paramObj.value.toString() : value 
+          return [{
+              "type" : type || _paramObj.type,
+               "value" : value || _paramObj.value,
+               "lineNumber": linenumber,
+               "lineStart": linestart,
+               "range" :[startChar,startChar + (value.length)]
+              },startChar + (value.length )]
+      }
+    /// code added
     function parse(code, options) {
         var program, toString;
         extra = {};
@@ -6047,7 +6174,8 @@ parseYieldExpression: true
     exports.setReadtable = setReadtable;
     exports.currentReadtable = currentReadtable;
     exports.parse = parse;
-
+    exports.syntaxParameter=syntaxParameter;
+    exports.defineSyntaxParameter=defineSyntaxParameter;
     // Deep copy.
     exports.Syntax = (function () {
         var name, types = {};

@@ -897,7 +897,7 @@
                         bodyStx.repeat = true;
                         bodyStx.separator = next.token.inner[0];
                     }
-
+                    bodyStx.synParam = macroNameStx;
                     acc.push(bodyStx);
                     return acc;
                 }, []).reduce(function(acc, bodyStx, idx) {
@@ -989,6 +989,10 @@
                                                       macroBody);
                         newBody.token.inner = transcribe(bodyStx.token.inner,
                                                          macroNameStx, env);
+                        if (parser.syntaxParameter[macroNameStx.token.value] != undefined) {
+                            syntaxParamMatch(newBody.token.inner, parser.syntaxParameter[macroNameStx.token.value], env);
+                        }
+
                         acc.push(newBody);
                         return acc;
                     }
@@ -1008,7 +1012,24 @@
             }, []).value();
     }
 
+    function syntaxParamMatch(_inner,paramValue,env)
+    {
+        _.each(_inner, function(inner,key) {
+                      if(inner.token.value == "()")
+                          {
+                              syntaxParamMatch(inner.token.inner,paramValue,env)
+                          }
+                        else if(inner.token.value == paramValue.param.value)
+                         {
+                             _inner[key];
+                              push.apply(_inner, joinRepeatedMatch(env[paramValue.value[0].value].match, " "))
+                              _inner.splice(key,1);
+                             //return inner
+                         }
+              });
 
+
+    }
     function cloneMatch(oldMatch) {
         var newMatch = {
             success: oldMatch.success,
