@@ -1021,7 +1021,7 @@
                           }
                         else if(inner.token.value == paramValue.param.value)
                          {
-                             _inner[key];
+                             //_inner[key];
                               push.apply(_inner, joinRepeatedMatch(env[paramValue.value[0].value].match, " "))
                               _inner.splice(key,1);
                              //return inner
