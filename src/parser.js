@@ -6053,7 +6053,7 @@ parseYieldExpression: true
       }
       function createParamObj(_paramObj,startChar,linenumber,linestart,type,value)
       {
-          value= value==undefined ? _paramObj.value.toString() : value 
+          value= value===undefined ? _paramObj.value.toString() : value 
           return [{
               "type" : type || _paramObj.type,
                "value" : value || _paramObj.value,
