@@ -1021,10 +1021,11 @@
                           }
                         else if(inner.token.value == paramValue.param.value)
                          {
-                             //_inner[key];
-                              push.apply(_inner, joinRepeatedMatch(env[paramValue.value[0].value].match, " "))
-                              _inner.splice(key,1);
-                             //return inner
+                            var last = _.last(_inner, _inner.length - key - 1);
+                            _inner = _.first(_inner, key)
+
+                            push.apply(_inner, joinRepeatedMatch(env[paramValue.value[0].value].match, " "));
+                            push.apply(_inner, last);
                          }
               });
 
