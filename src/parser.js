@@ -5928,7 +5928,7 @@ parseYieldExpression: true
                 obj.value="macro"
                // continue;
              }
-           if (obj.value=="{}" && obj.inner != undefined) // looking for 
+           if (obj.value=="{}" && obj.inner !== undefined) // looking for 
              {
                fetchSyntaxParameter(obj);
               
@@ -5974,7 +5974,7 @@ parseYieldExpression: true
                                   bflag=true;
                                     
                              }
-                            else if(tempParameter[j].value =="()" && tempParameter[j].inner != undefined && bflag)
+                            else if(tempParameter[j].value =="()" && tempParameter[j].inner !== undefined && bflag)
                                 {
                                     var k=0;
                                     while (k<7) // fetch the syntax parameter
