@@ -21,14 +21,14 @@ let it = macro {
 }
 
 describe "procedural (syntax-case) macros" {
-	it "should make a literal syntax object" {
-		macro m {
-			case { _ () } => {
+    it "should make a literal syntax object" {
+        macro m {
+            case { _ () } => {
                 return [makeValue (42, #{here})];
-			}
-		}
-		expect(m()).to.be(42);
-	}
+            }
+        }
+        expect(m()).to.be(42);
+    }
 
     it "should work with syntax" {
         macro m {
