@@ -139,7 +139,14 @@ describe("binary custom operators", function() {
         function plus(l, r) { return l - r; }
 
         expect(2 + 2 ? true : false).to.be(false);
-    })
+    });
+
+	it("should mix well with assignments", function () {
+		operator @ 17 left { $l, $r} => #{ $l }
+		var i = 0;
+		i@a.b = 5 + 2;
+		expect(i).to.be(7);
+	});
 });
 
 describe("builtin operators", function() {

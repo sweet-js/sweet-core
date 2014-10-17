@@ -1321,7 +1321,7 @@
                               head.isObjGet ||
                               head.isObjDotGet ||
                               head.isThisExpression) &&
-                            rest[0] && rest[1] && !bopMacroObj && stxIsAssignOp(rest[0]))) {
+                            rest[0] && rest[1] && !bopMacroObj && (opCtx.op === null) && stxIsAssignOp(rest[0]))) {
                     var opRes = enforestAssignment(rest, context, head, prevStx, prevTerms);
                     if(opRes && opRes.result) {
                         return step(opRes.result, opRes.rest, _.extend({}, opCtx, {
