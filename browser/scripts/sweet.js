@@ -64,14 +64,30 @@
     var expand = makeExpand(expander.expand);
     var expandModule = makeExpand(expander.expandModule);
     var stxcaseCtx;
+    var baseReadtable = Object.create({
+            extend: function (obj) {
+                var extended = Object.create(this);
+                Object.keys(obj).forEach(function (ch) {
+                    extended[ch] = obj[ch];
+                });
+                return extended;
+            }
+        });
+    parser.setReadtable(baseReadtable, syn);
+    function ensureStxcaseCtx() {
+        if (!stxcaseCtx) {
+            var oldReadtable = parser.currentReadtable();
+            parser.setReadtable(baseReadtable, syn);
+            stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
+            parser.setReadtable(oldReadtable);
+        }
+    }
     function makeExpand(expandFn) {
         // fun (Str) -> [...CSyntax]
         return function expand$2(code, modules, options) {
             var program, toString;
             modules = modules || [];
-            if (!stxcaseCtx) {
-                stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
-            }
+            ensureStxcaseCtx();
             toString = String;
             if (typeof code !== 'string' && !(code instanceof String)) {
                 code = toString(code);
@@ -104,9 +120,7 @@
         };
     }
     function expandSyntax(stx, modules, options) {
-        if (!stxcaseCtx) {
-            stxcaseCtx = expander.expandModule(parser.read(stxcaseModule));
-        }
+        ensureStxcaseCtx();
         var isSyntax = syn.isSyntax(stx);
         options = options || {};
         options.flatten = false;
@@ -160,16 +174,6 @@
         }
         return { code: codegen.generate(ast, _.extend({ comment: true }, options.escodegen)) };
     }
-    var baseReadtable = Object.create({
-            extend: function (obj) {
-                var extended = Object.create(this);
-                Object.keys(obj).forEach(function (ch) {
-                    extended[ch] = obj[ch];
-                });
-                return extended;
-            }
-        });
-    parser.setReadtable(baseReadtable, syn);
     function setReadtable(readtableModule) {
         var filename = resolveSync(readtableModule, { basedir: process.cwd() });
         var readtable = require(filename);
