@@ -2241,7 +2241,7 @@
                 term.init = expandTermTreeToFinal(term.init, context);
             }
             return term;
-        } else if (term.isVariableStatement) {
+        } else if (term.isVariableStatement || term.isLetStatement || term.isConstStatement) {
             term.decls = _.map(term.decls, function (decl) {
                 return expandTermTreeToFinal(decl, context);
             });
