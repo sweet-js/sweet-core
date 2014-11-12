@@ -436,7 +436,6 @@
     // @ let ExpanderContext = {}
     // {
     //     filename: Str,
-    //     requireModule: Str,
     //     env: {},
     //     defscope: {},
     //     paramscope: {},
@@ -566,7 +565,7 @@
 
     dataclass ModuleTerm            ()                                  extends TermTree;
 
-    dataclass Module                (name, lang, body, imports, exports)extends ModuleTerm;
+    dataclass Module                (body)                              extends ModuleTerm;
     dataclass Import                (kw, names, fromkw, from)           extends ModuleTerm;
     dataclass ImportForMacros       (names, from)                       extends ModuleTerm;
     dataclass Export                (kw, name)                          extends ModuleTerm;
@@ -2091,12 +2090,6 @@
             makePunc: syn.makePunc,
             makeDelim: syn.makeDelim,
             filename: context.filename,
-            require: function(id) {
-                if (context.requireModule) {
-                    return context.requireModule(id, context.filename);
-                }
-                return require(id);
-            },
             getExpr: function(stx) {
                 var r;
                 if (stx.length === 0) {
@@ -2211,6 +2204,35 @@
             var destructed = tagWithTerm(head, f.result.destruct(context));
             prevTerms = [head].concat(f.prevTerms);
             prevStx = destructed.reverse().concat(f.prevStx);
+
+            if (head.isImport) {
+                // record the import in the module record for easier access
+                context.moduleRecord.importEntries.push(head);
+                // load up the (possibly cached) import module
+                var importMod = loadImport(head, context);
+                // visiting an imported module loads the compiletime values
+                // into the compiletime environment for this phase
+                context = visit(importMod.term, importMod.record, context.phase, context);
+                // bind the imported names in the rest of the module
+                // todo: how to handle references before an import?
+                rest = bindImportInMod(head, rest, importMod.term, importMod.record, context, context.phase);
+            }
+
+            if (head.isImportForMacros) {
+                // record the import in the module record for easier access
+                context.moduleRecord.importEntries.push(head);
+                // load up the (possibly cached) import module
+                var importMod = loadImport(head, context);
+                // invoking an imported module loads the runtime values
+                // into the environment for this phase
+                context = invoke(importMod.term, importMod.record, context.phase + 1, context);
+                // visiting an imported module loads the compiletime values
+                // into the compiletime environment for this phase
+                context = visit(importMod.term, importMod.record, context.phase + 1, context);
+                // bind the imported names in the rest of the module
+                // todo: how to handle references before an import?
+                rest = bindImportInMod(head, rest, importMod.term, importMod.record, context, context.phase + 1);
+            }
 
             if (head.isMacro && expandCount < maxExpands) {
                 // raw function primitive form
@@ -2617,7 +2639,7 @@
                             bodyTerm.name.token.inner
                                 |> filterCommaSep
                                 |> names -> names.forEach(name -> {
-                                    term.exports.push(name);
+                                    context.moduleRecord.exportEntries.push(name);
                                 });
                         } else {
                             throwSyntaxError("expand", "not valid export type", bodyTerm.name);
@@ -2670,8 +2692,6 @@
         return Object.create(Object.prototype, {
             filename: {value: o.filename,
                        writable: false, enumerable: true, configurable: false},
-            requireModule: {value: o.requireModule,
-                            writable: false, enumerable: true, configurable: false},
             env: {value: env,
                   writable: false, enumerable: true, configurable: false},
             defscope: {value: o.defscope,
@@ -2687,28 +2707,26 @@
             phase: {value: o.phase,
                           writable: false, enumerable: true, configurable: false},
             implicitImport: {value: o.implicitImport || new StringMap(),
-                             writable: false, enumerable: true, configurable: false}
+                             writable: false, enumerable: true, configurable: false},
+            moduleRecord: {value: o.moduleRecord || {},
+                           writable: false, enumerable: true, configurable: false}
         });
     }
 
-    function makeModuleExpanderContext(options, templateMap, patternMap, phase) {
-        var requireModule = options ? options.requireModule : undefined;
-        var filename = options && options.filename ? options.filename : "<anonymous module>";
+    function makeModuleExpanderContext(filename, templateMap, patternMap, phase, moduleRecord) {
         return makeExpanderContext({
             filename: filename,
-            requireModule: requireModule,
             templateMap: templateMap,
             patternMap: patternMap,
-            phase: phase
+            phase: phase,
+            moduleRecord: moduleRecord
         });
     }
 
     function makeTopLevelExpanderContext(options) {
-        var requireModule = options ? options.requireModule : undefined;
         var filename = options && options.filename ? options.filename : "<anonymous module>";
         return makeExpanderContext({
             filename: filename,
-            requireModule: requireModule
         });
     }
 
@@ -2736,68 +2754,11 @@
     }
 
 
-    // @ (ModuleTerm, ExpanderContext) -> ModuleTerm
-    function collectImports(mod, context) {
-        // TODO: this is currently just grabbing the imports from the
-        // very beginning of the file. It really should be able to mix
-        // imports/exports/statements at the top level.
-        var imports = [];
-        var res;
-        var rest = mod.body;
-        // #lang "sweet" expands to imports for the basic macros for sweet.js
-        // eventually this should hook into module level extensions
-        if (unwrapSyntax(mod.lang) !== "base" &&
-            unwrapSyntax(mod.lang) !== "js") {
-            var defaultImports = [
-                "quoteSyntax",
-                "syntax",
-                "#",
-                "syntaxCase",
-                "macro",
-                "withSyntax",
-                "letstx",
-                "macroclass",
-                "operator"
-            ];
-            defaultImports = defaultImports.map(name -> syn.makeIdent(name, null));
-            imports.push(ImportForMacros.create(syn.makeDelim("{}", joinSyntax(defaultImports,
-                                                                               syn.makePunc(",", null)),
-                                                              null),
-                                                mod.lang));
-            imports.push(Import.create(syn.makeKeyword("import", null),
-                                       syn.makeDelim("{}", joinSyntax(defaultImports,
-                                                                      syn.makePunc(",", null)),
-                                                     null),
-                                       syn.makeIdent("from", null),
-                                       mod.lang));
-        }
-        while (true) {
-            res = enforest(rest, context);
-            if (res.result && (res.result.isImport || res.result.isImportForMacros)) {
-                imports.push(res.result);
-                rest = res.rest;
-            } else {
-                break;
-            }
-        }
-
-        return Module.create(mod.name,
-                             mod.lang,
-                             rest,
-                             imports,
-                             mod.exports);
-    }
-
-
-    // @ let SweetOptions = {
-    //     flatten: ?Bool
-    // }
-
-    // @ (Str, ModuleTerm) -> Str
+    // @ (Str, Str) -> Str
     function resolvePath(name, parent) {
         var path = require("path");
         var resolveSync = require("resolve/lib/sync");
-        var root  = path.dirname(unwrapSyntax(parent.name));
+        var root  = path.dirname(parent);
         var fs = require("fs");
         if (name[0] === ".") {
             name = path.resolve(root, name);
@@ -2808,29 +2769,84 @@
         });
     }
 
-    // @ (Str, [...SyntaxObject]) -> ModuleTerm
+    // (Str) -> [...SyntaxObject]
+    function defaultImportStx(importPath, ctx) {
+        var names = [
+            "quoteSyntax",
+            "syntax",
+            "#",
+            "syntaxCase",
+            "macro",
+            "withSyntax",
+            "letstx",
+            "macroclass",
+            "operator"
+        ];
+
+        var importNames = names.map(name -> syn.makeIdent(name, ctx));
+        var importForMacrosNames = names.map(name -> syn.makeIdent(name, ctx));
+        // import { names ... } from "importPath" for macros
+        var importForMacrosStmt = [syn.makeKeyword("import", ctx),
+                                   syn.makeDelim("{}", joinSyntax(importForMacrosNames,
+                                                                  syn.makePunc(",", ctx)),
+                                                 ctx),
+                                   syn.makeIdent("from", ctx),
+                                   syn.makeValue(importPath, ctx),
+                                   syn.makeKeyword("for", ctx),
+                                   syn.makeIdent("macros", ctx)];
+
+        // import { names ... } from "importPath"
+        var importStmt = [syn.makeKeyword("import", ctx),
+                          syn.makeDelim("{}", joinSyntax(importNames,
+                                                         syn.makePunc(",", ctx)),
+                                        ctx),
+                          syn.makeIdent("from", ctx),
+                          syn.makeValue(importPath, ctx)];
+
+        return importStmt.concat(importForMacrosStmt);
+    }
+
+    // @ (Str, [...SyntaxObject]) -> {
+    //    record: ModuleRecord,
+    //    term: ModuleTerm
+    // }
     function createModule(name, body) {
+        var language = "base";
+        var modBody = body;
+
         if (body && body[0] && body[1] && body[2] &&
             unwrapSyntax(body[0]) === "#" &&
             unwrapSyntax(body[1]) === "lang" &&
             body[2].token.type === parser.Token.StringLiteral) {
+
+            language = unwrapSyntax(body[2]);
             // consume optional semicolon
-            var rest = body[3] && body[3].token.value === ";" &&
+            modBody = body[3] && body[3].token.value === ";" &&
                 body[3].token.type == parser.Token.Punctuator ? body.slice(4) : body.slice(3);
-            return Module.create(syn.makeValue(name, null),
-                                 body[2],
-                                 rest,
-                                 [],
-                                 []);
         }
-        return Module.create(syn.makeValue(name, null),
-                             syn.makeValue("base", null),
-                             body,
-                             [],
-                             []);
+
+        // insert the default import statements into the module body
+        if (language !== "base" && language !== "js") {
+            // "base" and "js" are currently special languages meaning don't
+            // insert the default imports
+            modBody = defaultImportStx(language, body[0]).concat(modBody);
+        }
+
+        return {
+            record: {
+                name: name,
+                language: language,
+                importEntries: [],
+                exportEntries: []
+            },
+            term: Module.create(modBody)
+        };
     }
 
-    // @ (Str) -> ModuleTerm
+    // @ (Str) -> {
+    //     record: ModuleRecord,
+    //     term: ModuleTerm
+    // }
     function loadModule(name) {
         // node specific code
         var fs = require("fs");
@@ -2841,43 +2857,53 @@
 
     }
 
-    // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
-    function invoke(mod, phase, context, options) {
-        if (unwrapSyntax(mod.lang) === "base") {
-            var exported = require(unwrapSyntax(mod.name));
+    // For a given module, phase, and context load the runtime values
+    // into the context and return the modified context
+    // @ (ModuleTerm, ModuleRecord, Num, ExpanderContext) -> ExpanderContext
+    function invoke(modTerm, modRecord, phase, context) {
+        if (modRecord.language === "base") {
+            // base modules can just use the normal require pipeline
+            var exported = require(modRecord.name);
             Object.keys(exported).forEach(exp -> {
+                // create new bindings in the context
                 var freshName = fresh();
                 var expName = syn.makeIdent(exp, null);
                 var renamed = expName.rename(expName, freshName)
 
-                mod.exports.push(renamed);
+                modRecord.exportEntries.push(renamed);
                 context.env.set(resolve(renamed, phase), {
                     value: exported[exp]
                 });
                 context.env.names.set(exp, true);
             })
         } else {
-            mod.imports.forEach(imp -> {
-                var modToImport = loadImport(imp, mod, options, context);
+            // recursively invoke any imports in this module at this
+            // phase and update the context
+            modRecord.importEntries.forEach(imp -> {
+                var importMod = loadImport(imp, context);
                 if (imp.isImport) {
-                    context = invoke(modToImport, phase, context, options);
+                    context = invoke(importMod.term, importMod.record, phase, context);
                 }
             });
 
-            var code = mod.body
+            // turn the module into text so we can eval it
+            var code = modTerm.body
                 |> terms -> terms.map(term -> term.destruct(context, {stripCompileTerm: true,
                                                                       stripModuleTerm: true}))
                 |> _.flatten
                 |> flatten
                 |> parser.parse
                 |> codegen.generate
+
             var global = {
                 console: console
             };
 
+            // eval but with a fresh heap
             vm.runInNewContext(code, global);
 
-            mod.exports.forEach(exp -> {
+            // update the exports with the runtime values
+            modRecord.exportEntries.forEach(exp -> {
                 var expName = resolve(exp, phase);
                 var expVal = global[expName];
                 context.env.set(expName, {value: expVal});
@@ -2889,33 +2915,47 @@
     }
 
 
-    // @ (ModuleTerm, Num, ExpanderContext, SweetOptions) -> ExpanderContext
-    function visit(mod, phase, context, options) {
+    // For a given module, phase, and context, load the compiletime values into
+    // the context and return the modified context
+    // @ (ModuleTerm, ModuleRecord, Num, ExpanderContext) -> ExpanderContext
+    function visit(modTerm, modRecord, phase, context) {
         var defctx = [];
-        // we don't need to visit base modules
-        if (unwrapSyntax(mod.lang) === "base") {
+        // don't need to visit base modules since they do not support macros
+        if (modRecord.language === "base") {
             return context;
         }
-        mod.body = mod.body.map(term -> term.addDefCtx(defctx));
+        // add a visiting definition context since we are binding
+        // macros in the module scope
+        modTerm.body = modTerm.body.map(term -> term.addDefCtx(defctx));
         // reset the exports
-        mod.exports = [];
+        modRecord.exportEntries = [];
 
-        mod.imports.forEach(imp -> {
-            var modToImport = loadImport(imp, mod, options, context);
+        // for each of the imported modules, recursively visit and
+        // invoke them at the appropriate phase and then bind the
+        // imported names in this module
+        modRecord.importEntries.forEach(imp -> {
+            var importMod = loadImport(imp, context);
 
             if(imp.isImport) {
-                context = visit(modToImport, phase, context, options);
+                context = visit(importMod.term, importMod.record, phase, context);
             } else if (imp.isImportForMacros) {
-                context = invoke(modToImport, phase + 1, context, options);
-                context = visit(modToImport, phase + 1, context, options);
+                context = invoke(importMod.term, importMod.record, phase + 1, context);
+                context = visit(importMod.term, importMod.record, phase + 1, context);
             } else {
+                // todo: arbitrary phase
                 assert(false, "not implemented yet");
             }
 
-            bindImportInMod(imp, mod, modToImport, context, phase);
+            modTerm.body = bindImportInMod(imp,
+                                           modTerm.body,
+                                           importMod.term,
+                                           importMod.record,
+                                           context,
+                                           phase);
         });
 
-        mod.body.forEach(term -> {
+        // go through the module and load any compiletime values in to the context
+        modTerm.body.forEach(term -> {
             var name;
             var macroDefinition;
             if (term.isMacro) {
@@ -2971,13 +3011,14 @@
                 context.env.set(resolvedName, opObj);
             }
 
+            // add the exported names to the module record
             if (term.isExport) {
                 if (term.name.token.type === parser.Token.Delimiter &&
                     term.name.token.value === "{}") {
                     term.name.token.inner
                         |> filterCommaSep
                         |> names -> names.forEach(name -> {
-                            mod.exports.push(name);
+                            modRecord.exportEntries.push(name);
                         });
                 } else {
                     throwSyntaxError("visit", "not valid export", term.name);
@@ -3021,143 +3062,140 @@
     }
 
 
-    // @ (ImportTerm, ModuleTerm, SweetOptions, ExpanderContext) -> ModuleTerm
-    function loadImport(imp, parent, options, context) {
-        var modToImport;
-        var modFullPath = resolvePath(unwrapSyntax(imp.from), parent);
+    // @ (ImportTerm, ExpanderContext) -> {
+    //     term: ModuleTerm
+    //     record: ModuleRecord
+    // }
+    function loadImport(imp, context) {
+        var modFullPath = resolvePath(unwrapSyntax(imp.from), context.filename);
         if(!availableModules.has(modFullPath)) {
             // load it
-            modToImport = loadModule(modFullPath)
-                |> loaded -> expandModule(loaded,
-                                          options,
-                                          context.templateMap,
-                                          context.patternMap).mod;
-            availableModules.set(modFullPath, modToImport);
-        } else {
-            modToImport = availableModules.get(modFullPath);
+            var modToImport = loadModule(modFullPath)
+                |> mod -> expandModule(mod.term,
+                                       modFullPath,
+                                       context.templateMap,
+                                       context.patternMap,
+                                       mod.record);
+            var modPair = {
+                term: modToImport.mod,
+                record: modToImport.context.moduleRecord
+            };
+            availableModules.set(modFullPath, modPair);
+            return modPair;
         }
-        return modToImport;
+        return availableModules.get(modFullPath);
     }
 
-    // @ (ImportTerm, ModuleTerm, ModuleTerm, ExpanderContext, Num) -> Void
-    // mutating mod
-    function bindImportInMod(imp, mod, modToImport, context, phase) {
-        if (imp.names.token.type === parser.Token.Delimiter) {
-            if (imp.names.token.inner.length === 0) {
-                throwSyntaxCaseError("compileModule",
-                                     "must include names to import",
-                                     imp.names);
-            } else {
-                // first collect the import names and their associated bindings
-                var renamedNames = imp.names.token.inner
-                    |> filterCommaSep
-                    |> names -> names.map(importName -> {
-                        var isBase = unwrapSyntax(modToImport.lang) === "base";
-
-                        var inExports = _.find(modToImport.exports, expTerm -> {
-                            if (importName.token.type === parser.Token.Delimiter) {
-                                return expTerm.token.type === parser.Token.Delimiter &&
-                                    syntaxInnerValuesEq(importName, expTerm);
-                            }
-                            return expTerm.token.value === importName.token.value
-                        });
-                        if ((!inExports) && (!isBase)) {
-                            throwSyntaxError("compile",
-                                             "the imported name `" +
-                                             unwrapSyntax(importName) +
-                                             "` was not exported from the module",
-                                             importName);
-                        }
-
-                        var exportName, trans, exportNameStr;
-                        if (!inExports) {
-                            // case when importing from a non ES6
-                            // module but not for macros so the module
-                            // was not invoked and thus nothing in the
-                            // context for this name
-                            if (importName.token.type === parser.Token.Delimiter) {
-                                exportNameStr = importName.map(unwrapSyntax).join('');
-                            } else {
-                                exportNameStr = unwrapSyntax(importName);
-                            }
-                            trans = null;
-                        } else if (inExports.token.type === parser.Token.Delimiter) {
-                            exportName = inExports.token.inner;
-                            exportNameStr = exportName.map(unwrapSyntax).join('');
-                            trans = getValueInEnv(exportName[0],
-                                                  exportName.slice(1),
-                                                  context,
-                                                  phase);
-                        } else {
-                            exportName = inExports;
-                            exportNameStr = unwrapSyntax(exportName);
-                            trans = getValueInEnv(exportName,
-                                                  [],
-                                                  context,
-                                                  phase);
-                        }
-
-                        var newParam = syn.makeIdent(exportNameStr, importName);
-                        var newName = fresh();
-                        return {
-                            original: newParam,
-                            renamed: newParam.imported(newParam, newName, phase),
-                            name: newName,
-                            trans: trans
-                        };
-                    });
-
-                // set the new bindings in the context
-                renamedNames.forEach(name -> {
-                    context.env.names.set(unwrapSyntax(name.renamed), true);
-                    context.env.set(resolve(name.renamed, phase),
-                                    name.trans);
-                    // setup a reverse map from each import name to
-                    // the import term but only for runtime values
-                    if (name.trans === null || (name.trans && name.trans.value)) {
-                        var resolvedName = resolve(name.renamed, phase);
-                        var origName = resolve(name.original, phase);
-                        context.implicitImport.set(resolvedName, imp);
-                    }
-
-                    mod.body = mod.body.map(stx -> stx.imported(name.original,
-                                                                name.name,
-                                                                phase));
-
-                });
-                imp.names = syn.makeDelim("{}",
-                                          joinSyntax(renamedNames.map(name -> name.renamed),
-                                                     syn.makePunc(",", imp.names)),
-                                          imp.names);
-
-            }
-        } else {
+    // @ (ImportTerm, [...SyntaxObject], ModuleTerm, ModuleRecord, ExpanderContext, Num) -> Void
+    function bindImportInMod(imp, stx, modTerm, modRecord, context, phase) {
+        // todo: implement other import forms
+        if (imp.names.token.type !== parser.Token.Delimiter) {
             assert(false, "not implemented yet");
         }
+
+        if (imp.names.token.inner.length === 0) {
+            throwSyntaxCaseError("compileModule",
+                                 "must include names to import",
+                                 imp.names);
+        }
+
+        // first collect the import names and their associated bindings
+        var renamedNames = imp.names.token.inner
+            |> filterCommaSep
+            |> names -> names.map(importName -> {
+                var isBase = modRecord.language === "base";
+
+                var inExports = _.find(modRecord.exportEntries, expTerm -> {
+                    if (importName.token.type === parser.Token.Delimiter) {
+                        return expTerm.token.type === parser.Token.Delimiter &&
+                            syntaxInnerValuesEq(importName, expTerm);
+                    }
+                    return expTerm.token.value === importName.token.value
+                });
+                if (!(inExports || isBase)) {
+                    throwSyntaxError("compile",
+                                     "the imported name `" +
+                                     unwrapSyntax(importName) +
+                                     "` was not exported from the module",
+                                     importName);
+                }
+
+                var exportName, trans, exportNameStr;
+                if (!inExports) {
+                    // case when importing from a non ES6
+                    // module but not for macros so the module
+                    // was not invoked and thus nothing in the
+                    // context for this name
+                    if (importName.token.type === parser.Token.Delimiter) {
+                        exportNameStr = importName.map(unwrapSyntax).join('');
+                    } else {
+                        exportNameStr = unwrapSyntax(importName);
+                    }
+                    trans = null;
+                } else if (inExports.token.type === parser.Token.Delimiter) {
+                    exportName = inExports.token.inner;
+                    exportNameStr = exportName.map(unwrapSyntax).join('');
+                    trans = getValueInEnv(exportName[0],
+                                          exportName.slice(1),
+                                          context,
+                                          phase);
+                } else {
+                    exportName = inExports;
+                    exportNameStr = unwrapSyntax(exportName);
+                    trans = getValueInEnv(exportName,
+                                          [],
+                                          context,
+                                          phase);
+                }
+
+                var newParam = syn.makeIdent(exportNameStr, importName);
+                var newName = fresh();
+                return {
+                    original: newParam,
+                    renamed: newParam.imported(newParam, newName, phase),
+                    name: newName,
+                    trans: trans
+                };
+            });
+
+        // set the new bindings in the context
+        renamedNames.forEach(name -> {
+            context.env.names.set(unwrapSyntax(name.renamed), true);
+            context.env.set(resolve(name.renamed, phase),
+                            name.trans);
+            // setup a reverse map from each import name to
+            // the import term but only for runtime values
+            if (name.trans === null || (name.trans && name.trans.value)) {
+                var resolvedName = resolve(name.renamed, phase);
+                var origName = resolve(name.original, phase);
+                context.implicitImport.set(resolvedName, imp);
+            }
+
+        });
+        imp.names = syn.makeDelim("{}",
+                                  joinSyntax(renamedNames.map(name -> name.renamed),
+                                             syn.makePunc(",", imp.names)),
+                                  imp.names);
+
+        return stx.map(stx -> renamedNames.reduce((acc, name) -> {
+            return acc.imported(name.original, name.name, phase);
+        }, stx));
     }
 
-    function expandModule(mod, options, templateMap, patternMap) {
-        var context = makeModuleExpanderContext(options, templateMap, patternMap, 0);
-
+    // (ModuleTerm, Str, Map, Map, ModuleRecord) -> {
+    //     context: ExpanderContext,
+    //     mod: ModuleTerm
+    // }
+    function expandModule(mod, filename, templateMap, patternMap, moduleRecord) {
+        // create a new expander context for this module
+        var context = makeModuleExpanderContext(filename,
+                                                templateMap,
+                                                patternMap,
+                                                0,
+                                                moduleRecord);
         return {
             context: context,
-            mod: collectImports(mod, context) |> mod -> {
-                mod.imports.forEach(imp -> {
-                    var modToImport = loadImport(imp, mod, options, context);
-
-                    if (imp.isImport) {
-                        context = visit(modToImport, 0, context, options);
-                    } else if (imp.isImportForMacros) {
-                        context = invoke(modToImport, 1, context, options);
-                        context = visit(modToImport, 1, context, options);
-                    } else {
-                        assert(false, "not implemented yet");
-                    }
-                    var importPhase = imp.isImport ? 0 : 1;
-                    bindImportInMod(imp, mod, modToImport, context, importPhase);
-                });
-                return expandTermTreeToFinal(mod, context);
-            }
+            mod: expandTermTreeToFinal(mod, context)
         };
     }
 
@@ -3190,11 +3228,11 @@
 
     // Takes an expanded module term and flattens it.
     // @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> [...SyntaxObject]
-    function flattenModule(mod, context) {
+    function flattenModule(modTerm, modRecord, context) {
 
         // filter the imports to just the imports and names that are
         // actually available at runtime
-        var imports = mod.imports.reduce((acc, imp) -> {
+        var imports = modRecord.importEntries.reduce((acc, imp) -> {
             if (imp.isImportForMacros) {
                 return acc;
             }
@@ -3211,7 +3249,7 @@
 
         // filter the exports to just the exports and names that are
         // actually available at runtime
-        var output = mod.body.reduce((acc, term) -> {
+        var output = modTerm.body.reduce((acc, term) -> {
             if (term.isExport) {
                 if (term.name.token.type === parser.Token.Delimiter) {
                     term.name = filterCompileNames(term.name, context);
@@ -3222,7 +3260,8 @@
                     assert(false, "not implemented yet");
                 }
             }
-            return acc.concat(term.destruct(context, {stripCompileTerm: true}));
+            return acc.concat(term.destruct(context, {stripCompileTerm: true,
+                                                      stripModuleTerm: true}));
         }, []);
 
 
@@ -3252,9 +3291,10 @@
 
     function flattenImports(imports, mod, context) {
         return imports.reduce((acc, imp) -> {
-            var modFullPath = resolvePath(unwrapSyntax(imp.from), mod);
+            var modFullPath = resolvePath(unwrapSyntax(imp.from), context.filename);
             if (availableModules.has(modFullPath)) {
-                var flattened = flattenModule(availableModules.get(modFullPath), context);
+                var modPair = availableModules.get(modFullPath);
+                var flattened = flattenModule(modPair.term, modPair.record, context);
                 acc.push({
                     path: modFullPath,
                     code: flattened.body
@@ -3284,8 +3324,8 @@
         var patternMap = new StringMap();
         availableModules = new StringMap();
 
-        var expanded = expandModule(mod, options, templateMap, patternMap);
-        var flattened = flattenModule(expanded.mod, expanded.context);
+        var expanded = expandModule(mod.term, filename, templateMap, patternMap, mod.record);
+        var flattened = flattenModule(expanded.mod, expanded.context.moduleRecord, expanded.context);
 
         var compiledModules = flattenImports(flattened.imports, expanded.mod, expanded.context);
         return [{
