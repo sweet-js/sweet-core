@@ -3273,7 +3273,11 @@
                 // must be included because a macro expanded to a reference
                 // to an import from some other module)
                 if (context.implicitImport.has(name)) {
-                    imports.push(context.implicitImport.get(name));
+                    var implicit = context.implicitImport.get(name);
+                    // don't double add the import
+                    if (!_.find(imports, imp -> imp === implicit)) {
+                        imports.push(implicit);
+                    }
                 }
                 return stx
             });
