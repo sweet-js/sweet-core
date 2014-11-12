@@ -1,17 +1,5 @@
 #lang "./macros/stxcase.js";
-import { eql } from "expect.js";
 
-// macro m {
-//     rule {} => { eql }
-// }
+function id(x) { return x }
 
-let m = macro {
-    function(stx) {
-        return {
-            result: quoteSyntax{eql},
-            rest: stx.slice(1)
-        };
-    }
-}
-
-export { m }
+export { id }
