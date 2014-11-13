@@ -12,7 +12,6 @@ var argv = require("optimist")
     .boolean('version')
     .alias('o', 'output')
     .describe('o', 'write out compiled files')
-    .boolean('output')
     .alias('w', 'watch')
     .describe('w', 'watch a file')
     .boolean('watch')
@@ -102,8 +101,13 @@ exports.run = function() {
     function doCompile() {
         var result = sweet.compile(file, options);
         result.forEach(function(res) {
-            var outfile = res.path + options.compileSuffix;
-            var mapfile = res.path + ".map";
+            var filename = path.basename(res.path);
+            var dirname = path.dirname(res.path);
+            var relativeDir = path.relative(dirname, writeToDisk);
+
+            var outfile = path.resolve(dirname, relativeDir, filename + options.compileSuffix);
+            var mapfile = path.resolve(dirname, relativeDir, filename + ".map");
+
             console.log("compiling: " + outfile);
             if (sourcemap) {
                 fs.writeFileSync(outfile, res.code + "\n//# sourceMappingURL=" + mapfile, "utf8");
