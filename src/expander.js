@@ -3327,6 +3327,7 @@
     // @ ([...SyntaxObject], {filename: Str}) -> [...{ path: Str, code: [...SyntaxObject]}]
     function compileModule(stx, options) {
         var fs = require("fs");
+        options = options || {};
         var filename = options && typeof options.filename !== 'undefined'
             ? fs.realpathSync(options.filename)
             : "(anonymous module)";
