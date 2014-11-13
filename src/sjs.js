@@ -7,11 +7,17 @@ var syn = require("./syntax.js");
 
 var argv = require("optimist")
     .usage("Usage: sjs [options] path/to/file.js")
-    .alias('v', 'version')
-    .describe('v', 'Output version info')
-    .boolean('version')
     .alias('o', 'output')
-    .describe('o', 'write out compiled files')
+    .describe('o', 'write files to the specified directory')
+    .alias('m', 'sourcemap')
+    .describe('m', 'generate a sourcemap')
+    .boolean("sourcemap")
+    .alias('r', 'readable-names')
+    .describe('r', 'remove as many hygienic renames as possible (ES5 code only!)')
+    .boolean('readable-names')
+    .alias('d', 'display')
+    .describe('d', 'display result of compilation to stdout (but do not write to disk)')
+    .boolean("display")
     .alias('w', 'watch')
     .describe('w', 'watch a file')
     .boolean('watch')
@@ -25,19 +31,16 @@ var argv = require("optimist")
     .alias('s', 'stdin')
     .describe('s', 'read from stdin')
     .boolean('stdin')
-    .alias('c', 'sourcemap')
-    .describe('c', 'generate a sourcemap')
-    .boolean("sourcemap")
     .alias('n', 'num-expands')
     .describe('n', 'the maximum number of expands to perform')
     .alias('h', 'step-hygiene')
     .describe('h', 'display hygienic renames when stepping with "--num-expands"')
-    .alias('r', 'readable-names')
-    .describe('r', 'remove as many hygienic renames as possible (ES5 code only!)')
-    .boolean('readable-names')
     .describe('format-indent', 'number of spaces for indentation')
     .alias('l', 'load-readtable')
     .describe('load-readtable', 'readtable module to install')
+    .alias('v', 'version')
+    .describe('v', 'display version info')
+    .boolean('version')
     .argv;
 
 
@@ -51,6 +54,7 @@ exports.run = function() {
     var tokens = argv.tokens;
     var ast = argv.ast;
     var sourcemap = argv.sourcemap;
+    var display = argv.display;
     var noparse = argv['no-parse'];
     var numexpands = argv['num-expands'];
     var displayHygiene = argv['step-hygiene'];
@@ -98,15 +102,21 @@ exports.run = function() {
         }
     };
 
-    function doCompile() {
+    function doCompile(outputDirectory) {
         var result = sweet.compile(file, options);
         result.forEach(function(res) {
-            var filename = path.basename(res.path);
-            var dirname = path.dirname(res.path);
-            var relativeDir = path.relative(dirname, writeToDisk);
+            var outfile, mapfile;
+            if (outputDirectory) {
+                var filename = path.basename(res.path);
+                var dirname = path.dirname(res.path);
+                var relativeDir = path.relative(dirname, writeToDisk);
 
-            var outfile = path.resolve(dirname, relativeDir, filename + options.compileSuffix);
-            var mapfile = path.resolve(dirname, relativeDir, filename + ".map");
+                outfile = path.resolve(dirname, relativeDir, filename + options.compileSuffix);
+                mapfile = path.resolve(dirname, relativeDir, filename + ".map");
+            } else {
+                outfile = res.path + options.compileSuffix;
+                mapfile = res.path + ".map";
+            }
 
             console.log("compiling: " + outfile);
             if (sourcemap) {
@@ -128,7 +138,7 @@ exports.run = function() {
             }
         });
     } else if (writeToDisk) {
-        doCompile();
+        doCompile(writeToDisk);
     } else if (tokens) {
         console.log(sweet.expand(file, modules, { maxExpands: numexpands }));
     } else if (ast) {
@@ -137,12 +147,14 @@ exports.run = function() {
         var expanded = sweet.expand(file, modules, { maxExpands: numexpands });
         var unparsedString = syn.prettyPrint(expanded, displayHygiene);
         console.log(unparsedString);
-    } else {
+    } else if (display) {
         options.maxExpands = numexpands;
         var result = sweet.compile(file, options);
         result.forEach(function(res) {
             console.log("file: " + res.path);
             console.log(res.code + "\n");
         });
+    } else {
+        doCompile();
     }
 };
