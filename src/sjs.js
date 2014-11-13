@@ -86,6 +86,7 @@ exports.run = function() {
 
     var options = {
         filename: infile,
+        compileSuffix: ".jsc",
         ast: ast,
         sourceMap: sourcemap,
         readableNames: readableNames,
@@ -101,7 +102,7 @@ exports.run = function() {
     function doCompile() {
         var result = sweet.compile(file, options);
         result.forEach(function(res) {
-            var outfile = res.path + ".sjc";
+            var outfile = res.path + options.compileSuffix;
             var mapfile = res.path + ".map";
             console.log("compiling: " + outfile);
             if (sourcemap) {

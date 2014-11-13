@@ -184,7 +184,9 @@
     //     sourceMap: ?Str
     // }]
     function compile(code, options) {
-        options = options || {};
+        options = options || {
+            compileSuffix: ".jsc"
+        };
         var expanded = expand(code, options);
 
         return parseExpanded(expanded, options).map(function(c) {

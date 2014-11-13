@@ -2692,6 +2692,8 @@
         return Object.create(Object.prototype, {
             filename: {value: o.filename,
                        writable: false, enumerable: true, configurable: false},
+            compileSuffix: {value: o.compileSuffix || ".jsc",
+                            writable: false, enumerable: true, configurable: false},
             env: {value: env,
                   writable: false, enumerable: true, configurable: false},
             defscope: {value: o.defscope,
@@ -2713,13 +2715,14 @@
         });
     }
 
-    function makeModuleExpanderContext(filename, templateMap, patternMap, phase, moduleRecord) {
+    function makeModuleExpanderContext(filename, templateMap, patternMap, phase, moduleRecord, compileSuffix) {
         return makeExpanderContext({
             filename: filename,
             templateMap: templateMap,
             patternMap: patternMap,
             phase: phase,
-            moduleRecord: moduleRecord
+            moduleRecord: moduleRecord,
+            compileSuffix: compileSuffix
         });
     }
 
@@ -3075,7 +3078,8 @@
                                        modFullPath,
                                        context.templateMap,
                                        context.patternMap,
-                                       mod.record);
+                                       mod.record,
+                                       context.compileSuffix);
             var modPair = {
                 term: modToImport.mod,
                 record: modToImport.context.moduleRecord
@@ -3186,13 +3190,14 @@
     //     context: ExpanderContext,
     //     mod: ModuleTerm
     // }
-    function expandModule(mod, filename, templateMap, patternMap, moduleRecord) {
+    function expandModule(mod, filename, templateMap, patternMap, moduleRecord, compileSuffix) {
         // create a new expander context for this module
         var context = makeModuleExpanderContext(filename,
                                                 templateMap,
                                                 patternMap,
                                                 0,
-                                                moduleRecord);
+                                                moduleRecord,
+                                                compileSuffix);
         return {
             context: context,
             mod: expandTermTreeToFinal(mod, context)
@@ -3284,7 +3289,10 @@
 
         // flatten everything
         var flatImports = imports.reduce((acc, imp) -> {
-            return acc.concat(flatten(imp.destruct(context).concat(syn.makePunc(";", imp.names))));
+            var clonedImp = _.clone(imp);
+            clonedImp.from = clonedImp.from.clone();
+            clonedImp.from.token.value = clonedImp.from.token.value + context.compileSuffix;
+            return acc.concat(flatten(clonedImp.destruct(context).concat(syn.makePunc(";", clonedImp.names))));
         }, []);
 
         return {
@@ -3328,7 +3336,7 @@
         var patternMap = new StringMap();
         availableModules = new StringMap();
 
-        var expanded = expandModule(mod.term, filename, templateMap, patternMap, mod.record);
+        var expanded = expandModule(mod.term, filename, templateMap, patternMap, mod.record, options.compileSuffix);
         var flattened = flattenModule(expanded.mod, expanded.context.moduleRecord, expanded.context);
 
         var compiledModules = flattenImports(flattened.imports, expanded.mod, expanded.context);
