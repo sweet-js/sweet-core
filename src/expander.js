@@ -3265,8 +3265,10 @@
                     assert(false, "not implemented yet");
                 }
             }
-            return acc.concat(term.destruct(context, {stripCompileTerm: true,
-                                                      stripModuleTerm: true}));
+            if (term.isImport || term.isImportForMacros) {
+                return acc;
+            }
+            return acc.concat(term.destruct(context, {stripCompileTerm: true}));
         }, []);
 
 
