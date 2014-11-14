@@ -165,7 +165,13 @@
 
             for(var i = 0, len = keys.length, key; i < len; i++) {
                 key = keys[i];
-                if(Array.isArray(this.token[key])) {
+                if (Array.isArray(this.token[key])) {
+                    if (key === "inner") {
+                        // need to clone the children of a delimiter
+                        newTok[key] = this.token[key].reduce(function(acc, stx) {
+                            return acc.push(stx.clone());
+                        }, []);
+                    }
                     assert(this.token[key].length === 2, "the only arrays on tokens should be ranges with two items");
                     newTok[key] = [this.token[key][0], this.token[key][1]];
                 } else {
