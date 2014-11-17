@@ -295,3 +295,136 @@ describe "procedural (syntax-case) macros" {
     }
 
 }
+
+describe "syntax objects" {
+    it "should have identifier testing functions" {
+        let m = macro {
+            case {_} => {
+                var s = makeIdent("foo", null);
+                if (s.isIdentifierToken) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m).to.be(true);
+    }
+
+    it "should have number testing functions" {
+        let m = macro {
+            case {_} => {
+                var s = makeValue(42, null);
+                if (s.isNumericLiteralToken) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m).to.be(true);
+    }
+
+    it "should have string testing functions" {
+        let m = macro {
+            case {_} => {
+                var s = makeValue("foo", null);
+                if (s.isStringLiteralToken) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m).to.be(true);
+    }
+
+    it "should have boolean testing functions" {
+        let m = macro {
+            case {_} => {
+                var s = makeValue(true, null);
+                if (s.isBooleanLiteralToken) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m).to.be(true);
+    }
+
+    it "should have null testing functions" {
+        let m = macro {
+            case {_} => {
+                var s = makeValue(null, null);
+                if (s.isNullLiteralToken) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m).to.be(true);
+    }
+
+    it "should have keyword testing functions" {
+        let m = macro {
+            case {_} => {
+                var s = makeKeyword("for", null);
+                if (s.isKeywordToken) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m).to.be(true);
+    }
+
+    it "should have regexp testing functions" {
+        let m = macro {
+            case {_} => {
+                var s = makeRegex("abc", "i", null);
+                if (s.isRegularExpressionToken) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m).to.be(true);
+    }
+
+    it "should have punctuator testing functions" {
+        let m = macro {
+            case {_} => {
+                var s = makePunc(";", null);
+                if (s.isPunctuatorToken) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m).to.be(true);
+    }
+
+    it "should have punctuator testing functions" {
+        let m = macro {
+            case {_} => {
+                var s = makePunc(";", null);
+                if (s.isPunctuatorToken) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m).to.be(true);
+    }
+
+    it "should have delimiter testing functions" {
+        let m = macro {
+            case {_} => {
+                var s = makeDelim("()", [], null);
+                if (s.isDelimiterToken) {
+                    return #{true}
+                }
+                return #{false}
+            }
+        }
+        expect(m).to.be(true);
+    }
+
+}

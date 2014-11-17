@@ -1147,6 +1147,53 @@ require('./test.sjs');
 
 This is basically equivalent to running `sjs --module ./macros/str test.sjs`.
 
+# Syntax Object API
+
+Each token in sweet.js is represented as a syntax object. A syntax object is an instance of `Syntax` that wraps a token and tracks the lexical context in which the syntax object was created for hygiene purposes.
+
+## `Syntax.prototype.clone`
+
+Returns a deep clone of the syntax object.
+
+## `Syntax.prototype.isIdentifierToken`
+
+Returns `true` if the syntax object is an identifier token (e.g. `foo`, `$`, `_ident`).
+
+## `Syntax.prototype.isNumericLiteralToken`
+
+Returns `true` if the syntax object is a numeric literal token (e.g. `42`, `0xDEADBEEF`).
+
+## `Syntax.prototype.isStringLiteralToken`
+
+Returns `true` if the syntax object is a string literal token (e.g. `"foo"`, `"it was the best of times, it was the worst of times"`).
+
+## `Syntax.prototype.isBooleanLiteralToken`
+
+Returns `true` if the syntax object is a boolean literal token (e.g. `true`, `false`).
+
+## `Syntax.prototype.isNullLiteralToken`
+
+Returns `true` if the syntax object is a null literal token (e.g. `null`).
+
+## `Syntax.prototype.isKeywordToken`
+
+Returns `true` if the syntax object is a keyword token (e.g. `for`, `function`, `let`).
+
+## `Syntax.prototype.isPunctuatorToken`
+
+Returns `true` if the syntax object is a punctuator token (e.g. `;`, `>`, `==`).
+
+## `Syntax.prototype.isRegularExpressionToken`
+
+Returns `true` if the syntax object is a regular expression literal token (e.g. `/abc/i`, `/[a-zA-Z]*/`).
+
+## `Syntax.prototype.isTemplateToken`
+
+Returns `true` if the syntax object is a template literal token (e.g. <code>`foo ${2 + 2}`</code>).
+
+## `Syntax.prototype.isEOF`
+
+Returns `true` if the syntax object is the end of file token.
 
 # Compiler API
 

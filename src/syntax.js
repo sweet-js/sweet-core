@@ -179,6 +179,40 @@
                 }
             }
             return syntaxFromToken(newTok, this);
+        },
+
+        isIdentifierToken: function() {
+            return this.token && this.token.type === parser.Token.Identifier;
+        },
+        isStringLiteralToken: function() {
+            return this.token && this.token.type === parser.Token.StringLiteral;
+        },
+        isNumericLiteralToken: function() {
+            return this.token && this.token.type === parser.Token.NumericLiteral;
+        },
+        isBooleanLiteralToken: function() {
+            return this.token && this.token.type === parser.Token.BooleanLiteral;
+        },
+        isNullLiteralToken: function() {
+            return this.token && this.token.type === parser.Token.NullLiteral;
+        },
+        isKeywordToken: function() {
+            return this.token && this.token.type === parser.Token.Keyword;
+        },
+        isPunctuatorToken: function() {
+            return this.token && this.token.type === parser.Token.Punctuator;
+        },
+        isRegularExpressionToken: function() {
+            return this.token && this.token.type === parser.Token.RegularExpression;
+        },
+        isTemplateToken: function() {
+            return this.token && this.token.type === parser.Token.Template;
+        },
+        isDelimiterToken: function() {
+            return this.token && this.token.type === parser.Token.Delimiter;
+        },
+        isEOFToken: function() {
+            return this.token && this.token.type === parser.Token.EOF;
         }
     };
 
