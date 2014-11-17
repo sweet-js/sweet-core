@@ -294,7 +294,7 @@
     // wraps the array of syntax objects in the delimiters given by the second argument
     // ([...CSyntax], CSyntax) -> [...CSyntax]
     function wrapDelim(towrap, delimSyntax) {
-        assert(delimSyntax.token.type === parser.Token.Delimiter,
+        assert(delimSyntax.isDelimiterToken(),
                       "expecting a delimiter token");
 
         return syntaxFromToken({
@@ -309,9 +309,9 @@
 
     // (CSyntax) -> [...CSyntax]
     function getParamIdentifiers(argSyntax) {
-        if (argSyntax.token.type === parser.Token.Delimiter) {
+        if (argSyntax.isDelimiterToken()) {
             return _.filter(argSyntax.token.inner, function(stx) { return stx.token.value !== ","});
-        } else if (argSyntax.token.type === parser.Token.Identifier) {
+        } else if (argSyntax.isIdentifierToken()) {
             return [argSyntax];
         } else {
             assert(false, "expecting a delimiter or a single identifier for function parameters");
@@ -779,14 +779,14 @@
         }
 
         while (rest.length) {
-            if (rest[0].token.type === parser.Token.Identifier) {
-                if (rest[1] && rest[1].token.type === parser.Token.Punctuator &&
+            if (rest[0].isIdentifierToken()) {
+                if (rest[1] && rest[1].isPunctuatorToken() &&
                     rest[1].token.value === "=") {
                     rhs = get_expression(rest.slice(2), context);
                     if (rhs.result == null) {
                         throwSyntaxError("enforest", "Unexpected token", rhs.rest[0]);
                     }
-                    if (rhs.rest[0] && rhs.rest[0].token.type === parser.Token.Punctuator &&
+                    if (rhs.rest[0] && rhs.rest[0].isPunctuatorToken() &&
                         rhs.rest[0].token.value === ",") {
                         decls.push(VariableDeclaration.create(rest[0], rest[1], rhs.result, rhs.rest[0]));
                         rest = rhs.rest.slice(1);
@@ -796,7 +796,7 @@
                         rest = rhs.rest;
                         break;
                     }
-                } else if (rest[1] && rest[1].token.type === parser.Token.Punctuator &&
+                } else if (rest[1] && rest[1].isPunctuatorToken() &&
                            rest[1].token.value === ",") {
                     decls.push(VariableDeclaration.create(rest[0], null, null, rest[1]));
                     rest = rest.slice(2);
@@ -887,7 +887,7 @@
         };
 
         return _.map(stx, function(stx) {
-            if (stx.token.type === parser.Token.Delimiter) {
+            if (stx.isDelimiterToken()) {
                 // handle tokens with missing line info
                 stx.token.startLineNumber = typeof stx.token.startLineNumber == 'undefined'
                                                 ? original.token.lineNumber
@@ -991,9 +991,9 @@
         var name = [head];
         while (true) {
             if (next &&
-                (next.token.type === parser.Token.Punctuator ||
-                 next.token.type === parser.Token.Identifier ||
-                 next.token.type === parser.Token.Keyword) &&
+                (next.isPunctuatorToken() ||
+                 next.isIdentifierToken() ||
+                 next.isKeywordToken()) &&
                 (toksAdjacent(curr, next))) {
                 name.push(next);
                 curr = next;
@@ -1005,9 +1005,9 @@
     }
 
     function getValueInEnv(head, rest, context, phase) {
-        if (!(head.token.type === parser.Token.Identifier ||
-              head.token.type === parser.Token.Keyword ||
-              head.token.type === parser.Token.Punctuator)) {
+        if (!(head.isIdentifierToken() ||
+              head.isKeywordToken() ||
+              head.isPunctuatorToken())) {
             return null;
         }
         var name = getName(head, rest);
@@ -1345,8 +1345,8 @@
                     return step(opRightStx[0], opRightStx.slice(1), bopOpCtx);
                 // Call
                 } else if (head.isExpr && (rest[0] &&
-                             rest[0].token.type === parser.Token.Delimiter &&
-                             rest[0].token.value === "()")) {
+                                           rest[0].isDelimiterToken() &&
+                                           rest[0].token.value === "()")) {
 
                     var parenRes = enforestParenExpression(rest[0], context);
                     if (parenRes) {
@@ -1405,7 +1405,7 @@
                 } else if (head.isDelimiter &&
                            head.delim.token.value === "()" &&
                            rest[0] &&
-                           rest[0].token.type === parser.Token.Punctuator &&
+                           rest[0].isPunctuatorToken() &&
                            resolveFast(rest[0], context.env, context.phase) === "=>") {
                     var arrowRes = enforest(rest.slice(1), context);
                     if (arrowRes.result && arrowRes.result.isExpr) {
@@ -1422,7 +1422,7 @@
                 // Arrow functions with expression bodies
                 } else if (head.isId &&
                            rest[0] &&
-                           rest[0].token.type === parser.Token.Punctuator &&
+                           rest[0].isPunctuatorToken() &&
                            resolveFast(rest[0], context.env, context.phase) === "=>") {
                     var res = enforest(rest.slice(1), context);
                     if (res.result && res.result.isExpr) {
@@ -1499,8 +1499,8 @@
                             (rest[0] && unwrapSyntax(rest[0]) === "." &&
                              !context.env.has(resolveFast(rest[0], context.env, context.phase)) &&
                              rest[1] &&
-                             (rest[1].token.type === parser.Token.Identifier ||
-                              rest[1].token.type === parser.Token.Keyword))) {
+                             (rest[1].isIdentifierToken() ||
+                              rest[1].isKeywordToken()))) {
                     // Check if the identifier is a macro first.
                     if (context.env.has(resolveFast(rest[1], context.env, context.phase))) {
                         var headStx = tagWithTerm(head, head.destruct(context).reverse());
@@ -1558,7 +1558,7 @@
                 } else if (head.isKeyword &&
                            unwrapSyntax(head.keyword) === "let") {
                     var nameTokens = [];
-                    if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                    if (rest[0] && rest[0].isDelimiterToken() &&
                         rest[0].token.value === "()") {
                         nameTokens = rest[0].token.inner;
                     } else {
@@ -1634,7 +1634,7 @@
                         return step(Empty.create(), rt.rest, newOpCtx);
                     }
                 // anon macro definition
-                } else if (head.token.type === parser.Token.Identifier &&
+                } else if (head.isIdentifierToken() &&
                            unwrapSyntax(head) === "macro" &&
                            resolve(head, context.phase) === "macro" &&
                            rest[0] && rest[0].token.value === "{}") {
@@ -1643,17 +1643,17 @@
                                 rest.slice(1),
                                 opCtx);
                 // macro definition
-                } else if (head.token.type === parser.Token.Identifier &&
+                } else if (head.isIdentifierToken() &&
                            unwrapSyntax(head) === "macro" &&
                            resolve(head, context.phase) === "macro") {
                     var nameTokens = [];
-                    if (rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                    if (rest[0] && rest[0].isDelimiterToken() &&
                         rest[0].token.value === "()") {
                         nameTokens = rest[0].token.inner;
                     } else {
                         nameTokens.push(rest[0])
                     }
-                    if (rest[1] && rest[1].token.type === parser.Token.Delimiter) {
+                    if (rest[1] && rest[1].isDelimiterToken()) {
                         return step(Macro.create(nameTokens, rest[1].token.inner),
                                     rest.slice(2),
                                     opCtx);
@@ -1662,12 +1662,12 @@
                     }
                 // operator definition
                 // unaryop (neg) 1 { macro { rule { $op:expr } => { $op } } }
-                } else if (head.token.type === parser.Token.Identifier &&
+                } else if (head.isIdentifierToken() &&
                            head.token.value === "unaryop" &&
-                           rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                           rest[0] && rest[0].isDelimiterToken() &&
                            rest[0].token.value === "()" &&
-                           rest[1] && rest[1].token.type === parser.Token.NumericLiteral &&
-                           rest[2] && rest[2].token.type === parser.Token.Delimiter &&
+                           rest[1] && rest[1].isNumericLiteralToken() &&
+                           rest[2] && rest[2].isDelimiterToken() &&
                            rest[2] && rest[2].token.value === "{}") {
                     var trans = enforest(rest[2].token.inner, context);
                     return step(OperatorDefinition.create(syn.makeValue("unary", head),
@@ -1679,13 +1679,13 @@
                                 opCtx);
                 // operator definition
                 // binaryop (neg) 1 left { macro { rule { $op:expr } => { $op } } }
-                } else if (head.token.type === parser.Token.Identifier &&
+                } else if (head.isIdentifierToken() &&
                            head.token.value === "binaryop" &&
-                           rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                           rest[0] && rest[0].isDelimiterToken() &&
                            rest[0].token.value === "()" &&
-                           rest[1] && rest[1].token.type === parser.Token.NumericLiteral &&
-                           rest[2] && rest[2].token.type === parser.Token.Identifier &&
-                           rest[3] && rest[3].token.type === parser.Token.Delimiter &&
+                           rest[1] && rest[1].isNumericLiteralToken() &&
+                           rest[2] && rest[2].isIdentifierToken() &&
+                           rest[3] && rest[3].isDelimiterToken() &&
                            rest[3] && rest[3].token.value === "{}") {
                     var trans = enforest(rest[3].token.inner, context);
                     return step(OperatorDefinition.create(syn.makeValue("binary", head),
@@ -1696,13 +1696,13 @@
                                 rest.slice(4),
                                 opCtx);
                 // function definition
-                } else if (head.token.type === parser.Token.Keyword &&
-                    unwrapSyntax(head) === "function" &&
-                    rest[0] && rest[0].token.type === parser.Token.Identifier &&
-                    rest[1] && rest[1].token.type === parser.Token.Delimiter &&
-                    rest[1].token.value === "()" &&
-                    rest[2] && rest[2].token.type === parser.Token.Delimiter &&
-                    rest[2].token.value === "{}") {
+                } else if (head.isKeywordToken() &&
+                           unwrapSyntax(head) === "function" &&
+                           rest[0] && rest[0].isIdentifierToken() &&
+                           rest[1] && rest[1].isDelimiterToken() &&
+                           rest[1].token.value === "()" &&
+                           rest[2] && rest[2].isDelimiterToken() &&
+                           rest[2].token.value === "{}") {
 
                     rest[1].token.inner = rest[1].token.inner;
                     rest[2].token.inner = rest[2].token.inner;
@@ -1712,15 +1712,15 @@
                                 rest.slice(3),
                                 opCtx);
                 // generator function definition
-                } else if (head.token.type === parser.Token.Keyword &&
-                    unwrapSyntax(head) === "function" &&
-                    rest[0] && rest[0].token.type === parser.Token.Punctuator &&
-                    rest[0].token.value === "*" &&
-                    rest[1] && rest[1].token.type === parser.Token.Identifier &&
-                    rest[2] && rest[2].token.type === parser.Token.Delimiter &&
-                    rest[2].token.value === "()" &&
-                    rest[3] && rest[3].token.type === parser.Token.Delimiter &&
-                    rest[3].token.value === "{}") {
+                } else if (head.isKeywordToken() &&
+                           unwrapSyntax(head) === "function" &&
+                           rest[0] && rest[0].isPunctuatorToken() &&
+                           rest[0].token.value === "*" &&
+                           rest[1] && rest[1].isIdentifierToken() &&
+                           rest[2] && rest[2].isDelimiterToken() &&
+                           rest[2].token.value === "()" &&
+                           rest[3] && rest[3].isDelimiterToken() &&
+                           rest[3].token.value === "{}") {
 
                     rest[2].token.inner = rest[2].token.inner;
                     rest[3].token.inner = rest[3].token.inner;
@@ -1730,12 +1730,12 @@
                                 rest.slice(4),
                                 opCtx);
                 // anonymous function definition
-                } else if(head.token.type === parser.Token.Keyword &&
-                    unwrapSyntax(head) === "function" &&
-                    rest[0] && rest[0].token.type === parser.Token.Delimiter &&
-                    rest[0].token.value === "()" &&
-                    rest[1] && rest[1].token.type === parser.Token.Delimiter &&
-                    rest[1].token.value === "{}") {
+                } else if(head.isKeywordToken() &&
+                          unwrapSyntax(head) === "function" &&
+                          rest[0] && rest[0].isDelimiterToken() &&
+                          rest[0].token.value === "()" &&
+                          rest[1] && rest[1].isDelimiterToken() &&
+                          rest[1].token.value === "{}") {
 
                     rest[0].token.inner = rest[0].token.inner;
                     rest[1].token.inner = rest[1].token.inner;
@@ -1746,14 +1746,14 @@
                                 rest.slice(2),
                                 opCtx);
                 // anonymous generator function definition
-                } else if(head.token.type === parser.Token.Keyword &&
-                    unwrapSyntax(head) === "function" &&
-                    rest[0] && rest[0].token.type === parser.Token.Punctuator &&
-                    rest[0].token.value === "*" &&
-                    rest[1] && rest[1].token.type === parser.Token.Delimiter &&
-                    rest[1].token.value === "()" &&
-                    rest[2] && rest[2].token.type === parser.Token.Delimiter &&
-                    rest[2].token.value === "{}") {
+                } else if(head.isKeywordToken() &&
+                          unwrapSyntax(head) === "function" &&
+                          rest[0] && rest[0].isPunctuatorToken() &&
+                          rest[0].token.value === "*" &&
+                          rest[1] && rest[1].isDelimiterToken() &&
+                          rest[1].token.value === "()" &&
+                          rest[2] && rest[2].isDelimiterToken &&
+                          rest[2].token.value === "{}") {
 
                     rest[1].token.inner = rest[1].token.inner;
                     rest[2].token.inner = rest[2].token.inner;
@@ -1764,22 +1764,22 @@
                                 rest.slice(3),
                                 opCtx);
                 // arrow function
-                } else if(((head.token.type === parser.Token.Delimiter &&
+                } else if(((head.isDelimiterToken() &&
                             head.token.value === "()") ||
-                            head.token.type === parser.Token.Identifier) &&
-                            rest[0] && rest[0].token.type === parser.Token.Punctuator &&
-                            resolveFast(rest[0], context.env, context.phase) === "=>" &&
-                            rest[1] && rest[1].token.type === parser.Token.Delimiter &&
-                            rest[1].token.value === "{}") {
+                           head.isIdentifierToken()) &&
+                          rest[0] && rest[0].isPunctuatorToken() &&
+                          resolveFast(rest[0], context.env, context.phase) === "=>" &&
+                          rest[1] && rest[1].isDelimiterToken() &&
+                          rest[1].token.value === "{}") {
                     return step(ArrowFun.create(head, rest[0], rest[1]),
                                 rest.slice(2),
                                 opCtx);
                 // catch statement
-                } else if (head.token.type === parser.Token.Keyword &&
+                } else if (head.isKeywordToken() &&
                            unwrapSyntax(head) === "catch" &&
-                           rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                           rest[0] && rest[0].isDelimiterToken() &&
                            rest[0].token.value === "()" &&
-                           rest[1] && rest[1].token.type === parser.Token.Delimiter &&
+                           rest[1] && rest[1].isDelimiterToken() &&
                            rest[1].token.value === "{}") {
                     rest[0].token.inner = rest[0].token.inner;
                     rest[1].token.inner = rest[1].token.inner;
@@ -1787,42 +1787,41 @@
                                 rest.slice(2),
                                 opCtx);
                 // this expression
-                } else if (head.token.type === parser.Token.Keyword &&
-                    unwrapSyntax(head) === "this") {
-
+                } else if (head.isKeywordToken() &&
+                           unwrapSyntax(head) === "this") {
                     return step(ThisExpression.create(head), rest, opCtx);
                 // literal
-                } else if (head.token.type === parser.Token.NumericLiteral ||
-                    head.token.type === parser.Token.StringLiteral ||
-                    head.token.type === parser.Token.BooleanLiteral ||
-                    head.token.type === parser.Token.RegularExpression ||
-                    head.token.type === parser.Token.NullLiteral) {
+                } else if (head.isNumericLiteralToken() ||
+                           head.isStringLiteralToken()||
+                           head.isBooleanLiteralToken()||
+                           head.isRegularExpressionToken() ||
+                           head.isNullLiteralToken()) {
 
                     return step(Lit.create(head), rest, opCtx);
-                } else if (head.token.type === parser.Token.Keyword &&
+                } else if (head.isKeywordToken() &&
                            unwrapSyntax(head) === "import" &&
-                           rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                           rest[0] && rest[0].isDelimiterToken() &&
                            rest[0].token.value === "{}" &&
                            rest[1] && unwrapSyntax(rest[1]) === "from" &&
-                           rest[2] && rest[2].token.type === parser.Token.StringLiteral &&
+                           rest[2] && rest[2].isStringLiteralToken()&&
                            rest[3] && unwrapSyntax(rest[3]) === "for" &&
                            rest[4] && unwrapSyntax(rest[4]) === "macros") {
                     var importRest;
-                    if (rest[5] && rest[5].token.type === parser.Token.Punctuator &&
+                    if (rest[5] && rest[5].isPunctuatorToken() &&
                         rest[5].token.value === ";") {
                         importRest = rest.slice(6);
                     } else {
                         importRest = rest.slice(5);
                     }
                     return step(ImportForMacros.create(rest[0], rest[2]), importRest, opCtx);
-                } else if (head.token.type === parser.Token.Keyword &&
+                } else if (head.isKeywordToken() &&
                            unwrapSyntax(head) === "import" &&
-                           rest[0] && rest[0].token.type === parser.Token.Delimiter &&
+                           rest[0] && rest[0].isDelimiterToken() &&
                            rest[0].token.value === "{}" &&
                            rest[1] && unwrapSyntax(rest[1]) === "from" &&
-                           rest[2] && rest[2].token.type === parser.Token.StringLiteral) {
+                           rest[2] && rest[2].isStringLiteralToken() ) {
                     var importRest;
-                    if (rest[3] && rest[3].token.type === parser.Token.Punctuator &&
+                    if (rest[3] && rest[3].isPunctuatorToken() &&
                         rest[3].token.value === ";") {
                         importRest = rest.slice(4);
                     } else {
@@ -1830,12 +1829,12 @@
                     }
                     return step(Import.create(head, rest[0], rest[1], rest[2]), importRest, opCtx);
                 // export
-                } else if (head.token.type === parser.Token.Keyword &&
-                            unwrapSyntax(head) === "export" &&
-                            rest[0] && (rest[0].token.type === parser.Token.Identifier ||
-                                        rest[0].token.type === parser.Token.Keyword ||
-                                        rest[0].token.type === parser.Token.Punctuator ||
-                                        rest[0].token.type === parser.Token.Delimiter)) {
+                } else if (head.isKeywordToken() &&
+                           unwrapSyntax(head) === "export" &&
+                           rest[0] && (rest[0].isIdentifierToken() ||
+                                       rest[0].isKeywordToken() ||
+                                       rest[0].isPunctuatorToken() ||
+                                       rest[0].isDelimiterToken())) {
                     if (unwrapSyntax(rest[1]) !== ";" && toksAdjacent(rest[0], rest[1])) {
                         throwSyntaxError("enforest",
                                          "multi-token macro/operator names must be wrapped in () when exporting",
@@ -1843,24 +1842,24 @@
                     }
                     return step(Export.create(head, rest[0]), rest.slice(1), opCtx);
                 // identifier
-                } else if (head.token.type === parser.Token.Identifier) {
+                } else if (head.isIdentifierToken()) {
                     return step(Id.create(head), rest, opCtx);
                 // punctuator
-                } else if (head.token.type === parser.Token.Punctuator) {
+                } else if (head.isPunctuatorToken()) {
                     return step(Punc.create(head), rest, opCtx);
-                } else if (head.token.type === parser.Token.Keyword &&
-                            unwrapSyntax(head) === "with") {
+                } else if (head.isKeywordToken() &&
+                           unwrapSyntax(head) === "with") {
                     throwSyntaxError("enforest", "with is not supported in sweet.js", head);
                 // keyword
-                } else if (head.token.type === parser.Token.Keyword) {
+                } else if (head.isKeywordToken()) {
                     return step(Keyword.create(head), rest, opCtx);
                 // Delimiter
-                } else if (head.token.type === parser.Token.Delimiter) {
+                } else if (head.isDelimiterToken()) {
                     return step(Delimiter.create(head), rest, opCtx);
-                } else if (head.token.type === parser.Token.Template) {
+                } else if (head.isTemplateToken()) {
                     return step(Template.create(head), rest, opCtx);
                 // end of file
-                } else if (head.token.type === parser.Token.EOF) {
+                } else if (head.isEOFToken()) {
                     assert(rest.length === 0, "nothing should be after an EOF");
                     return step(EOF.create(head), [], opCtx);
                 } else {
@@ -2107,7 +2106,7 @@
                 };
             },
             getIdent: function(stx) {
-                if (stx[0] && stx[0].token.type === parser.Token.Identifier) {
+                if (stx[0] && stx[0].isIdentifierToken()) {
                     return {
                         success: true,
                         result: [stx[0]],
@@ -2236,7 +2235,7 @@
 
             if (head.isMacro && expandCount < maxExpands) {
                 // raw function primitive form
-                if(!(head.body[0] && head.body[0].token.type === parser.Token.Keyword &&
+                if(!(head.body[0] && head.body[0].isKeywordToken() &&
                      head.body[0].token.value === "function")) {
                     throwSyntaxError("load macro",
                                      "Primitive macro form must contain a function for the macro body",
@@ -2263,7 +2262,7 @@
 
             if (head.isLetMacro && expandCount < maxExpands) {
                 // raw function primitive form
-                if(!(head.body[0] && head.body[0].token.type === parser.Token.Keyword &&
+                if(!(head.body[0] && head.body[0].isKeywordToken() &&
                      head.body[0].token.value === "function")) {
                     throwSyntaxError("load macro",
                                      "Primitive macro form must contain a function for the macro body",
@@ -2300,7 +2299,7 @@
 
             if (head.isOperatorDefinition) {
                 // raw function primitive form
-                if(!(head.body[0] && head.body[0].token.type === parser.Token.Keyword &&
+                if(!(head.body[0] && head.body[0].isKeywordToken() &&
                      head.body[0].token.value === "function")) {
                     throwSyntaxError("load macro",
                                      "Primitive macro form must contain a function for the macro body",
@@ -2377,7 +2376,7 @@
             if (head.isForStatement) {
                 var forCond = head.cond.token.inner;
                 if(forCond[0] && resolve(forCond[0], context.phase) === "let" &&
-                   forCond[1] && forCond[1].token.type === parser.Token.Identifier) {
+                   forCond[1] && forCond[1].isIdentifierToken()) {
                     var letNew = fresh();
                     var letId = forCond[1];
 
@@ -2537,10 +2536,10 @@
             // push down a fresh definition context
             var newDef = [];
 
-            var paramSingleIdent = term.params && term.params.token.type === parser.Token.Identifier;
+            var paramSingleIdent = term.params && term.params.isIdentifierToken();
 
             var params;
-            if (term.params && term.params.token.type === parser.Token.Delimiter) {
+            if (term.params && term.params.isDelimiterToken()) {
                 params = term.params;
             } else if (paramSingleIdent) {
                 params = term.params;
@@ -2634,7 +2633,7 @@
             if (term.isModule) {
                 bodyTerms.forEach(bodyTerm -> {
                     if (bodyTerm.isExport) {
-                        if (bodyTerm.name.token.type == parser.Token.Delimiter &&
+                        if (bodyTerm.name.isDelimiterToken() &&
                             bodyTerm.name.token.value === "{}") {
                             bodyTerm.name.token.inner
                                 |> filterCommaSep
@@ -2820,12 +2819,12 @@
         if (body && body[0] && body[1] && body[2] &&
             unwrapSyntax(body[0]) === "#" &&
             unwrapSyntax(body[1]) === "lang" &&
-            body[2].token.type === parser.Token.StringLiteral) {
+            body[2].isStringLiteralToken()) {
 
             language = unwrapSyntax(body[2]);
             // consume optional semicolon
             modBody = body[3] && body[3].token.value === ";" &&
-                body[3].token.type == parser.Token.Punctuator ? body.slice(4) : body.slice(3);
+                body[3].isPunctuatorToken() ? body.slice(4) : body.slice(3);
         }
 
         // insert the default import statements into the module body
@@ -3016,7 +3015,7 @@
 
             // add the exported names to the module record
             if (term.isExport) {
-                if (term.name.token.type === parser.Token.Delimiter &&
+                if (term.name.isDelimiterToken() &&
                     term.name.token.value === "{}") {
                     term.name.token.inner
                         |> filterCommaSep
@@ -3036,7 +3035,7 @@
     // the comma separated list.
     function mapCommaSep(l, f) {
         return l.map((stx, idx)-> {
-            if (idx % 2 !== 0 && (stx.token.type !== parser.Token.Punctuator ||
+            if (idx % 2 !== 0 && ((!stx.isPunctuatorToken()) ||
                                   stx.token.value !== ",")) {
                 throwSyntaxError("import",
                                  "expecting a comma separated list",
@@ -3051,7 +3050,7 @@
 
     function filterCommaSep(stx) {
         return stx.filter((stx, idx) -> {
-            if (idx % 2 !== 0 && (stx.token.type !== parser.Token.Punctuator ||
+            if (idx % 2 !== 0 && ((!stx.isPunctuatorToken()) ||
                                   stx.token.value !== ",")) {
                 throwSyntaxError("import",
                                  "expecting a comma separated list",
@@ -3093,7 +3092,7 @@
     // @ (ImportTerm, [...SyntaxObject], ModuleTerm, ModuleRecord, ExpanderContext, Num) -> Void
     function bindImportInMod(imp, stx, modTerm, modRecord, context, phase) {
         // todo: implement other import forms
-        if (imp.names.token.type !== parser.Token.Delimiter) {
+        if (!imp.names.isDelimiterToken()) {
             assert(false, "not implemented yet");
         }
 
@@ -3110,8 +3109,8 @@
                 var isBase = modRecord.language === "base";
 
                 var inExports = _.find(modRecord.exportEntries, expTerm -> {
-                    if (importName.token.type === parser.Token.Delimiter) {
-                        return expTerm.token.type === parser.Token.Delimiter &&
+                    if (importName.isDelimiterToken()) {
+                        return expTerm.isDelimiterToken() &&
                             syntaxInnerValuesEq(importName, expTerm);
                     }
                     return expTerm.token.value === importName.token.value
@@ -3130,13 +3129,13 @@
                     // module but not for macros so the module
                     // was not invoked and thus nothing in the
                     // context for this name
-                    if (importName.token.type === parser.Token.Delimiter) {
+                    if (importName.isDelimiterToken()) {
                         exportNameStr = importName.map(unwrapSyntax).join('');
                     } else {
                         exportNameStr = unwrapSyntax(importName);
                     }
                     trans = null;
-                } else if (inExports.token.type === parser.Token.Delimiter) {
+                } else if (inExports.isDelimiterToken()) {
                     exportName = inExports.token.inner;
                     exportNameStr = exportName.map(unwrapSyntax).join('');
                     trans = getValueInEnv(exportName[0],
@@ -3205,13 +3204,13 @@
     }
 
     function filterCompileNames(stx, context) {
-        assert(stx.token.type === parser.Token.Delimiter, "must be a delimter");
+        assert(stx.isDelimiterToken(), "must be a delimter");
 
         var runtimeNames = stx.token.inner
             |> filterCommaSep
             |> names -> {
                 return names.filter(name -> {
-                    if (name.token.type === parser.Token.Delimiter) {
+                    if (name.isDelimiterToken()) {
                         return !nameInEnv(name.token.inner[0],
                                           name.token.inner.slice(1),
                                           context,
@@ -3241,7 +3240,7 @@
             if (imp.isImportForMacros) {
                 return acc;
             }
-            if (imp.names.token.type === parser.Token.Delimiter) {
+            if (imp.names.isDelimiterToken()) {
                 imp.names = filterCompileNames(imp.names, context);
                 if (imp.names.token.inner.length === 0) {
                     return acc;
@@ -3256,7 +3255,7 @@
         // actually available at runtime
         var output = modTerm.body.reduce((acc, term) -> {
             if (term.isExport) {
-                if (term.name.token.type === parser.Token.Delimiter) {
+                if (term.name.isDelimiterToken()) {
                     term.name = filterCompileNames(term.name, context);
                     if (term.name.token.inner.length === 0) {
                         return acc;
@@ -3368,7 +3367,7 @@
     // @ ([...SyntaxObject]) -> [...SyntaxObject]
     function flatten(stx) {
         return _.reduce(stx, function(acc, stx) {
-            if (stx.token.type === parser.Token.Delimiter) {
+            if (stx.isDelimiterToken()) {
                 var openParen = syntaxFromToken({
                     type: parser.Token.Punctuator,
                     value: stx.token.value[0],
