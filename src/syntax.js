@@ -307,7 +307,7 @@
     }
 
     function makeRegex(val, flags, stx) {
-        var newstx = mkSyntax(stx, new RegExp(val, flags), parser.Token.RegexLiteral);
+        var newstx = mkSyntax(stx, new RegExp(val, flags), parser.Token.RegularExpression);
         // regex tokens need the extra field literal on token
         newstx.token.literal = val;
         return newstx;

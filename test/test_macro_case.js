@@ -301,7 +301,7 @@ describe "syntax objects" {
         let m = macro {
             case {_} => {
                 var s = makeIdent("foo", null);
-                if (s.isIdentifierToken) {
+                if (s.isIdentifierToken()) {
                     return #{true}
                 }
                 return #{false}
@@ -314,7 +314,7 @@ describe "syntax objects" {
         let m = macro {
             case {_} => {
                 var s = makeValue(42, null);
-                if (s.isNumericLiteralToken) {
+                if (s.isNumericLiteralToken()) {
                     return #{true}
                 }
                 return #{false}
@@ -327,7 +327,7 @@ describe "syntax objects" {
         let m = macro {
             case {_} => {
                 var s = makeValue("foo", null);
-                if (s.isStringLiteralToken) {
+                if (s.isStringLiteralToken()) {
                     return #{true}
                 }
                 return #{false}
@@ -340,7 +340,7 @@ describe "syntax objects" {
         let m = macro {
             case {_} => {
                 var s = makeValue(true, null);
-                if (s.isBooleanLiteralToken) {
+                if (s.isBooleanLiteralToken()) {
                     return #{true}
                 }
                 return #{false}
@@ -353,7 +353,7 @@ describe "syntax objects" {
         let m = macro {
             case {_} => {
                 var s = makeValue(null, null);
-                if (s.isNullLiteralToken) {
+                if (s.isNullLiteralToken()) {
                     return #{true}
                 }
                 return #{false}
@@ -366,7 +366,7 @@ describe "syntax objects" {
         let m = macro {
             case {_} => {
                 var s = makeKeyword("for", null);
-                if (s.isKeywordToken) {
+                if (s.isKeywordToken()) {
                     return #{true}
                 }
                 return #{false}
@@ -379,7 +379,7 @@ describe "syntax objects" {
         let m = macro {
             case {_} => {
                 var s = makeRegex("abc", "i", null);
-                if (s.isRegularExpressionToken) {
+                if (s.isRegularExpressionToken()) {
                     return #{true}
                 }
                 return #{false}
@@ -392,7 +392,7 @@ describe "syntax objects" {
         let m = macro {
             case {_} => {
                 var s = makePunc(";", null);
-                if (s.isPunctuatorToken) {
+                if (s.isPunctuatorToken()) {
                     return #{true}
                 }
                 return #{false}
@@ -405,7 +405,7 @@ describe "syntax objects" {
         let m = macro {
             case {_} => {
                 var s = makePunc(";", null);
-                if (s.isPunctuatorToken) {
+                if (s.isPunctuatorToken()) {
                     return #{true}
                 }
                 return #{false}
@@ -418,7 +418,7 @@ describe "syntax objects" {
         let m = macro {
             case {_} => {
                 var s = makeDelim("()", [], null);
-                if (s.isDelimiterToken) {
+                if (s.isDelimiterToken()) {
                     return #{true}
                 }
                 return #{false}
