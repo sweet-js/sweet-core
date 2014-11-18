@@ -181,37 +181,37 @@
             return syntaxFromToken(newTok, this);
         },
 
-        isIdentifierToken: function() {
+        isIdentifier: function() {
             return this.token && this.token.type === parser.Token.Identifier;
         },
-        isStringLiteralToken: function() {
+        isStringLiteral: function() {
             return this.token && this.token.type === parser.Token.StringLiteral;
         },
-        isNumericLiteralToken: function() {
+        isNumericLiteral: function() {
             return this.token && this.token.type === parser.Token.NumericLiteral;
         },
-        isBooleanLiteralToken: function() {
+        isBooleanLiteral: function() {
             return this.token && this.token.type === parser.Token.BooleanLiteral;
         },
-        isNullLiteralToken: function() {
+        isNullLiteral: function() {
             return this.token && this.token.type === parser.Token.NullLiteral;
         },
-        isKeywordToken: function() {
+        isKeyword: function() {
             return this.token && this.token.type === parser.Token.Keyword;
         },
-        isPunctuatorToken: function() {
+        isPunctuator: function() {
             return this.token && this.token.type === parser.Token.Punctuator;
         },
-        isRegularExpressionToken: function() {
+        isRegularExpression: function() {
             return this.token && this.token.type === parser.Token.RegularExpression;
         },
-        isTemplateToken: function() {
+        isTemplate: function() {
             return this.token && this.token.type === parser.Token.Template;
         },
-        isDelimiterToken: function() {
+        isDelimiter: function() {
             return this.token && this.token.type === parser.Token.Delimiter;
         },
-        isEOFToken: function() {
+        isEOF: function() {
             return this.token && this.token.type === parser.Token.EOF;
         }
     };

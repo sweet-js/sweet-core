@@ -1155,43 +1155,43 @@ Each token in sweet.js is represented as a syntax object. A syntax object is an 
 
 Returns a deep clone of the syntax object.
 
-## `Syntax.prototype.isIdentifierToken`
+## `Syntax.prototype.isIdentifier())`
 
 Returns `true` if the syntax object is an identifier token (e.g. `foo`, `$`, `_ident`).
 
-## `Syntax.prototype.isNumericLiteralToken`
+## `Syntax.prototype.isNumericLiteral()`
 
 Returns `true` if the syntax object is a numeric literal token (e.g. `42`, `0xDEADBEEF`).
 
-## `Syntax.prototype.isStringLiteralToken`
+## `Syntax.prototype.isStringLiteral()`
 
 Returns `true` if the syntax object is a string literal token (e.g. `"foo"`, `"it was the best of times, it was the worst of times"`).
 
-## `Syntax.prototype.isBooleanLiteralToken`
+## `Syntax.prototype.isBooleanLiteral()`
 
 Returns `true` if the syntax object is a boolean literal token (e.g. `true`, `false`).
 
-## `Syntax.prototype.isNullLiteralToken`
+## `Syntax.prototype.isNullLiteral()`
 
 Returns `true` if the syntax object is a null literal token (e.g. `null`).
 
-## `Syntax.prototype.isKeywordToken`
+## `Syntax.prototype.isKeyword()`
 
 Returns `true` if the syntax object is a keyword token (e.g. `for`, `function`, `let`).
 
-## `Syntax.prototype.isPunctuatorToken`
+## `Syntax.prototype.isPunctuator()`
 
 Returns `true` if the syntax object is a punctuator token (e.g. `;`, `>`, `==`).
 
-## `Syntax.prototype.isRegularExpressionToken`
+## `Syntax.prototype.isRegularExpression()`
 
 Returns `true` if the syntax object is a regular expression literal token (e.g. `/abc/i`, `/[a-zA-Z]*/`).
 
-## `Syntax.prototype.isTemplateToken`
+## `Syntax.prototype.isTemplate()`
 
 Returns `true` if the syntax object is a template literal token (e.g. <code>`foo ${2 + 2}`</code>).
 
-## `Syntax.prototype.isEOF`
+## `Syntax.prototype.isEOF()`
 
 Returns `true` if the syntax object is the end of file token.
 
