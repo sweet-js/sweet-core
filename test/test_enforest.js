@@ -60,7 +60,7 @@ describe("enforest", function() {
 
     it("should enforest ParenExpressions with multiple expressions", function() {
       var res = enforest(read("(1, 2, 3)"), mkContext());
-      expect(res.result.isParenExpression).to.be(true);
+      expect(res.result.isParenExpressionTerm).to.be(true);
       expect(res.result.args.length).to.be(3);
     });
 

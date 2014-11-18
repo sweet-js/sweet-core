@@ -475,7 +475,7 @@
             if (options.stripCompileTerm && this.isCompileTimeTerm)  {
                 return [];
             }
-            if (options.stripModuleTerm && this.isModuleTerm)  {
+            if (options.stripModuleTerm && this.isModuleTimeTerm)  {
                 return [];
             }
             return _.reduce(this.constructor.properties, function(acc, prop) {
@@ -558,32 +558,33 @@
         }
     }
 
-    dataclass EOF                   (eof)                               extends TermTree;
-    dataclass Keyword               (keyword)                           extends TermTree;
-    dataclass Punc                  (punc)                              extends TermTree;
-    dataclass Delimiter             (delim)                             extends TermTree;
+    dataclass EOFTerm                   (eof)                               extends TermTree;
+    dataclass KeywordTerm               (keyword)                           extends TermTree;
+    dataclass PuncTerm                  (punc)                              extends TermTree;
+    dataclass DelimiterTerm             (delim)                             extends TermTree;
 
-    dataclass ModuleTerm            ()                                  extends TermTree;
+    dataclass ModuleTimeTerm            ()                                  extends TermTree;
 
-    dataclass Module                (body)                              extends ModuleTerm;
-    dataclass Import                (kw, names, fromkw, from)           extends ModuleTerm;
-    dataclass ImportForMacros       (names, from)                       extends ModuleTerm;
-    dataclass Export                (kw, name)                          extends ModuleTerm;
+    dataclass ModuleTerm                (body)                              extends ModuleTimeTerm;
+    dataclass ImportTerm                (kw, names, fromkw, from)           extends ModuleTimeTerm;
+    dataclass ImportForMacrosTerm       (names, from)                       extends ModuleTimeTerm;
+    dataclass ExportTerm                (kw, name)                          extends ModuleTimeTerm;
 
-    dataclass CompileTimeTerm       ()                                  extends TermTree;
+    dataclass CompileTimeTerm           ()                                  extends TermTree;
 
-    dataclass LetMacro              (name, body)                        extends CompileTimeTerm;
-    dataclass Macro                 (name, body)                        extends CompileTimeTerm;
-    dataclass AnonMacro             (body)                              extends CompileTimeTerm;
-    dataclass OperatorDefinition    (type, name, prec, assoc, body)     extends CompileTimeTerm;
+    dataclass LetMacroTerm              (name, body)                        extends CompileTimeTerm;
+    dataclass MacroTerm                 (name, body)                        extends CompileTimeTerm;
+    dataclass AnonMacroTerm             (body)                              extends CompileTimeTerm;
+    dataclass OperatorDefinitionTerm    (type, name, prec, assoc, body)     extends CompileTimeTerm;
 
-    dataclass VariableDeclaration   (ident, eq, init, comma)            extends TermTree;
+    dataclass VariableDeclarationTerm   (ident, eq, init, comma)            extends TermTree;
 
-    dataclass Statement             ()                                  extends TermTree;
-    dataclass Empty                 ()                                  extends Statement;
-    dataclass CatchClause           (keyword, params, body)             extends Statement;
-    dataclass ForStatement          (keyword, cond)                     extends Statement;
-    dataclass ReturnStatement       (keyword, expr)                     extends Statement {
+    dataclass StatementTerm             ()                                  extends TermTree;
+
+    dataclass EmptyTerm                 ()                                  extends StatementTerm;
+    dataclass CatchClauseTerm           (keyword, params, body)             extends StatementTerm;
+    dataclass ForStatementTerm          (keyword, cond)                     extends StatementTerm;
+    dataclass ReturnStatementTerm       (keyword, expr)                     extends StatementTerm {
         destruct(context, options) {
             var expr = this.expr.destruct(context, options);
             // need to adjust the line numbers to make sure that the expr
@@ -595,21 +596,21 @@
         }
     }
 
-    dataclass Expr                  ()                                  extends Statement;
-    dataclass UnaryOp               (op, expr)                          extends Expr;
-    dataclass PostfixOp             (expr, op)                          extends Expr;
-    dataclass BinOp                 (left, op, right)                   extends Expr;
-    dataclass AssignmentExpression  (left, op, right)                   extends Expr;
-    dataclass ConditionalExpression (cond, question, tru, colon, fls)   extends Expr;
-    dataclass NamedFun              (keyword, star, name, params, body) extends Expr;
-    dataclass AnonFun               (keyword, star, params, body)       extends Expr;
-    dataclass ArrowFun              (params, arrow, body)               extends Expr;
-    dataclass ObjDotGet             (left, dot, right)                  extends Expr;
-    dataclass ObjGet                (left, right)                       extends Expr;
-    dataclass Template              (template)                          extends Expr;
-    dataclass Call                  (fun, args)                         extends Expr;
+    dataclass ExprTerm                  ()                                  extends StatementTerm;
+    dataclass UnaryOpTerm               (op, expr)                          extends ExprTerm;
+    dataclass PostfixOpTerm             (expr, op)                          extends ExprTerm;
+    dataclass BinOpTerm                 (left, op, right)                   extends ExprTerm;
+    dataclass AssignmentExpressionTerm  (left, op, right)                   extends ExprTerm;
+    dataclass ConditionalExpressionTerm (cond, question, tru, colon, fls)   extends ExprTerm;
+    dataclass NamedFunTerm              (keyword, star, name, params, body) extends ExprTerm;
+    dataclass AnonFunTerm               (keyword, star, params, body)       extends ExprTerm;
+    dataclass ArrowFunTerm              (params, arrow, body)               extends ExprTerm;
+    dataclass ObjDotGetTerm             (left, dot, right)                  extends ExprTerm;
+    dataclass ObjGetTerm                (left, right)                       extends ExprTerm;
+    dataclass TemplateTerm              (template)                          extends ExprTerm;
+    dataclass CallTerm                  (fun, args)                         extends ExprTerm;
 
-    dataclass QuoteSyntax           (stx)                               extends Expr {
+    dataclass QuoteSyntaxTerm           (stx)                               extends ExprTerm {
         destruct(context, options) {
             var tempId = fresh();
             context.templateMap.set(tempId, this.stx.token.inner);
@@ -622,18 +623,18 @@
     }
 
 
-    dataclass PrimaryExpression     ()                                  extends Expr;
-    dataclass ThisExpression        (keyword)                           extends PrimaryExpression;
-    dataclass Lit                   (lit)                               extends PrimaryExpression;
-    dataclass Block                 (body)                              extends PrimaryExpression;
-    dataclass ArrayLiteral          (array)                             extends PrimaryExpression;
-    dataclass Id                    (id)                                extends PrimaryExpression;
+    dataclass PrimaryExpressionTerm     ()                                  extends ExprTerm;
+    dataclass ThisExpressionTerm        (keyword)                           extends PrimaryExpressionTerm;
+    dataclass LitTerm                   (lit)                               extends PrimaryExpressionTerm;
+    dataclass BlockTerm                 (body)                              extends PrimaryExpressionTerm;
+    dataclass ArrayLiteralTerm          (array)                             extends PrimaryExpressionTerm;
+    dataclass IdTerm                    (id)                                extends PrimaryExpressionTerm;
 
-    dataclass Partial               ()                                  extends TermTree;
-    dataclass PartialOperation      (stx, left)                         extends Partial;
-    dataclass PartialExpression     (stx, left, combine)                extends Partial;
+    dataclass PartialTerm               ()                                  extends TermTree;
+    dataclass PartialOperationTerm      (stx, left)                         extends PartialTerm;
+    dataclass PartialExpressionTerm     (stx, left, combine)                extends PartialTerm;
 
-    dataclass BindingStatement(keyword, decls) extends Statement {
+    dataclass BindingStatementTerm(keyword, decls) extends StatementTerm {
         destruct(context, options) {
             return this.keyword
                 .destruct(context, options)
@@ -644,11 +645,11 @@
         }
     }
 
-    dataclass VariableStatement (keyword, decls) extends BindingStatement;
-    dataclass LetStatement      (keyword, decls) extends BindingStatement;
-    dataclass ConstStatement    (keyword, decls) extends BindingStatement;
+    dataclass VariableStatementTerm (keyword, decls) extends BindingStatementTerm;
+    dataclass LetStatementTerm      (keyword, decls) extends BindingStatementTerm;
+    dataclass ConstStatementTerm    (keyword, decls) extends BindingStatementTerm;
 
-    dataclass ParenExpression(args, delim, commas) extends PrimaryExpression {
+    dataclass ParenExpressionTerm(args, delim, commas) extends PrimaryExpressionTerm {
         destruct(context, options) {
             var commas = this.commas.slice();
             cloned newtok <- this.delim.token;
@@ -663,7 +664,7 @@
                 }
                 return acc;
             }, []);
-            return Delimiter.create(delim).destruct(context, options);
+            return DelimiterTerm.create(delim).destruct(context, options);
         }
     }
 
@@ -788,20 +789,20 @@
                     }
                     if (rhs.rest[0] && rhs.rest[0].isPunctuatorToken() &&
                         rhs.rest[0].token.value === ",") {
-                        decls.push(VariableDeclaration.create(rest[0], rest[1], rhs.result, rhs.rest[0]));
+                        decls.push(VariableDeclarationTerm.create(rest[0], rest[1], rhs.result, rhs.rest[0]));
                         rest = rhs.rest.slice(1);
                         continue;
                     } else {
-                        decls.push(VariableDeclaration.create(rest[0], rest[1], rhs.result, null));
+                        decls.push(VariableDeclarationTerm.create(rest[0], rest[1], rhs.result, null));
                         rest = rhs.rest;
                         break;
                     }
                 } else if (rest[1] && rest[1].isPunctuatorToken() &&
                            rest[1].token.value === ",") {
-                    decls.push(VariableDeclaration.create(rest[0], null, null, rest[1]));
+                    decls.push(VariableDeclarationTerm.create(rest[0], null, null, rest[1]));
                     rest = rest.slice(2);
                 } else {
-                    decls.push(VariableDeclaration.create(rest[0], null, null, null));
+                    decls.push(VariableDeclarationTerm.create(rest[0], null, null, null));
                     rest = rest.slice(1);
                     break;
                 }
@@ -820,7 +821,7 @@
         var op = stx[0];
         var rightStx = stx.slice(1);
 
-        var opTerm = Punc.create(stx[0]);
+        var opTerm = PuncTerm.create(stx[0]);
         var opPrevStx = tagWithTerm(opTerm, [stx[0]])
                         .concat(tagWithTerm(left, left.destruct(context).reverse()),
                                 prevStx);
@@ -836,8 +837,8 @@
             var right = opRes.result;
             // only a binop if the right is a real expression
             // so 2+2++ will only match 2+2
-            if (right.isExpr) {
-                var term = AssignmentExpression.create(left, op, right);
+            if (right.isExprTerm) {
+                var term = AssignmentExpressionTerm.create(left, op, right);
                 return {
                     result: term,
                     rest: opRes.rest,
@@ -855,7 +856,7 @@
         var innerTokens = parens.token.inner;
         while (innerTokens.length > 0) {
             argRes = enforest(innerTokens, context);
-            if (!argRes.result || !argRes.result.isExpr) {
+            if (!argRes.result || !argRes.result.isExprTerm) {
                 return null;
             }
             enforestedArgs.push(argRes.result);
@@ -872,7 +873,7 @@
                 break;
             }
         }
-        return innerTokens.length ? null : ParenExpression.create(enforestedArgs, parens, commas);
+        return innerTokens.length ? null : ParenExpressionTerm.create(enforestedArgs, parens, commas);
     }
 
     function adjustLineContext(stx, original, current) {
@@ -1182,12 +1183,12 @@
                 var uopMacroObj;
                 var uopSyntax;
 
-                if (head.isPunc || head.isKeyword || head.isId) {
-                    if (head.isPunc) {
+                if (head.isPuncTerm || head.isKeywordTerm || head.isIdTerm) {
+                    if (head.isPuncTerm) {
                         uopSyntax = head.punc;
-                    } else if (head.isKeyword) {
+                    } else if (head.isKeywordTerm) {
                         uopSyntax = head.keyword;
-                    } else if (head.isId) {
+                    } else if (head.isIdTerm) {
                         uopSyntax = head.id;
                     }
                     uopMacroObj = getValueInEnv(uopSyntax, rest, context, context.phase);
@@ -1217,22 +1218,22 @@
                         opRest = rest.slice(uopMacroObj.fullName.length - 1);
                     }
 
-                    var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
+                    var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartialTerm
                                    ? opCtx.prevTerms[0]
                                    : null;
-                    var unopTerm = PartialOperation.create(head, leftLeft);
+                    var unopTerm = PartialOperationTerm.create(head, leftLeft);
                     var unopPrevStx = tagWithTerm(unopTerm, head.destruct(context).reverse()).concat(opCtx.prevStx);
                     var unopPrevTerms = [unopTerm].concat(opCtx.prevTerms);
                     var unopOpCtx = _.extend({}, opCtx, {
                         combine: function(t) {
-                            if (t.isExpr) {
+                            if (t.isExprTerm) {
                                 if (isCustomOp && uopMacroObj.unary) {
                                     var rt = expandMacro(uopMacroName.concat(t.destruct(context)), context, opCtx, "unary");
                                     var newt = get_expression(rt.result, context);
                                     assert(newt.rest.length === 0, "should never have left over syntax");
                                     return opCtx.combine(newt.result);
                                 }
-                                return opCtx.combine(UnaryOp.create(uopSyntax, t));
+                                return opCtx.combine(UnaryOpTerm.create(uopSyntax, t));
                             } else {
                                 // not actually an expression so don't create
                                 // a UnaryOp term just return with the punctuator
@@ -1246,7 +1247,7 @@
                     });
                     return step(opRest[0], opRest.slice(1), unopOpCtx);
                 // BinOp
-                } else if (head.isExpr &&
+                } else if (head.isExprTerm &&
                             (rest[0] && rest[1] &&
                              ((stxIsBinOp(rest[0]) && !bopMacroObj) ||
                               (bopMacroObj && bopMacroObj.isOp && bopMacroObj.binary)))) {
@@ -1255,13 +1256,13 @@
                     var left = head;
                     var rightStx = rest.slice(1);
 
-                    var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
+                    var leftLeft = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartialTerm
                                    ? opCtx.prevTerms[0]
                                    : null;
-                    var leftTerm = PartialExpression.create(head.destruct(context), leftLeft, function() {
+                    var leftTerm = PartialExpressionTerm.create(head.destruct(context), leftLeft, function() {
                         return step(head, [], opCtx);
                     });
-                    var opTerm = PartialOperation.create(op, leftTerm);
+                    var opTerm = PartialOperationTerm.create(op, leftTerm);
                     var opPrevStx = tagWithTerm(opTerm, [rest[0]])
                                     .concat(tagWithTerm(leftTerm, head.destruct(context)).reverse(),
                                             opCtx.prevStx);
@@ -1308,7 +1309,7 @@
                     }
                     var bopOpCtx = _.extend({}, opCtx, {
                         combine: function(right) {
-                            if (right.isExpr) {
+                            if (right.isExprTerm) {
                                 if (isCustomOp && bopMacroObj.binary) {
                                     var leftStx = left.destruct(context);
                                     var rightStx = right.destruct(context);
@@ -1324,7 +1325,7 @@
                                     };
                                 }
                                 return {
-                                    term: BinOp.create(left, op, right),
+                                    term: BinOpTerm.create(left, op, right),
                                     prevStx: opPrevStx,
                                     prevTerms: opPrevTerms
                                 };
@@ -1344,34 +1345,34 @@
                     });
                     return step(opRightStx[0], opRightStx.slice(1), bopOpCtx);
                 // Call
-                } else if (head.isExpr && (rest[0] &&
+                } else if (head.isExprTerm && (rest[0] &&
                                            rest[0].isDelimiterToken() &&
                                            rest[0].token.value === "()")) {
 
                     var parenRes = enforestParenExpression(rest[0], context);
                     if (parenRes) {
-                        return step(Call.create(head, parenRes),
+                        return step(CallTerm.create(head, parenRes),
                                     rest.slice(1),
                                     opCtx);
                     }
                 // Conditional ( x ? true : false)
-                } else if (head.isExpr &&
+                } else if (head.isExprTerm &&
                            (rest[0] && resolveFast(rest[0], context.env, context.phase) === "?")) {
                     var question = rest[0];
                     var condRes = enforest(rest.slice(1), context);
                     if (condRes.result) {
                         var truExpr = condRes.result;
                         var condRight = condRes.rest;
-                        if (truExpr.isExpr &&
+                        if (truExpr.isExprTerm &&
                             condRight[0] && resolveFast(condRight[0], context.env, context.phase) === ":") {
                             var colon = condRight[0];
                             var flsRes = enforest(condRight.slice(1), context);
                             var flsExpr = flsRes.result;
-                            if (flsExpr.isExpr) {
+                            if (flsExpr.isExprTerm) {
                                 // operators are combined before the ternary
                                 if (opCtx.prec >= 4) { // ternary is like a operator with prec 4
                                     var headResult = opCtx.combine(head);
-                                    var condTerm = ConditionalExpression.create(headResult.term,
+                                    var condTerm = ConditionalExpressionTerm.create(headResult.term,
                                                                                 question,
                                                                                 truExpr,
                                                                                 colon,
@@ -1389,7 +1390,7 @@
                                         };
                                     }
                                 } else {
-                                    var condTerm = ConditionalExpression.create(head,
+                                    var condTerm = ConditionalExpressionTerm.create(head,
                                                                                 question,
                                                                                 truExpr,
                                                                                 colon,
@@ -1402,14 +1403,14 @@
                         }
                     }
                 // Arrow functions with expression bodies
-                } else if (head.isDelimiter &&
+                } else if (head.isDelimiterTerm &&
                            head.delim.token.value === "()" &&
                            rest[0] &&
                            rest[0].isPunctuatorToken() &&
                            resolveFast(rest[0], context.env, context.phase) === "=>") {
                     var arrowRes = enforest(rest.slice(1), context);
-                    if (arrowRes.result && arrowRes.result.isExpr) {
-                        return step(ArrowFun.create(head.delim,
+                    if (arrowRes.result && arrowRes.result.isExprTerm) {
+                        return step(ArrowFunTerm.create(head.delim,
                                                     rest[0],
                                                     arrowRes.result.destruct(context)),
                                     arrowRes.rest,
@@ -1420,13 +1421,13 @@
                             rest.slice(1));
                     }
                 // Arrow functions with expression bodies
-                } else if (head.isId &&
+                } else if (head.isIdTerm &&
                            rest[0] &&
                            rest[0].isPunctuatorToken() &&
                            resolveFast(rest[0], context.env, context.phase) === "=>") {
                     var res = enforest(rest.slice(1), context);
-                    if (res.result && res.result.isExpr) {
-                        return step(ArrowFun.create(head.id,
+                    if (res.result && res.result.isExprTerm) {
+                        return step(ArrowFunTerm.create(head.id,
                                                     rest[0],
                                                     res.result.destruct(context)),
                                     res.rest,
@@ -1437,13 +1438,13 @@
                                          rest.slice(1));
                     }
                 // ParenExpr
-                } else if (head.isDelimiter &&
+                } else if (head.isDelimiterTerm &&
                            head.delim.token.value === "()") {
                     // empty parens are acceptable but enforest
                     // doesn't accept empty arrays so short
                     // circuit here
                     if (head.delim.token.inner.length === 0) {
-                        return step(ParenExpression.create([Empty.create()], head.delim, []),
+                        return step(ParenExpressionTerm.create([EmptyTerm.create()], head.delim, []),
                                    rest,
                                    opCtx);
                     } else {
@@ -1453,11 +1454,11 @@
                         }
                     }
                 // AssignmentExpression
-                } else if (head.isExpr &&
-                            ((head.isId ||
-                              head.isObjGet ||
-                              head.isObjDotGet ||
-                              head.isThisExpression) &&
+                } else if (head.isExprTerm &&
+                            ((head.isIdTerm ||
+                              head.isObjGetTerm ||
+                              head.isObjDotGetTerm ||
+                              head.isThisExpressionTerm) &&
                             rest[0] && rest[1] && !bopMacroObj && stxIsAssignOp(rest[0]))) {
                     var opRes = enforestAssignment(rest, context, head, prevStx, prevTerms);
                     if(opRes && opRes.result) {
@@ -1467,7 +1468,7 @@
                         }));
                     }
                 // Postfix
-                } else if(head.isExpr &&
+                } else if(head.isExprTerm &&
                             (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
                                          unwrapSyntax(rest[0]) === "--"))) {
                     // Check if the operator is a macro first.
@@ -1485,17 +1486,17 @@
                                         opCtx);
                         }
                     }
-                    return step(PostfixOp.create(head, rest[0]),
+                    return step(PostfixOpTerm.create(head, rest[0]),
                                 rest.slice(1),
                                 opCtx);
                 // ObjectGet (computed)
-                } else if(head.isExpr &&
+                } else if(head.isExprTerm &&
                             (rest[0] && rest[0].token.value === "[]"))  {
-                    return step(ObjGet.create(head, Delimiter.create(rest[0])),
+                    return step(ObjGetTerm.create(head, DelimiterTerm.create(rest[0])),
                                 rest.slice(1),
                                 opCtx);
                 // ObjectGet
-                } else if (head.isExpr &&
+                } else if (head.isExprTerm &&
                             (rest[0] && unwrapSyntax(rest[0]) === "." &&
                              !context.env.has(resolveFast(rest[0], context.env, context.phase)) &&
                              rest[1] &&
@@ -1504,7 +1505,7 @@
                     // Check if the identifier is a macro first.
                     if (context.env.has(resolveFast(rest[1], context.env, context.phase))) {
                         var headStx = tagWithTerm(head, head.destruct(context).reverse());
-                        var dotTerm = Punc.create(rest[0]);
+                        var dotTerm = PuncTerm.create(rest[0]);
                         var dotTerms = [dotTerm].concat(head, prevTerms);
                         var dotStx = tagWithTerm(dotTerm, [rest[0]]).concat(headStx, prevStx);
                         var dotRes = enforest(rest.slice(1), context, dotStx, dotTerms);
@@ -1517,25 +1518,25 @@
                                         opCtx);
                         }
                     }
-                    return step(ObjDotGet.create(head, rest[0], rest[1]),
+                    return step(ObjDotGetTerm.create(head, rest[0], rest[1]),
                                 rest.slice(2),
                                 opCtx);
                 // ArrayLiteral
-                } else if (head.isDelimiter &&
+                } else if (head.isDelimiterTerm &&
                             head.delim.token.value === "[]") {
-                    return step(ArrayLiteral.create(head), rest, opCtx);
+                    return step(ArrayLiteralTerm.create(head), rest, opCtx);
                 // Block
-                } else if (head.isDelimiter &&
+                } else if (head.isDelimiterTerm &&
                             head.delim.token.value === "{}") {
-                    return step(Block.create(head), rest, opCtx);
+                    return step(BlockTerm.create(head), rest, opCtx);
                 // quote syntax
-                } else if (head.isId &&
+                } else if (head.isIdTerm &&
                             unwrapSyntax(head.id) === "#quoteSyntax" &&
                             rest[0] && rest[0].token.value === "{}") {
 
-                    return step(QuoteSyntax.create(rest[0]), rest.slice(1), opCtx);
+                    return step(QuoteSyntaxTerm.create(rest[0]), rest.slice(1), opCtx);
                 // return statement
-                } else if (head.isKeyword && unwrapSyntax(head.keyword) === "return") {
+                } else if (head.isKeywordTerm && unwrapSyntax(head.keyword) === "return") {
                     if (rest[0] && rest[0].token.lineNumber === head.keyword.token.lineNumber) {
                         var returnPrevStx = tagWithTerm(head,
                                                         head.destruct(context)).concat(opCtx.prevStx);
@@ -1544,18 +1545,18 @@
                         if (returnExpr.prevTerms.length < opCtx.prevTerms.length) {
                             return returnExpr;
                         }
-                        if (returnExpr.result.isExpr) {
-                            return step(ReturnStatement.create(head, returnExpr.result),
+                        if (returnExpr.result.isExprTerm) {
+                            return step(ReturnStatementTerm.create(head, returnExpr.result),
                                         returnExpr.rest,
                                         opCtx);
                         }
                     } else {
-                        return step(ReturnStatement.create(head, Empty.create()),
+                        return step(ReturnStatementTerm.create(head, EmptyTerm.create()),
                                    rest,
                                    opCtx);
                     }
                 // let statements
-                } else if (head.isKeyword &&
+                } else if (head.isKeywordTerm &&
                            unwrapSyntax(head.keyword) === "let") {
                     var nameTokens = [];
                     if (rest[0] && rest[0].isDelimiterToken() &&
@@ -1570,10 +1571,10 @@
                         rest[2] && rest[2].token.value === "macro") {
                         var mac = enforest(rest.slice(2), context);
                         if(mac.result) {
-                            if (!mac.result.isAnonMacro) {
+                            if (!mac.result.isAnonMacroTerm) {
                                 throwSyntaxError("enforest", "expecting an anonymous macro definition in syntax let binding", rest.slice(2));
                             }
-                            return step(LetMacro.create(nameTokens, mac.result.body),
+                            return step(LetMacroTerm.create(nameTokens, mac.result.body),
                                         mac.rest,
                                         opCtx);
                         }
@@ -1581,34 +1582,34 @@
                     } else {
                         var lsRes = enforestVarStatement(rest, context, head.keyword);
                         if (lsRes && lsRes.result) {
-                            return step(LetStatement.create(head, lsRes.result),
+                            return step(LetStatementTerm.create(head, lsRes.result),
                                         lsRes.rest,
                                         opCtx);
                         }
                     }
                 // VariableStatement
-                } else if (head.isKeyword &&
+                } else if (head.isKeywordTerm &&
                            unwrapSyntax(head.keyword) === "var" && rest[0]) {
                     var vsRes = enforestVarStatement(rest, context, head.keyword);
                     if (vsRes && vsRes.result) {
-                        return step(VariableStatement.create(head, vsRes.result),
+                        return step(VariableStatementTerm.create(head, vsRes.result),
                                     vsRes.rest,
                                     opCtx);
                     }
                 // Const Statement
-                } else if (head.isKeyword &&
+                } else if (head.isKeywordTerm &&
                            unwrapSyntax(head.keyword) === "const" && rest[0]) {
                     var csRes = enforestVarStatement(rest, context, head.keyword);
                     if (csRes && csRes.result) {
-                        return step(ConstStatement.create(head, csRes.result),
+                        return step(ConstStatementTerm.create(head, csRes.result),
                                     csRes.rest,
                                     opCtx);
                     }
                 // for statement
-                } else if (head.isKeyword &&
+                } else if (head.isKeywordTerm &&
                            unwrapSyntax(head.keyword) === "for" &&
                            rest[0] && rest[0].token.value === "()") {
-                    return step(ForStatement.create(head.keyword, rest[0]),
+                    return step(ForStatementTerm.create(head.keyword, rest[0]),
                                 rest.slice(1),
                                 opCtx);
                 }
@@ -1631,7 +1632,7 @@
                                     rt.result.slice(1).concat(rt.rest),
                                     newOpCtx);
                     } else {
-                        return step(Empty.create(), rt.rest, newOpCtx);
+                        return step(EmptyTerm.create(), rt.rest, newOpCtx);
                     }
                 // anon macro definition
                 } else if (head.isIdentifierToken() &&
@@ -1639,7 +1640,7 @@
                            resolve(head, context.phase) === "macro" &&
                            rest[0] && rest[0].token.value === "{}") {
 
-                    return step(AnonMacro.create(rest[0].token.inner),
+                    return step(AnonMacroTerm.create(rest[0].token.inner),
                                 rest.slice(1),
                                 opCtx);
                 // macro definition
@@ -1654,7 +1655,7 @@
                         nameTokens.push(rest[0])
                     }
                     if (rest[1] && rest[1].isDelimiterToken()) {
-                        return step(Macro.create(nameTokens, rest[1].token.inner),
+                        return step(MacroTerm.create(nameTokens, rest[1].token.inner),
                                     rest.slice(2),
                                     opCtx);
                     } else {
@@ -1670,7 +1671,7 @@
                            rest[2] && rest[2].isDelimiterToken() &&
                            rest[2] && rest[2].token.value === "{}") {
                     var trans = enforest(rest[2].token.inner, context);
-                    return step(OperatorDefinition.create(syn.makeValue("unary", head),
+                    return step(OperatorDefinitionTerm.create(syn.makeValue("unary", head),
                                                           rest[0].token.inner,
                                                           rest[1],
                                                           null,
@@ -1688,7 +1689,7 @@
                            rest[3] && rest[3].isDelimiterToken() &&
                            rest[3] && rest[3].token.value === "{}") {
                     var trans = enforest(rest[3].token.inner, context);
-                    return step(OperatorDefinition.create(syn.makeValue("binary", head),
+                    return step(OperatorDefinitionTerm.create(syn.makeValue("binary", head),
                                                           rest[0].token.inner,
                                                           rest[1],
                                                           rest[2],
@@ -1706,7 +1707,7 @@
 
                     rest[1].token.inner = rest[1].token.inner;
                     rest[2].token.inner = rest[2].token.inner;
-                    return step(NamedFun.create(head, null, rest[0],
+                    return step(NamedFunTerm.create(head, null, rest[0],
                                                 rest[1],
                                                 rest[2]),
                                 rest.slice(3),
@@ -1724,7 +1725,7 @@
 
                     rest[2].token.inner = rest[2].token.inner;
                     rest[3].token.inner = rest[3].token.inner;
-                    return step(NamedFun.create(head, rest[0], rest[1],
+                    return step(NamedFunTerm.create(head, rest[0], rest[1],
                                                 rest[2],
                                                 rest[3]),
                                 rest.slice(4),
@@ -1739,7 +1740,7 @@
 
                     rest[0].token.inner = rest[0].token.inner;
                     rest[1].token.inner = rest[1].token.inner;
-                    return step(AnonFun.create(head,
+                    return step(AnonFunTerm.create(head,
                                                 null,
                                                 rest[0],
                                                 rest[1]),
@@ -1757,7 +1758,7 @@
 
                     rest[1].token.inner = rest[1].token.inner;
                     rest[2].token.inner = rest[2].token.inner;
-                    return step(AnonFun.create(head,
+                    return step(AnonFunTerm.create(head,
                                                 rest[0],
                                                 rest[1],
                                                 rest[2]),
@@ -1771,7 +1772,7 @@
                           resolveFast(rest[0], context.env, context.phase) === "=>" &&
                           rest[1] && rest[1].isDelimiterToken() &&
                           rest[1].token.value === "{}") {
-                    return step(ArrowFun.create(head, rest[0], rest[1]),
+                    return step(ArrowFunTerm.create(head, rest[0], rest[1]),
                                 rest.slice(2),
                                 opCtx);
                 // catch statement
@@ -1783,13 +1784,13 @@
                            rest[1].token.value === "{}") {
                     rest[0].token.inner = rest[0].token.inner;
                     rest[1].token.inner = rest[1].token.inner;
-                    return step(CatchClause.create(head, rest[0], rest[1]),
+                    return step(CatchClauseTerm.create(head, rest[0], rest[1]),
                                 rest.slice(2),
                                 opCtx);
                 // this expression
                 } else if (head.isKeywordToken() &&
                            unwrapSyntax(head) === "this") {
-                    return step(ThisExpression.create(head), rest, opCtx);
+                    return step(ThisExpressionTerm.create(head), rest, opCtx);
                 // literal
                 } else if (head.isNumericLiteralToken() ||
                            head.isStringLiteralToken()||
@@ -1797,7 +1798,7 @@
                            head.isRegularExpressionToken() ||
                            head.isNullLiteralToken()) {
 
-                    return step(Lit.create(head), rest, opCtx);
+                    return step(LitTerm.create(head), rest, opCtx);
                 } else if (head.isKeywordToken() &&
                            unwrapSyntax(head) === "import" &&
                            rest[0] && rest[0].isDelimiterToken() &&
@@ -1813,7 +1814,7 @@
                     } else {
                         importRest = rest.slice(5);
                     }
-                    return step(ImportForMacros.create(rest[0], rest[2]), importRest, opCtx);
+                    return step(ImportForMacrosTerm.create(rest[0], rest[2]), importRest, opCtx);
                 } else if (head.isKeywordToken() &&
                            unwrapSyntax(head) === "import" &&
                            rest[0] && rest[0].isDelimiterToken() &&
@@ -1827,7 +1828,7 @@
                     } else {
                         importRest = rest.slice(3);
                     }
-                    return step(Import.create(head, rest[0], rest[1], rest[2]), importRest, opCtx);
+                    return step(ImportTerm.create(head, rest[0], rest[1], rest[2]), importRest, opCtx);
                 // export
                 } else if (head.isKeywordToken() &&
                            unwrapSyntax(head) === "export" &&
@@ -1840,28 +1841,28 @@
                                          "multi-token macro/operator names must be wrapped in () when exporting",
                                          rest[1]);
                     }
-                    return step(Export.create(head, rest[0]), rest.slice(1), opCtx);
+                    return step(ExportTerm.create(head, rest[0]), rest.slice(1), opCtx);
                 // identifier
                 } else if (head.isIdentifierToken()) {
-                    return step(Id.create(head), rest, opCtx);
+                    return step(IdTerm.create(head), rest, opCtx);
                 // punctuator
                 } else if (head.isPunctuatorToken()) {
-                    return step(Punc.create(head), rest, opCtx);
+                    return step(PuncTerm.create(head), rest, opCtx);
                 } else if (head.isKeywordToken() &&
                            unwrapSyntax(head) === "with") {
                     throwSyntaxError("enforest", "with is not supported in sweet.js", head);
                 // keyword
                 } else if (head.isKeywordToken()) {
-                    return step(Keyword.create(head), rest, opCtx);
+                    return step(KeywordTerm.create(head), rest, opCtx);
                 // Delimiter
                 } else if (head.isDelimiterToken()) {
-                    return step(Delimiter.create(head), rest, opCtx);
+                    return step(DelimiterTerm.create(head), rest, opCtx);
                 } else if (head.isTemplateToken()) {
-                    return step(Template.create(head), rest, opCtx);
+                    return step(TemplateTerm.create(head), rest, opCtx);
                 // end of file
                 } else if (head.isEOFToken()) {
                     assert(rest.length === 0, "nothing should be after an EOF");
-                    return step(EOF.create(head), [], opCtx);
+                    return step(EOFTerm.create(head), [], opCtx);
                 } else {
                     // todo: are we missing cases?
                     assert(false, "not implemented");
@@ -1871,13 +1872,13 @@
 
             // Potentially an infix macro
             // This should only be invoked on runtime syntax terms
-            if (!head.isMacro && !head.isLetMacro && !head.isAnonMacro && !head.isOperatorDefinition &&
+            if (!head.isMacroTerm && !head.isLetMacroTerm && !head.isAnonMacroTerm && !head.isOperatorDefinitionTerm &&
                 rest.length && nameInEnv(rest[0], rest.slice(1), context, context.phase) &&
                 getValueInEnv(rest[0], rest.slice(1), context, context.phase).isOp === false) {
-                var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartial
+                var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartialTerm
                                   ? opCtx.prevTerms[0]
                                   : null;
-                var infTerm = PartialExpression.create(head.destruct(context), infLeftTerm, function() {
+                var infTerm = PartialExpressionTerm.create(head.destruct(context), infLeftTerm, function() {
                     return step(head, [], opCtx);
                 });
                 var infPrevStx = tagWithTerm(infTerm, head.destruct(context)).reverse().concat(opCtx.prevStx);
@@ -1929,7 +1930,7 @@
         // It's important that we always thread the new prevStx and prevTerms
         // through, otherwise the old ones will still persist.
         if (!res.prevTerms.length ||
-            !res.prevTerms[0].isPartial) {
+            !res.prevTerms[0].isPartialTerm) {
             return _.extend({}, opCtx, {
                 combine: function(t) {
                     return {
@@ -1951,10 +1952,10 @@
         // back.
         var op = null;
         for (var i = 0; i < res.prevTerms.length; i++) {
-            if (!res.prevTerms[i].isPartial) {
+            if (!res.prevTerms[i].isPartialTerm) {
                 break;
             }
-            if (res.prevTerms[i].isPartialOperation) {
+            if (res.prevTerms[i].isPartialOperationTerm) {
                 op = res.prevTerms[i];
                 break;
             }
@@ -1991,12 +1992,12 @@
             // Guard the termLen because we can have a multi-token term that
             // we don't want to split. TODO: is there something we can do to
             // get around this safely?
-            if (stx[0].term.isPartialExpression &&
+            if (stx[0].term.isPartialExpressionTerm &&
                 termLen === stx[0].term.stx.length) {
                 var expr = stx[0].term.combine().result;
                 for (var i = 1, term = stx[0].term; i < stx.length; i++) {
                     if (stx[i].term !== term) {
-                        if (term && term.isPartial) {
+                        if (term && term.isPartialTerm) {
                             term = term.left;
                             i--;
                         } else {
@@ -2008,7 +2009,7 @@
                     result: expr,
                     rest: stx.slice(i)
                 };
-            } else if (stx[0].term.isExpr) {
+            } else if (stx[0].term.isExprTerm) {
                 return {
                     result: stx[0].term,
                     rest: stx.slice(termLen)
@@ -2022,7 +2023,7 @@
         }
 
         var res = enforest(stx, context);
-        if (!res.result || !res.result.isExpr) {
+        if (!res.result || !res.result.isExprTerm) {
             return {
               result: null,
               rest: stx
@@ -2204,7 +2205,7 @@
             prevTerms = [head].concat(f.prevTerms);
             prevStx = destructed.reverse().concat(f.prevStx);
 
-            if (head.isImport) {
+            if (head.isImportTerm) {
                 // record the import in the module record for easier access
                 context.moduleRecord.importEntries.push(head);
                 // load up the (possibly cached) import module
@@ -2217,7 +2218,7 @@
                 rest = bindImportInMod(head, rest, importMod.term, importMod.record, context, context.phase);
             }
 
-            if (head.isImportForMacros) {
+            if (head.isImportForMacrosTerm) {
                 // record the import in the module record for easier access
                 context.moduleRecord.importEntries.push(head);
                 // load up the (possibly cached) import module
@@ -2233,7 +2234,7 @@
                 rest = bindImportInMod(head, rest, importMod.term, importMod.record, context, context.phase + 1);
             }
 
-            if (head.isMacro && expandCount < maxExpands) {
+            if (head.isMacroTerm && expandCount < maxExpands) {
                 // raw function primitive form
                 if(!(head.body[0] && head.body[0].isKeywordToken() &&
                      head.body[0].token.value === "function")) {
@@ -2260,7 +2261,7 @@
                 });
             }
 
-            if (head.isLetMacro && expandCount < maxExpands) {
+            if (head.isLetMacroTerm && expandCount < maxExpands) {
                 // raw function primitive form
                 if(!(head.body[0] && head.body[0].isKeywordToken() &&
                      head.body[0].token.value === "function")) {
@@ -2297,7 +2298,7 @@
                 });
             }
 
-            if (head.isOperatorDefinition) {
+            if (head.isOperatorDefinitionTerm) {
                 // raw function primitive form
                 if(!(head.body[0] && head.body[0].isKeywordToken() &&
                      head.body[0].token.value === "function")) {
@@ -2336,22 +2337,22 @@
                 context.env.set(resolvedName, opObj);
             }
 
-            if (head.isNamedFun) {
+            if (head.isNamedFunTerm) {
                 addToDefinitionCtx([head.name], context.defscope, true, context.paramscope);
             }
 
-            if (head.isVariableStatement ||
-                head.isLetStatement ||
-                head.isConstStatement) {
+            if (head.isVariableStatementTerm ||
+                head.isLetStatementTerm ||
+                head.isConstStatementTerm) {
                 addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
                                    context.defscope,
                                    true,
                                    context.paramscope);
             }
 
-            if(head.isBlock && head.body.isDelimiter) {
+            if(head.isBlockTerm && head.body.isDelimiterTerm) {
                 head.body.delim.token.inner.forEach(function(term) {
-                    if (term.isVariableStatement) {
+                    if (term.isVariableStatementTerm) {
                         addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
                                            context.defscope,
                                            true,
@@ -2361,9 +2362,9 @@
 
             }
 
-            if(head.isDelimiter) {
+            if(head.isDelimiterTerm) {
                 head.delim.token.inner.forEach(function(term)  {
-                    if (term.isVariableStatement) {
+                    if (term.isVariableStatementTerm) {
                         addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
                                            context.defscope,
                                            true,
@@ -2373,7 +2374,7 @@
                 });
             }
 
-            if (head.isForStatement) {
+            if (head.isForStatementTerm) {
                 var forCond = head.cond.token.inner;
                 if(forCond[0] && resolve(forCond[0], context.phase) === "let" &&
                    forCond[1] && forCond[1].isIdentifierToken()) {
@@ -2475,63 +2476,63 @@
     function expandTermTreeToFinal (term, context) {
         assert(context && context.env, "environment map is required");
 
-        if (term.isArrayLiteral) {
+        if (term.isArrayLiteralTerm) {
             term.array.delim.token.inner = expand(term.array.delim.token.inner, context);
             return term;
-        } else if (term.isBlock) {
+        } else if (term.isBlockTerm) {
             term.body.delim.token.inner = expand(term.body.delim.token.inner, context);
             return term;
-        } else if (term.isParenExpression) {
+        } else if (term.isParenExpressionTerm) {
             term.args = _.map(term.args, function(arg) {
                 return expandTermTreeToFinal(arg, context);
             });
             return term;
-        } else if (term.isCall) {
+        } else if (term.isCallTerm) {
             term.fun = expandTermTreeToFinal(term.fun, context);
             term.args = expandTermTreeToFinal(term.args, context);
             return term;
-        } else if (term.isReturnStatement) {
+        } else if (term.isReturnStatementTerm) {
             term.expr = expandTermTreeToFinal(term.expr, context);
             return term;
-        } else if (term.isUnaryOp) {
+        } else if (term.isUnaryOpTerm) {
             term.expr = expandTermTreeToFinal(term.expr, context);
             return term;
-        } else if (term.isBinOp || term.isAssignmentExpression) {
+        } else if (term.isBinOpTerm || term.isAssignmentExpressionTerm) {
             term.left = expandTermTreeToFinal(term.left, context);
             term.right = expandTermTreeToFinal(term.right, context);
             return term;
-        } else if (term.isObjGet) {
+        } else if (term.isObjGetTerm) {
             term.left = expandTermTreeToFinal(term.left, context);
             term.right.delim.token.inner = expand(term.right.delim.token.inner, context);
             return term;
-        } else if (term.isObjDotGet) {
+        } else if (term.isObjDotGetTerm) {
             term.left = expandTermTreeToFinal(term.left, context);
             term.right = expandTermTreeToFinal(term.right, context);
             return term;
-        } else if (term.isConditionalExpression) {
+        } else if (term.isConditionalExpressionTerm) {
             term.cond = expandTermTreeToFinal(term.cond, context);
             term.tru = expandTermTreeToFinal(term.tru, context);
             term.fls = expandTermTreeToFinal(term.fls, context);
             return term;
-        } else if (term.isVariableDeclaration) {
+        } else if (term.isVariableDeclarationTerm) {
             if (term.init) {
                 term.init = expandTermTreeToFinal(term.init, context);
             }
             return term;
-        } else if (term.isVariableStatement) {
+        } else if (term.isVariableStatementTerm) {
             term.decls = _.map(term.decls, function(decl) {
                 return expandTermTreeToFinal(decl, context);
             });
             return term;
-        } else if (term.isDelimiter) {
+        } else if (term.isDelimiterTerm) {
             // expand inside the delimiter and then continue on
             term.delim.token.inner = expand(term.delim.token.inner, context);
             return term;
-        } else if (term.isNamedFun ||
-                   term.isAnonFun ||
-                   term.isCatchClause ||
-                   term.isArrowFun ||
-                   term.isModule) {
+        } else if (term.isNamedFunTerm ||
+                   term.isAnonFunTerm ||
+                   term.isCatchClauseTerm ||
+                   term.isArrowFunTerm ||
+                   term.isModuleTerm) {
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
             var newDef = [];
@@ -2616,7 +2617,7 @@
                 // add the definition context to the result of
                 // expansion (this makes sure that syntax objects
                 // introduced by expansion have the def context)
-                if (bodyTerm.isBlock) {
+                if (bodyTerm.isBlockTerm) {
                     // we need to expand blocks before adding the defctx since
                     // blocks defer macro expansion.
                     var blockFinal = expandTermTreeToFinal(bodyTerm,
@@ -2630,9 +2631,9 @@
                 }
             })
 
-            if (term.isModule) {
+            if (term.isModuleTerm) {
                 bodyTerms.forEach(bodyTerm -> {
-                    if (bodyTerm.isExport) {
+                    if (bodyTerm.isExportTerm) {
                         if (bodyTerm.name.isDelimiterToken() &&
                             bodyTerm.name.token.value === "{}") {
                             bodyTerm.name.token.inner
@@ -2841,7 +2842,7 @@
                 importEntries: [],
                 exportEntries: []
             },
-            term: Module.create(modBody)
+            term: ModuleTerm.create(modBody)
         };
     }
 
@@ -2883,7 +2884,7 @@
             // phase and update the context
             modRecord.importEntries.forEach(imp -> {
                 var importMod = loadImport(imp, context);
-                if (imp.isImport) {
+                if (imp.isImportTerm) {
                     context = invoke(importMod.term, importMod.record, phase, context);
                 }
             });
@@ -2938,9 +2939,9 @@
         modRecord.importEntries.forEach(imp -> {
             var importMod = loadImport(imp, context);
 
-            if(imp.isImport) {
+            if(imp.isImportTerm) {
                 context = visit(importMod.term, importMod.record, phase, context);
-            } else if (imp.isImportForMacros) {
+            } else if (imp.isImportForMacrosTerm) {
                 context = invoke(importMod.term, importMod.record, phase + 1, context);
                 context = visit(importMod.term, importMod.record, phase + 1, context);
             } else {
@@ -2960,7 +2961,7 @@
         modTerm.body.forEach(term -> {
             var name;
             var macroDefinition;
-            if (term.isMacro) {
+            if (term.isMacroTerm) {
                 macroDefinition = loadMacroDef(term.body, context, phase + 1);
                 name = unwrapSyntax(term.name[0]);
 
@@ -2973,7 +2974,7 @@
                 });
             }
 
-            if (term.isLetMacro) {
+            if (term.isLetMacroTerm) {
                 macroDefinition = loadMacroDef(term.body, context, phase + 1);
                 // compilation collapses multi-token let macro names into single identifier
                 name = unwrapSyntax(term.name[0]);
@@ -2987,7 +2988,7 @@
                 });
             }
 
-            if (term.isOperatorDefinition) {
+            if (term.isOperatorDefinitionTerm) {
                 var opDefinition = loadMacroDef(term.body, context, phase + 1);
                 name = term.name.map(unwrapSyntax).join("");
                 var nameStx = syn.makeIdent(name, term.name[0]);
@@ -3014,7 +3015,7 @@
             }
 
             // add the exported names to the module record
-            if (term.isExport) {
+            if (term.isExportTerm) {
                 if (term.name.isDelimiterToken() &&
                     term.name.token.value === "{}") {
                     term.name.token.inner
@@ -3237,7 +3238,7 @@
         // filter the imports to just the imports and names that are
         // actually available at runtime
         var imports = modRecord.importEntries.reduce((acc, imp) -> {
-            if (imp.isImportForMacros) {
+            if (imp.isImportForMacrosTerm) {
                 return acc;
             }
             if (imp.names.isDelimiterToken()) {
@@ -3254,7 +3255,7 @@
         // filter the exports to just the exports and names that are
         // actually available at runtime
         var output = modTerm.body.reduce((acc, term) -> {
-            if (term.isExport) {
+            if (term.isExportTerm) {
                 if (term.name.isDelimiterToken()) {
                     term.name = filterCompileNames(term.name, context);
                     if (term.name.token.inner.length === 0) {
@@ -3264,7 +3265,7 @@
                     assert(false, "not implemented yet");
                 }
             }
-            if (term.isImport || term.isImportForMacros) {
+            if (term.isImportTerm || term.isImportForMacrosTerm) {
                 return acc;
             }
             return acc.concat(term.destruct(context, {stripCompileTerm: true}));
@@ -3438,8 +3439,8 @@
 
     exports.makeExpanderContext = makeExpanderContext;
 
-    exports.Expr = Expr;
-    exports.VariableStatement = VariableStatement;
+    exports.ExprTerm = ExprTerm;
+    exports.VariableStatementTerm = VariableStatementTerm;
 
     exports.tokensToSyntax = syn.tokensToSyntax;
     exports.syntaxToTokens = syn.syntaxToTokens;

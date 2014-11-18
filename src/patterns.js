@@ -421,7 +421,7 @@
             match = stx[0].term
                 ? cachedTermMatch(stx, stx[0].term)
                 : expander.enforest(stx, expander.makeExpanderContext(context));
-            if (match.result && match.result.isVariableStatement) {
+            if (match.result && match.result.isVariableStatementTerm) {
                 result = match.destructed || match.result.destruct(context);
                 rest = match.rest;
             } else {
@@ -430,7 +430,7 @@
             }
         } else if (stx.length > 0 && patternObj.class === "expr") {
             match = expander.get_expression(stx, expander.makeExpanderContext(context));
-            if (match.result === null || !match.result.isExpr) {
+            if (match.result === null || !match.result.isExprTerm) {
                 result = null;
                 rest = stx;
             } else {
