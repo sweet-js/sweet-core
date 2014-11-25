@@ -24,6 +24,9 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*global require: true, exports:true, console: true
+*/
+
 // import @ from "contracts.js"
 'use strict';
 
@@ -34,9 +37,9 @@ var codegen = require('escodegen'),
     se = require('./scopedEval'),
     patternModule = require("./patterns"),
     vm = require('vm'),
-    Immutable = require('immutable');
+    Immutable = require('immutable'),
+    assert = require("assert");
 
-var assert = syn.assert;
 var throwSyntaxError = syn.throwSyntaxError;
 var throwSyntaxCaseError = syn.throwSyntaxCaseError;
 var SyntaxCaseError = syn.SyntaxCaseError;
@@ -2195,23 +2198,6 @@ function loadMacroDef(body, context, phase) {
 }
 
 
-// function ImportEntry(term, importName, localName) {
-//     this._term = term;
-//     this.moduleRequest = term.from;
-
-//     this.importName = importName;
-//     this.localName = localName;
-// }
-
-// function makeImportEntries(imp) {
-//     assert(imp.isImportTerm || imp.isImportForMacrosTerm, "expecting an import term");
-//     if (imp.clause.isNamedImportTerm) {
-//         for (var i = 0; i < imp.clause.names.length; i++) {
-
-//         }
-//     }
-
-// }
 
 // similar to `parse1` in the honu paper
 // @ ([...SyntaxObject], ExpanderContext) -> {

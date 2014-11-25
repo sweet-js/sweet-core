@@ -17,30 +17,58 @@ module.exports = function(grunt) {
                     sourceMap: false,
                     compileFrom: "./lib/sweet",
                 },
-                src: "src/*.js",
-                dest: ["build/lib/", "browser/scripts/"]
+                files: [{
+                    expand: true,
+                    cwd: "src/",
+                    src: ["**/*.js"],
+                    dest: "build/lib/"
+                }]
             },
             release: {
                 options: {
                     compileFrom: "./lib/sweet"
                 },
-                src: "src/*.js",
-                dest: ["build/lib/", "browser/scripts/"]
+                files: [{
+                    expand: true,
+                    cwd: "src/",
+                    src: ["**/*.js"],
+                    dest: "build/lib/"
+                }]
             },
             tests: {
                 options: {
                     compileFrom: "./build/lib/sweet"
                 },
-                src: "test/*.js",
-                dest: "build/"
+                files: [{
+                    expand: true,
+                    cwd: "test/",
+                    src: ["**/test_*.js"],
+                    dest: "build/"
+                }]
+            },
+            unitTests: {
+                options: {
+                    compileFrom: "./build/lib/sweet",
+                    sourceMap: false
+                },
+                files: [{
+                    expand: true,
+                    cwd: "test/units/",
+                    src: ["**/test_*.js"],
+                    dest: "build/units/"
+                }]
             },
             test_modules: {
                 options: {
                     compileFrom: "./build/lib/sweet",
                     readableNames: true
                 },
-                src: "test/modules/test_*.js",
-                dest: "build/modules/"
+                files: [{
+                    expand: true,
+                    cwd: "test/modules/",
+                    src: ["**/test_*.js"],
+                    dest: "build/modules/"
+                }]
             },
             single: {
                 options: {
@@ -118,19 +146,13 @@ module.exports = function(grunt) {
                 options:{
                     colors: !grunt.option('no-color')
                 },
-                src: ["build/*.js"],
-                filter: function(name) {
-                    return !/.*test_es6.*/.test(name);
-                }
+                src: ["build/*.js"]
             },
             es6: {
                 options:{
                     colors: !grunt.option('no-color')
                 },
-                src: ["build/*.js"],
-                filter: function(name) {
-                    return /.*test_es6.*/.test(name);
-                }
+                src: ["build/es6/**/*.js"]
             },
             modules: {
                 options:{
@@ -138,11 +160,11 @@ module.exports = function(grunt) {
                 },
                 src: ["build/modules/*.js"],
             },
-            unit: {
+            units: {
                 options:{
                     colors: !grunt.option('no-color')
                 },
-                src: ["build/test_expander_units.js"]
+                src: ["build/units/**/*.js"]
             }
         },
         jshint: {
@@ -153,7 +175,9 @@ module.exports = function(grunt) {
                 laxcomma: true,
                 shadow: true,
                 loopfunc: true,
-                validthis: true
+                validthis: true,
+                globalstrict: true,
+                strict: false
             },
             all: ["build/lib/*.js"]
         },
@@ -237,7 +261,7 @@ module.exports = function(grunt) {
 
         this.files.forEach(function(f) {
             var dest = Array.isArray(f.dest) ? f.dest : [f.dest];
-            grunt.log.writeln("output to " + dest.join(", "));
+            // grunt.log.writeln("output to " + dest.join(", "));
 
             f.src.forEach(function(file) {
                 grunt.log.writeln("compiling " + file);
@@ -252,7 +276,7 @@ module.exports = function(grunt) {
                 })[0];
 
                 dest.forEach(function(dest) {
-                    var sourceMappingURL = dest + path.basename(file) + ".map";
+                    var sourceMappingURL = dest + ".map";
                     var outputFile;
                     if (options.sourceMap) {
                         outputFile = output.code + "\n//# sourceMappingURL=" + path.basename(file) + ".map";
@@ -260,7 +284,7 @@ module.exports = function(grunt) {
                         outputFile = output.code;
                     }
                     // macro expanded result
-                    grunt.file.write(dest + path.basename(file),
+                    grunt.file.write(dest,
                                      outputFile);
                     if (options.sourceMap) {
                         // sourcemap
@@ -281,12 +305,12 @@ module.exports = function(grunt) {
                                 "copy:testFixtures",
                                 "mochaTest:test"]);
 
-    grunt.registerTask("unit", ["build:dev",
-                                "copy:scopedEval",
-                                "copy:buildMacros",
-                                "copy:nodeSrc",
-                                "copy:testUnit",
-                                "mochaTest:unit"]);
+    grunt.registerTask("units", ["build:dev",
+                                 "copy:scopedEval",
+                                 "copy:buildMacros",
+                                 "copy:nodeSrc",
+                                 "build:unitTests",
+                                 "mochaTest:units"]);
 
     grunt.registerTask("single", ["build:dev",
                                   "copy:scopedEval",
@@ -307,6 +331,7 @@ module.exports = function(grunt) {
                                    "build:dev",
                                    "build:tests",
                                    "build:test_modules",
+                                   "build:unitTests",
                                    "copy:browserSrc",
                                    "copy:nodeSrc",
                                    "copy:browserMacros",
@@ -314,7 +339,7 @@ module.exports = function(grunt) {
                                    "copy:testFixtures",
                                    "mochaTest:test",
                                    "mochaTest:modules",
-                                   "jshint"]);
+                                   "mochaTest:units"]);
 
     grunt.registerTask("full", ["default", "mochaTest:es6"]);
     grunt.registerTask("docs", ["pandoc"]);

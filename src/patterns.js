@@ -1,10 +1,16 @@
 #lang "js";
+
+/*global require: true, exports:true
+*/
+
+
 'use strict';
 
 var _ = require('underscore'),
     parser = require("./parser"),
     expander = require("./expander"),
-    syntax = require("./syntax");
+    syntax = require("./syntax"),
+    assert = require("assert");
 
 var get_expression = expander.get_expression;
 var syntaxFromToken = syntax.syntaxFromToken;
@@ -15,7 +21,6 @@ var joinSyntax = syntax.joinSyntax;
 var joinSyntaxArray = syntax.joinSyntaxArray;
 var cloneSyntax = syntax.cloneSyntax;
 var cloneSyntaxArray = syntax.cloneSyntaxArray;
-var assert = syntax.assert;
 var throwSyntaxError = syntax.throwSyntaxError;
 
 var push = Array.prototype.push;

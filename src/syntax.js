@@ -1,16 +1,15 @@
 #lang "js";
 // import @ from "contracts.js"
 
+/*global require: true, exports:true
+*/
+
 "use strict";
 var _ = require("underscore"),
     parser = require("./parser"),
-    expander = require("./expander");
+    expander = require("./expander"),
+    assert = require("assert");
 
-function assert(condition, message) {
-    if (!condition) {
-        throw new Error('ASSERT: ' + message);
-    }
-}
 
 // Keep an incrementing global counter so that a particular
 // each new context object is assigned a unique "instance number"
@@ -494,8 +493,6 @@ function prettyPrint(stxarr, shouldResolve) {
         return ind + line.str + '\n' + acc;
     }, '');
 }
-
-exports.assert = assert;
 
 exports.unwrapSyntax = unwrapSyntax;
 exports.makeDelim = makeDelim;
