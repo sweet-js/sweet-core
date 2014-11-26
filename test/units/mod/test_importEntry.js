@@ -56,4 +56,15 @@ describe("import entries", function() {
         expect(entries[1].importName.token.value).to.be("a");
         expect(entries[1].localName.token.value).to.be("b");
     });
+
+    it("should make a new term from a modified entry", function() {
+        var t = getTerm("import { x as y } from './mod.js'");
+        var entry = makeImportEntries(t)[0];
+
+        var originalParam = entry.localName;
+        var renamedParam = originalParam.rename(originalParam, -1);
+        entry.localName = renamedParam;
+
+        expect(entry.toTerm().clause.names.token.inner[2]).to.be(renamedParam);
+    });
 });

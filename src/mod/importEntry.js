@@ -8,7 +8,18 @@ function ImportEntry(term, importName, localName) {
     this.moduleRequest = term.from;
     this.importName = importName;
     this.localName = localName;
+    if (term.isImportTerm) {
+        this.forPhase = 0;
+    } else if (term.isImportForMacrosTerm) {
+        this.forPhase = 1;
+    } else {
+        assert(false, "not implemented yet");
+    }
 }
+
+ImportEntry.prototype.toTerm = function() {
+    return this._term;
+};
 
 function makeImportEntries(imp) {
     assert(imp.isImportTerm || imp.isImportForMacrosTerm, "expecting an import term");
