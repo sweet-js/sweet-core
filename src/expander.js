@@ -3145,35 +3145,32 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
                              entry.importName);
         }
 
-        var exportName, trans, exportNameStr;
+        var exportName, trans, nameStr;
+        if (entry.localName.isDelimiter()) {
+            nameStr = entry.localName.token.inner.map(unwrapSyntax).join('');
+        } else {
+            nameStr = unwrapSyntax(entry.localName);
+        }
         if (!inExports) {
             // case when importing from a non ES6
             // module but not for macros so the module
             // was not invoked and thus nothing in the
             // context for this name
-            if (entry.importName.isDelimiter()) {
-                exportNameStr = entry.importName.map(unwrapSyntax).join('');
-            } else {
-                exportNameStr = unwrapSyntax(entry.importName);
-            }
             trans = null;
         } else if (inExports.isDelimiter()) {
             exportName = inExports.token.inner;
-            exportNameStr = exportName.map(unwrapSyntax).join('');
             trans = getValueInEnv(exportName[0],
                                   exportName.slice(1),
                                   context,
                                   phase);
         } else {
             exportName = inExports;
-            exportNameStr = unwrapSyntax(exportName);
             trans = getValueInEnv(exportName,
                                   [],
                                   context,
                                   phase);
         }
-
-        var newParam = syn.makeIdent(exportNameStr, entry.localName);
+        var newParam = syn.makeIdent(nameStr, entry.localName);
         var newName = fresh();
         var renamedParam = newParam.imported(newParam, newName, phase);
         // the localName for the import needs to be the newly renamed ident
