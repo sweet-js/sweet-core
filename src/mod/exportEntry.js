@@ -41,14 +41,15 @@ function makeExportEntries(exp) {
         var names = exp.name.token.inner;
 
         for (var i = 0; i < names.length; i++) {
-            if ((names[i].isIdentifier() || names[i].isDelimiter()) &&
-                names[i + 1] &&
+            if (names[i] && names[i + 1] &&
                 names[i + 1].token.value === "as") {
                 res.push(new ExportEntry(exp, names[i + 2], names[i]));
-                // walk past the `as <name>` tokens
-                i += 2;
-            } else if (names[i].isIdentifier() || names[i].isDelimiter()) {
+                // walk past the `as <name>` tokens and the comma
+                i += 3;
+            } else if (names[i]) {
                 res.push(new ExportEntry(exp, names[i], names[i]));
+                // walk past the comma
+                i++;
             }
         }
     } else if (exp.isExportDefaultTerm) {

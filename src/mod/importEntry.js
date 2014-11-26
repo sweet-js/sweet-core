@@ -46,14 +46,15 @@ function makeImportEntries(imp) {
         var names = imp.clause.names.token.inner;
 
         for (var i = 0; i < names.length; i++) {
-            if ((names[i].isIdentifier() || names[i].isDelimiter()) &&
-                names[i + 1] &&
+            if (names[i] && names[i + 1] &&
                 names[i + 1].token.value === "as") {
                 res.push(new ImportEntry(imp, names[i], names[i + 2]));
-                // walk past the `as <name>` tokens
-                i += 2;
-            } else if (names[i].isIdentifier() || names[i].isDelimiter()) {
+                // walk past the `as <name>` tokens and comma
+                i += 3;
+            } else if (names[i]) {
                 res.push(new ImportEntry(imp, names[i], names[i]));
+                // walk past the comma
+                i++;
             }
         }
     } else {

@@ -36,6 +36,7 @@ var codegen = require('escodegen'),
     syn = require('./syntax'),
     se = require('./scopedEval'),
     makeImportEntries = require("./mod/importEntry").makeImportEntries,
+    ExportEntry = require("./mod/exportEntry").ExportEntry,
     ModuleRecord = require("./mod/moduleRecord").ModuleRecord,
     patternModule = require("./patterns"),
     vm = require('vm'),
@@ -2265,17 +2266,10 @@ function expandTermTreeToFinal (term, context) {
 
         if (term.isModuleTerm) {
             bodyTerms.forEach(bodyTerm -> {
-                if (bodyTerm.isExportNameTerm) {
-                    if (bodyTerm.name.isDelimiter() &&
-                        bodyTerm.name.token.value === "{}") {
-                        bodyTerm.name.token.inner
-                            |> filterModuleCommaSep
-                            |> names -> names.forEach(name -> {
-                                context.moduleRecord.exportEntries.push(name);
-                            });
-                    } else {
-                        throwSyntaxError("expand", "not valid export type", bodyTerm.name);
-                    }
+                if (bodyTerm.isExportNameTerm ||
+                    bodyTerm.isExportDeclTerm ||
+                    bodyTerm.isExportDefaultTerm) {
+                    context.moduleRecord.addExport(bodyTerm);
                 }
             });
         }
@@ -2500,7 +2494,8 @@ function invoke(modTerm, modRecord, phase, context) {
             var expName = syn.makeIdent(exp, null);
             var renamed = expName.rename(expName, freshName)
 
-            modRecord.exportEntries.push(renamed);
+            modRecord.exportEntries.push(new ExportEntry(null, renamed, renamed));
+
             context.env.set(resolve(renamed, phase), {
                 value: exported[exp]
             });
@@ -2536,11 +2531,13 @@ function invoke(modTerm, modRecord, phase, context) {
         vm.runInNewContext(code, global);
 
         // update the exports with the runtime values
-        modRecord.exportEntries.forEach(exp -> {
-            var expName = resolve(exp, phase);
+        modRecord.exportEntries.forEach(entry -> {
+            // we have to get the value with the localName
+            var expName = resolve(entry.localName, phase);
             var expVal = global[expName];
-            context.env.set(expName, {value: expVal});
-            context.env.names.set(unwrapSyntax(exp), true);
+            // and set it as the export name
+            context.env.set(resolve(entry.exportName, phase), {value: expVal});
+            context.env.names.set(unwrapSyntax(entry.exportName), true);
         });
     }
 
@@ -2653,17 +2650,10 @@ function visit(modTerm, modRecord, phase, context) {
         }
 
         // add the exported names to the module record
-        if (term.isExportNameTerm) {
-            if (term.name.isDelimiter() &&
-                term.name.token.value === "{}") {
-                term.name.token.inner
-                    |> filterModuleCommaSep
-                    |> names -> names.forEach(name -> {
-                        modRecord.exportEntries.push(name);
-                    });
-            } else {
-                throwSyntaxError("visit", "not valid export", term.name);
-            }
+        if (term.isExportNameTerm ||
+            term.isExportDeclTerm ||
+            term.isExportDefaultTerm) {
+            modRecord.addExport(term);
         }
     });
 
@@ -2735,14 +2725,15 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
     var renamedNames = impEntries.map(entry -> {
         var isBase = modRecord.language === "base";
 
-        var inExports = _.find(modRecord.exportEntries, expTerm -> {
+        var inExports = _.find(modRecord.exportEntries, expEntry -> {
             if (entry.importName.isDelimiter()) {
-                return expTerm.isDelimiter() &&
-                    syntaxInnerValuesEq(entry.importName, expTerm);
+                return expEntry.exportName.isDelimiter() &&
+                    syntaxInnerValuesEq(entry.importName, expEntry.exportName);
             }
-            return expTerm.token.value === entry.importName.token.value
+            return unwrapSyntax(expEntry.exportName) === unwrapSyntax(entry.importName);
         });
         if (!(inExports || isBase)) {
+            console.log(modRecord.exportEntries);
             throwSyntaxError("compile",
                              "the imported name `" +
                              unwrapSyntax(entry.importName) +
@@ -2762,14 +2753,16 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
             // was not invoked and thus nothing in the
             // context for this name
             trans = null;
-        } else if (inExports.isDelimiter()) {
-            exportName = inExports.token.inner;
+        } else if (Array.isArray(inExports.exportName)) {
+            assert(false, "needs to be a delimiter");
+        } else if (inExports.exportName.isDelimiter()) {
+            exportName = inExports.exportName.token.inner;
             trans = getValueInEnv(exportName[0],
                                   exportName.slice(1),
                                   context,
                                   phase);
         } else {
-            exportName = inExports;
+            exportName = inExports.exportName;
             trans = getValueInEnv(exportName,
                                   [],
                                   context,
@@ -2787,7 +2780,7 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
             trans: trans,
             entry: entry
         };
-        });
+    });
 
     // set the new bindings in the context
     renamedNames.forEach(name -> {
