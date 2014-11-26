@@ -61,6 +61,8 @@ var TermTree                  = termTree.TermTree,
     ImportTerm                = termTree.ImportTerm,
     ImportForMacrosTerm       = termTree.ImportForMacrosTerm,
     NamedImportTerm           = termTree.NamedImportTerm,
+    DefaultImportTerm         = termTree.DefaultImportTerm,
+    NamespaceImportTerm       = termTree.NamespaceImportTerm,
     BindingTerm               = termTree.BindingTerm,
     QualifiedBindingTerm      = termTree.QualifiedBindingTerm,
     ExportNameTerm            = termTree.ExportNameTerm,
@@ -466,15 +468,46 @@ function enforestImportClause(stx) {
         return {
             result: NamedImportTerm.create(stx[0]),
             rest: stx.slice(1)
-        }
+        };
+    } else if (stx[0] && stx[0].isPunctuator() &&
+               unwrapSyntax(stx[0]) === "*" &&
+               stx[1] && unwrapSyntax(stx[1]) === "as" &&
+               stx[2]) {
+        return {
+            result: NamespaceImportTerm.create(stx[0], stx[1], stx[2]),
+            rest: stx.slice(3)
+        };
+    } else {
+        return {
+            result: DefaultImportTerm.create(stx[0]),
+            rest: stx.slice(1)
+        };
     }
-    assert(false, "no delimiter");
+}
+
+function enforestImportClauseList(stx) {
+    var res = [];
+    var clause = enforestImportClause(stx);
+    var rest = clause.rest;
+    res.push(clause.result);
+    if (rest[0] &&
+        rest[0].isPunctuator() &&
+        unwrapSyntax(rest[0]) === ",") {
+        res.push(rest[0]);
+        clause = enforestImportClause(rest.slice(1));
+        res.push(clause.result);
+        rest = clause.rest;
+    }
+    return {
+        result: res,
+        rest: rest
+    };
 }
 
 function enforestImport(head, rest) {
     assert(unwrapSyntax(head) === "import", "only call for imports");
 
-    var clause = enforestImportClause(rest);
+    var clause = enforestImportClauseList(rest);
     rest = clause.rest;
 
     if (rest[0] && unwrapSyntax(rest[0]) === "from" &&

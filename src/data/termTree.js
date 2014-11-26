@@ -264,6 +264,8 @@ dataclass ImportTerm                (kw, clause, fromkw, from)          extends 
 dataclass ImportForMacrosTerm       (kw, clause, fromkw, from,
                                      forkw, macroskw)                   extends ModuleTimeTerm;
 dataclass NamedImportTerm           (names)                             extends ModuleTimeTerm;
+dataclass DefaultImportTerm         (name)                              extends ModuleTimeTerm;
+dataclass NamespaceImportTerm       (star, askw, name)                  extends ModuleTimeTerm;
 dataclass BindingTerm               (importName)                        extends ModuleTimeTerm;
 dataclass QualifiedBindingTerm      (importName, askw, localName)       extends ModuleTimeTerm;
 dataclass ExportNameTerm            (kw, name)                          extends ModuleTimeTerm;
@@ -380,6 +382,8 @@ module.exports = {
     ImportTerm: ImportTerm,
     ImportForMacrosTerm: ImportForMacrosTerm,
     NamedImportTerm: NamedImportTerm,
+    NamespaceImportTerm: NamespaceImportTerm,
+    DefaultImportTerm: DefaultImportTerm,
     BindingTerm: BindingTerm,
     QualifiedBindingTerm: QualifiedBindingTerm,
     ExportNameTerm: ExportNameTerm,

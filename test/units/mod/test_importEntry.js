@@ -65,6 +65,58 @@ describe("import entries", function() {
         var renamedParam = originalParam.rename(originalParam, -1);
         entry.localName = renamedParam;
 
-        expect(entry.toTerm().clause.names.token.inner[2]).to.be(renamedParam);
+        expect(entry.toTerm().clause[0].names.token.inner[2]).to.be(renamedParam);
+    });
+
+    it("should make an entry for a default binding", function() {
+        var t = getTerm("import x from './mod.js'");
+        var entries = makeImportEntries(t);
+
+        expect(entries.length).to.be(1);
+        expect(entries[0].moduleRequest.token.value).to.be("./mod.js");
+        expect(entries[0].importName.token.value).to.be("default");
+        expect(entries[0].localName.token.value).to.be("x");
+
+        expect(entries[0].toTerm().clause[0].name.token.value).to.be("x");
+
+    });
+
+    it("should make an entry for a name space import", function() {
+        var t = getTerm("import * as x from './mod.js'");
+        var entries = makeImportEntries(t);
+
+        expect(entries.length).to.be(1);
+        expect(entries[0].moduleRequest.token.value).to.be("./mod.js");
+        expect(entries[0].importName.token.value).to.be("*");
+        expect(entries[0].localName.token.value).to.be("x");
+
+    });
+
+    it("should make an entry for a default binding and a namespace import", function() {
+        var t = getTerm("import x, * as y from './mod.js'");
+        var entries = makeImportEntries(t);
+
+        expect(entries.length).to.be(2);
+        expect(entries[0].moduleRequest.token.value).to.be("./mod.js");
+        expect(entries[0].importName.token.value).to.be("default");
+        expect(entries[0].localName.token.value).to.be("x");
+
+        expect(entries[1].importName.token.value).to.be("*");
+        expect(entries[1].localName.token.value).to.be("y");
+
+    });
+
+    it("should make an entry for a default binding", function() {
+        var t = getTerm("import x, { y } from './mod.js'");
+        var entries = makeImportEntries(t);
+
+        expect(entries.length).to.be(2);
+        expect(entries[0].moduleRequest.token.value).to.be("./mod.js");
+        expect(entries[0].importName.token.value).to.be("default");
+        expect(entries[0].localName.token.value).to.be("x");
+
+        expect(entries[1].importName.token.value).to.be("y");
+        expect(entries[1].localName.token.value).to.be("y");
+
     });
 });
