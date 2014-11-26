@@ -1,7 +1,10 @@
 #lang "../../macros/stxcase.js";
 "use strict";
 
-var assert = require("assert");
+var assert = require("assert"),
+    syn = require("../syntax"),
+    _ = require("underscore");
+
 
 function ImportEntry(term, importName, localName) {
     this._term = term;
@@ -18,7 +21,20 @@ function ImportEntry(term, importName, localName) {
 }
 
 ImportEntry.prototype.toTerm = function() {
-    return this._term;
+    var term = _.clone(this._term);
+    if (term.clause.isNamedImportTerm) {
+        term.clause = _.clone(term.clause);
+        term.clause.names = term.clause.names.clone();
+
+        if (this.importName.token.value === this.localName.token.value) {
+            term.clause.names.token.inner = [this.localName];
+        } else {
+            term.clause.names.token.inner = [this.importName,
+                                             syn.makeIdent("as", this.importName),
+                                             this.localName];
+        }
+    }
+    return term;
 };
 
 function makeImportEntries(imp) {
@@ -30,13 +46,13 @@ function makeImportEntries(imp) {
         var names = imp.clause.names.token.inner;
 
         for (var i = 0; i < names.length; i++) {
-            if (names[i].isIdentifier() &&
+            if ((names[i].isIdentifier() || names[i].isDelimiter()) &&
                 names[i + 1] &&
                 names[i + 1].token.value === "as") {
                 res.push(new ImportEntry(imp, names[i], names[i + 2]));
                 // walk past the `as <name>` tokens
                 i += 2;
-            } else if (names[i].isIdentifier()) {
+            } else if (names[i].isIdentifier() || names[i].isDelimiter()) {
                 res.push(new ImportEntry(imp, names[i], names[i]));
             }
         }

@@ -73,10 +73,15 @@ module.exports = function(grunt) {
             single: {
                 options: {
                     sourceMap: false,
+                    readableNames: false,
                     compileFrom: "./build/lib/sweet"
                 },
-                src: "test.js",
-                dest: "build/"
+                files: [{
+                    expand: true,
+                    cwd: "./",
+                    src: ["test.js"],
+                    dest: "build/"
+                }]
             },
         },
         copy: {
@@ -330,8 +335,6 @@ module.exports = function(grunt) {
                                    "copy:buildMacros",
                                    "build:dev",
                                    "build:tests",
-                                   "build:test_modules",
-                                   "build:unitTests",
                                    "copy:browserSrc",
                                    "copy:nodeSrc",
                                    "copy:browserMacros",

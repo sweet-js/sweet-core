@@ -3226,13 +3226,13 @@ function expandModule(mod, filename, templateMap, patternMap, moduleRecord, comp
 }
 
 function isCompileName(stx, context) {
-    if (name.isDelimiter()) {
-        return !nameInEnv(name.token.inner[0],
-                          name.token.inner.slice(1),
+    if (stx.isDelimiter()) {
+        return !nameInEnv(stx.token.inner[0],
+                          stx.token.inner.slice(1),
                           context,
                           0);
     } else {
-        return !nameInEnv(name, [], context, 0);
+        return !nameInEnv(stx, [], context, 0);
     }
 }
 
@@ -3293,7 +3293,7 @@ function flattenModule(modTerm, modRecord, context) {
                 var implicit = context.implicitImport.get(name);
                 // don't double add the import
                 if (!_.find(imports, imp -> imp === implicit)) {
-                    imports.push(implicit.toTerm());
+                    imports.push(implicit);
                 }
             }
             return stx
@@ -3305,11 +3305,11 @@ function flattenModule(modTerm, modRecord, context) {
         entry.moduleRequest.token.value += context.compileSuffix;
         return acc.concat(flatten(entry
                                   .toTerm().destruct(context)
-                                  .concat(syn.makePunc(";", clonedImp.names))));
+                                  .concat(syn.makePunc(";", entry.moduleRequest))));
     }, []);
 
     return {
-        imports: imports,
+        imports: imports.map(entry -> entry.toTerm()),
         body: flatImports.concat(output)
     };
 }
@@ -3350,10 +3350,19 @@ function compileModule(stx, options) {
     var patternMap = new StringMap();
     availableModules = new StringMap();
 
-    var expanded = expandModule(mod.term, filename, templateMap, patternMap, mod.record, options.compileSuffix);
-    var flattened = flattenModule(expanded.mod, expanded.context.moduleRecord, expanded.context);
+    var expanded = expandModule(mod.term,
+                                filename,
+                                templateMap,
+                                patternMap,
+                                mod.record,
+                                options.compileSuffix);
+    var flattened = flattenModule(expanded.mod,
+                                  expanded.context.moduleRecord,
+                                  expanded.context);
 
-    var compiledModules = flattenImports(flattened.imports, expanded.mod, expanded.context);
+    var compiledModules = flattenImports(flattened.imports,
+                                         expanded.mod,
+                                         expanded.context);
     return [{
         path: filename,
         code: flattened.body
