@@ -18,6 +18,12 @@ var _ = require("underscore"),
 // The memoization addresses issue #232.
 var globalContextInstanceNumber = 1;
 
+
+var nextFresh = 0;
+
+// @ () -> Num
+function fresh() { return nextFresh++; }
+
 // @ let Token = {
 //     type: ?Num,
 //     value: ?Any,
@@ -167,8 +173,11 @@ Syntax.prototype = {
                         return acc;
                     }, []);
                 } else {
-                    assert(this.token[key].length === 2, "the only arrays on tokens should be ranges with two items");
-                    newTok[key] = [this.token[key][0], this.token[key][1]];
+                    // don't need to deep copy normal arrays
+                    newTok[key] = this.token[key].reduce(function(acc, el) {
+                        acc.push(el);
+                        return acc;
+                    }, []);
                 }
             } else {
                 newTok[key] = this.token[key];
@@ -496,6 +505,115 @@ function prettyPrint(stxarr, shouldResolve) {
     }, '');
 }
 
+function adjustLineContext(stx, original, current) {
+    // short circuit when the array is empty;
+    if (stx.length === 0) {
+        return stx;
+    }
+
+    current = current || {
+        lastLineNumber: stx[0].token.lineNumber || stx[0].token.startLineNumber,
+        lineNumber: original.token.lineNumber
+    };
+
+    return _.map(stx, function(stx) {
+        if (stx.isDelimiter()) {
+            // handle tokens with missing line info
+            stx.token.startLineNumber = typeof stx.token.startLineNumber == 'undefined'
+                                            ? original.token.lineNumber
+                                            : stx.token.startLineNumber
+            stx.token.endLineNumber = typeof stx.token.endLineNumber == 'undefined'
+                                            ? original.token.lineNumber
+                                            : stx.token.endLineNumber
+            stx.token.startLineStart = typeof stx.token.startLineStart == 'undefined'
+                                            ? original.token.lineStart
+                                            : stx.token.startLineStart
+            stx.token.endLineStart = typeof stx.token.endLineStart == 'undefined'
+                                            ? original.token.lineStart
+                                            : stx.token.endLineStart
+            stx.token.startRange = typeof stx.token.startRange == 'undefined'
+                                            ? original.token.range
+                                            : stx.token.startRange
+            stx.token.endRange = typeof stx.token.endRange == 'undefined'
+                                            ? original.token.range
+                                            : stx.token.endRange
+
+            stx.token.sm_startLineNumber = typeof stx.token.sm_startLineNumber == 'undefined'
+                                            ? stx.token.startLineNumber
+                                            : stx.token.sm_startLineNumber;
+            stx.token.sm_endLineNumber = typeof stx.token.sm_endLineNumber == 'undefined'
+                                            ? stx.token.endLineNumber
+                                            : stx.token.sm_endLineNumber;
+            stx.token.sm_startLineStart = typeof stx.token.sm_startLineStart == 'undefined'
+                                            ?  stx.token.startLineStart
+                                            : stx.token.sm_startLineStart;
+            stx.token.sm_endLineStart = typeof stx.token.sm_endLineStart == 'undefined'
+                                            ? stx.token.endLineStart
+                                            : stx.token.sm_endLineStart;
+            stx.token.sm_startRange = typeof stx.token.sm_startRange == 'undefined'
+                                            ? stx.token.startRange
+                                            : stx.token.sm_startRange;
+            stx.token.sm_endRange = typeof stx.token.sm_endRange == 'undefined'
+                                            ? stx.token.endRange
+                                            : stx.token.sm_endRange;
+
+            if (stx.token.startLineNumber !== current.lineNumber) {
+                if (stx.token.startLineNumber !== current.lastLineNumber) {
+                    current.lineNumber++;
+                    current.lastLineNumber = stx.token.startLineNumber;
+                    stx.token.startLineNumber = current.lineNumber;
+                } else {
+                    current.lastLineNumber = stx.token.startLineNumber;
+                    stx.token.startLineNumber = current.lineNumber;
+                }
+
+            }
+
+            return stx;
+        }
+        // handle tokens with missing line info
+        stx.token.lineNumber = typeof stx.token.lineNumber == 'undefined'
+                                ? original.token.lineNumber
+                                : stx.token.lineNumber;
+        stx.token.lineStart = typeof stx.token.lineStart == 'undefined'
+                                ? original.token.lineStart
+                                : stx.token.lineStart;
+        stx.token.range = typeof stx.token.range == 'undefined'
+                                ? original.token.range
+                                : stx.token.range;
+
+        // Only set the sourcemap line info once. Necessary because a single
+        // syntax object can go through expansion multiple times. If at some point
+        // we want to write an expansion stepper this might be a good place to store
+        // intermediate expansion line info (ie push to a stack instead of
+        // just write once).
+        stx.token.sm_lineNumber = typeof stx.token.sm_lineNumber == 'undefined'
+                                    ? stx.token.lineNumber
+                                    : stx.token.sm_lineNumber;
+        stx.token.sm_lineStart = typeof stx.token.sm_lineStart == 'undefined'
+                                    ? stx.token.lineStart
+                                    : stx.token.sm_lineStart;
+        stx.token.sm_range = typeof stx.token.sm_range == 'undefined'
+                                ? stx.token.range.slice()
+                                : stx.token.sm_range;
+
+        // move the line info to line up with the macro name
+        // (line info starting from the macro name)
+        if (stx.token.lineNumber !== current.lineNumber) {
+            if (stx.token.lineNumber !== current.lastLineNumber) {
+                current.lineNumber++;
+                current.lastLineNumber = stx.token.lineNumber;
+                stx.token.lineNumber = current.lineNumber;
+            } else {
+                current.lastLineNumber = stx.token.lineNumber;
+                stx.token.lineNumber = current.lineNumber;
+            }
+        }
+
+        return stx;
+    });
+}
+
 exports.unwrapSyntax = unwrapSyntax;
 exports.makeDelim = makeDelim;
 exports.makePunc = makePunc;
@@ -529,3 +647,5 @@ exports.throwSyntaxError = throwSyntaxError;
 exports.SyntaxCaseError = SyntaxCaseError;
 exports.throwSyntaxCaseError = throwSyntaxCaseError;
 exports.printSyntaxError = printSyntaxError;
+exports.adjustLineContext = adjustLineContext;
+exports.fresh = fresh;

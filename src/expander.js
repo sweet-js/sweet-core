@@ -40,12 +40,68 @@ var codegen = require('escodegen'),
     patternModule = require("./patterns"),
     vm = require('vm'),
     Immutable = require('immutable'),
-    assert = require("assert");
+    assert = require("assert"),
+    termTree = require("./data/termTree");
 
 var throwSyntaxError = syn.throwSyntaxError;
 var throwSyntaxCaseError = syn.throwSyntaxCaseError;
 var SyntaxCaseError = syn.SyntaxCaseError;
 var unwrapSyntax = syn.unwrapSyntax;
+var adjustLineContext = syn.adjustLineContext;
+var fresh = syn.fresh;
+
+var TermTree = termTree.TermTree,
+    EOFTerm = termTree.EOFTerm,
+    KeywordTerm = termTree.KeywordTerm,
+    PuncTerm = termTree.PuncTerm,
+    DelimiterTerm = termTree.DelimiterTerm,
+    ModuleTimeTerm = termTree.ModuleTimeTerm,
+    ModuleTerm = termTree.ModuleTerm,
+    ImportTerm = termTree.ImportTerm,
+    ImportForMacrosTerm = termTree.ImportForMacrosTerm,
+    NamedImportTerm = termTree.NamedImportTerm,
+    BindingTerm = termTree.BindingTerm,
+    QualifiedBindingTerm = termTree.QualifiedBindingTerm,
+    ExportTerm = termTree.ExportTerm,
+    CompileTimeTerm = termTree.CompileTimeTerm,
+    LetMacroTerm = termTree.LetMacroTerm,
+    MacroTerm = termTree.MacroTerm,
+    AnonMacroTerm = termTree.AnonMacroTerm,
+    OperatorDefinitionTerm = termTree.OperatorDefinitionTerm,
+    VariableDeclarationTerm = termTree.VariableDeclarationTerm,
+    StatementTerm = termTree.StatementTerm,
+    EmptyTerm = termTree.EmptyTerm,
+    CatchClauseTerm = termTree.CatchClauseTerm,
+    ForStatementTerm = termTree.ForStatementTerm,
+    ReturnStatementTerm = termTree.ReturnStatementTerm,
+    ExprTerm = termTree.ExprTerm,
+    UnaryOpTerm = termTree.UnaryOpTerm,
+    PostfixOpTerm = termTree.PostfixOpTerm,
+    BinOpTerm = termTree.BinOpTerm,
+    AssignmentExpressionTerm = termTree.AssignmentExpressionTerm,
+    ConditionalExpressionTerm = termTree.ConditionalExpressionTerm,
+    NamedFunTerm = termTree.NamedFunTerm,
+    AnonFunTerm = termTree.AnonFunTerm,
+    ArrowFunTerm = termTree.ArrowFunTerm,
+    ObjDotGetTerm = termTree.ObjDotGetTerm,
+    ObjGetTerm = termTree.ObjGetTerm,
+    TemplateTerm = termTree.TemplateTerm,
+    CallTerm = termTree.CallTerm,
+    QuoteSyntaxTerm = termTree.QuoteSyntaxTerm,
+    PrimaryExpressionTerm = termTree.PrimaryExpressionTerm,
+    ThisExpressionTerm = termTree.ThisExpressionTerm,
+    LitTerm = termTree.LitTerm,
+    BlockTerm = termTree.BlockTerm,
+    ArrayLiteralTerm = termTree.ArrayLiteralTerm,
+    IdTerm = termTree.IdTerm,
+    PartialTerm = termTree.PartialTerm,
+    PartialOperationTerm = termTree.PartialOperationTerm,
+    PartialExpressionTerm = termTree.PartialExpressionTerm,
+    BindingStatementTerm = termTree.BindingStatementTerm,
+    VariableStatementTerm = termTree.VariableStatementTerm,
+    LetStatementTerm = termTree.LetStatementTerm,
+    ConstStatementTerm = termTree.ConstStatementTerm,
+    ParenExpressionTerm = termTree.ParenExpressionTerm;
 
 macro (->) {
     rule infix { $param:ident | { $body ... } } => {
@@ -272,10 +328,6 @@ function unionEl(arr, el) {
     return arr;
 }
 
-var nextFresh = 0;
-
-// @ () -> Num
-function fresh() { return nextFresh++; }
 
 
 
@@ -308,358 +360,351 @@ function getParamIdentifiers(argSyntax) {
 }
 
 
-function inherit(parent, child, methods) {
-    var P = function(){};
-    P.prototype = parent.prototype;
-    child.prototype = new P();
-    child.prototype.constructor = child;
-    _.extend(child.prototype, methods);
-}
 
-macro cloned {
-    rule { $dest:ident <- $source:expr ;... } => {
-        var src = $source;
-        var keys = Object.keys(src);
-        var $dest = {};
-        for (var i = 0, len = keys.length, key; i < len; i++) {
-            key = keys[i];
-            $dest[key] = src[key];
-        }
-    }
-}
-
-macro to_str {
-    case { _ ($toks (,) ...) } => {
-        var toks = #{ $toks ... };
-        // We aren't using unwrapSyntax because it breaks since its defined
-        // within the outer scope! We need phases.
-        var str = toks.map(function(x) { return x.token.value }).join('');
-        return [makeValue(str, #{ here })];
-    }
-}
-
-macro class_method {
-    rule { $name:ident $args $body } => {
-        to_str($name): function $args $body
-    }
-}
-
-macro class_extend {
-    rule { $name $parent $methods } => {
-        inherit($parent, $name, $methods);
-    }
-}
-
-macro class_ctr {
-    rule { $name ($field ...) } => {
-        function $name($field (,) ...) {
-            $(this.$field = $field;) ...
-        }
-    }
-}
-
-macro class_create {
-    rule { $name ($arg (,) ...) } => {
-        $name.properties = [$(to_str($arg)) (,) ...];
-        $name.create = function($arg (,) ...) {
-            return new $name($arg (,) ...);
-        }
-    }
-}
-
-macro dataclass {
-    rule {
-        $name:ident ($field:ident (,) ...) extends $parent:ident {
-            $methods:class_method ...
-        } ;...
-    } => {
-        class_ctr $name ($field ...)
-        class_create $name ($field (,) ...)
-        class_extend $name $parent {
-            to_str('is', $name): true,
-            $methods (,) ...
-        }
-    }
-
-    rule {
-        $name:ident ($field:ident (,) ...) {
-            $methods:class_method ...
-        } ;...
-    } => {
-        class_ctr $name ($field ...)
-        class_create $name ($field (,) ...)
-        $name.prototype = {
-            to_str('is', $name): true,
-            $methods (,) ...
-        };
-    }
-
-    rule { $name:ident ($field (,) ...) extends $parent:ident ;... } => {
-        class_ctr $name ($field ...)
-        class_create $name ($field (,) ...)
-        class_extend $name $parent {
-            to_str('is', $name): true
-        }
-    }
-
-    rule { $name:ident ($field (,) ...) ;... } => {
-        class_ctr $name ($field ...)
-        class_create $name ($field (,) ...)
-        $name.prototype = {
-            to_str('is', $name): true
-        };
-    }
-}
-
-// @ let TemplateMap = {}
-// @ let PatternMap = {}
-// @ let TokenObject = {}
-// @ let ContextObject = {}
-
-// @ let SyntaxObject = {
-//     token: TokenObject,
-//     context: Null or ContextObject
-// }
-// @ let TermTreeObject = {}
-
-// @ let ExpanderContext = {}
-// {
-//     filename: Str,
-//     env: {},
-//     defscope: {},
-//     paramscope: {},
-//     templateMap: {},
-//     patternMap: {},
-//     mark: Num
+// macro cloned {
+//     rule { $dest:ident <- $source:expr ;... } => {
+//         var src = $source;
+//         var keys = Object.keys(src);
+//         var $dest = {};
+//         for (var i = 0, len = keys.length, key; i < len; i++) {
+//             key = keys[i];
+//             $dest[key] = src[key];
+//         }
+//     }
 // }
 
-// @ let ExportTerm = {
-//     name: SyntaxObject
-// }
-// @ let ImportTerm = {
-//     names: SyntaxObject,
-//     from: SyntaxObject
-// }
-// @ let ModuleTerm = {
-//     name: SyntaxObject,
-//     lang: SyntaxObject,
-//     body: [...SyntaxObject] or [...TermTreeObject],
-//     imports: [...ImportTerm],
-//     exports: [...ExportTerm]
+// macro to_str {
+//     case { _ ($toks (,) ...) } => {
+//         var toks = #{ $toks ... };
+//         // We aren't using unwrapSyntax because it breaks since its defined
+//         // within the outer scope! We need phases.
+//         var str = toks.map(function(x) { return x.token.value }).join('');
+//         return [makeValue(str, #{ here })];
+//     }
 // }
 
-// A TermTree is the core data structure for the macro expansion process.
-// It acts as a semi-structured representation of the syntax.
-dataclass TermTree() {
+// macro class_method {
+//     rule { $name:ident $args $body } => {
+//         to_str($name): function $args $body
+//     }
+// }
 
-    // Go back to the syntax object representation. Uses the
-    // ordered list of properties that each subclass sets to
-    // determine the order in which multiple children are
-    // destructed.
-    // ({stripCompileTerm: ?Boolean}) -> [...Syntax]
-    destruct(context, options) {
-        assert(context, "must pass in the context to destruct");
-        options = options || {};
-        var self = this;
-        if (options.stripCompileTerm && this.isCompileTimeTerm)  {
-            return [];
-        }
-        if (options.stripModuleTerm && this.isModuleTimeTerm)  {
-            return [];
-        }
-        return _.reduce(this.constructor.properties, function(acc, prop) {
-            if (self[prop] && self[prop].isTermTree) {
-                push.apply(acc, self[prop].destruct(context, options));
-                return acc;
-            } else if (self[prop] && self[prop].token && self[prop].token.inner) {
-                cloned newtok <- self[prop].token;
-                var clone = syntaxFromToken(newtok, self[prop]);
-                clone.token.inner = _.reduce(clone.token.inner, function(acc, t) {
-                    if (t && t.isTermTree) {
-                        push.apply(acc, t.destruct(context, options));
-                        return acc;
-                    }
-                    acc.push(t);
-                    return acc;
-                }, []);
-                acc.push(clone);
-                return acc;
-            } else if (Array.isArray(self[prop])) {
-                var destArr = _.reduce(self[prop], function(acc, t) {
-                    if (t && t.isTermTree) {
-                        push.apply(acc, t.destruct(context, options));
-                        return acc;
-                    }
-                    acc.push(t);
-                    return acc;
-                }, []);
-                push.apply(acc, destArr);
-                return acc;
-            } else if (self[prop]) {
-                acc.push(self[prop]);
-                return acc;
-            } else {
-                return acc;
-            }
-        }, []);
-    }
+// macro class_extend {
+//     rule { $name $parent $methods } => {
+//         inherit($parent, $name, $methods);
+//     }
+// }
 
-    addDefCtx(def) {
-        var self = this;
-        _.each(this.constructor.properties, function(prop) {
-            if (Array.isArray(self[prop])) {
-                self[prop] = _.map(self[prop], function (item) {
-                    return item.addDefCtx(def);
-                });
-            } else if (self[prop]) {
-                self[prop] = self[prop].addDefCtx(def);
-            }
-        });
-        return this;
-    }
+// macro class_ctr {
+//     rule { $name ($field ...) } => {
+//         function $name($field (,) ...) {
+//             $(this.$field = $field;) ...
+//         }
+//     }
+// }
 
-    rename(id, name, phase) {
-        var self = this;
-        _.each(this.constructor.properties, function(prop) {
-            if (Array.isArray(self[prop])) {
-                self[prop] = _.map(self[prop], function (item) {
-                    return item.rename(id, name, phase);
-                });
-            } else if (self[prop]) {
-                self[prop] = self[prop].rename(id, name, phase);
-            }
-        });
-        return this;
-    }
+// macro class_create {
+//     rule { $name ($arg (,) ...) } => {
+//         $name.properties = [$(to_str($arg)) (,) ...];
+//         $name.create = function($arg (,) ...) {
+//             return new $name($arg (,) ...);
+//         }
+//     }
+// }
 
-    imported(id, name, phase) {
-        var self = this;
-        _.each(this.constructor.properties, function(prop) {
-            if (Array.isArray(self[prop])) {
-                self[prop] = _.map(self[prop], function (item) {
-                    return item.imported(id, name, phase);
-                });
-            } else if (self[prop]) {
-                self[prop] = self[prop].imported(id, name, phase);
-            }
-        });
-        return this;
-    }
-}
+// macro dataclass {
+//     rule {
+//         $name:ident ($field:ident (,) ...) extends $parent:ident {
+//             $methods:class_method ...
+//         } ;...
+//     } => {
+//         class_ctr $name ($field ...)
+//         class_create $name ($field (,) ...)
+//         class_extend $name $parent {
+//             to_str('is', $name): true,
+//             $methods (,) ...
+//         }
+//     }
 
-dataclass EOFTerm                   (eof)                               extends TermTree;
-dataclass KeywordTerm               (keyword)                           extends TermTree;
-dataclass PuncTerm                  (punc)                              extends TermTree;
-dataclass DelimiterTerm             (delim)                             extends TermTree;
+//     rule {
+//         $name:ident ($field:ident (,) ...) {
+//             $methods:class_method ...
+//         } ;...
+//     } => {
+//         class_ctr $name ($field ...)
+//         class_create $name ($field (,) ...)
+//         $name.prototype = {
+//             to_str('is', $name): true,
+//             $methods (,) ...
+//         };
+//     }
 
-dataclass ModuleTimeTerm            ()                                  extends TermTree;
+//     rule { $name:ident ($field (,) ...) extends $parent:ident ;... } => {
+//         class_ctr $name ($field ...)
+//         class_create $name ($field (,) ...)
+//         class_extend $name $parent {
+//             to_str('is', $name): true
+//         }
+//     }
 
-dataclass ModuleTerm                (body)                              extends ModuleTimeTerm;
-dataclass ImportTerm                (kw, clause, fromkw, from)          extends ModuleTimeTerm;
-dataclass ImportForMacrosTerm       (kw, clause, fromkw, from,
-                                     forkw, macroskw)                   extends ModuleTimeTerm;
-dataclass NamedImportTerm           (names)                             extends ModuleTimeTerm;
-dataclass BindingTerm               (importName)                        extends ModuleTimeTerm;
-dataclass QualifiedBindingTerm      (importName, askw, localName)       extends ModuleTimeTerm;
-dataclass ExportTerm                (kw, name)                          extends ModuleTimeTerm;
+//     rule { $name:ident ($field (,) ...) ;... } => {
+//         class_ctr $name ($field ...)
+//         class_create $name ($field (,) ...)
+//         $name.prototype = {
+//             to_str('is', $name): true
+//         };
+//     }
+// }
 
-dataclass CompileTimeTerm           ()                                  extends TermTree;
+// // @ let TemplateMap = {}
+// // @ let PatternMap = {}
+// // @ let TokenObject = {}
+// // @ let ContextObject = {}
 
-dataclass LetMacroTerm              (name, body)                        extends CompileTimeTerm;
-dataclass MacroTerm                 (name, body)                        extends CompileTimeTerm;
-dataclass AnonMacroTerm             (body)                              extends CompileTimeTerm;
-dataclass OperatorDefinitionTerm    (type, name, prec, assoc, body)     extends CompileTimeTerm;
+// // @ let SyntaxObject = {
+// //     token: TokenObject,
+// //     context: Null or ContextObject
+// // }
+// // @ let TermTreeObject = {}
 
-dataclass VariableDeclarationTerm   (ident, eq, init, comma)            extends TermTree;
+// // @ let ExpanderContext = {}
+// // {
+// //     filename: Str,
+// //     env: {},
+// //     defscope: {},
+// //     paramscope: {},
+// //     templateMap: {},
+// //     patternMap: {},
+// //     mark: Num
+// // }
 
-dataclass StatementTerm             ()                                  extends TermTree;
+// // @ let ExportTerm = {
+// //     name: SyntaxObject
+// // }
+// // @ let ImportTerm = {
+// //     names: SyntaxObject,
+// //     from: SyntaxObject
+// // }
+// // @ let ModuleTerm = {
+// //     name: SyntaxObject,
+// //     lang: SyntaxObject,
+// //     body: [...SyntaxObject] or [...TermTreeObject],
+// //     imports: [...ImportTerm],
+// //     exports: [...ExportTerm]
+// // }
 
-dataclass EmptyTerm                 ()                                  extends StatementTerm;
-dataclass CatchClauseTerm           (keyword, params, body)             extends StatementTerm;
-dataclass ForStatementTerm          (keyword, cond)                     extends StatementTerm;
-dataclass ReturnStatementTerm       (keyword, expr)                     extends StatementTerm {
-    destruct(context, options) {
-        var expr = this.expr.destruct(context, options);
-        // need to adjust the line numbers to make sure that the expr
-        // starts on the same line as the return keyword. This might
-        // not be the case if an operator or infix macro perturbed the
-        // line numbers during expansion.
-        expr = adjustLineContext(expr, this.keyword.keyword);
-        return this.keyword.destruct(context, options).concat(expr);
-    }
-}
+// // A TermTree is the core data structure for the macro expansion process.
+// // It acts as a semi-structured representation of the syntax.
+// dataclass TermTree() {
 
-dataclass ExprTerm                  ()                                  extends StatementTerm;
-dataclass UnaryOpTerm               (op, expr)                          extends ExprTerm;
-dataclass PostfixOpTerm             (expr, op)                          extends ExprTerm;
-dataclass BinOpTerm                 (left, op, right)                   extends ExprTerm;
-dataclass AssignmentExpressionTerm  (left, op, right)                   extends ExprTerm;
-dataclass ConditionalExpressionTerm (cond, question, tru, colon, fls)   extends ExprTerm;
-dataclass NamedFunTerm              (keyword, star, name, params, body) extends ExprTerm;
-dataclass AnonFunTerm               (keyword, star, params, body)       extends ExprTerm;
-dataclass ArrowFunTerm              (params, arrow, body)               extends ExprTerm;
-dataclass ObjDotGetTerm             (left, dot, right)                  extends ExprTerm;
-dataclass ObjGetTerm                (left, right)                       extends ExprTerm;
-dataclass TemplateTerm              (template)                          extends ExprTerm;
-dataclass CallTerm                  (fun, args)                         extends ExprTerm;
+//     // Go back to the syntax object representation. Uses the
+//     // ordered list of properties that each subclass sets to
+//     // determine the order in which multiple children are
+//     // destructed.
+//     // ({stripCompileTerm: ?Boolean}) -> [...Syntax]
+//     destruct(context, options) {
+//         assert(context, "must pass in the context to destruct");
+//         options = options || {};
+//         var self = this;
+//         if (options.stripCompileTerm && this.isCompileTimeTerm)  {
+//             return [];
+//         }
+//         if (options.stripModuleTerm && this.isModuleTimeTerm)  {
+//             return [];
+//         }
+//         return _.reduce(this.constructor.properties, function(acc, prop) {
+//             if (self[prop] && self[prop].isTermTree) {
+//                 push.apply(acc, self[prop].destruct(context, options));
+//                 return acc;
+//             } else if (self[prop] && self[prop].token && self[prop].token.inner) {
+//                 cloned newtok <- self[prop].token;
+//                 var clone = syntaxFromToken(newtok, self[prop]);
+//                 clone.token.inner = _.reduce(clone.token.inner, function(acc, t) {
+//                     if (t && t.isTermTree) {
+//                         push.apply(acc, t.destruct(context, options));
+//                         return acc;
+//                     }
+//                     acc.push(t);
+//                     return acc;
+//                 }, []);
+//                 acc.push(clone);
+//                 return acc;
+//             } else if (Array.isArray(self[prop])) {
+//                 var destArr = _.reduce(self[prop], function(acc, t) {
+//                     if (t && t.isTermTree) {
+//                         push.apply(acc, t.destruct(context, options));
+//                         return acc;
+//                     }
+//                     acc.push(t);
+//                     return acc;
+//                 }, []);
+//                 push.apply(acc, destArr);
+//                 return acc;
+//             } else if (self[prop]) {
+//                 acc.push(self[prop]);
+//                 return acc;
+//             } else {
+//                 return acc;
+//             }
+//         }, []);
+//     }
 
-dataclass QuoteSyntaxTerm           (stx)                               extends ExprTerm {
-    destruct(context, options) {
-        var tempId = fresh();
-        context.templateMap.set(tempId, this.stx.token.inner);
-        return [syn.makeIdent("getTemplate", this.stx),
-                syn.makeDelim("()", [
-                    syn.makeValue(tempId, this.stx)
-                ], this.stx)];
+//     addDefCtx(def) {
+//         var self = this;
+//         _.each(this.constructor.properties, function(prop) {
+//             if (Array.isArray(self[prop])) {
+//                 self[prop] = _.map(self[prop], function (item) {
+//                     return item.addDefCtx(def);
+//                 });
+//             } else if (self[prop]) {
+//                 self[prop] = self[prop].addDefCtx(def);
+//             }
+//         });
+//         return this;
+//     }
 
-    }
-}
+//     rename(id, name, phase) {
+//         var self = this;
+//         _.each(this.constructor.properties, function(prop) {
+//             if (Array.isArray(self[prop])) {
+//                 self[prop] = _.map(self[prop], function (item) {
+//                     return item.rename(id, name, phase);
+//                 });
+//             } else if (self[prop]) {
+//                 self[prop] = self[prop].rename(id, name, phase);
+//             }
+//         });
+//         return this;
+//     }
+
+//     imported(id, name, phase) {
+//         var self = this;
+//         _.each(this.constructor.properties, function(prop) {
+//             if (Array.isArray(self[prop])) {
+//                 self[prop] = _.map(self[prop], function (item) {
+//                     return item.imported(id, name, phase);
+//                 });
+//             } else if (self[prop]) {
+//                 self[prop] = self[prop].imported(id, name, phase);
+//             }
+//         });
+//         return this;
+//     }
+// }
+
+// dataclass EOFTerm                   (eof)                               extends TermTree;
+// dataclass KeywordTerm               (keyword)                           extends TermTree;
+// dataclass PuncTerm                  (punc)                              extends TermTree;
+// dataclass DelimiterTerm             (delim)                             extends TermTree;
+
+// dataclass ModuleTimeTerm            ()                                  extends TermTree;
+
+// dataclass ModuleTerm                (body)                              extends ModuleTimeTerm;
+// dataclass ImportTerm                (kw, clause, fromkw, from)          extends ModuleTimeTerm;
+// dataclass ImportForMacrosTerm       (kw, clause, fromkw, from,
+//                                      forkw, macroskw)                   extends ModuleTimeTerm;
+// dataclass NamedImportTerm           (names)                             extends ModuleTimeTerm;
+// dataclass BindingTerm               (importName)                        extends ModuleTimeTerm;
+// dataclass QualifiedBindingTerm      (importName, askw, localName)       extends ModuleTimeTerm;
+// dataclass ExportTerm                (kw, name)                          extends ModuleTimeTerm;
+
+// dataclass CompileTimeTerm           ()                                  extends TermTree;
+
+// dataclass LetMacroTerm              (name, body)                        extends CompileTimeTerm;
+// dataclass MacroTerm                 (name, body)                        extends CompileTimeTerm;
+// dataclass AnonMacroTerm             (body)                              extends CompileTimeTerm;
+// dataclass OperatorDefinitionTerm    (type, name, prec, assoc, body)     extends CompileTimeTerm;
+
+// dataclass VariableDeclarationTerm   (ident, eq, init, comma)            extends TermTree;
+
+// dataclass StatementTerm             ()                                  extends TermTree;
+
+// dataclass EmptyTerm                 ()                                  extends StatementTerm;
+// dataclass CatchClauseTerm           (keyword, params, body)             extends StatementTerm;
+// dataclass ForStatementTerm          (keyword, cond)                     extends StatementTerm;
+// dataclass ReturnStatementTerm       (keyword, expr)                     extends StatementTerm {
+//     destruct(context, options) {
+//         var expr = this.expr.destruct(context, options);
+//         // need to adjust the line numbers to make sure that the expr
+//         // starts on the same line as the return keyword. This might
+//         // not be the case if an operator or infix macro perturbed the
+//         // line numbers during expansion.
+//         expr = adjustLineContext(expr, this.keyword.keyword);
+//         return this.keyword.destruct(context, options).concat(expr);
+//     }
+// }
+
+// dataclass ExprTerm                  ()                                  extends StatementTerm;
+// dataclass UnaryOpTerm               (op, expr)                          extends ExprTerm;
+// dataclass PostfixOpTerm             (expr, op)                          extends ExprTerm;
+// dataclass BinOpTerm                 (left, op, right)                   extends ExprTerm;
+// dataclass AssignmentExpressionTerm  (left, op, right)                   extends ExprTerm;
+// dataclass ConditionalExpressionTerm (cond, question, tru, colon, fls)   extends ExprTerm;
+// dataclass NamedFunTerm              (keyword, star, name, params, body) extends ExprTerm;
+// dataclass AnonFunTerm               (keyword, star, params, body)       extends ExprTerm;
+// dataclass ArrowFunTerm              (params, arrow, body)               extends ExprTerm;
+// dataclass ObjDotGetTerm             (left, dot, right)                  extends ExprTerm;
+// dataclass ObjGetTerm                (left, right)                       extends ExprTerm;
+// dataclass TemplateTerm              (template)                          extends ExprTerm;
+// dataclass CallTerm                  (fun, args)                         extends ExprTerm;
+
+// dataclass QuoteSyntaxTerm           (stx)                               extends ExprTerm {
+//     destruct(context, options) {
+//         var tempId = fresh();
+//         context.templateMap.set(tempId, this.stx.token.inner);
+//         return [syn.makeIdent("getTemplate", this.stx),
+//                 syn.makeDelim("()", [
+//                     syn.makeValue(tempId, this.stx)
+//                 ], this.stx)];
+
+//     }
+// }
 
 
-dataclass PrimaryExpressionTerm     ()                                  extends ExprTerm;
-dataclass ThisExpressionTerm        (keyword)                           extends PrimaryExpressionTerm;
-dataclass LitTerm                   (lit)                               extends PrimaryExpressionTerm;
-dataclass BlockTerm                 (body)                              extends PrimaryExpressionTerm;
-dataclass ArrayLiteralTerm          (array)                             extends PrimaryExpressionTerm;
-dataclass IdTerm                    (id)                                extends PrimaryExpressionTerm;
+// dataclass PrimaryExpressionTerm     ()                                  extends ExprTerm;
+// dataclass ThisExpressionTerm        (keyword)                           extends PrimaryExpressionTerm;
+// dataclass LitTerm                   (lit)                               extends PrimaryExpressionTerm;
+// dataclass BlockTerm                 (body)                              extends PrimaryExpressionTerm;
+// dataclass ArrayLiteralTerm          (array)                             extends PrimaryExpressionTerm;
+// dataclass IdTerm                    (id)                                extends PrimaryExpressionTerm;
 
-dataclass PartialTerm               ()                                  extends TermTree;
-dataclass PartialOperationTerm      (stx, left)                         extends PartialTerm;
-dataclass PartialExpressionTerm     (stx, left, combine)                extends PartialTerm;
+// dataclass PartialTerm               ()                                  extends TermTree;
+// dataclass PartialOperationTerm      (stx, left)                         extends PartialTerm;
+// dataclass PartialExpressionTerm     (stx, left, combine)                extends PartialTerm;
 
-dataclass BindingStatementTerm(keyword, decls) extends StatementTerm {
-    destruct(context, options) {
-        return this.keyword
-            .destruct(context, options)
-            .concat(_.reduce(this.decls, function(acc, decl) {
-                push.apply(acc, decl.destruct(context, options));
-                return acc;
-            }, []));
-    }
-}
+// dataclass BindingStatementTerm(keyword, decls) extends StatementTerm {
+//     destruct(context, options) {
+//         return this.keyword
+//             .destruct(context, options)
+//             .concat(_.reduce(this.decls, function(acc, decl) {
+//                 push.apply(acc, decl.destruct(context, options));
+//                 return acc;
+//             }, []));
+//     }
+// }
 
-dataclass VariableStatementTerm (keyword, decls) extends BindingStatementTerm;
-dataclass LetStatementTerm      (keyword, decls) extends BindingStatementTerm;
-dataclass ConstStatementTerm    (keyword, decls) extends BindingStatementTerm;
+// dataclass VariableStatementTerm (keyword, decls) extends BindingStatementTerm;
+// dataclass LetStatementTerm      (keyword, decls) extends BindingStatementTerm;
+// dataclass ConstStatementTerm    (keyword, decls) extends BindingStatementTerm;
 
-dataclass ParenExpressionTerm(args, delim, commas) extends PrimaryExpressionTerm {
-    destruct(context, options) {
-        var commas = this.commas.slice();
-        cloned newtok <- this.delim.token;
-        var delim = syntaxFromToken(newtok, this.delim);
-        delim.token.inner = _.reduce(this.args, function(acc, term) {
-            assert(term && term.isTermTree,
-                   "expecting term trees in destruct of ParenExpression");
-            push.apply(acc, term.destruct(context, options));
-            // add all commas except for the last one
-            if (commas.length > 0) {
-                acc.push(commas.shift());
-            }
-            return acc;
-        }, []);
-        return DelimiterTerm.create(delim).destruct(context, options);
-    }
-}
+// dataclass ParenExpressionTerm(args, delim, commas) extends PrimaryExpressionTerm {
+//     destruct(context, options) {
+//         var commas = this.commas.slice();
+//         cloned newtok <- this.delim.token;
+//         var delim = syntaxFromToken(newtok, this.delim);
+//         delim.token.inner = _.reduce(this.args, function(acc, term) {
+//             assert(term && term.isTermTree,
+//                    "expecting term trees in destruct of ParenExpression");
+//             push.apply(acc, term.destruct(context, options));
+//             // add all commas except for the last one
+//             if (commas.length > 0) {
+//                 acc.push(commas.shift());
+//             }
+//             return acc;
+//         }, []);
+//         return DelimiterTerm.create(delim).destruct(context, options);
+//     }
+// }
 
 
 function stxIsUnaryOp(stx) {
@@ -928,114 +973,7 @@ function enforestParenExpression(parens, context) {
     return innerTokens.length ? null : ParenExpressionTerm.create(enforestedArgs, parens, commas);
 }
 
-function adjustLineContext(stx, original, current) {
-    // short circuit when the array is empty;
-    if (stx.length === 0) {
-        return stx;
-    }
 
-    current = current || {
-        lastLineNumber: stx[0].token.lineNumber || stx[0].token.startLineNumber,
-        lineNumber: original.token.lineNumber
-    };
-
-    return _.map(stx, function(stx) {
-        if (stx.isDelimiter()) {
-            // handle tokens with missing line info
-            stx.token.startLineNumber = typeof stx.token.startLineNumber == 'undefined'
-                                            ? original.token.lineNumber
-                                            : stx.token.startLineNumber
-            stx.token.endLineNumber = typeof stx.token.endLineNumber == 'undefined'
-                                            ? original.token.lineNumber
-                                            : stx.token.endLineNumber
-            stx.token.startLineStart = typeof stx.token.startLineStart == 'undefined'
-                                            ? original.token.lineStart
-                                            : stx.token.startLineStart
-            stx.token.endLineStart = typeof stx.token.endLineStart == 'undefined'
-                                            ? original.token.lineStart
-                                            : stx.token.endLineStart
-            stx.token.startRange = typeof stx.token.startRange == 'undefined'
-                                            ? original.token.range
-                                            : stx.token.startRange
-            stx.token.endRange = typeof stx.token.endRange == 'undefined'
-                                            ? original.token.range
-                                            : stx.token.endRange
-
-            stx.token.sm_startLineNumber = typeof stx.token.sm_startLineNumber == 'undefined'
-                                            ? stx.token.startLineNumber
-                                            : stx.token.sm_startLineNumber;
-            stx.token.sm_endLineNumber = typeof stx.token.sm_endLineNumber == 'undefined'
-                                            ? stx.token.endLineNumber
-                                            : stx.token.sm_endLineNumber;
-            stx.token.sm_startLineStart = typeof stx.token.sm_startLineStart == 'undefined'
-                                            ?  stx.token.startLineStart
-                                            : stx.token.sm_startLineStart;
-            stx.token.sm_endLineStart = typeof stx.token.sm_endLineStart == 'undefined'
-                                            ? stx.token.endLineStart
-                                            : stx.token.sm_endLineStart;
-            stx.token.sm_startRange = typeof stx.token.sm_startRange == 'undefined'
-                                            ? stx.token.startRange
-                                            : stx.token.sm_startRange;
-            stx.token.sm_endRange = typeof stx.token.sm_endRange == 'undefined'
-                                            ? stx.token.endRange
-                                            : stx.token.sm_endRange;
-
-            if (stx.token.startLineNumber !== current.lineNumber) {
-                if (stx.token.startLineNumber !== current.lastLineNumber) {
-                    current.lineNumber++;
-                    current.lastLineNumber = stx.token.startLineNumber;
-                    stx.token.startLineNumber = current.lineNumber;
-                } else {
-                    current.lastLineNumber = stx.token.startLineNumber;
-                    stx.token.startLineNumber = current.lineNumber;
-                }
-
-            }
-
-            return stx;
-        }
-        // handle tokens with missing line info
-        stx.token.lineNumber = typeof stx.token.lineNumber == 'undefined'
-                                ? original.token.lineNumber
-                                : stx.token.lineNumber;
-        stx.token.lineStart = typeof stx.token.lineStart == 'undefined'
-                                ? original.token.lineStart
-                                : stx.token.lineStart;
-        stx.token.range = typeof stx.token.range == 'undefined'
-                                ? original.token.range
-                                : stx.token.range;
-
-        // Only set the sourcemap line info once. Necessary because a single
-        // syntax object can go through expansion multiple times. If at some point
-        // we want to write an expansion stepper this might be a good place to store
-        // intermediate expansion line info (ie push to a stack instead of
-        // just write once).
-        stx.token.sm_lineNumber = typeof stx.token.sm_lineNumber == 'undefined'
-                                    ? stx.token.lineNumber
-                                    : stx.token.sm_lineNumber;
-        stx.token.sm_lineStart = typeof stx.token.sm_lineStart == 'undefined'
-                                    ? stx.token.lineStart
-                                    : stx.token.sm_lineStart;
-        stx.token.sm_range = typeof stx.token.sm_range == 'undefined'
-                                ? stx.token.range.slice()
-                                : stx.token.sm_range;
-
-        // move the line info to line up with the macro name
-        // (line info starting from the macro name)
-        if (stx.token.lineNumber !== current.lineNumber) {
-            if (stx.token.lineNumber !== current.lastLineNumber) {
-                current.lineNumber++;
-                current.lastLineNumber = stx.token.lineNumber;
-                stx.token.lineNumber = current.lineNumber;
-            } else {
-                current.lastLineNumber = stx.token.lineNumber;
-                stx.token.lineNumber = current.lineNumber;
-            }
-        }
-
-        return stx;
-    });
-}
 
 function getName(head, rest) {
     var idx = 0;
@@ -2059,8 +1997,7 @@ function get_expression(stx, context) {
 
 function tagWithTerm(term, stx) {
     return stx.map(function(s) {
-        cloned newtok <- s.token;
-        s = syntaxFromToken(newtok, s);
+        s = s.clone();
         s.term = term;
         return s;
     });
