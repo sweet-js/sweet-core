@@ -266,7 +266,7 @@ dataclass ImportForMacrosTerm       (kw, clause, fromkw, from,
 dataclass NamedImportTerm           (names)                             extends ModuleTimeTerm;
 dataclass BindingTerm               (importName)                        extends ModuleTimeTerm;
 dataclass QualifiedBindingTerm      (importName, askw, localName)       extends ModuleTimeTerm;
-dataclass ExportTerm                (kw, name)                          extends ModuleTimeTerm;
+dataclass ExportNameTerm            (kw, name)                          extends ModuleTimeTerm;
 
 dataclass CompileTimeTerm           ()                                  extends TermTree;
 
@@ -380,7 +380,7 @@ module.exports = {
     NamedImportTerm: NamedImportTerm,
     BindingTerm: BindingTerm,
     QualifiedBindingTerm: QualifiedBindingTerm,
-    ExportTerm: ExportTerm,
+    ExportNameTerm: ExportNameTerm,
     CompileTimeTerm: CompileTimeTerm,
     LetMacroTerm: LetMacroTerm,
     MacroTerm: MacroTerm,
