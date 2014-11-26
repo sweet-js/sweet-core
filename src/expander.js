@@ -63,6 +63,8 @@ var TermTree                  = termTree.TermTree,
     BindingTerm               = termTree.BindingTerm,
     QualifiedBindingTerm      = termTree.QualifiedBindingTerm,
     ExportNameTerm            = termTree.ExportNameTerm,
+    ExportDefaultTerm         = termTree.ExportDefaultTerm,
+    ExportDeclTerm            = termTree.ExportDeclTerm,
     CompileTimeTerm           = termTree.CompileTimeTerm,
     LetMacroTerm              = termTree.LetMacroTerm,
     MacroTerm                 = termTree.MacroTerm,
@@ -1446,19 +1448,31 @@ function enforest(toks, context, prevStx, prevTerms) {
             } else if (head.isKeyword() && unwrapSyntax(head) === "import") {
                 var imp = enforestImport(head, rest);
                 return step(imp.result, imp.rest, opCtx);
-            // export
+            // named export
             } else if (head.isKeyword() &&
                        unwrapSyntax(head) === "export" &&
-                       rest[0] && (rest[0].isIdentifier() ||
-                                   rest[0].isKeyword() ||
-                                   rest[0].isPunctuator() ||
-                                   rest[0].isDelimiter())) {
-                if (unwrapSyntax(rest[1]) !== ";" && toksAdjacent(rest[0], rest[1])) {
-                    throwSyntaxError("enforest",
-                                     "multi-token macro/operator names must be wrapped in () when exporting",
-                                     rest[1]);
-                }
-                return step(ExportNameTerm.create(head, rest[0]), rest.slice(1), opCtx);
+                       rest[0] && rest[0].isDelimiter()) {
+                return step(ExportNameTerm.create(head, rest[0]),
+                            rest.slice(1),
+                            opCtx);
+            // default export
+            } else if (head.isKeyword() &&
+                       unwrapSyntax(head) === "export" &&
+                       rest[0] && rest[0].isKeyword() &&
+                       unwrapSyntax(rest[0]) === "default" &&
+                       rest[1]) {
+                var res = enforest(rest.slice(1), context)
+
+                return step(ExportDefaultTerm.create(head, rest[0], res.result),
+                            res.rest,
+                            opCtx);
+            // declaration export
+            } else if (head.isKeyword() &&
+                       unwrapSyntax(head) === "export" && rest[0]) {
+                var res = enforest(rest, context)
+                return step(ExportDeclTerm.create(head, res.result),
+                            res.rest,
+                            opCtx);
             // identifier
             } else if (head.isIdentifier()) {
                 return step(IdTerm.create(head), rest, opCtx);

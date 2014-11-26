@@ -56,6 +56,8 @@ function makeImportEntries(imp) {
                 res.push(new ImportEntry(imp, names[i], names[i]));
             }
         }
+    } else {
+        assert(false, "not implemented yet");
     }
     return res;
 }

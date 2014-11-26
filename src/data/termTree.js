@@ -267,6 +267,8 @@ dataclass NamedImportTerm           (names)                             extends 
 dataclass BindingTerm               (importName)                        extends ModuleTimeTerm;
 dataclass QualifiedBindingTerm      (importName, askw, localName)       extends ModuleTimeTerm;
 dataclass ExportNameTerm            (kw, name)                          extends ModuleTimeTerm;
+dataclass ExportDefaultTerm         (kw, defaultkw, decl)               extends ModuleTimeTerm;
+dataclass ExportDeclTerm            (kw, decl)                          extends ModuleTimeTerm;
 
 dataclass CompileTimeTerm           ()                                  extends TermTree;
 
@@ -381,6 +383,8 @@ module.exports = {
     BindingTerm: BindingTerm,
     QualifiedBindingTerm: QualifiedBindingTerm,
     ExportNameTerm: ExportNameTerm,
+    ExportDefaultTerm: ExportDefaultTerm,
+    ExportDeclTerm: ExportDeclTerm,
     CompileTimeTerm: CompileTimeTerm,
     LetMacroTerm: LetMacroTerm,
     MacroTerm: MacroTerm,
