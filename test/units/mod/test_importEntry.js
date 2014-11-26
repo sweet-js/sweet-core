@@ -78,7 +78,6 @@ describe("import entries", function() {
         expect(entries[0].localName.token.value).to.be("x");
 
         expect(entries[0].toTerm().clause[0].name.token.value).to.be("x");
-
     });
 
     it("should make an entry for a name space import", function() {
@@ -90,6 +89,7 @@ describe("import entries", function() {
         expect(entries[0].importName.token.value).to.be("*");
         expect(entries[0].localName.token.value).to.be("x");
 
+        expect(entries[0].toTerm().clause[0].name.token.value).to.be("x");
     });
 
     it("should make an entry for a default binding and a namespace import", function() {
@@ -104,6 +104,9 @@ describe("import entries", function() {
         expect(entries[1].importName.token.value).to.be("*");
         expect(entries[1].localName.token.value).to.be("y");
 
+        expect(entries[0].toTerm().clause[0].name.token.value).to.be("x");
+        expect(entries[1].toTerm().clause[0].name.token.value).to.be("y");
+
     });
 
     it("should make an entry for a default binding", function() {
@@ -117,6 +120,9 @@ describe("import entries", function() {
 
         expect(entries[1].importName.token.value).to.be("y");
         expect(entries[1].localName.token.value).to.be("y");
+
+        expect(entries[0].toTerm().clause[0].name.token.value).to.be("x");
+        expect(entries[1].toTerm().clause[0].names.token.inner[0].token.value).to.be("y");
 
     });
 });

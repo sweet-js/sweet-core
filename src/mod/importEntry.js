@@ -3,7 +3,10 @@
 
 var assert = require("assert"),
     syn = require("../syntax"),
-    _ = require("underscore");
+    _ = require("underscore"),
+    NamedImportTerm = require("../data/termTree").NamedImportTerm,
+    DefaultImportTerm = require("../data/termTree").DefaultImportTerm,
+    NamespaceImportTerm = require("../data/termTree").NamespaceImportTerm;
 
 
 function ImportEntry(term, importName, localName) {
@@ -22,24 +25,25 @@ function ImportEntry(term, importName, localName) {
 
 ImportEntry.prototype.toTerm = function() {
     var term = _.clone(this._term);
-    var that = this;
-    term.clause = term.clause.map(function(clause) {
-        if (clause.isNamedImportTerm) {
-            clause = _.clone(clause);
-            clause.names = clause.names.clone();
 
-            if (that.importName.token.value === that.localName.token.value) {
-                clause.names.token.inner = [that.localName];
-            } else {
-                clause.names.token.inner = [that.importName,
-                                            syn.makeIdent("as", that.importName),
-                                            that.localName];
-            }
+    if (syn.unwrapSyntax(this.importName) === "*") {
+        term.clause = [NamespaceImportTerm.create(this.importName,
+                                                  syn.makeIdent("as", this.importName),
+                                                  this.localName)];
+    } else if (syn.unwrapSyntax(this.importName) === "default") {
+        term.clause = [DefaultImportTerm.create(this.localName)];
+    } else  {
+        var innerTokens;
+        if (this.importName.token.value === this.localName.token.value) {
+            innerTokens = [this.localName];
         } else {
-            assert(false, "not implemented yet");
+            innerTokens = [this.importName,
+                           syn.makeIdent("as", this.importName),
+                           this.localName];
         }
-        return clause;
-    });
+        term.clause = [NamedImportTerm.create(syn.makeDelim("{}", innerTokens, null))];
+    }
+
     return term;
 };
 
