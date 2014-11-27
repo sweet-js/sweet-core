@@ -551,8 +551,6 @@ function enforestImport(head, rest) {
     } else {
         throwSyntaxError("enforest", "unrecognized import syntax", rest);
     }
-
-
 }
 
 function enforestVarStatement(stx, context, varStx) {
@@ -1902,30 +1900,31 @@ function expandToTermTree(stx, context) {
             rest = bindImportInMod(entries, rest, importMod.term, importMod.record, context, context.phase + 1);
         }
 
-        if (head.isMacroTerm && expandCount < maxExpands) {
+        if ((head.isExportDefaultTerm || head.isMacroTerm) && expandCount < maxExpands) {
+            var macroDecl = head.isExportDefaultTerm ? head.decl : head;
             // raw function primitive form
-            if(!(head.body[0] && head.body[0].isKeyword() &&
-                 head.body[0].token.value === "function")) {
+            if(!(macroDecl.body[0] && macroDecl.body[0].isKeyword() &&
+                 macroDecl.body[0].token.value === "function")) {
                 throwSyntaxError("load macro",
                                  "Primitive macro form must contain a function for the macro body",
-                                 head.body);
+                                 macroDecl.body);
             }
             // expand the body
-            head.body = expand(head.body,
-                               makeExpanderContext(_.extend({},
-                                                            context,
-                                                            {phase: context.phase + 1})));
+            macroDecl.body = expand(macroDecl.body,
+                                    makeExpanderContext(_.extend({},
+                                                                 context,
+                                                                 {phase: context.phase + 1})));
             //  and load the macro definition into the environment
-            macroDefinition = loadMacroDef(head.body, context, context.phase + 1);
-            var name = head.name.map(unwrapSyntax).join("");
-            var nameStx = syn.makeIdent(name, head.name[0]);
+            macroDefinition = loadMacroDef(macroDecl.body, context, context.phase + 1);
+            var name = macroDecl.name.map(unwrapSyntax).join("");
+            var nameStx = syn.makeIdent(name, macroDecl.name[0]);
             addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
             context.env.names.set(name, true);
             context.env.set(resolve(nameStx, context.phase), {
                 fn: macroDefinition,
                 isOp: false,
                 builtin: builtinMode,
-                fullName: head.name
+                fullName: macroDecl.name
             });
         }
 
@@ -2631,6 +2630,32 @@ function visit(modTerm, modRecord, phase, context) {
     modTerm.body.forEach(term -> {
         var name;
         var macroDefinition;
+        var exportName;
+        var entries;
+
+        // add the exported names to the module record
+        if (term.isExportNameTerm ||
+            term.isExportDeclTerm ||
+            term.isExportDefaultTerm) {
+            entries = modRecord.addExport(term);
+        }
+
+        // if (term.isExportDefaultTerm) {
+        //     assert(false, "bc: somehow need to tie the 'default' names together");
+        //     exportName = entries[0].exportName;
+        //     if (term.decl.isMacroTerm) {
+        //         macroDefinition = loadMacroDef(term.decl.body, context, phase + 1);
+
+        //         context.env.names.set(exportName, true);
+        //         context.env.set(resolve(exportName, phase), {
+        //             fn: macroDefinition,
+        //             isOp: false,
+        //             builtin: builtinMode,
+        //             fullName: [exportName]
+        //         });
+        //     }
+        // }
+
         if (term.isMacroTerm) {
             macroDefinition = loadMacroDef(term.body, context, phase + 1);
             name = unwrapSyntax(term.name[0]);
@@ -2684,12 +2709,6 @@ function visit(modTerm, modRecord, phase, context) {
             context.env.set(resolvedName, opObj);
         }
 
-        // add the exported names to the module record
-        if (term.isExportNameTerm ||
-            term.isExportDeclTerm ||
-            term.isExportDefaultTerm) {
-            modRecord.addExport(term);
-        }
     });
 
     return context;
@@ -2892,20 +2911,17 @@ function flattenModule(modTerm, modRecord, context) {
         return isCompileName(entry.localName, context);
     });
 
-    // filter the exports to just the exports and names that are
-    // actually available at runtime
+    var exports = modRecord.exportEntries.filter(entry -> {
+        return isCompileName(entry.localName, context);
+    })
+
+    // filter out all of the import and export statements
     var output = modTerm.body.reduce((acc, term) -> {
-        if (term.isExportNameTerm) {
-            if (term.name.isDelimiter()) {
-                term.name = filterCompileNames(term.name, context);
-                if (term.name.token.inner.length === 0) {
-                    return acc;
-                }
-            } else {
-                assert(false, "not implemented yet");
-            }
-        }
-        if (term.isImportTerm || term.isImportForMacrosTerm) {
+        if (term.isExportNameTerm ||
+            term.isExportDeclTerm ||
+            term.isExportDefaultTerm ||
+            term.isImportTerm ||
+            term.isImportForMacrosTerm) {
             return acc;
         }
         return acc.concat(term.destruct(context, {stripCompileTerm: true}));

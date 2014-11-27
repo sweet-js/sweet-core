@@ -58,8 +58,8 @@ function makeExportEntries(exp) {
             localName = exp.decl.id;
         } else if (exp.decl.isNamedFunTerm) {
             localName = exp.decl.name;
-        } else if (exp.decl.isMacroTerm) {
-            localName = exp.decl.name;
+        } else if (exp.decl.isMacroTerm || exp.decl.isLetMacroTerm) {
+            localName = syn.makeDelim("()", exp.decl.name, exp.decl.name[0]);
         } else if (exp.decl.isExprTerm) {
             localName = syn.makeIdent("*default*", exp.defaultkw);
         } else {
@@ -67,7 +67,9 @@ function makeExportEntries(exp) {
                              "export form is not supported",
                              exp.decl);
         }
-        res.push(new ExportEntry(exp, exp.defaultkw, localName));
+        res.push(new ExportEntry(exp,
+                                 exp.defaultkw.rename(exp.defaultkw, syn.fresh()),
+                                 localName));
     } else if (exp.isExportDeclTerm) {
         if (exp.decl.isVariableStatementTerm ||
             exp.decl.isConstStatementTerm ||
@@ -77,8 +79,9 @@ function makeExportEntries(exp) {
             });
         } else if (exp.decl.isNamedFunTerm) {
             res.push(new ExportEntry(exp, exp.decl.name, exp.decl.name));
-        } else if (exp.decl.isMacroTerm) {
-            res.push(new ExportEntry(exp, exp.decl.name, exp.decl.name));
+        } else if (exp.decl.isMacroTerm || exp.decl.isLetMacroTerm) {
+            var macName = syn.makeDelim("()", exp.decl.name, exp.decl.name[0]);
+            res.push(new ExportEntry(exp, macName, macName));
         } else {
             throwSyntaxError("export",
                              "export form is not supported",
