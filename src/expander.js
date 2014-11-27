@@ -548,6 +548,8 @@ function enforestImport(head, rest) {
                                       rest[1]),
             rest: importRest
         };
+    } else {
+        throwSyntaxError("enforest", "unrecognized import syntax", rest);
     }
 
 

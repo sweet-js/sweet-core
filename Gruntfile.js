@@ -310,7 +310,8 @@ module.exports = function(grunt) {
                                 "copy:testFixtures",
                                 "mochaTest:test"]);
 
-    grunt.registerTask("units", ["build:dev",
+    grunt.registerTask("units", ["clean",
+                                 "build:dev",
                                  "copy:scopedEval",
                                  "copy:buildMacros",
                                  "copy:nodeSrc",
@@ -331,18 +332,23 @@ module.exports = function(grunt) {
                                         "mochaTest:modules"]);
 
     grunt.registerTask("default", ["clean",
+                                   "build:dev",
+
                                    "copy:scopedEval",
                                    "copy:buildMacros",
-                                   "build:dev",
-                                   "build:tests",
-                                   "copy:browserSrc",
                                    "copy:nodeSrc",
+
+                                   "copy:browserSrc",
                                    "copy:browserMacros",
                                    "copy:scopedEvalBrowser",
+
+                                   "build:tests",
+
                                    "copy:testFixtures",
+
+                                   "mochaTest:units",
                                    "mochaTest:test",
-                                   "mochaTest:modules",
-                                   "mochaTest:units"]);
+                                   "mochaTest:modules"]);
 
     grunt.registerTask("full", ["default", "mochaTest:es6"]);
     grunt.registerTask("docs", ["pandoc"]);
