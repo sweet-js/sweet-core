@@ -61,7 +61,7 @@ module.exports = function(grunt) {
             test_modules: {
                 options: {
                     compileFrom: "./build/lib/sweet",
-                    readableNames: true
+                    readableNames: false
                 },
                 files: [{
                     expand: true,

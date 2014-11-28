@@ -79,16 +79,16 @@ describe("export entries", function() {
         expect(entries[0].localName.token.value).to.be("*default*");
     });
 
-    it("should make an entry from a default export of macro declaration", function() {
-        var t = getTerm("export default macro foo { (function() {})};");
-        var entries = makeExportEntries(t);
+    // it("should make an entry from a default export of macro declaration", function() {
+    //     var t = getTerm("export default macro foo { (function() {})};");
+    //     var entries = makeExportEntries(t);
 
-        expect(entries.length).to.be(1);
-        expect(entries[0].moduleRequest).to.be(null);
-        expect(entries[0].exportName.token.value).to.be("default");
+    //     expect(entries.length).to.be(1);
+    //     expect(entries[0].moduleRequest).to.be(null);
+    //     expect(entries[0].exportName.token.value).to.be("default");
 
-        expect(entries[0].localName[0].token.value).to.be("foo");
-    });
+    //     expect(entries[0].localName[0].token.value).to.be("foo");
+    // });
 
     it("should make an entry from a export of an var decl", function() {
         var t = getTerm("export var foo;");
@@ -149,13 +149,13 @@ describe("export entries", function() {
         expect(entries[0].localName.token.value).to.be("foo");
     });
 
-    it("should make an entry from a export of a macro declaration", function() {
-        var t = getTerm("export macro foo { (function() {}) };");
-        var entries = makeExportEntries(t);
+    // it("should make an entry from a export of a macro declaration", function() {
+    //     var t = getTerm("export macro foo { (function() {}) };");
+    //     var entries = makeExportEntries(t);
 
-        expect(entries.length).to.be(1);
-        expect(entries[0].moduleRequest).to.be(null);
-        expect(entries[0].exportName[0].token.value).to.be("foo");
-        expect(entries[0].localName[0].token.value).to.be("foo");
-    });
+    //     expect(entries.length).to.be(1);
+    //     expect(entries[0].moduleRequest).to.be(null);
+    //     expect(entries[0].exportName[0].token.value).to.be("foo");
+    //     expect(entries[0].localName[0].token.value).to.be("foo");
+    // });
 });
