@@ -477,15 +477,26 @@ function makeMultiToken(stxl) {
 
 // This should only be used on things that can't be rebound except by
 // macros (puncs, keywords).
-function resolveFast(stx, env, phase) {
-    return env.hasName(stx, phase) ? resolve(stx, phase) : unwrapSyntax(stx);
+function resolveFast(stx, context, phase) {
+    return hasCompiletimeValue(stx, context, phase) ? resolve(stx, phase) : unwrapSyntax(stx);
+}
+
+// pulls the compiletime value out of either the env or the store
+function getCompiletimeValue(stx, context, phase) {
+    var env = context.env.get(stx, phase);
+    return env !== null ? env : context.store.get(stx, phase);
+}
+
+// checks if a compiletime value exists in the env or store
+function hasCompiletimeValue(stx, context, phase) {
+    return context.env.has(stx, phase) || context.store.has(stx, phase);
 }
 
 function expandMacro(stx, context, opCtx, opType, macroObj) {
     // pull the macro transformer out the environment
     var head = stx[0];
     var rest = stx.slice(1);
-    macroObj = macroObj || context.env.get(stx, context.phase);
+    macroObj = macroObj || getCompiletimeValue(stx, context, context.phase);
     var stxArg = rest.slice(macroObj.fullName.length - 1);
     var transformer;
     if (opType != null) {
@@ -624,7 +635,9 @@ function enforest(toks, context, prevStx, prevTerms) {
                 } else if (head.isIdTerm) {
                     uopSyntax = head.id;
                 }
-                uopMacroObj = context.env.get([uopSyntax].concat(rest), context.phase);
+                uopMacroObj = getCompiletimeValue([uopSyntax].concat(rest),
+                                                  context,
+                                                  context.phase);
                 isCustomOp = uopMacroObj && uopMacroObj.isOp;
             }
 
@@ -632,7 +645,7 @@ function enforest(toks, context, prevStx, prevTerms) {
             // without repeatedly calling getValueInEnv)
             var bopMacroObj;
             if (rest[0] && rest[1]) {
-                bopMacroObj = context.env.get(rest, context.phase);
+                bopMacroObj = getCompiletimeValue(rest, context, context.phase);
             }
 
             // unary operator
@@ -790,14 +803,14 @@ function enforest(toks, context, prevStx, prevTerms) {
                 }
             // Conditional ( x ? true : false)
             } else if (head.isExprTerm &&
-                       (rest[0] && resolveFast(rest[0], context.env, context.phase) === "?")) {
+                       (rest[0] && resolveFast(rest[0], context, context.phase) === "?")) {
                 var question = rest[0];
                 var condRes = enforest(rest.slice(1), context);
                 if (condRes.result) {
                     var truExpr = condRes.result;
                     var condRight = condRes.rest;
                     if (truExpr.isExprTerm &&
-                        condRight[0] && resolveFast(condRight[0], context.env, context.phase) === ":") {
+                        condRight[0] && resolveFast(condRight[0], context, context.phase) === ":") {
                         var colon = condRight[0];
                         var flsRes = enforest(condRight.slice(1), context);
                         var flsExpr = flsRes.result;
@@ -840,7 +853,7 @@ function enforest(toks, context, prevStx, prevTerms) {
                        head.delim.token.value === "()" &&
                        rest[0] &&
                        rest[0].isPunctuator() &&
-                       resolveFast(rest[0], context.env, context.phase) === "=>") {
+                       resolveFast(rest[0], context, context.phase) === "=>") {
                 var arrowRes = enforest(rest.slice(1), context);
                 if (arrowRes.result && arrowRes.result.isExprTerm) {
                     return step(ArrowFunTerm.create(head.delim,
@@ -857,7 +870,7 @@ function enforest(toks, context, prevStx, prevTerms) {
             } else if (head.isIdTerm &&
                        rest[0] &&
                        rest[0].isPunctuator() &&
-                       resolveFast(rest[0], context.env, context.phase) === "=>") {
+                       resolveFast(rest[0], context, context.phase) === "=>") {
                 var res = enforest(rest.slice(1), context);
                 if (res.result && res.result.isExprTerm) {
                     return step(ArrowFunTerm.create(head.id,
@@ -905,7 +918,7 @@ function enforest(toks, context, prevStx, prevTerms) {
                         (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
                                      unwrapSyntax(rest[0]) === "--"))) {
                 // Check if the operator is a macro first.
-                if (context.env.has(rest[0], context.phase)) {
+                if (hasCompiletimeValue(rest[0], context, context.phase)) {
                     var headStx = tagWithTerm(head, head.destruct(context).reverse());
                     var opPrevStx = headStx.concat(prevStx);
                     var opPrevTerms = [head].concat(prevTerms);
@@ -931,12 +944,12 @@ function enforest(toks, context, prevStx, prevTerms) {
             // ObjectGet
             } else if (head.isExprTerm &&
                         (rest[0] && unwrapSyntax(rest[0]) === "." &&
-                         !context.env.has(rest[0], context.phase) &&
+                         !hasCompiletimeValue(rest[0], context, context.phase) &&
                          rest[1] &&
                          (rest[1].isIdentifier() ||
                           rest[1].isKeyword()))) {
                 // Check if the identifier is a macro first.
-                if (context.env.has(rest[1], context.phase)) {
+                if (hasCompiletimeValue(rest[1], context, context.phase)) {
                     var headStx = tagWithTerm(head, head.destruct(context).reverse());
                     var dotTerm = PuncTerm.create(rest[0]);
                     var dotTerms = [dotTerm].concat(head, prevTerms);
@@ -1050,7 +1063,7 @@ function enforest(toks, context, prevStx, prevTerms) {
             assert(head && head.token, "assuming head is a syntax object");
 
             var macroObj = expandCount < maxExpands &&
-                context.env.get([head].concat(rest), context.phase);
+                getCompiletimeValue([head].concat(rest), context, context.phase);
 
             // macro invocation
             if (macroObj && typeof macroObj.fn === "function" && !macroObj.isOp) {
@@ -1203,7 +1216,7 @@ function enforest(toks, context, prevStx, prevTerms) {
                         head.token.value === "()") ||
                        head.isIdentifier()) &&
                       rest[0] && rest[0].isPunctuator() &&
-                      resolveFast(rest[0], context.env, context.phase) === "=>" &&
+                      resolveFast(rest[0], context, context.phase) === "=>" &&
                       rest[1] && rest[1].isDelimiter() &&
                       rest[1].token.value === "{}") {
                 return step(ArrowFunTerm.create(head, rest[0], rest[1]),
@@ -1292,8 +1305,8 @@ function enforest(toks, context, prevStx, prevTerms) {
         // Potentially an infix macro
         // This should only be invoked on runtime syntax terms
         if (!head.isMacroTerm && !head.isLetMacroTerm && !head.isAnonMacroTerm && !head.isOperatorDefinitionTerm &&
-            rest.length && context.env.has(rest, context.phase) &&
-            context.env.get(rest, context.phase).isOp === false) {
+            rest.length && hasCompiletimeValue(rest, context, context.phase) &&
+            getCompiletimeValue(rest, context, context.phase).isOp === false) {
             var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartialTerm
                               ? opCtx.prevTerms[0]
                               : null;
@@ -1733,7 +1746,7 @@ function expandToTermTree(stx, context) {
 
             var nameStx = makeMultiToken(head.name);
             addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
-            var opObj = context.env.get(nameStx, context.phase);
+            var opObj = getCompiletimeValue(nameStx, context, context.phase);
             if (!opObj) {
                 opObj = {
                     isOp: true,
@@ -2093,6 +2106,7 @@ function makeExpanderContext(o) {
     o = o || {};
 
     var env = o.env || new Env();
+    var store = o.store || new Env();
 
     return Object.create(Object.prototype, {
         filename: {value: o.filename,
@@ -2100,6 +2114,8 @@ function makeExpanderContext(o) {
         compileSuffix: {value: o.compileSuffix || ".jsc",
                         writable: false, enumerable: true, configurable: false},
         env: {value: env,
+              writable: false, enumerable: true, configurable: false},
+        store: {value: store,
               writable: false, enumerable: true, configurable: false},
         defscope: {value: o.defscope,
                    writable: false, enumerable: true, configurable: false},
@@ -2359,22 +2375,6 @@ function visit(modTerm, modRecord, phase, context) {
             entries = modRecord.addExport(term);
         }
 
-        // if (term.isExportDefaultTerm) {
-        //     assert(false, "bc: somehow need to tie the 'default' names together");
-        //     exportName = entries[0].exportName;
-        //     if (term.decl.isMacroTerm) {
-        //         macroDefinition = loadMacroDef(term.decl.body, context, phase + 1);
-
-        //         context.env.names.set(exportName, true);
-        //         context.env.set(resolve(exportName, phase), {
-        //             fn: macroDefinition,
-        //             isOp: false,
-        //             builtin: builtinMode,
-        //             fullName: [exportName]
-        //         });
-        //     }
-        // }
-
         if (term.isMacroTerm) {
             macroDefinition = loadMacroDef(term.body, context, phase + 1);
             context.env.set(term.name[0], phase, {
@@ -2400,7 +2400,7 @@ function visit(modTerm, modRecord, phase, context) {
             var opDefinition = loadMacroDef(term.body, context, phase + 1);
             var nameStx = makeMultiToken(term.name);
             addToDefinitionCtx([nameStx], defctx, false, []);
-            var opObj = context.env.get(nameStx, phase);
+            var opObj = getCompiletimeValue(nameStx, context, phase);
             if (!opObj) {
                 opObj = {
                     isOp: true,
@@ -2521,10 +2521,10 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
             assert(false, "needs to be a delimiter");
         } else if (inExports.exportName.isDelimiter()) {
             exportName = inExports.exportName.token.inner;
-            trans = context.env.get(exportName, phase);
+            trans = getCompiletimeValue(exportName, context, phase);
         } else {
             exportName = inExports.exportName;
-            trans = context.env.get(exportName, phase);
+            trans = getCompiletimeValue(exportName, context, phase);
         }
         var newParam = syn.makeIdent(nameStr, entry.localName);
         var newName = fresh();
@@ -2578,9 +2578,9 @@ function expandModule(mod, filename, templateMap, patternMap, moduleRecord, comp
 
 function isCompileName(stx, context) {
     if (stx.isDelimiter()) {
-        return !context.env.has(stx.token.inner, 0);
+        return !hasCompiletimeValue(stx.token.inner, context, 0);
     } else {
-        return !context.env.has(stx, 0);
+        return !hasCompiletimeValue(stx, context, 0);
     }
 }
 
@@ -2715,20 +2715,6 @@ function compileModule(stx, options) {
 }
 
 
-function loadModuleExports(stx, newEnv, exports, oldEnv) {
-    return _.reduce(exports, function(acc, param) {
-        var newName = fresh();
-        var transformer = oldEnv.get(resolve(param.oldExport));
-        if (transformer) {
-            newEnv.set(resolve(param.newParam.rename(param.newParam, newName)),
-                       transformer);
-            return acc.rename(param.newParam, newName);
-        } else {
-            return acc;
-        }
-    }, stx);
-}
-
 // break delimiter tree structure down to flat array of syntax objects
 // @ ([...SyntaxObject]) -> [...SyntaxObject]
 function flatten(stx) {
@@ -2794,6 +2780,9 @@ function flatten(stx) {
 exports.StringMap = StringMap;
 exports.enforest = enforest;
 exports.compileModule = compileModule;
+
+exports.getCompiletimeValue = getCompiletimeValue;
+exports.hasCompiletimeValue = hasCompiletimeValue;
 
 exports.resolve = resolve;
 exports.get_expression = get_expression;
