@@ -475,34 +475,6 @@ function makeMultiToken(stxl) {
     return makeIdent(stxl.map(unwrapSyntax).join(""), stxl[0]);
 }
 
-function getName(head, rest) {
-    var idx = 0;
-    var curr = head;
-    var next = rest[idx];
-    var name = [head];
-    while (true) {
-        if (next &&
-            (next.isPunctuator() ||
-             next.isIdentifier() ||
-             next.isKeyword()) &&
-            (toksAdjacent(curr, next))) {
-            name.push(next);
-            curr = next;
-            next = rest[++idx];
-        } else {
-            return name;
-        }
-    }
-}
-
-function getValueInEnv(head, rest, context, phase) {
-    return context.env.get([head].concat(rest), phase);
-}
-
-function nameInEnv(head, rest, context, phase) {
-    return getValueInEnv(head, rest, context, phase) !== null;
-}
-
 // This should only be used on things that can't be rebound except by
 // macros (puncs, keywords).
 function resolveFast(stx, env, phase) {
@@ -513,7 +485,7 @@ function expandMacro(stx, context, opCtx, opType, macroObj) {
     // pull the macro transformer out the environment
     var head = stx[0];
     var rest = stx.slice(1);
-    macroObj = macroObj || getValueInEnv(head, rest, context, context.phase);
+    macroObj = macroObj || context.env.get(stx, context.phase);
     var stxArg = rest.slice(macroObj.fullName.length - 1);
     var transformer;
     if (opType != null) {
@@ -652,7 +624,7 @@ function enforest(toks, context, prevStx, prevTerms) {
                 } else if (head.isIdTerm) {
                     uopSyntax = head.id;
                 }
-                uopMacroObj = getValueInEnv(uopSyntax, rest, context, context.phase);
+                uopMacroObj = context.env.get([uopSyntax].concat(rest), context.phase);
                 isCustomOp = uopMacroObj && uopMacroObj.isOp;
             }
 
@@ -660,7 +632,7 @@ function enforest(toks, context, prevStx, prevTerms) {
             // without repeatedly calling getValueInEnv)
             var bopMacroObj;
             if (rest[0] && rest[1]) {
-                bopMacroObj = getValueInEnv(rest[0], rest.slice(1), context, context.phase);
+                bopMacroObj = context.env.get(rest, context.phase);
             }
 
             // unary operator
@@ -1077,7 +1049,8 @@ function enforest(toks, context, prevStx, prevTerms) {
         } else {
             assert(head && head.token, "assuming head is a syntax object");
 
-            var macroObj = expandCount < maxExpands && getValueInEnv(head, rest, context, context.phase);
+            var macroObj = expandCount < maxExpands &&
+                context.env.get([head].concat(rest), context.phase);
 
             // macro invocation
             if (macroObj && typeof macroObj.fn === "function" && !macroObj.isOp) {
@@ -1319,8 +1292,8 @@ function enforest(toks, context, prevStx, prevTerms) {
         // Potentially an infix macro
         // This should only be invoked on runtime syntax terms
         if (!head.isMacroTerm && !head.isLetMacroTerm && !head.isAnonMacroTerm && !head.isOperatorDefinitionTerm &&
-            rest.length && nameInEnv(rest[0], rest.slice(1), context, context.phase) &&
-            getValueInEnv(rest[0], rest.slice(1), context, context.phase).isOp === false) {
+            rest.length && context.env.has(rest, context.phase) &&
+            context.env.get(rest, context.phase).isOp === false) {
             var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartialTerm
                               ? opCtx.prevTerms[0]
                               : null;
@@ -2548,16 +2521,10 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
             assert(false, "needs to be a delimiter");
         } else if (inExports.exportName.isDelimiter()) {
             exportName = inExports.exportName.token.inner;
-            trans = getValueInEnv(exportName[0],
-                                  exportName.slice(1),
-                                  context,
-                                  phase);
+            trans = context.env.get(exportName, phase);
         } else {
             exportName = inExports.exportName;
-            trans = getValueInEnv(exportName,
-                                  [],
-                                  context,
-                                  phase);
+            trans = context.env.get(exportName, phase);
         }
         var newParam = syn.makeIdent(nameStr, entry.localName);
         var newName = fresh();
@@ -2611,12 +2578,9 @@ function expandModule(mod, filename, templateMap, patternMap, moduleRecord, comp
 
 function isCompileName(stx, context) {
     if (stx.isDelimiter()) {
-        return !nameInEnv(stx.token.inner[0],
-                          stx.token.inner.slice(1),
-                          context,
-                          0);
+        return !context.env.has(stx.token.inner, 0);
     } else {
-        return !nameInEnv(stx, [], context, 0);
+        return !context.env.has(stx, 0);
     }
 }
 
@@ -2833,9 +2797,6 @@ exports.compileModule = compileModule;
 
 exports.resolve = resolve;
 exports.get_expression = get_expression;
-exports.getName = getName;
-exports.getValueInEnv = getValueInEnv;
-exports.nameInEnv = nameInEnv;
 
 exports.makeExpanderContext = makeExpanderContext;
 

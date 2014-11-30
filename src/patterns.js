@@ -377,12 +377,9 @@ function expandWithMacro(macroName, stx, context, rec) {
         }
 
         if (rec && result.length >= 1) {
-            var resultHead = result[0];
-            var resultRest = result.slice(1);
-            var nextName = expander.getName(resultHead, resultRest);
-            var nextMacro = expander.getValueInEnv(resultHead, resultRest, context, context.phase);
+            var nextMacro = context.env.get(result, context.phase);
 
-            if (nextName && nextMacro) {
+            if (nextMacro) {
                 macroObj = nextMacro;
                 next = result.concat(rest);
             } else {
