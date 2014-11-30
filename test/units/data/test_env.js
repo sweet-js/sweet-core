@@ -1,4 +1,6 @@
 var read = require("../../lib/parser").read;
+var makeIdent = require("../../lib/syntax").makeIdent;
+var unwrapSyntax = require("../../lib/syntax").unwrapSyntax;
 var Env = require("../../lib/data/env.js");
 
 var expect = require("expect.js");
@@ -21,7 +23,7 @@ describe("an env", function() {
     it("set and get a multi token name", function() {
         var e = new Env();
         var stx = read("x?y");
-        e.set(stx, 0, 42);
+        e.set(makeIdent(stx.map(unwrapSyntax).join(""), stx[0]), 0, 42);
         expect(e.get(read("x?y"), 0)).to.be(42);
         expect(e.get(read("x?y and other tokens"), 0)).to.be(42);
         expect(e.get(read("x?y?and other tokens"), 0)).to.be(42);

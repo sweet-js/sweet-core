@@ -6,7 +6,9 @@ var expect = require("expect.js");
 
 function getTerm(str) {
     var tt = parser.read(str);
-    var term = expander.enforest(tt, expander.makeExpanderContext());
+    var term = expander.enforest(tt, expander.makeExpanderContext({
+        phase: 0
+    }));
     return term.result;
 }
 

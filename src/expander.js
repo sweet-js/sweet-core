@@ -36,6 +36,7 @@ var codegen = require('escodegen'),
     syn = require('./syntax'),
     se = require('./scopedEval'),
     StringMap = require("./data/stringMap"),
+    Env = require("./data/env"),
     resolve = require("./stx/resolve").resolve,
     marksof = require("./stx/resolve").marksof,
     arraysEqual = require("./stx/resolve").arraysEqual,
@@ -52,6 +53,7 @@ var throwSyntaxError = syn.throwSyntaxError;
 var throwSyntaxCaseError = syn.throwSyntaxCaseError;
 var SyntaxCaseError = syn.SyntaxCaseError;
 var unwrapSyntax = syn.unwrapSyntax;
+var makeIdent = syn.makeIdent;
 var adjustLineContext = syn.adjustLineContext;
 var fresh = syn.fresh;
 
@@ -468,6 +470,10 @@ function enforestParenExpression(parens, context) {
 }
 
 
+function makeMultiToken(stxl) {
+    assert(Array.isArray(stxl), "must be an array");
+    return makeIdent(stxl.map(unwrapSyntax).join(""), stxl[0]);
+}
 
 function getName(head, rest) {
     var idx = 0;
@@ -490,35 +496,7 @@ function getName(head, rest) {
 }
 
 function getValueInEnv(head, rest, context, phase) {
-    if (!(head.isIdentifier() ||
-          head.isKeyword() ||
-          head.isPunctuator())) {
-        return null;
-    }
-    var name = getName(head, rest);
-    // simple case, don't need to create a new syntax object
-    if (name.length === 1) {
-        if (context.env.names.get(unwrapSyntax(name[0]))) {
-            var resolvedName = resolve(name[0], phase);
-            if (context.env.has(resolvedName)) {
-                return context.env.get(resolvedName);
-            }
-        }
-        return null;
-    } else {
-        while (name.length > 0) {
-            var nameStr = name.map(unwrapSyntax).join("");
-            if (context.env.names.get(nameStr)) {
-                var nameStx = syn.makeIdent(nameStr, name[0]);
-                var resolvedName = resolve(nameStx, phase);
-                if (context.env.has(resolvedName)) {
-                    return context.env.get(resolvedName);
-                }
-            }
-            name.pop();
-        }
-        return null;
-    }
+    return context.env.get([head].concat(rest), phase);
 }
 
 function nameInEnv(head, rest, context, phase) {
@@ -528,8 +506,7 @@ function nameInEnv(head, rest, context, phase) {
 // This should only be used on things that can't be rebound except by
 // macros (puncs, keywords).
 function resolveFast(stx, env, phase) {
-    var name = unwrapSyntax(stx);
-    return env.names.get(name) ? resolve(stx, phase) : name;
+    return env.hasName(stx, phase) ? resolve(stx, phase) : unwrapSyntax(stx);
 }
 
 function expandMacro(stx, context, opCtx, opType, macroObj) {
@@ -956,7 +933,7 @@ function enforest(toks, context, prevStx, prevTerms) {
                         (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
                                      unwrapSyntax(rest[0]) === "--"))) {
                 // Check if the operator is a macro first.
-                if (context.env.has(resolveFast(rest[0], context.env, context.phase))) {
+                if (context.env.has(rest[0], context.phase)) {
                     var headStx = tagWithTerm(head, head.destruct(context).reverse());
                     var opPrevStx = headStx.concat(prevStx);
                     var opPrevTerms = [head].concat(prevTerms);
@@ -982,12 +959,12 @@ function enforest(toks, context, prevStx, prevTerms) {
             // ObjectGet
             } else if (head.isExprTerm &&
                         (rest[0] && unwrapSyntax(rest[0]) === "." &&
-                         !context.env.has(resolveFast(rest[0], context.env, context.phase)) &&
+                         !context.env.has(rest[0], context.phase) &&
                          rest[1] &&
                          (rest[1].isIdentifier() ||
                           rest[1].isKeyword()))) {
                 // Check if the identifier is a macro first.
-                if (context.env.has(resolveFast(rest[1], context.env, context.phase))) {
+                if (context.env.has(rest[1], context.phase)) {
                     var headStx = tagWithTerm(head, head.destruct(context).reverse());
                     var dotTerm = PuncTerm.create(rest[0]);
                     var dotTerms = [dotTerm].concat(head, prevTerms);
@@ -1624,8 +1601,8 @@ function loadMacroDef(body, context, phase) {
         },
         console: console
     };
-    context.env.keys().forEach(key -> {
-        var val = context.env.get(key);
+    context.env.keysStr().forEach(key -> {
+        var val = context.env.getStr(key);
         // load the compile time values into the global object
         if (val && val.value) {
             macroGlobal[key] = val.value;
@@ -1720,11 +1697,10 @@ function expandToTermTree(stx, context) {
                                                                  {phase: context.phase + 1})));
             //  and load the macro definition into the environment
             macroDefinition = loadMacroDef(macroDecl.body, context, context.phase + 1);
-            var name = macroDecl.name.map(unwrapSyntax).join("");
-            var nameStx = syn.makeIdent(name, macroDecl.name[0]);
+            var nameStx = makeMultiToken(macroDecl.name);
             addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
-            context.env.names.set(name, true);
-            context.env.set(resolve(nameStx, context.phase), {
+
+            context.env.set(nameStx, context.phase, {
                 fn: macroDefinition,
                 isOp: false,
                 builtin: builtinMode,
@@ -1747,9 +1723,8 @@ function expandToTermTree(stx, context) {
             //  and load the macro definition into the environment
             macroDefinition = loadMacroDef(head.body, context, context.phase + 1);
             var freshName = fresh();
-            var name = head.name.map(unwrapSyntax).join("");
             var oldName = head.name;
-            var nameStx = syn.makeIdent(name, head.name[0]);
+            var nameStx = makeMultiToken(head.name);
             var renamedName = nameStx.rename(nameStx, freshName);
             // store a reference to the full name in the props object.
             // this allows us to communicate the original full name to
@@ -1760,8 +1735,7 @@ function expandToTermTree(stx, context) {
                 return stx.rename(nameStx, freshName);
             });
 
-            context.env.names.set(name, true);
-            context.env.set(resolve(renamedName, context.phase), {
+            context.env.set(renamedName, context.phase, {
                 fn: macroDefinition,
                 isOp: false,
                 builtin: builtinMode,
@@ -1784,11 +1758,9 @@ function expandToTermTree(stx, context) {
             //  and load the macro definition into the environment
             var opDefinition = loadMacroDef(head.body, context, context.phase + 1);
 
-            var name = head.name.map(unwrapSyntax).join("");
-            var nameStx = syn.makeIdent(name, head.name[0]);
+            var nameStx = makeMultiToken(head.name);
             addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
-            var resolvedName = resolve(nameStx, context.phase);
-            var opObj = context.env.get(resolvedName);
+            var opObj = context.env.get(nameStx, context.phase);
             if (!opObj) {
                 opObj = {
                     isOp: true,
@@ -1804,8 +1776,7 @@ function expandToTermTree(stx, context) {
                 prec: head.prec.token.value,
                 assoc: head.assoc ? head.assoc.token.value : null
             };
-            context.env.names.set(name, true);
-            context.env.set(resolvedName, opObj);
+            context.env.set(nameStx, context.phase, opObj);
         }
 
         if (head.isNamedFunTerm) {
@@ -2148,10 +2119,7 @@ function expand(stx, context) {
 function makeExpanderContext(o) {
     o = o || {};
 
-    var env = o.env || new StringMap();
-    if (!env.names) {
-        env.names = new StringMap();
-    }
+    var env = o.env || new Env();
 
     return Object.create(Object.prototype, {
         filename: {value: o.filename,
@@ -2170,7 +2138,7 @@ function makeExpanderContext(o) {
                      writable: false, enumerable: true, configurable: false},
         mark: {value: o.mark,
                       writable: false, enumerable: true, configurable: false},
-        phase: {value: o.phase,
+        phase: {value: o.phase || 0,
                       writable: false, enumerable: true, configurable: false},
         implicitImport: {value: o.implicitImport || new StringMap(),
                          writable: false, enumerable: true, configurable: false},
@@ -2196,30 +2164,6 @@ function makeTopLevelExpanderContext(options) {
         filename: filename,
     });
 }
-
-// a hack to make the top level hygiene work out
-function expandTopLevel(stx, moduleContexts, options) {
-    moduleContexts = moduleContexts || [];
-    options = options || {};
-    options.flatten = options.flatten != null ? options.flatten : true;
-
-    maxExpands = options.maxExpands || Infinity;
-    expandCount = 0;
-
-    var context = makeTopLevelExpanderContext(options);
-    var modBody = syn.makeDelim("{}", stx, null);
-    modBody = _.reduce(moduleContexts, function(acc, mod) {
-        context.env.extend(mod.env);
-        context.env.names.extend(mod.env.names);
-        return loadModuleExports(acc, context.env, mod.exports, mod.env);
-    }, modBody);
-
-    var res = expand([syn.makeIdent("module", null), modBody], context);
-    res = res[0].destruct(context, {stripCompileTerm: true});
-    res = res[0].token.inner;
-    return options.flatten ? flatten(res) : res;
-}
-
 
 // @ (Str, Str) -> Str
 function resolvePath(name, parent) {
@@ -2334,10 +2278,9 @@ function invoke(modTerm, modRecord, phase, context) {
 
             modRecord.exportEntries.push(new ExportEntry(null, renamed, renamed));
 
-            context.env.set(resolve(renamed, phase), {
+            context.env.set(renamed, phase, {
                 value: exported[exp]
             });
-            context.env.names.set(exp, true);
         })
     } else {
         // recursively invoke any imports in this module at this
@@ -2374,8 +2317,7 @@ function invoke(modTerm, modRecord, phase, context) {
             var expName = resolve(entry.localName, phase);
             var expVal = global[expName];
             // and set it as the export name
-            context.env.set(resolve(entry.exportName, phase), {value: expVal});
-            context.env.names.set(unwrapSyntax(entry.exportName), true);
+            context.env.set(entry.exportName, phase, {value: expVal});
         });
     }
 
@@ -2462,10 +2404,7 @@ function visit(modTerm, modRecord, phase, context) {
 
         if (term.isMacroTerm) {
             macroDefinition = loadMacroDef(term.body, context, phase + 1);
-            name = unwrapSyntax(term.name[0]);
-
-            context.env.names.set(name, true);
-            context.env.set(resolve(term.name[0], phase), {
+            context.env.set(term.name[0], phase, {
                 fn: macroDefinition,
                 isOp: false,
                 builtin: builtinMode,
@@ -2476,10 +2415,7 @@ function visit(modTerm, modRecord, phase, context) {
         if (term.isLetMacroTerm) {
             macroDefinition = loadMacroDef(term.body, context, phase + 1);
             // compilation collapses multi-token let macro names into single identifier
-            name = unwrapSyntax(term.name[0]);
-
-            context.env.names.set(name, true);
-            context.env.set(resolve(term.name[0], phase), {
+            context.env.set(term.name[0], phase, {
                 fn: macroDefinition,
                 isOp: false,
                 builtin: builtinMode,
@@ -2489,11 +2425,9 @@ function visit(modTerm, modRecord, phase, context) {
 
         if (term.isOperatorDefinitionTerm) {
             var opDefinition = loadMacroDef(term.body, context, phase + 1);
-            name = term.name.map(unwrapSyntax).join("");
-            var nameStx = syn.makeIdent(name, term.name[0]);
+            var nameStx = makeMultiToken(term.name);
             addToDefinitionCtx([nameStx], defctx, false, []);
-            var resolvedName = resolve(nameStx, phase);
-            var opObj = context.env.get(resolvedName);
+            var opObj = context.env.get(nameStx, phase);
             if (!opObj) {
                 opObj = {
                     isOp: true,
@@ -2509,8 +2443,7 @@ function visit(modTerm, modRecord, phase, context) {
                 prec: term.prec.token.value,
                 assoc: term.assoc ? term.assoc.token.value : null
             };
-            context.env.names.set(name, true);
-            context.env.set(resolvedName, opObj);
+            context.env.set(nameStx, phase, opObj);
         }
 
     });
@@ -2642,9 +2575,7 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
 
     // set the new bindings in the context
     renamedNames.forEach(name -> {
-        context.env.names.set(unwrapSyntax(name.renamed), true);
-        context.env.set(resolve(name.renamed, phase),
-                        name.trans);
+        context.env.set(name.renamed, phase, name.trans);
         // setup a reverse map from each import name to
         // the import term but only for runtime values
         if (name.trans === null || (name.trans && name.trans.value)) {
@@ -2898,7 +2829,6 @@ function flatten(stx) {
 
 exports.StringMap = StringMap;
 exports.enforest = enforest;
-exports.expand = expandTopLevel;
 exports.compileModule = compileModule;
 
 exports.resolve = resolve;

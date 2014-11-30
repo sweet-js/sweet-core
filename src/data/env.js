@@ -20,15 +20,11 @@ function Env() {
 
 
 Env.prototype.set = function(stx, phase, value) {
-    // normalize to a list
-    stx = Array.isArray(stx) ? List(stx) : List.of(stx);
-    // convert the array of syntax objects to a new identifier with a
-    // combined name value (e.g. ["bool", "?"] becomes "bool?")
-    var nameStr = stx.map(unwrapSyntax).join("");
-    var nameStx = makeIdent(nameStr, stx.first());
+    assert(phase != null, "must provide a phase");
+    assert(value != null, "must provide a value");
     // store the unresolved name string into the fast path lookup map
-    this._names.set(nameStr, true);
-    this._map.set(resolve(nameStx, phase), value);
+    this._names.set(unwrapSyntax(stx), true);
+    this._map.set(resolve(stx, phase), value);
 };
 
 function isToksAdjacent(a, b) {
@@ -91,6 +87,22 @@ Env.prototype.get = function(stx, phase) {
         }
         return null;
     }
+};
+
+Env.prototype.hasName = function(stx) {
+    return this._names.has(unwrapSyntax(stx));
+};
+
+Env.prototype.has = function(stx, phase) {
+    return this.get(stx, phase) !== null;
+};
+
+Env.prototype.keysStr = function() {
+    return this._map.keys();
+};
+
+Env.prototype.getStr = function(key) {
+    return this._map.get(key);
 };
 
 module.exports = Env;
