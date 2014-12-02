@@ -1504,6 +1504,18 @@ function applyMarkToPatternEnv (newMark, env) {
     });
 }
 
+function markIn(arr, mark) {
+    return arr.map(function(stx) {
+        return stx.mark(mark);
+    });
+}
+
+function markDefOut(arr, mark, def) {
+    return arr.map(function(stx) {
+        return stx.mark(mark).addDefCtx(def);
+    });
+}
+
 // given the syntax for a macro, produce a macro transformer
 // (Macro) -> (([...CSyntax]) -> ReadTree)
 function loadMacroDef(body, context, phase) {
@@ -1513,6 +1525,8 @@ function loadMacroDef(body, context, phase) {
     stub[0].token.inner = expanded;
     var flattend = flatten(stub);
     var bodyCode = codegen.generate(parser.parse(flattend, {phase: phase}));
+
+    var localCtx;
     var macroGlobal = {
         makeValue: syn.makeValue,
         makeRegex: syn.makeRegex,
@@ -1520,9 +1534,21 @@ function loadMacroDef(body, context, phase) {
         makeKeyword: syn.makeKeyword,
         makePunc: syn.makePunc,
         makeDelim: syn.makeDelim,
+        localExpand: function(stx, stop) {
+            assert(!stop || stop.length === 0,
+                   "localExpand stop lists are not currently supported");
+
+            var markedStx = markIn(stx, localCtx.mark);
+            var terms = expand(markedStx, localCtx);
+            var newStx = terms.reduce(function(acc, term) {
+                acc.push.apply(acc, term.destruct());
+                return acc;
+            }, []);
+
+            return markDefOut(newStx, localCtx.mark, localCtx.defscope);
+        },
         filename: context.filename,
         getExpr: function(stx) {
-            var r;
             if (stx.length === 0) {
                 return {
                     success: false,
@@ -1530,11 +1556,12 @@ function loadMacroDef(body, context, phase) {
                     rest: []
                 };
             }
-            r = get_expression(stx, context);
+            var markedStx = markIn(stx, localCtx.mark);
+            var r = get_expression(markedStx, localCtx);
             return {
                 success: r.result !== null,
-                result: r.result === null ? [] : r.result.destruct(context),
-                rest: r.rest
+                result: r.result === null ? [] : markDefOut(r.result.destruct(), localCtx.mark, localCtx.defscope),
+                rest: markDefOut(r.rest, localCtx.mark, localCtx.defscope)
             };
         },
         getIdent: function(stx) {
@@ -1602,7 +1629,10 @@ function loadMacroDef(body, context, phase) {
         macroFn = scopedEval(bodyCode, macroGlobal);
     }
 
-    return macroFn;
+    return function(stx, context, prevStx, prevTerms) {
+        localCtx = context;
+        return macroFn(stx, context, prevStx, prevTerms);
+    };
 }
 
 
