@@ -1541,7 +1541,7 @@ function loadMacroDef(body, context, phase) {
             var markedStx = markIn(stx, localCtx.mark);
             var terms = expand(markedStx, localCtx);
             var newStx = terms.reduce(function(acc, term) {
-                acc.push.apply(acc, term.destruct());
+                acc.push.apply(acc, term.destruct(localCtx, {stripCompileTerm: true}));
                 return acc;
             }, []);
 
@@ -1560,7 +1560,7 @@ function loadMacroDef(body, context, phase) {
             var r = get_expression(markedStx, localCtx);
             return {
                 success: r.result !== null,
-                result: r.result === null ? [] : markDefOut(r.result.destruct(), localCtx.mark, localCtx.defscope),
+                result: r.result === null ? [] : markDefOut(r.result.destruct(localCtx, {stripCompileTerm: true}), localCtx.mark, localCtx.defscope),
                 rest: markDefOut(r.rest, localCtx.mark, localCtx.defscope)
             };
         },
@@ -1603,9 +1603,16 @@ function loadMacroDef(body, context, phase) {
         getPattern: function(id) {
             return context.patternMap.get(id);
         },
+        getPatternMap: function() {
+            return context.patternMap;
+        },
         getTemplate: function(id) {
             assert(context.templateMap.has(id), "missing template");
             return syn.cloneSyntaxArray(context.templateMap.get(id));
+        },
+        getTemplateMap: function() {
+            // the template map is global across all context during compilation
+            return context.templateMap;
         },
         applyMarkToPatternEnv: applyMarkToPatternEnv,
         mergeMatches: function(newMatch, oldMatch) {
