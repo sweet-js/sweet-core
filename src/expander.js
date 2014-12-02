@@ -37,6 +37,8 @@ var codegen = require('escodegen'),
     se = require('./scopedEval'),
     StringMap = require("./data/stringMap"),
     Env = require("./data/env"),
+    SyntaxTransform = require("./data/transforms").SyntaxTransform,
+    VarTransform = require("./data/transforms").VarTransform,
     resolve = require("./stx/resolve").resolve,
     marksof = require("./stx/resolve").marksof,
     arraysEqual = require("./stx/resolve").arraysEqual,
@@ -478,13 +480,25 @@ function makeMultiToken(stxl) {
 // This should only be used on things that can't be rebound except by
 // macros (puncs, keywords).
 function resolveFast(stx, context, phase) {
-    return hasCompiletimeValue(stx, context, phase) ? resolve(stx, phase) : unwrapSyntax(stx);
+    return hasSyntaxTransform(stx, context, phase) ? resolve(stx, phase) : unwrapSyntax(stx);
 }
 
 // pulls the compiletime value out of either the env or the store
 function getCompiletimeValue(stx, context, phase) {
     var env = context.env.get(stx, phase);
     return env !== null ? env : context.store.get(stx, phase);
+}
+
+function getSyntaxTransform(stx, context, phase) {
+    var t = context.env.get(stx, phase);
+    if (!(t instanceof VarTransform)) {
+        return t !== null ? t : context.store.get(stx, phase);
+    }
+    return null;
+}
+
+function hasSyntaxTransform(stx, context, phase) {
+    return getSyntaxTransform(stx, context, phase) !== null;
 }
 
 // checks if a compiletime value exists in the env or store
@@ -496,7 +510,7 @@ function expandMacro(stx, context, opCtx, opType, macroObj) {
     // pull the macro transformer out the environment
     var head = stx[0];
     var rest = stx.slice(1);
-    macroObj = macroObj || getCompiletimeValue(stx, context, context.phase);
+    macroObj = macroObj || getSyntaxTransform(stx, context, context.phase);
     var stxArg = rest.slice(macroObj.fullName.length - 1);
     var transformer;
     if (opType != null) {
@@ -635,7 +649,7 @@ function enforest(toks, context, prevStx, prevTerms) {
                 } else if (head.isIdTerm) {
                     uopSyntax = head.id;
                 }
-                uopMacroObj = getCompiletimeValue([uopSyntax].concat(rest),
+                uopMacroObj = getSyntaxTransform([uopSyntax].concat(rest),
                                                   context,
                                                   context.phase);
                 isCustomOp = uopMacroObj && uopMacroObj.isOp;
@@ -645,7 +659,7 @@ function enforest(toks, context, prevStx, prevTerms) {
             // without repeatedly calling getValueInEnv)
             var bopMacroObj;
             if (rest[0] && rest[1]) {
-                bopMacroObj = getCompiletimeValue(rest, context, context.phase);
+                bopMacroObj = getSyntaxTransform(rest, context, context.phase);
             }
 
             // unary operator
@@ -918,7 +932,7 @@ function enforest(toks, context, prevStx, prevTerms) {
                         (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
                                      unwrapSyntax(rest[0]) === "--"))) {
                 // Check if the operator is a macro first.
-                if (hasCompiletimeValue(rest[0], context, context.phase)) {
+                if (hasSyntaxTransform(rest[0], context, context.phase)) {
                     var headStx = tagWithTerm(head, head.destruct(context).reverse());
                     var opPrevStx = headStx.concat(prevStx);
                     var opPrevTerms = [head].concat(prevTerms);
@@ -944,12 +958,12 @@ function enforest(toks, context, prevStx, prevTerms) {
             // ObjectGet
             } else if (head.isExprTerm &&
                         (rest[0] && unwrapSyntax(rest[0]) === "." &&
-                         !hasCompiletimeValue(rest[0], context, context.phase) &&
+                         !hasSyntaxTransform(rest[0], context, context.phase) &&
                          rest[1] &&
                          (rest[1].isIdentifier() ||
                           rest[1].isKeyword()))) {
                 // Check if the identifier is a macro first.
-                if (hasCompiletimeValue(rest[1], context, context.phase)) {
+                if (hasSyntaxTransform(rest[1], context, context.phase)) {
                     var headStx = tagWithTerm(head, head.destruct(context).reverse());
                     var dotTerm = PuncTerm.create(rest[0]);
                     var dotTerms = [dotTerm].concat(head, prevTerms);
@@ -1063,7 +1077,7 @@ function enforest(toks, context, prevStx, prevTerms) {
             assert(head && head.token, "assuming head is a syntax object");
 
             var macroObj = expandCount < maxExpands &&
-                getCompiletimeValue([head].concat(rest), context, context.phase);
+                getSyntaxTransform([head].concat(rest), context, context.phase);
 
             // macro invocation
             if (macroObj && typeof macroObj.fn === "function" && !macroObj.isOp) {
@@ -1305,8 +1319,8 @@ function enforest(toks, context, prevStx, prevTerms) {
         // Potentially an infix macro
         // This should only be invoked on runtime syntax terms
         if (!head.isMacroTerm && !head.isLetMacroTerm && !head.isAnonMacroTerm && !head.isOperatorDefinitionTerm &&
-            rest.length && hasCompiletimeValue(rest, context, context.phase) &&
-            getCompiletimeValue(rest, context, context.phase).isOp === false) {
+            rest.length && hasSyntaxTransform(rest, context, context.phase) &&
+            getSyntaxTransform(rest, context, context.phase).isOp === false) {
             var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartialTerm
                               ? opCtx.prevTerms[0]
                               : null;
@@ -1723,12 +1737,13 @@ function expandToTermTree(stx, context) {
             var nameStx = makeMultiToken(macroDecl.name);
             addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
 
-            context.env.set(nameStx, context.phase, {
-                fn: macroDefinition,
-                isOp: false,
-                builtin: builtinMode,
-                fullName: macroDecl.name
-            });
+            context.env.set(nameStx,
+                            context.phase,
+                            new SyntaxTransform(macroDefinition,
+                                                false,
+                                                builtinMode,
+                                                macroDecl.name)
+            );
         }
 
         if (head.isLetMacroTerm && expandCount < maxExpands) {
@@ -1758,12 +1773,12 @@ function expandToTermTree(stx, context) {
                 return stx.rename(nameStx, freshName);
             });
 
-            context.env.set(renamedName, context.phase, {
-                fn: macroDefinition,
-                isOp: false,
-                builtin: builtinMode,
-                fullName: oldName
-            });
+            context.env.set(renamedName,
+                            context.phase,
+                            new SyntaxTransform(macroDefinition,
+                                                false,
+                                                builtinMode,
+                                                oldName));
         }
 
         if (head.isOperatorDefinitionTerm) {
@@ -1783,7 +1798,7 @@ function expandToTermTree(stx, context) {
 
             var nameStx = makeMultiToken(head.name);
             addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
-            var opObj = getCompiletimeValue(nameStx, context, context.phase);
+            var opObj = getSyntaxTransform(nameStx, context, context.phase);
             if (!opObj) {
                 opObj = {
                     isOp: true,
@@ -1993,6 +2008,12 @@ function expandTermTreeToFinal (term, context) {
         // expand inside the delimiter and then continue on
         term.delim.token.inner = expand(term.delim.token.inner, context);
         return term;
+    } else if (term.isIdTerm) {
+        var varTrans = getCompiletimeValue(term.id, context, context.phase);
+        if (varTrans instanceof VarTransform) {
+            term.id = varTrans.id;
+        }
+        return term;
     } else if (term.isNamedFunTerm ||
                term.isAnonFunTerm ||
                term.isCatchClauseTerm ||
@@ -2022,10 +2043,12 @@ function expandTermTreeToFinal (term, context) {
 
         var paramNames = _.map(getParamIdentifiers(params), function(param) {
             var freshName = fresh();
+            var renamed = param.rename(param, freshName);
+            context.env.set(renamed, context.phase, new VarTransform(renamed));
             return {
                 freshName: freshName,
                 originalParam: param,
-                renamedParam: param.rename(param, freshName)
+                renamedParam: renamed
             };
         });
 
@@ -2437,7 +2460,7 @@ function visit(modTerm, modRecord, phase, context) {
             var opDefinition = loadMacroDef(term.body, context, phase + 1);
             var nameStx = makeMultiToken(term.name);
             addToDefinitionCtx([nameStx], defctx, false, []);
-            var opObj = getCompiletimeValue(nameStx, context, phase);
+            var opObj = getSyntaxTransform(nameStx, context, phase);
             if (!opObj) {
                 opObj = {
                     isOp: true,
@@ -2558,10 +2581,10 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
             assert(false, "needs to be a delimiter");
         } else if (inExports.exportName.isDelimiter()) {
             exportName = inExports.exportName.token.inner;
-            trans = getCompiletimeValue(exportName, context, phase);
+            trans = getSyntaxTransform(exportName, context, phase);
         } else {
             exportName = inExports.exportName;
-            trans = getCompiletimeValue(exportName, context, phase);
+            trans = getSyntaxTransform(exportName, context, phase);
         }
         var newParam = syn.makeIdent(nameStr, entry.localName);
         var newName = fresh();
@@ -2615,9 +2638,9 @@ function expandModule(mod, filename, templateMap, patternMap, moduleRecord, comp
 
 function isCompileName(stx, context) {
     if (stx.isDelimiter()) {
-        return !hasCompiletimeValue(stx.token.inner, context, 0);
+        return !hasSyntaxTransform(stx.token.inner, context, 0);
     } else {
-        return !hasCompiletimeValue(stx, context, 0);
+        return !hasSyntaxTransform(stx, context, 0);
     }
 }
 
@@ -2820,6 +2843,9 @@ exports.compileModule = compileModule;
 
 exports.getCompiletimeValue = getCompiletimeValue;
 exports.hasCompiletimeValue = hasCompiletimeValue;
+
+exports.getSyntaxTransform = getSyntaxTransform;
+exports.hasSyntaxTransform = hasSyntaxTransform;
 
 exports.resolve = resolve;
 exports.get_expression = get_expression;

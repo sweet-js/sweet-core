@@ -350,7 +350,7 @@ function cachedTermMatch(stx, term) {
 function expandWithMacro(macroName, stx, context, rec) {
     var name = macroName.map(syntax.unwrapSyntax).join("");
     var ident = syntax.makeIdent(name, macroName[0]);
-    var macroObj = expander.getCompiletimeValue(ident, context, context.phase);
+    var macroObj = expander.getSyntaxTransform(ident, context, context.phase);
     var newContext = expander.makeExpanderContext(context);
 
     if (!macroObj) {
@@ -377,7 +377,7 @@ function expandWithMacro(macroName, stx, context, rec) {
         }
 
         if (rec && result.length >= 1) {
-            var nextMacro = expander.getCompiletimeValue(result, context, context.phase);
+            var nextMacro = expander.getSyntaxTransform(result, context, context.phase);
 
             if (nextMacro) {
                 macroObj = nextMacro;
