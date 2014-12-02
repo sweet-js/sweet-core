@@ -308,6 +308,28 @@ describe "procedural (syntax-case) macros" {
         expect(m (id 42)).to.be(true);
     }
 
+    it "should handle localExpand with macros inside functions" {
+        macro ex {
+            case {_ { $body ... } } => {
+                return localExpand(#{$body ...});
+            }
+        }
+
+        var f = ex {
+            function foo(x) {
+                macro arg {
+                    rule {} => { x }
+                }
+                return {
+                    normal_x: x,
+                    macro_x: arg
+                };
+            }
+        }
+        expect(f(42).normal_x).to.be(42);
+        expect(f(42).macro_x).to.be(42);
+    }
+
 }
 
 describe "syntax objects" {
