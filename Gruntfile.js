@@ -129,7 +129,8 @@ module.exports = function(grunt) {
 
             dist: {
                 expand: true,
-                src: "build/lib/**/*.js",
+                cwd: "build/lib/",
+                src: "**/*.js",
                 dest: "lib/"
             },
             testFixtures: {
