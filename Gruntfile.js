@@ -129,11 +129,9 @@ module.exports = function(grunt) {
 
             dist: {
                 expand: true,
-                flatten: true,
-                src: "build/lib/*.js",
+                src: "build/lib/**/*.js",
                 dest: "lib/"
             },
-
             testFixtures: {
                 expand: true,
                 flatten: false,
