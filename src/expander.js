@@ -2011,7 +2011,7 @@ function expandTermTreeToFinal (term, context) {
     } else if (term.isIdTerm) {
         var varTrans = getCompiletimeValue(term.id, context, context.phase);
         if (varTrans instanceof VarTransform) {
-            term.id = varTrans.id;
+            term.id = syntaxFromToken(term.id.token, varTrans.id) ;
         }
         return term;
     } else if (term.isNamedFunTerm ||
