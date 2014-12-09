@@ -1171,7 +1171,7 @@
         if (name.length === 1) {
             if (env.names.get(unwrapSyntax(name[0]))) {
                 var resolvedName = resolve(name[0]);
-                if (env.has(resolvedName)) {
+                if (env.has(resolvedName) && !env.get(resolvedName).varTransform) {
                     return env.get(resolvedName);
                 }
             }
@@ -1182,7 +1182,7 @@
                 if (env.names.get(nameStr)) {
                     var nameStx = syn.makeIdent(nameStr, name[0]);
                     var resolvedName = resolve(nameStx);
-                    if (env.has(resolvedName)) {
+                    if (env.has(resolvedName) && !env.get(resolvedName).varTransform) {
                         return env.get(resolvedName);
                     }
                 }
@@ -1533,7 +1533,7 @@
                 }    // ObjectGet
                 else if (head.isExpr && (rest[0] && unwrapSyntax(rest[0]) === '.' && !context.env.has(resolveFast(rest[0], context.env)) && rest[1] && (rest[1].token.type === parser.Token.Identifier || rest[1].token.type === parser.Token.Keyword))) {
                     // Check if the identifier is a macro first.
-                    if (context.env.has(resolveFast(rest[1], context.env))) {
+                    if (context.env.has(resolveFast(rest[1], context.env)) && nameInEnv(rest[1], [], context.env)) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         var dotTerm = Punc.create(rest[0]);
                         var dotTerms = [dotTerm].concat(head, prevTerms);
@@ -1912,6 +1912,16 @@
             dfs(env[key]);
         });
     }
+    function markIn(arr, mark) {
+        return arr.map(function (stx) {
+            return stx.mark(mark);
+        });
+    }
+    function markDefOut(arr, mark, def) {
+        return arr.map(function (stx) {
+            return stx.mark(mark).addDefCtx(def);
+        });
+    }
     // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
     function loadMacroDef(body, context) {
@@ -1925,6 +1935,7 @@
         expanded = expanded[0].destruct().concat(expanded[1].eof);
         var flattend = flatten(expanded);
         var bodyCode = codegen.generate(parser.parse(flattend));
+        var localCtx;
         var macroFn = scopedEval(bodyCode, {
                 makeValue: syn.makeValue,
                 makeRegex: syn.makeRegex,
@@ -1939,8 +1950,17 @@
                     }
                     return require(id);
                 },
+                localExpand: function (stx, stop) {
+                    assert(!stop || stop.length === 0, 'localExpand stop lists are not currently supported');
+                    var markedStx = markIn(stx, localCtx.mark);
+                    var terms = expand(markedStx, localCtx);
+                    var newStx = terms.reduce(function (acc, term) {
+                            acc.push.apply(acc, term.destruct());
+                            return acc;
+                        }, []);
+                    return markDefOut(newStx, localCtx.mark, localCtx.defscope);
+                },
                 getExpr: function (stx) {
-                    var r;
                     if (stx.length === 0) {
                         return {
                             success: false,
@@ -1948,11 +1968,12 @@
                             rest: []
                         };
                     }
-                    r = get_expression(stx, context);
+                    var markedStx = markIn(stx, localCtx.mark);
+                    var r = get_expression(markedStx, localCtx);
                     return {
                         success: r.result !== null,
-                        result: r.result === null ? [] : r.result.destruct(),
-                        rest: r.rest
+                        result: r.result === null ? [] : markDefOut(r.result.destruct(), localCtx.mark, localCtx.defscope),
+                        rest: markDefOut(r.rest, localCtx.mark, localCtx.defscope)
                     };
                 },
                 getIdent: function (stx) {
@@ -2003,7 +2024,10 @@
                     return newMatch;
                 }
             });
-        return macroFn;
+        return function (stx, context$2, prevStx, prevTerms) {
+            localCtx = context$2;
+            return macroFn(stx, context$2, prevStx, prevTerms);
+        };
     }
     // similar to `parse1` in the honu paper
     // ([Syntax], Map) -> {terms: [TermTree], env: Map}
@@ -2250,6 +2274,12 @@
             // expand inside the delimiter and then continue on
             term.delim.token.inner = expand(term.delim.expose().token.inner, context);
             return term;
+        } else if (term.isId) {
+            var trans = context.env.get(resolve(term.id));
+            if (trans && trans.varTransform) {
+                term.id = syntaxFromToken(term.id.token, trans.varTransform);
+            }
+            return term;
         } else if (term.isNamedFun || term.isAnonFun || term.isCatchClause || term.isArrowFun || term.isModule) {
             // function definitions need a bunch of hygiene logic
             // push down a fresh definition context
@@ -2272,10 +2302,13 @@
             bodies = bodies.addDefCtx(newDef);
             var paramNames = _.map(getParamIdentifiers(params), function (param) {
                     var freshName = fresh();
+                    var renamed = param.rename(param, freshName);
+                    context.env.names.set(renamed.token.value, true);
+                    context.env.set(resolve(renamed), { varTransform: renamed });
                     return {
                         freshName: freshName,
                         originalParam: param,
-                        renamedParam: param.rename(param, freshName)
+                        renamedParam: renamed
                     };
                 });
             var bodyContext = makeExpanderContext(_.defaults({
