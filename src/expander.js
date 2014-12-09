@@ -895,7 +895,7 @@
         if (name.length === 1) {
             if (env.names.get(unwrapSyntax(name[0]))) {
                 var resolvedName = resolve(name[0]);
-                if (env.has(resolvedName)) {
+                if (env.has(resolvedName) && !env.get(resolvedName).varTransform) {
                     return env.get(resolvedName);
                 }
             }
@@ -906,7 +906,7 @@
                 if (env.names.get(nameStr)) {
                     var nameStx = syn.makeIdent(nameStr, name[0]);
                     var resolvedName = resolve(nameStx);
-                    if (env.has(resolvedName)) {
+                    if (env.has(resolvedName) && !env.get(resolvedName).varTransform) {
                         return env.get(resolvedName);
                     }
                 }
@@ -1365,7 +1365,7 @@
                              (rest[1].token.type === parser.Token.Identifier ||
                               rest[1].token.type === parser.Token.Keyword))) {
                     // Check if the identifier is a macro first.
-                    if (context.env.has(resolveFast(rest[1], context.env))) {
+                    if (context.env.has(resolveFast(rest[1], context.env)) && nameInEnv(rest[1], [], context.env)) {
                         var headStx = tagWithTerm(head, head.destruct().reverse());
                         var dotTerm = Punc.create(rest[0]);
                         var dotTerms = [dotTerm].concat(head, prevTerms);
@@ -2330,6 +2330,12 @@
             // expand inside the delimiter and then continue on
             term.delim.token.inner = expand(term.delim.expose().token.inner, context);
             return term;
+        } else if (term.isId) {
+            var trans = context.env.get(resolve(term.id));
+            if (trans && trans.varTransform) {
+                term.id = syntaxFromToken(term.id.token, trans.varTransform);
+            }
+            return term;
         } else if (term.isNamedFun ||
                    term.isAnonFun ||
                    term.isCatchClause ||
@@ -2359,10 +2365,13 @@
 
             var paramNames = _.map(getParamIdentifiers(params), function(param) {
                 var freshName = fresh();
+                var renamed = param.rename(param, freshName);
+                context.env.names.set(renamed.token.value, true);
+                context.env.set(resolve(renamed), {varTransform: renamed})
                 return {
                     freshName: freshName,
                     originalParam: param,
-                    renamedParam: param.rename(param, freshName)
+                    renamedParam: renamed
                 };
             });
 
