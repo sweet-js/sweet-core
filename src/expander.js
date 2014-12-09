@@ -1912,6 +1912,17 @@
         });
     }
 
+    function markIn(arr, mark) {
+        return arr.map(function(stx) {
+            return stx.mark(mark);
+        });
+    }
+
+    function markDefOut(arr, mark, def) {
+        return arr.map(function(stx) {
+            return stx.mark(mark).addDefCtx(def);
+        });
+    }
 
     // given the syntax for a macro, produce a macro transformer
     // (Macro) -> (([...CSyntax]) -> ReadTree)
@@ -1930,6 +1941,7 @@
         var flattend = flatten(expanded);
         var bodyCode = codegen.generate(parser.parse(flattend));
 
+        var localCtx;
         var macroFn = scopedEval(bodyCode, {
             makeValue: syn.makeValue,
             makeRegex: syn.makeRegex,
@@ -1944,8 +1956,20 @@
                 }
                 return require(id);
             },
+            localExpand: function(stx, stop) {
+                assert(!stop || stop.length === 0,
+                       "localExpand stop lists are not currently supported");
+
+                var markedStx = markIn(stx, localCtx.mark);
+                var terms = expand(markedStx, localCtx);
+                var newStx = terms.reduce(function(acc, term) {
+                    acc.push.apply(acc, term.destruct());
+                    return acc;
+                }, []);
+
+                return markDefOut(newStx, localCtx.mark, localCtx.defscope);
+            },
             getExpr: function(stx) {
-                var r;
                 if (stx.length === 0) {
                     return {
                         success: false,
@@ -1953,11 +1977,12 @@
                         rest: []
                     };
                 }
-                r = get_expression(stx, context);
+                var markedStx = markIn(stx, localCtx.mark); 
+                var r = get_expression(markedStx, localCtx);
                 return {
                     success: r.result !== null,
-                    result: r.result === null ? [] : r.result.destruct(),
-                    rest: r.rest
+                    result: r.result === null ? [] : markDefOut(r.result.destruct(), localCtx.mark, localCtx.defscope),
+                    rest: markDefOut(r.rest, localCtx.mark, localCtx.defscope)
                 };
             },
             getIdent: function(stx) {
@@ -2009,7 +2034,10 @@
             }
         });
 
-        return macroFn;
+        return function(stx, context, prevStx, prevTerms) {
+            localCtx = context;
+            return macroFn(stx, context, prevStx, prevTerms);
+        };
     }
 
     // similar to `parse1` in the honu paper
