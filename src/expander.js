@@ -2557,67 +2557,106 @@
         }, stx);
     }
 
-    // break delimiter tree structure down to flat array of syntax objects
-    function flatten(stx) {
-        return _.reduce(stx, function(acc, stx) {
-            if (stx.token.type === parser.Token.Delimiter) {
-                var exposed = stx.expose();
-                var openParen = syntaxFromToken({
-                    type: parser.Token.Punctuator,
-                    value: stx.token.value[0],
-                    range: stx.token.startRange,
-                    sm_range: (typeof stx.token.sm_startRange == 'undefined'
-                                ? stx.token.startRange
-                                : stx.token.sm_startRange),
-                    lineNumber: stx.token.startLineNumber,
-                    sm_lineNumber: (typeof stx.token.sm_startLineNumber == 'undefined'
-                                    ? stx.token.startLineNumber
-                                    : stx.token.sm_startLineNumber),
-                    lineStart: stx.token.startLineStart,
-                    sm_lineStart: (typeof stx.token.sm_startLineStart == 'undefined'
-                                   ? stx.token.startLineStart
-                                   : stx.token.sm_startLineStart)
-                }, exposed);
-                var closeParen = syntaxFromToken({
-                    type: parser.Token.Punctuator,
-                    value: stx.token.value[1],
-                    range: stx.token.endRange,
-                    sm_range: (typeof stx.token.sm_endRange == 'undefined'
-                                ? stx.token.endRange
-                                : stx.token.sm_endRange),
-                    lineNumber: stx.token.endLineNumber,
-                    sm_lineNumber: (typeof stx.token.sm_endLineNumber == 'undefined'
-                                    ? stx.token.endLineNumber
-                                    : stx.token.sm_endLineNumber),
-                    lineStart: stx.token.endLineStart,
-                    sm_lineStart: (typeof stx.token.sm_endLineStart == 'undefined'
-                                    ? stx.token.endLineStart
-                                    : stx.token.sm_endLineStart)
-                }, exposed);
-                if (stx.token.leadingComments) {
-                    openParen.token.leadingComments = stx.token.leadingComments;
+    // break delimiter tree structure down to flat array of syntax objects.
+    // do it without blowing the stack.
+    function flatten(stxs) {
+        var acc = [], accLen = 0;
+        var stack = [], frame;
+        var depth = 0;
+        var index = -1;
+        var count = stxs.length;
+        var stx, tok, exposed, openParen, closeParen;
+        
+        flattening: while(depth > -1) {
+            while(++index < count) {
+                if((tok = ((stx = stxs[index]) && stx.token)) && tok.type === parser.Token.Delimiter) {
+                    exposed = stx.expose();
+                    
+                    openParen = syntaxFromToken({
+                        type: parser.Token.Punctuator,
+                        value: tok.value[0],
+                        range: tok.startRange,
+                        sm_range: (typeof tok.sm_startRange == 'undefined'
+                                    ? tok.startRange
+                                    : tok.sm_startRange),
+                        lineNumber: tok.startLineNumber,
+                        sm_lineNumber: (typeof tok.sm_startLineNumber == 'undefined'
+                                        ? tok.startLineNumber
+                                        : tok.sm_startLineNumber),
+                        lineStart: tok.startLineStart,
+                        sm_lineStart: (typeof tok.sm_startLineStart == 'undefined'
+                                       ? tok.startLineStart
+                                       : tok.sm_startLineStart)
+                    }, exposed);
+                    
+                    closeParen = syntaxFromToken({
+                        type: parser.Token.Punctuator,
+                        value: tok.value[1],
+                        range: tok.endRange,
+                        sm_range: (typeof tok.sm_endRange == 'undefined'
+                                    ? tok.endRange
+                                    : tok.sm_endRange),
+                        lineNumber: tok.endLineNumber,
+                        sm_lineNumber: (typeof tok.sm_endLineNumber == 'undefined'
+                                        ? tok.endLineNumber
+                                        : tok.sm_endLineNumber),
+                        lineStart: tok.endLineStart,
+                        sm_lineStart: (typeof tok.sm_endLineStart == 'undefined'
+                                        ? tok.endLineStart
+                                        : tok.sm_endLineStart)
+                    }, exposed);
+                    
+                    if (tok.leadingComments) {
+                        openParen.token.leadingComments = tok.leadingComments;
+                    }
+                    if (tok.trailingComments) {
+                        openParen.token.trailingComments = tok.trailingComments;
+                    }
+                    
+                    acc[accLen++] = openParen;
+                    stack[depth++] = [tok, closeParen, stxs, index];
+                    stxs = exposed.token.inner;
+                    index = -1;
+                    count = stxs.length;
+                    continue;
                 }
-                if (stx.token.trailingComments) {
-                    openParen.token.trailingComments = stx.token.trailingComments;
-                }
-                acc.push(openParen);
-                push.apply(acc, flatten(exposed.token.inner));
-                acc.push(closeParen);
-                return acc;
+                
+                tok.sm_lineNumber = typeof tok.sm_lineNumber != 'undefined'
+                                        ? tok.sm_lineNumber
+                                        : tok.lineNumber;
+                tok.sm_lineStart = typeof tok.sm_lineStart != 'undefined'
+                                        ? tok.sm_lineStart
+                                        : tok.lineStart;
+                tok.sm_range = typeof tok.sm_range != 'undefined'
+                                        ? tok.sm_range
+                                        : tok.range;
+                acc[accLen++] = stx;
             }
-            stx.token.sm_lineNumber = typeof stx.token.sm_lineNumber != 'undefined'
-                                    ? stx.token.sm_lineNumber
-                                    : stx.token.lineNumber;
-            stx.token.sm_lineStart = typeof stx.token.sm_lineStart != 'undefined'
-                                    ? stx.token.sm_lineStart
-                                    : stx.token.lineStart;
-            stx.token.sm_range = typeof stx.token.sm_range != 'undefined'
-                                    ? stx.token.sm_range
-                                    : stx.token.range;
-            acc.push(stx);
-            return acc;
-        }, []);
+            if(--depth > -1) {
+                frame = stack[depth];
+                tok = frame[0];
+                closeParen = frame[1];
+                acc[accLen++] = closeParen;
+                
+                tok.sm_lineNumber = typeof tok.sm_lineNumber != 'undefined'
+                                        ? tok.sm_lineNumber
+                                        : tok.lineNumber;
+                tok.sm_lineStart = typeof tok.sm_lineStart != 'undefined'
+                                        ? tok.sm_lineStart
+                                        : tok.lineStart;
+                tok.sm_range = typeof tok.sm_range != 'undefined'
+                                        ? tok.sm_range
+                                        : tok.range;
+                
+                stxs = frame[2];
+                index = frame[3];
+                count = stxs.length;
+                continue flattening;
+            }
+        }
+        return acc;
     }
+
 
     exports.StringMap = StringMap;
     exports.enforest = enforest;
