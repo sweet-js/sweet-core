@@ -48,6 +48,23 @@ describe "procedural (syntax-case) macros" {
         expect(m()).to.be(42);
     }
 
+    it "should work with both rule and case definitions" {
+        macro m {
+            rule { $x } => { $x + 5 }
+            case { _ } => { return #{ 10 } }
+        }
+        expect(m 10).to.be(15);
+        expect(m).to.be(10);
+    }
+
+    it "should work with both rule and case definitions in a let macro" {
+        let m = macro {
+            rule { $x } => { $x + 5 }
+            case { _ } => { return #{ 10 } }
+        }
+        expect(m 10).to.be(15);
+        expect(m).to.be(10);
+    }
 
     it "should handle returning a single pattern variable" {
         macro m {
@@ -292,5 +309,4 @@ describe "procedural (syntax-case) macros" {
         var foo = 100;
         expect(m ()).to.be(100);
     }
-
 }

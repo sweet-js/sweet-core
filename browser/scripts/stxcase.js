@@ -500,33 +500,70 @@ let macro = macro {
             }
 
         }
-
+        
         var rules = [];
-        if (body_inner_stx[0] && body_inner_stx[0].token.value === "rule") {
-            for (var i = 0; i < body_inner_stx.length; i += 4) {
-                var isInfix = body_inner_stx[i + 1].token.value === 'infix';
-                if (isInfix) {
-                    i += 1;
+        var decl = body_inner_stx[0];
+        
+        if(decl) {
+            
+            var stxIdx = -4;
+            var stxLen = body_inner_stx.length;
+            var rulesLen = 0;
+            
+            while((stxIdx += 4) < stxLen) {
+                
+                decl = body_inner_stx[stxIdx];
+                
+                var def_stx, idRule;
+                
+                var infix = body_inner_stx[stxIdx + 1];
+                var isInfix = !!(infix && infix.token && infix.token.value === "infix");
+                var infixOffset = Number(isInfix);
+                stxIdx += infixOffset;
+                
+                var def_pattern = body_inner_stx[stxIdx + 1];
+                var def_arrow = body_inner_stx[stxIdx + 2];
+                var def_body = body_inner_stx[stxIdx + 3];
+                
+                if(decl.token.value === "rule") {
+                    
+                    if(def_pattern && def_arrow && def_arrow.token.value === "=>" && def_body) {
+                        def_stx = translateRule(def_pattern.expose().token.inner,
+                                                def_body.expose().token.inner,
+                                                isInfix);
+                    } else if(def_pattern) {
+                        idRule = makeIdentityRule(def_pattern.token.inner, isInfix, def_pattern);
+                        def_stx = translateRule(idRule.pattern, idRule.body, isInfix);
+                        stxIdx -= 2;
+                    } else if(!def_stx) {
+                        throwSyntaxError("macro", "Macro `macro` could not be matched" , def_arrow);
+                    }
+                    
+                    decl = def_stx[0];
+                    infix = def_stx[1];
+                    def_pattern = def_stx[1 + infixOffset];
+                    def_arrow = def_stx[2 + infixOffset];
+                    def_body = def_stx[3 + infixOffset];
+                    
+                    def_stx = null;
+                } else if(decl.token.value !== "case") {
+                    throwSyntaxError("macro", "Macro `macro` could not be matched" , def_arrow);
                 }
-
-                var rule_pattern = body_inner_stx[i + 1];
-                var rule_arrow = body_inner_stx[i + 2];
-                var rule_def = body_inner_stx[i + 3];
-
-                if (rule_pattern && rule_arrow && rule_arrow.token.value === "=>" && rule_def) {
-                    rules = rules.concat(translateRule(rule_pattern.expose().token.inner,
-                                                       rule_def.expose().token.inner,
-                                                       isInfix));
-                } else if (rule_pattern) {
-                    var idRule = makeIdentityRule(rule_pattern.token.inner, isInfix, rule_pattern);
-                    rules = rules.concat(translateRule(idRule.pattern, idRule.body, isInfix));
-                    i -= 2;
+                
+                rules[rulesLen++] = decl;
+                if(isInfix) {
+                    rules[rulesLen++] = infix;
+                    rules[rulesLen++] = def_pattern;
+                    rules[rulesLen++] = def_arrow;
+                    rules[rulesLen++] = def_body;
                 } else {
-                  throwSyntaxError("macro", "Macro `macro` could not be matched" , rule_arrow);
+                    rules[rulesLen++] = def_pattern;
+                    rules[rulesLen++] = def_arrow;
+                    rules[rulesLen++] = def_body;
                 }
             }
+            
             rules = makeDelim("{}", rules, here);
-
         } else {
             rules = body_stx;
         }
