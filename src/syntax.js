@@ -186,6 +186,11 @@ Syntax.prototype = {
         return syntaxFromToken(newTok, this);
     },
 
+    expose: function() {
+        console.log("expose is deprecated no longer needed");
+        return this;
+    },
+
     isIdentifier: function() {
         return this.token && this.token.type === parser.Token.Identifier;
     },
