@@ -7,8 +7,7 @@ var _ = require("underscore"),
     unwrapSyntax = require("../syntax").unwrapSyntax,
     makeIdent = require("../syntax").makeIdent,
     resolve = require("../stx/resolve").resolve,
-    StringMap = require("./stringMap"),
-    List = require("immutable").List;
+    StringMap = require("./stringMap");
 
 
 function Env() {
@@ -39,55 +38,61 @@ function isValidName(stx) {
         stx.isPunctuator();
 }
 
-function getName(stxl) {
-    var head = stxl.first(),
-        last = head;
-
-    if (!isValidName(head)) {
-        return List();
+function getName(head, rest) {
+    var idx = 0;
+    var curr = head;
+    var next = rest[idx];
+    var name = [head];
+    while (true) {
+        if (next &&
+            isValidName(next) && isToksAdjacent(curr, next)) {
+            name.push(next);
+            curr = next;
+            next = rest[++idx];
+        } else {
+            return name;
+        }
     }
-
-    return List.of(head).concat(stxl.rest().takeWhile(function(stx) {
-        var take = isValidName(stx) && isToksAdjacent(last, stx);
-        last = stx;
-        return take;
-    }));
 }
 
 
-Env.prototype.get = function(stx, phase) {
+function get(stx, phase) {
+    // normalize to an array
+    stx = Array.isArray(stx) ? stx : [stx];
+    var head = stx[0], rest = stx.slice(1), resolvedName;
     assert(phase != null, "must provide phase");
-    // normalize to a list
-    stx = Array.isArray(stx) ? List(stx) : List.of(stx);
 
-    var resolvedName, nameStr, nameStx, name = getName(stx);
-
-    if (name.size === 0) {
+    if (!isValidName(head)) {
         return null;
-    } else if (name.size === 1) {
-        // simple case, don't need to create a new syntax object
-        if (this._names.get(unwrapSyntax(name.first()))) {
-            resolvedName = resolve(name.first(), phase);
+    }
+    var name = getName(head, rest);
+    // simple case, don't need to create a new syntax object
+    if (name.length === 1) {
+        if (this._names.get(unwrapSyntax(name[0]))) {
+            resolvedName = resolve(name[0], phase);
             if (this._map.has(resolvedName)) {
                 return this._map.get(resolvedName);
             }
         }
         return null;
     } else {
-        while (name.size > 0) {
-            nameStr = name.map(unwrapSyntax).join("");
+        while (name.length > 0) {
+            var nameStr = name.map(unwrapSyntax).join("");
             if (this._names.get(nameStr)) {
-                nameStx = makeIdent(nameStr, name.first());
+                var nameStx = makeIdent(nameStr, name[0]);
                 resolvedName = resolve(nameStx, phase);
                 if (this._map.has(resolvedName)) {
                     return this._map.get(resolvedName);
                 }
             }
-            name = name.pop();
+            name.pop();
         }
         return null;
     }
-};
+}
+
+
+Env.prototype.get = get;
 
 Env.prototype.hasName = function(stx) {
     return this._names.has(unwrapSyntax(stx));
