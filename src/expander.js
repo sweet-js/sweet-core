@@ -36,7 +36,7 @@ var codegen = require('escodegen'),
     syn = require('./syntax'),
     se = require('./scopedEval'),
     StringMap = require("./data/stringMap"),
-    Env = require("./data/env"),
+    NameMap = require("./data/nameMap"),
     SyntaxTransform = require("./data/transforms").SyntaxTransform,
     VarTransform = require("./data/transforms").VarTransform,
     resolve = require("./stx/resolve").resolve,
@@ -2165,8 +2165,8 @@ function expand(stx, context) {
 function makeExpanderContext(o) {
     o = o || {};
 
-    var env = o.env || new Env();
-    var store = o.store || new Env();
+    var env = o.env || new NameMap();
+    var store = o.store || new NameMap();
 
     return Object.create(Object.prototype, {
         filename: {value: o.filename,
@@ -2366,7 +2366,13 @@ function invoke(modTerm, modRecord, phase, context) {
             var expName = resolve(entry.localName, phase);
             var expVal = global[expName];
             // and set it as the export name
-            context.env.set(entry.exportName, phase, {value: expVal});
+            context.env.set(entry.exportName,
+                            phase,
+                            {value: expVal});
+            context.store.setWithModule(entry.exportName,
+                                        phase,
+                                        {value: expVal},
+                                        modRecord.name);
         });
     }
 
@@ -2437,12 +2443,20 @@ function visit(modTerm, modRecord, phase, context) {
 
         if (term.isMacroTerm) {
             macroDefinition = loadMacroDef(term.body, context, phase + 1);
+
             context.env.set(term.name[0], phase, {
                 fn: macroDefinition,
                 isOp: false,
                 builtin: builtinMode,
                 fullName: term.name
             });
+
+            context.store.setWithModule(term.name[0], phase, {
+                fn: macroDefinition,
+                isOp: false,
+                builtin: builtinMode,
+                fullName: term.name
+            }, modRecord.name);
         }
 
         if (term.isLetMacroTerm) {
@@ -2454,6 +2468,13 @@ function visit(modTerm, modRecord, phase, context) {
                 builtin: builtinMode,
                 fullName: term.name[0].props.fullName
             });
+
+            context.store.setWithModule(term.name[0], phase, {
+                fn: macroDefinition,
+                isOp: false,
+                builtin: builtinMode,
+                fullName: term.name[0].props.fullName
+            }, modRecord.name);
         }
 
         if (term.isOperatorDefinitionTerm) {
@@ -2477,6 +2498,7 @@ function visit(modTerm, modRecord, phase, context) {
                 assoc: term.assoc ? term.assoc.token.value : null
             };
             context.env.set(nameStx, phase, opObj);
+            context.store.setWithModule(nameStx, phase, opObj, modRecord.name);
         }
 
     });
@@ -2557,7 +2579,7 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
             return unwrapSyntax(expEntry.exportName) === unwrapSyntax(entry.importName);
         });
         if (!(inExports || isBase)) {
-            console.log(modRecord.exportEntries);
+            // console.log(modRecord.exportEntries);
             throwSyntaxError("compile",
                              "the imported name `" +
                              unwrapSyntax(entry.importName) +
