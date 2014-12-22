@@ -19,17 +19,17 @@ function remdup(mark, mlist) {
 }
 
 // (CSyntax) -> [...Num]
-function marksof(ctx, stopName, originalName) {
+function marksof(ctx, stopName) {
     while (ctx) {
         if (ctx.constructor === Mark) {
-            return remdup(ctx.mark, marksof(ctx.context, stopName, originalName));
+            return remdup(ctx.mark, marksof(ctx.context, stopName));
         }
         if(ctx.constructor === Def) {
             ctx = ctx.context;
             continue;
         }
         if (ctx.constructor === Rename) {
-            if(stopName === originalName + "$" + ctx.name) {
+            if(stopName === ctx.name) {
                 return [];
             }
             ctx = ctx.context;
@@ -51,7 +51,9 @@ function resolveModule(stx, phase) {
 
 function resolve(stx, phase) {
     assert(phase !== undefined, "must pass in phase");
-    return resolveCtx(stx.token.value, stx.context, [], [], {}, phase);
+    var name = resolveCtx(stx.token.value, stx.context, [], [], {}, phase);
+    assert(name !== null, "null name!");
+    return typeof name === "string" ? name : stx.token.value + "$" + name;
 }
 
 // This call memoizes intermediate results in the recursive invocation.
@@ -108,7 +110,7 @@ function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase
         }
         if (ctx.constructor === Rename) {
             if (originalName === ctx.id.token.value) {
-                var idName  = resolveCtx(ctx.id.token.value,
+                var idName  = resolveCtx(originalName,
                                          ctx.id.context,
                                          stop_branch,
                                          stop_branch,
@@ -120,15 +122,13 @@ function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase
                                          stop_branch,
                                          cache,
                                          0);
-                if (idName === subName ) {
+                if (idName === subName) {
                     var idMarks  = marksof(ctx.id.context,
-                            originalName + "$" + ctx.name,
-                            originalName);
+                                           ctx.name);
                     var subMarks = marksof(ctx.context,
-                            originalName + "$" + ctx.name,
-                            originalName);
+                                           ctx.name);
                     if (arraysEqual(idMarks, subMarks)) {
-                        return originalName + "$" + ctx.name;
+                        return ctx.name;
                     }
                 }
             }
@@ -138,7 +138,7 @@ function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase
         if (ctx.constructor === Imported) {
             if (phase === ctx.phase) {
                 if (originalName === ctx.id.token.value) {
-                    return originalName + "$" + ctx.name;
+                    return ctx.name;
                 }
             }
             ctx = ctx.context;

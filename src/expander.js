@@ -1920,8 +1920,10 @@ function addToDefinitionCtx(idents, defscope, skipRep, paramscope) {
                    definition context as is.
                 */
                 var varDeclRep = _.find(defscope, function(def) {
+                    var stopName = def.name;
                     return def.id.token.value === id.token.value &&
-                        arraysEqual(marksof(def.id.context), marksof(id.context));
+                        arraysEqual(marksof(def.id.context, stopName),
+                                    marksof(id.context, stopName));
                 });
                 /*
                     When var declaration repeat one of the function parameters:
@@ -1933,8 +1935,10 @@ function addToDefinitionCtx(idents, defscope, skipRep, paramscope) {
                     we don't need to add the var to the definition context.
                 */
                 var paramDeclRep = _.find(paramscope, function(param) {
+                    var stopName = param.context.name;
                     return param.token.value === id.token.value &&
-                        arraysEqual(marksof(param.context), marksof(id.context));
+                        arraysEqual(marksof(param.context, stopName),
+                                    marksof(id.context, stopName));
                 });
                 return (typeof varDeclRep === 'undefined') &&
                        (typeof paramDeclRep === 'undefined');
