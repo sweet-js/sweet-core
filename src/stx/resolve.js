@@ -86,7 +86,12 @@ function resolve(stx, phase) {
 function resolveCtx(originalName, ctx, stop_spine, stop_branch, cache, phase) {
     if (!ctx) { return originalName; }
     var key = ctx.instNum;
-    return cache[key] || (cache[key] = resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase));
+    return cache[key] || (cache[key] = resolveCtxFull(originalName,
+                                                      ctx,
+                                                      stop_spine,
+                                                      stop_branch,
+                                                      cache,
+                                                      phase));
 }
 
 // (Syntax) -> String
