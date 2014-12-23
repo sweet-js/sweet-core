@@ -46,13 +46,35 @@ function marksof(ctx, stopName) {
 
 function resolveModule(stx, phase) {
     assert(phase !== undefined, "must pass in phase");
-    return resolveCtx(stx.token.value, stx.context, [], [], {}, phase);
+    var nameInfo = {};
+    var name = resolveCtx(stx.token.value, stx.context, [], [], {}, phase, nameInfo);
+    name = typeof name === "string" ? name : stx.token.value + "$" + name;
+    if (nameInfo.type === "free") {
+        return {
+            type: "free",
+            name: name
+        };
+    } else if (nameInfo.type === "lexical") {
+        return {
+            type: "lexical",
+            name: name,
+            phase: nameInfo.phase
+        };
+    } else if (nameInfo.type === "module") {
+        return {
+            type: "module",
+            name: name,
+            mod: nameInfo.mod
+        };
+    } else {
+        assert(false, "unknown name type: " + nameInfo.type);
+    }
+    return name;
 }
 
 function resolve(stx, phase) {
     assert(phase !== undefined, "must pass in phase");
-    var name = resolveCtx(stx.token.value, stx.context, [], [], {}, phase);
-    assert(name !== null, "null name!");
+    var name = resolveCtx(stx.token.value, stx.context, [], [], {}, phase, {});
     return typeof name === "string" ? name : stx.token.value + "$" + name;
 }
 
@@ -83,21 +105,28 @@ function resolve(stx, phase) {
 // With this memoization, the time complexity of the resolveCtx call is
 // no longer exponential for the cases in issue #232.
 
-function resolveCtx(originalName, ctx, stop_spine, stop_branch, cache, phase) {
-    if (!ctx) { return originalName; }
+function resolveCtx(originalName, ctx, stop_spine, stop_branch, cache, phase, nameInfo) {
+    if (!ctx) {
+        nameInfo.type = "free";
+        return originalName;
+    }
     var key = ctx.instNum;
     return cache[key] || (cache[key] = resolveCtxFull(originalName,
                                                       ctx,
                                                       stop_spine,
                                                       stop_branch,
                                                       cache,
-                                                      phase));
+                                                      phase,
+                                                      nameInfo));
 }
 
 // (Syntax) -> String
-function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase) {
+function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase, nameInfo) {
     while (true) {
-        if (!ctx) { return originalName; }
+        if (!ctx) {
+            nameInfo.type = "free";
+            return originalName;
+        }
 
         if (ctx.constructor === Mark) {
             ctx = ctx.context;
@@ -120,19 +149,23 @@ function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase
                                          stop_branch,
                                          stop_branch,
                                          cache,
-                                         0);
+                                         0,
+                                         nameInfo);
                 var subName = resolveCtx(originalName,
                                          ctx.context,
                                          unionEl(stop_spine, ctx.def),
                                          stop_branch,
                                          cache,
-                                         0);
+                                         0,
+                                         nameInfo);
                 if (idName === subName) {
                     var idMarks  = marksof(ctx.id.context,
                                            ctx.name);
                     var subMarks = marksof(ctx.context,
                                            ctx.name);
                     if (arraysEqual(idMarks, subMarks)) {
+                        nameInfo.type = "lexical";
+                        nameInfo.phase = ctx.phase;
                         return ctx.name;
                     }
                 }
@@ -143,6 +176,8 @@ function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase
         if (ctx.constructor === Imported) {
             if (phase === ctx.phase) {
                 if (originalName === ctx.id.token.value) {
+                    nameInfo.type = "module";
+                    nameInfo.mod = ctx.mod;
                     return ctx.name;
                 }
             }
@@ -185,5 +220,6 @@ function unionEl(arr, el) {
 }
 
 exports.resolve = resolve;
+exports.resolveModule = resolveModule;
 exports.marksof = marksof;
 exports.arraysEqual = arraysEqual;

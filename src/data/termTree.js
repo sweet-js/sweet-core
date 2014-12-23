@@ -237,15 +237,15 @@ dataclass TermTree() {
         return this;
     }
 
-    imported(id, name, phase) {
+    imported(id, name, phase, mod) {
         var self = this;
         _.each(this.constructor.properties, function(prop) {
             if (Array.isArray(self[prop])) {
                 self[prop] = _.map(self[prop], function (item) {
-                    return item.imported(id, name, phase);
+                    return item.imported(id, name, phase, mod);
                 });
             } else if (self[prop]) {
-                self[prop] = self[prop].imported(id, name, phase);
+                self[prop] = self[prop].imported(id, name, phase, mod);
             }
         });
         return this;

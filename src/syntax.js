@@ -65,11 +65,12 @@ function Def(defctx, ctx) {
     this.instNum = globalContextInstanceNumber++;
 }
 
-function Imported(id, name, ctx, phase) {
+function Imported(id, name, ctx, phase, mod) {
     this.id = id;
     this.name = name;
     this.phase = phase;
     this.context = ctx;
+    this.mod = mod;
     this.instNum = globalContextInstanceNumber++;
 }
 
@@ -113,20 +114,21 @@ Syntax.prototype = {
                                 props: this.props});
     },
 
-    imported: function(id, name, phase) {
+    imported: function(id, name, phase, mod) {
         if (this.token.inner) {
             this.token.inner = this.token.inner.map(function(stx) {
-                return stx.imported(id, name, phase);
+                return stx.imported(id, name, phase, mod);
             });
             return syntaxFromToken(this.token,
-                                   {context: new Imported(id, name, this.context, phase),
+                                   {context: new Imported(id, name, this.context, phase, mod),
                                     props: this.props});
 
         }
         return syntaxFromToken(this.token, {context: new Imported(id,
                                                                   name,
                                                                   this.context,
-                                                                  phase),
+                                                                  phase,
+                                                                  mod),
                                             props: this.props});
     },
 
