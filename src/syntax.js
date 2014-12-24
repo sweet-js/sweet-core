@@ -65,12 +65,12 @@ function Def(defctx, ctx) {
     this.instNum = globalContextInstanceNumber++;
 }
 
-function Imported(id, name, ctx, phase, mod) {
-    this.id = id;
-    this.name = name;
+function Imported(localName, exportName, phase, mod, ctx) {
+    this.localName = localName;
+    this.exportName = exportName;
     this.phase = phase;
-    this.context = ctx;
     this.mod = mod;
+    this.context = ctx;
     this.instNum = globalContextInstanceNumber++;
 }
 
@@ -114,21 +114,25 @@ Syntax.prototype = {
                                 props: this.props});
     },
 
-    imported: function(id, name, phase, mod) {
+    imported: function(localName, exportName, phase, mod) {
         if (this.token.inner) {
             this.token.inner = this.token.inner.map(function(stx) {
-                return stx.imported(id, name, phase, mod);
+                return stx.imported(localName, exportName, phase, mod);
             });
             return syntaxFromToken(this.token,
-                                   {context: new Imported(id, name, this.context, phase, mod),
+                                   {context: new Imported(localName,
+                                                          exportName,
+                                                          phase,
+                                                          mod,
+                                                          this.context),
                                     props: this.props});
 
         }
-        return syntaxFromToken(this.token, {context: new Imported(id,
-                                                                  name,
-                                                                  this.context,
+        return syntaxFromToken(this.token, {context: new Imported(localName,
+                                                                  exportName,
                                                                   phase,
-                                                                  mod),
+                                                                  mod,
+                                                                  this.context),
                                             props: this.props});
     },
 

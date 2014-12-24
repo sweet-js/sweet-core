@@ -44,39 +44,27 @@ function marksof(ctx, stopName) {
     return [];
 }
 
-function resolveModule(stx, phase) {
+function resolve(stx, phase) {
     assert(phase !== undefined, "must pass in phase");
     var nameInfo = {};
     var name = resolveCtx(stx.token.value, stx.context, [], [], {}, phase, nameInfo);
     name = typeof name === "string" ? name : stx.token.value + "$" + name;
     if (nameInfo.type === "free") {
-        return {
-            type: "free",
-            name: name
-        };
+        return name;
     } else if (nameInfo.type === "lexical") {
-        return {
-            type: "lexical",
-            name: name,
-            phase: nameInfo.phase
-        };
+        return name;
     } else if (nameInfo.type === "module") {
-        return {
-            type: "module",
-            name: name,
-            mod: nameInfo.mod
-        };
+        return resolve(nameInfo.exportName, phase) + "_p" + phase;
     } else {
         assert(false, "unknown name type: " + nameInfo.type);
     }
-    return name;
 }
 
-function resolve(stx, phase) {
-    assert(phase !== undefined, "must pass in phase");
-    var name = resolveCtx(stx.token.value, stx.context, [], [], {}, phase, {});
-    return typeof name === "string" ? name : stx.token.value + "$" + name;
-}
+// function resolve(stx, phase) {
+//     assert(phase !== undefined, "must pass in phase");
+//     var name = resolveCtx(stx.token.value, stx.context, [], [], {}, phase, {});
+//     return typeof name === "string" ? name : stx.token.value + "$" + name;
+// }
 
 // This call memoizes intermediate results in the recursive invocation.
 // The scope of the memo cache is the resolve() call, so that multiple
@@ -175,10 +163,12 @@ function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase
         }
         if (ctx.constructor === Imported) {
             if (phase === ctx.phase) {
-                if (originalName === ctx.id.token.value) {
+                if (originalName === ctx.localName.token.value) {
                     nameInfo.type = "module";
                     nameInfo.mod = ctx.mod;
-                    return ctx.name;
+                    nameInfo.phase = ctx.phase;
+                    nameInfo.exportName = ctx.exportName;
+                    return originalName;
                 }
             }
             ctx = ctx.context;
@@ -220,6 +210,5 @@ function unionEl(arr, el) {
 }
 
 exports.resolve = resolve;
-exports.resolveModule = resolveModule;
 exports.marksof = marksof;
 exports.arraysEqual = arraysEqual;
