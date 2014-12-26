@@ -54,7 +54,7 @@ function resolve(stx, phase) {
     } else if (nameInfo.type === "lexical") {
         return name;
     } else if (nameInfo.type === "module") {
-        return resolve(nameInfo.exportName, phase) + "_p" + phase;
+        return name + "_p" + phase;
     } else {
         assert(false, "unknown name type: " + nameInfo.type);
     }
@@ -167,7 +167,6 @@ function resolveCtxFull(originalName, ctx, stop_spine, stop_branch, cache, phase
                     nameInfo.type = "module";
                     nameInfo.mod = ctx.mod;
                     nameInfo.phase = ctx.phase;
-                    nameInfo.exportName = ctx.exportName;
                     return originalName;
                 }
             }

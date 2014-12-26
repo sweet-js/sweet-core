@@ -8,12 +8,13 @@ var assert = require("assert"),
     DefaultImportTerm = require("../data/termTree").DefaultImportTerm,
     NamespaceImportTerm = require("../data/termTree").NamespaceImportTerm;
 
+var makeMultiToken = syn.makeMultiToken;
 
 function ImportEntry(term, importName, localName) {
     this._term = term;
     this.moduleRequest = term.from;
-    this.importName = importName;
-    this.localName = localName;
+    this.importName = makeMultiToken(importName) ;
+    this.localName = makeMultiToken(localName);
     if (term.isImportTerm) {
         this.forPhase = 0;
     } else if (term.isImportForMacrosTerm) {

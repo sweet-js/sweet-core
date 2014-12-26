@@ -5,13 +5,14 @@ var assert = require("assert"),
     syn = require("../syntax"),
     _ = require("underscore");
 
+var makeMultiToken = syn.makeMultiToken;
 var throwSyntaxError = syn.throwSyntaxError;
 
 function ExportEntry(term, exportName, localName) {
     this._term = term;
     this.moduleRequest = null;
-    this.exportName = exportName;
-    this.localName = localName;
+    this.exportName = makeMultiToken(exportName);
+    this.localName = makeMultiToken(localName);
 }
 
 // ImportEntry.prototype.toTerm = function() {

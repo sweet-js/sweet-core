@@ -625,6 +625,18 @@ function adjustLineContext(stx, original, current) {
     });
 }
 
+function makeMultiToken(stxl) {
+    if (stxl instanceof Syntax && stxl.isDelimiter()) {
+        return makeIdent(stxl.token.inner.map(unwrapSyntax).join(""),
+                         stxl.token.inner[0]);
+    } else if (stxl instanceof Syntax){
+        return stxl;
+    } else {
+        assert(false, "argument must be a syntax object");
+    }
+}
+
+exports.makeMultiToken = makeMultiToken;
 exports.unwrapSyntax = unwrapSyntax;
 exports.makeDelim = makeDelim;
 exports.makePunc = makePunc;
