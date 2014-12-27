@@ -18,7 +18,7 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
 
     var editor = CodeMirror.fromTextArea($('#editor')[0], {
         lineNumbers: true,
-        smartIndent: true,
+        smartIndent: false,
         indentWithTabs: false,
         tabSize: 2,
         indentUnit: 2,
@@ -35,18 +35,30 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
                 }
             },
             Left: function(cm) {
-                return cm.setCursor(nextCursorPos(-1, cm).left);
+                return cm.setCursor(cm.somethingSelected() ? cm.getCursor("from") : nextCursorPos(-1, cm).left);
             },
             Right: function(cm) {
-                return cm.setCursor(nextCursorPos(1, cm).right);
+                return cm.setCursor(cm.somethingSelected() ? cm.getCursor("to") : nextCursorPos(1, cm).right);
             },
             Backspace: function(cm) {
-                var coords = nextCursorPos(-1, cm);
+                var coords = cm.somethingSelected() ?
+                    cm.listSelections().reduce(function(x, selection) {
+                        x.left = selection.anchor;
+                        x.right = selection.head;
+                        return x;
+                    }, {}) :
+                    nextCursorPos(-1, cm);
                 var range = cm.getRange(coords.left, coords.right);
                 cm.replaceRange("", coords.left, coords.right, range);
             },
             Delete: function(cm) {
-                var coords = nextCursorPos(1, cm);
+                var coords = cm.somethingSelected() ?
+                    cm.listSelections().reduce(function(x, selection) {
+                        x.left = selection.anchor;
+                        x.right = selection.head;
+                        return x;
+                    }, {}) :
+                    nextCursorPos(1, cm);
                 var range = cm.getRange(coords.left, coords.right);
                 cm.replaceRange("", coords.left, coords.right, range);
             }
