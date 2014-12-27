@@ -8,8 +8,6 @@ requirejs.config({
 
 require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], function(sweet, syn, Rx) {
     
-    Rx.Observable.prototype.letBind = function(func) { return func(this); }
-    
     var storage_code = 'editor_code';
     var storage_mode = 'editor_mode';
 
@@ -20,8 +18,8 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         lineNumbers: true,
         smartIndent: false,
         indentWithTabs: false,
-        tabSize: 2,
-        indentUnit: 2,
+        tabSize: 4,
+        indentUnit: 4,
         autofocus: true,
         theme: 'solarized dark',
         extraKeys: {
