@@ -22,6 +22,7 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         indentUnit: 4,
         autofocus: true,
         theme: 'solarized dark',
+        showCursorWhenSelecting: true,
         extraKeys: {
             Tab: function(cm) {
                 if(cm.somethingSelected()) {
@@ -33,23 +34,37 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
                 }
             },
             Left: function(cm) {
-                return cm.setCursor(cm.somethingSelected() ? cm.getCursor("from") : nextCursorPos(-1, 0, cm).cursor);
+                return cm.setSelections(cm.listSelections().map(function(selection) {
+                    selection = cm.somethingSelected() && ((
+                        selection.anchor.ch <= selection.head.ch) && (
+                        selection.anchor.line <= selection.head.line) &&
+                        selection.anchor || selection.head) || nextCursorPos(-1, 0, cm, selection.anchor).cursor;
+                    return { anchor: selection, head: selection };
+                }));
             },
             Right: function(cm) {
-                return cm.setCursor(cm.somethingSelected() ? cm.getCursor("to") : nextCursorPos(1, 0, cm).cursor);
+                return cm.setSelections(cm.listSelections().map(function(selection) {
+                    selection = cm.somethingSelected() && ((
+                        selection.anchor.ch <= selection.head.ch) && (
+                        selection.anchor.line <= selection.head.line) &&
+                        selection.head || selection.anchor) || nextCursorPos(1, 0, cm, selection.anchor).cursor;
+                    return { anchor: selection, head: selection };
+                }));
             },
             Backspace: function(cm) {
-                var coords = cm.somethingSelected() ?
-                    cm.listSelections().reduce(function(x, selection) {
-                        x.left = selection.anchor;
-                        x.right = selection.head;
-                        x.cursor = x.left.ch - x.right.ch < 0 ? x.left : x.right;
-                        return x;
-                    }, {}) :
-                    nextCursorPos(-1, 1, cm);
-                var range = cm.getRange(coords.left, coords.right);
-                cm.replaceRange("", coords.left, coords.right, range);
-                cm.setCursor(coords.cursor);
+                var selected = cm.somethingSelected(), coords;
+                return cm.setSelections(cm.listSelections().map(function(selection) {
+                    coords = selected ? {
+                        left:   selection.anchor,
+                        right:  selection.head,
+                        cursor: ((
+                            selection.anchor.ch <= selection.head.ch) && (
+                            selection.anchor.line <= selection.head.line) &&
+                            selection.anchor || selection.head)
+                    } : nextCursorPos(-1, 1, cm, selection.anchor);
+                    cm.replaceRange("", coords.left, coords.right, cm.getRange(coords.left, coords.right));
+                    return { anchor: coords.cursor, head: coords.cursor };
+                }));
             }
         }
     });
@@ -181,14 +196,13 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         output.setSize(coords.outputBoxWidth, null);
     });
 
-    function nextCursorPos(dir, tabStop, cm) {
+    function nextCursorPos(dir, tabStop, cm, position) {
         
         // 0 if dir == -1, else 1
         var rightOffset = Number(Boolean(~dir));
         // 0 if dir == !1, else -1
         var leftOffset = -1 * Number(Boolean(dir - 1));
         
-        var position = cm.getCursor("head");
         var line = position.line;
         var ch   = position.ch;
         var content = cm.getLine(line);
