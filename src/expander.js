@@ -2013,6 +2013,63 @@
                     rest: stx
                 };
             },
+            matchPatterns: function(syntax, topLevel, reverse) {
+                
+                function flatMap(input, selector) {
+                    var output = [], outputCount = 0,
+                        index = -1, count = input.length,
+                        elem, index2, count2;
+                    while(++index < count) {
+                        elem = selector(input[index], index, input);
+                        if(Array.isArray(elem)) {
+                            index2 = -1;
+                            count2 = elem.length;
+                            while(++index2 < count2) {
+                                output[outputCount++] = elem[index2];
+                            }
+                        } else if(typeof elem !== 'undefined') {
+                            output[outputCount++] = elem;
+                        }
+                    }
+                    return output;
+                }
+                
+                var patterns = Array.prototype.slice.call(arguments, 1 + (
+                    Number((typeof topLevel !== 'boolean') === false)) + (
+                    Number((typeof reverse  !== 'boolean') === false)));
+                
+                // Default topLevel to true
+                topLevel = topLevel === false ? false : true;
+                // Default reverse to false
+                reverse = reverse === true || false;
+                
+                patterns = flatMap(patterns, function flatten(pattern) {
+                    if(Array.isArray(pattern)) {
+                        if(Array.isArray(pattern[0])) {
+                            return flatMap(pattern, flatten);
+                        }
+                        return [pattern];
+                    }
+                    return pattern;
+                }).map(function(pattern) {
+                    return patternModule.loadPattern(pattern, reverse);
+                });
+                
+                var result, pattern, index = -1, count = patterns.length;
+                while(++index < count) {
+                    result = patternModule.matchPatterns(patterns[index], syntax, localCtx, topLevel);
+                    if(result.success) {
+                        return result;
+                    }
+                }
+                
+                return {
+                    success: false,
+                    result: [],
+                    rest: [],
+                    patternEnv: {}
+                };
+            },
             unwrapSyntax: syn.unwrapSyntax,
             throwSyntaxError: throwSyntaxError,
             throwSyntaxCaseError: throwSyntaxCaseError,

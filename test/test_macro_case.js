@@ -346,4 +346,83 @@ describe "procedural (syntax-case) macros" {
         expect(f(42).macro_x).to.be(42);
     }
 
+    it "should find a simple pattern using matchPatterns" {
+        macro ex {
+            case {_ $rest ... } => {
+                var patt = matchPatterns(#{$rest ...}, #{ $x:lit });
+                // return !patt.success ? [] : patt.result;
+                return [makeValue(patt.success, #{here})];
+            }
+        }
+        
+        expect(ex 1, 2, 3).to.be(true);
+    }
+
+    it "should fail on a simple pattern using matchPatterns with topLevel false" {
+        macro ex {
+            case {_ $rest ... } => {
+                var patt = matchPatterns(#{$rest ...}, false, #{ $x:lit });
+                // return !patt.success ? [] : patt.result;
+                return [makeValue(patt.success, #{here})];
+            }
+        }
+        
+        expect(ex 1, 2, 3).to.be(false);
+    }
+
+    it "should find a repeating pattern using matchPatterns" {
+        macro ex {
+            case {_ $rest ... } => {
+                var patt = matchPatterns(#{$rest ...}, #{ $x:lit (,) $[...] });
+                // return !patt.success ? [] : [makeDelim("[]", patt.result, #{here})];
+                return [makeValue(patt.success, #{here})];
+            }
+        }
+        
+        expect(ex 1, 2, 3).to.be(true);
+    }
+
+    it "should find a reverse pattern using matchPatterns" {
+        macro ex {
+            case {_ $rest ... } => {
+                var patt = matchPatterns(#{$rest ...}, true, true, #{ $x:expr, $y:lit, $z:ident });
+                // return !patt.success ? [] : [makeDelim("[]", patt.result, #{here})];
+                return [makeValue(patt.success, #{here})];
+            }
+        }
+        
+        expect(ex foo, 0, (1)).to.be(true);
+    }
+
+    it "should find the second pattern from a list of patterns using matchPatterns" {
+        macro ex {
+            case {_ $rest ... } => {
+                var patt = matchPatterns(#{$rest ...}, [
+                    #{ $x:ident (,) $[...] },
+                    #{ $x:lit (,) $[...] }
+                ]);
+                // return !patt.success ? [] : [makeDelim("[]", patt.result, #{here})];
+                return [makeValue(patt.success, #{here})];
+            }
+        }
+        
+        expect(ex 1, 2, 3).to.be(true);
+    }
+
+    it "should flatten the list of patterns passed to matchPatterns" {
+        macro ex {
+            case {_ $rest ... } => {
+                var patt = matchPatterns(#{$rest ...}, [
+                    #{ $x:ident (,) $[...] }, [[
+                    [#{ $x:ident (,) $[...] }]],
+                    [#{ $x:lit (,) $[...] }]]
+                ]);
+                // return !patt.success ? [] : [makeDelim("[]", patt.result, #{here})];
+                return [makeValue(patt.success, #{here})];
+            }
+        }
+        
+        expect(ex 1, 2, 3).to.be(true);
+    }
+
 }
