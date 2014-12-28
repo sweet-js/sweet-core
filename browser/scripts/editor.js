@@ -33,32 +33,23 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
                 }
             },
             Left: function(cm) {
-                return cm.setCursor(cm.somethingSelected() ? cm.getCursor("from") : nextCursorPos(-1, cm).left);
+                return cm.setCursor(cm.somethingSelected() ? cm.getCursor("from") : nextCursorPos(-1, 0, cm).cursor);
             },
             Right: function(cm) {
-                return cm.setCursor(cm.somethingSelected() ? cm.getCursor("to") : nextCursorPos(1, cm).right);
+                return cm.setCursor(cm.somethingSelected() ? cm.getCursor("to") : nextCursorPos(1, 0, cm).cursor);
             },
             Backspace: function(cm) {
                 var coords = cm.somethingSelected() ?
                     cm.listSelections().reduce(function(x, selection) {
                         x.left = selection.anchor;
                         x.right = selection.head;
+                        x.cursor = x.left.ch - x.right.ch < 0 ? x.left : x.right;
                         return x;
                     }, {}) :
-                    nextCursorPos(-1, cm);
+                    nextCursorPos(-1, 1, cm);
                 var range = cm.getRange(coords.left, coords.right);
                 cm.replaceRange("", coords.left, coords.right, range);
-            },
-            Delete: function(cm) {
-                var coords = cm.somethingSelected() ?
-                    cm.listSelections().reduce(function(x, selection) {
-                        x.left = selection.anchor;
-                        x.right = selection.head;
-                        return x;
-                    }, {}) :
-                    nextCursorPos(1, cm);
-                var range = cm.getRange(coords.left, coords.right);
-                cm.replaceRange("", coords.left, coords.right, range);
+                cm.setCursor(coords.cursor);
             }
         }
     });
@@ -139,7 +130,8 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
     updateExpand();
 
     var resizeGutter = $(output.getGutterElement()).css("cursor", "ew-resize");
-    var resizeObs = $(window).resizeAsObservable().startWith(0).throttle(100);
+    var editorGutter = $(editor.getGutterElement());
+    var resizeObs = $(window).resizeAsObservable().startWith(0).debounce(100);
     var downObs = resizeGutter.mousedownAsObservable();
     var moveObs = $(window).mousemoveAsObservable();
     var upObs   = $(window).mouseupAsObservable();
@@ -148,7 +140,8 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
     resizeObs.flatMapLatest(function(resizeEvent) {
         
         var windowWidth = $(window).width(),
-            gutterWidth = resizeGutter.outerWidth();
+            leftGutterWidth  = editorGutter.outerWidth(),
+            rightGutterWidth = resizeGutter.outerWidth();
         
         // project each mousedown event into a series of future mousemove events.
         return downObs.flatMap(function(downEvent) {
@@ -165,10 +158,10 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         debounce(0, Rx.Scheduler.requestAnimationFrameScheduler).
         map(function(editorWidth) {
             return {
-                editBoxWidth:   Math.max(Math.min(editorWidth, windowWidth - gutterWidth), gutterWidth),
-                outputBoxLeft:  Math.max(Math.min(editorWidth, windowWidth - gutterWidth), gutterWidth),
-                editBoxRight:   Math.min(Math.max(windowWidth - editorWidth, gutterWidth), windowWidth - gutterWidth),
-                outputBoxWidth: Math.min(Math.max(windowWidth - editorWidth, gutterWidth), windowWidth - gutterWidth),
+                editBoxWidth:   Math.max(Math.min(editorWidth, windowWidth - leftGutterWidth), leftGutterWidth),
+                outputBoxLeft:  Math.max(Math.min(editorWidth, windowWidth - leftGutterWidth), leftGutterWidth),
+                editBoxRight:   Math.min(Math.max(windowWidth - editorWidth, rightGutterWidth), windowWidth - rightGutterWidth),
+                outputBoxWidth: Math.min(Math.max(windowWidth - editorWidth, rightGutterWidth), windowWidth - rightGutterWidth),
             };
         });
     }).
@@ -180,12 +173,12 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         output.setSize(coords.outputBoxWidth, null);
     });
 
-    function nextCursorPos(dir, cm) {
+    function nextCursorPos(dir, tabStop, cm) {
         
-        // will be 0 if dir == -1, 1 if dir !-1
-        var multiplier = Number(Boolean(~dir));
-        // will be -1 if dir is -1, else 0 if dir is !1
-        var jumper = -1 * Number(Boolean(dir - 1));
+        // 0 if dir == -1, else 1
+        var rightOffset = Number(Boolean(~dir));
+        // 0 if dir == !1, else -1
+        var leftOffset = -1 * Number(Boolean(dir - 1));
         
         var position = cm.getCursor("head");
         var line = position.line;
@@ -193,10 +186,9 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         var content = cm.getLine(line);
         
         var hBound = ~dir ? content.length - ch : ch;
-        var vBound = multiplier * (cm.lineCount() - 1);
+        var vBound = rightOffset * (cm.lineCount() - 1);
         var unit = cm.options.indentUnit;
-        var tabSpaces = Array(unit + 1).join(" ");
-        var range, left, right;
+        var range, left, right, cursor;
         
         // Is there enough room to jump over a tab-width of spaces?
         if(hBound < unit) {
@@ -206,28 +198,37 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
                 if(line === vBound) {
                     left = position;
                     right = position;
+                    cursor = position;
                 } else {
                     // jump to the next/previous line
                     content = cm.getLine(line + dir);
-                    left  = {line: line + (multiplier - 1), ch: (content.length * jumper * -1) + (ch * multiplier)};
-                    right = {line: line + multiplier, ch: 0};
+                    left  = {line: line + (rightOffset - 1), ch: (content.length * leftOffset * -1) + (ch * rightOffset)};
+                    right = {line: line + rightOffset, ch: 0};
+                    cursor = rightOffset && right || left;
                 }
             } else {
                 // jump one space left or right
-                left = {line: line, ch: ch + jumper};
-                right = {line: line, ch: ch + multiplier};
+                left = {line: line, ch: ch + leftOffset};
+                right = {line: line, ch: ch + rightOffset};
+                cursor = rightOffset && right || left;
             }
         } else {
-            left  = {line: line, ch: ch + (unit * jumper)};
-            right = {line: line, ch: ch + (unit * multiplier)};
-            range = cm.getRange(left, right);
-            // is the range to the left/right a tab-worth of spaces?
-            if(range !== tabSpaces) {
+            left   = {line: line, ch: ch + ((((ch % unit) || unit) * tabStop) * leftOffset )};
+            right  = {line: line, ch: ch + ((((ch % unit) || unit) * tabStop) * rightOffset)};
+            range  = cm.getRange(left, right);
+            // is the range to the left/right up to a tab's width of spaces?
+            if(!(range === " " || range == "  " || range === "   " || range === "    ")) {
                 // no, only jump one space left/right
-                left = {line: line, ch: ch + jumper};
-                right = {line: line, ch: ch + multiplier};
+                left = {line: line, ch: ch + leftOffset};
+                right = {line: line, ch: ch + rightOffset};
+                cursor = rightOffset && right || left;
+            } else {
+                tabStop *= -1;
+                left.ch  = ch + ((ch % unit) * tabStop) + (unit * leftOffset);
+                right.ch = ch + ((ch % unit) * tabStop) + (unit * rightOffset);
+                cursor = {line: line, ch: ch + (unit * dir)};
             }
         }
-        return { left: left, right: right };
+        return { left: left, right: right, cursor: cursor };
     }
 });
