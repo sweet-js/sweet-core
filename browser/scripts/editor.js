@@ -128,8 +128,13 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
     }
 
     updateExpand();
-
-    var resizeGutter = $(output.getGutterElement()).css("cursor", "ew-resize");
+    
+    var editBox = $("#edit-box");
+    var outputBox = $("#output-box");
+    var resizeGutter = $(output.getGutterElement()).css({
+        "cursor": "ew-resize",
+        "border-left": "3px rgba(0,0,0,0.5) solid"
+    });
     var editorGutter = $(editor.getGutterElement());
     var resizeObs = $(window).resizeAsObservable().startWith(0).debounce(100);
     var downObs = resizeGutter.mousedownAsObservable();
@@ -140,12 +145,15 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
     resizeObs.flatMapLatest(function(resizeEvent) {
         
         var windowWidth = $(window).width(),
+            editorWidth = editBox.outerWidth(),
             leftGutterWidth  = editorGutter.outerWidth(),
             rightGutterWidth = resizeGutter.outerWidth();
         
         // project each mousedown event into a series of future mousemove events.
         return downObs.flatMap(function(downEvent) {
-            var editorWidth = $("#edit-box").outerWidth();
+            editorWidth = editBox.outerWidth();
+            leftGutterWidth  = editorGutter.outerWidth();
+            rightGutterWidth = resizeGutter.outerWidth();
             
             // project each mousemove event into an editorWidth integer
             return moveObs.map(function(moveEvent) {
@@ -156,6 +164,7 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         }).
         // don't update the DOM between browser repaints
         debounce(0, Rx.Scheduler.requestAnimationFrameScheduler).
+        startWith(editorWidth).
         map(function(editorWidth) {
             return {
                 editBoxWidth:   Math.max(Math.min(editorWidth, windowWidth - leftGutterWidth), leftGutterWidth),
@@ -166,10 +175,9 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         });
     }).
     forEach(function(coords) {
-        $("#edit-box").css("right", coords.editBoxRight + "px");
+        editBox.css("right", coords.editBoxRight + "px");
         editor.setSize(coords.editBoxWidth, null);
-        
-        $("#output-box").css("left", coords.outputBoxLeft + "px");
+        outputBox.css("left", coords.outputBoxLeft + "px");
         output.setSize(coords.outputBoxWidth, null);
     });
 
