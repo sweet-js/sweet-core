@@ -110,12 +110,12 @@
             if (ctx.constructor === Mark) {
                 return remdup(ctx.mark, marksof(ctx.context, stopName, originalName));
             }
-            if(ctx.constructor === Def) {
+            if (ctx.constructor === Def) {
                 ctx = ctx.context;
                 continue;
             }
             if (ctx.constructor === Rename) {
-                if(stopName === originalName + "$" + ctx.name) {
+                if (stopName === originalName + "$" + ctx.name) {
                     return [];
                 }
                 ctx = ctx.context;
@@ -213,11 +213,11 @@
     }
 
     function arraysEqual(a, b) {
-        if(a.length !== b.length) {
+        if (a.length !== b.length) {
             return false;
         }
         for(var i = 0; i < a.length; i++) {
-            if(a[i] !== b[i]) {
+            if (a[i] !== b[i]) {
                 return false;
             }
         }
@@ -652,7 +652,7 @@
             throwSyntaxError("enforest", "Unexpected end of input", varStx);
         }
 
-        if(expandCount >= maxExpands) {
+        if (expandCount >= maxExpands) {
             return null;
         }
 
@@ -992,12 +992,12 @@
         }
 
 
-        if(!Array.isArray(rt.result)) {
+        if (!Array.isArray(rt.result)) {
             throwSyntaxError("enforest", "Macro must return a syntax array", stx[0]);
         }
 
 
-        if(rt.result.length > 0) {
+        if (rt.result.length > 0) {
             var adjustedResult = adjustLineContext(rt.result, head);
             if (stx[0].token.leadingComments) {
                 if (adjustedResult[0].token.leadingComments) {
@@ -1026,7 +1026,7 @@
         prevStx = prevStx || [];
         prevTerms = prevTerms || [];
 
-        if(expandCount >= maxExpands) {
+        if (expandCount >= maxExpands) {
             return { result: null,
                      rest: toks };
         }
@@ -1074,7 +1074,7 @@
                         uopMacroName = [uopSyntax].concat(rest.slice(0, uopMacroObj.fullName.length - 1));
                         opRest = rest.slice(uopMacroObj.fullName.length - 1);
                     }
-                    else if(unwrapSyntax(uopSyntax) === 'yield' &&
+                    else if (unwrapSyntax(uopSyntax) === 'yield' &&
                             unwrapSyntax(opRest[0]) === '*') {
                         uopSyntax = [uopSyntax, opRest[0]];
                         opRest = opRest.slice(1);
@@ -1323,14 +1323,14 @@
                               head.isThisExpression) &&
                             rest[0] && rest[1] && !bopMacroObj && (opCtx.op === null) && stxIsAssignOp(rest[0]))) {
                     var opRes = enforestAssignment(rest, context, head, prevStx, prevTerms);
-                    if(opRes && opRes.result) {
+                    if (opRes && opRes.result) {
                         return step(opRes.result, opRes.rest, _.extend({}, opCtx, {
                             prevStx: opRes.prevStx,
                             prevTerms: opRes.prevTerms
                         }));
                     }
                 // Postfix
-                } else if(head.isExpr &&
+                } else if (head.isExpr &&
                             (rest[0] && (unwrapSyntax(rest[0]) === "++" ||
                                          unwrapSyntax(rest[0]) === "--"))) {
                     // Check if the operator is a macro first.
@@ -1342,7 +1342,7 @@
 
                         if (opRes.prevTerms.length < opPrevTerms.length) {
                             return opRes;
-                        } else if(opRes.result) {
+                        } else if (opRes.result) {
                             return step(head,
                                         opRes.result.destruct().concat(opRes.rest),
                                         opCtx);
@@ -1352,7 +1352,7 @@
                                 rest.slice(1),
                                 opCtx);
                 // ObjectGet (computed)
-                } else if(head.isExpr &&
+                } else if (head.isExpr &&
                             (rest[0] && rest[0].token.value === "[]"))  {
                     return step(ObjGet.create(head, Delimiter.create(rest[0].expose())),
                                 rest.slice(1),
@@ -1374,7 +1374,7 @@
 
                         if (dotRes.prevTerms.length < dotTerms.length) {
                             return dotRes;
-                        } else if(dotRes.result) {
+                        } else if (dotRes.result) {
                             return step(head,
                                         [rest[0]].concat(dotRes.result.destruct(), dotRes.rest),
                                         opCtx);
@@ -1436,7 +1436,7 @@
                     if (rest[1] && rest[1].token.value === "=" &&
                         rest[2] && rest[2].token.value === "macro") {
                         var mac = enforest(rest.slice(2), context);
-                        if(mac.result) {
+                        if (mac.result) {
                             if (!mac.result.isAnonMacro) {
                                 throwSyntaxError("enforest", "expecting an anonymous macro definition in syntax let binding", rest.slice(2));
                             }
@@ -1599,7 +1599,7 @@
                                 rest.slice(4),
                                 opCtx);
                 // anonymous function definition
-                } else if(head.token.type === parser.Token.Keyword &&
+                } else if (head.token.type === parser.Token.Keyword &&
                     unwrapSyntax(head) === "function" &&
                     rest[0] && rest[0].token.type === parser.Token.Delimiter &&
                     rest[0].token.value === "()" &&
@@ -1615,7 +1615,7 @@
                                 rest.slice(2),
                                 opCtx);
                 // anonymous generator function definition
-                } else if(head.token.type === parser.Token.Keyword &&
+                } else if (head.token.type === parser.Token.Keyword &&
                     unwrapSyntax(head) === "function" &&
                     rest[0] && rest[0].token.type === parser.Token.Punctuator &&
                     rest[0].token.value === "*" &&
@@ -1633,7 +1633,7 @@
                                 rest.slice(3),
                                 opCtx);
                 // arrow function
-                } else if(((head.token.type === parser.Token.Delimiter &&
+                } else if (((head.token.type === parser.Token.Delimiter &&
                             head.token.value === "()") ||
                             head.token.type === parser.Token.Identifier) &&
                             rest[0] && rest[0].token.type === parser.Token.Punctuator &&
@@ -1929,7 +1929,7 @@
     function loadMacroDef(body, context) {
 
         // raw function primitive form
-        if(!(body[0] && body[0].token.type === parser.Token.Keyword &&
+        if (!(body[0] && body[0].token.type === parser.Token.Keyword &&
              body[0].token.value === "function")) {
             throwSyntaxError("load macro", "Primitive macro form must contain a function for the macro body", body);
         }
@@ -2011,6 +2011,61 @@
                     success: false,
                     result: [],
                     rest: stx
+                };
+            },
+            matchPatterns: function(syntax, topLevel, reverse) {
+                
+                function flatMap(input, selector) {
+                    var output = [], outputCount = 0,
+                        index = -1, count = input.length,
+                        elem, index2, count2;
+                    while (++index < count) {
+                        elem = selector(input[index], index, input);
+                        index2 = -1;
+                        count2 = elem.length;
+                        while (++index2 < count2) {
+                            output[outputCount++] = elem[index2];
+                        }
+                    }
+                    return output;
+                }
+                
+                var patterns = Array.prototype.slice.call(arguments, 1 + (
+                    // 1 if topLevel is boolean, else 0
+                    Number((typeof topLevel !== 'boolean') === false)) + (
+                    // 1 if reverse is boolean, else 0
+                    Number((typeof reverse  !== 'boolean') === false)));
+                
+                // Default topLevel to true
+                topLevel = topLevel === false ? false : true;
+                // Default reverse to false
+                reverse = reverse === true || false;
+                
+                patterns = flatMap(patterns, function flatten(pattern) {
+                    if (Array.isArray(pattern)) {
+                        if (Array.isArray(pattern[0])) {
+                            return flatMap(pattern, flatten);
+                        }
+                        return [pattern];
+                    }
+                    return pattern;
+                }).map(function(pattern) {
+                    return patternModule.loadPattern(pattern, reverse);
+                });
+                
+                var result, pattern, index = -1, count = patterns.length;
+                while (++index < count) {
+                    result = patternModule.matchPatterns(patterns[index], syntax, localCtx, topLevel);
+                    if (result.success) {
+                        return result;
+                    }
+                }
+                
+                return {
+                    success: false,
+                    result: [],
+                    rest: [],
+                    patternEnv: {}
                 };
             },
             unwrapSyntax: syn.unwrapSyntax,
@@ -2149,7 +2204,7 @@
                                    context.paramscope);
             }
 
-            if(head.isBlock && head.body.isDelimiter) {
+            if (head.isBlock && head.body.isDelimiter) {
                 head.body.delim.token.inner.forEach(function(term) {
                     if (term.isVariableStatement) {
                         addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
@@ -2161,7 +2216,7 @@
 
             }
 
-            if(head.isDelimiter) {
+            if (head.isDelimiter) {
                 head.delim.token.inner.forEach(function(term)  {
                     if (term.isVariableStatement) {
                         addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
@@ -2176,7 +2231,7 @@
             if (head.isForStatement) {
                 head.cond.expose();
                 var forCond = head.cond.token.inner;
-                if(forCond[0] && resolve(forCond[0]) === "let" &&
+                if (forCond[0] && resolve(forCond[0]) === "let" &&
                    forCond[1] && forCond[1].token.type === parser.Token.Identifier) {
                     var letNew = fresh();
                     var letId = forCond[1];
@@ -2393,11 +2448,11 @@
             var expandedResult = expandToTermTree(renamedBody.token.inner, bodyContext);
             var bodyTerms = expandedResult.terms;
 
-            if(expandedResult.restStx) {
+            if (expandedResult.restStx) {
                 // The expansion was halted prematurely. Just stop and
                 // return what we have so far, along with the rest of the syntax
                 renamedBody.token.inner = expandedResult.terms.concat(expandedResult.restStx);
-                if(Array.isArray(term.body)) {
+                if (Array.isArray(term.body)) {
                     term.body = renamedBody.token.inner;
                 }
                 else {
@@ -2477,7 +2532,7 @@
             return expandTermTreeToFinal(term, trees.context);
         });
 
-        if(trees.restStx) {
+        if (trees.restStx) {
             terms.push.apply(terms, trees.restStx);
         }
 
@@ -2604,9 +2659,9 @@
         var count = stxs.length;
         var stx, tok, exposed, openParen, closeParen;
         
-        flattening: while(depth > -1) {
-            while(++index < count) {
-                if((tok = ((stx = stxs[index]) && stx.token)) && tok.type === parser.Token.Delimiter) {
+        flattening: while (depth > -1) {
+            while (++index < count) {
+                if ((tok = ((stx = stxs[index]) && stx.token)) && tok.type === parser.Token.Delimiter) {
                     exposed = stx.expose();
                     
                     openParen = syntaxFromToken({
@@ -2669,7 +2724,7 @@
                                         : tok.range;
                 acc[accLen++] = stx;
             }
-            if(--depth > -1) {
+            if (--depth > -1) {
                 frame = stack[depth];
                 tok = frame[0];
                 closeParen = frame[1];

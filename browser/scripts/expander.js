@@ -2004,6 +2004,49 @@
                         rest: stx
                     };
                 },
+                matchPatterns: function (syntax, topLevel, reverse) {
+                    function flatMap(input, selector) {
+                        var output = [], outputCount = 0, index$2 = -1, count$2 = input.length, elem, index2, count2;
+                        while (++index$2 < count$2) {
+                            elem = selector(input[index$2], index$2, input);
+                            index2 = -1;
+                            count2 = elem.length;
+                            while (++index2 < count2) {
+                                output[outputCount++] = elem[index2];
+                            }
+                        }
+                        return output;
+                    }
+                    var patterns = Array.prototype.slice.call(arguments, 1 + Number(typeof topLevel !== 'boolean' === false) + Number(typeof reverse !== 'boolean' === false));
+                    // Default topLevel to true
+                    topLevel = topLevel === false ? false : true;
+                    // Default reverse to false
+                    reverse = reverse === true || false;
+                    patterns = flatMap(patterns, function flatten$2(pattern$2) {
+                        if (Array.isArray(pattern$2)) {
+                            if (Array.isArray(pattern$2[0])) {
+                                return flatMap(pattern$2, flatten$2);
+                            }
+                            return [pattern$2];
+                        }
+                        return pattern$2;
+                    }).map(function (pattern$2) {
+                        return patternModule.loadPattern(pattern$2, reverse);
+                    });
+                    var result, pattern, index = -1, count = patterns.length;
+                    while (++index < count) {
+                        result = patternModule.matchPatterns(patterns[index], syntax, localCtx, topLevel);
+                        if (result.success) {
+                            return result;
+                        }
+                    }
+                    return {
+                        success: false,
+                        result: [],
+                        rest: [],
+                        patternEnv: {}
+                    };
+                },
                 unwrapSyntax: syn.unwrapSyntax,
                 throwSyntaxError: throwSyntaxError,
                 throwSyntaxCaseError: throwSyntaxCaseError,
