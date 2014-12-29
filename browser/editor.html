@@ -14,99 +14,221 @@
     <script data-main="scripts/editor" src="scripts/require.js"></script>
 
  <style type="text/css">
- body {
-    font-family: Droid Sans, Arial, sans-serif;
-    line-height: 1.5;
-    /*max-width: 64.3em;*/
-}
+    body {
+        font-family: Droid Sans, Arial, sans-serif;
+        line-height: 1.5;
+        margin: 0;
+        padding: 0;
+        font-size: 0;
+        vertical-align: middle;
+        text-align: justify;
+    }
+    
+    body:after {
+        content: "";
+        display: inline-block;
+        width: 100%;
+        height: 0;
+    }
+    
     .CodeMirror {
         font-size: 14px;
         height: 100%;
     }
 
-    #options {
+    .header, .footer {
+        background-color: white;
+        display: block;
+        padding: 0 1%;
         position: absolute;
-        font-size: 14px;
-        font-family: Droid Sans, Arial, sans-serif;
-        line-height: 1.5;
-        top: 20px;
-        right: 40px;
-        z-index: 1;
+        left: 0;
+        right: 0;
+        height: 65px;
+        overflow: hidden;
+        text-align: justify;
+        z-index: 10;
     }
 
-    #header {
-        position: absolute;
+    .header {
         top: 0;
-        right: 50%;
-        bottom: 0;
-        left: 0;
+    }
 
-        font-size: 250%;
+    .header:after {
+        content: "";
+        display: inline-block;
+        width: 100%;
+        height: 0;
+    }
+
+    .footer {
+        top: 65px;
+        right: 50%;
+        height: 0;
+    }
+
+    .footer:after {
+        content: "";
+        display: inline-block;
+        width: 100%;
+        height: 0;
+    }
+
+    .title {
         text-transform: uppercase;
         color: rgb(68, 68, 68);
-        font-family: 'Lato',Helvetica Neue,Helvetica,Arial,sans-serif;
+        font-family: 'Lato', Helvetica Neue,Helvetica,Arial,sans-serif;
         font-weight: 100;
-        padding-left: 20px;
+        font-size: 24pt;
+        line-height: 2em;
+        width: 430px;
     }
 
-    #controls {
-        position: absolute;;
-        top: 20;
-        right: 0;
-        bottom: 10;
-        left: 50%;
-
-    }
-
-    #errors {
-        color: red;
+    .options {
+        display: inline-block;
         position: absolute;
-        background-color: white;
-        /*right: 10;*/
-        z-index: 10;
-        bottom: 10;
-        /*left: 50%;*/
-        /*padding-top: 20px;*/
-        /*padding-left: 55px;*/
-        padding: 10px;
+        right: 20px;
+        left: 470px;
+        min-width: 275px;
+        line-height: 54pt;
+        vertical-align: middle;
+    }
+
+    .options:after {
+        content: "";
+        display: inline-block;
+        width: 100%;
+        height: 0;
+    }
+
+    .option {
+        display: inline-block;
+        font-size: 14px;
+        font-family: Droid Sans, Arial, sans-serif;
+        line-height: 1em;
+        text-decoration: none;
+        max-width: 25%;
+    }
+
+    .btn {
+        background: #dedede;
+        border-radius: 4px;
+        display: inline-block;
+        line-height: 2em;
+        padding: 0 5px;
+        cursor: pointer;
+        box-sizing: border-box;
+    }
+
+    a.btn:active {
+        background: #ccc;
+        color: blue;
+    }
+
+    .mode, .ck {
+        display: inline-block;
+        width: 100%;
+    }
+
+    .cks {
+        width: 7em;
+        max-width: 7em;
+    }
+
+    .modes {
+        width: 3em;
+    }
+
+    .ck {
+        font-size: 8pt;
+    }
+
+    .align-left {
+        display: inline-block;
+        text-align: left;
+        vertical-align: middle;
+    }
+    
+    .align-right {
+        text-align: right;
+    }
+    
+    .code-input {
+        display: inline-block;
+        font-size: 12pt;
+        position: absolute;
+        top: 65px;
+        bottom: 0;
     }
 
     #edit-box {
-        position: absolute;
-        top: 60px;
         right: 50%;
-        bottom: 0;
         left: 0;
     }
+    
     #output-box {
-        position: absolute;
-        top: 60px;
         right: 0;
-        bottom: 0;
         left: 50%;
+    }
+
+    .error-text {
+        color: red;
+        display: inline-block;
+        font-size: 10pt;
+        margin: 1em 0px;
+        width: 75%;
+        vertical-align: middle;
+    }
+
+    #show-error-line {
+        margin: 1em 2.5%;
+        text-align: center;
+        text-decoration: none;
+        width: 20%;
+        font-size: 14px;
+        line-height: 30pt;
+        padding: 0;
+        vertical-align: middle;
+    }
+
+    #input-step {
+        border: none;
+        width: 15px;
+        margin: 0;
+        padding: 2px 0;
+        text-align: center;
     }
 
 </style>
 </head>
 <body>
 
-<div id="options"><a href="#" id="btn-vim">vim</a> | <a href="#" id="btn-emacs">emacs</a></div>
+<header class="header">
+    <span class="title align-left">sweeten your javascript</span>
+    <span class="options">
+        <a href="javascript:void(0)" id="btn-compile" class="align-left option btn">Compile</a >
+        <span class="align-left option btn">
+            <a href="javascript:void(0)" id="input-step-label" class="btn">Step</a>
+            <input type="text" name="input-step" id="input-step" value="0"/>
+        </span>
+        <span class="align-left option cks">
+            <span class="ck">
+                <input checked id="ck-readable-names" name="ck-readable-names" type="checkbox"/>
+                <label for="ck-readable-names">readable names</label>
+            </span>
+            <span class="ck">
+                <input id="ck-auto-compile" name="ck-auto-compile" type="checkbox" value="compile"/>
+                <label for="ck-auto-compile">auto-compile</label>
+            </span>
+        </span>
+        <span class="align-left align-right option modes">
+            <a href="javascript:void(0)" id="btn-vim" class="mode">vim</a>
+            <a href="javascript:void(0)" id="btn-emacs" class="mode">emacs</a>
+            <a href="javascript:void(0)" id="btn-default" class="mode">default</a>
+        </span>
+    </span>
+</header>
 
-<div id='header'>
-     sweeten your javascript
-</div>
-
-<div id="controls">
-    <input id="btn-step" type="button" value="step" />
-    Step: <span id="lab-step">1</span>
-    <input id="ck-hygiene" type="checkbox" value="hygiene" /> display hygienic renaming
-    <!-- <input id="ck-builtin" type="checkbox" value="builtin" /> include builtin macros -->
-</div>
-<pre id="errors">
-    
-</pre>
-
-<div id='edit-box'>
+<div id='edit-box' class="code-input">
 <textarea id="editor">/*
 Welcome to sweet.js! 
 
@@ -166,15 +288,17 @@ swap (foo, bar)
 // Notice that even though the `tmp` variable we made outside of
 // the macro had the same name as the `tmp` variable inside the
 // macro, sweet.js kept them distinct.
-
-
 </textarea>
 </div>
 
-<div id='output-box'>
-<textarea id="output"></textarea>
+<div id='output-box' class="code-input">
+    <textarea id="output"></textarea>
 </div>
 
+<footer id="error-box" class="footer">
+    <a href="javascript:void(0)" id="show-error-line" class="btn">Goto</a>
+    <pre id="error-text" class="error-text"></pre>
+</footer>
 
 </body>
 </html>
