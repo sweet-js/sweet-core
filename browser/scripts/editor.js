@@ -326,6 +326,7 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         var hBound = ~dir ? content.length - ch : ch;
         var vBound = rightOffset * (cm.lineCount() - 1);
         var unit = cm.options.indentUnit;
+        var tabSpaces = Array(cm.options.tabSize + 1).join(" ");
         var range, left, right, cursor;
 
         // Is there enough room to jump over a tab-width of spaces?
@@ -373,7 +374,7 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
             };
             range = cm.getRange(left, right);
             // is the range to the left/right up to a tab's width of spaces?
-            if (!(range === " " || range == "  " || range === "   " || range === "    ")) {
+            if (range !== tabSpaces) {
                 // no, only jump one space left/right
                 left = {
                     line: line,
