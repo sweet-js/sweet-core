@@ -2067,9 +2067,23 @@
                     return newMatch;
                 }
             });
+        if (context.log) {
+            context.log.push({
+                type: 'macro',
+                body: body
+            });
+        }
         return function (stx, context$2, prevStx, prevTerms) {
             localCtx = context$2;
-            return macroFn(stx, context$2, prevStx, prevTerms);
+            var result = macroFn(stx, context$2, prevStx, prevTerms);
+            if (localCtx.log) {
+                localCtx.log.push({
+                    type: 'expand',
+                    stx: stx,
+                    result: result
+                });
+            }
+            return result;
         };
     }
     // similar to `parse1` in the honu paper
@@ -2499,6 +2513,12 @@
                 writable: false,
                 enumerable: true,
                 configurable: false
+            },
+            log: {
+                value: o.log,
+                writable: false,
+                enumerable: true,
+                configurable: false
             }
         });
     }
@@ -2507,7 +2527,8 @@
         var filename = options && options.filename ? options.filename : '<anonymous module>';
         return makeExpanderContext({
             filename: filename,
-            requireModule: requireModule
+            requireModule: requireModule,
+            log: options ? options.log : undefined
         });
     }
     // a hack to make the top level hygiene work out

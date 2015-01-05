@@ -2089,9 +2089,24 @@
             }
         });
 
+        if (context.log) {
+            context.log.push({
+                type: 'macro',
+                body: body
+            });
+        }
+
         return function(stx, context, prevStx, prevTerms) {
             localCtx = context;
-            return macroFn(stx, context, prevStx, prevTerms);
+            var result = macroFn(stx, context, prevStx, prevTerms);
+            if (localCtx.log) {
+                localCtx.log.push({
+                    type: 'expand',
+                    stx: stx,
+                    result: result
+                });
+            }
+            return result;
         };
     }
 
@@ -2564,6 +2579,8 @@
             patternMap: {value: o.patternMap || new StringMap(),
                          writable: false, enumerable: true, configurable: false},
             mark: {value: o.mark,
+                          writable: false, enumerable: true, configurable: false},
+            log: {value: o.log,
                           writable: false, enumerable: true, configurable: false}
         });
     }
@@ -2573,7 +2590,8 @@
         var filename = options && options.filename ? options.filename : "<anonymous module>";
         return makeExpanderContext({
             filename: filename,
-            requireModule: requireModule
+            requireModule: requireModule,
+            log: options ? options.log : undefined
         });
     }
 

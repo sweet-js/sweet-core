@@ -208,11 +208,15 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         window.location = "editor.html#" + encodeURI(opts.code);
         localStorage[storage_code] = opts.code;
         compileStartTime = Date.now();
-        return sweet.compile(opts.code, {
+        var log = [];
+        var code = sweet.compile(opts.code, {
             sourceMap: compileWithSourcemap,
             filename: compileWithSourcemap && "test.js" || undefined,
-            readableNames: opts.readableNames
+            readableNames: opts.readableNames,
+            log: log
         }).code;
+        console.log(log);
+        return code;
     }).
     // Materialize the sequence, so errors are onNext'd instead
     // of invoking the observer's onError handler. Since Errors
