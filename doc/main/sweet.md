@@ -1175,6 +1175,59 @@ require('./test.sjs');
 
 This is basically equivalent to running `sjs --module ./macros/str test.sjs`.
 
+# Case macro API
+
+Functions available inside of a case macro.
+
+## `makeValue(val, stx)`
+
+Returns a syntax object with the lexical context of `stx` and the value of `val`. `val` can be a `boolean`, `number`, `string`, or `null`/`undefined`.
+
+## `makeRegex(pattern, flags, stx)`
+
+Returns a syntax object with the lexical context of `stx` and the regular expression literal pattern of `pattern` and flags of `flags`. `pattern` is a string representation of the regex pattern and `flags` is the string representation of the regex flags.
+
+## `makeIdent(val, stx)`
+
+Returns a syntax object with the lexical context of `stx` and the identifier name of `val`. `val` is a string representing an identifier.
+
+## `makePunc(val, stx)`
+
+Returns a syntax object with the lexical context of `stx` and the punctuator value of `val`. `val` is a string representing a punctuation token (e.g. `=`, `,`, `>`, etc.).
+
+## `makeDelim(val, inner, stx)`
+
+Returns a syntax object with the lexical context of `stx` and delimiter type of `val` and the inner syntax objects of `inner`. `val` represents which delimiter to make and can be either `"()"`, `"[]"`, or `"{}"` and `inner` is an array of syntax objects for all of the tokens inside the delimiter.
+
+## `unwrapSyntax(stx)`
+
+Returns the value of the given syntax object.
+
+```js
+"foo" === unwrapSyntax(makeIdent("foo", null))
+42    === unwrapSyntax(makeValue(42, null))
+```
+
+## `localExpand(stx)`
+
+Force the expansion of all macros in the array of syntax objects `stx`. Returns an array of syntax objects.
+
+```js
+macro PI { rule {} => { 3.14159 }}
+
+macro ex {
+  case { { $toks ... } } => {
+    var expanded = localExpand(#{$toks ...});
+    assert(unwrapSyntax(expanded[0]) === 3.14159)
+    return expanded;
+  }
+}
+
+ex { PI }
+```
+
+Note that `localExpand` is currently experimental. If you're coming from Racket you might also be expecting a stop list which is not yet implemented.
+
 
 # Compiler API
 

@@ -68,7 +68,6 @@ code > span.er { color: #ff0000; font-weight: bold; }
     font-weight: 100;
     color: #222;
     position: relative;
-    text-transform: uppercase;
     color: #444;
     font-family: 'Lato', Helvetica Neue, Helvetica, Arial, sans-serif;
     font-weight: 100;
@@ -173,19 +172,28 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <li><a href="#using-modules"><span class="toc-section-number">10.1</span> Using Modules</a></li>
 <li><a href="#node-loader"><span class="toc-section-number">10.2</span> Node Loader</a></li>
 </ul></li>
-<li><a href="#compiler-api"><span class="toc-section-number">11</span> Compiler API</a><ul>
-<li><a href="#sweet.compile"><span class="toc-section-number">11.1</span> <code>sweet.compile</code></a></li>
-<li><a href="#sweet.parse"><span class="toc-section-number">11.2</span> <code>sweet.parse</code></a></li>
-<li><a href="#sweet.expand"><span class="toc-section-number">11.3</span> <code>sweet.expand</code></a></li>
+<li><a href="#case-macro-api"><span class="toc-section-number">11</span> Case macro API</a><ul>
+<li><a href="#makevalueval-stx"><span class="toc-section-number">11.1</span> <code>makeValue(val, stx)</code></a></li>
+<li><a href="#makeregexpattern-flags-stx"><span class="toc-section-number">11.2</span> <code>makeRegex(pattern, flags, stx)</code></a></li>
+<li><a href="#makeidentval-stx"><span class="toc-section-number">11.3</span> <code>makeIdent(val, stx)</code></a></li>
+<li><a href="#makepuncval-stx"><span class="toc-section-number">11.4</span> <code>makePunc(val, stx)</code></a></li>
+<li><a href="#makedelimval-inner-stx"><span class="toc-section-number">11.5</span> <code>makeDelim(val, inner, stx)</code></a></li>
+<li><a href="#unwrapsyntaxstx"><span class="toc-section-number">11.6</span> <code>unwrapSyntax(stx)</code></a></li>
+<li><a href="#localexpandstx"><span class="toc-section-number">11.7</span> <code>localExpand(stx)</code></a></li>
 </ul></li>
-<li><a href="#faq"><span class="toc-section-number">12</span> FAQ</a><ul>
-<li><a href="#how-do-i-run-sweet.js-in-the-browser"><span class="toc-section-number">12.1</span> How do I Run Sweet.js in the Browser?</a></li>
-<li><a href="#how-do-i-break-hygiene"><span class="toc-section-number">12.2</span> How do I break hygiene?</a></li>
-<li><a href="#how-do-i-output-comments"><span class="toc-section-number">12.3</span> How do I output comments?</a></li>
-<li><a href="#how-do-i-convert-a-token-to-a-string-literal"><span class="toc-section-number">12.4</span> How do I convert a token to a string literal?</a></li>
-<li><a href="#how-do-i-debug-macros"><span class="toc-section-number">12.5</span> How do I debug macros?</a><ul>
-<li><a href="#stepping-through-expansion"><span class="toc-section-number">12.5.1</span> Stepping Through Expansion</a></li>
-<li><a href="#understanding-case-macros"><span class="toc-section-number">12.5.2</span> Understanding Case Macros</a></li>
+<li><a href="#compiler-api"><span class="toc-section-number">12</span> Compiler API</a><ul>
+<li><a href="#sweet.compile"><span class="toc-section-number">12.1</span> <code>sweet.compile</code></a></li>
+<li><a href="#sweet.parse"><span class="toc-section-number">12.2</span> <code>sweet.parse</code></a></li>
+<li><a href="#sweet.expand"><span class="toc-section-number">12.3</span> <code>sweet.expand</code></a></li>
+</ul></li>
+<li><a href="#faq"><span class="toc-section-number">13</span> FAQ</a><ul>
+<li><a href="#how-do-i-run-sweet.js-in-the-browser"><span class="toc-section-number">13.1</span> How do I Run Sweet.js in the Browser?</a></li>
+<li><a href="#how-do-i-break-hygiene"><span class="toc-section-number">13.2</span> How do I break hygiene?</a></li>
+<li><a href="#how-do-i-output-comments"><span class="toc-section-number">13.3</span> How do I output comments?</a></li>
+<li><a href="#how-do-i-convert-a-token-to-a-string-literal"><span class="toc-section-number">13.4</span> How do I convert a token to a string literal?</a></li>
+<li><a href="#how-do-i-debug-macros"><span class="toc-section-number">13.5</span> How do I debug macros?</a><ul>
+<li><a href="#stepping-through-expansion"><span class="toc-section-number">13.5.1</span> Stepping Through Expansion</a></li>
+<li><a href="#understanding-case-macros"><span class="toc-section-number">13.5.2</span> Understanding Case Macros</a></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -1038,8 +1046,38 @@ sweet.loadMacro(&#39;./macros/str&#39;);
 // test.sjs uses macros that have been defined and exported in `macros/str.sjs`
 require(&#39;./test.sjs&#39;);</code></pre>
 <p>This is basically equivalent to running <code>sjs --module ./macros/str test.sjs</code>.</p>
-<h1 id="compiler-api"><span class="header-section-number">11</span> Compiler API</h1>
-<h2 id="sweet.compile"><span class="header-section-number">11.1</span> <code>sweet.compile</code></h2>
+<h1 id="case-macro-api"><span class="header-section-number">11</span> Case macro API</h1>
+<p>Functions available inside of a case macro.</p>
+<h2 id="makevalueval-stx"><span class="header-section-number">11.1</span> <code>makeValue(val, stx)</code></h2>
+<p>Returns a syntax object with the lexical context of <code>stx</code> and the value of <code>val</code>. <code>val</code> can be a <code>boolean</code>, <code>number</code>, <code>string</code>, or <code>null</code>/<code>undefined</code>.</p>
+<h2 id="makeregexpattern-flags-stx"><span class="header-section-number">11.2</span> <code>makeRegex(pattern, flags, stx)</code></h2>
+<p>Returns a syntax object with the lexical context of <code>stx</code> and the regular expression literal pattern of <code>pattern</code> and flags of <code>flags</code>. <code>pattern</code> is a string representation of the regex pattern and <code>flags</code> is the string representation of the regex flags.</p>
+<h2 id="makeidentval-stx"><span class="header-section-number">11.3</span> <code>makeIdent(val, stx)</code></h2>
+<p>Returns a syntax object with the lexical context of <code>stx</code> and the identifier name of <code>val</code>. <code>val</code> is a string representing an identifier.</p>
+<h2 id="makepuncval-stx"><span class="header-section-number">11.4</span> <code>makePunc(val, stx)</code></h2>
+<p>Returns a syntax object with the lexical context of <code>stx</code> and the punctuator value of <code>val</code>. <code>val</code> is a string representing a punctuation token (e.g. <code>=</code>, <code>,</code>, <code>&gt;</code>, etc.).</p>
+<h2 id="makedelimval-inner-stx"><span class="header-section-number">11.5</span> <code>makeDelim(val, inner, stx)</code></h2>
+<p>Returns a syntax object with the lexical context of <code>stx</code> and delimiter type of <code>val</code> and the inner syntax objects of <code>inner</code>. <code>val</code> represents which delimiter to make and can be either <code>&quot;()&quot;</code>, <code>&quot;[]&quot;</code>, or <code>&quot;{}&quot;</code> and <code>inner</code> is an array of syntax objects for all of the tokens inside the delimiter.</p>
+<h2 id="unwrapsyntaxstx"><span class="header-section-number">11.6</span> <code>unwrapSyntax(stx)</code></h2>
+<p>Returns the value of the given syntax object.</p>
+<pre class="js"><code>&quot;foo&quot; === unwrapSyntax(makeIdent(&quot;foo&quot;, null))
+42    === unwrapSyntax(makeValue(42, null))</code></pre>
+<h2 id="localexpandstx"><span class="header-section-number">11.7</span> <code>localExpand(stx)</code></h2>
+<p>Force the expansion of all macros in the array of syntax objects <code>stx</code>. Returns an array of syntax objects.</p>
+<pre class="js"><code>macro PI { rule {} =&gt; { 3.14159 }}
+
+macro ex {
+  case { { $toks ... } } =&gt; {
+    var expanded = localExpand(#{$toks ...});
+    assert(unwrapSyntax(expanded[0]) === 3.14159)
+    return expanded;
+  }
+}
+
+ex { PI }</code></pre>
+<p>Note that <code>localExpand</code> is currently experimental. If you're coming from Racket you might also be expecting a stop list which is not yet implemented.</p>
+<h1 id="compiler-api"><span class="header-section-number">12</span> Compiler API</h1>
+<h2 id="sweet.compile"><span class="header-section-number">12.1</span> <code>sweet.compile</code></h2>
 <p>Expands all macros and return the expanded code as a string.</p>
 <pre class="js"><code>(Str, {
         sourceMap: Bool,
@@ -1068,7 +1106,7 @@ sweet.compile(code, options)</code></pre>
 <li><code>code</code> the expanded code</li>
 <li><code>sourceMap</code> the source map</li>
 </ul>
-<h2 id="sweet.parse"><span class="header-section-number">11.2</span> <code>sweet.parse</code></h2>
+<h2 id="sweet.parse"><span class="header-section-number">12.2</span> <code>sweet.parse</code></h2>
 <p>Expands all macros and returns an AST.</p>
 <pre class="js"><code>(Str, [...[...Syntax]], { maxExpands: Num }) -&gt; AST
 sweet.parse(code, modules, options)</code></pre>
@@ -1083,7 +1121,7 @@ sweet.parse(code, modules, options)</code></pre>
 </ul>
 <p><strong>Return</strong>:</p>
 <p>The abstract syntax tree. See the <a href="https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API">Parser API</a> for details.</p>
-<h2 id="sweet.expand"><span class="header-section-number">11.3</span> <code>sweet.expand</code></h2>
+<h2 id="sweet.expand"><span class="header-section-number">12.3</span> <code>sweet.expand</code></h2>
 <p>Expands all macros and returns an array of syntax objects.</p>
 <pre class="js"><code>(Str, [...[...Syntax]], { maxExpands: Num }) -&gt; [...Syntax]
 sweet.expand(code, modules, options)</code></pre>
@@ -1102,14 +1140,14 @@ sweet.expand(code, modules, options)</code></pre>
 <li><code>token</code> which is a token object that <a href="http://esprima.org/">esprima</a> understands.</li>
 <li><code>context</code> holds hygiene information.</li>
 </ul>
-<h1 id="faq"><span class="header-section-number">12</span> FAQ</h1>
-<h2 id="how-do-i-run-sweet.js-in-the-browser"><span class="header-section-number">12.1</span> How do I Run Sweet.js in the Browser?</h2>
+<h1 id="faq"><span class="header-section-number">13</span> FAQ</h1>
+<h2 id="how-do-i-run-sweet.js-in-the-browser"><span class="header-section-number">13.1</span> How do I Run Sweet.js in the Browser?</h2>
 <p>Load sweet.js using AMD/require.js:</p>
 <pre class="js"><code>require([&quot;./sweet&quot;], function(sweet) {
     // ...
 });</code></pre>
 <p>Then just use the sweet.js compiler <a href="#compiler-api">API</a>. You can see an example of this in action with the sweet.js editor <a href="https://github.com/mozilla/sweet.js/blob/3062bde9d3464adee868c98a2ced44d2316a6763/browser/editor.html">here</a> and <a href="https://github.com/mozilla/sweet.js/blob/3062bde9d3464adee868c98a2ced44d2316a6763/browser/scripts/editor.js">here</a>.</p>
-<h2 id="how-do-i-break-hygiene"><span class="header-section-number">12.2</span> How do I break hygiene?</h2>
+<h2 id="how-do-i-break-hygiene"><span class="header-section-number">13.2</span> How do I break hygiene?</h2>
 <p>Sometimes you really do need to break the wonderful protections provided by hygiene. Breaking hygiene is usually a bad idea but sweet.js won't judge.</p>
 <p>Breaking hygiene is done by stealing the lexical context from syntax objects in the &quot;right place&quot;. To clarify, consider <code>aif</code> the <a href="http://en.wikipedia.org/wiki/Anaphoric_macro">anaphoric</a> if macro that binds its condition to the identifier <code>it</code> in the body.</p>
 <pre class="js"><code>var it = &quot;foo&quot;;
@@ -1141,7 +1179,7 @@ aif (long.obj.path) {
       }
   }
 }</code></pre>
-<h2 id="how-do-i-output-comments"><span class="header-section-number">12.3</span> How do I output comments?</h2>
+<h2 id="how-do-i-output-comments"><span class="header-section-number">13.3</span> How do I output comments?</h2>
 <p>Comments in a rule macro or inside a <code>#{...}</code> template should &quot;just work&quot;. If you want to create comment strings programmatically you can use a token's <code>leadingComments</code> property.</p>
 <pre class="js"><code>macro m {
     case {_ () } =&gt; {
@@ -1159,7 +1197,7 @@ m()</code></pre>
 <p>will expand to</p>
 <pre class="js"><code>//hello, world
 42;</code></pre>
-<h2 id="how-do-i-convert-a-token-to-a-string-literal"><span class="header-section-number">12.4</span> How do I convert a token to a string literal?</h2>
+<h2 id="how-do-i-convert-a-token-to-a-string-literal"><span class="header-section-number">13.4</span> How do I convert a token to a string literal?</h2>
 <p>Often times you'll have an identifier or numeric literal token that you'd like to convert to a string literal. This little helper macro does just that:</p>
 <pre class="js"><code>macro to_str {
   case { _ ($toks ...) } =&gt; {
@@ -1170,11 +1208,11 @@ m()</code></pre>
 to_str(1 foo &quot;bar&quot;)
 // expands to:
 // &#39;1foobar&#39;</code></pre>
-<h2 id="how-do-i-debug-macros"><span class="header-section-number">12.5</span> How do I debug macros?</h2>
-<h3 id="stepping-through-expansion"><span class="header-section-number">12.5.1</span> Stepping Through Expansion</h3>
+<h2 id="how-do-i-debug-macros"><span class="header-section-number">13.5</span> How do I debug macros?</h2>
+<h3 id="stepping-through-expansion"><span class="header-section-number">13.5.1</span> Stepping Through Expansion</h3>
 <p>You can use <code>sjs --num-expands &lt;number&gt;</code> to walk through macro expansion one step at a time. This is particularly helpful when writing recursive macros.</p>
 <p>The <a href="http://sweetjs.org/browser/editor.html">editor</a> also supports stepping.</p>
-<h3 id="understanding-case-macros"><span class="header-section-number">12.5.2</span> Understanding Case Macros</h3>
+<h3 id="understanding-case-macros"><span class="header-section-number">13.5.2</span> Understanding Case Macros</h3>
 <p>If you're trying to understand how a case macro is working two useful techniques are logging syntax objects to see what they actually contain and inserting <code>debugger</code> statements to pause the debugger during expansion.</p>
 <pre class="js"><code>macro m {
     case { _ $x } =&gt; {
