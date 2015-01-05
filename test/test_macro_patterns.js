@@ -1162,4 +1162,20 @@ describe("macro expander", function() {
         }
         expect(m(1 2)).to.be(true);
     });
+
+    it("should allow empty matches in recursive invoke", function() {
+        macro base_contract {
+            rule { $name } => { }
+        }
+        macro function_contract {
+            rule { ($dom:any_contract (,) ...) -> $range:any_contract } => {
+                "fun"
+            }
+        }
+        macro any_contract {
+            rule { $c:function_contract } => { $c }
+            rule { $c:base_contract } => { $c }
+        }
+        expect(any_contract (Str) -> Str).to.be("fun");
+    });
 });

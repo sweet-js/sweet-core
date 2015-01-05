@@ -597,6 +597,20 @@
         };
     }
 
+    function initPatternEnv(pattern) {
+        var env = {};
+        assert(Array.isArray(pattern.inner), "expecting an array of patterns");
+
+        for (var i = 0; i < pattern.inner.length; i++) {
+            env[pattern.inner[i].value] = {
+                level: 0,
+                match: [],
+                topLevel: false
+            };
+        }
+        return env;
+    }
+
 
     /* the pattern environment will look something like:
     {
@@ -659,7 +673,7 @@
                         success: false,
                         rest: stx,
                         patternEnv: patternEnv
-                    }
+                    };
                 }
                 subMatch = matchPatterns(pattern.inner,
                                          stx[0].token.inner,
@@ -668,11 +682,13 @@
                 rest = stx.slice(1);
                 success = subMatch.success;
             } else {
-                subMatch = matchPatterns(pattern.inner,
-                                         [],
-                                         context,
-                                         false);
+                // token is not a delimiter
                 success = false;
+                rest = stx;
+                // match failed but we need to initialize each sub pattern to an empty match
+                subMatch = {
+                    patternEnv: initPatternEnv(pattern)
+                };
             }
             if(success) {
                 patternEnv = loadPatternEnv(patternEnv,
@@ -680,7 +696,7 @@
                                             topLevel,
                                             pattern.repeat);
             } else if (pattern.repeat) {
-                patternEnv = initPatternEnv(patternEnv,
+                patternEnv = copyPatternEnv(patternEnv,
                                             subMatch.patternEnv,
                                             topLevel);
             }
@@ -738,7 +754,7 @@
 
     }
 
-    function initPatternEnv(toEnv, fromEnv, topLevel) {
+    function copyPatternEnv(toEnv, fromEnv, topLevel) {
         _.forEach(fromEnv, function(patternVal, patternKey) {
             if (!toEnv[patternKey]) {
                 toEnv[patternKey] = {
