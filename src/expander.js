@@ -47,7 +47,6 @@ var codegen = require('escodegen'),
     ModuleRecord = require("./mod/moduleRecord").ModuleRecord,
     patternModule = require("./patterns"),
     vm = require('vm'),
-    Immutable = require('immutable'),
     assert = require("assert"),
     termTree = require("./data/termTree");
 
