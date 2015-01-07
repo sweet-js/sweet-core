@@ -264,34 +264,46 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
     compileSourceObs.
     dematerialize().
     repeat().
-    concatMap(function(compiled) { return compiled.log; }).
-    map(function(l) { return {
-        str: l.name.value,
-        line: l.name.lineNumber,
-        offset: l.name.range[0] - l.name.lineStart
-    }; }).
-    subscribe(function onSuccess(macroHighlight) {
-        var line = 0;
-        // editor.removeOverlay('macro');
+    map(function(compiled) {
+        return compiled.log.
+        map(function(l) { return {
+            line: l.name.lineNumber,
+            offset: l.name.range[0] - l.name.lineStart,
+            length: l.name.value.length,
+        }; }).
+        sort(function(a,b) {
+            if (a.line < b.line) return -1;
+            if (a.line > b.line) return 1;
+            return a.offset - b.offset;
+        });
+    }).
+    subscribe(function onSuccess(highlights) {
+        console.log(highlights);
+        var line = 0, h = 0;
+        editor.removeOverlay('macro');
         editor.addOverlay({
-            // name: 'macro',
+            name: 'macro',
             token: function(stream) {
                 if (stream.sol()) line++;
-                if (macroHighlight.line === line &&
-                    macroHighlight.offset === stream.column()) {
-                    stream.match(macroHighlight.str);
-                    return 'macro';
+                if (h >= highlights.length) { // no more highlights
+                    stream.skipToEnd();
+                    return null;
                 }
-                // for (var j = 0; j < mh.expansions.length && !result; j++) {
-                //     var exp = mh.expansions[j];
-                //     if (exp.line === line && mh.offset === stream.column()) {
-                //         result = 'macro';
-                //         stream.match(mh.str);
-                //     });
-                // }
-                stream.next();
-                return null;
-            }
+                var current = highlights[h];
+                if (current.line > line) { // no highlights on this line
+                    stream.skipToEnd();
+                    return null;
+                }
+                var offset = current.offset;
+                if (current.offset > stream.pos) { // skip to highlight
+                    stream.pos = current.offset;
+                    return null;
+                }
+                stream.pos += current.length; // highlight current token
+                h++;
+                return 'macro';
+            },
+            blankLine: function() { line++; }
         });
     });
 
