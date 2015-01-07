@@ -2080,7 +2080,7 @@
             if (expansions) {
                 // from = stx.takeUntil (x) -> x == rest[0]
                 var from = [], next = result.rest[0];
-                for (var i = 0; stx[i] !== next; from.push(stx[i++])) {
+                for (var i = 0; stx[i] !== next; from.push(stx[i++].token)) {
                 }
                 expansions.push({ from: from });
             }

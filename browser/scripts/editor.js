@@ -6,7 +6,7 @@ requirejs.config({
     }
 });
 
-require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, Rx) {
+require(["./sweet", "./syntax", "./parser", "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, parser, Rx) {
 
     var storage_code = 'editor_code';
     var storage_mode = 'editor_mode';
@@ -156,13 +156,13 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
 
     var cursorActivityObs = Rx.Observable.create(function (observer) {
         function handler(e) {
-            observer.onNext(e);
+            observer.onNext(e.doc.getCursor());
         }
         editor.on("cursorActivity", handler);
         return function () {
             editor.off("cursorActivity", handler);
         }
-    });
+    }).debounce(100); // Ignore events that fire within 100ms of each other.
     var compileStartTime;
     var compileBuildTime = 1000;
     var compileSourceObs = autoCompileCheckbox.
@@ -176,8 +176,6 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
                     Rx.Observable.returnValue(subscribed = false) :
                     Rx.Observable.empty()
             }).concat(cursorActivityObs.
-                // Ignore events that fire within 100ms of each other.
-                debounce(100).
                 // This is essentially delayWithSelector,
                 // but rx.lite doesn't include that operator.
                 flatMapLatest(function (e) {
@@ -264,12 +262,38 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
     compileSourceObs.
     dematerialize().
     repeat().
-    map(function(compiled) {
-        return compiled.log.
-        map(function(l) { return {
-            line: l.name.lineNumber,
-            offset: l.name.range[0] - l.name.lineStart,
-            length: l.name.value.length,
+    combineLatest(cursorActivityObs, function (compiled, cursor) {
+        return {log: compiled.log, cursor: cursor};
+    }).
+    map(function(logAndCursor) {
+        return logAndCursor.log.
+        filter(function(l) {
+            // only show macro highlights if cursor on macro name
+            var nameCol = l.name.range[0] - l.name.lineStart;
+            return l.name.lineNumber == logAndCursor.cursor.line + 1
+                && nameCol <= logAndCursor.cursor.ch
+                && nameCol + l.name.value.length >= logAndCursor.cursor.ch;
+        }).
+        map(function(l) {
+            return [l.name].concat(l.expansions.reduce(function(acc, exp) {
+                return acc.concat(exp.from);
+            }, []));
+        }).
+        reduce(function(acc, lstOfTokens) {
+            return acc.concat(lstOfTokens);
+        }, []).
+        map(function(token) {
+            if (token.type === parser.Token.Delimiter) {
+                token.lineNumber = token.startLineNumber;
+                token.lineStart = token.startLineStart;
+                token.range = [token.startRange[0], token.endRange[1]];
+            }
+            return token;
+        }).
+        map(function(token) { return {
+            line: token.lineNumber,
+            offset: token.range[0] - token.lineStart,
+            length: token.range[1] - token.range[0],
         }; }).
         sort(function(a,b) {
             if (a.line < b.line) return -1;
@@ -278,18 +302,18 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         });
     }).
     subscribe(function onSuccess(highlights) {
-        console.log(highlights);
-        var line = 0, h = 0;
         editor.removeOverlay('macro');
+        if (highlights.length === 0) return;
+        var line = 0, currentIdx = 0;
         editor.addOverlay({
             name: 'macro',
             token: function(stream) {
                 if (stream.sol()) line++;
-                if (h >= highlights.length) { // no more highlights
+                if (currentIdx >= highlights.length) { // no more highlights
                     stream.skipToEnd();
                     return null;
                 }
-                var current = highlights[h];
+                var current = highlights[currentIdx];
                 if (current.line > line) { // no highlights on this line
                     stream.skipToEnd();
                     return null;
@@ -299,8 +323,16 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
                     stream.pos = current.offset;
                     return null;
                 }
-                stream.pos += current.length; // highlight current token
-                h++;
+                // highlight current token
+                if (stream.pos + current.length <= stream.string.length) {
+                    stream.pos += current.length;
+                    currentIdx++;
+                } else { // multi-line token -> move start to next line
+                    current.line++;
+                    current.offset = 0;
+                    current.length -= stream.string.length - stream.pos;
+                    stream.skipToEnd();
+                }
                 return 'macro';
             },
             blankLine: function() { line++; }
