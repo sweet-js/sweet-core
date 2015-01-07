@@ -185,7 +185,7 @@
     // (Str, {sourceMap: ?Bool, filename: ?Str})
     //    -> { code: Str, sourceMap: ?Str }
     function compile(code, options) {
-        var output;
+        var output, result = {};
         options = options || {};
         options.requireModule = options.requireModule || requireModule;
 
@@ -208,16 +208,15 @@
                 sourceMapWithCode: true
             }, options.escodegen));
 
-            return {
-                code: output.code,
-                sourceMap: output.map.toString()
-            };
-        }
-        return {
-            code: codegen.generate(ast, _.extend({
+            result.code = output.code;
+            result.sourceMap = output.map.toString();
+        } else {
+            result.code = codegen.generate(ast, _.extend({
                 comment: true
             }, options.escodegen))
         };
+        if (options.log) result.log = options.log;
+        return result;
     }
 
     function setReadtable(readtableModule) {

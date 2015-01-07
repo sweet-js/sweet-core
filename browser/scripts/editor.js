@@ -208,15 +208,12 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         window.location = "editor.html#" + encodeURI(opts.code);
         localStorage[storage_code] = opts.code;
         compileStartTime = Date.now();
-        var log = [];
-        var code = sweet.compile(opts.code, {
+        return sweet.compile(opts.code, {
             sourceMap: compileWithSourcemap,
             filename: compileWithSourcemap && "test.js" || undefined,
             readableNames: opts.readableNames,
-            log: log
-        }).code;
-        console.log(log);
-        return code;
+            log: []
+        });
     }).
     // Materialize the sequence, so errors are onNext'd instead
     // of invoking the observer's onError handler. Since Errors
@@ -257,10 +254,45 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
     }).
     repeat().
     subscribe(function onSuccess(compiled) {
-        output.setValue(compiled);
+        output.setValue(compiled.code);
         errorsBox.css("height", "0px");
         editBox.css("top", "65px");
         compileBuildTime = Date.now() - compileStartTime;
+    });
+
+    /* Visualize macro expansions */
+    compileSourceObs.
+    dematerialize().
+    repeat().
+    concatMap(function(compiled) { return compiled.log; }).
+    map(function(l) { return {
+        str: l.name.value,
+        line: l.name.lineNumber,
+        offset: l.name.range[0] - l.name.lineStart
+    }; }).
+    subscribe(function onSuccess(macroHighlight) {
+        var line = 0;
+        // editor.removeOverlay('macro');
+        editor.addOverlay({
+            // name: 'macro',
+            token: function(stream) {
+                if (stream.sol()) line++;
+                if (macroHighlight.line === line &&
+                    macroHighlight.offset === stream.column()) {
+                    stream.match(macroHighlight.str);
+                    return 'macro';
+                }
+                // for (var j = 0; j < mh.expansions.length && !result; j++) {
+                //     var exp = mh.expansions[j];
+                //     if (exp.line === line && mh.offset === stream.column()) {
+                //         result = 'macro';
+                //         stream.match(mh.str);
+                //     });
+                // }
+                stream.next();
+                return null;
+            }
+        });
     });
 
     compileSourceObs.connect();
