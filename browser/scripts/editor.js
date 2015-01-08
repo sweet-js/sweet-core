@@ -314,6 +314,7 @@ require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "
         });
         // range for the whole macro
         highlights[0] = {start: highlights[1].start, end: highlights[0].start};
+        highlights[1].name = true;
 
         var smc = new sourceMap.SourceMapConsumer(logAndCursor.map);
         var to = [], prev;
@@ -391,7 +392,7 @@ require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "
                 } else { // multi-line token -> move to next line
                     stream.skipToEnd();
                 }
-                return "macro";
+                return current.name ? "macro-name" : "macro";
             },
             blankLine: function() { line++; }
         });
