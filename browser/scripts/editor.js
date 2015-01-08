@@ -181,7 +181,8 @@ require(["./sweet", "./syntax", "./parser", "./rx.jquery.min", "./rx.dom.compat.
                 flatMapLatest(function (e) {
                     return Rx.Observable.timer(compileBuildTime);
                 })).
-            merge($("#ck-readable-names").changeAsObservable());
+            merge($("#ck-readable-names").changeAsObservable()).
+            merge($("#ck-highlighting").changeAsObservable());
         });
     }).
     publishValue(Rx.Observable.never());
@@ -195,7 +196,8 @@ require(["./sweet", "./syntax", "./parser", "./rx.jquery.min", "./rx.dom.compat.
     map(function () {
         return {
             code: editor.getValue(),
-            readableNames: $("#ck-readable-names").is(":checked")
+            readableNames: $("#ck-readable-names").is(":checked"),
+            highlighting: $("#ck-highlighting").is(":checked")
         };
     }).
     // After the user has stopped typing for a while,
@@ -207,10 +209,10 @@ require(["./sweet", "./syntax", "./parser", "./rx.jquery.min", "./rx.dom.compat.
         localStorage[storage_code] = opts.code;
         compileStartTime = Date.now();
         return sweet.compile(opts.code, {
-            sourceMap: compileWithSourcemap,
-            filename: compileWithSourcemap && "test.js" || undefined,
+            sourceMap: opts.highlighting,
+            filename: opts.highlighting && "test.js" || undefined,
             readableNames: opts.readableNames,
-            log: []
+            log: opts.highlighting && [] || undefined
         });
     }).
     // Materialize the sequence, so errors are onNext'd instead
@@ -267,6 +269,9 @@ require(["./sweet", "./syntax", "./parser", "./rx.jquery.min", "./rx.dom.compat.
     repeat().
     combineLatest(cursorActivityObs, function (compiled, cursor) {
         return {log: compiled.log, cursor: cursor};
+    }).
+    filter(function(logAndCursor) {
+        return logAndCursor.log && $("#ck-highlighting").is(":checked");
     }).
     map(function(logAndCursor) {
         return logAndCursor.log.
