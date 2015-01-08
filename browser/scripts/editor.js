@@ -6,14 +6,13 @@ requirejs.config({
     }
 });
 
-require(["./sweet", "./syntax", "./parser", "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, parser, Rx) {
+require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, parser, srcmap, Rx) {
 
     var storage_code = 'editor_code';
     var storage_mode = 'editor_mode';
 
     var starting_code = $("#editor").text();
     var loaded_code, compile_start;
-    var compileWithSourcemap = $("body").attr("data-sourcemap") === "true";
 
     var editor = CodeMirror.fromTextArea($('#editor')[0], {
         lineNumbers: true,
