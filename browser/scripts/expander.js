@@ -1924,7 +1924,7 @@
     }
     // given the syntax for a macro, produce a macro transformer
     // {name: Syntax, body: Macro} -> (([...CSyntax]) -> ReadTree)
-    function loadMacroDef(def, context) {
+    function loadMacroDef(def, context, rest) {
         var body = def.body;
         // raw function primitive form
         if (!(body[0] && body[0].token.type === parser.Token.Keyword && body[0].token.value === 'function')) {
@@ -1936,7 +1936,7 @@
         expanded = expanded[0].destruct().concat(expanded[1].eof);
         var flattend = flatten(expanded);
         var bodyCode = codegen.generate(parser.parse(flattend));
-        var localCtx, expansions;
+        var localCtx, matchedTokens;
         var macroFn = scopedEval(bodyCode, {
                 makeValue: syn.makeValue,
                 makeRegex: syn.makeRegex,
@@ -2071,18 +2071,18 @@
         if (context.log) {
             context.log.push({
                 name: def.name[0].token,
-                expansions: expansions = []
+                matchedTokens: matchedTokens = [],
+                next: rest[0] && rest[0].token || undefined
             });
         }
         return function (stx, context$2, prevStx, prevTerms) {
             localCtx = context$2;
             var result = macroFn(stx, context$2, prevStx, prevTerms);
-            if (expansions) {
+            if (matchedTokens) {
                 // from = stx.takeUntil (x) -> x == rest[0]
-                var from = [], next = result.rest[0];
-                for (var i = 0; stx[i] !== next; from.push(stx[i++].token)) {
-                }
-                expansions.push({ from: from });
+                var i = 0, next = result.rest[0];
+                while (stx[i] !== next)
+                    matchedTokens.push(stx[i++].token);
             }
             return result;
         };
@@ -2107,7 +2107,7 @@
             }
             if (head.isMacro && expandCount < maxExpands) {
                 // load the macro definition into the environment and continue expanding
-                macroDefinition = loadMacroDef(head, context);
+                macroDefinition = loadMacroDef(head, context, rest);
                 var name = head.name.map(unwrapSyntax).join('');
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
@@ -2122,7 +2122,7 @@
             }
             if (head.isLetMacro && expandCount < maxExpands) {
                 // load the macro definition into the environment and continue expanding
-                macroDefinition = loadMacroDef(head, context);
+                macroDefinition = loadMacroDef(head, context, rest);
                 var freshName = fresh();
                 var name = head.name.map(unwrapSyntax).join('');
                 var nameStx = syn.makeIdent(name, head.name[0]);
@@ -2140,7 +2140,7 @@
                 continue;
             }
             if (head.isOperatorDefinition) {
-                var opDefinition = loadMacroDef(head, context);
+                var opDefinition = loadMacroDef(head, context, rest);
                 var name = head.name.map(unwrapSyntax).join('');
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);

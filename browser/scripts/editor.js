@@ -267,28 +267,26 @@ require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "
     }).
     repeat().
     combineLatest(cursorActivityObs, function (compiled, cursor) {
-        return {log: compiled.log, cursor: cursor};
+        return {log: compiled.log, map: compiled.sourceMap, cursor: cursor};
     }).
     filter(function(logAndCursor) {
         return logAndCursor.log && $("#ck-highlighting").is(":checked");
     }).
-    map(function(logAndCursor) {
-        return logAndCursor.log.
-        filter(function(l) {
-            // only show macro highlights if cursor on macro name
+    flatMap(function(logAndCursor) {
+        // only show macro highlights if cursor on macro name
+        var macro = _(logAndCursor.log).find(function(l) {
             var nameCol = l.name.range[0] - l.name.lineStart;
             return l.name.lineNumber == logAndCursor.cursor.line + 1
                 && nameCol <= logAndCursor.cursor.ch
                 && nameCol + l.name.value.length >= logAndCursor.cursor.ch;
-        }).
-        map(function(l) {
-            return [l.name].concat(l.expansions.reduce(function(acc, exp) {
-                return acc.concat(exp.from);
-            }, []));
-        }).
-        reduce(function(acc, lstOfTokens) {
-            return acc.concat(lstOfTokens);
-        }, []).
+        });
+        if (macro === undefined) {
+            return [{editor: editor, highlights: []},
+                    {editor: output, highlights: []}];
+        }
+        var highlights = [macro.next, macro.name].
+        concat(macro.matchedTokens).
+        // delimiters range from start to end
         map(function(token) {
             if (token.type === parser.Token.Delimiter) {
                 token.lineNumber = token.startLineNumber;
@@ -297,23 +295,43 @@ require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "
             }
             return token;
         }).
+        // convert tokens to line/column source locations
         map(function(token) { return {
             line: token.lineNumber,
-            offset: token.range[0] - token.lineStart,
+            column: token.range[0] - token.lineStart,
             length: token.range[1] - token.range[0],
-        }; }).
+        }; });
+
+        var smc = new window.sourceMap.SourceMapConsumer(logAndCursor.map);
+        var to = [];
+        smc.eachMapping(function(m) {
+            if (m.originalLine >= highlights[1].line &&
+                m.originalColumn >= highlights[1].column &&
+                m.originalLine <= highlights[0].line &&
+                m.originalColumn <= highlights[0]) {
+                to.push({
+                    line: m.generatedLine,
+                    column: m.generatedColumn,
+                    length: 2
+                });
+            }
+        });
+        return [{editor: editor, highlights: [editor, _.rest(highlights)]},
+                {editor: output, highlights: to}];
+    }).
+    subscribe(function onSuccess(editorAndHighlights) {
+        var editor = editorAndHighlights.editor;
+        var highlights = editorAndHighlights.highlights.
         sort(function(a,b) {
             if (a.line < b.line) return -1;
             if (a.line > b.line) return 1;
-            return a.offset - b.offset;
+            return a.column - b.column;
         });
-    }).
-    subscribe(function onSuccess(highlights) {
-        editor.removeOverlay('macro');
+        editor.removeOverlay("macro");
         if (highlights.length === 0) return;
         var line = 0, currentIdx = 0;
         editor.addOverlay({
-            name: 'macro',
+            name: "macro",
             token: function(stream) {
                 if (stream.sol()) line++;
                 if (currentIdx >= highlights.length) { // no more highlights
@@ -325,9 +343,16 @@ require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "
                     stream.skipToEnd();
                     return null;
                 }
-                var offset = current.offset;
-                if (current.offset > stream.pos) { // skip to highlight
-                    stream.pos = current.offset;
+                if (current.line < line) { // omit past highlight
+                    currentIdx++;
+                    return null;
+                }
+                if (current.column > stream.pos) { // skip to highlight
+                    stream.pos = current.column;
+                    return null;
+                }
+                if (current.column < stream.pos) { // omit past highlight
+                    currentIdx++;
                     return null;
                 }
                 // highlight current token
@@ -336,11 +361,11 @@ require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "
                     currentIdx++;
                 } else { // multi-line token -> move start to next line
                     current.line++;
-                    current.offset = 0;
+                    current.column = 0;
                     current.length -= stream.string.length - stream.pos;
                     stream.skipToEnd();
                 }
-                return 'macro';
+                return "macro";
             },
             blankLine: function() { line++; }
         });
