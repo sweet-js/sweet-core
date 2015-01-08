@@ -261,6 +261,9 @@ require(["./sweet", "./syntax", "./parser", "./rx.jquery.min", "./rx.dom.compat.
     /* Visualize macro expansions */
     compileSourceObs.
     dematerialize().
+    catchException(function (error) {
+        return Rx.Observable.empty();
+    }).
     repeat().
     combineLatest(cursorActivityObs, function (compiled, cursor) {
         return {log: compiled.log, cursor: cursor};
