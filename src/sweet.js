@@ -45,7 +45,7 @@
                 moduleCache[key] = require(resolveSync(id, {basedir: basedir}));
             }
             return moduleCache[key];
-        }
+        };
 
         factory(exports,
                 require("underscore"),
@@ -157,7 +157,7 @@
         if (!isSyntax) {
             stx = syn.tokensToSyntax(stx);
         }
-        
+
         try {
             var result = expander.expand(stx, [stxcaseCtx].concat(modules), options);
             return isSyntax ? result : syn.syntaxToTokens(result);
@@ -214,7 +214,7 @@
             result.code = codegen.generate(ast, _.extend({
                 comment: true
             }, options.escodegen))
-        };
+        }
         if (options.log) result.log = options.log;
         return result;
     }
@@ -230,7 +230,7 @@
     function currentReadtable() {
         return parser.currentReadtable();
     }
-    
+
     function loadNodeModule(root, moduleName, options) {
         options = options || {};
         if (moduleName[0] === '.') {
