@@ -1923,8 +1923,9 @@
         });
     }
     // given the syntax for a macro, produce a macro transformer
-    // (Macro) -> (([...CSyntax]) -> ReadTree)
-    function loadMacroDef(body, context) {
+    // {name: Syntax, body: Macro} -> (([...CSyntax]) -> ReadTree)
+    function loadMacroDef(def, context, rest) {
+        var body = def.body;
         // raw function primitive form
         if (!(body[0] && body[0].token.type === parser.Token.Keyword && body[0].token.value === 'function')) {
             throwSyntaxError('load macro', 'Primitive macro form must contain a function for the macro body', body);
@@ -1935,7 +1936,7 @@
         expanded = expanded[0].destruct().concat(expanded[1].eof);
         var flattend = flatten(expanded);
         var bodyCode = codegen.generate(parser.parse(flattend));
-        var localCtx;
+        var localCtx, matchedTokens;
         var macroFn = scopedEval(bodyCode, {
                 makeValue: syn.makeValue,
                 makeRegex: syn.makeRegex,
@@ -2067,9 +2068,23 @@
                     return newMatch;
                 }
             });
+        if (context.log) {
+            context.log.push({
+                name: def.name[0].token,
+                matchedTokens: matchedTokens = [],
+                next: rest[0] && rest[0].token || undefined
+            });
+        }
         return function (stx, context$2, prevStx, prevTerms) {
             localCtx = context$2;
-            return macroFn(stx, context$2, prevStx, prevTerms);
+            var result = macroFn(stx, context$2, prevStx, prevTerms);
+            if (matchedTokens) {
+                // from = stx.takeUntil (x) -> x == rest[0]
+                var i = 0, next = result.rest[0];
+                while (stx[i] !== next)
+                    matchedTokens.push(stx[i++].token);
+            }
+            return result;
         };
     }
     // similar to `parse1` in the honu paper
@@ -2092,7 +2107,7 @@
             }
             if (head.isMacro && expandCount < maxExpands) {
                 // load the macro definition into the environment and continue expanding
-                macroDefinition = loadMacroDef(head.body, context);
+                macroDefinition = loadMacroDef(head, context, rest);
                 var name = head.name.map(unwrapSyntax).join('');
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
@@ -2107,7 +2122,7 @@
             }
             if (head.isLetMacro && expandCount < maxExpands) {
                 // load the macro definition into the environment and continue expanding
-                macroDefinition = loadMacroDef(head.body, context);
+                macroDefinition = loadMacroDef(head, context, rest);
                 var freshName = fresh();
                 var name = head.name.map(unwrapSyntax).join('');
                 var nameStx = syn.makeIdent(name, head.name[0]);
@@ -2125,7 +2140,7 @@
                 continue;
             }
             if (head.isOperatorDefinition) {
-                var opDefinition = loadMacroDef(head.body, context);
+                var opDefinition = loadMacroDef(head, context, rest);
                 var name = head.name.map(unwrapSyntax).join('');
                 var nameStx = syn.makeIdent(name, head.name[0]);
                 addToDefinitionCtx([nameStx], context.defscope, false, context.paramscope);
@@ -2499,6 +2514,12 @@
                 writable: false,
                 enumerable: true,
                 configurable: false
+            },
+            log: {
+                value: o.log,
+                writable: false,
+                enumerable: true,
+                configurable: false
             }
         });
     }
@@ -2507,7 +2528,8 @@
         var filename = options && options.filename ? options.filename : '<anonymous module>';
         return makeExpanderContext({
             filename: filename,
-            requireModule: requireModule
+            requireModule: requireModule,
+            log: options ? options.log : undefined
         });
     }
     // a hack to make the top level hygiene work out

@@ -130,8 +130,7 @@
     }
 
     .cks {
-        width: 7em;
-        max-width: 7em;
+        min-width: 7em;
     }
 
     .modes {
@@ -215,6 +214,12 @@
                 <input checked id="ck-readable-names" name="ck-readable-names" type="checkbox"/>
                 <label for="ck-readable-names">readable names</label>
             </span>
+            <span class="ck">
+                <input id="ck-highlighting" name="ck-highlighting" type="checkbox" />
+                <label for="ck-highlighting">macro highlighting</label>
+            </span>
+        </span>
+        <span class="align-left option cks">
             <span class="ck">
                 <input id="ck-auto-compile" name="ck-auto-compile" type="checkbox" value="compile"/>
                 <label for="ck-auto-compile">auto-compile</label>

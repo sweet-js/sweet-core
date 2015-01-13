@@ -6,14 +6,13 @@ requirejs.config({
     }
 });
 
-require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, Rx) {
+require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, parser, srcmap, Rx) {
 
     var storage_code = 'editor_code';
     var storage_mode = 'editor_mode';
 
     var starting_code = $("#editor").text();
     var loaded_code, compile_start;
-    var compileWithSourcemap = $("body").attr("data-sourcemap") === "true";
 
     var editor = CodeMirror.fromTextArea($('#editor')[0], {
         lineNumbers: true,
@@ -156,13 +155,13 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
 
     var cursorActivityObs = Rx.Observable.create(function (observer) {
         function handler(e) {
-            observer.onNext(e);
+            observer.onNext(e.doc.getCursor());
         }
         editor.on("cursorActivity", handler);
         return function () {
             editor.off("cursorActivity", handler);
         }
-    });
+    }).debounce(100); // Ignore events that fire within 100ms of each other.
     var compileStartTime;
     var compileBuildTime = 1000;
     var compileSourceObs = autoCompileCheckbox.
@@ -176,14 +175,13 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
                     Rx.Observable.returnValue(subscribed = false) :
                     Rx.Observable.empty()
             }).concat(cursorActivityObs.
-                // Ignore events that fire within 100ms of each other.
-                debounce(100).
                 // This is essentially delayWithSelector,
                 // but rx.lite doesn't include that operator.
                 flatMapLatest(function (e) {
                     return Rx.Observable.timer(compileBuildTime);
                 })).
-            merge($("#ck-readable-names").changeAsObservable());
+            merge($("#ck-readable-names").changeAsObservable()).
+            merge($("#ck-highlighting").changeAsObservable());
         });
     }).
     publishValue(Rx.Observable.never());
@@ -197,7 +195,8 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
     map(function () {
         return {
             code: editor.getValue(),
-            readableNames: $("#ck-readable-names").is(":checked")
+            readableNames: $("#ck-readable-names").is(":checked"),
+            highlighting: $("#ck-highlighting").is(":checked")
         };
     }).
     // After the user has stopped typing for a while,
@@ -209,10 +208,11 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
         localStorage[storage_code] = opts.code;
         compileStartTime = Date.now();
         return sweet.compile(opts.code, {
-            sourceMap: compileWithSourcemap,
-            filename: compileWithSourcemap && "test.js" || undefined,
-            readableNames: opts.readableNames
-        }).code;
+            sourceMap: opts.highlighting,
+            filename: opts.highlighting && "test.js" || undefined,
+            readableNames: opts.readableNames,
+            log: opts.highlighting && [] || undefined
+        });
     }).
     // Materialize the sequence, so errors are onNext'd instead
     // of invoking the observer's onError handler. Since Errors
@@ -253,10 +253,149 @@ require(["./sweet", "./syntax", "./rx.jquery.min", "./rx.dom.compat.min"], funct
     }).
     repeat().
     subscribe(function onSuccess(compiled) {
-        output.setValue(compiled);
+        output.setValue(compiled.code);
         errorsBox.css("height", "0px");
         editBox.css("top", "65px");
         compileBuildTime = Date.now() - compileStartTime;
+    });
+
+    /* Visualize macro expansions */
+    compileSourceObs.
+    dematerialize().
+    catchException(function (error) {
+        return Rx.Observable.empty();
+    }).
+    repeat().
+    combineLatest(cursorActivityObs, function (compiled, cursor) {
+        return {log: compiled.log, map: compiled.sourceMap, cursor: cursor};
+    }).
+    filter(function(logAndCursor) {
+        return logAndCursor.log && $("#ck-highlighting").is(":checked");
+    }).
+    flatMap(function(logAndCursor) {
+        // only show macro highlights if cursor on macro name
+        var macro = _(logAndCursor.log).find(function(l) {
+            var nameCol = l.name.range[0] - l.name.lineStart;
+            return l.name.lineNumber == logAndCursor.cursor.line + 1
+                && nameCol <= logAndCursor.cursor.ch
+                && nameCol + l.name.value.length >= logAndCursor.cursor.ch;
+        });
+        if (macro === undefined) {
+            return [{editor: editor, highlights: []},
+                    {editor: output, highlights: []}];
+        }
+        var highlights = [macro.next, macro.name].
+        concat(macro.matchedTokens).
+        // convert to start/end line/column format
+        map(function(token) {
+            if (token.type === parser.Token.Delimiter) {
+                return {
+                    start: {
+                        line: token.startLineNumber,
+                        column: token.startRange[0] - token.startLineStart
+                    },
+                    end: {
+                        line: token.endLineNumber,
+                        column: token.endRange[1] - token.endLineStart
+                    }
+                };
+            } else {
+                return {
+                    start: {
+                        line: token.lineNumber,
+                        column: token.range[0] - token.lineStart
+                    },
+                    end: {
+                        line: token.lineNumber,
+                        column: token.range[1] - token.lineStart
+                    }
+                };
+            }
+        });
+        // range for the whole macro
+        highlights[0] = {start: highlights[1].start, end: highlights[0].start};
+        highlights[1].name = true;
+
+        var smc = new sourceMap.SourceMapConsumer(logAndCursor.map);
+        var to = [], prev;
+        smc.eachMapping(function(m) {
+            if (prev) {
+                prev.end = {
+                    line: m.generatedLine,
+                    column: m.generatedColumn
+                }
+            }
+            var fromMacro = _.any(highlights, function(h) {
+                return (m.originalLine > h.start.line ||
+                        (m.originalLine === h.start.line &&
+                         m.originalColumn >= h.start.column)) &&
+                       (m.originalLine < h.end.line ||
+                        (m.originalLine === h.end.line &&
+                         m.originalColumn < h.end.column));
+            });
+            if (fromMacro && !prev) {
+                prev = {
+                    start: {
+                        line: m.generatedLine,
+                        column: m.generatedColumn
+                    },
+                    end: {
+                        line: m.generatedLine,
+                        column: m.generatedColumn
+                    }
+                };
+                to.push(prev);
+            }
+            if (!fromMacro) prev = undefined;
+        });
+        return [{editor: editor, highlights: _.rest(highlights)},
+                {editor: output, highlights: to}];
+    }).
+    subscribe(function onSuccess(editorAndHighlights) {
+        var editor = editorAndHighlights.editor;
+        var highlights = editorAndHighlights.highlights.
+        sort(function(a,b) {
+            if (a.start.line < b.start.line) return -1;
+            if (a.start.line > b.start.line) return 1;
+            return a.start.column - b.start.column;
+        });
+        editor.removeOverlay("macro");
+        if (highlights.length === 0) return;
+        var line = 0, currentIdx = 0;
+        editor.addOverlay({
+            name: "macro",
+            token: function(stream) {
+                if (stream.sol()) line++;
+                if (currentIdx >= highlights.length) { // no more highlights
+                    stream.skipToEnd();
+                    return null;
+                }
+                var current = highlights[currentIdx];
+                if (current.start.line > line) { // no highlights on this line
+                    stream.skipToEnd();
+                    return null;
+                }
+                if (current.start.column > stream.pos) { // skip to highlight
+                    stream.pos = current.start.column;
+                    return null;
+                }
+                if (current.start.column < stream.pos) { // omit past highlight
+                    currentIdx++;
+                    return null;
+                }
+                // highlight current token
+                if (current.end.line == line && stream.pos < current.end.column) {
+                    stream.pos = current.end.column;
+                    currentIdx++;
+                } else if (current.end.line <= line) { // omit empty highlight
+                    currentIdx++;
+                } else { // multi-line token -> move to next line
+                    stream.skipToEnd();
+                }
+                return current.name ? "macro-name" : "macro";
+            },
+            blankLine: function() { line++; }
+        });
     });
 
     compileSourceObs.connect();
