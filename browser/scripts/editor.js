@@ -390,6 +390,7 @@ require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "
                 } else if (current.end.line <= line) { // omit empty highlight
                     currentIdx++;
                 } else { // multi-line token -> move to next line
+                    current.start.column = 0;
                     stream.skipToEnd();
                 }
                 return current.name ? "macro-name" : "macro";
