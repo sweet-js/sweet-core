@@ -213,7 +213,7 @@
         } else {
             result.code = codegen.generate(ast, _.extend({
                 comment: true
-            }, options.escodegen))
+            }, options.escodegen));
         }
         if (options.log) result.log = options.log;
         return result;
