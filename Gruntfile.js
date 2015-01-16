@@ -15,6 +15,7 @@ module.exports = function(grunt) {
             dev: {
                 options: {
                     sourceMap: false,
+                    to5: true,
                     compileFrom: "./lib/sweet",
                 },
                 files: [{
@@ -26,6 +27,7 @@ module.exports = function(grunt) {
             },
             release: {
                 options: {
+                    to5: true,
                     compileFrom: "./lib/sweet"
                 },
                 files: [{
@@ -73,6 +75,7 @@ module.exports = function(grunt) {
             single: {
                 options: {
                     sourceMap: false,
+                    to5: true,
                     readableNames: false,
                     compileFrom: "./build/lib/sweet"
                 },
@@ -275,6 +278,7 @@ module.exports = function(grunt) {
                 var output = sweet.compile(code, {
                     sourceMap: options.sourceMap,
                     filename: file,
+                    to5: options.to5,
                     readableNames: options.readableNames,
                     modules: modules
                 })[0];
