@@ -116,20 +116,6 @@ var TermTree                  = termTree.TermTree,
     ConstStatementTerm        = termTree.ConstStatementTerm,
     ParenExpressionTerm       = termTree.ParenExpressionTerm;
 
-macro (->) {
-    rule infix { $param:ident | { $body ... } } => {
-        function ($param) { $body ...}
-    }
-    rule infix { $param:ident | $body:expr } => {
-        function ($param) { return $body }
-    }
-    rule infix { ($param:ident (,) ...) | { $body ... } } => {
-        function ($param (,) ...) { $body ... }
-    }
-    rule infix { ($param:ident (,) ...) | $body:expr } => {
-        function ($param (,) ...) { return $body }
-    }
-}
 operator (|>) 1 left { $l, $r } => #{ $r($l) }
 
 var scopedEval = se.scopedEval;
@@ -622,7 +608,7 @@ function toksAdjacent(a, b) {
 function syntaxInnerValuesEq(synA, synB) {
     var a = synA.token.inner, b = synB.token.inner;
     return a.length === b.length &&
-        _.zip(a, b) |> ziped -> _.all(ziped, pair -> {
+        _.zip(a, b) |> ziped => _.all(ziped, pair => {
             return unwrapSyntax(pair[0]) === unwrapSyntax(pair[1]);
         });
 
@@ -1650,14 +1636,14 @@ function loadMacroDef(body, context, phase) {
         },
         console: console
     };
-    context.env.keysStr().forEach(key -> {
+    context.env.keysStr().forEach(key => {
         var val = context.env.getStr(key);
         // load the runtime values into the global object
         if (val && val instanceof RuntimeValue) {
             macroGlobal[key] = val.trans.value;
         }
     });
-    context.store.keysStr().forEach(key -> {
+    context.store.keysStr().forEach(key => {
         var val = context.store.getStr(key);
         // load the runtime values into the global object
         if (val && val instanceof RuntimeValue) {
@@ -2164,7 +2150,7 @@ function expandTermTreeToFinal (term, context) {
         })
 
         if (term.isModuleTerm) {
-            bodyTerms.forEach(bodyTerm -> {
+            bodyTerms.forEach(bodyTerm => {
                 if (bodyTerm.isExportNameTerm ||
                     bodyTerm.isExportDeclTerm ||
                     bodyTerm.isExportDefaultTerm) {
@@ -2287,8 +2273,8 @@ function defaultImportStx(importPath, ctx) {
         "operator"
     ];
 
-    var importNames = names.map(name -> syn.makeIdent(name, ctx));
-    var importForMacrosNames = names.map(name -> syn.makeIdent(name, ctx));
+    var importNames = names.map(name => syn.makeIdent(name, ctx));
+    var importForMacrosNames = names.map(name => syn.makeIdent(name, ctx));
     // import { names ... } from "importPath" for macros
     var importForMacrosStmt = [syn.makeKeyword("import", ctx),
                                syn.makeDelim("{}", joinSyntax(importForMacrosNames,
@@ -2350,7 +2336,7 @@ function loadModule(name) {
     // node specific code
     var fs = require("fs");
     return fs.readFileSync(name, 'utf8')
-        |> parser.read |> body -> {
+        |> parser.read |> body => {
             return createModule(name, body)
         };
 
@@ -2363,7 +2349,7 @@ function invoke(modTerm, modRecord, phase, context) {
     if (modRecord.language === "base") {
         // base modules can just use the normal require pipeline
         var exported = require(modRecord.name);
-        Object.keys(exported).forEach(exp -> {
+        Object.keys(exported).forEach(exp => {
             // create new bindings in the context
             var freshName = fresh();
             var expName = syn.makeIdent(exp, null);
@@ -2381,19 +2367,19 @@ function invoke(modTerm, modRecord, phase, context) {
     } else {
         // recursively invoke any imports in this module at this
         // phase and update the context
-        modRecord.importedModules.forEach(impPath -> {
+        modRecord.importedModules.forEach(impPath => {
             var importMod = loadImport(impPath, context);
 
             var impEntries = modRecord.getImportsForModule(impPath);
 
-            if (_.any(impEntries, entry -> entry.forPhase === 0)) {
+            if (_.any(impEntries, entry => entry.forPhase === 0)) {
                 context = invoke(importMod.term, importMod.record, phase, context);
             }
         });
 
         // turn the module into text so we can eval it
         var code = modTerm.body
-            |> terms -> terms.map(term -> term.destruct(context, {stripCompileTerm: true,
+            |> terms => terms.map(term => term.destruct(context, {stripCompileTerm: true,
                                                                   stripModuleTerm: true}))
             |> _.flatten
             |> flatten
@@ -2408,7 +2394,7 @@ function invoke(modTerm, modRecord, phase, context) {
         vm.runInNewContext(code, global);
 
         // update the exports with the runtime values
-        modRecord.exportEntries.forEach(entry -> {
+        modRecord.exportEntries.forEach(entry => {
             // we have to get the value with the localName
             var expName = resolve(entry.localName, phase);
             var expVal = global[expName];
@@ -2430,31 +2416,31 @@ function invoke(modTerm, modRecord, phase, context) {
 // the context and return the modified context
 // @ (ModuleTerm, ModuleRecord, Num, ExpanderContext) -> ExpanderContext
 function visit(modTerm, modRecord, phase, context) {
-    var defctx = [];
+    let defctx = [];
     // don't need to visit base modules since they do not support macros
     if (modRecord.language === "base") {
         return context;
     }
     // add a visiting definition context since we are binding
     // macros in the module scope
-    modTerm.body = modTerm.body.map(term -> term.addDefCtx(defctx));
+    modTerm.body = modTerm.body.map(term => term.addDefCtx(defctx));
     // reset the exports
     modRecord.exportEntries = [];
 
     // for each of the imported modules, recursively visit and
     // invoke them at the appropriate phase and then bind the
     // imported names in this module
-    modRecord.importedModules.forEach(impPath -> {
+    modRecord.importedModules.forEach(impPath => {
         // load the (possibly cached) module for this import
         var importMod = loadImport(impPath, context);
         // grab all the import statements for that module
         var impEntries = modRecord.getImportsForModule(impPath);
 
-        if(_.any(impEntries, entry -> entry.forPhase === 0)) {
+        if(_.any(impEntries, entry => entry.forPhase === 0)) {
             // importing for phase 0 just needs to visit (load
             // compiletime values)
             context = visit(importMod.term, importMod.record, phase, context);
-        } else if (_.any(impEntries, entry -> entry.forPhase === 1)) {
+        } else if (_.any(impEntries, entry => entry.forPhase === 1)) {
             // importing for phase 1 needs to visit (load compiletime
             // values) and invoke (load runtime values for phase 1
             // code)
@@ -2476,7 +2462,7 @@ function visit(modTerm, modRecord, phase, context) {
     var transformerNames = [];
 
     // grab hold of each top level syntax transformer name
-    modTerm.body.forEach(term -> {
+    modTerm.body.forEach(term => {
         if (term.isMacroTerm) {
             transformerNames.push(term.name[0]);
         }
@@ -2491,7 +2477,7 @@ function visit(modTerm, modRecord, phase, context) {
     });
 
     // load the transformers into the store
-    modTerm.body.forEach(term -> {
+    modTerm.body.forEach(term => {
         var name;
         var macroDefinition;
         var exportName;
@@ -2590,7 +2576,7 @@ function visit(modTerm, modRecord, phase, context) {
 // a version of map where the callback only runs on the non comma items in
 // the comma separated list.
 function mapCommaSep(l, f) {
-    return l.map((stx, idx)-> {
+    return l.map((stx, idx) => {
         if (idx % 2 !== 0 && ((!stx.isPunctuator()) ||
                               stx.token.value !== ",")) {
             throwSyntaxError("import",
@@ -2605,7 +2591,7 @@ function mapCommaSep(l, f) {
 }
 
 function filterModuleCommaSep(stx) {
-    return stx.filter((stx, idx) -> {
+    return stx.filter((stx, idx) => {
         if (idx % 2 !== 0 && ((!stx.isPunctuator()) ||
                               stx.token.value !== ",")) {
             throwSyntaxError("import",
@@ -2629,7 +2615,7 @@ function loadImport(path, context) {
     if(!availableModules.has(modFullPath)) {
         // load it
         var modToImport = loadModule(modFullPath)
-            |> mod -> expandModule(mod.term,
+            |> mod => expandModule(mod.term,
                                    modFullPath,
                                    context.templateMap,
                                    context.patternMap,
@@ -2649,10 +2635,10 @@ function loadImport(path, context) {
 // @ (ImportTerm, [...SyntaxObject], ModuleTerm, ModuleRecord, ExpanderContext, Num) -> Void
 function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
     // first collect the import names and their associated bindings
-    var renamedNames = impEntries.map(entry -> {
+    var renamedNames = impEntries.map(entry => {
         var isBase = modRecord.language === "base";
 
-        var inExports = _.find(modRecord.exportEntries, expEntry -> {
+        var inExports = _.find(modRecord.exportEntries, expEntry => {
             return unwrapSyntax(expEntry.exportName) === unwrapSyntax(entry.importName);
         });
         if (!(inExports || isBase)) {
@@ -2696,7 +2682,7 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
     });
 
     // set the new bindings in the context
-    renamedNames.forEach(name -> {
+    renamedNames.forEach(name => {
         // context.env.set(name.renamed,
         //                 phase,
         //                 new CompiletimeValue(name.trans,
@@ -2712,7 +2698,7 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
 
     });
 
-    return stx.map(stx -> renamedNames.reduce((acc, name) -> {
+    return stx.map(stx => renamedNames.reduce((acc, name) => {
         return acc.imported(name.localName, name.exportName, phase, modRecord.name);
     }, stx));
 }
@@ -2748,8 +2734,8 @@ function filterCompileNames(stx, context) {
 
     var runtimeNames = stx.token.inner
         |> filterModuleCommaSep
-        |> names -> names.filter(name -> isCompileName(name, context));
-    var newInner = runtimeNames.reduce((acc, name, idx, orig) -> {
+        |> names => names.filter(name => isCompileName(name, context));
+    var newInner = runtimeNames.reduce((acc, name, idx, orig) => {
         acc.push(name);
         if (orig.length - 1 !== idx) { // don't add trailing comma
             acc.push(syn.makePunc(",", name));
@@ -2765,16 +2751,16 @@ function flattenModule(modTerm, modRecord, context) {
 
     // filter the imports to just the imports and names that are
     // actually available at runtime
-    var imports = modRecord.getRuntimeImportEntries().filter(entry -> {
+    var imports = modRecord.getRuntimeImportEntries().filter(entry => {
         return isCompileName(entry.localName, context);
     });
 
-    var exports = modRecord.exportEntries.filter(entry -> {
+    var exports = modRecord.exportEntries.filter(entry => {
         return isCompileName(entry.localName, context);
     })
 
     // filter out all of the import and export statements
-    var output = modTerm.body.reduce((acc, term) -> {
+    var output = modTerm.body.reduce((acc, term) => {
         if (term.isExportNameTerm ||
             term.isExportDeclTerm ||
             term.isExportDefaultTerm ||
@@ -2788,7 +2774,7 @@ function flattenModule(modTerm, modRecord, context) {
 
     output = output
         |> flatten
-        |> output -> output.map(stx -> {
+        |> output => output.map(stx => {
             var name = resolve(stx, 0);
             // collect the implicit imports (those imports that
             // must be included because a macro expanded to a reference
@@ -2796,7 +2782,7 @@ function flattenModule(modTerm, modRecord, context) {
             if (context.implicitImport.has(name)) {
                 var implicit = context.implicitImport.get(name);
                 // don't double add the import
-                if (!_.find(imports, imp -> imp === implicit)) {
+                if (!_.find(imports, imp => imp === implicit)) {
                     imports.push(implicit);
                 }
             }
@@ -2804,7 +2790,7 @@ function flattenModule(modTerm, modRecord, context) {
         });
 
     // flatten everything
-    var flatImports = imports.reduce((acc, entry) -> {
+    var flatImports = imports.reduce((acc, entry) => {
         entry.moduleRequest = entry.moduleRequest.clone();
         entry.moduleRequest.token.value += context.compileSuffix;
         return acc.concat(flatten(entry
@@ -2813,13 +2799,13 @@ function flattenModule(modTerm, modRecord, context) {
     }, []);
 
     return {
-        imports: imports.map(entry -> entry.toTerm()),
+        imports: imports.map(entry => entry.toTerm()),
         body: flatImports.concat(output)
     };
 }
 
 function flattenImports(imports, mod, context) {
-    return imports.reduce((acc, imp) -> {
+    return imports.reduce((acc, imp) => {
         var modFullPath = resolvePath(unwrapSyntax(imp.from), context.filename);
         if (availableModules.has(modFullPath)) {
             var modPair = availableModules.get(modFullPath);
