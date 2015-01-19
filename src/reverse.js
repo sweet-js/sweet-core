@@ -46,10 +46,14 @@
     // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
     var codegen = typeof escodegen !== "undefined" ? escodegen : gen;
 
-    var rulePatternSrc = "rule { $p ... } => { $e ... }";
 
-    var rulePattern = _.initial(patternModule.loadPattern(
-            parser.read(rulePatternSrc)));
+    function asPattern(src) {
+        return _.initial(patternModule.loadPattern(parser.read(src)));
+    }
+
+    var rulePattern = asPattern("rule { $p ... } => { $e ... }");
+    var expandP = _.initial(parser.read("$p..."));
+    var expandE = _.initial(parser.read("$e..."));
 
     // Pre-order traversal of read tree, provides rest tokens at each step
     //
@@ -71,12 +75,35 @@
         return foldReadTree(function(macros, rest) {
             var res = patternModule.matchPatterns(rulePattern, rest, {env: {}});
             if (res.success) macros.push({
-                pattern: res.patternEnv['$p'],
-                expansion: res.patternEnv['$e']
+                pattern: patternModule.transcribe(expandP, 0, res.patternEnv),
+                expansion: patternModule.transcribe(expandE, 0, res.patternEnv)
             });
             return macros;
         }, stx, []);
     }
 
+    function findReverseMatches(stx) {
+        debugger;
+        var patterns = findMacroRules(stx).map(function(rule) {
+            return patternModule.loadPattern(rule.expansion);
+        });
+        return foldReadTree(function(matches, rest) {
+            for (var i = 0; i < patterns.length; i++) {
+                var ctx = {env: {}};
+                var res = patternModule.matchPatterns(patterns[i], rest, ctx, true);
+                // if matched and actually consumed tokens
+                if (res.success && rest.length > res.rest.length) {
+                    // TODO add replemcement and test whether it compiles
+                    matches.push({
+                        matchedTokens: _.initial(rest, res.rest.length),
+                        replacement: "<not implemented yet>"
+                    });
+                }
+            }
+            return matches;
+        }, stx, []);
+    }
+
     exports.findMacroRules = findMacroRules;
+    exports.findReverseMatches = findReverseMatches;
 }));
