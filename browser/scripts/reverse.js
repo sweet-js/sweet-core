@@ -22,10 +22,25 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+// TODO
+// support simple macro classes
+// get replacement
+// check whether replacement compiles
+// do not match own macro definition
+// coalesce replacements
+// replace all
+// editor integration
+//
+// Future:
+// custom macro classes
+// scope-sensitive reverse matching
+// nested macros
+// named bindings
+// verbatim labeled statements
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require('./parser'), require('./patterns'), require('escodegen'));
+        factory(exports, require('underscore'), require('./parser'), require('./patterns'), require('./syntax'), require('escodegen'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define([
@@ -38,14 +53,16 @@
             'escodegen'
         ], factory);
     }
-}(this, function (exports$2, _, parser, patternModule, gen) {
+}(this, function (exports$2, _, parser, patternModule, syntax, gen) {
     'use strict';
     // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
     var codegen = typeof escodegen !== 'undefined' ? escodegen : gen;
     function asPattern(src) {
         return _.initial(patternModule.loadPattern(parser.read(src)));
     }
+    var macroPattern = asPattern('macro $n { $e ... }');
     var rulePattern = asPattern('rule { $p ... } => { $e ... }');
+    var expandN = _.initial(parser.read('$n'));
     var expandP = _.initial(parser.read('$p...'));
     var expandE = _.initial(parser.read('$e...'));
     // Pre-order traversal of read tree, provides rest tokens at each step
@@ -57,45 +74,87 @@
         var current = initial;
         for (var i = 0; i < stx.length; i++) {
             current = fn(current, stx.slice(i));
-            if (stx[i].token.type === parser.Token.Delimiter) {
-                current = foldReadTree(fn, stx[i].token.inner, current);
+            var tok = stx[i].token ? stx[i].token : stx[i];
+            if (tok.type === parser.Token.Delimiter) {
+                current = foldReadTree(fn, tok.inner, current);
             }
         }
         return current;
     }
-    function findMacroRules(stx) {
+    function findMacros(stx) {
         return foldReadTree(function (macros, rest) {
-            var res = patternModule.matchPatterns(rulePattern, rest, { env: {} });
-            if (res.success)
-                macros.push({
-                    pattern: patternModule.transcribe(expandP, 0, res.patternEnv),
-                    expansion: patternModule.transcribe(expandE, 0, res.patternEnv)
-                });
+            var res = patternModule.matchPatterns(macroPattern, rest, { env: {} }, true);
+            if (res.success) {
+                var name = patternModule.transcribe(expandN, 0, res.patternEnv);
+                var con = patternModule.transcribe(expandE, 0, res.patternEnv);
+                return macros.concat(findMacroRules(name, con));
+            }
             return macros;
         }, stx, []);
     }
+    function findMacroRules(name, stx) {
+        return foldReadTree(function (macros, rest) {
+            var res = patternModule.matchPatterns(rulePattern, rest, { env: {} }, true);
+            if (res.success)
+                macros.push(new MacroRule(name, res.patternEnv));
+            return macros;
+        }, stx, []);
+    }
+    function MacroRule(name, patternEnv) {
+        this.expansion = patternModule.transcribe(expandE, 0, patternEnv);
+        this.expansionRule = patternModule.loadPattern(this.expansion);
+        this.pattern = patternModule.transcribe(expandP, 0, patternEnv);
+        this.pattern = name.concat(this.pattern);
+        this.patternRule = patternModule.loadPattern(this.pattern);
+        this.addClassesToExpansionPattern();
+    }
+    MacroRule.prototype.addClassesToExpansionPattern = function () {
+        var env = {};
+        foldReadTree(function (t, rest) {
+            var tok = rest[0];
+            if (!tok)
+                return;
+            if (tok.type === parser.Token.Identifier && tok.class != 'token') {
+                env[tok.value] = tok.class;
+            }
+        }, this.patternRule);
+        foldReadTree(function (t, rest) {
+            var tok = rest[0];
+            if (!tok)
+                return;
+            if (tok.type === parser.Token.Identifier && env[tok.value]) {
+                tok.class = env[tok.value];
+            }
+        }, this.expansionRule);
+    };
+    MacroRule.prototype.removeClasses = function (rest) {
+        this.pattern = _(this.pattern).filter(function (token) {
+        });
+    };
+    MacroRule.prototype.tryMatch = function (rest) {
+        var c = { env: {} };
+        var res = patternModule.matchPatterns(this.expansionRule, rest, c, true);
+        if (!res.success || rest.length === res.rest.length)
+            return;
+        var rep = syntax.prettyPrint(syntax.joinSyntaxArray(patternModule.transcribe(this.pattern, 0, res.patternEnv)));
+        return {
+            matchedTokens: _.initial(rest, res.rest.length),
+            replacement: rep,
+            replacementSrc: codegen.generate(rep)
+        };
+    };
     function findReverseMatches(stx) {
-        debugger;
-        var patterns = findMacroRules(stx).map(function (rule) {
-                return patternModule.loadPattern(rule.expansion);
-            });
+        var macros = findMacros(stx);
         return foldReadTree(function (matches, rest) {
-            for (var i = 0; i < patterns.length; i++) {
-                var ctx = { env: {} };
-                var res = patternModule.matchPatterns(patterns[i], rest, ctx, true);
-                // if matched and actually consumed tokens
-                if (res.success && rest.length > res.rest.length) {
-                    // TODO add replemcement and test whether it compiles
-                    matches.push({
-                        matchedTokens: _.initial(rest, res.rest.length),
-                        replacement: '<not implemented yet>'
-                    });
-                }
+            for (var i = 0; i < macros.length; i++) {
+                var match = macros[i].tryMatch(rest);
+                if (match)
+                    matches.push(match);
             }
             return matches;
         }, stx, []);
     }
-    exports$2.findMacroRules = findMacroRules;
+    exports$2.findMacros = findMacros;
     exports$2.findReverseMatches = findReverseMatches;
 }));
 //# sourceMappingURL=reverse.js.map
