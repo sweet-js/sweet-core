@@ -1,3 +1,11 @@
+(function(global, requirejs, require) {
+
+var storage_code  = "editor_code",
+    storage_mode  = "editor_mode",
+    slice  = Array.prototype.slice,
+    concat = Array.prototype.concat,
+    push   = Array.prototype.push;
+
 requirejs.config({
     shim: {
         'underscore': {
@@ -6,15 +14,202 @@ requirejs.config({
     }
 });
 
-require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, parser, srcmap, Rx) {
+require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery", "./rx.dom.compat.min"], function (sweet, syn, parser, srcmap, Rx) {
 
-    var storage_code = 'editor_code';
-    var storage_mode = 'editor_mode';
+srcmap = srcmap || sourceMap;
+/**
+* Constructs an observable sequence that depends on a resource object, whose lifetime is tied to the resulting observable sequence's lifetime.
+* @param {Function} resourceFactory Factory function to obtain a resource object.
+* @param {Function} observableFactory Factory function to obtain an observable sequence that depends on the obtained resource.
+* @returns {Observable} An observable sequence whose lifetime controls the lifetime of the dependent resource object.
+*/
+Rx.Observable.using = function (resourceFactory, observableFactory) {
+    return Rx.Observable.create(function (observer) {
+        var disposable = Rx.Disposable.empty, resource, source;
+        try {
+            resource = resourceFactory();
+            resource && (disposable = resource);
+            source = observableFactory(resource);
+        } catch (exception) {
+            return new Rx.CompositeDisposable(Rx.Observable.throw(exception).subscribe(observer), disposable);
+        }
+        return new Rx.CompositeDisposable(source.subscribe(observer), disposable);
+    });
+};
 
-    var starting_code = $("#editor").text();
-    var loaded_code, compile_start;
+var documentReadyObs = $(window).readyAsObservable().take(1).publishLast(),
+    windowResizeObs  = $(window).resizeAsObservable().startWith(true),
+    
+    initEditorObs = documentReadyObs
+        .map(_.partial($, "#editor", undefined))
+        .map(_.partial(initEditor, getEditorOptions))
+        .map(initEditorKeyMap),
+    
+    initOutputObs = documentReadyObs
+        .map(_.partial($, "#output", undefined))
+        .map(_.partial(initEditor, getOutputOptions)),
+    
+    // Initialize both CodeMirror instances on document
+    // ready, then select them into a list together.
+    mirrors = initEditorObs.zip(initOutputObs, concat.bind([])).publish(),
+    
+    keyMapSelector = _.partial(selectKeyMapClicks, $('#btn-vim'), $('#btn-emacs'), $('#btn-default')),
+    mirrorDragSelector = _.partial(selectMirrorDrags, $("#edit-box")),
+    commitResizes = _.partial(commitMirrorResizes, $("#edit-box"), $("#error-box"), $("#output-box")),
+    
+    errorRecoverySelector = _.partial(
+        recoverFromError,
+        $("#edit-box"),
+        $("#error-box"),
+        $("#error-text"),
+        $("#show-error-line")
+    ),
+    compileTypeSelector = _.partial(
+        selectCompileType,
+        $("#ck-auto-compile"),
+        $("#ck-readable-names"),
+        $("#ck-highlighting"),
+        $("#input-step-label"),
+        $("#input-step"),
+        $("#btn-compile"),
+        errorRecoverySelector
+    ),
+    commitOutput = _.partial(commitEditorOutput, $("#edit-box"), $("#error-box"));
 
-    var editor = CodeMirror.fromTextArea($('#editor')[0], {
+// Select the keyMap button clicks into their
+// keyMap values, then commit them in the editor.
+mirrors
+    .flatMapLatest(applyArgs(keyMapSelector))
+    .subscribe(applyArgs(commitKeyMap));
+
+mirrors
+    // Combine the codeMirror instances with each window resize event.
+    .combineLatest(windowResizeObs, concat.bind([]))
+    // select each codeMirror/resize event pair into a mouse drag Observable.
+    .flatMapLatest(applyArgs(mirrorDragSelector))
+    // Set the size of the editor and output boxes to the latest drag result.
+    .subscribe(applyArgs(commitResizes));
+
+mirrors
+    // Combine the event sources that can cause us to
+    // compile the editor contents. When the user compiles,
+    // handle errors internally so they don't surface later.
+    // Forward on the compilation result.
+    .flatMapLatest(applyArgs(compileTypeSelector))
+    // When we successfully compile the source, forward
+    // on the editor's "cursorActivity" events.
+    .flatMapLatest(applyArgs(selectCursorPosition))
+    // Write the results of the compilation into the output window
+    .doAction(applyArgs(commitOutput))
+    // If we compiled with macro highlighting, cross-
+    // reference the cursor position with the matched
+    // macro syntaxes and onNext tuples of [codeMirror, [highlight]]
+    .flatMap(applyArgs(selectEditorHightlights))
+    // Apply the highlights for each codeMirror instance
+    // as CodeMirror overlays.
+    .subscribe(applyArgs(commitHighlights));
+
+return mirrors.connect() && documentReadyObs.connect();
+
+function applyArgs(f, x) {
+    return function(a) {
+        return f.apply(x, a);
+    };
+}
+
+function selectKeyMapClicks(vim, emacs, defaultBtn, editor) {
+    return Rx.Observable.empty()
+        .merge(vim
+            .clickAsObservable()
+            .map(Rx.helpers.just("vim")))
+        .merge(emacs
+            .clickAsObservable()
+            .map(Rx.helpers.just("emacs")))
+        .merge(defaultBtn
+            .clickAsObservable()
+            .map(Rx.helpers.just("default")))
+        .map(concat.bind([editor]));
+}
+
+function commitKeyMap(editor, keyMap) {
+    localStorage[storage_mode] = keyMap;
+    editor.setOption("keyMap", keyMap);
+    editor.focus();
+}
+
+function selectMirrorDrags(editBox, editor, output, resizeEvent) {
+
+    var windowWidth = $(window).width(),
+        editorGutter = $(editor.getGutterElement()),
+        resizeGutter = $(output.getGutterElement()).css({ "cursor": "ew-resize" }),
+        leftGutterWidth = editorGutter.outerWidth(),
+        rightGutterWidth = resizeGutter.outerWidth(),
+        downObs = resizeGutter.mousedownAsObservable(),
+        moveObs = $(window).mousemoveAsObservable(),
+        upObs = $(window).mouseupAsObservable();
+
+    // project each mousedown event into a series of future mousemove events.
+    return downObs.flatMap(function (downEvent) {
+            var editorWidth = editBox.outerWidth();
+            leftGutterWidth = editorGutter.outerWidth();
+            rightGutterWidth = resizeGutter.outerWidth();
+
+            // project each mousemove event into an editorWidth integer
+            return moveObs.map(function (moveEvent) {
+                    return editorWidth + (moveEvent.pageX - downEvent.pageX);
+                })
+                // stop listening to mousemoves when we receive a mouseup
+                .takeUntil(upObs);
+        })
+        // don't update the DOM between browser repaints
+        .debounce(0, Rx.Scheduler.requestAnimationFrameScheduler)
+        .startWith(editBox.outerWidth())
+        .map(function (codeAreaWidth) {
+            return [editor, output, {
+                editBoxWidth: Math.max(Math.min(codeAreaWidth, windowWidth - leftGutterWidth), leftGutterWidth),
+                outputBoxLeft: Math.max(Math.min(codeAreaWidth, windowWidth - leftGutterWidth), leftGutterWidth),
+                editBoxRight: Math.min(Math.max(windowWidth - codeAreaWidth, rightGutterWidth), windowWidth - rightGutterWidth),
+                outputBoxWidth: Math.min(Math.max(windowWidth - codeAreaWidth, rightGutterWidth), windowWidth - rightGutterWidth),
+            }];
+        });
+}
+
+function commitMirrorResizes(editBox, errorsBox, outputBox, editor, output, coords) {
+    editBox.css("right", coords.editBoxRight + "px");
+    errorsBox.css("right", coords.editBoxRight + "px");
+    outputBox.css("left", coords.outputBoxLeft + "px");
+    editor.setSize(coords.editBoxWidth, null);
+    output.setSize(coords.outputBoxWidth, null);
+}
+
+function initEditor(getOptions, $editor) {
+    var options = getOptions($editor),
+        initial = options.value,
+        compile = options.initialCompile,
+        editor  = CodeMirror.fromTextArea($editor[0], options);
+    if(initial) { editor.setValue(initial); }
+    if(compile) { editor.initialCompile = compile; }
+    return editor;
+}
+
+function initEditorKeyMap(editor) {
+    if(localStorage[storage_mode]) {
+        editor.setOption("keyMap", localStorage[storage_mode]);
+    }
+    return editor;
+}
+
+function getEditorOptions($editor) {
+    var starting_code, initial_code = $editor.text();
+    if(window.location.hash) {
+        starting_code = decodeURI(window.location.hash.slice(1));
+    } else if(localStorage[storage_code]) {
+        starting_code = localStorage[storage_code];
+    } else {
+        starting_code = initial_code;
+    }
+    return {
+        initialCompile: starting_code === initial_code,
         lineNumbers: true,
         smartIndent: false,
         indentWithTabs: false,
@@ -23,6 +218,7 @@ require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "
         autofocus: true,
         theme: 'solarized dark',
         showCursorWhenSelecting: true,
+        value: starting_code,
         extraKeys: {
             Tab: function (cm) {
                 if (cm.somethingSelected()) {
@@ -77,381 +273,8 @@ require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "
                 }));
             }
         }
-    });
-
-    if (window.location.hash) {
-        editor.setValue(loaded_code = decodeURI(window.location.hash.slice(1)));
-    } else if (localStorage[storage_code]) {
-        editor.setValue(loaded_code = localStorage[storage_code]);
-    } else {
-        editor.setValue(loaded_code = starting_code);
-    }
-    if (localStorage[storage_mode]) {
-        editor.setOption("keyMap", localStorage[storage_mode]);
-    }
-
-    compile_start = loaded_code !== starting_code ?
-        Rx.Observable.empty() :
-        Rx.Observable.returnValue(true);
-
-    var output = CodeMirror.fromTextArea($('#output')[0], {
-        lineNumbers: true,
-        theme: 'solarized dark',
-        readOnly: true
-    });
-
-    var autoCompileCheckbox = $("#ck-auto-compile"),
-        errorsBox = $("#error-box"),
-        showLineButton = errorsBox.find("#show-error-line"),
-        errorsText = errorsBox.find("#error-text");
-
-    $('#btn-vim').click(function () {
-        editor.setOption('keyMap', 'vim');
-        editor.focus();
-        localStorage[storage_mode] = "vim";
-    });
-    $('#btn-emacs').click(function () {
-        editor.setOption('keyMap', 'emacs');
-        editor.focus();
-        localStorage[storage_mode] = "emacs";
-    });
-    $('#btn-default').click(function () {
-        editor.setOption('keyMap', 'default');
-        editor.focus();
-        localStorage[storage_mode] = "default";
-    });
-
-    Rx.Observable.merge(
-        $('#input-step-label').clickAsObservable().map(function () {
-            return parseInt($('#input-step').val()) + 1 || 1;
-        }),
-        $('#input-step').changeAsObservable().map(function () {
-            return parseInt($('#input-step').val()) || 1;
-        })
-    ).
-    debounce(100).
-    filter(function (val) {
-        return val === val;
-    }).
-    map(function (currentStep) {
-        currentStep = currentStep > 0 && currentStep || 1;
-        var showIntermediates = Boolean($("#ck-readable-names").is(":checked")) == false;
-        var unparsedStr = syn.prettyPrint(sweet.expand(
-            editor.getValue(),
-            undefined, {
-                maxExpands: currentStep
-            }
-        ), showIntermediates);
-
-        $('#input-step').val(currentStep);
-
-        return unparsedStr;
-    }).
-    catchException(function (e) {
-        return Rx.Observable.returnValue(e.stack || e.toString());
-    }).
-    repeat().
-    subscribe(output.setValue.bind(output));
-
-    var cursorActivityObs = Rx.Observable.create(function (observer) {
-        function handler(e) {
-            observer.onNext(e.doc.getCursor());
-        }
-        editor.on("cursorActivity", handler);
-        return function () {
-            editor.off("cursorActivity", handler);
-        }
-    }).debounce(100); // Ignore events that fire within 100ms of each other.
-    var compileStartTime;
-    var compileBuildTime = 1000;
-    var compileSourceObs = autoCompileCheckbox.
-    changeAsObservable().
-    scan(false, Rx.helpers.not).
-    map(function (selected, subscribed) {
-        subscribed = true;
-        return Rx.Observable.defer(function () {
-            return !selected && subscribed ? Rx.Observable.never() : Rx.Observable.defer(function () {
-                return subscribed ?
-                    Rx.Observable.returnValue(subscribed = false) :
-                    Rx.Observable.empty()
-            }).concat(cursorActivityObs.
-                // This is essentially delayWithSelector,
-                // but rx.lite doesn't include that operator.
-                flatMapLatest(function (e) {
-                    return Rx.Observable.timer(compileBuildTime);
-                })).
-            merge($("#ck-readable-names").changeAsObservable()).
-            merge($("#ck-highlighting").changeAsObservable());
-        });
-    }).
-    publishValue(Rx.Observable.never());
-
-    compileSourceObs.connect();
-
-    compileSourceObs = compileSourceObs.
-    switchLatest().
-    merge(compile_start.delay(100)).
-    merge($("#btn-compile").clickAsObservable()).
-    map(function () {
-        return {
-            code: editor.getValue(),
-            readableNames: $("#ck-readable-names").is(":checked"),
-            highlighting: $("#ck-highlighting").is(":checked")
-        };
-    }).
-    // After the user has stopped typing for a while,
-    // try to compile the code in the editor. If the
-    // compile step throws an exception, Rx will catch
-    // it and forward it on for us.
-    map(function (opts) {
-        window.location = "editor.html#" + encodeURI(opts.code);
-        localStorage[storage_code] = opts.code;
-        compileStartTime = Date.now();
-        return sweet.compile(opts.code, {
-            sourceMap: opts.highlighting,
-            filename: opts.highlighting && "test.js" || undefined,
-            readableNames: opts.readableNames,
-            log: opts.highlighting && [] || undefined
-        });
-    }).
-    // Materialize the sequence, so errors are onNext'd instead
-    // of invoking the observer's onError handler. Since Errors
-    // are mapped to Completions, repeat() ensures the source
-    // sequence is re-subscribed to when an error occurs.
-    materialize().repeat().publish();
-
-    compileSourceObs.
-    dematerialize().
-    ignoreElements().
-    catchException(function (e) {
-        return showLineButton.
-        clickAsObservable().
-        flatMap(Rx.Observable.returnValue(e)).
-        takeUntil(compileSourceObs);
-    }).
-    repeat().
-    subscribe(function highlightError(error) {
-        error = {
-            line: error.lineNumber - 1,
-            ch: error.column
-        };
-        editor.scrollIntoView({
-            from: error,
-            to: error
-        }, 100);
-        editor.setCursor(error);
-        editor.focus();
-    });
-
-    compileSourceObs.
-    dematerialize().
-    catchException(function (error) {
-        errorsBox.css("height", "65px");
-        editBox.css("top", "130px");
-        errorsText.text(error);
-        return Rx.Observable.empty();
-    }).
-    repeat().
-    subscribe(function onSuccess(compiled) {
-        output.setValue(compiled.code);
-        errorsBox.css("height", "0px");
-        editBox.css("top", "65px");
-        compileBuildTime = Date.now() - compileStartTime;
-    });
-
-    /* Visualize macro expansions */
-    compileSourceObs.
-    dematerialize().
-    catchException(function (error) {
-        return Rx.Observable.empty();
-    }).
-    repeat().
-    combineLatest(cursorActivityObs, function (compiled, cursor) {
-        return {log: compiled.log, map: compiled.sourceMap, cursor: cursor};
-    }).
-    filter(function(logAndCursor) {
-        return logAndCursor.log && $("#ck-highlighting").is(":checked");
-    }).
-    flatMap(function(logAndCursor) {
-        // only show macro highlights if cursor on macro name
-        var macro = _(logAndCursor.log).find(function(l) {
-            var nameCol = l.name.range[0] - l.name.lineStart;
-            return l.name.lineNumber == logAndCursor.cursor.line + 1
-                && nameCol <= logAndCursor.cursor.ch
-                && nameCol + l.name.value.length >= logAndCursor.cursor.ch;
-        });
-        if (macro === undefined) {
-            return [{editor: editor, highlights: []},
-                    {editor: output, highlights: []}];
-        }
-        var highlights = [macro.next, macro.name].
-        concat(macro.matchedTokens).
-        // convert to start/end line/column format
-        map(function(token) {
-            if (token.type === parser.Token.Delimiter) {
-                return {
-                    start: {
-                        line: token.startLineNumber,
-                        column: token.startRange[0] - token.startLineStart
-                    },
-                    end: {
-                        line: token.endLineNumber,
-                        column: token.endRange[1] - token.endLineStart
-                    }
-                };
-            } else {
-                return {
-                    start: {
-                        line: token.lineNumber,
-                        column: token.range[0] - token.lineStart
-                    },
-                    end: {
-                        line: token.lineNumber,
-                        column: token.range[1] - token.lineStart
-                    }
-                };
-            }
-        });
-        // range for the whole macro
-        highlights[0] = {start: highlights[1].start, end: highlights[0].start};
-        highlights[1].name = true;
-
-        var smc = new sourceMap.SourceMapConsumer(logAndCursor.map);
-        var to = [], prev;
-        smc.eachMapping(function(m) {
-            if (prev) {
-                prev.end = {
-                    line: m.generatedLine,
-                    column: m.generatedColumn
-                }
-            }
-            var fromMacro = _.any(highlights, function(h) {
-                return (m.originalLine > h.start.line ||
-                        (m.originalLine === h.start.line &&
-                         m.originalColumn >= h.start.column)) &&
-                       (m.originalLine < h.end.line ||
-                        (m.originalLine === h.end.line &&
-                         m.originalColumn < h.end.column));
-            });
-            if (fromMacro && !prev) {
-                prev = {
-                    start: {
-                        line: m.generatedLine,
-                        column: m.generatedColumn
-                    },
-                    end: {
-                        line: m.generatedLine,
-                        column: m.generatedColumn
-                    }
-                };
-                to.push(prev);
-            }
-            if (!fromMacro) prev = undefined;
-        });
-        return [{editor: editor, highlights: _.rest(highlights)},
-                {editor: output, highlights: to}];
-    }).
-    subscribe(function onSuccess(editorAndHighlights) {
-        var editor = editorAndHighlights.editor;
-        var highlights = editorAndHighlights.highlights.
-        sort(function(a,b) {
-            if (a.start.line < b.start.line) return -1;
-            if (a.start.line > b.start.line) return 1;
-            return a.start.column - b.start.column;
-        });
-        editor.removeOverlay("macro");
-        if (highlights.length === 0) return;
-        var line = 0, currentIdx = 0;
-        editor.addOverlay({
-            name: "macro",
-            token: function(stream) {
-                if (stream.sol()) line++;
-                if (currentIdx >= highlights.length) { // no more highlights
-                    stream.skipToEnd();
-                    return null;
-                }
-                var current = highlights[currentIdx];
-                if (current.start.line > line) { // no highlights on this line
-                    stream.skipToEnd();
-                    return null;
-                }
-                if (current.start.column > stream.pos) { // skip to highlight
-                    stream.pos = current.start.column;
-                    return null;
-                }
-                if (current.start.column < stream.pos) { // omit past highlight
-                    currentIdx++;
-                    return null;
-                }
-                // highlight current token
-                if (current.end.line == line && stream.pos < current.end.column) {
-                    stream.pos = current.end.column;
-                    currentIdx++;
-                } else if (current.end.line <= line) { // omit empty highlight
-                    currentIdx++;
-                } else { // multi-line token -> move to next line
-                    current.start.column = 0;
-                    stream.skipToEnd();
-                }
-                return current.name ? "macro-name" : "macro";
-            },
-            blankLine: function() { line++; }
-        });
-    });
-
-    compileSourceObs.connect();
-
-    var editBox = $("#edit-box");
-    var outputBox = $("#output-box");
-    var resizeGutter = $(output.getGutterElement()).css({
-        "cursor": "ew-resize"
-    });
-    var editorGutter = $(editor.getGutterElement());
-    var resizeObs = $(window).resizeAsObservable().startWith(0).debounce(100);
-    var downObs = resizeGutter.mousedownAsObservable();
-    var moveObs = $(window).mousemoveAsObservable();
-    var upObs = $(window).mouseupAsObservable();
-
-    // Start with the latest window width when the browser resizes.
-    resizeObs.flatMapLatest(function (resizeEvent) {
-
-        var windowWidth = $(window).width(),
-            leftGutterWidth = editorGutter.outerWidth(),
-            rightGutterWidth = resizeGutter.outerWidth();
-
-        // project each mousedown event into a series of future mousemove events.
-        return downObs.flatMap(function (downEvent) {
-                var editorWidth = editBox.outerWidth();
-                leftGutterWidth = editorGutter.outerWidth();
-                rightGutterWidth = resizeGutter.outerWidth();
-
-                // project each mousemove event into an editorWidth integer
-                return moveObs.map(function (moveEvent) {
-                        return editorWidth + (moveEvent.pageX - downEvent.pageX);
-                    }).
-                    // stop listening to mousemoves when we receive a mouseup
-                takeUntil(upObs);
-            }).
-            // don't update the DOM between browser repaints
-        debounce(0, Rx.Scheduler.requestAnimationFrameScheduler).
-        startWith(editBox.outerWidth()).
-        map(function (codeAreaWidth) {
-            return {
-                editBoxWidth: Math.max(Math.min(codeAreaWidth, windowWidth - leftGutterWidth), leftGutterWidth),
-                outputBoxLeft: Math.max(Math.min(codeAreaWidth, windowWidth - leftGutterWidth), leftGutterWidth),
-                editBoxRight: Math.min(Math.max(windowWidth - codeAreaWidth, rightGutterWidth), windowWidth - rightGutterWidth),
-                outputBoxWidth: Math.min(Math.max(windowWidth - codeAreaWidth, rightGutterWidth), windowWidth - rightGutterWidth),
-            };
-        });
-    }).
-    forEach(function (coords) {
-        errorsBox.css("right", coords.editBoxRight + "px");
-        editBox.css("right", coords.editBoxRight + "px");
-        editor.setSize(coords.editBoxWidth, null);
-        outputBox.css("left", coords.outputBoxLeft + "px");
-        output.setSize(coords.outputBoxWidth, null);
-    });
-
+    };
+    
     function nextCursorPos(dir, tabStop, cm, position) {
 
         // 0 if dir == -1, else 1
@@ -541,4 +364,410 @@ require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "
             cursor: cursor
         };
     }
+}
+
+function getOutputOptions() {
+    return {
+        lineNumbers: true,
+        theme: 'solarized dark',
+        readOnly: true
+    };
+}
+
+function selectCompileType(
+        autoCompile, readableNames, highlight,
+        stepLabel, stepper,
+        compileMacrosBtn,
+        errorRecoverySelector,
+        editor, output
+    ) {
+    
+    var compileButtonObs    = compileMacrosBtn
+            .clickAsObservable()
+            .doAction(stepper.val.bind(stepper, 0))
+            .publish(),
+        lastCompileType     = "full",
+        initialCompile      = editor.initialCompile,
+        compileChangeSubj   = new Rx.Subject(),
+        compileChangeObs    = Rx.Observable.defer(function() {
+            return autoCompile
+                .changeAsObservable()
+                // Select each change event into a Boolean that flips on each click.
+                .scan(autoCompile.is(":checked"), Rx.helpers.not)
+                .startWith(autoCompile.is(":checked"));
+        })
+        .multicast(compileChangeSubj).refCount(),
+        
+        namesChangeObs      = Rx.Observable.defer(function() {
+            return readableNames
+                .changeAsObservable()
+                .scan(readableNames.is(":checked"), Rx.helpers.not)
+                .startWith(readableNames.is(":checked"));
+        }),
+        
+        highlightChangeObs  = Rx.Observable.defer(function() {
+            return highlight
+                .changeAsObservable()
+                .scan(highlight.is(":checked"), Rx.helpers.not)
+                .doAction(function(checked) {
+                    if(checked === true) {
+                        autoCompile.prop("checked", checked);
+                        compileChangeSubj.onNext(checked);
+                    }
+                })
+                .startWith(highlight.is(":checked"));
+        })
+        .publish().refCount(),
+        
+        editorChangeObs   = Rx.Observable.defer(function() {
+            
+            var changeEventObs = Rx.Observable.fromEvent(editor, "change");
+            
+            if(initialCompile === true) {
+                initialCompile = false;
+                changeEventObs = changeEventObs
+                    .pausable(compileChangeObs)
+                    .debounce(750)
+                    .startWith(0);
+            } else {
+                changeEventObs = changeEventObs
+                    .debounce(750)
+                    .startWith(0)
+                    .pausable(compileChangeObs);
+                
+                if(!startWithInitialValue("full")) {
+                    changeEventObs = changeEventObs.merge(highlightChangeObs);
+                }
+            }
+            
+            return changeEventObs.map(_.bind(editor.getCursor, editor));
+        }),
+        
+        stepLabelClicks = Rx.Observable.defer(function() {
+            
+            var clickEventObs = stepLabel.clickAsObservable();
+            
+            if(startWithInitialValue("partial")) {
+                clickEventObs = clickEventObs.startWith(0);
+            }
+            
+            return clickEventObs.map(function(val) {
+                return stepper.
+                    val(val = Math.max(parseInt(stepper.val()) || 0, 0) + 1) &&
+                    val || val;
+            });
+        }),
+        
+        stepperChanges = stepper
+            .changeAsObservable()
+            .map(function(val) {
+                return (val = Math.max(parseInt(stepper.val()) || 0, 1)) &&
+                    stepper.val(val) && val || val;
+            }),
+        
+        compileFullBtnObs = compileButtonObs.map(getFullValues),
+        
+        compileFullEvents = namesChangeObs
+            .combineLatest(
+                highlightChangeObs,
+                editorChangeObs,
+                concat.bind([])
+            )
+            .merge(compileFullBtnObs)
+            .doAction(saveCompileType("full"))
+            .map(concat.bind([editor, output]))
+            .map(applyArgs(compileFull)),
+        
+        compilePartialEvents = stepLabelClicks
+            .merge(stepperChanges)
+            .combineLatest(namesChangeObs, concat.bind([]))
+            .doAction(saveCompileType("partial"))
+            .map(concat.bind([editor, output]))
+            .map(applyArgs(compilePartial));
+    
+    return Rx.Observable.using(
+        function() { return compileButtonObs.connect(); },
+        function() {
+            return compileFullEvents
+                .merge(compilePartialEvents)
+                .switchLatest()
+                .catchException(function(err) {
+                    return Rx.Observable.throwException(err)
+                        .startWith([editor, output, false, {}]);
+                })
+                .retryWhen(function(errors) {
+                    return errors.flatMapLatest(function(error) {
+                        return errorRecoverySelector(editor, stepLabel, stepper, compileButtonObs, error);
+                    });
+                });
+        });
+    
+    function saveCompileType(type) {
+        return function() {
+            lastCompileType = type;
+        };
+    }
+    
+    function startWithInitialValue(type) {
+        return lastCompileType === type && (
+            autoCompile.is(":checked") || (
+            initialCompile && !(initialCompile = false)));
+    }
+    
+    function getFullValues() {
+        return [
+            readableNames.is(":checked"),
+            highlight.is(":checked"),
+            editor.getCursor()
+        ];
+    }
+}
+
+function compileFull(editor, output, readableNames, highlight, cursor) {
+    return Rx.Observable.create(function(observer) {
+        
+        var code = editor.getValue(), result;
+        
+        window.location = "editor.html#" + encodeURI(code);
+        localStorage[storage_code] = code;
+        
+        observer.onNext([
+            editor, output, highlight,
+            sweet.compile(code, {
+                sourceMap: highlight,
+                filename: highlight && "test.js" || undefined,
+                readableNames: readableNames,
+                log: highlight && [] || undefined
+            })
+        ]);
+        observer.onCompleted();
+    });
+}
+
+function compilePartial(editor, output, currentStep, readableNames) {
+    return Rx.Observable.create(function(observer) {
+        
+        var code = editor.getValue(),
+            unparsedStr = syn.prettyPrint(sweet.expand(
+                code, undefined,
+                { maxExpands: currentStep }
+            ), !readableNames);
+        
+        observer.onNext([
+            editor, output, false,
+            { code: unparsedStr }
+        ]);
+        observer.onCompleted();
+    });
+}
+
+function recoverFromError(
+    editBox, errorsBox, errorsText, showErrorBtn,
+    editor, stepLabel, stepper, compileMacrosObs,
+    error) {
+    
+    errorsBox.css("height", "65px");
+    editBox.css("top", "130px");
+    errorsText.text(error);
+    
+    return showErrorBtn
+        .clickAsObservable()
+        .doAction(_.partial(highlightError, editor, error))
+        .ignoreElements()
+        .merge(compileMacrosObs)
+        .merge(stepLabel.clickAsObservable())
+        .merge(stepper.changeAsObservable())
+        .merge(Rx.Observable.fromEvent(editor, "change"))
+        .take(1);
+}
+
+function highlightError(editor, error) {
+    error = {
+        line: error.lineNumber - 1,
+        ch: error.column
+    };
+    editor.scrollIntoView({
+        from: error,
+        to: error
+    }, 100);
+    editor.setCursor(error);
+    editor.focus();
+}
+
+function selectCursorPosition(editor, output, highlight, result) {
+    var obs = Rx.Observable.returnValue(undefined);
+    if(highlight === true) {
+        obs = Rx.Observable
+            .fromEvent(editor, "cursorActivity")
+            .startWith(0)
+            .map(_.bind(editor.getCursor, editor));
+    }
+    return obs.map(concat.bind([editor, output, result]));
+}
+
+function commitEditorOutput(editBox, errorsBox, editor, output, result, cursor) {
+    output.setValue(result.code || "");
+    errorsBox.css("height", "0px");
+    editBox.css("top", "65px");
+    editor.focus();
+}
+
+function selectEditorHightlights(editor, output, result, cursor) {
+    
+    var logs      = result.log || [],
+        sourcemap = result.sourceMap || "",
+        macro     = _(logs).find(function(log) {
+            var nameCol = log.name.range[0] - log.name.lineStart;
+            return log.name.lineNumber == cursor.line + 1
+                && nameCol <= cursor.ch
+                && nameCol + log.name.value.length >= cursor.ch;
+        });
+    
+    // only show macro highlights if cursor on macro name
+    if (!sourcemap || !macro || !logs.length) {
+        return [
+            [editor, []],
+            [output, []]
+        ];
+    }
+    
+    var consumer   = new srcmap.SourceMapConsumer(sourcemap),
+        mappings   = [],
+        outHighlights,
+        srcHighlights = [
+                mapTokensToHighlights(macro.next, true),
+                mapTokensToHighlights(macro.name, false, true)
+            ].concat(macro.matchedTokens.map(mapTokensToHighlights));
+    
+    consumer.eachMapping(function(mapping) { mappings.push(mapping); });
+    
+    outHighlights = mappings.reduce(reduceMappingsToOutHighlights, [undefined, []]).pop();
+    
+    return [
+        [editor, slice.call(srcHighlights, 1)],
+        [output, outHighlights]
+    ];
+    
+    function mapTokensToHighlights(token, isStart, isName) {
+        var highlight = (token.type === parser.Token.Delimiter) ?
+            {
+                start: {
+                    line: token.startLineNumber,
+                    column: token.startRange[0] - token.startLineStart
+                },
+                end: {
+                    line: token.endLineNumber,
+                    column: token.endRange[1] - token.endLineStart
+                }
+            } :
+            {
+                start: {
+                    line: token.lineNumber,
+                    column: token.range[0] - token.lineStart
+                },
+                end: {
+                    line: token.lineNumber,
+                    column: token.range[1] - token.lineStart
+                }
+            };
+        
+        if(isStart === true) {
+            highlight.end = highlight.start;
+        }
+        if(isName === true) {
+            highlight.name = true;
+        }
+        return highlight;
+    }
+    
+    function reduceMappingsToOutHighlights(tuple, mapping) {
+        
+        var prev = tuple[0], list = tuple[1], macro;
+        
+        if(!!prev) {
+            prev.end = {
+                line: mapping.generatedLine,
+                column: mapping.generatedColumn
+            };
+        }
+        
+        macro = _.any(srcHighlights, function(x) {
+            return (
+                mapping.originalLine > x.start.line || (
+                    mapping.originalLine === x.start.line &&
+                    mapping.originalColumn >= x.start.column)) && (
+                mapping.originalLine < x.end.line || (
+                    mapping.originalLine === x.end.line &&
+                    mapping.originalColumn < x.end.column));
+        });
+        
+        if(!macro) {
+            prev = undefined;
+        } else if(!prev) {
+            list.push(prev = {
+                start: {
+                    line: mapping.generatedLine,
+                    column: mapping.generatedColumn
+                },
+                end: {
+                    line: mapping.generatedLine,
+                    column: mapping.generatedColumn
+                }
+            });
+        }
+        
+        tuple[0] = prev;
+        tuple[1] = list;
+        
+        return tuple;
+    }
+}
+
+function commitHighlights(editor, highlights) {
+    editor.removeOverlay("macro");
+    if (highlights.length === 0) return;
+    highlights.sort(function(a, b) {
+        if (a.start.line < b.start.line) return -1;
+        if (a.start.line > b.start.line) return 1;
+        return a.start.column - b.start.column;
+    });
+    var line = 0, currentIdx = 0;
+    editor.addOverlay({
+        name: "macro",
+        token: function(stream) {
+            if (stream.sol()) line++;
+            if (currentIdx >= highlights.length) { // no more highlights
+                stream.skipToEnd();
+                return null;
+            }
+            var current = highlights[currentIdx];
+            if (current.start.line > line) { // no highlights on this line
+                stream.skipToEnd();
+                return null;
+            }
+            if (current.start.column > stream.pos) { // skip to highlight
+                stream.pos = current.start.column;
+                return null;
+            }
+            if (current.start.column < stream.pos) { // omit past highlight
+                currentIdx++;
+                return null;
+            }
+            // highlight current token
+            if (current.end.line == line && stream.pos < current.end.column) {
+                stream.pos = current.end.column;
+                currentIdx++;
+            } else if (current.end.line <= line) { // omit empty highlight
+                currentIdx++;
+            } else { // multi-line token -> move to next line
+                current.start.column = 0;
+                stream.skipToEnd();
+            }
+            return current.name ? "macro-name" : "macro";
+        },
+        blankLine: function() { line++; }
+    });
+}
+
 });
+}(this, requirejs, require));
