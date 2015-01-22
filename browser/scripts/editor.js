@@ -14,7 +14,7 @@ requirejs.config({
     }
 });
 
-require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery", "./rx.dom.compat.min"], function (sweet, syn, parser, srcmap, Rx) {
+require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, parser, srcmap, Rx) {
 
 srcmap = srcmap || sourceMap;
 /**
