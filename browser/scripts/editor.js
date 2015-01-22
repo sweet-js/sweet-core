@@ -83,6 +83,10 @@ mirrors
     .subscribe(applyArgs(commitKeyMap));
 
 mirrors
+    .flatMapLatest(applyArgs(_.partial(selectEvalClicks, $("#btn-eval"))))
+    .subscribe(safeEvalOutput);
+
+mirrors
     // Combine the codeMirror instances with each window resize event.
     .combineLatest(windowResizeObs, concat.bind([]))
     // select each codeMirror/resize event pair into a mouse drag Observable.
@@ -135,6 +139,18 @@ function commitKeyMap(editor, keyMap) {
     localStorage[storage_mode] = keyMap;
     editor.setOption("keyMap", keyMap);
     editor.focus();
+}
+
+function selectEvalClicks(btnEval, editor, output) {
+    return btnEval.clickAsObservable().map(output.getValue.bind(output, undefined));
+}
+
+function safeEvalOutput(code) {
+    try {
+        eval(code);
+    } catch(e) {
+        console.error(e && e.stack || e);
+    }
 }
 
 function selectMirrorDrags(editBox, editor, output, resizeEvent) {
