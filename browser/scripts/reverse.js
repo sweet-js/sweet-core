@@ -22,9 +22,11 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-// TODO
+// DONE
 // support simple macro classes
 // get replacement
+//
+// TODO
 // check whether replacement compiles
 // do not match own macro definition
 // coalesce replacements
@@ -40,7 +42,7 @@
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
-        factory(exports, require('underscore'), require('./parser'), require('./patterns'), require('./syntax'), require('escodegen'));
+        factory(exports, require('underscore'), require('./parser'), require('./patterns'), require('./syntax'), require('./expander'), require('escodegen'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define([
@@ -53,7 +55,7 @@
             'escodegen'
         ], factory);
     }
-}(this, function (exports$2, _, parser, patternModule, syntax, gen) {
+}(this, function (exports$2, _, parser, patternModule, syntax, expander, gen) {
     'use strict';
     // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
     var codegen = typeof escodegen !== 'undefined' ? escodegen : gen;
@@ -136,11 +138,11 @@
         var res = patternModule.matchPatterns(this.expansionRule, rest, c, true);
         if (!res.success || rest.length === res.rest.length)
             return;
-        var rep = syntax.prettyPrint(syntax.joinSyntaxArray(patternModule.transcribe(this.pattern, 0, res.patternEnv)));
+        var rep = expander.flatten(patternModule.transcribe(this.pattern, 0, res.patternEnv));
         return {
             matchedTokens: _.initial(rest, res.rest.length),
             replacement: rep,
-            replacementSrc: codegen.generate(rep)
+            replacementSrc: syntax.prettyPrint(rep)
         };
     };
     function findReverseMatches(stx) {

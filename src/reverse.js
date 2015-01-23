@@ -23,9 +23,11 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// TODO
+// DONE
 // support simple macro classes
 // get replacement
+//
+// TODO
 // check whether replacement compiles
 // do not match own macro definition
 // coalesce replacements
@@ -47,6 +49,7 @@
                 require('./parser'),
                 require("./patterns"),
                 require("./syntax"),
+                require("./expander"),
                 require('escodegen'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
@@ -58,7 +61,7 @@
                 'patterns',
                 'escodegen'], factory);
     }
-}(this, function(exports, _, parser, patternModule, syntax, gen) {
+}(this, function(exports, _, parser, patternModule, syntax, expander, gen) {
     'use strict';
     // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
     var codegen = typeof escodegen !== "undefined" ? escodegen : gen;
@@ -152,14 +155,13 @@
         if (!res.success || rest.length === res.rest.length) return;
 
         var rep =
-            syntax.prettyPrint(
-                syntax.joinSyntaxArray(
-                        patternModule.transcribe(this.pattern, 0, res.patternEnv)));
+            expander.flatten(
+                patternModule.transcribe(this.pattern, 0, res.patternEnv));
 
         return {
             matchedTokens: _.initial(rest, res.rest.length),
             replacement: rep,
-            replacementSrc: codegen.generate(rep)
+            replacementSrc: syntax.prettyPrint(rep)
         }
     }
 
