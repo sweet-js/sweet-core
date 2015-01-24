@@ -82,16 +82,35 @@
     // fn :: a -> Token -> a
     // stx :: [Token] (can be nested)
     // initial :: a
-    function foldReadTree(fn, stx, initial) {
+    function foldReadTree(fn, stx, initial, path, i) {
         var current = initial;
+        if (!path) {
+            path = [stx];
+        } else {
+            path.push(i, stx);
+        }
         for (var i = 0; i < stx.length; i++) {
-            current = fn(current, stx.slice(i));
+            current = fn(current, stx.slice(i), path);
             var tok = stx[i].token ? stx[i].token : stx[i];
             if (tok.type === parser.Token.Delimiter) {
-                current = foldReadTree(fn, tok.inner, current);
+                current = foldReadTree(fn, tok.inner, current, path, i);
             }
         }
+        path.pop();
+        path.pop();
         return current;
+    }
+
+    // create a new tree by walking the path up and replacing nodes
+    function replaceInTree(newChildren, path) {
+        if (path.length === 0) {
+            return newChildren;
+        }
+        var parentStx = path.pop();
+        var parent = _.find(parentStx, function(p) {
+            return p.token.value.inner === newChildren;
+        });
+
     }
 
     function findMacros(stx) {
