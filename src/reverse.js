@@ -49,23 +49,19 @@
                 require("./patterns"),
                 require("./syntax"),
                 require("./expander"),
-                require("./sweet"),
-                require('escodegen'));
+                require("./sweet"));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['exports',
                 'underscore',
                 'parser',
-                'syntax',
-                'scopedEval',
                 'patterns',
-                'escodegen'], factory);
+                'syntax',
+                'expander',
+                'sweet'], factory);
     }
-}(this, function(exports, _, parser, patternModule, syntax, expander, sweet, gen) {
+}(this, function(exports, _, parser, patternModule, syntax, expander, sweet) {
     'use strict';
-    // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
-    var codegen = typeof escodegen !== "undefined" ? escodegen : gen;
-
 
     function asPattern(src) {
         return _.initial(patternModule.loadPattern(parser.read(src)));
@@ -125,22 +121,23 @@
             if (res.success) {
                 var name = patternModule.transcribe(expandN, 0, res.patternEnv);
                 var con = patternModule.transcribe(expandE, 0, res.patternEnv);
-                return macros.concat(findMacroRules(name, con));
+                return macros.concat(findMacroRules(name, con, stx));
             }
             return macros;
         }, stx, []);
     }
 
-    function findMacroRules(name, stx) {
+    function findMacroRules(name, m, stx) {
         return foldReadTree(function(macros, init, rest, path) {
             var res = patternModule.matchPatterns(rulePattern, rest,
                                                   {env: {}}, true);
-            if (res.success) macros.push(new MacroRule(name, res.patternEnv));
+            if (res.success) macros.push(new MacroRule(name, res.patternEnv, stx));
             return macros;
-        }, stx, []);
+        }, m, []);
     }
 
-    function MacroRule(name, patternEnv) {
+    function MacroRule(name, patternEnv, stx) {
+        this.compUnit = {inner: stx};
         this.expansion = patternModule.transcribe(expandE, 0, patternEnv);
         this.expansionRule = patternModule.loadPattern(this.expansion);
         this.pattern = patternModule.transcribe(expandP, 0, patternEnv);
@@ -188,12 +185,6 @@
         }, this.pattern);
     }
 
-    MacroRule.prototype.removeClasses = function(rest) {
-        this.pattern = _(this.pattern).filter(function(token) {
-
-        });
-    }
-
     function startRange(token) {
         if (!token) return 9999999999;
         if (token.token) token = token.token;
@@ -230,16 +221,20 @@
         var prefix = src.slice(0, startRange(rest[0]));
         var suffix = src.slice(Math.min(src.length, startRange(res.rest[0])));
         var repSrc = syntax.prettyPrint(expander.flatten(rep));
+        var newSrc = prefix + repSrc + suffix;
         try {
             // this might fail with an exception
-            sweet.expandSyntax(newTree, []);
-            return {
-                matchedTokens: matched,
-                matchedSrc: syntax.prettyPrint(expander.flatten(matched)),
-                replacement: repSrc,
-                replacedSrc: prefix + repSrc + suffix
+            var ast = sweet.compile(newSrc, {ast: true, readableNames: true});
+            var newCompUnit = {inner: parser.read(src)};
+            if (patternModule.isEquivPatternEnvToken(newCompUnit, this.compUnit)) {
+                return {
+                    matchedTokens: matched,
+                    matchedSrc: syntax.prettyPrint(expander.flatten(matched)),
+                    replacement: repSrc,
+                    replacedSrc: newSrc
+                }
             }
-        } catch(e) { return; }
+        } catch(e) { }
     }
 
     function findReverseMatches(src) {

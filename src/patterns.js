@@ -1134,4 +1134,5 @@
     exports.typeIsLiteral = typeIsLiteral;
     exports.cloneMatch = cloneMatch;
     exports.makeIdentityRule = makeIdentityRule;
+    exports.isEquivPatternEnvToken = isEquivPatternEnvToken;
 }))

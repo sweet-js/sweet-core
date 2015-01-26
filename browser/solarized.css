@@ -214,3 +214,6 @@ View-port and gutter both get little noise background to give it a real feel.
 .cm-s-solarized .cm-macro-name {
     border-bottom: 2px solid rgb(192,0,192);
 }
+.cm-s-solarized .cm-candidate {
+    background-color: rgba(0,96,0,0.3);
+}

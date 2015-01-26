@@ -1,0 +1,9 @@
+let x = 0 in x
+
+-->
+
+inx x
+
+-->
+
+let x' = 0 in x
