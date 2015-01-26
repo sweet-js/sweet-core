@@ -146,9 +146,10 @@
         this.pattern = name.concat(this.pattern);
         this.patternRule = patternModule.loadPattern(this.pattern);
         this.addClassesToExpansionPattern();
+        this.removeClassesFromPattern();
     }
 
-    MacroRule.prototype.addClassesToExpansionPattern = function() {
+    MacroRule.prototype.getSimpleClasses = function() {
         var env = {};
         foldReadTree(function(t, init, rest, path) {
             var tok = rest[0];
@@ -157,6 +158,11 @@
                 env[tok.value] = tok.class;
             }
         }, this.patternRule);
+        return env;
+    }
+
+    MacroRule.prototype.addClassesToExpansionPattern = function() {
+        var env = this.getSimpleClasses();
         foldReadTree(function(t, init, rest, path) {
             var tok = rest[0];
             if (!tok) return;
@@ -164,6 +170,21 @@
                 tok.class = env[tok.value];
             }
         }, this.expansionRule);
+    }
+
+    MacroRule.prototype.removeClassesFromPattern = function() {
+        var env = this.getSimpleClasses();
+        foldReadTree(function(t, init, rest, path) {
+            var tok = rest[0].token;
+            if (!tok) return;
+            if (tok.type === parser.Token.Identifier && env[tok.value]) {
+                if (rest[1] && rest[1].token.value === ':') {
+                    var idx = path[path.length - 1];
+                    var stx = path[path.length - 2];
+                    stx.splice(idx + 1, 2);
+                }
+            }
+        }, this.pattern);
     }
 
     MacroRule.prototype.removeClasses = function(rest) {
@@ -198,7 +219,7 @@
         var newTree = replaceInTree(newStx, _.initial(path, 2));
         try {
             // this might fail with an exception
-            parser.parse(sweet.expandSyntax(newTree, []));
+            sweet.expandSyntax(newTree, []);
             return {
                 matchedTokens: _.initial(rest, res.rest.length),
                 replacement: syntax.prettyPrint(expander.flatten(rep)),
@@ -208,6 +229,7 @@
     }
 
     function findReverseMatches(stx) {
+        stx = expander.adjustLineContext(stx, stx[0]);
         var macros = findMacros(stx);
         return foldReadTree(function(matches, init, rest, path) {
             for (var i = 0; i < macros.length; i++) {

@@ -2771,6 +2771,7 @@
     exports.expand = expandTopLevel;
     exports.expandModule = expandModule;
     exports.flatten = flatten;
+    exports.adjustLineContext = adjustLineContext;
 
     exports.resolve = resolve;
     exports.get_expression = get_expression;

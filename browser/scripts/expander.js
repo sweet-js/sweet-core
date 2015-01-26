@@ -2553,6 +2553,7 @@
     exports$2.expand = expandTopLevel;
     exports$2.expandModule = expandModule;
     exports$2.flatten = flatten;
+    exports$2.adjustLineContext = adjustLineContext;
     exports$2.resolve = resolve;
     exports$2.get_expression = get_expression;
     exports$2.getName = getName;

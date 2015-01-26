@@ -59,17 +59,17 @@ describe("findReverseMatches", function() {
     it("should return possible reverse match for let macro", function() {
         var matches = findReverseMatches(letMacro + "\nvar a = 1; var b = 2;");
         expect(matches).to.have.length(2);
-        expect(matches[0].matchedTokens).to.have.length(8);
-        expect(matches[0].replacement).to.be("let a = 1, b = 2");
-        expect(matches[1].matchedTokens).to.have.length(4);
-        expect(matches[1].replacement).to.be("let b = 2");
+        expect(matches[0].matchedTokens).to.have.length(10);
+        expect(matches[0].replacement).to.be("let a = ( 1 ) , b = ( 2 )\n");
+        expect(matches[1].matchedTokens).to.have.length(5);
+        expect(matches[1].replacement).to.be("let b = ( 2 )\n");
     });
 
     it("should return possible reverse match for swap macro", function() {
         var matches = findReverseMatches(swapMacro + "\nvar a,b; var tmp = a; a = b; b = tmp;");
         expect(matches).to.have.length(1);
-        expect(matches[0].matchedTokens).to.have.length(10);
-        expect(matches[0].replacement).to.be("swap ( a , b )");
+        expect(matches[0].matchedTokens).to.have.length(13);
+        expect(matches[0].replacement).to.be("swap a , b\n");
     });
 
     it("should respect pattern classes for swap macro", function() {
