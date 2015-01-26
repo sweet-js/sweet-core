@@ -117,7 +117,8 @@
         return replaceInTree(newParentStx, path);
     }
 
-    function findMacros(stx) {
+    function findMacros(src) {
+        var stx = parser.read(src);
         return foldReadTree(function(macros, init, rest, path) {
             var res = patternModule.matchPatterns(macroPattern, rest,
                                                   {env: {}}, true);
@@ -193,47 +194,61 @@
         });
     }
 
-    MacroRule.prototype.isInMacro = function(token) {
-        var range = token.range;
+    function startRange(token) {
+        if (!token) return 9999999999;
+        if (token.token) token = token.token;
         if (token.type === parser.Token.Delimiter) {
-            range = [token.startRange[0], token.endRange[1]];
+            return token.startRange[0];
         }
-        var firstTok = this.pattern[0].token;
-        var start = firstTok.type === parser.Token.Delimiter
-            ? firstTok.startRange[0]
-            : firstTok.range[0];
-        var lastTok = _.last(this.expansion).token;
-        var end = lastTok.type === parser.Token.Delimiter
-            ? lastTok.endRange[1]
-            : lastTok.range[1];
-        return range[1] >= start && range[0] <= end;
+        return token.range[0];
     }
 
-    MacroRule.prototype.tryMatch = function(init, rest, path) {
+    function endRange(token) {
+        if (!token) return 0;
+        if (token.token) token = token.token;
+        if (token.type === parser.Token.Delimiter) {
+            return token.endRange[1];
+        }
+        return token.range[1];
+    }
+
+    MacroRule.prototype.isInMacro = function(token) {
+        var start = startRange(this.pattern[0]);
+        var end = endRange(_.last(this.expansion));
+        return endRange(token) >= start && startRange(token) <= end;
+    }
+
+    MacroRule.prototype.tryMatch = function(init, rest, path, src) {
         var c = {env: {}};
-        if (rest.length === 0 || this.isInMacro(rest[0].token)) return;
+        if (rest.length === 0 || this.isInMacro(rest[0])) return;
         var res = patternModule.matchPatterns(this.expansionRule, rest, c, true);
         if (!res.success || rest.length === res.rest.length) return;
+        var matched =  _.initial(rest, res.rest.length);
         var rep = patternModule.transcribe(this.pattern, 0, res.patternEnv);
         var newStx = _.flatten([init, rep, res.rest], true);
         var newTree = replaceInTree(newStx, _.initial(path, 2));
+        var prefix = src.slice(0, startRange(rest[0]));
+        var suffix = src.slice(Math.min(src.length, startRange(res.rest[0])));
+        var repSrc = syntax.prettyPrint(expander.flatten(rep));
         try {
             // this might fail with an exception
             sweet.expandSyntax(newTree, []);
             return {
-                matchedTokens: _.initial(rest, res.rest.length),
-                replacement: syntax.prettyPrint(expander.flatten(rep)),
-                replacedSrc: syntax.prettyPrint(expander.flatten(newTree))
+                matchedTokens: matched,
+                matchedSrc: syntax.prettyPrint(expander.flatten(matched)),
+                replacement: repSrc,
+                replacedSrc: prefix + repSrc + suffix
             }
         } catch(e) { return; }
     }
 
-    function findReverseMatches(stx) {
+    function findReverseMatches(src) {
+        var stx = parser.read(src);
         stx = expander.adjustLineContext(stx, stx[0]);
-        var macros = findMacros(stx);
+        var macros = findMacros(src);
         return foldReadTree(function(matches, init, rest, path) {
             for (var i = 0; i < macros.length; i++) {
-                var match = macros[i].tryMatch(init, rest, path);
+                var match = macros[i].tryMatch(init, rest, path, src);
                 if (match) matches.push(match);
             }
             return matches;
