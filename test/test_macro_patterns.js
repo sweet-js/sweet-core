@@ -1178,4 +1178,23 @@ describe("macro expander", function() {
         }
         expect(any_contract (Str) -> Str).to.be("fun");
     });
+
+    it("should match repeated variables", function() {
+        macro m {
+            rule { ( $a , $a ) } => { true }
+        }
+        expect(m(1,1)).to.be(true);
+        expect(m((23 + 42), (23 + 42))).to.be(true);
+    });
+
+    it("should match repeated variables with named bindings", function() {
+        macro m {
+          rule {
+              ( $a:( ( $b 12 ) ) , $a:( ( 23 $c ) ) )
+          } => {
+              $a$b + $a$c
+          }
+        }
+        expect( m((23 12) , (23 12)) ).to.be(35);
+    });
 });
