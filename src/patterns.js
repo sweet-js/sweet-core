@@ -713,6 +713,11 @@
                     success = false;
                     rest = stx;
                 }
+            } else if (patternEnv[pattern.value] && !pattern.repeat) {
+                var prev = patternEnv[pattern.value].match;
+                match = matchPatterns(loadPattern(prev), stx, context, true);
+                success = match.result !== null;
+                rest = match.rest;
             } else {
                 match = matchPatternClass(pattern, stx, context);
                 success = match.result !== null;
