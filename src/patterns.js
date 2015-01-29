@@ -935,8 +935,12 @@
                             return env[pat].level > 0;
                         });
 
-                        assert(typeof nonScalar !== 'undefined',
-                                      "must have a least one non-scalar in repeat");
+                        if(typeof nonScalar === 'undefined') {
+                            return acc;
+                        }
+
+                        // assert(typeof nonScalar !== 'undefined',
+                        //               "must have a least one non-scalar in repeat");
 
                         var repeatLength = env[nonScalar].match.length;
                         var sameLength = _.all(fv, function(pat) {
