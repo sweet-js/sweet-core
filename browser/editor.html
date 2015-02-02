@@ -6,6 +6,7 @@
     <script src="scripts/codemirror.js"></script>
     <script src="scripts/vim.js"></script>
     <script src="scripts/emacs.js"></script>
+    <script src="scripts/escodegen.js"></script>
     <link rel="stylesheet" href="codemirror.css">
     <link rel="stylesheet" href="solarized.css">
     <script src="mode/javascript/javascript.js"></script>
@@ -23,14 +24,14 @@
         vertical-align: middle;
         text-align: justify;
     }
-    
+
     body:after {
         content: "";
         display: inline-block;
         width: 100%;
         height: 0;
     }
-    
+
     .CodeMirror {
         font-size: 14px;
         height: 100%;
@@ -146,11 +147,11 @@
         text-align: left;
         vertical-align: middle;
     }
-    
+
     .align-right {
         text-align: right;
     }
-    
+
     .code-input {
         display: inline-block;
         font-size: 12pt;
@@ -163,7 +164,7 @@
         right: 50%;
         left: 0;
     }
-    
+
     #output-box {
         right: 0;
         left: 50%;
@@ -237,21 +238,21 @@
 
 <div id='edit-box' class="code-input">
 <textarea id="editor">/*
-Welcome to sweet.js! 
+Welcome to sweet.js!
 
-You can play around with macro writing here on the left side and 
-your code will automatically be compiled on the right. This page 
-will also save your code to localStorage on every successful 
+You can play around with macro writing here on the left side and
+your code will automatically be compiled on the right. This page
+will also save your code to localStorage on every successful
 compile so feel free to close the page and come back later!
 */
 
-// Here is a really simple identity macro to get started. 
+// Here is a really simple identity macro to get started.
 
 // The `macro` keyword is used to create and name new macros.
 macro id {
     rule {
         // after the macro name, match:
-        // (1) a open paren 
+        // (1) a open paren
         // (2) a single token and bind it to `$x`
         // (3) a close paren
         ($x)
@@ -262,19 +263,19 @@ macro id {
 }
 id ( 42 );
 
-// Note that a single token to sweet.js includes matched 
+// Note that a single token to sweet.js includes matched
 // delimiters not just numbers and identifiers. For example,
 // an array with all of its elements counts as one token:
 id ([1,2,3])
 
 // One of the really important things sweet.js does is protect
 // macros from unintentionally binding or capturing variables they
-// weren't supposed to. This is called hygiene and to enforce hygiene 
+// weren't supposed to. This is called hygiene and to enforce hygiene
 // sweet.js must carefully rename all variable names.
 
 var x; // note the different name on the right --->
 
-// For example, let's look at the swap macro that uses a temporary 
+// For example, let's look at the swap macro that uses a temporary
 // variable to swap the contents of two other vars:
 macro swap {
     rule {

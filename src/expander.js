@@ -43,8 +43,7 @@
                 'parser',
                 'syntax',
                 'scopedEval',
-                'patterns',
-                'escodegen'], factory);
+                'patterns'], factory);
     }
 }(this, function(exports, _, parser, syn, se, patternModule, gen) {
     'use strict';
@@ -1978,7 +1977,7 @@
                         rest: []
                     };
                 }
-                var markedStx = markIn(stx, localCtx.mark); 
+                var markedStx = markIn(stx, localCtx.mark);
                 var r = get_expression(markedStx, localCtx);
                 return {
                     success: r.result !== null,
@@ -2015,7 +2014,7 @@
                 };
             },
             matchPatterns: function(syntax, topLevel, reverse) {
-                
+
                 function flatMap(input, selector) {
                     var output = [], outputCount = 0,
                         index = -1, count = input.length,
@@ -2030,18 +2029,18 @@
                     }
                     return output;
                 }
-                
+
                 var patterns = Array.prototype.slice.call(arguments, 1 + (
                     // 1 if topLevel is boolean, else 0
                     Number((typeof topLevel !== 'boolean') === false)) + (
                     // 1 if reverse is boolean, else 0
                     Number((typeof reverse  !== 'boolean') === false)));
-                
+
                 // Default topLevel to true
                 topLevel = topLevel === false ? false : true;
                 // Default reverse to false
                 reverse = reverse === true || false;
-                
+
                 patterns = flatMap(patterns, function flatten(pattern) {
                     if (Array.isArray(pattern)) {
                         if (Array.isArray(pattern[0])) {
@@ -2053,7 +2052,7 @@
                 }).map(function(pattern) {
                     return patternModule.loadPattern(pattern, reverse);
                 });
-                
+
                 var result, pattern, index = -1, count = patterns.length;
                 while (++index < count) {
                     result = patternModule.matchPatterns(patterns[index], syntax, localCtx, topLevel);
@@ -2061,7 +2060,7 @@
                         return result;
                     }
                 }
-                
+
                 return {
                     success: false,
                     result: [],
@@ -2675,12 +2674,12 @@
         var index = -1;
         var count = stxs.length;
         var stx, tok, exposed, openParen, closeParen;
-        
+
         flattening: while (depth > -1) {
             while (++index < count) {
                 if ((tok = ((stx = stxs[index]) && stx.token)) && tok.type === parser.Token.Delimiter) {
                     exposed = stx.expose();
-                    
+
                     openParen = syntaxFromToken({
                         type: parser.Token.Punctuator,
                         value: tok.value[0],
@@ -2697,7 +2696,7 @@
                                        ? tok.startLineStart
                                        : tok.sm_startLineStart)
                     }, exposed);
-                    
+
                     closeParen = syntaxFromToken({
                         type: parser.Token.Punctuator,
                         value: tok.value[1],
@@ -2714,14 +2713,14 @@
                                         ? tok.endLineStart
                                         : tok.sm_endLineStart)
                     }, exposed);
-                    
+
                     if (tok.leadingComments) {
                         openParen.token.leadingComments = tok.leadingComments;
                     }
                     if (tok.trailingComments) {
                         openParen.token.trailingComments = tok.trailingComments;
                     }
-                    
+
                     acc[accLen++] = openParen;
                     stack[depth++] = [tok, closeParen, stxs, index];
                     stxs = exposed.token.inner;
@@ -2729,7 +2728,7 @@
                     count = stxs.length;
                     continue;
                 }
-                
+
                 tok.sm_lineNumber = typeof tok.sm_lineNumber != 'undefined'
                                         ? tok.sm_lineNumber
                                         : tok.lineNumber;
@@ -2746,7 +2745,7 @@
                 tok = frame[0];
                 closeParen = frame[1];
                 acc[accLen++] = closeParen;
-                
+
                 tok.sm_lineNumber = typeof tok.sm_lineNumber != 'undefined'
                                         ? tok.sm_lineNumber
                                         : tok.lineNumber;
@@ -2756,7 +2755,7 @@
                 tok.sm_range = typeof tok.sm_range != 'undefined'
                                         ? tok.sm_range
                                         : tok.range;
-                
+
                 stxs = frame[2];
                 index = frame[3];
                 count = stxs.length;

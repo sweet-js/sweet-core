@@ -16,7 +16,7 @@
             }
             return moduleCache[key];
         };
-        factory(exports, require('underscore'), require('./parser'), require('./expander'), require('./syntax'), stxcaseModule, require('escodegen'), require('escope'), fs, path, resolveSync, requireModule);
+        factory(exports, require('underscore'), require('./parser'), require('./expander'), require('./syntax'), stxcaseModule, require('escope'), require('escodegen'), fs, path, resolveSync, requireModule);
         // Alow require('./example') for an example.sjs file.
         require.extensions['.sjs'] = function (module, filename) {
             var content = require('fs').readFileSync(filename, 'utf8');
@@ -31,11 +31,10 @@
             './expander',
             './syntax',
             'text!./stxcase.js',
-            'escodegen',
             'escope'
         ], factory);
     }
-}(this, function (exports$2, _, parser, expander, syn, stxcaseModule, gen, escope, fs, path, resolveSync, requireModule) {
+}(this, function (exports$2, _, parser, expander, syn, stxcaseModule, escope, gen, fs, path, resolveSync, requireModule) {
     var // escodegen still doesn't quite support AMD: https://github.com/Constellation/escodegen/issues/115
     codegen = typeof escodegen !== 'undefined' ? escodegen : gen;
     var expand = makeExpand(expander.expand);
