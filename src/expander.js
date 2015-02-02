@@ -1726,7 +1726,7 @@ function expandToTermTree(stx, context) {
             rest = bindImportInMod(entries, rest, importMod.term, importMod.record, context, context.phase + 1);
         }
 
-        if ((head.isExportDefaultTerm || head.isMacroTerm) && expandCount < maxExpands) {
+        if (((head.isExportDefaultTerm && head.decl.isMacroTerm) || head.isMacroTerm) && expandCount < maxExpands) {
             var macroDecl = head.isExportDefaultTerm ? head.decl : head;
             // raw function primitive form
             if(!(macroDecl.body[0] && macroDecl.body[0].isKeyword() &&
@@ -2490,11 +2490,20 @@ function visit(modTerm, modRecord, phase, context) {
             entries = modRecord.addExport(term);
         }
 
-        if (term.isMacroTerm || term.isLetMacroTerm) {
-            macroDefinition = loadMacroDef(term.body, context, phase + 1);
 
-            var multiTokName = makeMultiToken(term.name);
-            var fullName = term.name.token.inner;
+        if ((term.isExportDefaultTerm && term.decl.isMacroTerm) ||
+             term.isMacroTerm || term.isLetMacroTerm) {
+            let multiTokName, fullName,
+                macBody = term.isExportDefaultTerm ? term.decl.body : term.body;
+            macroDefinition = loadMacroDef(macBody, context, phase + 1);
+
+            if (term.isExportDefaultTerm) {
+                multiTokName = entries[0].exportName;
+                fullName = [entries[0].exportName];
+            } else {
+                multiTokName = makeMultiToken(term.name);
+                fullName = term.name.token.inner;
+            }
 
             // bind in the store for the current name (to catch implicits)
             // var templateName = multiTokName.imported(multiTokName,
@@ -2642,7 +2651,6 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
             return unwrapSyntax(expEntry.exportName) === unwrapSyntax(entry.importName);
         });
         if (!(inExports || isBase)) {
-            // console.log(modRecord.exportEntries);
             throwSyntaxError("compile",
                              "the imported name `" +
                              unwrapSyntax(entry.importName) +
