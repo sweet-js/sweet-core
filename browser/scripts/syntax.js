@@ -1,4 +1,3 @@
-// import @ from "contracts.js"
 (function (root, factory) {
     if (typeof exports === 'object') {
         // CommonJS
@@ -24,21 +23,6 @@
     // of the recursive resolveCtx implementation in expander.js.
     // The memoization addresses issue #232.
     var globalContextInstanceNumber = 1;
-    // @ let Token = {
-    //     type: ?Num,
-    //     value: ?Any,
-    //     range: ?[Num, Num]
-    // }
-    //
-    // @ let Context = Null or {
-    //     context: Context
-    // }
-    //
-    // @ let SyntaxObject = {
-    //     token: Token,
-    //     context: Context
-    // }
-    // (CSyntax, Str) -> CContext
     function Rename(id, name, ctx, defctx) {
         defctx = defctx || null;
         this.id = id;
@@ -47,7 +31,6 @@
         this.def = defctx;
         this.instNum = globalContextInstanceNumber++;
     }
-    // (Num) -> CContext
     function Mark(mark, ctx) {
         this.mark = mark;
         this.context = ctx;
@@ -64,6 +47,8 @@
         this.deferredContext = oldstx && oldstx.deferredContext ? oldstx.deferredContext : null;
     }
     Syntax.prototype = {
+        // (Int) -> CSyntax
+        // non mutating
         mark: function (newMark) {
             if (this.token.inner) {
                 return syntaxFromToken(this.token, {
@@ -73,9 +58,11 @@
             }
             return syntaxFromToken(this.token, { context: new Mark(newMark, this.context) });
         },
+        // (CSyntax or [...CSyntax], Str) -> CSyntax
+        // non mutating
         rename: function (id, name, defctx) {
-            // defer renaming of delimiters
-            if (this.token.inner) {
+            if (// defer renaming of delimiters
+                this.token.inner) {
                 return syntaxFromToken(this.token, {
                     deferredContext: new Rename(id, name, this.deferredContext, defctx),
                     context: new Rename(id, name, this.context, defctx)
@@ -119,8 +106,8 @@
             }
             var self = this;
             this.token.inner = _.map(this.token.inner, function (stx) {
-                // when not a syntax object (aka a TermTree) then no need to push down the expose
-                if (!stx.token) {
+                if (// when not a syntax object (aka a TermTree) then no need to push down the expose
+                    !stx.token) {
                     return stx;
                 }
                 if (stx.token.inner) {
@@ -262,7 +249,6 @@
             throw new Error('Not a syntax object: ' + stx);
         }
     }
-    // ([...CSyntax]) -> [...CToken]
     function syntaxToTokens(stx) {
         return _.map(stx, function (stx$2) {
             if (stx$2.token.inner) {
@@ -271,7 +257,6 @@
             return stx$2.token;
         });
     }
-    // (CToken or [...CToken]) -> [...CSyntax]
     function tokensToSyntax(tokens) {
         if (!_.isArray(tokens)) {
             tokens = [tokens];
@@ -283,7 +268,6 @@
             return syntaxFromToken(token);
         });
     }
-    // ([...CSyntax], Syntax) -> [...CSyntax])
     function joinSyntax(tojoin, punc) {
         if (tojoin.length === 0) {
             return [];
@@ -296,7 +280,6 @@
             return acc;
         }, [_.first(tojoin)]);
     }
-    // ([...[...CSyntax]], Syntax) -> [...CSyntax]
     function joinSyntaxArray(tojoin, punc) {
         if (tojoin.length === 0) {
             return [];
@@ -345,17 +328,17 @@
         }
         var token = err.stx.token;
         var lineNumber = _.find([
-                token.sm_startLineNumber,
-                token.sm_lineNumber,
-                token.startLineNumber,
-                token.lineNumber
-            ], _.isNumber);
+            token.sm_startLineNumber,
+            token.sm_lineNumber,
+            token.startLineNumber,
+            token.lineNumber
+        ], _.isNumber);
         var lineStart = _.find([
-                token.sm_startLineStart,
-                token.sm_lineStart,
-                token.startLineStart,
-                token.lineStart
-            ], _.isNumber);
+            token.sm_startLineStart,
+            token.sm_lineStart,
+            token.startLineStart,
+            token.lineStart
+        ], _.isNumber);
         var start = (token.sm_startRange || token.sm_range || token.startRange || token.range)[0];
         var offset = start - lineStart;
         var line = '';
@@ -369,49 +352,48 @@
         }
         return '[' + err.name + '] ' + err.message + '\n' + pre + line + '\n' + Array(offset + pre.length).join(' ') + ' ^';
     }
-    // fun ([...CSyntax]) -> String
     function prettyPrint(stxarr, shouldResolve) {
         var indent = 0;
         var unparsedLines = stxarr.reduce(function (acc, stx) {
-                var s = shouldResolve ? expander.resolve(stx) : stx.token.value;
-                // skip the end of file token
-                if (stx.token.type === parser.Token.EOF) {
-                    return acc;
-                }
-                if (stx.token.type === parser.Token.StringLiteral) {
-                    s = '"' + s + '"';
-                }
-                if (s == '{') {
-                    acc[0].str += ' ' + s;
-                    indent++;
-                    acc.unshift({
-                        indent: indent,
-                        str: ''
-                    });
-                } else if (s == '}') {
-                    indent--;
-                    acc.unshift({
-                        indent: indent,
-                        str: s
-                    });
-                    acc.unshift({
-                        indent: indent,
-                        str: ''
-                    });
-                } else if (s == ';') {
-                    acc[0].str += s;
-                    acc.unshift({
-                        indent: indent,
-                        str: ''
-                    });
-                } else {
-                    acc[0].str += (acc[0].str ? ' ' : '') + s;
-                }
+            var s = shouldResolve ? expander.resolve(stx) : stx.token.value;
+            if (// skip the end of file token
+                stx.token.type === parser.Token.EOF) {
                 return acc;
-            }, [{
-                    indent: 0,
+            }
+            if (stx.token.type === parser.Token.StringLiteral) {
+                s = '"' + s + '"';
+            }
+            if (s == '{') {
+                acc[0].str += ' ' + s;
+                indent++;
+                acc.unshift({
+                    indent: indent,
                     str: ''
-                }]);
+                });
+            } else if (s == '}') {
+                indent--;
+                acc.unshift({
+                    indent: indent,
+                    str: s
+                });
+                acc.unshift({
+                    indent: indent,
+                    str: ''
+                });
+            } else if (s == ';') {
+                acc[0].str += s;
+                acc.unshift({
+                    indent: indent,
+                    str: ''
+                });
+            } else {
+                acc[0].str += (acc[0].str ? ' ' : '') + s;
+            }
+            return acc;
+        }, [{
+                indent: 0,
+                str: ''
+            }]);
         return unparsedLines.reduce(function (acc, line) {
             var ind = '';
             while (ind.length < line.indent * 2) {
