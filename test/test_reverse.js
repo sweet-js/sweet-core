@@ -67,8 +67,27 @@ describe("reverse.findReverseMatches", function() {
         expect(matches).to.have.length(0);
     });
 
-    it("macro", function() {
-        reverse.findReverseMatches("macro tom { rule { $x:token } => { ( $x ) } }");
+    it("should adjust levels in the environment", function() {
+        var s = "macro m { rule { $x $y ... } => { $( $x $y ) ... } }\n";
+        s += "+ 1 + 2";
+        var matches = reverse.findReverseMatches(s);
+        expect(matches).to.have.length(3);
+        expect(matches[0].replacement).to.be("m + 1 2\n");
+        expect(matches[1].replacement).to.be("m 1 +\n");
+        expect(matches[2].replacement).to.be("m + 2\n");
+    });
+
+    var classMacro = "macro class { rule { $typename {" +
+        "constructor $cparams $cbody $($mname $mparams $mbody) ..." +
+        "} } => { function $typename $cparams $cbody " +
+        "$($typename.prototype.$mname = function $mname $mparams $mbody;) ...}}";
+
+    it("reverse match class macro", function() {
+        var s = classMacro + "function Node(a) { this.a = 23; }";
+        s += "Node.prototype.toString = ";
+        s += "function toString() { return this.a; };";
+        var matches = reverse.findReverseMatches(s);
+        expect(matches).to.have.length(1);
     });
 });
 

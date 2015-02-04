@@ -21,7 +21,7 @@ exports.run = function () {
     var readableNames = argv['readable-names'];
     var formatIndent = parseInt(argv['format-indent'], 10);
     var readtableModules = argv['load-readtable'];
-    var reverse = argv['reverse'];
+    var reverse = argv.reverse;
     if (formatIndent !== formatIndent) {
         formatIndent = 4;
     }

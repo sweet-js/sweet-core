@@ -143,6 +143,7 @@
         this.pattern = patternModule.transcribe(expandP, 0, patternEnv);
         this.pattern = name.concat(this.pattern);
         this.patternRule = patternModule.loadPattern(this.pattern);
+        this.findPatternEnvLevels();
         this.addClassesToExpansionPattern();
         this.removeClassesFromPattern();
     }
@@ -209,10 +210,38 @@
         return endRange(token) >= start && startRange(token) <= end;
     }
 
+    MacroRule.prototype.levelsOfPath = function(path) {
+        if (path.length === 0) {
+            return 0;
+        }
+        var parentIdx = path.pop();
+        var parentStx = path.pop();
+        var repeat = parentStx[parentIdx].repeat;
+        return (repeat ? 1 : 0) + this.levelsOfPath(path);
+    }
+
+    MacroRule.prototype.findPatternEnvLevels = function() {
+        var self = this;
+        this.envLevels = {};
+        foldReadTree(function(t, init, rest, path) {
+            var tok = rest[0];
+            if (!tok) return;
+            if (tok.type === parser.Token.Identifier &&
+                tok.class === 'token' &&
+                tok.value[0] === '$') {
+                self.envLevels[tok.value] = {
+                    level: self.levelsOfPath(_(path).toArray())
+                };
+            }
+        }, this.patternRule);
+    }
+
     MacroRule.prototype.tryMatch = function(init, rest, path, src) {
         var c = {env: {}};
         if (rest.length === 0 || this.isInMacro(rest[0])) return;
-        var res = patternModule.matchPatterns(this.expansionRule, rest, c, true);
+        var res = patternModule.matchPatterns(this.expansionRule, rest, c, true, _.clone(this.envLevels));
+        // This is necessary because of Github issue #174
+        if (!_.all(res.patternEnv, function(v) { return !!v.match; })) return;
         if (!res.success || rest.length === res.rest.length) return;
         var matched =  _.initial(rest, res.rest.length);
         var rep = patternModule.transcribe(this.pattern, 0, res.patternEnv);
@@ -224,8 +253,8 @@
         var newSrc = prefix + repSrc + suffix;
         try {
             // this might fail with an exception
-            var ast = sweet.compile(newSrc, {ast: true, readableNames: true});
-            var newCompUnit = {inner: parser.read(src)};
+            var expanded = sweet.expand(newSrc);
+            var newCompUnit = {inner: expanded};
             if (patternModule.isEquivPatternEnvToken(newCompUnit, this.compUnit)) {
                 return {
                     matchedTokens: matched,
