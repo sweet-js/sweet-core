@@ -51,7 +51,6 @@ describe("compile", function() {
             sweet.compile(m + "m [ a ] b");
         }).to.throwError();
         expect(function() {
-            debugger;
             var m = "macro m { rule { $a [ $a ] } => { true } }\n";
             sweet.compile(m + "m a [ b ]");
         }).to.throwError();
