@@ -1215,6 +1215,15 @@ describe("macro expander", function() {
         expect(m a [a 1] [a 2]).to.be(true);
     });
 
+    it("should match repeated variables with ellipses in a delimiter", function() {
+        macro m {
+            rule { $a { [$a $m] ... } } => { true }
+        }
+        expect(m a { } ).to.be(true);
+        expect(m a { [a 1] } ).to.be(true);
+        expect(m a { [a 1] [a 2] }).to.be(true);
+    });
+
     it("should match repeated variables with two ellipses and seperator", function() {
         macro m {
             rule { [$a $m] ... & [$a $n] ... } => { true }
