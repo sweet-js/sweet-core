@@ -1187,6 +1187,14 @@ describe("macro expander", function() {
         expect(m((23 + 42), (23 + 42))).to.be(true);
     });
 
+    it("should match repeated variables in groups", function() {
+        macro m {
+            rule { ( $( $a ) , $a ) } => { true }
+        }
+        expect(m(1,1)).to.be(true);
+    });
+
+
     it("should match repeated variables with named bindings", function() {
         macro m {
           rule {
@@ -1196,5 +1204,30 @@ describe("macro expander", function() {
           }
         }
         expect( m((23 12) , (23 12)) ).to.be(35);
+    });
+
+    it("should match repeated variables with ellipses", function() {
+        macro m {
+            rule { $a [$a $m] ... } => { true }
+        }
+        expect(m a).to.be(true);
+        expect(m a [a 1]).to.be(true);
+        expect(m a [a 1] [a 2]).to.be(true);
+    });
+
+    it("should match repeated variables with two ellipses and seperator", function() {
+        macro m {
+            rule { [$a $m] ... & [$a $n] ... } => { true }
+        }
+        expect(m [a 1] & [a 2]).to.be(true);
+        expect(m [a 1] [b 2] & [a 3] [b 4]).to.be(true);
+    });
+
+    it("should match repeated variables with two ellipses without seperator", function() {
+        macro m {
+            rule { [$a $m] ... [$a $n] ... } => { true }
+        }
+        expect(m [a 1] [a 2]).to.be(true);
+        expect(m [a 1] [b 2] [a 3] [b 4]).to.be(true);
     });
 });

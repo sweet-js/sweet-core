@@ -31,4 +31,76 @@ describe("compile", function() {
             sweet.compile(repMacro2 + "m ( (24 12) , (24 12) )");
         }).to.throwError();
     });
+
+
+    it("should fail if repeated variable in group does not match", function() {
+        expect(function() {
+            var m = "macro m { rule { $( $a ) $a } => { true } }\n";
+            sweet.compile(m + "m a b");
+        }).to.throwError();
+        expect(function() {
+            var m = "macro m { rule { $a $( $a ) } => { true } }\n";
+            sweet.compile(m + "m a b");
+        }).to.throwError();
+    });
+
+
+    it("should fail if repeated variable in delim does not match", function() {
+        expect(function() {
+            var m = "macro m { rule { [ $a ] $a } => { true } }\n";
+            sweet.compile(m + "m [ a ] b");
+        }).to.throwError();
+        expect(function() {
+            var m = "macro m { rule { $a [ $a ] } => { true } }\n";
+            sweet.compile(m + "m a [ b ]");
+        }).to.throwError();
+    });
+
+    var repMacro5 = "macro m { rule { $a $a ... } => { true } }\n";
+    var repMacro6 = "macro m { rule { $a $( ( $a $m ) ) ... } => { true }}\n";
+
+    it("should fail if repeated variable levels do not match", function() {
+        expect(function() {
+            sweet.compile(repMacro3 + "m a a a b");
+        }).to.throwError();
+        expect(function() {
+            sweet.compile(repMacro4 + "m a (a 1) (b 1)");
+        }).to.throwError();
+    });
+
+    it("should fail if repeated variables with ellipses do not match", function() {
+        var m = "macro m { rule { $a [$a $m] ... } => { true } }\n";
+        expect(function() {
+            sweet.compile(m + "m a [b 1]");
+        }).to.throwError();
+        expect(function() {
+            sweet.compile(m + "m a [a 1] [b 2]");
+        }).to.throwError();
+    });
+
+    it("should fail if repeated variables with two ellipses and seperator do not match", function() {
+
+        var m = "macro m { rule { [$a $m] ... & [$a $n] ... } => { true } } => { true } }\n";
+        expect(function() {
+            sweet.compile(m + "m [a 1] & [b 2]");
+        }).to.throwError();
+        expect(function() {
+            sweet.compile(m + "m [a 1] [b 2] & [a 3] [c 4]");
+        }).to.throwError();
+    });
+
+    it("should fail if repeated variables with two ellipses without seperator do not match", function() {
+
+        var m = "macro m { rule { [$a $m] ... [$a $n] ... } => { true } } => { true } }\n";
+        expect(function() {
+            sweet.compile(m + "m [a 1] [b 2]");
+        }).to.throwError();
+        expect(function() {
+            sweet.compile(m + "m [a 1] [a 1] [a 1]");
+        }).to.throwError();
+        expect(function() {
+            sweet.compile(m + "m [a 1] [b 2] [a 3] [c 4]");
+        }).to.throwError();
+    });
+
 });
