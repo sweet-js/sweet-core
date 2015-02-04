@@ -626,32 +626,46 @@
         });
         return toEnv;
     }
-    function isEquivPatternEnvMatch(matchA, matchB) {
-        if (matchA.token) {
-            if (!matchB.token)
+    function isEquivPatternEnvToken(toToken, fromToken) {
+        if (!toToken)
+            return;
+        if (fromToken.type !== toToken.type)
+            return;
+        if (fromToken.value !== toToken.value)
+            return;
+        if (fromToken.type !== parser.Token.Delimiter)
+            return true;
+        if (fromToken.inner.length !== toToken.inner.length)
+            return;
+        for (var i = 0; i < fromToken.inner.length; i++) {
+            if (!isEquivPatternEnvToken(fromToken.inner[i].token, toToken.inner[i].token)) {
                 return;
-            if (matchA.token.type !== matchB.token.type)
-                return;
-            if (matchA.token.value !== matchB.token.value)
-                return;
-            if (matchA.token.type !== parser.Token.Delimiter)
-                return true;
-            if (matchA.token.inner.length !== matchB.token.inner.length)
-                return;
-            for (var i = 0; i < matchA.token.inner.length; i++) {
-                if (!isEquivPatternEnvMatch(matchA.token.inner[i], matchB.token.inner[i])) {
+            }
+        }
+        return true;
+    }
+    function isEquivPatternEnvMatch(toMatch, fromMatch) {
+        if (fromMatch.token)
+            return isEquivPatternEnvToken(toMatch.token, fromMatch.token);
+        if (// can never match a token with a group
+            fromMatch.level < toMatch.level)
+            return;
+        if (fromMatch.level > toMatch.level) {
+            for (// match a group with a token if all members are compatible
+                var i = 0; i < fromMatch.match.length; i++) {
+                if (!isEquivPatternEnvMatch(toMatch, fromMatch.match[i])) {
                     return;
                 }
             }
-            return true;
-        }
-        if (matchA.level !== matchB.level)
-            return;
-        if (matchA.match.length !== matchB.match.length)
-            return;
-        for (var i = 0; i < matchA.match.length; i++) {
-            if (!isEquivPatternEnvMatch(matchA.match[i], matchB.match[i])) {
+        } else {
+            if (// match a group with a group by element-wise comparison
+                // (special case for empty match resulting from zero repitition)
+                fromMatch.match.length > 0 && fromMatch.match.length !== toMatch.match.length)
                 return;
+            for (var i = 0; i < fromMatch.match.length; i++) {
+                if (!isEquivPatternEnvMatch(toMatch.match[i], fromMatch.match[i])) {
+                    return;
+                }
             }
         }
         return true;
