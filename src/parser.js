@@ -5815,6 +5815,7 @@ parseYieldExpression: true
     exports.tokenize = tokenize;
     exports.read = read;
     exports.Token = Token;
+    exports.FnExprTokens = FnExprTokens;
 
     exports.setReadtable = setReadtable;
     exports.currentReadtable = currentReadtable;

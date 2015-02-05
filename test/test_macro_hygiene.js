@@ -367,6 +367,7 @@ describe "macro hygiene" {
             '    function foo() {',
             '        var i = 3;',
             '    }',
+            //'    +function foo() {};
             '}',
             'function bar() {',
             '    var i = 2;',
@@ -380,6 +381,9 @@ describe "macro hygiene" {
             '    function foo$2() {',
             '        var i$3 = 3;',
             '    }',
+            // The scoping mechanism should recognize that named function
+            // expressions do not modify the environment record of their scope.
+            //'    +function foo$2() {};
             '}',
             'function bar() {',
             '    var i$2 = 2;',

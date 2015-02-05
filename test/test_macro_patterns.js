@@ -572,6 +572,46 @@ describe("macro expander", function() {
         var x = m( id(4) );
     });
 
+    // This test fails. It demonstrates a regression introduced by this patch;
+    // Sweet.js cannot parse this code with this patch applied.
+    it("should parse function expressions in variable declarations", function() {
+      var x = function fn6() {};
+    });
+
+    it("should not consider fn statements as an :expr", function() {
+      var errorMsg = 'function statement incorrectly matched the `:expr` pattern.';
+      var errorMsgPattern = new RegExp(errorMsg);
+
+      macro # {
+        rule infix { $x:expr | } => {
+          void 0; throw new Error(errorMsg);
+        }
+        rule {} => {}
+      }
+
+      ;function fn1() {} #
+      function fn2() {} #
+
+      expect(function() {
+        0, function fn3() {} #
+      }).to.throwException(errorMsgPattern);
+
+      expect(function() {
+        true || function fn4() {} #
+      }).to.throwException(errorMsgPattern);
+
+      expect(function() {
+        +function fn5() {} #
+      }).to.throwException(errorMsgPattern);
+
+      // This assertion fails.  `opCtx.prevStx` is empty when enforesting the
+      // first expression within a grouping operator. This fools the current
+      // heuristic into labeling this a function declaration.
+      expect(function() {
+        (function fn7() {}) #
+      }).to.throwException(errorMsgPattern);
+    });
+
     it("should match nested obj macros", function() {
         macro m {
             case {_ $o:expr} => {
