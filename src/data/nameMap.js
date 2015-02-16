@@ -127,5 +127,8 @@ NameMap.prototype.keysStr = function() {
 NameMap.prototype.getStr = function(key) {
     return this._map.get(key);
 };
+NameMap.prototype.hasName = function(name) {
+    return this._names.has(name);
+};
 
 module.exports = NameMap;
