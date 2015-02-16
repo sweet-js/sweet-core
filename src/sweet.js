@@ -211,7 +211,9 @@ function compile(code, options) {
         } |> (c) -> {
             var output = c;
             if (options.to5) {
-                output = babel.transform(c.code);
+                output = babel.transform(c.code, {
+                    blacklist: ["es6.tailCall"]
+                });
                 return {
                     code: output.code,
                     sourceMap: output.map
