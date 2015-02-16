@@ -42,7 +42,7 @@ ImportEntry.prototype.toTerm = function() {
                            syn.makeIdent("as", this.importName),
                            this.localName];
         }
-        term.clause = [NamedImportTerm.create(syn.makeDelim("{}", innerTokens, null))];
+        term.clause = [NamedImportTerm.create(syn.makeDelim("{}", innerTokens, term.kw))];
     }
 
     return term;

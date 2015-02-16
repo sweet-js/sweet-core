@@ -2628,18 +2628,26 @@ function loadImport(path, context) {
     if(!availableModules.has(modFullPath)) {
         // load it
         var modToImport = loadModule(modFullPath)
-            |> mod => expandModule(mod.term,
-                                   modFullPath,
-                                   context.templateMap,
-                                   context.patternMap,
-                                   mod.record,
-                                   context.compileSuffix);
-        var modPair = {
-            term: modToImport.mod,
-            record: modToImport.context.moduleRecord
-        };
-        availableModules.set(modFullPath, modPair);
-        return modPair;
+            |> mod => {
+                if (mod.record.language === "base") {
+                    return {
+                        term: mod,
+                        record: mod.record
+                    };
+                }
+                var expanded = expandModule(mod.term,
+                                            modFullPath,
+                                            context.templateMap,
+                                            context.patternMap,
+                                            mod.record,
+                                            context.compileSuffix);
+                return {
+                    term: expanded.mod,
+                    record: expanded.context.moduleRecord
+                };
+            };
+        availableModules.set(modFullPath, modToImport);
+        return modToImport;
     }
     return availableModules.get(modFullPath);
 }
@@ -2695,19 +2703,12 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
 
     // set the new bindings in the context
     renamedNames.forEach(name => {
-        // context.env.set(name.renamed,
-        //                 phase,
-        //                 new CompiletimeValue(name.trans,
-        //                                      modRecord.name,
-        //                                      phase));
         // setup a reverse map from each import name to
         // the import term but only for runtime values
-        // if (name.trans === null || (name.trans && name.trans.value)) {
-        //     var resolvedName = resolve(name.renamed, phase);
-        //     var origName = resolve(name.original, phase);
-        //     context.implicitImport.set(resolvedName, name.entry);
-        // }
-
+        if (name.trans === null || (name.trans && name.trans.value)) {
+            var resolvedName = resolve(name.localName, phase);
+            context.implicitImport.set(resolvedName, name.entry);
+        }
     });
 
     return stx.map(stx => renamedNames.reduce((acc, name) => {
@@ -2821,6 +2822,8 @@ function flattenImports(imports, mod, context) {
         var modFullPath = resolvePath(unwrapSyntax(imp.from), context.filename);
         if (availableModules.has(modFullPath)) {
             var modPair = availableModules.get(modFullPath);
+            if (modPair.record.language === "base") { return acc; }
+
             var flattened = flattenModule(modPair.term, modPair.record, context);
             acc.push({
                 path: modFullPath,
