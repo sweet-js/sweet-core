@@ -1655,12 +1655,12 @@ function loadMacroDef(body, context, phase) {
         }
     });
     var macroFn;
-    if (vm) {
-        macroFn = vm.runInNewContext("(function() { return " + bodyCode + " })()",
-                                     macroGlobal);
-    } else {
+    // if (!vm) {
+    //     macroFn = vm.runInNewContext("(function() { return " + bodyCode + " })()",
+    //                                  macroGlobal);
+    // } else {
         macroFn = scopedEval(bodyCode, macroGlobal);
-    }
+    // }
 
     return function(stx, context, prevStx, prevTerms) {
         localCtx = context;
@@ -2396,6 +2396,8 @@ function invoke(modTerm, modRecord, phase, context) {
 
         // eval but with a fresh heap
         vm.runInNewContext(code, global);
+
+
 
         // update the exports with the runtime values
         modRecord.exportEntries.forEach(entry => {
