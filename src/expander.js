@@ -59,6 +59,8 @@ var adjustLineContext = syn.adjustLineContext;
 var fresh = syn.fresh;
 var makeMultiToken = syn.makeMultiToken;
 
+var Scope = syn.Scope;
+
 var TermTree                  = termTree.TermTree,
     EOFTerm                   = termTree.EOFTerm,
     KeywordTerm               = termTree.KeywordTerm,
@@ -2053,6 +2055,8 @@ function expandTermTreeToFinal (term, context) {
         // push down a fresh definition context
         var newDef = [];
 
+        var scope = new Scope(context.scope);
+
         var paramSingleIdent = term.params && term.params.isIdentifier();
 
         var params;
@@ -2069,24 +2073,24 @@ function expandTermTreeToFinal (term, context) {
         } else {
             bodies = term.body;
         }
-        bodies = bodies.addDefCtx(newDef);
+
 
         var paramNames = _.map(getParamIdentifiers(params), function(param) {
-            var freshName = fresh();
-            var renamed = param.rename(param, freshName);
-            context.env.set(renamed,
+            let paramNew = param.addScope(scope);
+            scope.addBinding(paramNew, fresh())
+            context.env.set(paramNew,
                             context.phase,
-                            new CompiletimeValue(new VarTransform(renamed),
+                            new CompiletimeValue(new VarTransform(paramNew),
                                                  context.moduleRecord.name,
                                                  context.phase));
             return {
-                freshName: freshName,
                 originalParam: param,
-                renamedParam: renamed
+                renamedParam: paramNew
             };
         });
 
         var bodyContext = makeExpanderContext(_.defaults({
+            scope: scope,
             defscope: newDef,
             // paramscope is used to filter out var redeclarations
             paramscope: paramNames.map(function(p) {
@@ -2096,10 +2100,7 @@ function expandTermTreeToFinal (term, context) {
 
 
         // rename the function body for each of the parameters
-        var renamedBody = _.reduce(paramNames, function(accBody, p) {
-            return accBody.rename(p.originalParam, p.freshName)
-        }, bodies);
-        renamedBody = renamedBody;
+        var renamedBody = bodies.addScope(scope);
 
         var expandedResult = expandToTermTree(renamedBody.token.inner, bodyContext);
         var bodyTerms = expandedResult.terms;
@@ -2221,6 +2222,8 @@ function makeExpanderContext(o) {
                      writable: false, enumerable: true, configurable: false},
         mark: {value: o.mark,
                       writable: false, enumerable: true, configurable: false},
+        scope: {value: o.scope,
+                      writable: true, enumerable: true, configurable: false},
         phase: {value: o.phase || 0,
                       writable: false, enumerable: true, configurable: false},
         implicitImport: {value: o.implicitImport || new StringMap(),

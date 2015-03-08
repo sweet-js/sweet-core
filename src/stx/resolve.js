@@ -44,20 +44,49 @@ function marksof(ctx, stopName) {
     return [];
 }
 
+function sizeDecending(a, b) {
+    if (a.size > b.size) {
+        return -1;
+    } else if (b.size > a.size) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 function resolve(stx, phase) {
     assert(phase !== undefined, "must pass in phase");
-    var nameInfo = {};
-    var name = resolveCtx(stx.token.value, stx.context, [], [], {}, phase, nameInfo);
-    name = typeof name === "string" ? name : stx.token.value + "$" + name;
-    if (nameInfo.type === "free") {
-        return name;
-    } else if (nameInfo.type === "lexical") {
-        return name;
-    } else if (nameInfo.type === "module") {
-        return name + "_p" + phase;
-    } else {
-        assert(false, "unknown name type: " + nameInfo.type);
+    // the first scope is the most recently allocated and contains all of
+    // the bindings
+    let topScope = stx.context.first();
+    if (topScope) {
+        // get the bindings for this token value
+        let tokenBindings = topScope.bindings.get(stx.token.value);
+        if (tokenBindings) {
+            // find all the bindings who's scope sets are a subset of the
+            // scope set of the syntax being resolved and use the largest
+            let biggestScopeSet = tokenBindings.filter(binding => {
+                return binding.scopeSet.isSubset(stx.context);
+            }).sort(sizeDecending).first();
+
+            if (biggestScopeSet) {
+                return stx.token.value + "$" + biggestScopeSet.binding;
+            }
+        }
     }
+    return stx.token.value;
+    // var nameInfo = {};
+    // var name = resolveCtx(stx.token.value, stx.context, [], [], {}, phase, nameInfo);
+    // name = typeof name === "string" ? name : stx.token.value + "$" + name;
+    // if (nameInfo.type === "free") {
+    //     return name;
+    // } else if (nameInfo.type === "lexical") {
+    //     return name;
+    // } else if (nameInfo.type === "module") {
+    //     return name + "_p" + phase;
+    // } else {
+    //     assert(false, "unknown name type: " + nameInfo.type);
+    // }
 }
 
 // function resolve(stx, phase) {

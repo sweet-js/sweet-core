@@ -20,5 +20,5 @@ var source = fs.readFileSync("./test.js", "utf8");
 // var tokenTree = parser.read(source);
 var result = sweet.compile(source, {filename: "test.js"});
 
-console.log(result);
+console.log(result[0].code);
 // console.log(codegen.generate(parser.parse(result[0].code)));

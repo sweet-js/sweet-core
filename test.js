@@ -1,5 +1,8 @@
-#lang "./macros/stxcase.js";
+#lang "js";
 
-import { id } from "./mod.js";
-
-id(42);
+function foo(x, b) {
+    function bar(x, y) {
+        return x + y + b;
+    }
+    return x;
+}

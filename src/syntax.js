@@ -8,6 +8,7 @@
 var _ = require("underscore"),
     parser = require("./parser"),
     expander = require("./expander"),
+    Immutable = require("immutable"),
     assert = require("assert");
 
 
@@ -74,17 +75,53 @@ function Imported(localName, exportName, phase, mod, ctx) {
     this.instNum = globalContextInstanceNumber++;
 }
 
+class Scope {
+    constructor(oldScope) {
+        this.bindings = oldScope ? oldScope.bindings : Immutable.Map();
+    }
+
+    addBinding(stx, name) {
+        let oldBinding = this.bindings.get(stx.token.value);
+        oldBinding = oldBinding ? oldBinding : Immutable.List();
+
+        this.bindings = this.bindings.set(stx.token.value,  oldBinding.unshift({
+            scopeSet: stx.context,
+            binding: name
+        }));
+    }
+}
+
 function Syntax(token, oldstx) {
     this.token = token;
-    this.context = (oldstx && oldstx.context) ? oldstx.context : null;
-    this.deferredContext = (oldstx && oldstx.deferredContext) ? oldstx.deferredContext : null;
+    this.context = (oldstx && oldstx.context) ? oldstx.context : Immutable.List();
     this.props = (oldstx && oldstx.props) ? oldstx.props : {};
 }
 
 Syntax.prototype = {
+    addScope: function(scope) {
+        if (this.token.inner) {
+            this.token.inner = this.token.inner.map(stx => stx.addScope(scope));
+        }
+        return syntaxFromToken(this.token, {context: this.context.unshift(scope),
+                                            props: this.props});
+    },
     // (Int) -> CSyntax
     // non mutating
     mark: function(newMark) {
+        return this;
+        // if (this.token.inner) {
+        //     this.token.inner = this.token.inner.map(function(stx) {
+        //         return stx.mark(newMark);
+        //     });
+        //     return syntaxFromToken(this.token, {context: new Mark(newMark, this.context),
+        //                                         props: this.props});
+        // }
+        // return syntaxFromToken(this.token, {context: new Mark(newMark, this.context),
+        //                                     props: this.props});
+    },
+
+    scope: function(newMark) {
+        return this;
         if (this.token.inner) {
             this.token.inner = this.token.inner.map(function(stx) {
                 return stx.mark(newMark);
@@ -100,53 +137,56 @@ Syntax.prototype = {
     // non mutating
     rename: function(id, name, defctx, phase) {
         // defer renaming of delimiters
+        var newctx = this.context == null ? [name] : this.context.concat(name);
         if (this.token.inner) {
             this.token.inner = this.token.inner.map(function(stx) {
                 return stx.rename(id, name, defctx, phase);
             });
             return syntaxFromToken(this.token,
-                                   {context: new Rename(id, name, this.context, defctx, phase),
+                                   {context: newctx,
                                     props: this.props});
         }
 
         return syntaxFromToken(this.token,
-                               {context: new Rename(id, name, this.context, defctx, phase),
+                               {context: newctx,
                                 props: this.props});
     },
 
     imported: function(localName, exportName, phase, mod) {
-        if (this.token.inner) {
-            this.token.inner = this.token.inner.map(function(stx) {
-                return stx.imported(localName, exportName, phase, mod);
-            });
-            return syntaxFromToken(this.token,
-                                   {context: new Imported(localName,
-                                                          exportName,
-                                                          phase,
-                                                          mod,
-                                                          this.context),
-                                    props: this.props});
-
-        }
-        return syntaxFromToken(this.token, {context: new Imported(localName,
-                                                                  exportName,
-                                                                  phase,
-                                                                  mod,
-                                                                  this.context),
-                                            props: this.props});
+        return this;
+        // if (this.token.inner) {
+        //     this.token.inner = this.token.inner.map(function(stx) {
+        //         return stx.imported(localName, exportName, phase, mod);
+        //     });
+        //     return syntaxFromToken(this.token,
+        //                            {context: new Imported(localName,
+        //                                                   exportName,
+        //                                                   phase,
+        //                                                   mod,
+        //                                                   this.context),
+        //                             props: this.props});
+        //
+        // }
+        // return syntaxFromToken(this.token, {context: new Imported(localName,
+        //                                                           exportName,
+        //                                                           phase,
+        //                                                           mod,
+        //                                                           this.context),
+        //                                     props: this.props});
     },
 
     addDefCtx: function(defctx) {
-        if (this.token.inner) {
-            this.token.inner = this.token.inner.map(function(stx) {
-                return stx.addDefCtx(defctx);
-            });
-            return syntaxFromToken(this.token,
-                                   {context: new Def(defctx, this.context),
-                                    props: this.props});
-        }
-        return syntaxFromToken(this.token, {context: new Def(defctx, this.context),
-                                            props: this.props});
+        return this;
+        // if (this.token.inner) {
+        //     this.token.inner = this.token.inner.map(function(stx) {
+        //         return stx.addDefCtx(defctx);
+        //     });
+        //     return syntaxFromToken(this.token,
+        //                            {context: new Def(defctx, this.context),
+        //                             props: this.props});
+        // }
+        // return syntaxFromToken(this.token, {context: new Def(defctx, this.context),
+        //                                     props: this.props});
     },
 
     getDefCtx: function() {
@@ -649,6 +689,7 @@ exports.Rename = Rename;
 exports.Mark = Mark;
 exports.Def = Def;
 exports.Imported = Imported;
+exports.Scope = Scope;
 
 exports.syntaxFromToken = syntaxFromToken;
 exports.tokensToSyntax = tokensToSyntax;
