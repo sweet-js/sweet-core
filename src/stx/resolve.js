@@ -70,7 +70,7 @@ function resolve(stx, phase) {
             }).sort(sizeDecending).first();
 
             if (biggestScopeSet) {
-                return stx.token.value + "$" + biggestScopeSet.binding;
+                return stx.token.value + biggestScopeSet.binding;
             }
         }
     }

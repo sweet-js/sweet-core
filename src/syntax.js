@@ -9,6 +9,7 @@ var _ = require("underscore"),
     parser = require("./parser"),
     expander = require("./expander"),
     Immutable = require("immutable"),
+    StringMap = require("./data/stringMap"),
     assert = require("assert");
 
 
@@ -77,14 +78,14 @@ function Imported(localName, exportName, phase, mod, ctx) {
 
 class Scope {
     constructor(oldScope) {
-        this.bindings = oldScope ? oldScope.bindings : Immutable.Map();
+        this.bindings = oldScope ? oldScope.bindings : new StringMap();
     }
 
     addBinding(stx, name) {
         let oldBinding = this.bindings.get(stx.token.value);
         oldBinding = oldBinding ? oldBinding : Immutable.List();
 
-        this.bindings = this.bindings.set(stx.token.value,  oldBinding.unshift({
+        this.bindings.set(stx.token.value,  oldBinding.unshift({
             scopeSet: stx.context,
             binding: name
         }));
@@ -103,6 +104,18 @@ Syntax.prototype = {
             this.token.inner = this.token.inner.map(stx => stx.addScope(scope));
         }
         return syntaxFromToken(this.token, {context: this.context.unshift(scope),
+                                            props: this.props});
+    },
+    delScope: function(scope) {
+        if (this.token.inner) {
+            this.token.inner = this.token.inner.map(stx => stx.addScope(scope));
+        }
+        let idx = this.context.indexOf(scope);
+        let newCtx = this.context;
+        if (idx != null) {
+            newCtx = this.context.delete(idx);
+        }
+        return syntaxFromToken(this.token, {context: newCtx,
                                             props: this.props});
     },
     // (Int) -> CSyntax

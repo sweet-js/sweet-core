@@ -582,7 +582,8 @@ function expandMacro(stx, context, opCtx, opType, macroObj) {
 
 
     if(rt.result.length > 0) {
-        var adjustedResult = adjustLineContext(rt.result, head);
+        let adjustedResult = adjustLineContext(rt.result, head);
+        adjustedResult = adjustedResult.map(stx => stx.addScope(new Scope(context.scope)));
         if (stx[0].token.leadingComments) {
             if (adjustedResult[0].token.leadingComments) {
                 adjustedResult[0].token.leadingComments = adjustedResult[0].token.leadingComments.concat(head.token.leadingComments);
@@ -1113,8 +1114,8 @@ function enforest(toks, context, prevStx, prevTerms) {
                             opCtx);
             // macro definition
             } else if (head.isIdentifier() &&
-                       unwrapSyntax(head) === "macro" &&
-                       resolve(head, context.phase) === "macro") {
+                       unwrapSyntax(head) === "stxrec" &&
+                       resolve(head, context.phase) === "stxrec") {
                 var normalizedName;
                 if (rest[0] && rest[0].isDelimiter() &&
                     rest[0].token.value === "()") {
@@ -1124,6 +1125,23 @@ function enforest(toks, context, prevStx, prevTerms) {
                 }
                 if (rest[1] && rest[1].isDelimiter()) {
                     return step(MacroTerm.create(normalizedName, rest[1].token.inner),
+                                rest.slice(2),
+                                opCtx);
+                } else {
+                    throwSyntaxError("enforest", "Macro declaration must include body", rest[1]);
+                }
+            } else if (head.isIdentifier() &&
+                       unwrapSyntax(head) === "stx" &&
+                       resolve(head, context.phase) === "stx") {
+                var normalizedName;
+                if (rest[0] && rest[0].isDelimiter() &&
+                    rest[0].token.value === "()") {
+                    normalizedName = rest[0];
+                } else {
+                    normalizedName = syn.makeDelim("()", [rest[0]], rest[0]);
+                }
+                if (rest[1] && rest[1].isDelimiter()) {
+                    return step(LetMacroTerm.create(normalizedName, rest[1].token.inner),
                                 rest.slice(2),
                                 opCtx);
                 } else {
@@ -1741,6 +1759,7 @@ function expandToTermTree(stx, context) {
                                  "Primitive macro form must contain a function for the macro body",
                                  macroDecl.body);
             }
+            macroDecl.body = macroDecl.body.map(stx => stx.delScope(context.exprScope));
             // expand the body
             macroDecl.body = expand(macroDecl.body,
                                     makeExpanderContext(_.extend({},
@@ -1750,11 +1769,12 @@ function expandToTermTree(stx, context) {
             macroDefinition = loadMacroDef(macroDecl.body, context, context.phase + 1);
             var fullName = macroDecl.name.token.inner;
             var multiTokName = makeMultiToken(macroDecl.name);
+            multiTokName = multiTokName.delScope(context.exprScope);
 
-            addToDefinitionCtx([multiTokName],
-                               context.defscope,
-                               false,
-                               context.paramscope);
+            // addToDefinitionCtx([multiTokName],
+            //                    context.defscope,
+            //                    false,
+            //                    context.paramscope);
 
             context.env.set(multiTokName,
                             context.phase,
@@ -1774,6 +1794,8 @@ function expandToTermTree(stx, context) {
                                  "Primitive macro form must contain a function for the macro body",
                                  head.body);
             }
+            head.body = head.body.map(stx => stx.delScope(context.nonrecScope).delScope(context.exprScope));
+
             // expand the body
             head.body = expand(head.body,
                                makeExpanderContext(_.extend({phase: context.phase + 1},
@@ -1781,19 +1803,21 @@ function expandToTermTree(stx, context) {
             //  and load the macro definition into the environment
             macroDefinition = loadMacroDef(head.body, context, context.phase + 1);
 
-            var fullName = head.name.token.inner;
-            var multiTokName = makeMultiToken(head.name);
+            let fullName = head.name.token.inner;
+            let multiTokName = makeMultiToken(head.name);
+            multiTokName = multiTokName.delScope(context.exprScope);
 
-            var freshName = fresh();
-            var renamedName = multiTokName.rename(multiTokName, freshName);
+            // var freshName = fresh();
+            // var renamedName = multiTokName.rename(multiTokName, freshName);
+            //
+            // head.name = head.name.rename(multiTokName, freshName);
 
-            head.name = head.name.rename(multiTokName, freshName);
+            // rest = _.map(rest, function(stx) {
+            //     return stx.rename(multiTokName, freshName);
+            // });
+            context.nonrecScope.addBinding(multiTokName, fresh());
 
-            rest = _.map(rest, function(stx) {
-                return stx.rename(multiTokName, freshName);
-            });
-
-            context.env.set(renamedName,
+            context.env.set(multiTokName,
                             context.phase,
                             new CompiletimeValue(new SyntaxTransform(macroDefinition,
                                                                      false,
@@ -1820,7 +1844,7 @@ function expandToTermTree(stx, context) {
 
             var fullName = head.name.token.inner;
             var multiTokName = makeMultiToken(head.name);
-            addToDefinitionCtx([multiTokName], context.defscope, false, context.paramscope);
+            // addToDefinitionCtx([multiTokName], context.defscope, false, context.paramscope);
             var opObj = getSyntaxTransform(multiTokName, context, context.phase);
             if (!opObj) {
                 opObj = {
@@ -1846,25 +1870,37 @@ function expandToTermTree(stx, context) {
         }
 
         if (head.isNamedFunTerm) {
-            addToDefinitionCtx([head.name], context.defscope, true, context.paramscope);
+            // addToDefinitionCtx([head.name], context.defscope, true, context.paramscope);
+            head.name = head.name.delScope(context.exprScope);
+            context.scope.addBinding(head.name, fresh());
         }
 
         if (head.isVariableStatementTerm ||
             head.isLetStatementTerm ||
             head.isConstStatementTerm) {
-            addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
-                               context.defscope,
-                               true,
-                               context.paramscope);
+            head.decls = head.decls.map(decl => {
+                decl.ident = decl.ident.delScope(context.exprScope);
+                context.scope.addBinding(decl.ident, fresh());
+                return decl;
+            });
+            // addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
+            //                    context.defscope,
+            //                    true,
+            //                    context.paramscope);
         }
 
         if(head.isBlockTerm && head.body.isDelimiterTerm) {
             head.body.delim.token.inner.forEach(function(term) {
                 if (term.isVariableStatementTerm) {
-                    addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
-                                       context.defscope,
-                                       true,
-                                       context.paramscope);
+                    term.decls = term.decls.map(decl => {
+                        decl.ident = decl.ident.delScope(context.exprScope);
+                        context.scope.addBinding(decl.ident, fresh());
+                        return decl;
+                    })
+                    // addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
+                    //                    context.defscope,
+                    //                    true,
+                    //                    context.paramscope);
                 }
             });
 
@@ -1873,10 +1909,15 @@ function expandToTermTree(stx, context) {
         if(head.isDelimiterTerm) {
             head.delim.token.inner.forEach(function(term)  {
                 if (term.isVariableStatementTerm) {
-                    addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
-                                       context.defscope,
-                                       true,
-                                       context.paramscope);
+                    term.decls = term.decls.map(decl => {
+                        decl.ident = decl.ident.delScope(context.exprScope);
+                        context.scope.addBinding(decl.ident, fresh());
+                        return decl;
+                    })
+                    // addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
+                    //                    context.defscope,
+                    //                    true,
+                    //                    context.paramscope);
 
                 }
             });
@@ -1928,58 +1969,6 @@ function expandToTermTree(stx, context) {
     };
 }
 
-function addToDefinitionCtx(idents, defscope, skipRep, paramscope) {
-    assert(idents && idents.length > 0, "expecting some variable identifiers");
-    // flag for skipping repeats since we reuse this function to place both
-    // variables declarations (which need to skip redeclarations) and
-    // macro definitions which don't
-    skipRep = skipRep || false;
-    _.chain(idents)
-        .filter(function(id) {
-            if (skipRep) {
-                /*
-                   When var declarations repeat in the same function scope:
-
-                   var x = 24;
-                   ...
-                   var x = 42;
-
-                   we just need to use the first renaming and leave the
-                   definition context as is.
-                */
-                var varDeclRep = _.find(defscope, function(def) {
-                    var stopName = def.name;
-                    return def.id.token.value === id.token.value &&
-                        arraysEqual(marksof(def.id.context, stopName),
-                                    marksof(id.context, stopName));
-                });
-                /*
-                    When var declaration repeat one of the function parameters:
-
-                    function foo(x) {
-                        var x;
-                    }
-
-                    we don't need to add the var to the definition context.
-                */
-                var paramDeclRep = _.find(paramscope, function(param) {
-                    var stopName = param.context.name;
-                    return param.token.value === id.token.value &&
-                        arraysEqual(marksof(param.context, stopName),
-                                    marksof(id.context, stopName));
-                });
-                return (typeof varDeclRep === 'undefined') &&
-                       (typeof paramDeclRep === 'undefined');
-            }
-            return true;
-        }).each(function(id) {
-            var name = fresh();
-            defscope.push({
-                id: id,
-                name: name
-            });
-        });
-}
 
 
 // similar to `parse2` in the honu paper except here we
@@ -2055,7 +2044,9 @@ function expandTermTreeToFinal (term, context) {
         // push down a fresh definition context
         var newDef = [];
 
-        var scope = new Scope(context.scope);
+        let scope = new Scope(context.scope);
+        let exprScope = new Scope(scope);
+        let nonrecScope = new Scope(exprScope);
 
         var paramSingleIdent = term.params && term.params.isIdentifier();
 
@@ -2091,6 +2082,8 @@ function expandTermTreeToFinal (term, context) {
 
         var bodyContext = makeExpanderContext(_.defaults({
             scope: scope,
+            exprScope: exprScope,
+            nonrecScope: nonrecScope,
             defscope: newDef,
             // paramscope is used to filter out var redeclarations
             paramscope: paramNames.map(function(p) {
@@ -2099,8 +2092,9 @@ function expandTermTreeToFinal (term, context) {
         }, context));
 
 
-        // rename the function body for each of the parameters
-        var renamedBody = bodies.addScope(scope);
+        var renamedBody = bodies.addScope(scope)
+                                .addScope(exprScope)
+                                .addScope(nonrecScope);
 
         var expandedResult = expandToTermTree(renamedBody.token.inner, bodyContext);
         var bodyTerms = expandedResult.terms;
@@ -2223,6 +2217,10 @@ function makeExpanderContext(o) {
         mark: {value: o.mark,
                       writable: false, enumerable: true, configurable: false},
         scope: {value: o.scope,
+                      writable: true, enumerable: true, configurable: false},
+        exprScope: {value: o.exprScope,
+                      writable: true, enumerable: true, configurable: false},
+        nonrecScope: {value: o.nonrecScope,
                       writable: true, enumerable: true, configurable: false},
         phase: {value: o.phase || 0,
                       writable: false, enumerable: true, configurable: false},
