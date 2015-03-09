@@ -78,6 +78,7 @@ function Imported(localName, exportName, phase, mod, ctx) {
 
 class Scope {
     constructor(oldScope) {
+        this.name = fresh();
         this.bindings = oldScope ? oldScope.bindings : new StringMap();
     }
 
@@ -103,7 +104,15 @@ Syntax.prototype = {
         if (this.token.inner) {
             this.token.inner = this.token.inner.map(stx => stx.addScope(scope));
         }
-        return syntaxFromToken(this.token, {context: this.context.unshift(scope),
+        // double scopes cancel out just like marks did
+        // let idx = this.context.indexOf(scope);
+        // let newCtx = this.context;
+        // if (idx != null) {
+        //     newCtx = this.context.delete(idx);
+        // } else {
+        // }
+        let newCtx = this.context.unshift(scope);
+        return syntaxFromToken(this.token, {context: newCtx,
                                             props: this.props});
     },
     delScope: function(scope) {
@@ -117,6 +126,9 @@ Syntax.prototype = {
         }
         return syntaxFromToken(this.token, {context: newCtx,
                                             props: this.props});
+    },
+    debugScope: function() {
+        return '{' + this.context.map(s => s.name).join(',') + '}';
     },
     // (Int) -> CSyntax
     // non mutating

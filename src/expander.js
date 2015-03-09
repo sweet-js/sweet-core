@@ -529,10 +529,8 @@ function expandMacro(stx, context, opCtx, opType, macroObj) {
            + head.token.value);
 
 
-    // create a new mark to be used for the input to
-    // the macro
-    var newMark = fresh();
-    var transformerContext = makeExpanderContext(_.defaults({mark: newMark}, context));
+    let expansionScope = new Scope(context.scope);
+    var transformerContext = makeExpanderContext(_.defaults({expansionScope: expansionScope}, context));
 
     // apply the transformer
     var rt;
@@ -583,7 +581,7 @@ function expandMacro(stx, context, opCtx, opType, macroObj) {
 
     if(rt.result.length > 0) {
         let adjustedResult = adjustLineContext(rt.result, head);
-        adjustedResult = adjustedResult.map(stx => stx.addScope(new Scope(context.scope)));
+        // adjustedResult = adjustedResult.map(stx => stx.addScope(expansionScope));
         if (stx[0].token.leadingComments) {
             if (adjustedResult[0].token.leadingComments) {
                 adjustedResult[0].token.leadingComments = adjustedResult[0].token.leadingComments.concat(head.token.leadingComments);
@@ -1530,7 +1528,7 @@ function applyMarkToPatternEnv (newMark, env) {
         if (match.level === 0) {
             // replace the match property with the marked syntax
             match.match = _.map(match.match, function(stx) {
-                return stx.mark(newMark);
+                return stx.addScope(newMark);
             });
         } else {
             _.each(match.match, function(match) {
@@ -2221,6 +2219,8 @@ function makeExpanderContext(o) {
         exprScope: {value: o.exprScope,
                       writable: true, enumerable: true, configurable: false},
         nonrecScope: {value: o.nonrecScope,
+                      writable: true, enumerable: true, configurable: false},
+        expansionScope: {value: o.expansionScope,
                       writable: true, enumerable: true, configurable: false},
         phase: {value: o.phase || 0,
                       writable: false, enumerable: true, configurable: false},

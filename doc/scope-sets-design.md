@@ -63,3 +63,13 @@ case term.isFunctionTerm => {
     scope.addBinding(paramNew, fresh())
 }
 ```
+
+
+## current status
+
+
+Got what seems to be most things working. Can't compile because something is going wrong in stxcase.js. Might be because of the hygiene hackery that's going on in there. Potential next steps:
+
+- figure out what is wrong with stxcase
+- extensive testing
+- rewrite stxcase to avoid hygiene hackery (want to do as some point anyway)
