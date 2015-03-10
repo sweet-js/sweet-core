@@ -268,13 +268,27 @@ stx syntaxCase {
         }
 
         function makeTranscribe(caseObj) {
-            // applyMarkToPatternEnv (context.expansionScope, match.patternEnv);
-            var applyPreMark = [
+            // applyMarkToPatternEnv (context.mark, match.patternEnv);
+            var applyPreMark1 = [
                 makeIdent("applyMarkToPatternEnv", here),
                 makeDelim("()", [
                     makeIdent("context", name_stx),
                     makePunc(".", here),
-                    makeIdent("expansionScope", name_stx),
+                    makeIdent("mark", name_stx),
+                    makePunc(",", here),
+                    makeIdent("match", name_stx),
+                    makePunc(".", here),
+                    makeIdent("patternEnv", name_stx)
+                ], here),
+                makePunc(";", here)
+            ];
+            // applyMarkToPatternEnv (context.useScope, match.patternEnv);
+            var applyPreMark2 = [
+                makeIdent("applyMarkToPatternEnv", here),
+                makeDelim("()", [
+                    makeIdent("context", name_stx),
+                    makePunc(".", here),
+                    makeIdent("useScope", name_stx),
                     makePunc(",", here),
                     makeIdent("match", name_stx),
                     makePunc(".", here),
@@ -310,7 +324,7 @@ stx syntaxCase {
                     ], here)
                 ], here)
             ];
-            // res = res.map(function(stx) { return stx.addScope(context.expansionScope); })
+            // res = res.map(function(stx) { return stx.mark(context.mark); })
             var applyPostMark = [
                 makeIdent("res", name_stx),
                 makePunc("=", here),
@@ -321,11 +335,11 @@ stx syntaxCase {
                         makeKeyword("return", here),
                         makeIdent("stx", here),
                         makePunc(".", here),
-                        makeIdent("addScope", here),
+                        makeIdent("mark", here),
                         makeDelim("()", [
                             makeIdent("context", name_stx),
                             makePunc(".", here),
-                            makeIdent("expansionScope", here)
+                            makeIdent("mark", here)
                         ], here)
                 ]), here),
                 makePunc(";", here)
@@ -347,7 +361,7 @@ stx syntaxCase {
                     makeIdent("lhsMatch", name_stx), makePunc(".", here), makeIdent("prevTerms", here)
                 ], here)
             ];
-            return applyPreMark.concat(runBody, errHandling, applyPostMark, retResult);
+            return applyPreMark1.concat(applyPreMark2, runBody, errHandling, applyPostMark, retResult);
         }
 
         var arg_def = makeVarDef("arg", [makeIdent("stx", name_stx)]);

@@ -3,6 +3,7 @@
 
 var syn = require("../syntax"),
     assert = require("assert"),
+    Immutable = require("immutable"),
     _ = require("underscore");
 
 var Rename = syn.Rename;
@@ -11,47 +12,62 @@ var Def = syn.Def;
 var Imported = syn.Imported;
 
 
-function remdup(mark, mlist) {
-    if (mark === _.first(mlist)) {
-        return _.rest(mlist, 1);
-    }
-    return [mark].concat(mlist);
-}
-
-// (CSyntax) -> [...Num]
-function marksof(ctx, stopName) {
-    while (ctx) {
-        if (ctx.constructor === Mark) {
-            return remdup(ctx.mark, marksof(ctx.context, stopName));
-        }
-        if(ctx.constructor === Def) {
-            ctx = ctx.context;
-            continue;
-        }
-        if (ctx.constructor === Rename) {
-            if(stopName === ctx.name) {
-                return [];
-            }
-            ctx = ctx.context;
-            continue;
-        }
-        if (ctx.constructor === Imported) {
-            ctx = ctx.context;
-            continue;
-        }
-        assert(false, "Unknown context type");
-    }
-    return [];
-}
+// function remdup(mark, mlist) {
+//     if (mark === _.first(mlist)) {
+//         return _.rest(mlist, 1);
+//     }
+//     return [mark].concat(mlist);
+// }
+//
+// // (CSyntax) -> [...Num]
+// function marksof(ctx, stopName) {
+//     while (ctx) {
+//         if (ctx.constructor === Mark) {
+//             return remdup(ctx.mark, marksof(ctx.context, stopName));
+//         }
+//         if(ctx.constructor === Def) {
+//             ctx = ctx.context;
+//             continue;
+//         }
+//         if (ctx.constructor === Rename) {
+//             if(stopName === ctx.name) {
+//                 return [];
+//             }
+//             ctx = ctx.context;
+//             continue;
+//         }
+//         if (ctx.constructor === Imported) {
+//             ctx = ctx.context;
+//             continue;
+//         }
+//         assert(false, "Unknown context type");
+//     }
+//     return [];
+// }
 
 function sizeDecending(a, b) {
-    if (a.size > b.size) {
+    if (a.scopeSet.size > b.scopeSet.size) {
         return -1;
-    } else if (b.size > a.size) {
+    } else if (b.scopeSet.size > a.scopeSet.size) {
         return 1;
     } else {
         return 0;
     }
+}
+
+function remdup(scope, slist) {
+    if (scope === slist.first()) {
+        return slist.rest();
+    }
+    return Immutable.List([scope]).concat(slist);
+}
+
+function scopesof(scopeSet) {
+    // removes duplicate scopes
+    if (scopeSet.size > 0) {
+        return remdup(scopeSet.first(), scopesof(scopeSet.rest()));
+    }
+    return scopeSet;
 }
 
 function resolve(stx, phase) {
@@ -60,14 +76,16 @@ function resolve(stx, phase) {
     // the bindings
     let topScope = stx.context.first();
     if (topScope) {
-        // get the bindings for this token value
+        // get the bindings
         let tokenBindings = topScope.bindings.get(stx.token.value);
         if (tokenBindings) {
             // find all the bindings who's scope sets are a subset of the
             // scope set of the syntax being resolved and use the largest
             let biggestScopeSet = tokenBindings.filter(binding => {
-                return binding.scopeSet.isSubset(stx.context);
-            }).sort(sizeDecending).first();
+                let bindingScopes = scopesof(binding.scopeSet);
+                let stxScopes = scopesof(stx.context);
+                return bindingScopes.isSubset(stxScopes);
+            }).sort(sizeDecending)[0];
 
             if (biggestScopeSet) {
                 return stx.token.value + biggestScopeSet.binding;
@@ -75,18 +93,6 @@ function resolve(stx, phase) {
         }
     }
     return stx.token.value;
-    // var nameInfo = {};
-    // var name = resolveCtx(stx.token.value, stx.context, [], [], {}, phase, nameInfo);
-    // name = typeof name === "string" ? name : stx.token.value + "$" + name;
-    // if (nameInfo.type === "free") {
-    //     return name;
-    // } else if (nameInfo.type === "lexical") {
-    //     return name;
-    // } else if (nameInfo.type === "module") {
-    //     return name + "_p" + phase;
-    // } else {
-    //     assert(false, "unknown name type: " + nameInfo.type);
-    // }
 }
 
 // function resolve(stx, phase) {
@@ -238,5 +244,5 @@ function unionEl(arr, el) {
 }
 
 exports.resolve = resolve;
-exports.marksof = marksof;
+// exports.marksof = marksof;
 exports.arraysEqual = arraysEqual;

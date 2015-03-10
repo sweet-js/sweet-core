@@ -37,6 +37,7 @@ var codegen = require('escodegen'),
     se = require('./scopedEval'),
     StringMap = require("./data/stringMap"),
     NameMap = require("./data/nameMap"),
+    BindingMap = require("./data/bindingMap"),
     SyntaxTransform = require("./data/transforms").SyntaxTransform,
     VarTransform = require("./data/transforms").VarTransform,
     resolve = require("./stx/resolve").resolve,
@@ -57,6 +58,7 @@ var unwrapSyntax = syn.unwrapSyntax;
 var makeIdent = syn.makeIdent;
 var adjustLineContext = syn.adjustLineContext;
 var fresh = syn.fresh;
+var freshScope = syn.freshScope;
 var makeMultiToken = syn.makeMultiToken;
 
 var Scope = syn.Scope;
@@ -529,8 +531,7 @@ function expandMacro(stx, context, opCtx, opType, macroObj) {
            + head.token.value);
 
 
-    let expansionScope = new Scope(context.scope);
-    var transformerContext = makeExpanderContext(_.defaults({expansionScope: expansionScope}, context));
+    var transformerContext = makeExpanderContext(_.defaults({mark: freshScope(context.bindings)}, context));
 
     // apply the transformer
     var rt;
@@ -581,7 +582,6 @@ function expandMacro(stx, context, opCtx, opType, macroObj) {
 
     if(rt.result.length > 0) {
         let adjustedResult = adjustLineContext(rt.result, head);
-        // adjustedResult = adjustedResult.map(stx => stx.addScope(expansionScope));
         if (stx[0].token.leadingComments) {
             if (adjustedResult[0].token.leadingComments) {
                 adjustedResult[0].token.leadingComments = adjustedResult[0].token.leadingComments.concat(head.token.leadingComments);
@@ -1528,7 +1528,7 @@ function applyMarkToPatternEnv (newMark, env) {
         if (match.level === 0) {
             // replace the match property with the marked syntax
             match.match = _.map(match.match, function(stx) {
-                return stx.addScope(newMark);
+                return stx.mark(newMark);
             });
         } else {
             _.each(match.match, function(match) {
@@ -1757,7 +1757,6 @@ function expandToTermTree(stx, context) {
                                  "Primitive macro form must contain a function for the macro body",
                                  macroDecl.body);
             }
-            macroDecl.body = macroDecl.body.map(stx => stx.delScope(context.exprScope));
             // expand the body
             macroDecl.body = expand(macroDecl.body,
                                     makeExpanderContext(_.extend({},
@@ -1767,7 +1766,8 @@ function expandToTermTree(stx, context) {
             macroDefinition = loadMacroDef(macroDecl.body, context, context.phase + 1);
             var fullName = macroDecl.name.token.inner;
             var multiTokName = makeMultiToken(macroDecl.name);
-            multiTokName = multiTokName.delScope(context.exprScope);
+            multiTokName = multiTokName.delScope(context.useScope);
+            context.bindings.add(multiTokName, fresh());
 
             // addToDefinitionCtx([multiTokName],
             //                    context.defscope,
@@ -1792,7 +1792,6 @@ function expandToTermTree(stx, context) {
                                  "Primitive macro form must contain a function for the macro body",
                                  head.body);
             }
-            head.body = head.body.map(stx => stx.delScope(context.nonrecScope).delScope(context.exprScope));
 
             // expand the body
             head.body = expand(head.body,
@@ -1803,7 +1802,6 @@ function expandToTermTree(stx, context) {
 
             let fullName = head.name.token.inner;
             let multiTokName = makeMultiToken(head.name);
-            multiTokName = multiTokName.delScope(context.exprScope);
 
             // var freshName = fresh();
             // var renamedName = multiTokName.rename(multiTokName, freshName);
@@ -1813,7 +1811,8 @@ function expandToTermTree(stx, context) {
             // rest = _.map(rest, function(stx) {
             //     return stx.rename(multiTokName, freshName);
             // });
-            context.nonrecScope.addBinding(multiTokName, fresh());
+            multiTokName = multiTokName.delScope(context.useScope);
+            context.bindings.add(multiTokName, fresh());
 
             context.env.set(multiTokName,
                             context.phase,
@@ -1842,6 +1841,8 @@ function expandToTermTree(stx, context) {
 
             var fullName = head.name.token.inner;
             var multiTokName = makeMultiToken(head.name);
+            multiTokName = multiTokName.delScope(context.useScope);
+            context.bindings.add(multiTokName, fresh());
             // addToDefinitionCtx([multiTokName], context.defscope, false, context.paramscope);
             var opObj = getSyntaxTransform(multiTokName, context, context.phase);
             if (!opObj) {
@@ -1869,16 +1870,16 @@ function expandToTermTree(stx, context) {
 
         if (head.isNamedFunTerm) {
             // addToDefinitionCtx([head.name], context.defscope, true, context.paramscope);
-            head.name = head.name.delScope(context.exprScope);
-            context.scope.addBinding(head.name, fresh());
+            head.name = head.name.delScope(context.useScope);
+            context.bindings.add(head.name, fresh());
         }
 
         if (head.isVariableStatementTerm ||
             head.isLetStatementTerm ||
             head.isConstStatementTerm) {
             head.decls = head.decls.map(decl => {
-                decl.ident = decl.ident.delScope(context.exprScope);
-                context.scope.addBinding(decl.ident, fresh());
+                decl.ident = decl.ident.delScope(context.useScope);
+                context.bindings.add(decl.ident, fresh());
                 return decl;
             });
             // addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
@@ -1891,8 +1892,8 @@ function expandToTermTree(stx, context) {
             head.body.delim.token.inner.forEach(function(term) {
                 if (term.isVariableStatementTerm) {
                     term.decls = term.decls.map(decl => {
-                        decl.ident = decl.ident.delScope(context.exprScope);
-                        context.scope.addBinding(decl.ident, fresh());
+                        decl.ident = decl.ident.delScope(context.useScope);
+                        context.bindings.add(decl.ident, fresh());
                         return decl;
                     })
                     // addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
@@ -1908,8 +1909,8 @@ function expandToTermTree(stx, context) {
             head.delim.token.inner.forEach(function(term)  {
                 if (term.isVariableStatementTerm) {
                     term.decls = term.decls.map(decl => {
-                        decl.ident = decl.ident.delScope(context.exprScope);
-                        context.scope.addBinding(decl.ident, fresh());
+                        decl.ident = decl.ident.delScope(context.useScope);
+                        context.bindings.add(decl.ident, fresh());
                         return decl;
                     })
                     // addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
@@ -2042,9 +2043,8 @@ function expandTermTreeToFinal (term, context) {
         // push down a fresh definition context
         var newDef = [];
 
-        let scope = new Scope(context.scope);
-        let exprScope = new Scope(scope);
-        let nonrecScope = new Scope(exprScope);
+        let scope = freshScope(context.bindings);
+        let useScope = freshScope(context.bindings);
 
         var paramSingleIdent = term.params && term.params.isIdentifier();
 
@@ -2065,8 +2065,10 @@ function expandTermTreeToFinal (term, context) {
 
 
         var paramNames = _.map(getParamIdentifiers(params), function(param) {
-            let paramNew = param.addScope(scope);
-            scope.addBinding(paramNew, fresh())
+            let paramNew = param.mark(scope);
+
+            context.bindings.add(paramNew, fresh());
+
             context.env.set(paramNew,
                             context.phase,
                             new CompiletimeValue(new VarTransform(paramNew),
@@ -2080,8 +2082,7 @@ function expandTermTreeToFinal (term, context) {
 
         var bodyContext = makeExpanderContext(_.defaults({
             scope: scope,
-            exprScope: exprScope,
-            nonrecScope: nonrecScope,
+            useScope: useScope,
             defscope: newDef,
             // paramscope is used to filter out var redeclarations
             paramscope: paramNames.map(function(p) {
@@ -2090,9 +2091,7 @@ function expandTermTreeToFinal (term, context) {
         }, context));
 
 
-        var renamedBody = bodies.addScope(scope)
-                                .addScope(exprScope)
-                                .addScope(nonrecScope);
+        var renamedBody = bodies.mark(scope);
 
         var expandedResult = expandToTermTree(renamedBody.token.inner, bodyContext);
         var bodyTerms = expandedResult.terms;
@@ -2194,6 +2193,7 @@ function makeExpanderContext(o) {
 
     var env = o.env || new NameMap();
     var store = o.store || new NameMap();
+    var bindings = o.bindings || new BindingMap();
 
     return Object.create(Object.prototype, {
         filename: {value: o.filename,
@@ -2214,14 +2214,12 @@ function makeExpanderContext(o) {
                      writable: false, enumerable: true, configurable: false},
         mark: {value: o.mark,
                       writable: false, enumerable: true, configurable: false},
+        bindings: {value: bindings,
+                      writable: false, enumerable: true, configurable: false},
         scope: {value: o.scope,
-                      writable: true, enumerable: true, configurable: false},
-        exprScope: {value: o.exprScope,
-                      writable: true, enumerable: true, configurable: false},
-        nonrecScope: {value: o.nonrecScope,
-                      writable: true, enumerable: true, configurable: false},
-        expansionScope: {value: o.expansionScope,
-                      writable: true, enumerable: true, configurable: false},
+                      writable: false, enumerable: true, configurable: false},
+        useScope: {value: o.useScope,
+                      writable: false, enumerable: true, configurable: false},
         phase: {value: o.phase || 0,
                       writable: false, enumerable: true, configurable: false},
         implicitImport: {value: o.implicitImport || new StringMap(),

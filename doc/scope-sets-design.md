@@ -73,3 +73,10 @@ Got what seems to be most things working. Can't compile because something is goi
 - figure out what is wrong with stxcase
 - extensive testing
 - rewrite stxcase to avoid hygiene hackery (want to do as some point anyway)
+
+
+## how definition contexts really work
+
+- macro invocations add two scopes to the argument syntax (internal and use-site)
+- the internal scope is also added to the result of macro application (double scopes cancel out so only syntax introduced from the macro definition has the internal scope now)
+- when an internal definition is discovered it removes the use-site scope from its binding identifier

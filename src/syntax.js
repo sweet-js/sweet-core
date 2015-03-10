@@ -26,6 +26,8 @@ var nextFresh = 0;
 // @ () -> Num
 function fresh() { return nextFresh++; }
 
+function freshScope(bindings) { return new Scope(bindings); }
+
 // @ let Token = {
 //     type: ?Num,
 //     value: ?Any,
@@ -76,21 +78,28 @@ function Imported(localName, exportName, phase, mod, ctx) {
     this.instNum = globalContextInstanceNumber++;
 }
 
+let scopeIndex = 0;
+
 class Scope {
-    constructor(oldScope) {
-        this.name = fresh();
-        this.bindings = oldScope ? oldScope.bindings : new StringMap();
+    constructor(bindings) {
+        assert(bindings, "must pass in the bindings")
+        this.name = scopeIndex++;
+        this.bindings = bindings;
     }
 
-    addBinding(stx, name) {
-        let oldBinding = this.bindings.get(stx.token.value);
-        oldBinding = oldBinding ? oldBinding : Immutable.List();
-
-        this.bindings.set(stx.token.value,  oldBinding.unshift({
-            scopeSet: stx.context,
-            binding: name
-        }));
+    toString() {
+        return this.name;
     }
+
+    // addBinding(stx, name) {
+    //     let oldBinding = this.bindings.get(stx.token.value);
+    //     oldBinding = oldBinding ? oldBinding : Immutable.List();
+    //
+    //     this.bindings.set(stx.token.value,  oldBinding.unshift({
+    //         scopeSet: stx.context,
+    //         binding: name
+    //     }));
+    // }
 }
 
 function Syntax(token, oldstx) {
@@ -100,64 +109,54 @@ function Syntax(token, oldstx) {
 }
 
 Syntax.prototype = {
-    addScope: function(scope) {
+    // addScope: function(scope) {
+    //     if (this.token.inner) {
+    //         this.token.inner = this.token.inner.map(stx => stx.addScope(scope));
+    //     }
+    //     // double scopes cancel out just like marks did
+    //     // let idx = this.context.indexOf(scope);
+    //     // let newCtx = this.context;
+    //     // if (idx != null) {
+    //     //     newCtx = this.context.delete(idx);
+    //     // } else {
+    //     // }
+    //     let newCtx = this.context.unshift(scope);
+    //     return syntaxFromToken(this.token, {context: newCtx,
+    //                                         props: this.props});
+    // },
+    // delScope: function(scope) {
+    //     if (this.token.inner) {
+    //         this.token.inner = this.token.inner.map(stx => stx.addScope(scope));
+    //     }
+    //     let idx = this.context.indexOf(scope);
+    //     let newCtx = this.context;
+    //     if (idx != null) {
+    //         newCtx = this.context.delete(idx);
+    //     }
+    //     return syntaxFromToken(this.token, {context: newCtx,
+    //                                         props: this.props});
+    // },
+    // debugScope: function() {
+    //     return '{' + this.context.map(s => s.name).join(',') + '}';
+    // },
+    // (Int) -> CSyntax
+    // non mutating
+    mark: function(newMark) {
         if (this.token.inner) {
-            this.token.inner = this.token.inner.map(stx => stx.addScope(scope));
+            this.token.inner = this.token.inner.map(stx => stx.mark(newMark));
         }
-        // double scopes cancel out just like marks did
-        // let idx = this.context.indexOf(scope);
-        // let newCtx = this.context;
-        // if (idx != null) {
-        //     newCtx = this.context.delete(idx);
-        // } else {
-        // }
-        let newCtx = this.context.unshift(scope);
-        return syntaxFromToken(this.token, {context: newCtx,
+        return syntaxFromToken(this.token, {context: this.context.unshift(newMark),
                                             props: this.props});
     },
     delScope: function(scope) {
         if (this.token.inner) {
-            this.token.inner = this.token.inner.map(stx => stx.addScope(scope));
+            this.token.inner = this.token.inner.map(stx => stx.delScope(scope));
         }
-        let idx = this.context.indexOf(scope);
-        let newCtx = this.context;
-        if (idx != null) {
-            newCtx = this.context.delete(idx);
-        }
-        return syntaxFromToken(this.token, {context: newCtx,
-                                            props: this.props});
+        return syntaxFromToken(this.token, {
+            context: this.context.filter(s => s !== scope),
+            props: this.props
+        });
     },
-    debugScope: function() {
-        return '{' + this.context.map(s => s.name).join(',') + '}';
-    },
-    // (Int) -> CSyntax
-    // non mutating
-    mark: function(newMark) {
-        return this;
-        // if (this.token.inner) {
-        //     this.token.inner = this.token.inner.map(function(stx) {
-        //         return stx.mark(newMark);
-        //     });
-        //     return syntaxFromToken(this.token, {context: new Mark(newMark, this.context),
-        //                                         props: this.props});
-        // }
-        // return syntaxFromToken(this.token, {context: new Mark(newMark, this.context),
-        //                                     props: this.props});
-    },
-
-    scope: function(newMark) {
-        return this;
-        if (this.token.inner) {
-            this.token.inner = this.token.inner.map(function(stx) {
-                return stx.mark(newMark);
-            });
-            return syntaxFromToken(this.token, {context: new Mark(newMark, this.context),
-                                                props: this.props});
-        }
-        return syntaxFromToken(this.token, {context: new Mark(newMark, this.context),
-                                            props: this.props});
-    },
-
     // (CSyntax or [...CSyntax], Str) -> CSyntax
     // non mutating
     rename: function(id, name, defctx, phase) {
@@ -738,3 +737,4 @@ exports.throwSyntaxCaseError = throwSyntaxCaseError;
 exports.printSyntaxError = printSyntaxError;
 exports.adjustLineContext = adjustLineContext;
 exports.fresh = fresh;
+exports.freshScope = freshScope;
