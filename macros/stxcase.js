@@ -836,7 +836,7 @@ macro macroclass_create {
                     matchName, makePunc('.', here), makeIdent('success', here)
                 ], here), makeDelim('{}', inner, here)
             ];
-          
+
             return stx.concat(res);
 
         }, []);

@@ -1111,23 +1111,6 @@ function enforest(toks, context, prevStx, prevTerms) {
                 } else {
                     throwSyntaxError("enforest", "Macro declaration must include body", rest[1]);
                 }
-            } else if (head.isIdentifier() &&
-                       unwrapSyntax(head) === "stx" &&
-                       resolve(head, context.phase) === "stx") {
-                var normalizedName;
-                if (rest[0] && rest[0].isDelimiter() &&
-                    rest[0].token.value === "()") {
-                    normalizedName = rest[0];
-                } else {
-                    normalizedName = syn.makeDelim("()", [rest[0]], rest[0]);
-                }
-                if (rest[1] && rest[1].isDelimiter()) {
-                    return step(LetMacroTerm.create(normalizedName, rest[1].token.inner),
-                                rest.slice(2),
-                                opCtx);
-                } else {
-                    throwSyntaxError("enforest", "Macro declaration must include body", rest[1]);
-                }
             // operator definition
             // unaryop (neg) 1 { macro { rule { $op:expr } => { $op } } }
             } else if (head.isIdentifier() &&
@@ -2341,13 +2324,12 @@ function invoke(modTerm, modRecord, phase, context) {
         var exported = require(modRecord.name);
         Object.keys(exported).forEach(exp => {
             // create new bindings in the context
-            var freshName = fresh();
-            var expName = syn.makeIdent(exp, null);
-            var renamed = expName.imported(expName, expName, phase, modRecord.name);
+            var expName = syn.makeIdent(exp, null).mark(freshScope(context.bindings));
+            context.bindings.add(expName, fresh(), phase);
 
-            modRecord.exportEntries.push(new ExportEntry(null, renamed, renamed));
+            modRecord.exportEntries.push(new ExportEntry(null, expName, expName));
 
-            context.store.setWithModule(renamed,
+            context.store.setWithModule(expName,
                                         phase,
                                         modRecord.name,
                                         new RuntimeValue({value: exported[exp]},
@@ -2388,10 +2370,11 @@ function invoke(modTerm, modRecord, phase, context) {
         // update the exports with the runtime values
         modRecord.exportEntries.forEach(entry => {
             // we have to get the value with the localName
-            var expName = resolve(entry.localName, phase);
+            var expName = resolve(entry.localName, 0);
             var expVal = global[expName];
+            context.bindings.add(entry.exportName, fresh(), phase);
             // and set it as the export name
-            context.store.setWithModule(entry.exportName.imported(entry.exportName, entry.exportName, phase, modRecord.name),
+            context.store.setWithModule(entry.exportName,
                                         phase,
                                         modRecord.name,
                                         new RuntimeValue({value: expVal},
@@ -2408,14 +2391,10 @@ function invoke(modTerm, modRecord, phase, context) {
 // the context and return the modified context
 // @ (ModuleTerm, ModuleRecord, Num, ExpanderContext) -> ExpanderContext
 function visit(modTerm, modRecord, phase, context) {
-    let defctx = [];
     // don't need to visit base modules since they do not support macros
     if (modRecord.language === "base") {
         return context;
     }
-    // add a visiting definition context since we are binding
-    // macros in the module scope
-    modTerm.body = modTerm.body.map(term => term.addDefCtx(defctx));
     // reset the exports
     modRecord.exportEntries = [];
 
@@ -2451,23 +2430,6 @@ function visit(modTerm, modRecord, phase, context) {
                                        phase);
     });
 
-    var transformerNames = [];
-
-    // grab hold of each top level syntax transformer name
-    modTerm.body.forEach(term => {
-        if (term.isMacroTerm) {
-            transformerNames.push(term.name[0]);
-        }
-        if (term.isLetMacroTerm) {
-            transformerNames.push(term.name[0]);
-        }
-
-        if (term.isOperatorDefinitionTerm) {
-            transformerNames.push(term.name[0]);
-        }
-
-    });
-
     // load the transformers into the store
     modTerm.body.forEach(term => {
         var name;
@@ -2497,27 +2459,10 @@ function visit(modTerm, modRecord, phase, context) {
                 fullName = term.name.token.inner;
             }
 
-            // bind in the store for the current name (to catch implicits)
-            // var templateName = multiTokName.imported(multiTokName,
-            //                                          multiTokName,
-            //                                          phase - 1,
-            //                                          modRecord.name);
-            context.store.set(multiTokName,
-                              phase,
-                              new CompiletimeValue(
-                                  new SyntaxTransform(macroDefinition,
-                                                      false,
-                                                      builtinMode,
-                                                      fullName),
-                                  phase,
-                                  modRecord.name));
+            // todo: handle implicits
 
-            // bind in the store for the current phase
-            var phaseName = multiTokName.imported(multiTokName,
-                                                  multiTokName,
-                                                  phase,
-                                                  modRecord.name);
-            context.store.set(phaseName,
+            context.bindings.add(multiTokName, fresh(), phase);
+            context.store.set(multiTokName,
                               phase,
                               new CompiletimeValue(
                                   new SyntaxTransform(macroDefinition,
@@ -2548,19 +2493,9 @@ function visit(modTerm, modRecord, phase, context) {
                 assoc: term.assoc ? term.assoc.token.value : null
             };
 
-            // bind in the store for the current name (to catch implicits)
-            context.store.set(multiTokName,
-                              phase,
-                              new CompiletimeValue(opObj,
-                                                   phase,
-                                                   modRecord.name));
-
 
             // bind in the store for the current phase
-            var phaseName = multiTokName.imported(multiTokName,
-                                                  multiTokName,
-                                                  phase,
-                                                  modRecord.name)
+            context.bindings.add(multiTokName, fresh(), phase);
             context.store.set(phaseName,
                               phase,
                               new CompiletimeValue(opObj,
@@ -2643,8 +2578,7 @@ function loadImport(path, context) {
 
 // @ (ImportTerm, [...SyntaxObject], ModuleTerm, ModuleRecord, ExpanderContext, Num) -> Void
 function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
-    // first collect the import names and their associated bindings
-    var renamedNames = impEntries.map(entry => {
+    impEntries.forEach(entry => {
         var isBase = modRecord.language === "base";
 
         var inExports = _.find(modRecord.exportEntries, expEntry => {
@@ -2669,39 +2603,25 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
             exportName = inExports.exportName;
             trans = getSyntaxTransform(exportName, context, phase);
         }
+
         var localName = entry.localName;
-        var renamedLocal = localName.imported(localName,
-                                              exportName,
-                                              phase,
-                                              modRecord.name);
 
-        if (unwrapSyntax(entry.localName) !== unwrapSyntax(entry.importName)) {
-            context.store.set(renamedLocal,
-                              phase,
-                              context.store.get(exportName, phase));
-        }
-        entry.localName = renamedLocal;
-        return {
-            exportName: exportName,
-            localName: localName,
-            trans: trans,
-            entry: entry
-        };
+        context.bindings.add(localName, fresh(), phase);
+        context.store.set(localName, phase, new CompiletimeValue(trans,
+                                                                 phase,
+                                                                 modRecord.name));
     });
 
-    // set the new bindings in the context
-    renamedNames.forEach(name => {
-        // setup a reverse map from each import name to
-        // the import term but only for runtime values
-        if (name.trans === null || (name.trans && name.trans.value)) {
-            var resolvedName = resolve(name.localName, phase);
-            context.implicitImport.set(resolvedName, name.entry);
-        }
-    });
-
-    return stx.map(stx => renamedNames.reduce((acc, name) => {
-        return acc.imported(name.localName, name.exportName, phase, modRecord.name);
-    }, stx));
+    // // set the new bindings in the context
+    // renamedNames.forEach(name => {
+    //     // setup a reverse map from each import name to
+    //     // the import term but only for runtime values
+    //     if (name.trans === null || (name.trans && name.trans.value)) {
+    //         var resolvedName = resolve(name.localName, phase);
+    //         context.implicitImport.set(resolvedName, name.entry);
+    //     }
+    // });
+    return stx;
 }
 
 // (ModuleTerm, Str, Map, Map, ModuleRecord) -> {
