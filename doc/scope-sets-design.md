@@ -80,3 +80,50 @@ Got what seems to be most things working. Can't compile because something is goi
 - macro invocations add two scopes to the argument syntax (internal and use-site)
 - the internal scope is also added to the result of macro application (double scopes cancel out so only syntax introduced from the macro definition has the internal scope now)
 - when an internal definition is discovered it removes the use-site scope from its binding identifier
+
+
+
+## the problem with nonrec definitions
+
+Here's the basic problem. In JavaScript I want a macro definition form that is non-recursive: I want a non-recursive `define-syntax`:
+
+```js
+var m;
+function foo() {
+    // non recursive definition
+    stx m = macro {
+        rule {} => { m }
+    }
+    m // expands to m from the var declaration
+
+    // recursive definition
+    stxrec n = macro {
+        rule {} => { n }
+    }
+    n // infinite loop
+}
+```
+
+Technically the current sweet.js syntax for a recursive macro definition form is `macro name { ... }` and the non-recursive form is `let name = macro { ... }`. Here I'm using the syntax I want to move to but with both the current and new definition syntax there can't be any additional indentation like Racket's `let-syntax`/`letrec-syntax` forms.
+
+
+The problem is that with the current approach you outlined I don't see an easy way to distinguish the scope of the macro body from the surrounding scope for a non-recursive definition:
+
+```js
+var m^{a}; // a is top-level scope
+function foo() {
+    // b is the function scope
+    stx m^{a,b} = macro {
+        rule {} => { m^{a,b} }
+    }
+    m^{a,b}
+    // --> expands to
+    m^{a,b,c} // c is the expansion scope
+    // still bound to the macro so infinite loop
+}
+```
+
+We have to apply the b scope to the macro body since that is used for other definitions and we can't create a fresh scope that is applied everywhere except the macro body since we're already in the middle of the scope.
+
+
+One thing I thought about was applying an "anti-scope" to the macro body that maps a name and scope to be ignored. So in my example the `m` in the body would be something like `m^{a,b,!b@m }` where `!b@m` reads "cancel scope b but only for the name m".

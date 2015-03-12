@@ -12,13 +12,15 @@ class BindingMap {
         this._map = new StringMap();
     }
 
-    add(stx, name) {
+    add(stx, name, phase) {
+        assert(phase != null, "must pass in the phase");
         let key = stx.token.value;
         let old = this._map.get(key);
         old = old ? old : [];
         old.push({
             scopeSet: stx.context,
-            binding: name
+            binding: name,
+            phase: phase
         });
         this._map.set(key, old);
     }

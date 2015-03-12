@@ -1,5 +1,52 @@
 #lang "js";
 
+
+
+
+// stxrec stx {
+//     function(stx) {
+//         var recname1 = quoteSyntax{stxrec};
+//         var recname2 = quoteSyntax{stxrec};
+//         var name = stx[1];
+//         var body = stx[2];
+//
+//         function visit(stx, fn) {
+//             if (stx.token.inner) {
+//                 stx.token.inner = visit(stx.token.inner, fn);
+//                 return stx;
+//             }
+//             return fn(stx);
+//         }
+//
+//         quoteSyntax{{
+//             function(stx) {
+//                 return {
+//                     result: quoteSyntax{$name},
+//                     rest: stx.slice(1)
+//                 };
+//             }
+//         }}.map(function(stx) {
+//             // manual unquote ugh
+//             return visit(stx, function(stx) {
+//                 if (stx.token.value === "$name") {
+//                     return
+//                 }
+//                 return stx;
+//             })
+//         });
+//
+//         var nonRecScope = __freshScope(__bindings);
+//         var firstDecl = quoteSyntax{stxrec}.concat(name.mark(nonRecScope))
+//                                            .concat(makeDelim("{}"))
+//
+//         return {
+//             result: [],
+//             rest: stx.slice(3)
+//         }
+//     }
+// }
+
+
 // function foo(x) {
 //     return x;
 // }
@@ -16,7 +63,7 @@
 // m foo
 // foo;
 
-stx quoteSyntax {
+stxrec quoteSyntax {
     function(stx) {
         var name_stx = stx[0];
 
@@ -36,8 +83,68 @@ stx quoteSyntax {
     }
 }
 
+// stxrec stx {
+//     rule { $name { $body ... } } => {
+//         stxrec $name^{a,b} {
+//             rule {} => { $name^{} }
+//          }
+//         stxrec $name^{a} { $body^{a,b} ... }
+//     }
+// }
 
-stx syntax {
+// bad name because of non-hygienic syntax case problem
+stxrec stxnonrec {
+    function (stx) {
+        var $name = stx[1];
+        var $body = stx[2];
+
+        var nonRecScope = __freshScope(__bindings);
+
+        var nonRecBody = $body.mark(nonRecScope);
+        var nonRecName = $name.mark(nonRecScope);
+        var surroundingName = $name.delScope(__scope);
+
+        // hacky unquote
+        function traverse(stx, one, two, three) {
+            return stx.map(function(s) {
+                if (s.token.inner) {
+                    s.token.inner = traverse(s.token.inner, one, two, three);
+                    return s;
+                }
+                if (s.token.value === "$1") {
+                    return one;
+                }
+                if (s.token.value === "$2") {
+                    return two;
+                }
+                if (s.token.value === "$3") {
+                    return three;
+                }
+                return s;
+            });
+        }
+
+        var res = traverse(quoteSyntax {
+            stxrec $1 {
+                function(stx) {
+                    return {
+                        result: quoteSyntax{$2},
+                        rest: stx.slice(1)
+                    };
+                }
+            }
+            stxrec $name $3
+        }, nonRecName, surroundingName, nonRecBody);
+        return {
+            result: res,
+            rest: stx.slice(3)
+        }
+    }
+}
+
+
+
+stxrec syntax {
     function(stx) {
         var name_stx = stx[0];
         var here = quoteSyntax{here};
@@ -73,7 +180,7 @@ stx syntax {
     }
 }
 
-stx # {
+stxrec # {
     function (stx) {
         return {
             // breaking hygiene to capture inside syntaxCase
@@ -85,7 +192,7 @@ stx # {
 }
 
 
-stx syntaxCase {
+stxrec syntaxCase {
     function(stx, context) {
         var name_stx = stx[0];
         var here = quoteSyntax{here};
@@ -436,7 +543,7 @@ stx syntaxCase {
     }
 }
 
-stx macro {
+stxrec stxrec {
     function(st) {
         var name_stx = st[0];
         var here = quoteSyntax{here};
@@ -561,8 +668,8 @@ stx macro {
 
         var stxSyntaxCase = takeLine(here[0], makeIdent("syntaxCase", name_stx));
         var res = mac_name_stx
-            ? [makeIdent("stx", here)].concat(mac_name_stx)
-            : [makeIdent("stx", here)];
+            ? [makeIdent("stxrec", here)].concat(mac_name_stx)
+            : [makeIdent("stxrec", here)];
         res = res.concat(makeDelim("{}", makeFunc([makeIdent("st", name_stx),
                                                    makePunc(",", here),
                                                    makeIdent("context", name_stx),
@@ -590,9 +697,34 @@ stx macro {
     }
 }
 
-macro myvar {
-    rule { $x } => { var $x }
+stxrec let {
+    rule { $name = macro { $body ...} } => {
+        stxnonrec $name { $body ... }
+    }
 }
 
-myvar foo;
-foo;
+var m;
+function foo() {
+    let m = macro {
+        rule {} => {m}
+    }
+    m
+}
+
+// stx name = macro {
+//     rule {} => {}
+// }
+// stx name {
+//     function ...
+// }
+//
+// // stxrec name {
+// //
+// // }
+//
+// macro myvar {
+//     rule { $x } => { var $x }
+// }
+//
+// myvar foo
+// foo

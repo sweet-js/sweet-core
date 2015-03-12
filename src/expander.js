@@ -1030,28 +1030,11 @@ function enforest(toks, context, prevStx, prevTerms) {
                     normalizedName = syn.makeDelim("()", [rest[0]], rest[0]);
                 }
 
-                // Let macro
-                if (rest[1] && rest[1].token.value === "=" &&
-                    rest[2] && rest[2].token.value === "macro") {
-                    var mac = enforest(rest.slice(2), context);
-                    if(mac.result) {
-                        if (!mac.result.isAnonMacroTerm) {
-                            throwSyntaxError("enforest",
-                                             "expecting an anonymous macro definition in syntax let binding",
-                                             rest.slice(2));
-                        }
-                        return step(LetMacroTerm.create(normalizedName, mac.result.body),
-                                    mac.rest,
-                                    opCtx);
-                    }
-                // Let statement
-                } else {
-                    var lsRes = enforestVarStatement(rest, context, head.keyword);
-                    if (lsRes && lsRes.result) {
-                        return step(LetStatementTerm.create(head, lsRes.result),
-                                    lsRes.rest,
-                                    opCtx);
-                    }
+                var lsRes = enforestVarStatement(rest, context, head.keyword);
+                if (lsRes && lsRes.result) {
+                    return step(LetStatementTerm.create(head, lsRes.result),
+                                lsRes.rest,
+                                opCtx);
                 }
             // VariableStatement
             } else if (head.isKeywordTerm &&
@@ -1635,6 +1618,9 @@ function loadMacroDef(body, context, phase) {
         prettyPrint: syn.prettyPrint,
         parser: parser,
         __fresh: fresh,
+        __freshScope: freshScope,
+        __scope: context.scope,
+        __bindings: context.bindings,
         _: _,
         patternModule: patternModule,
         getPattern: function(id) {
@@ -1767,7 +1753,7 @@ function expandToTermTree(stx, context) {
             var fullName = macroDecl.name.token.inner;
             var multiTokName = makeMultiToken(macroDecl.name);
             multiTokName = multiTokName.delScope(context.useScope);
-            context.bindings.add(multiTokName, fresh());
+            context.bindings.add(multiTokName, fresh(), context.phase);
 
             // addToDefinitionCtx([multiTokName],
             //                    context.defscope,
@@ -1812,7 +1798,7 @@ function expandToTermTree(stx, context) {
             //     return stx.rename(multiTokName, freshName);
             // });
             multiTokName = multiTokName.delScope(context.useScope);
-            context.bindings.add(multiTokName, fresh());
+            context.bindings.add(multiTokName, fresh(), context.phase);
 
             context.env.set(multiTokName,
                             context.phase,
@@ -1841,9 +1827,10 @@ function expandToTermTree(stx, context) {
 
             var fullName = head.name.token.inner;
             var multiTokName = makeMultiToken(head.name);
+
             multiTokName = multiTokName.delScope(context.useScope);
-            context.bindings.add(multiTokName, fresh());
-            // addToDefinitionCtx([multiTokName], context.defscope, false, context.paramscope);
+            context.bindings.add(multiTokName, fresh(), context.phase);
+
             var opObj = getSyntaxTransform(multiTokName, context, context.phase);
             if (!opObj) {
                 opObj = {
@@ -1871,7 +1858,7 @@ function expandToTermTree(stx, context) {
         if (head.isNamedFunTerm) {
             // addToDefinitionCtx([head.name], context.defscope, true, context.paramscope);
             head.name = head.name.delScope(context.useScope);
-            context.bindings.add(head.name, fresh());
+            context.bindings.add(head.name, fresh(), context.phase);
         }
 
         if (head.isVariableStatementTerm ||
@@ -1879,7 +1866,7 @@ function expandToTermTree(stx, context) {
             head.isConstStatementTerm) {
             head.decls = head.decls.map(decl => {
                 decl.ident = decl.ident.delScope(context.useScope);
-                context.bindings.add(decl.ident, fresh());
+                context.bindings.add(decl.ident, fresh(), context.phase);
                 return decl;
             });
             // addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
@@ -1893,7 +1880,7 @@ function expandToTermTree(stx, context) {
                 if (term.isVariableStatementTerm) {
                     term.decls = term.decls.map(decl => {
                         decl.ident = decl.ident.delScope(context.useScope);
-                        context.bindings.add(decl.ident, fresh());
+                        context.bindings.add(decl.ident, fresh(), context.phase);
                         return decl;
                     })
                     // addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
@@ -1910,7 +1897,7 @@ function expandToTermTree(stx, context) {
                 if (term.isVariableStatementTerm) {
                     term.decls = term.decls.map(decl => {
                         decl.ident = decl.ident.delScope(context.useScope);
-                        context.bindings.add(decl.ident, fresh());
+                        context.bindings.add(decl.ident, fresh(), context.phase);
                         return decl;
                     })
                     // addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
@@ -2067,7 +2054,7 @@ function expandTermTreeToFinal (term, context) {
         var paramNames = _.map(getParamIdentifiers(params), function(param) {
             let paramNew = param.mark(scope);
 
-            context.bindings.add(paramNew, fresh());
+            context.bindings.add(paramNew, fresh(), context.phase);
 
             context.env.set(paramNew,
                             context.phase,

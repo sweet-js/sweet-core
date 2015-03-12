@@ -90,16 +90,6 @@ class Scope {
     toString() {
         return this.name;
     }
-
-    // addBinding(stx, name) {
-    //     let oldBinding = this.bindings.get(stx.token.value);
-    //     oldBinding = oldBinding ? oldBinding : Immutable.List();
-    //
-    //     this.bindings.set(stx.token.value,  oldBinding.unshift({
-    //         scopeSet: stx.context,
-    //         binding: name
-    //     }));
-    // }
 }
 
 function Syntax(token, oldstx) {
