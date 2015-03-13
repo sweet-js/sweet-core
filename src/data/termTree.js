@@ -286,6 +286,7 @@ dataclass StatementTerm             ()                                  extends 
 dataclass EmptyTerm                 ()                                  extends StatementTerm;
 dataclass CatchClauseTerm           (keyword, params, body)             extends StatementTerm;
 dataclass ForStatementTerm          (keyword, cond)                     extends StatementTerm;
+dataclass ClassDeclarationTerm      (keyword, name, body)               extends StatementTerm;
 dataclass ReturnStatementTerm       (keyword, expr)                     extends StatementTerm {
     destruct(context, options) {
         var expr = this.expr.destruct(context, options);
@@ -426,6 +427,7 @@ module.exports = {
     BindingStatementTerm: BindingStatementTerm,
     VariableStatementTerm: VariableStatementTerm,
     LetStatementTerm: LetStatementTerm,
+    ClassDeclarationTerm: ClassDeclarationTerm,
     ConstStatementTerm: ConstStatementTerm,
     ParenExpressionTerm: ParenExpressionTerm
 };

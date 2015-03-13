@@ -84,6 +84,7 @@ var TermTree                  = termTree.TermTree,
     LetMacroTerm              = termTree.LetMacroTerm,
     MacroTerm                 = termTree.MacroTerm,
     AnonMacroTerm             = termTree.AnonMacroTerm,
+    ClassDeclarationTerm      = termTree.ClassDeclarationTerm,
     OperatorDefinitionTerm    = termTree.OperatorDefinitionTerm,
     VariableDeclarationTerm   = termTree.VariableDeclarationTerm,
     StatementTerm             = termTree.StatementTerm,
@@ -1173,8 +1174,6 @@ function enforest(toks, context, prevStx, prevTerms) {
                        rest[3] && rest[3].isDelimiter() &&
                        rest[3].token.value === "{}") {
 
-                rest[2].token.inner = rest[2].token.inner;
-                rest[3].token.inner = rest[3].token.inner;
                 return step(NamedFunTerm.create(head, rest[0], rest[1],
                                             rest[2],
                                             rest[3]),
@@ -1188,14 +1187,23 @@ function enforest(toks, context, prevStx, prevTerms) {
                       rest[1] && rest[1].isDelimiter() &&
                       rest[1].token.value === "{}") {
 
-                rest[0].token.inner = rest[0].token.inner;
-                rest[1].token.inner = rest[1].token.inner;
                 return step(AnonFunTerm.create(head,
                                             null,
                                             rest[0],
                                             rest[1]),
                             rest.slice(2),
                             opCtx);
+            // } else if(head.isKeyword() &&
+            //           unwrapSyntax(head) === "class" &&
+            //           rest[0] && rest[0].isIdentifier() &&
+            //           rest[1] && rest[1].isDelimiter() &&
+            //           rest[1].token.value === "{}") {
+            //
+            //     return step(ClassDeclarationTerm.create(head,
+            //                                             rest[0],
+            //                                             rest[1]),
+            //                 rest.slice(2),
+            //                 opCtx);
             // anonymous generator function definition
             } else if(head.isKeyword() &&
                       unwrapSyntax(head) === "function" &&
@@ -2004,6 +2012,12 @@ function expandTermTreeToFinal (term, context) {
             term.id = syntaxFromToken(term.id.token, varTrans.id) ;
         }
         return term;
+    // } else if (term.isClassDeclarationTerm) {
+    //     let newScope = freshScope(context.bindings);
+    //     context.
+    //     term.body = term.body.mark(newScope);
+    //     term.body.token.inner = expand(term.body.token.inner, context);
+    //     return term;
     } else if (term.isNamedFunTerm ||
                term.isAnonFunTerm ||
                term.isCatchClauseTerm ||
@@ -2240,6 +2254,9 @@ function defaultImportStx(importPath, ctx) {
         "#",
         "syntaxCase",
         "macro",
+        "let",
+        // "stx",
+        // "stxrec",
         "withSyntax",
         "letstx",
         "macroclass",

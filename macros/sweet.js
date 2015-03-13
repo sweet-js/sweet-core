@@ -638,6 +638,20 @@ stx stxrec {
     }
 }
 
+stx let {
+    rule { $name = macro { $body ...} } => {
+        stx $name { $body ... }
+    }
+    rule { $else ... } => { let $else ...}
+}
+
+stx macro {
+    rule { $name { $body ...} } => {
+        stxrec $name { $body ... }
+    }
+}
+
+
 
 stxrec withSyntax_done {
     case { _ $ctx ($vars ...) {$rest ...} } => {
@@ -763,7 +777,7 @@ stx letstx {
 
 stxrec macroclass {
     rule { $name:ident { $decls:macroclass_decl ... } } => {
-        macro $name {
+        stxrec $name {
             function (stx, context, prevStx, prevTerms) {
                 var name_stx = stx[0];
                 var match;
@@ -953,12 +967,12 @@ stxrec safemacro {
     }
 }
 
-stxrec op_assoc {
+macro op_assoc {
     rule { left }
     rule { right }
 }
 
-stxrec op_name {
+macro op_name {
     rule { ($name ...) }
     rule { $name } => { ($name) }
 }
@@ -969,7 +983,7 @@ safemacro operator {
         { $left:ident, $right:ident } => #{ $body ... }
     } => {
         binaryop $name $prec $assoc {
-            macro {
+            stxrec _ {
                 rule { ($left:expr) ($right:expr) } => { $body ... }
             }
         }
@@ -978,25 +992,13 @@ safemacro operator {
         $name:op_name $prec:lit { $op:ident } => #{ $body ... }
     } => {
         unaryop $name $prec {
-            macro {
+            stxrec _ {
                 rule { $op:expr } => { $body ... }
             }
         }
     }
 }
 
-stx let {
-    rule { $name = macro { $body ...} } => {
-        stx $name { $body ... }
-    }
-    rule { $else ... } => { let $else ...}
-}
-
-stx macro {
-    rule { $name { $body ...} } => {
-        stxrec $name { $body ... }
-    }
-}
 
 export {
     quoteSyntax,

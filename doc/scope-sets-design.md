@@ -127,3 +127,29 @@ We have to apply the b scope to the macro body since that is used for other defi
 
 
 One thing I thought about was applying an "anti-scope" to the macro body that maps a name and scope to be ignored. So in my example the `m` in the body would be something like `m^{a,b,!b@m }` where `!b@m` reads "cancel scope b but only for the name m".
+
+
+## brainstorm from mflatt
+
+Brainstorming for an alternative (so this might not be a good idea)...
+maybe
+
+     stx m^{a,b} = macro {
+         [content]^{a,b}
+     }
+
+in a scope `b` could expand to something like
+
+     stxrec m^{a,b,c} = macro { m^{a} }
+     stxrec m^{a,b} = macro {
+         [content]^{a,b,c}
+     }
+
+That is, `stx` introduces a scope `c` specific to the macro body, adds
+a definition of `m` with that new scope, but equates the new `m` to an
+`m` with the enclosing form's scope removed.
+
+That would stick with simple sets of scopes, but it requires a way to
+forward one macro to another. It turns out that Racket's macro system
+has a forwarding mechanism that's wired in fairly deeply --- even below
+`free-identifier=?`.
