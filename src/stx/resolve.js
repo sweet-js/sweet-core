@@ -55,21 +55,6 @@ function sizeDecending(a, b) {
     }
 }
 
-function remdup(scope, slist) {
-    if (scope === slist.first()) {
-        return slist.rest();
-    }
-    return Immutable.List([scope]).concat(slist);
-}
-
-function scopesof(scopeSet) {
-    // removes duplicate scopes
-    if (scopeSet.size > 0) {
-        return remdup(scopeSet.first(), scopesof(scopeSet.rest()));
-    }
-    return scopeSet;
-}
-
 function resolve(stx, phase) {
     assert(phase !== undefined, "must pass in phase");
     // the first scope is the most recently allocated and contains all of
@@ -82,8 +67,8 @@ function resolve(stx, phase) {
             // find all the bindings who's scope sets are a subset of the
             // scope set of the syntax being resolved and use the largest
             let biggestScopeSet = tokenBindings.filter(binding => {
-                let bindingScopes = scopesof(binding.scopeSet);
-                let stxScopes = scopesof(stx.context);
+                let bindingScopes = binding.scopeSet;
+                let stxScopes = stx.context;
                 return bindingScopes.isSubset(stxScopes);
             }).sort(sizeDecending)[0];
 

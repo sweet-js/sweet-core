@@ -135,7 +135,14 @@ Syntax.prototype = {
         if (this.token.inner) {
             this.token.inner = this.token.inner.map(stx => stx.mark(newMark));
         }
-        return syntaxFromToken(this.token, {context: this.context.unshift(newMark),
+        let newCtx;
+        if (this.context.first() === newMark) {
+            // double scopes cancel
+            newCtx = this.context.rest();
+        } else {
+            newCtx = this.context.unshift(newMark);
+        }
+        return syntaxFromToken(this.token, {context: newCtx,
                                             props: this.props});
     },
     delScope: function(scope) {
