@@ -2213,14 +2213,15 @@ function makeExpanderContext(o) {
     });
 }
 
-function makeModuleExpanderContext(filename, templateMap, patternMap, phase, moduleRecord, compileSuffix) {
+function makeModuleExpanderContext(filename, templateMap, patternMap, phase, moduleRecord, compileSuffix, bindings) {
     return makeExpanderContext({
         filename: filename,
         templateMap: templateMap,
         patternMap: patternMap,
         phase: phase,
         moduleRecord: moduleRecord,
-        compileSuffix: compileSuffix
+        compileSuffix: compileSuffix,
+        bindings: bindings
     });
 }
 
@@ -2253,10 +2254,10 @@ function defaultImportStx(importPath, ctx) {
         "syntax",
         "#",
         "syntaxCase",
-        "macro",
-        "let",
-        // "stx",
-        // "stxrec",
+        // "macro",
+        // "let",
+        "stxnonrec",
+        "stxrec",
         "withSyntax",
         "letstx",
         "macroclass",
@@ -2580,7 +2581,8 @@ function loadImport(path, context) {
                                             context.templateMap,
                                             context.patternMap,
                                             mod.record,
-                                            context.compileSuffix);
+                                            context.compileSuffix,
+                                            context.bindings);
                 return {
                     term: expanded.mod,
                     record: expanded.context.moduleRecord
@@ -2645,14 +2647,15 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
 //     context: ExpanderContext,
 //     mod: ModuleTerm
 // }
-function expandModule(mod, filename, templateMap, patternMap, moduleRecord, compileSuffix) {
+function expandModule(mod, filename, templateMap, patternMap, moduleRecord, compileSuffix, bindings) {
     // create a new expander context for this module
     var context = makeModuleExpanderContext(filename,
                                             templateMap,
                                             patternMap,
                                             0,
                                             moduleRecord,
-                                            compileSuffix);
+                                            compileSuffix,
+                                            bindings);
     return {
         context: context,
         mod: expandTermTreeToFinal(mod, context)
