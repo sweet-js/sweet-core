@@ -21,7 +21,7 @@ function inherit(parent, child, methods) {
     _.extend(child.prototype, methods);
 }
 
-macro cloned {
+stxrec cloned {
     rule { $dest:ident <- $source:expr ;... } => {
         var src = $source;
         var keys = Object.keys(src);
@@ -33,7 +33,7 @@ macro cloned {
     }
 }
 
-macro to_str {
+stxrec to_str {
     case { _ ($toks (,) ...) } => {
         var toks = #{ $toks ... };
         // We aren't using unwrapSyntax because it breaks since its defined
@@ -43,19 +43,19 @@ macro to_str {
     }
 }
 
-macro class_method {
+stxrec class_method {
     rule { $name:ident $args $body } => {
         to_str($name): function $args $body
     }
 }
 
-macro class_extend {
+stxrec class_extend {
     rule { $name $parent $methods } => {
         inherit($parent, $name, $methods);
     }
 }
 
-macro class_ctr {
+stxrec class_ctr {
     rule { $name ($field ...) } => {
         function $name($field (,) ...) {
             $(this.$field = $field;) ...
@@ -63,7 +63,7 @@ macro class_ctr {
     }
 }
 
-macro class_create {
+stxrec class_create {
     rule { $name ($arg (,) ...) } => {
         $name.properties = [$(to_str($arg)) (,) ...];
         $name.create = function($arg (,) ...) {
@@ -72,7 +72,7 @@ macro class_create {
     }
 }
 
-macro dataclass {
+stxrec dataclass {
     rule {
         $name:ident ($field:ident (,) ...) extends $parent:ident {
             $methods:class_method ...
