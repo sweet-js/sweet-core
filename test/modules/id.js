@@ -1,10 +1,10 @@
 #lang "../../macros/stxcase.js";
 
-macro id {
+stxrec id {
     rule { ($x) } => { $x }
 }
 
-macro di {
+stxrec di {
     rule { ($x) } => { $x }
 }
 

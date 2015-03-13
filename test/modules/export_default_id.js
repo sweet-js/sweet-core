@@ -1,5 +1,5 @@
 #lang "../../macros/stxcase.js";
 
-export default macro id {
+export default stxrec id {
     rule { $x } => { $x }
 }

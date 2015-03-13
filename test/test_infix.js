@@ -3,7 +3,7 @@ var expect = require("expect.js");
 
 describe("infix macros", function() {
     it("should allow infix matching", function() {
-        macro swapm {
+        stxrec swapm {
             rule infix { $lhs:expr | $rhs:expr } => {
                 $rhs - $lhs
             }
@@ -13,7 +13,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching using a case pattern", function() {
-        macro swapm {
+        stxrec swapm {
             case infix { $lhs:expr | _ $rhs:expr } => {
                 return #{ $rhs - $lhs }
             }
@@ -23,7 +23,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching in a var statement", function() {
-        macro swapm {
+        stxrec swapm {
             rule infix { $lhs:expr | $rhs:expr } => {
                 $rhs - $lhs
             }
@@ -33,7 +33,7 @@ describe("infix macros", function() {
     });
 
     it("should allow mixing of infix and prefix patterns", function() {
-        macro m {
+        stxrec m {
             rule infix { $lhs:expr | $rhs:expr } => {
                 $lhs + $rhs
             }
@@ -46,7 +46,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching on the rhs of a binop", function() {
-        macro m {
+        stxrec m {
             rule infix { $lhs:expr - | $rhs:expr } => {
                 $lhs + $rhs
             }
@@ -55,7 +55,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching on the rhs of a unary op", function() {
-        macro m {
+        stxrec m {
             rule infix { - | $rhs:expr } => {
                 $rhs + $rhs
             }
@@ -64,7 +64,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching on the rhs of a keyword unary op", function() {
-        macro m {
+        stxrec m {
             rule infix { delete | $rhs:expr } => {
                 $rhs + $rhs
             }
@@ -73,7 +73,7 @@ describe("infix macros", function() {
     });
 
     it("should not raise an assertion when the rhs has a pattern class and the syntax is an op", function() {
-        macro m {
+        stxrec m {
             rule infix { $lhs:expr | $rhs:expr } => {
                 $lhs + $rhs
             }
@@ -86,7 +86,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching of repeaters", function() {
-        macro m {
+        stxrec m {
             rule infix { $num ... | } => {
                 $num (-) ...
             }
@@ -95,7 +95,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching of repeaters with separators", function() {
-        macro m {
+        stxrec m {
             rule infix { $num (+) ... | } => {
                 $num (-) ...
             }
@@ -104,7 +104,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching of complex operator expressions", function() {
-        macro m {
+        stxrec m {
             rule infix { $lhs:expr + | $rhs:expr } => {
                 $rhs - $lhs
             }
@@ -113,7 +113,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching within assignment expressions", function() {
-        macro m {
+        stxrec m {
             rule infix { $lhs:expr | } => {
                 2 * $lhs
             }
@@ -125,7 +125,7 @@ describe("infix macros", function() {
 
     it("should allow infix matching past expressions", function() {
         var a;
-        macro end {
+        stxrec end {
             rule infix { start $e:expr (;) ... | } => {
                 a = $e (-) ...
             }
@@ -138,7 +138,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching on a return statement", function() {
-        macro m {
+        stxrec m {
             rule infix { return $value:expr | } => {
                 return 42
             }
@@ -150,7 +150,7 @@ describe("infix macros", function() {
     });
 
     it("should allow infix matching on 1 non-expr term in expression position", function() {
-        macro m {
+        stxrec m {
             rule infix { for | $x } => {
                 $x
             }

@@ -2,7 +2,7 @@ var expect = require("expect.js")
 
 describe("a primitive macro", function() {
     it("should expand the id macro", function() {
-        macro m {
+        stxrec m {
             function(stx) {
                 var name = stx[0];
                 var arg = stx[1];
@@ -16,7 +16,7 @@ describe("a primitive macro", function() {
     });
 
     it('should have access to the primitive functions', function() {
-        macro m {
+        stxrec m {
             function(stx) {
                 var name = stx[0];
                 var arg = stx[1];
