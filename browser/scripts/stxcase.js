@@ -1,6 +1,8 @@
 #lang "js";
 
-let quoteSyntax = macro {
+
+
+stxrec quoteSyntax {
     function(stx) {
         var name_stx = stx[0];
 
@@ -20,7 +22,70 @@ let quoteSyntax = macro {
     }
 }
 
-let syntax = macro {
+// stxrec stx {
+//     rule { $name { $body ... } } => {
+//         stxrec $name^{a,b} {
+//             rule {} => { $name^{} }
+//          }
+//         stxrec $name^{a} { $body^{a,b} ... }
+//     }
+// }
+
+stxrec stxnonrec {
+    function (stx) {
+        var name = stx[1];
+        var body = stx[2];
+
+        var nonRecScope = __freshScope(__bindings);
+
+        var nonRecBody = body.mark(nonRecScope);
+        var nonRecName = name.mark(nonRecScope);
+        var surroundingName = name.delScope(__scope);
+
+        // hacky unquote
+        function traverse(stx, one, two, three, four) {
+            return stx.map(function(s) {
+                if (s.token.inner) {
+                    s.token.inner = traverse(s.token.inner, one, two, three);
+                    return s;
+                }
+                if (s.token.value === "$1") {
+                    return one;
+                }
+                if (s.token.value === "$2") {
+                    return two;
+                }
+                if (s.token.value === "$3") {
+                    return three;
+                }
+                if (s.token.value === "$4") {
+                    return four;
+                }
+                return s;
+            });
+        }
+
+        var res = traverse(quoteSyntax {
+            stxrec $1 {
+                function(stx) {
+                    return {
+                        result: quoteSyntax{$2},
+                        rest: stx.slice(1)
+                    };
+                }
+            }
+            stxrec $3 $4
+        }, nonRecName, surroundingName, name, nonRecBody);
+        return {
+            result: res,
+            rest: stx.slice(3)
+        }
+    }
+}
+
+
+
+stxrec syntax {
     function(stx) {
         var name_stx = stx[0];
         var here = quoteSyntax{here};
@@ -56,7 +121,7 @@ let syntax = macro {
     }
 }
 
-macro # {
+stxrec # {
     function (stx) {
         return {
             // breaking hygiene to capture inside syntaxCase
@@ -68,7 +133,7 @@ macro # {
 }
 
 
-let syntaxCase = macro {
+stxrec syntaxCase {
     function(stx, context) {
         var name_stx = stx[0];
         var here = quoteSyntax{here};
@@ -268,7 +333,21 @@ let syntaxCase = macro {
 
         function makeTranscribe(caseObj) {
             // applyMarkToPatternEnv (context.mark, match.patternEnv);
-            var applyPreMark = [
+            var applyPreMark1 = [
+                makeIdent("applyMarkToPatternEnv", here),
+                makeDelim("()", [
+                    makeIdent("context", name_stx),
+                    makePunc(".", here),
+                    makeIdent("useScope", name_stx),
+                    makePunc(",", here),
+                    makeIdent("match", name_stx),
+                    makePunc(".", here),
+                    makeIdent("patternEnv", name_stx)
+                ], here),
+                makePunc(";", here)
+            ];
+            // applyMarkToPatternEnv (context.useScope, match.patternEnv);
+            var applyPreMark2 = [
                 makeIdent("applyMarkToPatternEnv", here),
                 makeDelim("()", [
                     makeIdent("context", name_stx),
@@ -346,7 +425,7 @@ let syntaxCase = macro {
                     makeIdent("lhsMatch", name_stx), makePunc(".", here), makeIdent("prevTerms", here)
                 ], here)
             ];
-            return applyPreMark.concat(runBody, errHandling, applyPostMark, retResult);
+            return applyPreMark1.concat(applyPreMark2, runBody, errHandling, applyPostMark, retResult);
         }
 
         var arg_def = makeVarDef("arg", [makeIdent("stx", name_stx)]);
@@ -405,10 +484,9 @@ let syntaxCase = macro {
     }
 }
 
-
-let macro = macro {
-    function(stx) {
-        var name_stx = stx[0];
+stxrec stxrec {
+    function(st) {
+        var name_stx = st[0];
         var here = quoteSyntax{here};
         var mac_name_stx;
         var body_inner_stx;
@@ -417,18 +495,18 @@ let macro = macro {
         var makeIdentityRule = patternModule.makeIdentityRule;
         var rest;
 
-        if (stx[1] && stx[1].token.type === parser.Token.Delimiter &&
-            stx[1].token.value === "{}") {
+        if (st[1] && st[1].token.type === parser.Token.Delimiter &&
+            st[1].token.value === "{}") {
             mac_name_stx = null;
-            body_stx = stx[1];
-            body_inner_stx = stx[1].token.inner;
-            rest = stx.slice(2);
+            body_stx = st[1];
+            body_inner_stx = st[1].token.inner;
+            rest = st.slice(2);
         } else {
             mac_name_stx = [];
-            mac_name_stx.push(stx[1]);
-            body_stx = stx[2];
-            body_inner_stx = stx[2].token.inner;
-            rest = stx.slice(3);
+            mac_name_stx.push(st[1]);
+            body_stx = st[2];
+            body_inner_stx = st[2].token.inner;
+            rest = st.slice(3);
         }
 
         function makeFunc(params, body) {
@@ -481,14 +559,14 @@ let macro = macro {
         if (body_inner_stx[0] && body_inner_stx[0].token.value === "function") {
 
             if (mac_name_stx) {
-                var res = [makeIdent("macro", here)].concat(mac_name_stx).concat(body_stx)
+                var res = [makeIdent("stxrec", null)].concat(mac_name_stx).concat(body_stx)
                 return {
                     result: res,
                     rest: rest
                 };
             } else {
                 var res = [
-                    makeIdent("macro", here),
+                    makeIdent("stxrec", null),
                     body_stx
                 ];
                 return {
@@ -531,9 +609,9 @@ let macro = macro {
 
         var stxSyntaxCase = takeLine(here[0], makeIdent("syntaxCase", name_stx));
         var res = mac_name_stx
-            ? [makeIdent("macro", here)].concat(mac_name_stx)
-            : [makeIdent("macro", here)];
-        res = res.concat(makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
+            ? [makeIdent("stxrec", null)].concat(mac_name_stx)
+            : [makeIdent("stxrec", null)];
+        res = res.concat(makeDelim("{}", makeFunc([makeIdent("st", name_stx),
                                                    makePunc(",", here),
                                                    makeIdent("context", name_stx),
                                                    makePunc(",", here),
@@ -542,7 +620,7 @@ let macro = macro {
                                                    makeIdent("prevTerms", name_stx)],
                                                    [makeKeyword("return", here),
                                                     stxSyntaxCase,
-                                                    makeDelim("()", [makeIdent("stx", name_stx),
+                                                    makeDelim("()", [makeIdent("st", name_stx),
                                                                      makePunc(",", here),
                                                                      makeIdent("context", name_stx),
                                                                      makePunc(",", here),
@@ -560,7 +638,22 @@ let macro = macro {
     }
 }
 
-macro withSyntax_done {
+// stx let {
+//     rule { $name = macro { $body ...} } => {
+//         stx $name { $body ... }
+//     }
+//     rule { $else ... } => { let $else ...}
+// }
+//
+// stx macro {
+//     rule { $name { $body ...} } => {
+//         stxrec $name { $body ... }
+//     }
+// }
+
+
+
+stxrec withSyntax_done {
     case { _ $ctx ($vars ...) {$rest ...} } => {
         var ctx = #{ $ctx };
         var here = #{ here };
@@ -628,7 +721,7 @@ macro withSyntax_done {
     }
 }
 
-macro withSyntax_bind {
+stxrec withSyntax_bind {
     rule { $name:ident $[...] = $rhs:expr } => {
         $name (true) $rhs
     }
@@ -637,7 +730,7 @@ macro withSyntax_bind {
     }
 }
 
-let withSyntax = macro {
+stxnonrec withSyntax {
     case { $name ($binders:withSyntax_bind (,) ...) { $body ... } } => {
         return #{
             withSyntax_done $name ($binders ...) { $body ... }
@@ -652,7 +745,7 @@ let withSyntax = macro {
     }
 }
 
-macro letstx_bind {
+stxrec letstx_bind {
     rule { $name:ident = $rhs:expr , $more:letstx_bind } => {
         $name () $rhs $more
     }
@@ -673,7 +766,7 @@ macro letstx_bind {
     }
 }
 
-let letstx = macro {
+stxnonrec letstx {
     case { $name $binders:letstx_bind $rest ... } => {
         return #{
             return withSyntax_done $name ($binders) { $rest ... }
@@ -682,9 +775,9 @@ let letstx = macro {
 }
 
 
-macro macroclass {
+stxrec macroclass {
     rule { $name:ident { $decls:macroclass_decl ... } } => {
-        macro $name {
+        stxrec $name {
             function (stx, context, prevStx, prevTerms) {
                 var name_stx = stx[0];
                 var match;
@@ -694,7 +787,7 @@ macro macroclass {
     }
 }
 
-macro macroclass_decl {
+stxrec macroclass_decl {
     rule { $kw:[name] = $name:lit ;... } => {
         ($kw $name)
     }
@@ -706,7 +799,7 @@ macro macroclass_decl {
     }
 }
 
-macro macroclass_modifier {
+stxrec macroclass_modifier {
     rule { $kw:[name] = $name:lit ;... } => {
         ($kw $name)
     }
@@ -719,17 +812,17 @@ macro macroclass_modifier {
     rule { ; ;... } => { }
 }
 
-macro macroclass_with_lhs {
+stxrec macroclass_with_lhs {
     rule { $name:ident $[...] }
     rule { $name:ident }
 }
 
-macro macroclass_with_rhs {
+stxrec macroclass_with_rhs {
     rule { #{ $stx ... } }
     rule { $code:expr }
 }
 
-macro macroclass_create {
+stxrec macroclass_create {
     function(stx, context, prevStx, prevTerms) {
         var here = quoteSyntax { here };
         var macName = stx[0];
@@ -836,7 +929,7 @@ macro macroclass_create {
                     matchName, makePunc('.', here), makeIdent('success', here)
                 ], here), makeDelim('{}', inner, here)
             ];
-          
+
             return stx.concat(res);
 
         }, []);
@@ -857,40 +950,40 @@ macro macroclass_create {
 }
 
 
-macro safemacro {
-    rule { $name:ident { rule $body ... } } => {
-        let $name = macro {
-            rule { : } => { $name : }
-            rule infix { . | } => { . $name }
-            rule $body ...
-        }
-    }
-    rule { $name:ident { case $body ... } } => {
-        let $name = macro {
-            case { _ : } => { return #{ $name : } }
-            case infix { . | _ } => { return #{ . $name } }
-            case $body ...
-        }
-    }
-}
+// stxrec safemacro {
+//     rule { $name:ident { rule $body ... } } => {
+//         let $name = macro {
+//             rule { : } => { $name : }
+//             rule infix { . | } => { . $name }
+//             rule $body ...
+//         }
+//     }
+//     rule { $name:ident { case $body ... } } => {
+//         let $name = macro {
+//             case { _ : } => { return #{ $name : } }
+//             case infix { . | _ } => { return #{ . $name } }
+//             case $body ...
+//         }
+//     }
+// }
 
-macro op_assoc {
+stxrec op_assoc {
     rule { left }
     rule { right }
 }
 
-macro op_name {
+stxrec op_name {
     rule { ($name ...) }
     rule { $name } => { ($name) }
 }
 
-safemacro operator {
+stxnonrec operator {
     rule {
         $name:op_name $prec:lit $assoc:op_assoc
         { $left:ident, $right:ident } => #{ $body ... }
     } => {
         binaryop $name $prec $assoc {
-            macro {
+            stxrec _ {
                 rule { ($left:expr) ($right:expr) } => { $body ... }
             }
         }
@@ -899,66 +992,23 @@ safemacro operator {
         $name:op_name $prec:lit { $op:ident } => #{ $body ... }
     } => {
         unaryop $name $prec {
-            macro {
+            stxrec _ {
                 rule { $op:expr } => { $body ... }
             }
         }
     }
 }
 
-// macro __log {
-//     case { _ defctx $stx } => {
-//         var context = #{ $stx }[0].context;
-//         console.log("defctx context for " + unwrapSyntax(#{$stx}) + "]");
-//         while (context) {
-//             if (context.defctx) {
-//                 console.log(context.defctx.map(function(d) {
-//                     return d.id.token.value
-//                 }));
-//             }
-//             context = context.context;
-//         }
-//         return [];
-//     }
-//     case {_ rename $stx } => {
-//         var context = #{ $stx }[0].context;
-//         console.log("rename context for " + unwrapSyntax(#{$stx}) + ":");
-//         while (context) {
-//             if (context.name) {
-//                 console.log("[name: " + context.name + ", id: " + context.id.token.value + "]");
-//             }
-//             context = context.context;
-//         }
-//         return [];
-//     }
-//     case {_ all $stx } => {
-//         var context = #{ $stx }[0].context;
-//         console.log("context for " + unwrapSyntax(#{$stx}) + ":");
-//         while (context) {
-//             if (context.name) {
-//                 console.log("rename@[name: " + context.name + ", id: " + context.id.token.value + "]");
-//             }
-//             if (context.mark) {
-//                 console.log("mark@[mark: " + context.mark + "]");
-//             }
-//             if (context.defctx) {
-//                 console.log("defctx@[" + context.defctx.map(function(d) {
-//                     return d.id.token.value
-//                 }) + "]");
-//             }
-//             context = context.context;
-//         }
-//         return [];
-//     }
-// }
-// export __log;
 
 export {
     quoteSyntax,
     syntax,
     #,
     syntaxCase,
-    macro,
+    // macro,
+    // let,
+    stxnonrec,
+    stxrec,
     withSyntax,
     letstx,
     macroclass,

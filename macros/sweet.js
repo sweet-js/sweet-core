@@ -31,7 +31,7 @@ stxrec quoteSyntax {
 //     }
 // }
 
-stxrec stx {
+stxrec stxnonrec {
     function (stx) {
         var name = stx[1];
         var body = stx[2];
@@ -338,7 +338,7 @@ stxrec syntaxCase {
                 makeDelim("()", [
                     makeIdent("context", name_stx),
                     makePunc(".", here),
-                    makeIdent("mark", name_stx),
+                    makeIdent("useScope", name_stx),
                     makePunc(",", here),
                     makeIdent("match", name_stx),
                     makePunc(".", here),
@@ -352,7 +352,7 @@ stxrec syntaxCase {
                 makeDelim("()", [
                     makeIdent("context", name_stx),
                     makePunc(".", here),
-                    makeIdent("useScope", name_stx),
+                    makeIdent("mark", name_stx),
                     makePunc(",", here),
                     makeIdent("match", name_stx),
                     makePunc(".", here),
@@ -484,7 +484,7 @@ stxrec syntaxCase {
     }
 }
 
-stx stxrec {
+stxrec stxrec {
     function(st) {
         var name_stx = st[0];
         var here = quoteSyntax{here};
@@ -559,14 +559,14 @@ stx stxrec {
         if (body_inner_stx[0] && body_inner_stx[0].token.value === "function") {
 
             if (mac_name_stx) {
-                var res = [makeIdent("stxrec", here)].concat(mac_name_stx).concat(body_stx)
+                var res = [makeIdent("stxrec", null)].concat(mac_name_stx).concat(body_stx)
                 return {
                     result: res,
                     rest: rest
                 };
             } else {
                 var res = [
-                    makeIdent("stxrec", here),
+                    makeIdent("stxrec", null),
                     body_stx
                 ];
                 return {
@@ -609,8 +609,8 @@ stx stxrec {
 
         var stxSyntaxCase = takeLine(here[0], makeIdent("syntaxCase", name_stx));
         var res = mac_name_stx
-            ? [makeIdent("stxrec", here)].concat(mac_name_stx)
-            : [makeIdent("stxrec", here)];
+            ? [makeIdent("stxrec", null)].concat(mac_name_stx)
+            : [makeIdent("stxrec", null)];
         res = res.concat(makeDelim("{}", makeFunc([makeIdent("st", name_stx),
                                                    makePunc(",", here),
                                                    makeIdent("context", name_stx),
@@ -638,18 +638,18 @@ stx stxrec {
     }
 }
 
-stx let {
-    rule { $name = macro { $body ...} } => {
-        stx $name { $body ... }
-    }
-    rule { $else ... } => { let $else ...}
-}
-
-stx macro {
-    rule { $name { $body ...} } => {
-        stxrec $name { $body ... }
-    }
-}
+// stx let {
+//     rule { $name = macro { $body ...} } => {
+//         stx $name { $body ... }
+//     }
+//     rule { $else ... } => { let $else ...}
+// }
+//
+// stx macro {
+//     rule { $name { $body ...} } => {
+//         stxrec $name { $body ... }
+//     }
+// }
 
 
 
@@ -730,7 +730,7 @@ stxrec withSyntax_bind {
     }
 }
 
-stx withSyntax {
+stxnonrec withSyntax {
     case { $name ($binders:withSyntax_bind (,) ...) { $body ... } } => {
         return #{
             withSyntax_done $name ($binders ...) { $body ... }
@@ -766,7 +766,7 @@ stxrec letstx_bind {
     }
 }
 
-stx letstx {
+stxnonrec letstx {
     case { $name $binders:letstx_bind $rest ... } => {
         return #{
             return withSyntax_done $name ($binders) { $rest ... }
@@ -950,34 +950,34 @@ stxrec macroclass_create {
 }
 
 
-stxrec safemacro {
-    rule { $name:ident { rule $body ... } } => {
-        let $name = macro {
-            rule { : } => { $name : }
-            rule infix { . | } => { . $name }
-            rule $body ...
-        }
-    }
-    rule { $name:ident { case $body ... } } => {
-        let $name = macro {
-            case { _ : } => { return #{ $name : } }
-            case infix { . | _ } => { return #{ . $name } }
-            case $body ...
-        }
-    }
-}
+// stxrec safemacro {
+//     rule { $name:ident { rule $body ... } } => {
+//         let $name = macro {
+//             rule { : } => { $name : }
+//             rule infix { . | } => { . $name }
+//             rule $body ...
+//         }
+//     }
+//     rule { $name:ident { case $body ... } } => {
+//         let $name = macro {
+//             case { _ : } => { return #{ $name : } }
+//             case infix { . | _ } => { return #{ . $name } }
+//             case $body ...
+//         }
+//     }
+// }
 
-macro op_assoc {
+stxrec op_assoc {
     rule { left }
     rule { right }
 }
 
-macro op_name {
+stxrec op_name {
     rule { ($name ...) }
     rule { $name } => { ($name) }
 }
 
-safemacro operator {
+stxnonrec operator {
     rule {
         $name:op_name $prec:lit $assoc:op_assoc
         { $left:ident, $right:ident } => #{ $body ... }
@@ -1005,9 +1005,9 @@ export {
     syntax,
     #,
     syntaxCase,
-    macro,
-    let,
-    stx,
+    // macro,
+    // let,
+    stxnonrec,
     stxrec,
     withSyntax,
     letstx,
