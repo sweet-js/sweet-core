@@ -3,16 +3,13 @@
 
 stxrec quoteSyntax {
     function(stx) {
-        var name_stx = stx[0];
 
         if (!(stx[1] && stx[1].token && stx[1].token.inner)) {
             throwSyntaxError("macro", "Macro `quoteSyntax` could not be matched" , stx[1]);
         }
-        var qtSyn = makeIdent("#quoteSyntax", null);
-        qtSyn.props.toBind = name_stx.props.toBind;
 
         return {
-            result: [qtSyn, stx[1]],
+            result: [makeIdent("#quoteSyntax", null), stx[1]],
             rest: stx.slice(2)
         };
     }
@@ -108,43 +105,10 @@ stxrec stxnonrec {
 
 stxrec syntax {
     function(stx) {
-        // var name_stx = stx[0];
         var here = quoteSyntax{here};
-        // var takeLineContext = patternModule.takeLineContext;
-        // var takeLine = patternModule.takeLine;
-        // var mod = makeIdent("patternModule", here);
-        //
-        // if (!(stx[1] && stx[1].token && stx[1].token.inner)) {
-        //     throwSyntaxError("macro", "Macro `syntax` could not be matched", stx[1]);
-        // }
-        //
-        // var res = [mod,
-        //            makePunc(".", here),
-        //            makeIdent("transcribe", here),
-        //            makeDelim("()", [
-        //                makeIdent("#quoteSyntax", here),
-        //                stx[1],
-        //                makePunc(",", here),
-        //                // breaking hygiene to capture `name_stx`, `match`, and
-        //                // `patternEnv` inside the syntaxCase macro
-        //                makeIdent("name_stx", name_stx),
-        //                makePunc(",", here),
-        //                makeIdent("match", name_stx),
-        //                makePunc(".", here),
-        //                makeIdent("patternEnv", name_stx)
-        //            ], here)];
-        //
-        //
-        // return {
-        //     result: res,
-        //     rest: stx.slice(2)
-        // };
-        var qtSyn = makeIdent("quoteSyntax", here);
-        // mark that we want to bind patterns (not just a raw quote syntax)
-        qtSyn.props.toBind = true;
 
         return {
-            result: [qtSyn, stx[1]],
+            result: [makeIdent("quoteSyntax", here), stx[1]],
             rest: stx.slice(2)
         };
     }
@@ -153,8 +117,7 @@ stxrec syntax {
 stxrec # {
     function (stx) {
         return {
-            result: [makeIdent("syntax", quoteSyntax{here}),
-                     stx[1]],
+            result: [makeIdent("syntax", quoteSyntax{here}), stx[1]],
             rest: stx.slice(2)
         }
     }
@@ -240,8 +203,7 @@ stxrec syntaxCase {
                 throw new Error("expecting a body surrounded by {} in syntax case");
             }
 
-            // var bodyStx = caseBody.token.inner;
-            var bodyStx = localExpand(caseBody.token.inner, [makeIdent("syntax", here)]);
+            var bodyStx = localExpand(caseBody.token.inner, quoteSyntax{syntax});
 
             function traverse(stx, f) {
                 return stx.reduce(function(acc, stx) {
@@ -253,9 +215,8 @@ stxrec syntaxCase {
                 }, []);
             }
             bodyStx = traverse(bodyStx, function(stx) {
-                // should be free-identifiers?
+                // should be free-identifiers
                 if (stx.token.value === "syntax") {
-                    debugger;
                     return quoteSyntax {bindSyntax match};
                 }
                 return stx;
