@@ -1,7 +1,5 @@
 #lang "js";
 
-
-
 stxrec quoteSyntax {
     function(stx) {
 
@@ -61,27 +59,24 @@ stxrec stxnonrec {
         var nonRecName = name.mark(nonRecScope);
         var surroundingName = name.delScope(__scope);
 
+        if (name.isDelimiter()) {
+            surroundingName = surroundingName.token.inner;
+        }
+
         // hacky unquote
-        function traverse(stx, one, two, three, four) {
-            return stx.map(function(s) {
+        function traverse(stx, rep) {
+            return stx.reduce(function(acc, s) {
                 if (s.token.inner) {
-                    s.token.inner = traverse(s.token.inner, one, two, three);
-                    return s;
+                    s.token.inner = traverse(s.token.inner, rep);
+                    return acc.concat(s);
                 }
-                if (s.token.value === "$1") {
-                    return one;
+                for (var i = 0; i < rep.length; i++) {
+                    if (s.token.value === "$" + (i+1)) {
+                        return acc.concat(rep[i]);
+                    }
                 }
-                if (s.token.value === "$2") {
-                    return two;
-                }
-                if (s.token.value === "$3") {
-                    return three;
-                }
-                if (s.token.value === "$4") {
-                    return four;
-                }
-                return s;
-            });
+                return acc.concat(s);
+            }, []);
         }
 
         var res = traverse(quoteSyntax {
@@ -94,7 +89,7 @@ stxrec stxnonrec {
                 }
             }
             stxrec $3 $4
-        }, nonRecName, surroundingName, name, nonRecBody);
+        }, [nonRecName, surroundingName, name, nonRecBody]);
         return {
             result: res,
             rest: stx.slice(3)
@@ -125,6 +120,7 @@ stxrec # {
 }
 
 
+var __communicateMatch;
 stxrec syntaxCase {
     function(stx, context) {
         var name_stx = stx[0];
@@ -204,10 +200,15 @@ stxrec syntaxCase {
                 throw new Error("expecting a body surrounded by {} in syntax case");
             }
 
-            var bodyStx = localExpand(caseBody.token.inner, quoteSyntax{syntax});
+            var bodyStx = localExpand(caseBody.token.inner, quoteSyntax{syntax __communicateMatch});
 
+            var skipNext = false; // hacky
             function traverse(stx, f) {
                 return stx.reduce(function(acc, stx) {
+                    if (skipNext) {
+                        skipNext = false;
+                        return acc;
+                    }
                     if (stx.token.inner) {
                         stx.token.inner = traverse(stx.token.inner, f);
                         return acc.concat(stx);
@@ -217,8 +218,12 @@ stxrec syntaxCase {
             }
             bodyStx = traverse(bodyStx, function(stx) {
                 // should be free-identifiers
-                if (stx.token.value === "syntax") {
+                if (stx.token.value === "syntax" && stx.isIdentifier()) {
                     return quoteSyntax {bindSyntax match};
+                }
+                if (stx.token.value === "__communicateMatch" && stx.isIdentifier()) {
+                    skipNext = true;
+                    return makeIdent("match", here);
                 }
                 return stx;
             });
@@ -683,7 +688,7 @@ stxrec withSyntax_done {
 
             if (repeat) {
                 res.push(
-                    makeIdent('match', ctx),
+                    makeIdent('match', here),
                     makePunc('.', here),
                     makeIdent('patternEnv', here),
                     makeDelim('[]', [makeValue(name.token.value, here)], here),
@@ -702,7 +707,7 @@ stxrec withSyntax_done {
                 );
             } else {
                 res.push(
-                    makeIdent('match', ctx),
+                    makeIdent('match', here),
                     makePunc('.', here),
                     makeIdent('patternEnv', here),
                     makeDelim('[]', [makeValue(name.token.value, here)], here),
@@ -716,18 +721,38 @@ stxrec withSyntax_done {
             }
         }
 
-        res = res.concat(rest);
+        var body = localExpand(rest, quoteSyntax{syntax});
+        function traverse(stx, f) {
+            return stx.reduce(function(acc, stx) {
+                if (stx.token.inner) {
+                    stx.token.inner = traverse(stx.token.inner, f);
+                    return acc.concat(stx);
+                }
+                return acc.concat(f(stx));
+            }, []);
+        }
+        body = traverse(body, function(stx) {
+            // should be free-identifiers
+            if (stx.token.value === "syntax" && stx.isIdentifier()) {
+                debugger;
+                // return quoteSyntax {bindSyntax match};
+                return [makeIdent("bindSyntax", here), makeIdent("match", here)];
+            }
+            return stx;
+        });
+
+        res = res.concat(body);
         res = [
             makeDelim("()", [
                 makeKeyword("function", here),
-                makeDelim("()", [makeIdent("match", ctx)], here),
+                makeDelim("()", [makeIdent("match", here)], here),
                 makeDelim("{}", res, here)
             ], here),
             makeDelim("()", [
                 makeIdent("patternModule", here),
                 makePunc(".", here),
                 makeIdent("cloneMatch", here),
-                makeDelim("()", [makeIdent("match", ctx)], here)
+                makeDelim("()", [makeIdent("__communicateMatch", here), makeDelim("{}", [], here)], here)
             ], here)
         ];
 

@@ -209,47 +209,6 @@ dataclass TermTree() {
         }, []);
     }
 
-    addDefCtx(def) {
-        var self = this;
-        _.each(this.constructor.properties, function(prop) {
-            if (Array.isArray(self[prop])) {
-                self[prop] = _.map(self[prop], function (item) {
-                    return item.addDefCtx(def);
-                });
-            } else if (self[prop]) {
-                self[prop] = self[prop].addDefCtx(def);
-            }
-        });
-        return this;
-    }
-
-    rename(id, name, phase) {
-        var self = this;
-        _.each(this.constructor.properties, function(prop) {
-            if (Array.isArray(self[prop])) {
-                self[prop] = _.map(self[prop], function (item) {
-                    return item.rename(id, name, phase);
-                });
-            } else if (self[prop]) {
-                self[prop] = self[prop].rename(id, name, phase);
-            }
-        });
-        return this;
-    }
-
-    imported(id, name, phase, mod) {
-        var self = this;
-        _.each(this.constructor.properties, function(prop) {
-            if (Array.isArray(self[prop])) {
-                self[prop] = _.map(self[prop], function (item) {
-                    return item.imported(id, name, phase, mod);
-                });
-            } else if (self[prop]) {
-                self[prop] = self[prop].imported(id, name, phase, mod);
-            }
-        });
-        return this;
-    }
 }
 
 dataclass EOFTerm                   (eof)                               extends TermTree;

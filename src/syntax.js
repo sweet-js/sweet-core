@@ -99,125 +99,46 @@ function Syntax(token, oldstx) {
 }
 
 Syntax.prototype = {
-    // addScope: function(scope) {
-    //     if (this.token.inner) {
-    //         this.token.inner = this.token.inner.map(stx => stx.addScope(scope));
-    //     }
-    //     // double scopes cancel out just like marks did
-    //     // let idx = this.context.indexOf(scope);
-    //     // let newCtx = this.context;
-    //     // if (idx != null) {
-    //     //     newCtx = this.context.delete(idx);
-    //     // } else {
-    //     // }
-    //     let newCtx = this.context.unshift(scope);
-    //     return syntaxFromToken(this.token, {context: newCtx,
-    //                                         props: this.props});
-    // },
-    // delScope: function(scope) {
-    //     if (this.token.inner) {
-    //         this.token.inner = this.token.inner.map(stx => stx.addScope(scope));
-    //     }
-    //     let idx = this.context.indexOf(scope);
-    //     let newCtx = this.context;
-    //     if (idx != null) {
-    //         newCtx = this.context.delete(idx);
-    //     }
-    //     return syntaxFromToken(this.token, {context: newCtx,
-    //                                         props: this.props});
-    // },
-    // debugScope: function() {
-    //     return '{' + this.context.map(s => s.name).join(',') + '}';
-    // },
-    // (Int) -> CSyntax
-    // non mutating
     mark: function(newMark) {
-        if (this.token.inner) {
-            this.token.inner = this.token.inner.map(stx => stx.mark(newMark));
+        var next = this.clone();
+        if (next.token.inner) {
+            next.token.inner = next.token.inner.map(stx => stx.mark(newMark));
         }
         let newCtx;
-        if (this.context.first() === newMark) {
+        if (next.context.first() === newMark) {
             // double scopes cancel
-            newCtx = this.context.rest();
+            newCtx = next.context.rest();
         } else {
-            newCtx = this.context.unshift(newMark);
+            newCtx = next.context.unshift(newMark);
         }
-        return syntaxFromToken(this.token, {context: newCtx,
+        return syntaxFromToken(next.token, {context: newCtx,
                                             props: this.props});
     },
     delScope: function(scope) {
-        if (this.token.inner) {
-            this.token.inner = this.token.inner.map(stx => stx.delScope(scope));
+        var next = this.clone();
+        if (next.token.inner) {
+            next.token.inner = next.token.inner.map(stx => stx.delScope(scope));
         }
-        return syntaxFromToken(this.token, {
-            context: this.context.filter(s => s !== scope),
-            props: this.props
+        return syntaxFromToken(next.token, {
+            context: next.context.filter(s => s !== scope),
+            props: next.props
         });
     },
     // (CSyntax or [...CSyntax], Str) -> CSyntax
     // non mutating
     rename: function(id, name, defctx, phase) {
-        // defer renaming of delimiters
-        var newctx = this.context == null ? [name] : this.context.concat(name);
-        if (this.token.inner) {
-            this.token.inner = this.token.inner.map(function(stx) {
-                return stx.rename(id, name, defctx, phase);
-            });
-            return syntaxFromToken(this.token,
-                                   {context: newctx,
-                                    props: this.props});
-        }
-
-        return syntaxFromToken(this.token,
-                               {context: newctx,
-                                props: this.props});
+        return this;
     },
 
     imported: function(localName, exportName, phase, mod) {
         return this;
-        // if (this.token.inner) {
-        //     this.token.inner = this.token.inner.map(function(stx) {
-        //         return stx.imported(localName, exportName, phase, mod);
-        //     });
-        //     return syntaxFromToken(this.token,
-        //                            {context: new Imported(localName,
-        //                                                   exportName,
-        //                                                   phase,
-        //                                                   mod,
-        //                                                   this.context),
-        //                             props: this.props});
-        //
-        // }
-        // return syntaxFromToken(this.token, {context: new Imported(localName,
-        //                                                           exportName,
-        //                                                           phase,
-        //                                                           mod,
-        //                                                           this.context),
-        //                                     props: this.props});
     },
 
     addDefCtx: function(defctx) {
         return this;
-        // if (this.token.inner) {
-        //     this.token.inner = this.token.inner.map(function(stx) {
-        //         return stx.addDefCtx(defctx);
-        //     });
-        //     return syntaxFromToken(this.token,
-        //                            {context: new Def(defctx, this.context),
-        //                             props: this.props});
-        // }
-        // return syntaxFromToken(this.token, {context: new Def(defctx, this.context),
-        //                                     props: this.props});
     },
 
     getDefCtx: function() {
-        var ctx = this.context;
-        while(ctx !== null) {
-            if (ctx instanceof Def) {
-                return ctx.defctx;
-            }
-            ctx = ctx.context;
-        }
         return null;
     },
 

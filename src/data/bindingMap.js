@@ -24,6 +24,20 @@ class BindingMap {
         });
         this._map.set(key, old);
     }
+
+    addForward(stx, to, phase) {
+        assert(phase != null, "must pass in the phase");
+        let key = stx.token.value;
+        let old = this._map.get(key);
+        old = old ? old : [];
+        old.push({
+            scopeSet: stx.context,
+            binding: to,
+            phase: phase
+        });
+        this._map.set(key, old);
+    }
+
     get(key) {
         return this._map.get(key);
     }

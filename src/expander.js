@@ -1002,7 +1002,6 @@ function enforest(toks, context, prevStx, prevTerms) {
             } else if (head.isIdTerm &&
                         unwrapSyntax(head.id) === "#quoteSyntax" &&
                         rest[0] && rest[0].token.value === "{}") {
-
                 return step(QuoteSyntaxTerm.create(rest[0]), rest.slice(1), opCtx);
             // return statement
             } else if (head.isKeywordTerm && unwrapSyntax(head.keyword) === "return") {
@@ -1531,7 +1530,7 @@ function markIn(arr, mark) {
 
 function markDefOut(arr, mark, def) {
     return arr.map(function(stx) {
-        return stx.mark(mark).addDefCtx(def);
+        return stx.mark(mark);
     });
 }
 
@@ -1554,7 +1553,7 @@ function loadMacroDef(body, context, phase) {
         makePunc: syn.makePunc,
         makeDelim: syn.makeDelim,
         localExpand: function(stx, stop) {
-
+            stop = stop || [];
             var markedStx = markIn(stx, localCtx.mark);
             var stopMap = new StringMap();
             stop.forEach(stop => {
@@ -2134,9 +2133,9 @@ function expandTermTreeToFinal (term, context) {
                 // blocks defer macro expansion.
                 var blockFinal = expandTermTreeToFinal(bodyTerm,
                                                        expandedResult.context);
-                return blockFinal.addDefCtx(newDef);
+                return blockFinal;
             } else {
-                var termWithCtx = bodyTerm.addDefCtx(newDef);
+                var termWithCtx = bodyTerm;
                 // finish expansion
                 return expandTermTreeToFinal(termWithCtx,
                                              expandedResult.context);
@@ -2641,7 +2640,8 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
 
         var localName = entry.localName;
 
-        context.bindings.add(localName, fresh(), phase);
+        // context.bindings.add(localName, fresh(), phase);
+        context.bindings.addForward(localName, exportName, fresh(), phase);
         context.store.set(localName, phase, new CompiletimeValue(trans,
                                                                  phase,
                                                                  modRecord.name));

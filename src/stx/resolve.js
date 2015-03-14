@@ -73,7 +73,10 @@ function resolve(stx, phase) {
             }).sort(sizeDecending)[0];
 
             if (biggestScopeSet) {
-                return stx.token.value + biggestScopeSet.binding;
+                if (typeof biggestScopeSet.binding === 'number') {
+                    return stx.token.value + biggestScopeSet.binding;
+                }
+                return resolve(biggestScopeSet.binding, phase);
             }
         }
     }
