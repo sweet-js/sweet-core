@@ -324,6 +324,7 @@ dataclass QuoteSyntaxTerm           (stx)                               extends 
 
     }
 }
+dataclass StopQuotedTerm            (name, body)                       extends ExprTerm;
 
 
 dataclass PrimaryExpressionTerm     ()                                  extends ExprTerm;
@@ -415,6 +416,7 @@ module.exports = {
     TemplateTerm: TemplateTerm,
     CallTerm: CallTerm,
     QuoteSyntaxTerm: QuoteSyntaxTerm,
+    StopQuotedTerm: StopQuotedTerm,
     PrimaryExpressionTerm: PrimaryExpressionTerm,
     ThisExpressionTerm:ThisExpressionTerm,
     LitTerm: LitTerm,

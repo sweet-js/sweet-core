@@ -56,6 +56,9 @@ var throwSyntaxCaseError = syn.throwSyntaxCaseError;
 var SyntaxCaseError = syn.SyntaxCaseError;
 var unwrapSyntax = syn.unwrapSyntax;
 var makeIdent = syn.makeIdent;
+var makePunc = syn.makePunc;
+var makeDelim = syn.makeDelim;
+var makeValue = syn.makeValue;
 var adjustLineContext = syn.adjustLineContext;
 var fresh = syn.fresh;
 var freshScope = syn.freshScope;
@@ -106,6 +109,7 @@ var TermTree                  = termTree.TermTree,
     TemplateTerm              = termTree.TemplateTerm,
     CallTerm                  = termTree.CallTerm,
     QuoteSyntaxTerm           = termTree.QuoteSyntaxTerm,
+    StopQuotedTerm            = termTree.StopQuotedTerm,
     PrimaryExpressionTerm     = termTree.PrimaryExpressionTerm,
     ThisExpressionTerm        = termTree.ThisExpressionTerm,
     LitTerm                   = termTree.LitTerm,
@@ -1069,8 +1073,12 @@ function enforest(toks, context, prevStx, prevTerms) {
             var macroObj = expandCount < maxExpands &&
                 getSyntaxTransform([head].concat(rest), context, context.phase);
 
+            if (head && context.stopMap.has(resolve(head, context.phase))) {
+                return step(StopQuotedTerm.create(head, rest[0]),
+                            rest.slice(1),
+                            opCtx);
             // macro invocation
-            if (macroObj && typeof macroObj.fn === "function" && !macroObj.isOp) {
+            } else if (macroObj && typeof macroObj.fn === "function" && !macroObj.isOp) {
                 var rt = expandMacro([head].concat(rest), context, opCtx, null, macroObj);
                 var newOpCtx = opCtx;
 
@@ -1546,11 +1554,17 @@ function loadMacroDef(body, context, phase) {
         makePunc: syn.makePunc,
         makeDelim: syn.makeDelim,
         localExpand: function(stx, stop) {
-            assert(!stop || stop.length === 0,
-                   "localExpand stop lists are not currently supported");
 
             var markedStx = markIn(stx, localCtx.mark);
-            var terms = expand(markedStx, localCtx);
+            var stopMap = new StringMap();
+            stop.forEach(stop => {
+                stopMap.set(resolve(stop, localCtx.phase - 1), true);
+            })
+            var localExpandCtx = makeExpanderContext(_.extend({},
+                                                              localCtx,
+                                                              {stopMap: stopMap,
+                                                               phase: localCtx.phase - 1}))
+            var terms = expand(markedStx, localExpandCtx);
             var newStx = terms.reduce(function(acc, term) {
                 acc.push.apply(acc, term.destruct(localCtx, {stripCompileTerm: true}));
                 return acc;
@@ -2207,6 +2221,8 @@ function makeExpanderContext(o) {
         phase: {value: o.phase || 0,
                       writable: false, enumerable: true, configurable: false},
         implicitImport: {value: o.implicitImport || new StringMap(),
+                         writable: false, enumerable: true, configurable: false},
+        stopMap: {value: o.stopMap || new StringMap(),
                          writable: false, enumerable: true, configurable: false},
         moduleRecord: {value: o.moduleRecord || {},
                        writable: false, enumerable: true, configurable: false}
