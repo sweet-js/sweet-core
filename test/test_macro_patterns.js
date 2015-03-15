@@ -482,20 +482,20 @@ describe("macro expander", function() {
 
     it("should allow macro defining macros", function() {
         macro mm {
-            case {_ ($x:lit) }=> {
+            case {_ $x }=> {
                 return #{
-                    macro m {
+                    macro $x {
                         case {_ ($y:lit)} => {
-                            return #{[$x, $y]}
+                            return #{[$y]}
                         }
                     }
                 }
             }
         }
 
-        mm (42)
+        mm m
         var z = m (24);
-        expect(z).to.eql([42,24])
+        expect(z).to.eql([24])
     });
 
     it("should allow matching of unparsed tokens", function() {
@@ -533,9 +533,9 @@ describe("macro expander", function() {
 
     it("should allow literal syntax with pattern var literals", function() {
         macro $test {
-            case {_ ($op (|) ...) }=> {
+            case {_ $name ($op (|) ...) }=> {
                 return #{
-                    macro rel {
+                    macro $name {
                         case {_ $x} => {return #{$x} }
                         $(case {_ ($x $op $y)} => { return #{1} }) ...
                     }
@@ -543,7 +543,7 @@ describe("macro expander", function() {
             }
         }
 
-        $test (<|>)
+        $test rel (<|>)
         rel(1 < 2 < 3)
     });
 
