@@ -2429,6 +2429,87 @@ function invoke(modTerm, modRecord, phase, context) {
     return context;
 }
 
+function visitTerms(terms, modRecord, phase, context) {
+    var name;
+    var macroDefinition;
+    var exportName;
+    var entries;
+
+    terms.forEach(term => {
+        // add the exported names to the module record
+        if (term.isExportNameTerm ||
+            term.isExportDeclTerm ||
+            term.isExportDefaultTerm) {
+            entries = modRecord.addExport(term);
+        }
+
+
+        if ((term.isExportDefaultTerm && term.decl.isMacroTerm) ||
+            term.isMacroTerm || term.isLetMacroTerm) {
+            let multiTokName, fullName,
+                macBody = term.isExportDefaultTerm ? term.decl.body : term.body;
+            macroDefinition = loadMacroDef(macBody, context, phase + 1);
+
+            if (term.isExportDefaultTerm) {
+                multiTokName = entries[0].exportName;
+                fullName = [entries[0].exportName];
+            } else {
+                multiTokName = makeMultiToken(term.name);
+                fullName = term.name.token.inner;
+            }
+
+            // todo: handle implicit imports
+
+            context.bindings.add(multiTokName, fresh(), phase);
+            context.store.set(multiTokName,
+                              phase,
+                              new CompiletimeValue(
+                                  new SyntaxTransform(macroDefinition,
+                                                      false,
+                                                      builtinMode,
+                                                      fullName),
+                                  phase,
+                                  modRecord.name));
+        }
+
+        if (term.isForPhaseTerm) {
+            visitTerms(term.body, modRecord, phase + term.phase.token.value, context);
+        }
+
+        if (term.isOperatorDefinitionTerm) {
+            var opDefinition = loadMacroDef(term.body, context, phase + 1);
+
+            var multiTokName = makeMultiToken(term.name);
+            var fullName = term.name.token.inner;
+
+            var opObj = {
+                isOp: true,
+                builtin: builtinMode,
+                fullName: fullName
+            }
+            assert(unwrapSyntax(term.type) === "binary" ||
+                   unwrapSyntax(term.type) === "unary",
+                   "operator must either be binary or unary");
+            opObj[unwrapSyntax(term.type)] = {
+                fn: opDefinition,
+                prec: term.prec.token.value,
+                assoc: term.assoc ? term.assoc.token.value : null
+            };
+
+
+            // bind in the store for the current phase
+            context.bindings.add(multiTokName, fresh(), phase);
+            context.store.set(phaseName,
+                              phase,
+                              new CompiletimeValue(opObj,
+                                                   phase,
+                                                   modRecord.name));
+
+        }
+    })
+
+}
+
 
 // For a given module, phase, and context, load the compiletime values into
 // the context and return the modified context
@@ -2467,80 +2548,7 @@ function visit(modTerm, modRecord, phase, context) {
     });
 
     // load the transformers into the store
-    modTerm.body.forEach(term => {
-        var name;
-        var macroDefinition;
-        var exportName;
-        var entries;
-
-        // add the exported names to the module record
-        if (term.isExportNameTerm ||
-            term.isExportDeclTerm ||
-            term.isExportDefaultTerm) {
-            entries = modRecord.addExport(term);
-        }
-
-
-        if ((term.isExportDefaultTerm && term.decl.isMacroTerm) ||
-             term.isMacroTerm || term.isLetMacroTerm) {
-            let multiTokName, fullName,
-                macBody = term.isExportDefaultTerm ? term.decl.body : term.body;
-            macroDefinition = loadMacroDef(macBody, context, phase + 1);
-
-            if (term.isExportDefaultTerm) {
-                multiTokName = entries[0].exportName;
-                fullName = [entries[0].exportName];
-            } else {
-                multiTokName = makeMultiToken(term.name);
-                fullName = term.name.token.inner;
-            }
-
-            // todo: handle implicits
-
-            context.bindings.add(multiTokName, fresh(), phase);
-            context.store.set(multiTokName,
-                              phase,
-                              new CompiletimeValue(
-                                  new SyntaxTransform(macroDefinition,
-                                                      false,
-                                                      builtinMode,
-                                                      fullName),
-                                  phase,
-                                  modRecord.name));
-        }
-
-        if (term.isOperatorDefinitionTerm) {
-            var opDefinition = loadMacroDef(term.body, context, phase + 1);
-
-            var multiTokName = makeMultiToken(term.name);
-            var fullName = term.name.token.inner;
-
-            var opObj = {
-                isOp: true,
-                builtin: builtinMode,
-                fullName: fullName
-            }
-            assert(unwrapSyntax(term.type) === "binary" ||
-                   unwrapSyntax(term.type) === "unary",
-                   "operator must either be binary or unary");
-            opObj[unwrapSyntax(term.type)] = {
-                fn: opDefinition,
-                prec: term.prec.token.value,
-                assoc: term.assoc ? term.assoc.token.value : null
-            };
-
-
-            // bind in the store for the current phase
-            context.bindings.add(multiTokName, fresh(), phase);
-            context.store.set(phaseName,
-                              phase,
-                              new CompiletimeValue(opObj,
-                                                   phase,
-                                                   modRecord.name));
-
-        }
-
-    });
+    visitTerms(modTerm.body, modRecord, phase, context);
 
     return context;
 }
