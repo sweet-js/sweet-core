@@ -233,9 +233,7 @@ dataclass ExportDeclTerm            (kw, decl)                          extends 
 
 dataclass CompileTimeTerm           ()                                  extends TermTree;
 
-dataclass LetMacroTerm              (name, body)                        extends CompileTimeTerm;
 dataclass MacroTerm                 (name, body)                        extends CompileTimeTerm;
-dataclass AnonMacroTerm             (body)                              extends CompileTimeTerm;
 dataclass OperatorDefinitionTerm    (type, name, prec, assoc, body)     extends CompileTimeTerm;
 dataclass ForPhaseTerm              (phase, body)                       extends CompileTimeTerm;
 
@@ -352,9 +350,7 @@ module.exports = {
     ExportDefaultTerm: ExportDefaultTerm,
     ExportDeclTerm: ExportDeclTerm,
     CompileTimeTerm: CompileTimeTerm,
-    LetMacroTerm: LetMacroTerm,
     MacroTerm: MacroTerm,
-    AnonMacroTerm: AnonMacroTerm,
     OperatorDefinitionTerm: OperatorDefinitionTerm,
     ForPhaseTerm: ForPhaseTerm,
     VariableDeclarationTerm: VariableDeclarationTerm,

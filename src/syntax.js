@@ -48,8 +48,11 @@ let scopeIndex = 0;
 
 class Scope {
     constructor(bindings) {
-        assert(bindings, "must pass in the bindings")
+        assert(bindings, "must pass in the bindings");
+        // name is just for debugging, comparison of scopes is by object identity
         this.name = scopeIndex++;
+        // each scope has a reference to the global binding map
+        // (for efficiency might be able to just store the relevant bindings)
         this.bindings = bindings;
     }
 

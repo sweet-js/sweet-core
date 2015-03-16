@@ -17,8 +17,7 @@ function sizeDecending(a, b) {
 
 function resolve(stx, phase) {
     assert(phase !== undefined, "must pass in phase");
-    // the first scope is the most recently allocated and contains all of
-    // the bindings
+
     let topScope = stx.context.first();
     if (topScope) {
         // get the bindings
