@@ -69,7 +69,7 @@ function makeExportEntries(exp) {
                              exp.decl);
         }
         res.push(new ExportEntry(exp,
-                                 exp.defaultkw.rename(exp.defaultkw, syn.fresh()),
+                                 exp.defaultkw,
                                  localName));
     } else if (exp.isExportDeclTerm) {
         if (exp.decl.isVariableStatementTerm ||

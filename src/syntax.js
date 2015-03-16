@@ -1,5 +1,4 @@
 #lang "js";
-// import @ from "contracts.js"
 
 /*global require: true, exports:true
 */
@@ -44,39 +43,6 @@ function freshScope(bindings) { return new Scope(bindings); }
 // }
 
 
-// (CSyntax, Str) -> CContext
-function Rename(id, name, ctx, defctx, phase) {
-    defctx = defctx || null;
-
-    this.id = id;
-    this.name = name;
-    this.context = ctx;
-    this.def = defctx;
-    this.instNum = globalContextInstanceNumber++;
-    this.phase = phase;
-}
-
-// (Num) -> CContext
-function Mark(mark, ctx) {
-    this.mark = mark;
-    this.context = ctx;
-    this.instNum = globalContextInstanceNumber++;
-}
-
-function Def(defctx, ctx) {
-    this.defctx = defctx;
-    this.context = ctx;
-    this.instNum = globalContextInstanceNumber++;
-}
-
-function Imported(localName, exportName, phase, mod, ctx) {
-    this.localName = localName;
-    this.exportName = exportName;
-    this.phase = phase;
-    this.mod = mod;
-    this.context = ctx;
-    this.instNum = globalContextInstanceNumber++;
-}
 
 let scopeIndex = 0;
 
@@ -127,18 +93,18 @@ Syntax.prototype = {
     // (CSyntax or [...CSyntax], Str) -> CSyntax
     // non mutating
     rename: function(id, name, defctx, phase) {
+        console.log("rename is deprecated no longer needed");
         return this;
     },
 
-    imported: function(localName, exportName, phase, mod) {
-        return this;
-    },
 
     addDefCtx: function(defctx) {
+        console.log("addDefCtx is deprecated no longer needed");
         return this;
     },
 
     getDefCtx: function() {
+        console.log("getDefCtx is deprecated no longer needed");
         return null;
     },
 
@@ -627,10 +593,6 @@ exports.makeIdent = makeIdent;
 exports.makeRegex = makeRegex;
 exports.makeValue = makeValue;
 
-exports.Rename = Rename;
-exports.Mark = Mark;
-exports.Def = Def;
-exports.Imported = Imported;
 exports.Scope = Scope;
 
 exports.syntaxFromToken = syntaxFromToken;
