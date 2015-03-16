@@ -1833,8 +1833,8 @@ function expandToTermTree(stx, context) {
             }
             // expand the body
             head.body = expand(head.body,
-                               makeExpanderContext(_.extend({phase: context.phase + 1},
-                                                            context)));
+                               makeExpanderContext(_.defaults({phase: context.phase + 1},
+                                                              context)));
             //  and load the macro definition into the environment
             var opDefinition = loadMacroDef(head.body, context, context.phase + 1);
 
