@@ -74,7 +74,7 @@ var TermTree                  = termTree.TermTree,
     ModuleTimeTerm            = termTree.ModuleTimeTerm,
     ModuleTerm                = termTree.ModuleTerm,
     ImportTerm                = termTree.ImportTerm,
-    ImportForMacrosTerm       = termTree.ImportForMacrosTerm,
+    ImportForPhaseTerm        = termTree.ImportForPhaseTerm,
     NamedImportTerm           = termTree.NamedImportTerm,
     DefaultImportTerm         = termTree.DefaultImportTerm,
     NamespaceImportTerm       = termTree.NamespaceImportTerm,
@@ -89,6 +89,7 @@ var TermTree                  = termTree.TermTree,
     AnonMacroTerm             = termTree.AnonMacroTerm,
     ClassDeclarationTerm      = termTree.ClassDeclarationTerm,
     OperatorDefinitionTerm    = termTree.OperatorDefinitionTerm,
+    ForPhaseTerm              = termTree.ForPhaseTerm,
     VariableDeclarationTerm   = termTree.VariableDeclarationTerm,
     StatementTerm             = termTree.StatementTerm,
     EmptyTerm                 = termTree.EmptyTerm,
@@ -316,22 +317,24 @@ function enforestImport(head, rest) {
     if (rest[0] && unwrapSyntax(rest[0]) === "from" &&
         rest[1] && rest[1].isStringLiteral() &&
         rest[2] && unwrapSyntax(rest[2]) === "for" &&
-        rest[3] && unwrapSyntax(rest[3]) === "macros") {
+        rest[3] && unwrapSyntax(rest[3]) === "phase" &&
+        rest[4] && rest[4].isNumericLiteral()) {
         var importRest;
-        if (rest[4] && rest[4].isPunctuator() &&
-            rest[4].token.value === ";") {
-            importRest = rest.slice(5);
+        if (rest[5] && rest[5].isPunctuator() &&
+            rest[5].token.value === ";") {
+            importRest = rest.slice(6);
         } else {
-            importRest = rest.slice(4);
+            importRest = rest.slice(5);
         }
 
         return {
-            result: ImportForMacrosTerm.create(head,
-                                               clause.result,
-                                               rest[0],
-                                               rest[1],
-                                               rest[2],
-                                               rest[3]),
+            result: ImportForPhaseTerm.create(head,
+                                              clause.result,
+                                              rest[0],
+                                              rest[1],
+                                              rest[2],
+                                              rest[3],
+                                              rest[4]),
             rest: importRest
         };
     } else if (rest[0] && unwrapSyntax(rest[0]) === "from" &&
@@ -1240,6 +1243,12 @@ function enforest(toks, context, prevStx, prevTerms) {
                 return step(ArrowFunTerm.create(head, rest[0], rest[1]),
                             rest.slice(2),
                             opCtx);
+            } else if (head.isIdentifier() &&
+                       head.token.value === "forPhase" &&
+                       rest[0] && rest[0].isNumericLiteral() &&
+                       rest[1] && rest[1].isDelimiter()) {
+                return step(ForPhaseTerm.create(rest[0], rest[1].token.inner),
+                            rest.slice(2), opCtx);
             // catch statement
             } else if (head.isKeyword() &&
                        unwrapSyntax(head) === "catch" &&
@@ -1557,12 +1566,11 @@ function loadMacroDef(body, context, phase) {
             var markedStx = markIn(stx, localCtx.mark);
             var stopMap = new StringMap();
             stop.forEach(stop => {
-                stopMap.set(resolve(stop, localCtx.phase - 1), true);
+                stopMap.set(resolve(stop, localCtx.phase), true);
             })
             var localExpandCtx = makeExpanderContext(_.extend({},
                                                               localCtx,
-                                                              {stopMap: stopMap,
-                                                               phase: localCtx.phase - 1}))
+                                                              {stopMap: stopMap}))
             var terms = expand(markedStx, localExpandCtx);
             var newStx = terms.reduce(function(acc, term) {
                 acc.push.apply(acc, term.destruct(localCtx, {stripCompileTerm: true}));
@@ -1713,29 +1721,36 @@ function expandToTermTree(stx, context) {
             // record the import in the module record for easier access
             var entries = context.moduleRecord.addImport(head);
             // load up the (possibly cached) import module
-            var importMod = loadImport(unwrapSyntax(head.from), context);
+            var importMod = loadImport(unwrapSyntax(head.from), context, context.moduleRecord.name);
             // visiting an imported module loads the compiletime values
             // into the compiletime environment for this phase
             context = visit(importMod.term, importMod.record, context.phase, context);
             // bind the imported names in the rest of the module
             // todo: how to handle references before an import?
-            rest = bindImportInMod(entries, rest, importMod.term, importMod.record, context, context.phase);
+            bindImportInMod(entries, importMod.term, importMod.record, context, context.phase);
         }
 
-        if (head.isImportForMacrosTerm) {
+        if (head.isImportForPhaseTerm) {
             // record the import in the module record for easier access
             var entries = context.moduleRecord.addImport(head);
             // load up the (possibly cached) import module
-            var importMod = loadImport(unwrapSyntax(head.from), context);
+            var importMod = loadImport(unwrapSyntax(head.from), context, context.moduleRecord.name);
             // invoking an imported module loads the runtime values
             // into the environment for this phase
-            context = invoke(importMod.term, importMod.record, context.phase + 1, context);
+            context = invoke(importMod.term, importMod.record, context.phase + head.phase.token.value, context);
             // visiting an imported module loads the compiletime values
             // into the compiletime environment for this phase
-            context = visit(importMod.term, importMod.record, context.phase + 1, context);
+            context = visit(importMod.term, importMod.record, context.phase + head.phase.token.value, context);
             // bind the imported names in the rest of the module
             // todo: how to handle references before an import?
-            rest = bindImportInMod(entries, rest, importMod.term, importMod.record, context, context.phase + 1);
+            bindImportInMod(entries, importMod.term, importMod.record, context, context.phase);
+        }
+
+        if (head.isForPhaseTerm) {
+            let phaseShiftedContext = makeExpanderContext(_.defaults({
+                phase: context.phase + head.phase.token.value
+            }, context));
+            head.body = expand(head.body, phaseShiftedContext);
         }
 
         if (((head.isExportDefaultTerm && head.decl.isMacroTerm) || head.isMacroTerm) && expandCount < maxExpands) {
@@ -1749,20 +1764,14 @@ function expandToTermTree(stx, context) {
             }
             // expand the body
             macroDecl.body = expand(macroDecl.body,
-                                    makeExpanderContext(_.extend({},
-                                                                 context,
-                                                                 {phase: context.phase + 1})));
+                                    makeExpanderContext(_.defaults({phase: context.phase + 1},
+                                                                   context)));
             //  and load the macro definition into the environment
             macroDefinition = loadMacroDef(macroDecl.body, context, context.phase + 1);
             var fullName = macroDecl.name.token.inner;
             var multiTokName = makeMultiToken(macroDecl.name);
             multiTokName = multiTokName.delScope(context.useScope);
             context.bindings.add(multiTokName, fresh(), context.phase);
-
-            // addToDefinitionCtx([multiTokName],
-            //                    context.defscope,
-            //                    false,
-            //                    context.paramscope);
 
             context.env.set(multiTokName,
                             context.phase,
@@ -1785,8 +1794,8 @@ function expandToTermTree(stx, context) {
 
             // expand the body
             head.body = expand(head.body,
-                               makeExpanderContext(_.extend({phase: context.phase + 1},
-                                                            context)));
+                               makeExpanderContext(_.defaults({phase: context.phase + 1},
+                                                              context)));
             //  and load the macro definition into the environment
             macroDefinition = loadMacroDef(head.body, context, context.phase + 1);
 
@@ -2289,7 +2298,8 @@ function defaultImportStx(importPath, ctx) {
                                syn.makeIdent("from", ctx),
                                syn.makeValue(importPath, ctx),
                                syn.makeKeyword("for", ctx),
-                               syn.makeIdent("macros", ctx)];
+                               syn.makeIdent("phase", ctx),
+                               syn.makeValue(1, ctx)];
 
     // import { names ... } from "importPath"
     var importStmt = [syn.makeKeyword("import", ctx),
@@ -2373,7 +2383,7 @@ function invoke(modTerm, modRecord, phase, context) {
         // recursively invoke any imports in this module at this
         // phase and update the context
         modRecord.importedModules.forEach(impPath => {
-            var importMod = loadImport(impPath, context);
+            var importMod = loadImport(impPath, context, modRecord.name);
 
             var impEntries = modRecord.getImportsForModule(impPath);
 
@@ -2401,19 +2411,19 @@ function invoke(modTerm, modRecord, phase, context) {
 
 
         // update the exports with the runtime values
-        modRecord.exportEntries.forEach(entry => {
-            // we have to get the value with the localName
-            var expName = resolve(entry.localName, 0);
-            var expVal = global[expName];
-            context.bindings.add(entry.exportName, fresh(), phase);
-            // and set it as the export name
-            context.store.setWithModule(entry.exportName,
-                                        phase,
-                                        modRecord.name,
-                                        new RuntimeValue({value: expVal},
-                                                         modRecord.name,
-                                                         phase));
-        });
+        // modRecord.exportEntries.forEach(entry => {
+        //     // we have to get the value with the localName
+        //     var expName = resolve(entry.localName, 0);
+        //     var expVal = global[expName];
+        //     context.bindings.add(entry.exportName, fresh(), phase);
+        //     // and set it as the export name
+        //     context.store.setWithModule(entry.exportName,
+        //                                 phase,
+        //                                 modRecord.name,
+        //                                 new RuntimeValue({value: expVal},
+        //                                                  modRecord.name,
+        //                                                  phase));
+        // });
     }
 
     return context;
@@ -2436,31 +2446,24 @@ function visit(modTerm, modRecord, phase, context) {
     // imported names in this module
     modRecord.importedModules.forEach(impPath => {
         // load the (possibly cached) module for this import
-        var importMod = loadImport(impPath, context);
+        let importMod = loadImport(impPath, context, modRecord.name);
         // grab all the import statements for that module
-        var impEntries = modRecord.getImportsForModule(impPath);
+        let impEntries = modRecord.getImportsForModule(impPath);
 
-        if(_.any(impEntries, entry => entry.forPhase === 0)) {
-            // importing for phase 0 just needs to visit (load
-            // compiletime values)
-            context = visit(importMod.term, importMod.record, phase, context);
-        } else if (_.any(impEntries, entry => entry.forPhase === 1)) {
-            // importing for phase 1 needs to visit (load compiletime
-            // values) and invoke (load runtime values for phase 1
-            // code)
-            context = invoke(importMod.term, importMod.record, phase + 1, context);
-            context = visit(importMod.term, importMod.record, phase + 1, context);
-        } else {
-            // todo: arbitrary phase
-            assert(false, "not implemented yet");
-        }
+        let uniquePhases = _.uniq(impEntries.map(entry => entry.forPhase));
+        uniquePhases.forEach(impPhase => {
+            context = visit(importMod.term, importMod.record, phase + impPhase, context);
+            // don't need to invoke when importing for phase 0 (runtime)
+            if (impPhase > 0) {
+                context = invoke(importMod.term, importMod.record, phase + impPhase, context);
+            }
+        });
 
-        modTerm.body = bindImportInMod(impEntries,
-                                       modTerm.body,
-                                       importMod.term,
-                                       importMod.record,
-                                       context,
-                                       phase);
+        bindImportInMod(impEntries,
+                        importMod.term,
+                        importMod.record,
+                        context,
+                        phase);
     });
 
     // load the transformers into the store
@@ -2579,8 +2582,8 @@ function filterModuleCommaSep(stx) {
 //     term: ModuleTerm
 //     record: ModuleRecord
 // }
-function loadImport(path, context) {
-    var modFullPath = resolvePath(path, context.filename);
+function loadImport(path, context, parentPath) {
+    var modFullPath = resolvePath(path, parentPath);
     if(!availableModules.has(modFullPath)) {
         // load it
         var modToImport = loadModule(modFullPath)
@@ -2611,7 +2614,7 @@ function loadImport(path, context) {
 
 
 // @ (ImportTerm, [...SyntaxObject], ModuleTerm, ModuleRecord, ExpanderContext, Num) -> Void
-function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
+function bindImportInMod(impEntries, modTerm, modRecord, context, phase) {
     impEntries.forEach(entry => {
         var isBase = modRecord.language === "base";
 
@@ -2626,37 +2629,17 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
                              entry.importName);
         }
 
-        var exportName, trans, nameStr;
-        if (!inExports) {
-            // case when importing from a non ES6
-            // module but not for macros so the module
-            // was not invoked and thus nothing in the
-            // context for this name
-            trans = null;
-        } else {
+        var exportName;
+        if (inExports) {
             exportName = inExports.exportName;
-            trans = getSyntaxTransform(exportName, context, phase);
+        } else {
+            assert(false, "not implemented yet: missing export name")
         }
 
         var localName = entry.localName;
 
-        // context.bindings.add(localName, fresh(), phase);
-        context.bindings.addForward(localName, exportName, fresh(), phase);
-        context.store.set(localName, phase, new CompiletimeValue(trans,
-                                                                 phase,
-                                                                 modRecord.name));
+        context.bindings.addForward(localName, exportName, phase + entry.forPhase);
     });
-
-    // // set the new bindings in the context
-    // renamedNames.forEach(name => {
-    //     // setup a reverse map from each import name to
-    //     // the import term but only for runtime values
-    //     if (name.trans === null || (name.trans && name.trans.value)) {
-    //         var resolvedName = resolve(name.localName, phase);
-    //         context.implicitImport.set(resolvedName, name.entry);
-    //     }
-    // });
-    return stx;
 }
 
 // (ModuleTerm, Str, Map, Map, ModuleRecord) -> {
@@ -2722,7 +2705,7 @@ function flattenModule(modTerm, modRecord, context) {
             term.isExportDeclTerm ||
             term.isExportDefaultTerm ||
             term.isImportTerm ||
-            term.isImportForMacrosTerm) {
+            term.isImportForPhaseTerm) {
             return acc;
         }
         return acc.concat(term.destruct(context, {stripCompileTerm: true}));

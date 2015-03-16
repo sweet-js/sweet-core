@@ -62,7 +62,7 @@ describe("module record", function() {
 
     it("should get just the runtime entries", function() {
         var t1 = getTerm("import { x } from './a.js'");
-        var t2 = getTerm("import { y } from './a.js' for macros");
+        var t2 = getTerm("import { y } from './a.js' for phase 1");
         var m = new ModuleRecord("foo", "bar");
         m.addImport(t1);
         m.addImport(t2);

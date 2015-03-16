@@ -220,8 +220,8 @@ dataclass ModuleTimeTerm            ()                                  extends 
 
 dataclass ModuleTerm                (body)                              extends ModuleTimeTerm;
 dataclass ImportTerm                (kw, clause, fromkw, from)          extends ModuleTimeTerm;
-dataclass ImportForMacrosTerm       (kw, clause, fromkw, from,
-                                     forkw, macroskw)                   extends ModuleTimeTerm;
+dataclass ImportForPhaseTerm       (kw, clause, fromkw, from,
+                                    forkw, macroskw, phase)             extends ModuleTimeTerm;
 dataclass NamedImportTerm           (names)                             extends ModuleTimeTerm;
 dataclass DefaultImportTerm         (name)                              extends ModuleTimeTerm;
 dataclass NamespaceImportTerm       (star, askw, name)                  extends ModuleTimeTerm;
@@ -237,6 +237,7 @@ dataclass LetMacroTerm              (name, body)                        extends 
 dataclass MacroTerm                 (name, body)                        extends CompileTimeTerm;
 dataclass AnonMacroTerm             (body)                              extends CompileTimeTerm;
 dataclass OperatorDefinitionTerm    (type, name, prec, assoc, body)     extends CompileTimeTerm;
+dataclass ForPhaseTerm              (phase, body)                       extends CompileTimeTerm;
 
 dataclass VariableDeclarationTerm   (ident, eq, init, comma)            extends TermTree;
 
@@ -341,7 +342,7 @@ module.exports = {
     ModuleTimeTerm: ModuleTimeTerm,
     ModuleTerm: ModuleTerm,
     ImportTerm: ImportTerm,
-    ImportForMacrosTerm: ImportForMacrosTerm,
+    ImportForPhaseTerm: ImportForPhaseTerm,
     NamedImportTerm: NamedImportTerm,
     NamespaceImportTerm: NamespaceImportTerm,
     DefaultImportTerm: DefaultImportTerm,
@@ -355,6 +356,7 @@ module.exports = {
     MacroTerm: MacroTerm,
     AnonMacroTerm: AnonMacroTerm,
     OperatorDefinitionTerm: OperatorDefinitionTerm,
+    ForPhaseTerm: ForPhaseTerm,
     VariableDeclarationTerm: VariableDeclarationTerm,
     StatementTerm: StatementTerm,
     EmptyTerm: EmptyTerm,

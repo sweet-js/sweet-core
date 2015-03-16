@@ -69,6 +69,7 @@ function resolve(stx, phase) {
             let biggestScopeSet = tokenBindings.filter(binding => {
                 let bindingScopes = binding.scopeSet;
                 let stxScopes = stx.context;
+                if (binding.phase !== phase) { return false; }
                 return bindingScopes.isSubset(stxScopes);
             }).sort(sizeDecending)[0];
 

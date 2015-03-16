@@ -14,6 +14,7 @@ stxrec quoteSyntax {
     }
 }
 
+
 stxrec bindSyntax {
     function(stx) {
         var here = quoteSyntax{here};
@@ -98,7 +99,6 @@ stxrec stxnonrec {
 }
 
 
-
 stxrec syntax {
     function(stx) {
         var here = quoteSyntax{here};
@@ -109,6 +109,7 @@ stxrec syntax {
         };
     }
 }
+
 
 stxrec # {
     function (stx) {

@@ -17,8 +17,8 @@ function ImportEntry(term, importName, localName) {
     this.localName = makeMultiToken(localName);
     if (term.isImportTerm) {
         this.forPhase = 0;
-    } else if (term.isImportForMacrosTerm) {
-        this.forPhase = 1;
+    } else if (term.isImportForPhaseTerm) {
+        this.forPhase = term.phase.token.value;
     } else {
         assert(false, "not implemented yet");
     }
@@ -49,7 +49,7 @@ ImportEntry.prototype.toTerm = function() {
 };
 
 function makeImportEntries(imp) {
-    assert(imp.isImportTerm || imp.isImportForMacrosTerm, "expecting an import term");
+    assert(imp.isImportTerm || imp.isImportForPhaseTerm, "expecting an import term");
     var res = [];
 
     imp.clause.forEach(function(clause) {
