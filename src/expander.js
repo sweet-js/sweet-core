@@ -2273,13 +2273,17 @@ function resolvePath(name, parent) {
 
 // (Str) -> [...SyntaxObject]
 function defaultImportStx(importPath, ctx) {
-    var names = [
+    let rtNames = [
+        "stxnonrec",
+        "stxrec",
+        "macroclass",
+        "operator"
+    ]
+    var ctNames = [
         "quoteSyntax",
         "syntax",
         "#",
         "syntaxCase",
-        // "macro",
-        // "let",
         "stxnonrec",
         "stxrec",
         "withSyntax",
@@ -2288,9 +2292,9 @@ function defaultImportStx(importPath, ctx) {
         "operator"
     ];
 
-    var importNames = names.map(name => syn.makeIdent(name, ctx));
-    var importForMacrosNames = names.map(name => syn.makeIdent(name, ctx));
-    // import { names ... } from "importPath" for macros
+    var importNames = rtNames.map(name => syn.makeIdent(name, ctx));
+    var importForMacrosNames = ctNames.map(name => syn.makeIdent(name, ctx));
+    // import { names ... } from "importPath" for phase 1
     var importForMacrosStmt = [syn.makeKeyword("import", ctx),
                                syn.makeDelim("{}", joinSyntax(importForMacrosNames,
                                                               syn.makePunc(",", ctx)),
