@@ -2,8 +2,8 @@
 
 import { id, di } from "./id.js";
 import { map } from "./map.js" for phase 1;
-// import { (**) } from "./operators.js";
-// import { (number?), (string?) } from "./multi-tok.js";
+import { (**) } from "./operators.js";
+import { (number?), (string?) } from "./multi-tok.js";
 
 var expect = require("expect.js");
 
@@ -28,13 +28,13 @@ describe("importing modules", function() {
         expect(m).to.eql([1, 2, 3]);
     });
 
-    // it("should import a multi-token operator from another module", function() {
-    //     function ident(x) { return x; }
-    //     expect(2 ** 10).to.be(Math.pow(2, 10));
-    // });
+    it("should import a multi-token operator from another module", function() {
+        function ident(x) { return x; }
+        expect(2 ** 10).to.be(Math.pow(2, 10));
+    });
 
-    // it("should import multi-token macros from another module", function() {
-    //     expect(number?(100)).to.be(true);
-    //     expect(string?(100)).to.be(false);
-    // })
+    it("should import multi-token macros from another module", function() {
+        expect(number?(100)).to.be(true);
+        expect(string?(100)).to.be(false);
+    })
 });

@@ -2449,7 +2449,7 @@ function visitTerms(terms, modRecord, phase, context) {
 
             // bind in the store for the current phase
             context.bindings.add(multiTokName, fresh(), phase);
-            context.store.set(phaseName,
+            context.store.set(multiTokName,
                               phase,
                               new CompiletimeValue(opObj,
                                                    phase,
