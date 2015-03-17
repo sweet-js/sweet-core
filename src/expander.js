@@ -1599,7 +1599,7 @@ function loadMacroDef(body, context, phase) {
                 rest: stx
             };
         },
-        getLit: function(stx) {
+    getLit: function(stx) {
             if (stx[0] && patternModule.typeIsLiteral(stx[0].token.type)) {
                 return {
                     success: true,
@@ -1659,13 +1659,7 @@ function loadMacroDef(body, context, phase) {
             macroGlobal[key] = val.trans.value;
         }
     });
-    var macroFn;
-    // if (!vm) {
-    //     macroFn = vm.runInNewContext("(function() { return " + bodyCode + " })()",
-    //                                  macroGlobal);
-    // } else {
-        macroFn = scopedEval(bodyCode, macroGlobal);
-    // }
+    let macroFn = scopedEval(bodyCode, macroGlobal);
 
     return function(stx, context, prevStx, prevTerms) {
         localCtx = context;
@@ -2365,19 +2359,21 @@ function invoke(modTerm, modRecord, phase, context) {
 
 
         // update the exports with the runtime values
-        // modRecord.exportEntries.forEach(entry => {
-        //     // we have to get the value with the localName
-        //     var expName = resolve(entry.localName, 0);
-        //     var expVal = global[expName];
-        //     context.bindings.add(entry.exportName, fresh(), phase);
-        //     // and set it as the export name
-        //     context.store.setWithModule(entry.exportName,
-        //                                 phase,
-        //                                 modRecord.name,
-        //                                 new RuntimeValue({value: expVal},
-        //                                                  modRecord.name,
-        //                                                  phase));
-        // });
+        modRecord.exportEntries.forEach(entry => {
+            // we have to get the value with the localName
+            var expName = resolve(entry.localName, 0);
+            var expVal = global[expName];
+            if (expVal) {
+                context.bindings.add(entry.exportName, fresh(), phase);
+                // and set it as the export name
+                context.store.set(entry.exportName,
+                                  phase,
+                                  new RuntimeValue({value: expVal},
+                                                   modRecord.name,
+                                                   phase));
+
+            }
+        });
     }
 
     return context;
