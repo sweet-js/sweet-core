@@ -472,11 +472,7 @@ function enforestParenExpression(parens, context) {
 // This should only be used on things that can't be rebound except by
 // macros (puncs, keywords).
 function resolveFast(stx, context, phase) {
-    var name = unwrapSyntax(stx);
-    if (context.env.hasName(name) || context.store.hasName(name)) {
-        return resolve(stx, phase);
-    }
-    return name;
+    return resolve(stx, phase);
 }
 
 function CompiletimeValue(trans, module, phase) {

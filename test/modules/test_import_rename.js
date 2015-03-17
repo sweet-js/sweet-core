@@ -1,14 +1,14 @@
 #lang "../../macros/stxcase.js";
 
-// import { id as identity } from "./id.js";
+import { id as identity } from "./id.js";
 
-// var expect = require("expect.js");
+var expect = require("expect.js");
 
 
-// describe("renaming import", function() {
+describe("renaming import", function() {
 
-//     it("rename a single import", function() {
-//         expect(identity(42)).to.be(42);
-//     });
+    it("rename a single import", function() {
+        expect(identity(42)).to.be(42);
+    });
 
-// });
+});
