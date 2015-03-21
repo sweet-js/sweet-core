@@ -23,6 +23,8 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+"use strict";
+
 
 var path        = require('path'),
     fs          = require('fs'),
@@ -367,3 +369,8 @@ exports.currentReadtable = currentReadtable;
 exports.loadNodeModule = loadNodeModule;
 exports.loadedMacros = loadedMacros;
 exports.loadMacro = loadMacro;
+
+// export {
+//     expand,
+//     compile
+// }

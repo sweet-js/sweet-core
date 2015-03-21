@@ -15,22 +15,22 @@ function ExportEntry(term, exportName, localName) {
     this.localName = makeMultiToken(localName);
 }
 
-// ImportEntry.prototype.toTerm = function() {
-//     var term = _.clone(this._term);
-//     if (term.clause.isNamedImportTerm) {
-//         term.clause = _.clone(term.clause);
-//         term.clause.names = term.clause.names.clone();
+ExportEntry.prototype.toTerm = function() {
+    var term = _.clone(this._term);
+    // if (term.clause.isNamedImportTerm) {
+    //     term.clause = _.clone(term.clause);
+    //     term.clause.names = term.clause.names.clone();
 
-//         if (this.importName.token.value === this.localName.token.value) {
-//             term.clause.names.token.inner = [this.localName];
-//         } else {
-//             term.clause.names.token.inner = [this.importName,
-//                                              syn.makeIdent("as", this.importName),
-//                                              this.localName];
-//         }
-//     }
-//     return term;
-// };
+    //     if (this.importName.token.value === this.localName.token.value) {
+    //         term.clause.names.token.inner = [this.localName];
+    //     } else {
+    //         term.clause.names.token.inner = [this.importName,
+    //                                          syn.makeIdent("as", this.importName),
+    //                                          this.localName];
+    //     }
+    // }
+    return term;
+};
 
 function makeExportEntries(exp) {
     assert(exp.isExportNameTerm || exp.isExportDefaultTerm || exp.isExportDeclTerm,

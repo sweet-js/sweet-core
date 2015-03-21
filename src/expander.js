@@ -2686,13 +2686,17 @@ function flattenModule(modTerm, modRecord, context) {
                                   .concat(syn.makePunc(";", entry.moduleRequest))));
     }, []);
 
+    let flatExports = exports.reduce((acc, entry) => {
+        return acc.concat(flatten(entry.toTerm().destruct(context)));
+    }, [])
+
     return {
         imports: imports.map(entry => entry.toTerm()),
-        body: flatImports.concat(output)
+        body: flatImports.concat(output).concat(flatExports)
     };
 }
 
-function flattenImports(imports, mod, context) {
+function flattenImports(imports, context) {
     return imports.reduce((acc, imp) => {
         var modFullPath = resolvePath(unwrapSyntax(imp.from), context.filename);
         if (availableModules.has(modFullPath)) {
@@ -2704,7 +2708,7 @@ function flattenImports(imports, mod, context) {
                 path: modFullPath,
                 code: flattened.body
             });
-            acc = acc.concat(flattenImports(flattened.imports, mod, context))
+            acc = acc.concat(flattenImports(flattened.imports, context))
             return acc;
         } else {
             assert(false, "module was unexpectedly not available for compilation" + modFullPath);
@@ -2740,9 +2744,18 @@ function compileModule(stx, options) {
                                   expanded.context.moduleRecord,
                                   expanded.context);
 
-    var compiledModules = flattenImports(flattened.imports,
-                                         expanded.mod,
-                                         expanded.context);
+    let compiledModules = [];
+    availableModules.keys().forEach(modName => {
+        let mod = availableModules.get(modName);
+        if (mod.record.language !== "base") {
+            var flattened = flattenModule(mod.term, mod.record, expanded.context);
+            compiledModules.push({
+                path: modName,
+                code: flattened.body
+            });
+        }
+    });
+
     return [{
         path: filename,
         code: flattened.body
