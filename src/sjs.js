@@ -46,7 +46,10 @@ var argv = require("optimist")
     .describe('format-indent', 'number of spaces for indentation')
     .alias('l', 'load-readtable')
     .describe('load-readtable', 'readtable module to install')
-    .describe("to-es5", "run output through 6to5 compiler")
+    .alias('b', 'babel')
+    .describe('babel', 'run output through babel compiler')
+    .boolean('babel')
+    .describe('babel-modules', 'have babel output with specified module formatter')
     .alias('v', 'version')
     .describe('v', 'display version info')
     .boolean('version')
@@ -71,7 +74,8 @@ exports.run = function() {
     var readableNames = argv['readable-names'];
     var formatIndent = parseInt(argv['format-indent'], 10);
     var readtableModules = argv['load-readtable'];
-    var to5 = argv['to-es5'];
+    var to5 = argv['babel'];
+    var babelModules = argv['babel-modules'];
     if (formatIndent !== formatIndent) {
         formatIndent = 4;
     }
@@ -106,6 +110,7 @@ exports.run = function() {
         ast: ast,
         sourceMap: sourcemap,
         to5: to5,
+        babelModules: babelModules,
         readableNames: readableNames,
         escodegen: {
             format: {
