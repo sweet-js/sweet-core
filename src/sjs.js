@@ -4,19 +4,12 @@ var path = require("path");
 var pkg = require('../package.json');
 var sweet = require("./sweet.js");
 var syn = require("./syntax.js");
-var esTranspiler = require("es6-module-transpiler");
-var Container = esTranspiler.Container;
-var FileResolver = esTranspiler.FileResolver;
-var BundleFormatter = esTranspiler.formatters.bundle;
 
 
 var argv = require("optimist")
     .usage("Usage: sjs [options] path/to/file.js")
     .alias('o', 'output')
     .describe('o', 'write files to the specified directory')
-    .alias('e', 'transpile')
-    .describe('e', 'use es6-module-transpiler to transpile modules into a bundle')
-    .boolean('transpile')
     .alias('m', 'sourcemap')
     .describe('m', 'generate a sourcemap')
     .boolean("sourcemap")
@@ -146,16 +139,6 @@ exports.run = function() {
             }
         });
 
-        // todo: waiting for https://github.com/esnext/es6-module-transpiler/pull/181
-        // if (transpile) {
-        //     var container = new Container({
-        //         resolvers: [new FileResolver(['../sweet.js'])],
-        //         formatter: new BundleFormatter()
-        //     });
-        //     console.log("transpiling: " + "./" + infile + options.compileSuffix);
-        //     container.getModule("./" + infile + options.compileSuffix);
-        //     container.write('mylib.js');
-        // }
     }
 
     if (watch && writeToDisk) {
