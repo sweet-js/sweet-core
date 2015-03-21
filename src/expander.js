@@ -469,12 +469,6 @@ function enforestParenExpression(parens, context) {
 
 
 
-// This should only be used on things that can't be rebound except by
-// macros (puncs, keywords).
-function resolveFast(stx, context, phase) {
-    return resolve(stx, phase);
-}
-
 function CompiletimeValue(trans, module, phase) {
     this.trans = trans;
     this.module = module;
@@ -823,14 +817,14 @@ function enforest(toks, context, prevStx, prevTerms) {
                 }
             // Conditional ( x ? true : false)
             } else if (head.isExprTerm &&
-                       (rest[0] && resolveFast(rest[0], context, context.phase) === "?")) {
+                       (rest[0] && resolve(rest[0], context.phase) === "?")) {
                 var question = rest[0];
                 var condRes = enforest(rest.slice(1), context);
                 if (condRes.result) {
                     var truExpr = condRes.result;
                     var condRight = condRes.rest;
                     if (truExpr.isExprTerm &&
-                        condRight[0] && resolveFast(condRight[0], context, context.phase) === ":") {
+                        condRight[0] && resolve(condRight[0], context.phase) === ":") {
                         var colon = condRight[0];
                         var flsRes = enforest(condRight.slice(1), context);
                         var flsExpr = flsRes.result;
@@ -873,7 +867,7 @@ function enforest(toks, context, prevStx, prevTerms) {
                        head.delim.token.value === "()" &&
                        rest[0] &&
                        rest[0].isPunctuator() &&
-                       resolveFast(rest[0], context, context.phase) === "=>") {
+                       resolve(rest[0], context.phase) === "=>") {
                 var arrowRes = enforest(rest.slice(1), context);
                 if (arrowRes.result && arrowRes.result.isExprTerm) {
                     return step(ArrowFunTerm.create(head.delim,
@@ -890,7 +884,7 @@ function enforest(toks, context, prevStx, prevTerms) {
             } else if (head.isIdTerm &&
                        rest[0] &&
                        rest[0].isPunctuator() &&
-                       resolveFast(rest[0], context, context.phase) === "=>") {
+                       resolve(rest[0], context.phase) === "=>") {
                 var res = enforest(rest.slice(1), context);
                 if (res.result && res.result.isExprTerm) {
                     return step(ArrowFunTerm.create(head.id,
@@ -1222,7 +1216,7 @@ function enforest(toks, context, prevStx, prevTerms) {
                         head.token.value === "()") ||
                        head.isIdentifier()) &&
                       rest[0] && rest[0].isPunctuator() &&
-                      resolveFast(rest[0], context, context.phase) === "=>" &&
+                      resolve(rest[0], context.phase) === "=>" &&
                       rest[1] && rest[1].isDelimiter() &&
                       rest[1].token.value === "{}") {
                 return step(ArrowFunTerm.create(head, rest[0], rest[1]),
