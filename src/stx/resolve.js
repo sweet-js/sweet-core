@@ -33,11 +33,12 @@ function resolve(stx, phase) {
             }).sort(sizeDecending)[0];
 
             if (biggestScopeSet) {
-                // simple case where the binding is a number we can just append
+                // simple case where the binding is a number we can
+                // just append, otherwise it is actually a rename
+                // transformer so we have to do another resolve
                 if (typeof biggestScopeSet.binding === 'number') {
                     return stx.token.value + biggestScopeSet.binding;
                 }
-                // actually a rename transformer so we have to do another resolve
                 return resolve(biggestScopeSet.binding, phase);
             }
         }
