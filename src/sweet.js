@@ -210,7 +210,7 @@ function compile(code, options) {
             };
         } |> (c) -> {
             var output = c;
-            if (options.to5) {
+            if (options.babel) {
                 let babelOptions = {
                     blacklist: ["es6.tailCall"], // causing problems with enforest
                     compact: false

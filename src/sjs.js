@@ -67,7 +67,7 @@ exports.run = function() {
     var readableNames = argv['readable-names'];
     var formatIndent = parseInt(argv['format-indent'], 10);
     var readtableModules = argv['load-readtable'];
-    var to5 = argv['babel'];
+    var babel = argv['babel'];
     var babelModules = argv['babel-modules'];
     if (formatIndent !== formatIndent) {
         formatIndent = 4;
@@ -102,7 +102,7 @@ exports.run = function() {
         compileSuffix: ".jsc",
         ast: ast,
         sourceMap: sourcemap,
-        to5: to5,
+        babel: babel,
         babelModules: babelModules,
         readableNames: readableNames,
         escodegen: {
