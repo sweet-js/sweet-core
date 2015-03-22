@@ -487,7 +487,7 @@ function getCompiletimeValue(stx, context, phase) {
     if (env !== null) {
         return env.trans;
     } else {
-        store = context.store.getWithModule(stx, phase);
+        store = context.store.get(stx, phase);
         return store !== null ? store.trans : null;
     }
 }
@@ -500,8 +500,20 @@ function getSyntaxTransform(stx, context, phase) {
     return t;
 }
 
+function getVarTransform(stx, context, phase) {
+    var t = getCompiletimeValue(stx, context, phase);
+    if (t && t instanceof VarTransform) {
+        return t;
+    }
+    return null;
+}
+
 function hasSyntaxTransform(stx, context, phase) {
     return getSyntaxTransform(stx, context, phase) !== null;
+}
+
+function hasVarTransform(stx, context, phase) {
+    return getVarTransform(stx, context, phase) !== null;
 }
 
 // checks if a compiletime value exists in the env or store
@@ -2609,29 +2621,14 @@ function expandModule(mod, filename, templateMap, patternMap, moduleRecord, comp
     };
 }
 
-function isCompileName(stx, context) {
+function isRuntimeName(stx, context) {
     if (stx.isDelimiter()) {
-        return !hasSyntaxTransform(stx.token.inner, context, 0);
+        return hasVarTransform(stx.token.inner, context, 0);
     } else {
-        return !hasSyntaxTransform(stx, context, 0);
+        return hasVarTransform(stx, context, 0);
     }
 }
 
-function filterCompileNames(stx, context) {
-    assert(stx.isDelimiter(), "must be a delimter");
-
-    var runtimeNames = stx.token.inner
-        |> filterModuleCommaSep
-        |> names => names.filter(name => isCompileName(name, context));
-    var newInner = runtimeNames.reduce((acc, name, idx, orig) => {
-        acc.push(name);
-        if (orig.length - 1 !== idx) { // don't add trailing comma
-            acc.push(syn.makePunc(",", name));
-        }
-        return acc;
-    }, []);
-    return syn.makeDelim("{}", newInner, stx);
-}
 
 // Takes an expanded module term and flattens it.
 // @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> [...SyntaxObject]
@@ -2640,12 +2637,14 @@ function flattenModule(modTerm, modRecord, context) {
     // filter the imports to just the imports and names that are
     // actually available at runtime
     var imports = modRecord.getRuntimeImportEntries().filter(entry => {
-        return isCompileName(entry.localName, context);
+        return isRuntimeName(entry.localName, context);
     });
 
     var exports = modRecord.exportEntries.filter(entry => {
-        return isCompileName(entry.localName, context);
+        return isRuntimeName(entry.localName, context);
     })
+
+    let eof;
 
     // filter out all of the import and export statements
     var output = modTerm.body.reduce((acc, term) => {
@@ -2654,6 +2653,10 @@ function flattenModule(modTerm, modRecord, context) {
             term.isExportDefaultTerm ||
             term.isImportTerm ||
             term.isImportForPhaseTerm) {
+            return acc;
+        }
+        if (term.isEOFTerm) {
+            eof = term.destruct(context);
             return acc;
         }
         return acc.concat(term.destruct(context, {stripCompileTerm: true}));
@@ -2674,7 +2677,7 @@ function flattenModule(modTerm, modRecord, context) {
                     imports.push(implicit);
                 }
             }
-            return stx
+            return stx;
         });
 
     // flatten everything
@@ -2687,12 +2690,14 @@ function flattenModule(modTerm, modRecord, context) {
     }, []);
 
     let flatExports = exports.reduce((acc, entry) => {
-        return acc.concat(flatten(entry.toTerm().destruct(context)));
-    }, [])
+            return acc.concat(flatten(entry.toTerm()
+                                           .destruct(context)
+                                           .concat(syn.makePunc(";", entry.localName))));
+    }, []);
 
     return {
         imports: imports.map(entry => entry.toTerm()),
-        body: flatImports.concat(output).concat(flatExports)
+        body: flatImports.concat(output).concat(flatExports).concat(eof)
     };
 }
 
