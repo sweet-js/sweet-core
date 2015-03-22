@@ -139,22 +139,6 @@ var availableModules;
 var push = Array.prototype.push;
 
 
-// wraps the array of syntax objects in the delimiters given by the second argument
-// ([...CSyntax], CSyntax) -> [...CSyntax]
-function wrapDelim(towrap, delimSyntax) {
-    assert(delimSyntax.isDelimiterToken(),
-                  "expecting a delimiter token");
-
-    return syntaxFromToken({
-        type: parser.Token.Delimiter,
-        value: delimSyntax.token.value,
-        inner: towrap,
-        range: delimSyntax.token.range,
-        startLineNumber: delimSyntax.token.startLineNumber,
-        lineStart: delimSyntax.token.lineStart
-    }, delimSyntax);
-}
-
 // (CSyntax) -> [...CSyntax]
 function getParamIdentifiers(argSyntax) {
     if (argSyntax.isDelimiter()) {
@@ -609,23 +593,6 @@ function comparePrec(left, right, assoc) {
     return left < right;
 }
 
-
-// @ (SyntaxObject, SyntaxObject) -> Bool
-function toksAdjacent(a, b) {
-    var arange = a.token.sm_range || a.token.range || a.token.endRange;
-    var brange = b.token.sm_range || b.token.range || b.token.endRange;
-    return arange && brange && arange[1] === brange[0];
-}
-
-// @ (SyntaxObject, SyntaxObject) -> Bool
-function syntaxInnerValuesEq(synA, synB) {
-    var a = synA.token.inner, b = synB.token.inner;
-    return a.length === b.length &&
-        _.zip(a, b) |> ziped => _.all(ziped, pair => {
-            return unwrapSyntax(pair[0]) === unwrapSyntax(pair[1]);
-        });
-
-}
 
 // enforest the tokens, returns an object with the `result` TermTree and
 // the uninterpreted `rest` of the syntax
@@ -2195,13 +2162,6 @@ function makeModuleExpanderContext(filename, templateMap, patternMap, phase, mod
     });
 }
 
-function makeTopLevelExpanderContext(options) {
-    var filename = options && options.filename ? options.filename : "<anonymous module>";
-    return makeExpanderContext({
-        filename: filename,
-    });
-}
-
 // @ (Str, Str) -> Str
 function resolvePath(name, parent) {
     var path = require("path");
@@ -2505,38 +2465,6 @@ function visit(modTerm, modRecord, phase, context) {
     return context;
 }
 
-// a version of map where the callback only runs on the non comma items in
-// the comma separated list.
-function mapCommaSep(l, f) {
-    return l.map((stx, idx) => {
-        if (idx % 2 !== 0 && ((!stx.isPunctuator()) ||
-                              stx.token.value !== ",")) {
-            throwSyntaxError("import",
-                             "expecting a comma separated list",
-                             stx);
-        } else if (idx % 2 !== 0) {
-            return stx;
-        } else {
-            return f(stx);
-        }
-    });
-}
-
-function filterModuleCommaSep(stx) {
-    return stx.filter((stx, idx) => {
-        if (idx % 2 !== 0 && ((!stx.isPunctuator()) ||
-                              stx.token.value !== ",")) {
-            throwSyntaxError("import",
-                             "expecting a comma separated list",
-                             stx);
-        } else if (idx % 2 !== 0) {
-            return false;
-        } else {
-            return true;
-        }
-    });
-}
-
 
 // @ (ImportTerm, ExpanderContext) -> {
 //     term: ModuleTerm
@@ -2699,26 +2627,6 @@ function flattenModule(modTerm, modRecord, context) {
         imports: imports.map(entry => entry.toTerm()),
         body: flatImports.concat(output).concat(flatExports).concat(eof)
     };
-}
-
-function flattenImports(imports, context) {
-    return imports.reduce((acc, imp) => {
-        var modFullPath = resolvePath(unwrapSyntax(imp.from), context.filename);
-        if (availableModules.has(modFullPath)) {
-            var modPair = availableModules.get(modFullPath);
-            if (modPair.record.language === "base") { return acc; }
-
-            var flattened = flattenModule(modPair.term, modPair.record, context);
-            acc.push({
-                path: modFullPath,
-                code: flattened.body
-            });
-            acc = acc.concat(flattenImports(flattened.imports, context))
-            return acc;
-        } else {
-            assert(false, "module was unexpectedly not available for compilation" + modFullPath);
-        }
-    }, []);
 }
 
 // The entry point to expanding with modules. Starting from the
