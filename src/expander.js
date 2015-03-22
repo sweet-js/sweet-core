@@ -2363,11 +2363,9 @@ function visitTerms(terms, modRecord, phase, context) {
         }
 
 
-        if ((term.isExportDefaultTerm && term.decl.isMacroTerm) ||
-            term.isMacroTerm) {
+        if ((term.isExportDefaultTerm && term.decl.isMacroTerm) || term.isMacroTerm) {
             let multiTokName, fullName,
                 macBody = term.isExportDefaultTerm ? term.decl.body : term.body;
-            macroDefinition = loadMacroDef(macBody, context, phase + 1);
 
             if (term.isExportDefaultTerm) {
                 multiTokName = entries[0].exportName;
@@ -2379,16 +2377,20 @@ function visitTerms(terms, modRecord, phase, context) {
 
             // todo: handle implicit imports
 
-            context.bindings.add(multiTokName, fresh(), phase);
-            context.store.set(multiTokName,
-                              phase,
-                              new CompiletimeValue(
-                                  new SyntaxTransform(macroDefinition,
-                                                      false,
-                                                      builtinMode,
-                                                      fullName),
-                                  phase,
-                                  modRecord.name));
+            if (!context.store.has(multiTokName, phase)) {
+                macroDefinition = loadMacroDef(macBody, context, phase + 1);
+
+                context.bindings.add(multiTokName, fresh(), phase);
+                context.store.set(multiTokName,
+                    phase,
+                    new CompiletimeValue(
+                        new SyntaxTransform(macroDefinition,
+                            false,
+                            builtinMode,
+                            fullName),
+                        phase,
+                        modRecord.name));
+            }
         }
 
         if (term.isForPhaseTerm) {
@@ -2396,33 +2398,36 @@ function visitTerms(terms, modRecord, phase, context) {
         }
 
         if (term.isOperatorDefinitionTerm) {
-            var opDefinition = loadMacroDef(term.body, context, phase + 1);
 
             var multiTokName = makeMultiToken(term.name);
             var fullName = term.name.token.inner;
 
-            var opObj = {
-                isOp: true,
-                builtin: builtinMode,
-                fullName: fullName
+            if (!context.store.has(multiTokName, phase)) {
+                var opDefinition = loadMacroDef(term.body, context, phase + 1);
+
+                var opObj = {
+                    isOp: true,
+                    builtin: builtinMode,
+                    fullName: fullName
+                }
+                assert(unwrapSyntax(term.type) === "binary" ||
+                    unwrapSyntax(term.type) === "unary",
+                    "operator must either be binary or unary");
+                opObj[unwrapSyntax(term.type)] = {
+                    fn: opDefinition,
+                    prec: term.prec.token.value,
+                    assoc: term.assoc ? term.assoc.token.value : null
+                };
+
+
+                // bind in the store for the current phase
+                context.bindings.add(multiTokName, fresh(), phase);
+                context.store.set(multiTokName,
+                    phase,
+                    new CompiletimeValue(opObj,
+                        phase,
+                        modRecord.name));
             }
-            assert(unwrapSyntax(term.type) === "binary" ||
-                   unwrapSyntax(term.type) === "unary",
-                   "operator must either be binary or unary");
-            opObj[unwrapSyntax(term.type)] = {
-                fn: opDefinition,
-                prec: term.prec.token.value,
-                assoc: term.assoc ? term.assoc.token.value : null
-            };
-
-
-            // bind in the store for the current phase
-            context.bindings.add(multiTokName, fresh(), phase);
-            context.store.set(multiTokName,
-                              phase,
-                              new CompiletimeValue(opObj,
-                                                   phase,
-                                                   modRecord.name));
 
         }
     })
@@ -2489,13 +2494,15 @@ function loadImport(path, context, parentPath) {
                         record: mod.record
                     };
                 }
-                var expanded = expandModule(mod.term,
-                                            modFullPath,
-                                            context.templateMap,
-                                            context.patternMap,
-                                            mod.record,
-                                            context.compileSuffix,
-                                            context.bindings);
+                let loadContext = makeExpanderContext(_.defaults({
+                    // need to expand with a fresh environment but we keep the store
+                    env: new NameMap(),
+                    // always expand from phase 0
+                    phase: 0,
+                    filename: modFullPath,
+                    moduleRecord: mod.record
+                }, context));
+                var expanded = expandModule(mod.term, loadContext);
                 return {
                     term: expanded.mod,
                     record: expanded.context.moduleRecord
@@ -2537,19 +2544,7 @@ function bindImportInMod(impEntries, modTerm, modRecord, context, phase) {
     });
 }
 
-// (ModuleTerm, Str, Map, Map, ModuleRecord) -> {
-//     context: ExpanderContext,
-//     mod: ModuleTerm
-// }
-function expandModule(mod, filename, templateMap, patternMap, moduleRecord, compileSuffix, bindings) {
-    // create a new expander context for this module
-    var context = makeModuleExpanderContext(filename,
-                                            templateMap,
-                                            patternMap,
-                                            0,
-                                            moduleRecord,
-                                            compileSuffix,
-                                            bindings);
+function expandModule(mod, context) {
     return {
         context: context,
         mod: expandTermTreeToFinal(mod, context)
@@ -2662,12 +2657,16 @@ function compileModule(stx, options) {
     var patternMap = new StringMap();
     availableModules = new StringMap();
 
-    var expanded = expandModule(mod.term,
-                                filename,
-                                templateMap,
-                                patternMap,
-                                mod.record,
-                                options.compileSuffix);
+    let context = makeExpanderContext({
+        filename: filename,
+        templateMap: templateMap,
+        patternMap: patternMap,
+        phase: 0,
+        moduleRecord: mod.record,
+        compileSuffix: options.compileSuffix
+    });
+
+    var expanded = expandModule(mod.term, context);
     var flattened = flattenModule(expanded.mod,
                                   expanded.context.moduleRecord,
                                   expanded.context);
