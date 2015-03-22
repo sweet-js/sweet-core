@@ -41,8 +41,6 @@ var codegen = require('escodegen'),
     SyntaxTransform = require("./data/transforms").SyntaxTransform,
     VarTransform = require("./data/transforms").VarTransform,
     resolve = require("./stx/resolve").resolve,
-    marksof = require("./stx/resolve").marksof,
-    arraysEqual = require("./stx/resolve").arraysEqual,
     makeImportEntries = require("./mod/importEntry").makeImportEntries,
     ExportEntry = require("./mod/exportEntry").ExportEntry,
     ModuleRecord = require("./mod/moduleRecord").ModuleRecord,
@@ -180,7 +178,7 @@ function getUnaryOpPrec(op) {
         "void": 14,
         "delete": 14,
         "yield": 2
-    }
+    };
     return operatorPrecedence[op];
 }
 
@@ -209,7 +207,7 @@ function getBinaryOpPrec(op) {
         "|": 6,
         "&&": 5,
         "||":4
-    }
+    };
     return operatorPrecedence[op];
 }
 
@@ -238,7 +236,7 @@ function getBinaryOpAssoc(op) {
         "|": "left",
         "&&": "left",
         "||": "left"
-    }
+    };
     return operatorAssoc[op];
 }
 
@@ -294,6 +292,7 @@ function enforestImport(head, rest) {
     assert(unwrapSyntax(head) === "import", "only call for imports");
 
     var clause = enforestImportClauseList(rest);
+    var importRest;
     rest = clause.rest;
 
     if (rest[0] && unwrapSyntax(rest[0]) === "from" &&
@@ -301,7 +300,6 @@ function enforestImport(head, rest) {
         rest[2] && unwrapSyntax(rest[2]) === "for" &&
         rest[3] && unwrapSyntax(rest[3]) === "phase" &&
         rest[4] && rest[4].isNumericLiteral()) {
-        var importRest;
         if (rest[5] && rest[5].isPunctuator() &&
             rest[5].token.value === ";") {
             importRest = rest.slice(6);
@@ -321,7 +319,6 @@ function enforestImport(head, rest) {
         };
     } else if (rest[0] && unwrapSyntax(rest[0]) === "from" &&
                rest[1] && rest[1].isStringLiteral()) {
-        var importRest;
         if (rest[2] && rest[2].isPunctuator() &&
             rest[2].token.value === ";") {
             importRest = rest.slice(3);
@@ -2588,7 +2585,7 @@ function flattenModule(modTerm, modRecord, context) {
 
     var exports = modRecord.exportEntries.filter(entry => {
         return isRuntimeName(entry.localName, context);
-    })
+    });
 
     let eof;
 
