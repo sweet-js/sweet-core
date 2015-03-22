@@ -1237,13 +1237,11 @@ function scanTemplateElement(option) {
 
     template = scanTemplate();
 
-    peek();
-
     return template;
 }
 
 function scanRegExp() {
-    var str, ch, start, pattern, flags, value, classMarker = false, restore, terminated = false;
+    var str, ch, start, pattern, flags, value, classMarker = false, restore, terminated = false, tmp;
 
     lookahead = null;
     skipComment();
@@ -1319,19 +1317,41 @@ function scanRegExp() {
         }
     }
 
+    tmp = pattern;
+    if (flags.indexOf('u') >= 0) {
+        // Replace each astral symbol and every Unicode code point
+        // escape sequence that represents such a symbol with a single
+        // ASCII symbol to avoid throwing on regular expressions that
+        // are only valid in combination with the `/u` flag.
+        tmp = tmp
+            .replace(/\\u\{([0-9a-fA-F]{5,6})\}/g, 'x')
+            .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, 'x');
+    }
+
+    // First, detect invalid regular expressions.
     try {
-        value = new RegExp(pattern, flags);
+        value = new RegExp(tmp);
     } catch (e) {
         throwError({}, Messages.InvalidRegExp);
     }
 
-    // peek();
-
+    // Return a regular expression object for this pattern-flag pair, or
+    // `null` in case the current environment doesn't support the flags it
+    // uses.
+    try {
+        value = new RegExp(pattern, flags);
+    } catch (exception) {
+        value = null;
+    }
 
     if (extra.tokenize) {
         return {
             type: Token.RegularExpression,
             value: value,
+            regex: {
+                pattern: pattern,
+                flags: flags
+            },
             lineNumber: lineNumber,
             lineStart: lineStart,
             range: [start, index]
@@ -1340,6 +1360,10 @@ function scanRegExp() {
     return {
         type: Token.RegularExpression,
         literal: str,
+        regex: {
+            pattern: pattern,
+            flags: flags
+        },
         value: value,
         range: [start, index]
     };
@@ -1820,11 +1844,15 @@ SyntaxTreeDelegate = {
     },
 
     createLiteral: function (token) {
-        return {
+        var object = {
             type: Syntax.Literal,
             value: token.value,
             raw: String(token.value)
         };
+        if (token.regex) {
+            object.regex = token.regex;
+        }
+        return object;
     },
 
     createMemberExpression: function (accessor, object, property) {
@@ -4967,7 +4995,7 @@ function scanComment() {
 }
 
 function collectToken() {
-    var start, loc, token, range, value;
+    var start, loc, token, range, value, entry;
 
     skipComment();
     start = index;
@@ -4987,12 +5015,19 @@ function collectToken() {
     if (token.type !== Token.EOF) {
         range = [token.range[0], token.range[1]];
         value = source.slice(token.range[0], token.range[1]);
-        extra.tokens.push({
+        entry = {
             type: TokenName[token.type],
             value: value,
             range: range,
             loc: loc
-        });
+        };
+        if (token.regex) {
+            entry.regex = {
+                pattern: token.regex.pattern,
+                flags: token.regex.flags
+            };
+        }
+        extra.tokens.push(entry);
     }
 
     return token;
@@ -5031,6 +5066,7 @@ function collectRegex() {
         extra.tokens.push({
             type: 'RegularExpression',
             value: regex.literal,
+            regex: regex.regex,
             range: [pos, index],
             loc: loc
         });
@@ -5048,6 +5084,12 @@ function filterTokenLocation() {
             type: entry.type,
             value: entry.value
         };
+        if (entry.regex) {
+            token.regex = {
+                pattern: entry.regex.pattern,
+                flags: entry.regex.flags
+            };
+        }
         if (extra.range) {
             token.range = entry.range;
         }
