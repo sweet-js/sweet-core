@@ -835,6 +835,7 @@ stxrec macroclass_create {
         var ctxName = stx[3];
         var matchName = stx[4];
         var decls = stx[5].token.inner;
+        throwSyntaxCaseError('macroclass', 'not currently implemented', macName);
         var mclass = decls.reduce(function(m, decl) {
             var tag = unwrapSyntax(decl.token.inner[0]);
             if (tag === 'name') {

@@ -2,45 +2,45 @@
 var expect = require("expect.js");
 
 describe("macroclass", function() {
-    it("should support the macroclass macro", function() {
-        macroclass cls {
-            pattern {
-                rule { $foo }
-            }
-        }
-        stxrec m {
-            rule { $x:cls } => { $x$foo }
-        }
-        expect(m 42).to.be(42);
-    });
-
-    it("should support multiple patterns", function() {
-        macroclass cls {
-            pattern {
-                rule { $foo:ident }
-            }
-            pattern {
-                rule { $foo:lit }
-            }
-        }
-        stxrec m {
-            rule { $x:cls $y:cls } => { $x$foo + $y$foo }
-        }
-        expect(m 42 10).to.be(52);
-        expect(m 42 'foo').to.be('42foo');
-    });
-
-    it("should support shorthand patterns with just a rule declaration", function() {
-        macroclass cls {
-            rule { $foo:ident }
-            rule { $foo:lit }
-        }
-        stxrec m {
-            rule { $x:cls $y:cls } => { $x$foo + $y$foo }
-        }
-        expect(m 42 10).to.be(52);
-        expect(m 42 'foo').to.be('42foo');
-    });
+    //it("should support the macroclass macro", function() {
+    //    macroclass cls {
+    //        pattern {
+    //            rule { $foo }
+    //        }
+    //    }
+    //    stxrec m {
+    //        rule { $x:cls } => { $x$foo }
+    //    }
+    //    expect(m 42).to.be(42);
+    //});
+    //
+    //it("should support multiple patterns", function() {
+    //    macroclass cls {
+    //        pattern {
+    //            rule { $foo:ident }
+    //        }
+    //        pattern {
+    //            rule { $foo:lit }
+    //        }
+    //    }
+    //    stxrec m {
+    //        rule { $x:cls $y:cls } => { $x$foo + $y$foo }
+    //    }
+    //    expect(m 42 10).to.be(52);
+    //    expect(m 42 'foo').to.be('42foo');
+    //});
+    //
+    //it("should support shorthand patterns with just a rule declaration", function() {
+    //    macroclass cls {
+    //        rule { $foo:ident }
+    //        rule { $foo:lit }
+    //    }
+    //    stxrec m {
+    //        rule { $x:cls $y:cls } => { $x$foo + $y$foo }
+    //    }
+    //    expect(m 42 10).to.be(52);
+    //    expect(m 42 'foo').to.be('42foo');
+    //});
 
     // it("should support with bindings in a pattern declaration", function() {
     //     macroclass cls {
@@ -119,16 +119,16 @@ describe("macroclass", function() {
     //     expect(m 30).to.be(42);
     // });
 
-    it("should support macroclass invocations within other macroclasses", function() {
-        macroclass cls_a {
-            rule { $foo:lit }
-        }
-        macroclass cls_b {
-            rule { $bar:cls_a }
-        }
-        stxrec m {
-            rule { $x:cls_b } => { $x$bar$foo }
-        }
-        expect(m 42).to.be(42);
-    });
+    //it("should support macroclass invocations within other macroclasses", function() {
+    //    macroclass cls_a {
+    //        rule { $foo:lit }
+    //    }
+    //    macroclass cls_b {
+    //        rule { $bar:cls_a }
+    //    }
+    //    stxrec m {
+    //        rule { $x:cls_b } => { $x$bar$foo }
+    //    }
+    //    expect(m 42).to.be(42);
+    //});
 });
