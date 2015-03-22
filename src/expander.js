@@ -2567,6 +2567,14 @@ function isRuntimeName(stx, context) {
     }
 }
 
+function isCompiletimeName(stx, context) {
+    if (stx.isDelimiter()) {
+        return hasSyntaxTransform(stx.token.inner, context, 0);
+    } else {
+        return hasSyntaxTransform(stx, context, 0);
+    }
+}
+
 
 // Takes an expanded module term and flattens it.
 // @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> [...SyntaxObject]
@@ -2575,7 +2583,7 @@ function flattenModule(modTerm, modRecord, context) {
     // filter the imports to just the imports and names that are
     // actually available at runtime
     var imports = modRecord.getRuntimeImportEntries().filter(entry => {
-        return isRuntimeName(entry.localName, context);
+        return !isCompiletimeName(entry.localName, context);
     });
 
     var exports = modRecord.exportEntries.filter(entry => {
