@@ -1787,6 +1787,12 @@ function expandToTermTree(stx, context) {
                             new CompiletimeValue(new VarTransform(head.name),
                                                  context.moduleRecord.name,
                                                  context.phase));
+
+            context.store.set(head.name,
+                context.phase,
+                new CompiletimeValue(new VarTransform(head.name),
+                    context.moduleRecord.name,
+                    context.phase));
         }
 
         if (head.isVariableStatementTerm ||
@@ -1800,6 +1806,11 @@ function expandToTermTree(stx, context) {
                                 new CompiletimeValue(new VarTransform(decl.ident),
                                                      context.moduleRecord.name,
                                                      context.name));
+                context.store.set(decl.ident,
+                    context.phase,
+                    new CompiletimeValue(new VarTransform(decl.ident),
+                        context.moduleRecord.name,
+                        context.name));
                 return decl;
             });
             // addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
