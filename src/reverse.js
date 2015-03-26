@@ -23,17 +23,7 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-// DONE
-// support simple macro classes
-// get replacement
-// check whether replacement compiles
-// do not match own macro definition
-//
 // TODO
-// command line interface
-// editor integration
-//
-// Future:
 // custom macro classes
 // scope-sensitive reverse matching
 // nested macros
@@ -105,9 +95,14 @@
         }
         var parentIdx = path.pop();
         var parentStx = path.pop();
-        var parentCopy = _.clone(parentStx[parentIdx]);
+        var parentCopy = Object.create(Object.getPrototypeOf(parentStx[parentIdx]));
+        for (var key in parentStx[parentIdx]) {
+            if (parentStx[parentIdx].hasOwnProperty(key)) {
+                parentCopy[key] = parentStx[parentIdx][key];
+            }
+        }
         parentCopy.token = _.clone(parentCopy.token);
-        parentCopy.token.inner = newstx;
+        parentCopy.token.inner = newStx;
         var newParentStx = _(parentStx).toArray();
         newParentStx[parentIdx] = parentCopy;
         return replaceInTree(newParentStx, path);
@@ -246,7 +241,7 @@
         var matched =  _.initial(rest, res.rest.length);
         var rep = patternModule.transcribe(this.pattern, 0, res.patternEnv);
         var newStx = _.flatten([init, rep, res.rest], true);
-        var newTree = replaceInTree(newStx, _.initial(path, 2));
+        // var newTree = replaceInTree(newStx, _.initial(path, 2));
         var prefix = src.slice(0, startRange(rest[0]));
         var suffix = src.slice(Math.min(src.length, startRange(res.rest[0])));
         var repSrc = syntax.prettyPrint(expander.flatten(rep));
@@ -270,13 +265,14 @@
         var stx = parser.read(src);
         stx = expander.adjustLineContext(stx, stx[0]);
         var macros = findMacros(src);
-        return foldReadTree(function(matches, init, rest, path) {
+        var res = foldReadTree(function(matches, init, rest, path) {
             for (var i = 0; i < macros.length; i++) {
                 var match = macros[i].tryMatch(init, rest, path, src);
                 if (match) matches.push(match);
             }
             return matches;
         }, stx, []);
+        return res;
     }
 
     exports.findMacros = findMacros;

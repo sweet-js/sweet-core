@@ -40,8 +40,8 @@ var argv = require("optimist")
     .describe('format-indent', 'number of spaces for indentation')
     .alias('l', 'load-readtable')
     .describe('load-readtable', 'readtable module to install')
-    .boolean('reverse')
-    .describe('reverse', 'finds possible locations for macro usage')
+    .boolean('refactor')
+    .describe('refactor', 'macrofy the input by finding possible locations for macro invocations')
     .argv;
 
 
@@ -61,7 +61,7 @@ exports.run = function() {
     var readableNames = argv['readable-names'];
     var formatIndent = parseInt(argv['format-indent'], 10);
     var readtableModules = argv['load-readtable'];
-    var reverse = argv.reverse;
+    var refactor = argv.refactor;
     if (formatIndent !== formatIndent) {
         formatIndent = 4;
     }
@@ -119,12 +119,9 @@ exports.run = function() {
         }
     }
 
-    if (reverse) {
+    if (refactor) {
         var match = rev.findReverseMatches(file)[0];
-        if (!match) return console.log("no reverse matches found");
-        console.log("replaced\n\n" + match.matchedSrc + "\nwith\n\n"
-                + match.replacement);
-
+        if (!match) return console.log("no macorfication candidates found");
         if (outfile) {
             fs.writeFileSync(outfile, match.replacedSrc);
         } else {

@@ -49,9 +49,14 @@
         }
         var parentIdx = path.pop();
         var parentStx = path.pop();
-        var parentCopy = _.clone(parentStx[parentIdx]);
+        var parentCopy = Object.create(Object.getPrototypeOf(parentStx[parentIdx]));
+        for (var key in parentStx[parentIdx]) {
+            if (parentStx[parentIdx].hasOwnProperty(key)) {
+                parentCopy[key] = parentStx[parentIdx][key];
+            }
+        }
         parentCopy.token = _.clone(parentCopy.token);
-        parentCopy.token.inner = newstx;
+        parentCopy.token.inner = newStx;
         var newParentStx = _(parentStx).toArray();
         newParentStx[parentIdx] = parentCopy;
         return replaceInTree(newParentStx, path);
@@ -190,8 +195,8 @@
             rep,
             res.rest
         ], true);
-        var newTree = replaceInTree(newStx, _.initial(path, 2));
-        var prefix = src.slice(0, startRange(rest[0]));
+        var // var newTree = replaceInTree(newStx, _.initial(path, 2));
+        prefix = src.slice(0, startRange(rest[0]));
         var suffix = src.slice(Math.min(src.length, startRange(res.rest[0])));
         var repSrc = syntax.prettyPrint(expander.flatten(rep));
         var newSrc = prefix + repSrc + suffix;
@@ -214,7 +219,7 @@
         var stx = parser.read(src);
         stx = expander.adjustLineContext(stx, stx[0]);
         var macros = findMacros(src);
-        return foldReadTree(function (matches, init, rest, path) {
+        var res = foldReadTree(function (matches, init, rest, path) {
             for (var i = 0; i < macros.length; i++) {
                 var match = macros[i].tryMatch(init, rest, path, src);
                 if (match)
@@ -222,6 +227,7 @@
             }
             return matches;
         }, stx, []);
+        return res;
     }
     exports$2.findMacros = findMacros;
     exports$2.findReverseMatches = findReverseMatches;

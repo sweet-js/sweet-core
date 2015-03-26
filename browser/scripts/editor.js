@@ -115,6 +115,7 @@ mirrors
 
 // highlight macro candidates
 mirrors.flatMap(editorChange).
+    combineLatest(ckMacrofy(), concat.bind([])).
     map(macroCandidates).
     subscribe(applyArgs(commitHighlights));
 
@@ -772,20 +773,23 @@ function editorChange(editors) {
         map(function() { return editors[0]; });
 }
 
-function macroCandidates(editor) {
+function macroCandidates(editorAndAuto) {
+    var editor = editorAndAuto[0];
     var highlights = [];
-    try {
-        var highlights = reverse.findReverseMatches(editor.getValue()).
-            map(function(match) {
-                var start = useOriginalLoc(match.matchedTokens[0].token);
-                var end = useOriginalLoc(_.last(match.matchedTokens).token);
-                return {
-                    start: tokenToHighlight(start).start,
-                    end: tokenToHighlight(end).end,
-                    match: match
-                }
-            });
-    } catch(e) { }
+    if (editorAndAuto[1]) {
+        try {
+            var highlights = reverse.findReverseMatches(editor.getValue()).
+                map(function(match) {
+                    var start = useOriginalLoc(match.matchedTokens[0].token);
+                    var end = useOriginalLoc(_.last(match.matchedTokens).token);
+                    return {
+                        start: tokenToHighlight(start).start,
+                        end: tokenToHighlight(end).end,
+                        match: match
+                    }
+                });
+        } catch(e) { }
+    }
     return [editor, "candidate", highlights];
 
     function useOriginalLoc(token) {
@@ -832,6 +836,14 @@ function tokenToHighlight(token, isStart, isName) {
         highlight.name = true;
     }
     return highlight;
+}
+
+function ckMacrofy() {
+    var highlightMacrofy = $("#ck-macrofy");
+    return highlightMacrofy
+        .changeAsObservable()
+        .scan(highlightMacrofy.is(":checked"), Rx.helpers.not)
+        .startWith(highlightMacrofy.is(":checked"))
 }
 
 });
