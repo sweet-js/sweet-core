@@ -139,6 +139,7 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <li><a href="#named-patterns"><span class="toc-section-number">2.1.3</span> Named patterns</a></li>
 <li><a href="#pattern-classes"><span class="toc-section-number">2.1.4</span> Pattern Classes</a></li>
 <li><a href="#custom-pattern-classes-experimental"><span class="toc-section-number">2.1.5</span> Custom Pattern Classes (Experimental)</a></li>
+<li><a href="#repeating-variables-in-patterns"><span class="toc-section-number">2.1.6</span> Repeating variables in patterns</a></li>
 </ul></li>
 </ul></li>
 <li><a href="#hygiene"><span class="toc-section-number">3</span> Hygiene</a><ul>
@@ -198,12 +199,12 @@ code > span.er { color: #ff0000; font-weight: bold; }
 </ul></li>
 </ul>
 </nav>
-<h1 id="introduction"><span class="header-section-number">1</span> Introduction</h1>
+<h1 id="introduction"><a href="#introduction"><span class="header-section-number">1</span> Introduction</a></h1>
 <p>Install the sweet.js compiler via npm:</p>
 <pre class="language-bash"><code>npm install -g sweet.js</code></pre>
 <p>This installs the <code>sjs</code> binary which is used to compile sweet.js code:</p>
 <pre class="language-bash"><code>sjs --output out.js my_sweet_code.js</code></pre>
-<h1 id="rule-macros"><span class="header-section-number">2</span> Rule Macros</h1>
+<h1 id="rule-macros"><a href="#rule-macros"><span class="header-section-number">2</span> Rule Macros</a></h1>
 <p>You can think of macros as functions that work on syntax. Much like a normal function you write a macro <em>definition</em> and then later <em>invoke</em> the macro with a syntax argument to produce new syntax. Running sweet.js code through the compiler will <em>expand</em> all macros and produce pure JavaScript that can be run in any JS environment.</p>
 <p>Sweet.js provides two ways to define a macro: the simpler pattern-based <em>rule</em> macros and the more powerful procedural <em>case</em> macros (if you are familiar with Scheme or Racket these correspond to <code>syntax-rules</code> and <code>syntax-case</code>).</p>
 <p>Rule macros work by matching a syntax <em>pattern</em> and generating new syntax based on a <em>template</em>.</p>
@@ -248,8 +249,8 @@ m (1, 2);</code></pre>
   rule { ($head $tail ...) } =&gt; { [$head, m ($tail ...)] }
 }
 m (1 2 3 4 5)  // --&gt; [1, [2, [3, [4, [5]]]]]</code></pre>
-<h2 id="patterns"><span class="header-section-number">2.1</span> Patterns</h2>
-<h3 id="repetition"><span class="header-section-number">2.1.1</span> Repetition</h3>
+<h2 id="patterns"><a href="#patterns"><span class="header-section-number">2.1</span> Patterns</a></h2>
+<h3 id="repetition"><a href="#repetition"><span class="header-section-number">2.1.1</span> Repetition</a></h3>
 <p>Repeated tokens can be matched with ellipses <code>...</code>.</p>
 <pre class="js"><code>macro m {
   rule { ($x ...) } =&gt; {
@@ -271,9 +272,9 @@ m (1, 2, 3, 4)</code></pre>
   }
 }
 m (x = 10, y = 2)</code></pre>
-<h3 id="literal-patterns"><span class="header-section-number">2.1.2</span> Literal patterns</h3>
+<h3 id="literal-patterns"><a href="#literal-patterns"><span class="header-section-number">2.1.2</span> Literal patterns</a></h3>
 <p>The syntax <code>$[]</code> will match what is inside the brackets literally. For example, if you need to match <code>...</code> in a pattern (rather than have <code>...</code> mean repetition) you can escape it with <code>$[...]</code>.</p>
-<h3 id="named-patterns"><span class="header-section-number">2.1.3</span> Named patterns</h3>
+<h3 id="named-patterns"><a href="#named-patterns"><span class="header-section-number">2.1.3</span> Named patterns</a></h3>
 <p>You can name pattern groups and literal groups. Sub-bindings can be referenced by concatenating the group name and binding name. All the syntax matched by the group will be bound to the group name.</p>
 <pre class="js"><code>macro m {
   rule { ($binding:($id = $val) (,) ...) } =&gt; {
@@ -288,7 +289,7 @@ macro m {
     // ...
   }
 }</code></pre>
-<h3 id="pattern-classes"><span class="header-section-number">2.1.4</span> Pattern Classes</h3>
+<h3 id="pattern-classes"><a href="#pattern-classes"><span class="header-section-number">2.1.4</span> Pattern Classes</a></h3>
 <p>A pattern name can be restricted to a particular parse class by using <code>$name:class</code> in which case rather than matching a token the pattern matches all the tokens matched by the class.</p>
 <pre class="js"><code>macro m {
   rule { ($x:expr) } =&gt; {
@@ -304,7 +305,7 @@ m (2 + 5 * 10)
 <li><code>:lit</code> -- matches a literal (eg. <code>100</code> or <code>&quot;a string&quot;</code>)</li>
 <li><code>:expr</code> -- matches an expression (eg. <code>foo(&quot;a string&quot;) + 100</code>)</li>
 </ul>
-<h3 id="custom-pattern-classes-experimental"><span class="header-section-number">2.1.5</span> Custom Pattern Classes (Experimental)</h3>
+<h3 id="custom-pattern-classes-experimental"><a href="#custom-pattern-classes-experimental"><span class="header-section-number">2.1.5</span> Custom Pattern Classes (Experimental)</a></h3>
 <p>Note that the syntax of custom pattern classes is currently experimental and subject to change.</p>
 <p>You can define your own custom pattern classes with <code>macroclass</code>.</p>
 <pre class="js"><code>// define the cond_clause pattern class
@@ -366,10 +367,25 @@ import { a, b as c, d } from &#39;foo&#39;
 // var c = __module.b;
 // var d = __module.d;</code></pre>
 <p>Patterns with only a <code>rule</code> declaration may be collapsed into just a <code>rule</code> declaration in lieu of a <code>pattern</code>.</p>
-<h1 id="hygiene"><span class="header-section-number">3</span> Hygiene</h1>
+<h3 id="repeating-variables-in-patterns"><a href="#repeating-variables-in-patterns"><span class="header-section-number">2.1.6</span> Repeating variables in patterns</a></h3>
+<p>In contrast to other macro systems, sweet.js allows variables to appear more than once in the pattern. Similarily to repeated variables in the body of a rule macro, the syntax captured by a variable must be the same for all occurences of that variable, otherwise the macros will not match.</p>
+<pre class="js"><code>macro m {
+    rule { $x $x } =&gt; { &quot;the same!&quot; }
+    rule { $x $y } =&gt; { &quot;different&quot; }
+}
+m 1 1   // expands to &#39;the same!&#39;
+m 1 2   // expands to &#39;different&#39;</code></pre>
+<p>Of course, this also applies to repeated variables in repitition groups which enables complex pattern matching that would otherwise require complex case macros.</p>
+<pre class="js"><code>macro m {
+    rule { $x $($p:(+) $x) ... }
+      =&gt; { $x * (1 $($p 1) ...) }
+}
+m 23 + 23 + 23   // expands to 23 * (1 + 1 + 1);
+m 23 + 23 + 42   // expands to 23 * (1 + 1) + 42;</code></pre>
+<h1 id="hygiene"><a href="#hygiene"><span class="header-section-number">3</span> Hygiene</a></h1>
 <p>The most important property of sweet.js is hygiene. Hygiene prevents variables names inside of macros from clashing with variables in the surrounding code. It's what gives macros the power to actually be syntactic abstractions by hiding implementation details and allowing you to use a hygienic macro <em>anywhere</em> in your code.</p>
 <p>Hygiene protects against two kinds of naming collisions: binding collisions and reference collisions.</p>
-<h2 id="hygiene-part-1-binding"><span class="header-section-number">3.1</span> Hygiene Part 1 (Binding)</h2>
+<h2 id="hygiene-part-1-binding"><a href="#hygiene-part-1-binding"><span class="header-section-number">3.1</span> Hygiene Part 1 (Binding)</a></h2>
 <p>The part of hygiene most people intuitively grok is keeping track of the variable <em>bindings</em> that a macro introduces. For example, the swap macro creates a <code>tmp</code> variable that should only be bound inside of the macro:</p>
 <pre class="js"><code>macro swap {
   rule { ($a, $b) } =&gt; {
@@ -396,7 +412,7 @@ var b = 20;
 var tmp$2 = tmp$1;
 tmp$1 = b;
 b = tmp$2;</code></pre>
-<h2 id="hygiene-part-2-reference"><span class="header-section-number">3.2</span> Hygiene Part 2 (Reference)</h2>
+<h2 id="hygiene-part-2-reference"><a href="#hygiene-part-2-reference"><span class="header-section-number">3.2</span> Hygiene Part 2 (Reference)</a></h2>
 <p>Hygiene also handles variable <em>references</em>. The body of a macro can contain references to bindings declared outside of the macro and those references must be consistent no matter the context in which the macro is invoked.</p>
 <p>Some code to clarify. Let's say you have a macro that uses a random number function:</p>
 <pre class="js"><code>var random = function(seed) { /* ... */ }
@@ -420,7 +436,7 @@ function foo() {
 }</code></pre>
 <p>Note that there is no way for hygiene to do this if it only renamed identifiers inside of macros since both <code>random</code> bindings were declared outside of the macro. Hygiene is necessarily a whole program transformation.</p>
 <p>By default sweet.js will rename every variable to something like <code>name$102</code>. This gives correct but somewhat messy generated code. Usually this is not a problem since sweet.js provides source maps (with the <code>--sourcemap</code> flag) so you rarely need to inspect the generated source. If you would like to have sweet.js generate cleaner code you can use the <code>--readable-names</code> flag which will only rename variables when it is absolutely necessary. This flag is not yet turned on by default since it only supports ES5 code at the moment.</p>
-<h1 id="case-macros"><span class="header-section-number">4</span> Case Macros</h1>
+<h1 id="case-macros"><a href="#case-macros"><span class="header-section-number">4</span> Case Macros</a></h1>
 <p>Sweet.js also provides a more powerful way to define macros: case macros. Case macros allow you to manipulate syntax using the full power of JavaScript. Case macros look like this:</p>
 <pre class="js"><code>macro &lt;name&gt; {
   case { &lt;pattern&gt; } =&gt; { &lt;body&gt; }
@@ -452,7 +468,7 @@ m 42  // `$name` will be bound to the `m` token
 m foo
 // --&gt; expands to
 42</code></pre>
-<h2 id="creating-syntax-objects"><span class="header-section-number">4.1</span> Creating Syntax Objects</h2>
+<h2 id="creating-syntax-objects"><a href="#creating-syntax-objects"><span class="header-section-number">4.1</span> Creating Syntax Objects</a></h2>
 <p>Sweet.js provides the following functions to create syntax objects:</p>
 <ul>
 <li><code>makeValue(val, stx)</code> -- <code>val</code> can be a <code>boolean</code>, <code>number</code>, <code>string</code>, or <code>null</code>/<code>undefined</code></li>
@@ -463,7 +479,7 @@ m foo
 </ul>
 <p>If you want strip a syntax object of its lexical context and get directly at the token you can use <code>unwrapSyntax(stx)</code>.</p>
 <p>Case macros also provide <code>throwSyntaxError(name, message, stx)</code> when you need to throw an error inside of a case macro. <code>name</code> is a string that lets you name the error, <code>message</code> is a string to describe what went wrong, and <code>stx</code> is a syntax object or array of syntax objects that is used to print out the line number and surrounding tokens in the error message.</p>
-<h2 id="letstx"><span class="header-section-number">4.2</span> <code>letstx</code></h2>
+<h2 id="letstx"><a href="#letstx"><span class="header-section-number">4.2</span> <code>letstx</code></a></h2>
 <p>When using syntax object creation functions, it is convenient to refer to them in <code>#{}</code> templates. To do this sweet.js provides <code>letstx</code>, which binds syntax objects to pattern variables:</p>
 <pre class="js"><code>macro m {
   case {_ $x } =&gt; {
@@ -489,7 +505,7 @@ m 1
 m
 // expands to:
 // [1, 2, 3]</code></pre>
-<h1 id="extending-pattern-classes"><span class="header-section-number">5</span> Extending Pattern Classes</h1>
+<h1 id="extending-pattern-classes"><a href="#extending-pattern-classes"><span class="header-section-number">5</span> Extending Pattern Classes</a></h1>
 <p>Consider the following macro that matches against color options:</p>
 <pre class="js"><code>macro color_options {
   rule { (red) } =&gt; { [&quot;#FF0000&quot;] }
@@ -520,7 +536,7 @@ g = colors_options (green, blue)
 // r = [&quot;#FF0000&quot;, &quot;#00FF00&quot;]
 // g = [&quot;#00FF00&quot;, &quot;#0000FF&quot;]</code></pre>
 <p>While it is possible to solve this problem through the use of case macros, the declarative intent is quickly lost in a mess of token manipulation code.</p>
-<h2 id="the-invoke-pattern-class"><span class="header-section-number">5.1</span> The Invoke Pattern Class</h2>
+<h2 id="the-invoke-pattern-class"><a href="#the-invoke-pattern-class"><span class="header-section-number">5.1</span> The Invoke Pattern Class</a></h2>
 <p>Sweet.js provides a solution to this problem with the <code>:invoke</code> pattern class. This pattern class takes as a parameter a macro name which is inserted into the token tree stream before matching. If the inserted macro successfully matches its arguments, the result of its expansion is bound to the pattern variable. This makes declarative options simple to write:</p>
 <pre class="js"><code>macro color {
     rule { red } =&gt; { &quot;#FF0000&quot; }
@@ -552,7 +568,7 @@ c 3
 // [1 + 2] + 3</code></pre>
 <p>The <code>b</code> macro returns <code>a + $x</code> as its result. Since <code>a</code> is another macro which returns <code>1 + 2</code> as a result, so <code>1 + 2</code> is what gets loaded into the <code>$y</code> pattern variable, and the <code>+ 3</code> is surprisingly pushed outside the scope of the macro.</p>
 <p>This is a change from the default behavior of version 0.5.0 in which <code>:invoke</code> behaved like <code>:invokeRec</code> and <code>:invokeOnce</code> was available for the current default behavior.</p>
-<h2 id="implicit-invoke"><span class="header-section-number">5.2</span> Implicit Invoke</h2>
+<h2 id="implicit-invoke"><a href="#implicit-invoke"><span class="header-section-number">5.2</span> Implicit Invoke</a></h2>
 <p>Custom pattern classes act as an implicit invoke. This means that <code>$opt:invoke(color)</code> is equivalent to <code>$opt:color</code>:</p>
 <pre class="js"><code>macro color {
     rule { red } =&gt; { &quot;#FF0000&quot; }
@@ -568,7 +584,7 @@ colors_options (red, green, blue, blue)
 // expands to:
 // [&quot;#FF0000&quot;, &quot;#00FF00&quot;, &quot;#0000FF&quot;, &quot;#0000FF&quot;]</code></pre>
 <p>Custom pattern classes only support single-token identifiers. If you need to call a multi-token name or a punctuator name, you should explicitly call <code>$foo:invoke(...)</code> with the name.</p>
-<h2 id="identity-rules"><span class="header-section-number">5.3</span> Identity Rules</h2>
+<h2 id="identity-rules"><a href="#identity-rules"><span class="header-section-number">5.3</span> Identity Rules</a></h2>
 <p>Sometimes you want your custom operator to just return exactly what it matched rather than transform it into something else. Identity rules let you do just that. If you leave off the body of a rule, it will just return exactly the syntax that the rule matched:</p>
 <pre class="js"><code>macro func {
   rule { function ($args (,) ...) { $body ... } }
@@ -582,7 +598,7 @@ macro checkFunc {
 x = checkFunc function() {}
 // expands to:
 // x = function() {}</code></pre>
-<h2 id="errors-for-invoke"><span class="header-section-number">5.4</span> Errors for Invoke</h2>
+<h2 id="errors-for-invoke"><a href="#errors-for-invoke"><span class="header-section-number">5.4</span> Errors for Invoke</a></h2>
 <p>The function <code>throwSyntaxCaseError</code> is similar to <code>throwSyntaxError</code>, but should be used specifically when you are using <code>:invoke</code>. Internally, sweet.js throws a SyntaxCaseError when a macro fails to match so <code>throwSyntaxCaseError</code> just lets you do it manually. Here's how you might use it in a macro that checks for keyword:</p>
 <pre class="js"><code>macro keyword {
   case { _ $kw } =&gt; {
@@ -593,7 +609,7 @@ x = checkFunc function() {}
     throwSyntaxCaseError(&#39;Not a keyword&#39;);
   }
 }</code></pre>
-<h1 id="let-macros"><span class="header-section-number">6</span> Let macros</h1>
+<h1 id="let-macros"><a href="#let-macros"><span class="header-section-number">6</span> Let macros</a></h1>
 <p>Sometimes you don't want a macro to recursively call itself. For example, say you want to override <code>function</code> to add some logging information before the rest of the function executes:</p>
 <pre class="js"><code>macro function {
   case {_ $name ($params ...) { $body ...} } =&gt; {
@@ -617,7 +633,7 @@ x = checkFunc function() {}
   }
 }</code></pre>
 <p>This binds <code>function</code> to the macro in the rest of the code but not in the body of the <code>function</code> macro.</p>
-<h1 id="infix-macros"><span class="header-section-number">7</span> Infix Macros</h1>
+<h1 id="infix-macros"><a href="#infix-macros"><span class="header-section-number">7</span> Infix Macros</a></h1>
 <p>Sweet.js also lets you match on previous syntax using <code>infix</code> rules. Use a vertical bar (<code>|</code>) to separate your left-hand-side from your right-hand-side.</p>
 <pre class="js"><code>macro unless {
   rule infix { return $value:expr | $guard:expr } =&gt; {
@@ -654,7 +670,7 @@ function foo(x) {
 (42) m foo; // This works
 bar(42) m foo; // This is a match error</code></pre>
 <p>The second example fails to match because you'd be splitting the good function call on the left-hand-side in half. The result would have been nonsense, giving you a nasty parse error.</p>
-<h1 id="custom-operators"><span class="header-section-number">8</span> Custom Operators</h1>
+<h1 id="custom-operators"><a href="#custom-operators"><span class="header-section-number">8</span> Custom Operators</a></h1>
 <p>Custom operators let you define your own operators or override the built-in operators. They are similar to infix macros except rather than matching arbitrary syntax before and after the identifier name, both the left and right operands must be valid JavaScript expressions. You can think of them as infix macros with a pattern of <code>{ $left:expr | $right:expr }</code>. This limitation however means that you can define precedence and associativity for your custom operator.</p>
 <p>There are two definition forms. One for binary operators and one for unary operators:</p>
 <pre class="js"><code>// binary operators
@@ -679,7 +695,7 @@ y + x ^^ 10 ^^ 100 - z
 // expands to:
 // y + Math.pow(x, Math.pow(10, 100)) - z;</code></pre>
 <p>The precedence of <code>^^</code> (14) is higher than the precedence of <code>+</code> and <code>-</code> (12, see the chart in the next section) so <code>^^</code> binds more tightly. Since we defined <code>^^</code> to be right associative, <code>x ^^ 10 ^^ 100</code> is equivalent to <code>x ^^ (10 ^^ 100)</code>. Left associative would have meant <code>(x ^^ 10) ^^ 100</code>.</p>
-<h2 id="examples"><span class="header-section-number">8.1</span> Examples</h2>
+<h2 id="examples"><a href="#examples"><span class="header-section-number">8.1</span> Examples</a></h2>
 <p>Custom operators and infix macros complement each other nicely.</p>
 <pre class="js"><code>macro (=&gt;) {
     rule infix { $param:ident | $body:expr  } =&gt; {
@@ -734,9 +750,9 @@ if (&quot;42&quot; == 42) {
 //    // never runs! 
 // }    </code></pre>
 <p>Keep in mind that redefining the built-in operators needs to be done with care. While it's tempting to fix some of the <em>wat</em> implicit conversions of <code>==</code>/<code>+</code>/<code>-</code> and company, this could lead to hard to understand code. It should be used sparingly if at all. With great power...</p>
-<h2 id="operator-precedence"><span class="header-section-number">8.2</span> Operator Precedence</h2>
+<h2 id="operator-precedence"><a href="#operator-precedence"><span class="header-section-number">8.2</span> Operator Precedence</a></h2>
 <p>The following charts note the precedence and associativity of the built-in operators. A higher precedence number means the operator binds more tightly.</p>
-<h3 id="unary-operators"><span class="header-section-number">8.2.1</span> Unary Operators</h3>
+<h3 id="unary-operators"><a href="#unary-operators"><span class="header-section-number">8.2.1</span> Unary Operators</a></h3>
 <table>
 <thead>
 <tr class="header">
@@ -791,7 +807,7 @@ if (&quot;42&quot; == 42) {
 </tr>
 </tbody>
 </table>
-<h3 id="binary-operators"><span class="header-section-number">8.2.2</span> Binary Operators</h3>
+<h3 id="binary-operators"><a href="#binary-operators"><span class="header-section-number">8.2.2</span> Binary Operators</a></h3>
 <table>
 <thead>
 <tr class="header">
@@ -918,7 +934,7 @@ if (&quot;42&quot; == 42) {
 </tr>
 </tbody>
 </table>
-<h1 id="reader-extensions"><span class="header-section-number">9</span> Reader Extensions</h1>
+<h1 id="reader-extensions"><a href="#reader-extensions"><span class="header-section-number">9</span> Reader Extensions</a></h1>
 <p>The reader is what turns a string of code into tokens for the expander to work with. While it doesn't know anything about the semantics of JavaScript, it parses the code into tokens with several assumptions tailored to JavaScript. For example, it reads <code>/abc/</code> as a single RegExp token, but it reads <code>abc/d</code> as three distinct tokens: an identifier, a punctuator, and another identifier. In fact, the algorithm for determining when <code>/</code> starts a regex or is a simple division without fully parsing the code is a key breakthrough that enables macros in JavaScript.</p>
 <p>The default reader separates code into identifiers, literals, and punctuators. It also matches delimiters (<code>{}()[]</code>) and creates a <em>tree</em> of tokens, so everything inside matching delimiters exist as children of a delimiter token.</p>
 <p>You may want to extend the behavior of the reader, just like you would extend the semantics of a language with macros. Doing so allows you to embed custom syntax that may not even be valid according to the default reader, for example changing how the forward slash <code>/</code> is handled. For the most part, you will use macros to extend JavaScript, but it might be useful to control exactly how the reader parses tokens.</p>
@@ -937,7 +953,7 @@ if (&quot;42&quot; == 42) {
 # Or the shorthand
 sjs -l ./readtable.js</code></pre>
 <p>By continually extending the current readtable, we can install the extensions in a modular way and build up a final readtable with our desired behaviors. You can pass multiple <code>-l</code> (or <code>--load-readtable</code>) flags to load multiple readtables extensions. If multiple readtables with the same character are installed, the last one loaded wins. There is currently no way to handle these kinds of collisions; every character must have a single unique handler (or none).</p>
-<h2 id="readtables"><span class="header-section-number">9.1</span> Readtables</h2>
+<h2 id="readtables"><a href="#readtables"><span class="header-section-number">9.1</span> Readtables</a></h2>
 <p>A readtable is an object that maps characters to handler functions, and an <code>extend</code> method. Internally, a base readtable exists which is the current readtable by default. To create a new one, you always extend an existing one as explained above:</p>
 <pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="kw">var</span> readtable = <span class="ot">sweet</span>.<span class="fu">currentReadtable</span>().<span class="fu">extend</span>({
     <span class="st">&#39;&lt;&#39;</span>: <span class="kw">function</span>(ch, reader) {
@@ -961,7 +977,7 @@ sjs -l ./readtable.js</code></pre>
 <li><p><code>sweet.currentReadtable()</code> — Gets the current readtable, which always has an <code>extend</code> method on it to install new extensions.</p></li>
 <li><p><code>sweet.setReadtable(rt)</code> — Mutates the reader state to use the specified readtable when reading. Most likely users will use one or more <code>-l</code> or <code>--load-readtable</code> flags to <code>sjs</code>, but you can set it progammatically with this method.</p></li>
 </ul>
-<h2 id="reader-api"><span class="header-section-number">9.2</span> Reader API</h2>
+<h2 id="reader-api"><a href="#reader-api"><span class="header-section-number">9.2</span> Reader API</a></h2>
 <p>A reader object is always passed as the second argument when invoking a reader extension. It has several properties that are readable and writable:</p>
 <ul>
 <li><code>reader.source</code> — The full raw string of the code being read</li>
@@ -1006,8 +1022,8 @@ sjs -l ./readtable.js</code></pre>
 <li><code>reader.throwSyntaxError(name, message, token)</code> — Throws a syntax error. <code>name</code> is just a general identifier for your project, and <code>message</code> is the specific message to display. You must pass a <code>token</code> so it can properly locate where the error occurred in the original source.</li>
 </ul>
 <p>If you want to look at some examples, check out the <a href="https://github.com/mozilla/sweet.js/blob/master/test/test_readtables.js">readtables tests</a>.</p>
-<h1 id="modules"><span class="header-section-number">10</span> Modules</h1>
-<h2 id="using-modules"><span class="header-section-number">10.1</span> Using Modules</h2>
+<h1 id="modules"><a href="#modules"><span class="header-section-number">10</span> Modules</a></h1>
+<h2 id="using-modules"><a href="#using-modules"><span class="header-section-number">10.1</span> Using Modules</a></h2>
 <p>At the moment sweet.js supports a primitive form of module support with the <code>--module</code> flag.</p>
 <p>For example, if you have a file <code>macros.js</code> that defines the <code>m</code> macro:</p>
 <pre class="sourceCode javascript"><code class="sourceCode javascript"><span class="co">// macros.js</span>
@@ -1023,7 +1039,7 @@ m 42</code></pre>
 <p>Note that modules must use the <code>export</code> keyword. This allows modules to define &quot;private&quot; macros that are not visible to the main code.</p>
 <p>The <code>--module</code> flag uses the node path to look up the module file so you can publish and use macro modules on npm. Checkout <a href="https://github.com/natefaubion/lambda-chop">lambda-chop</a> for an example of this.</p>
 <p>The biggest limitation with the current approach is that you can't arbitrarily interleave importing compile-time values (macros) and run-time values (functions). This will eventually be handled with support for &quot;proper&quot; modules (issue #43).</p>
-<h2 id="node-loader"><span class="header-section-number">10.2</span> Node Loader</h2>
+<h2 id="node-loader"><a href="#node-loader"><span class="header-section-number">10.2</span> Node Loader</a></h2>
 <p>If you'd like to skip using the <code>sjs</code> binary to compile your sweet.js code, you can use the node loader. This allows you to <code>require</code> sweet.js files that have the <code>.sjs</code> extension:</p>
 <pre class="js"><code>var sjs = require(&#39;sweet.js&#39;),
     example = require(&#39;./example.sjs&#39;);
@@ -1046,23 +1062,23 @@ sweet.loadMacro(&#39;./macros/str&#39;);
 // test.sjs uses macros that have been defined and exported in `macros/str.sjs`
 require(&#39;./test.sjs&#39;);</code></pre>
 <p>This is basically equivalent to running <code>sjs --module ./macros/str test.sjs</code>.</p>
-<h1 id="case-macro-api"><span class="header-section-number">11</span> Case macro API</h1>
+<h1 id="case-macro-api"><a href="#case-macro-api"><span class="header-section-number">11</span> Case macro API</a></h1>
 <p>Functions available inside of a case macro.</p>
-<h2 id="makevalueval-stx"><span class="header-section-number">11.1</span> <code>makeValue(val, stx)</code></h2>
+<h2 id="makevalueval-stx"><a href="#makevalueval-stx"><span class="header-section-number">11.1</span> <code>makeValue(val, stx)</code></a></h2>
 <p>Returns a syntax object with the lexical context of <code>stx</code> and the value of <code>val</code>. <code>val</code> can be a <code>boolean</code>, <code>number</code>, <code>string</code>, or <code>null</code>/<code>undefined</code>.</p>
-<h2 id="makeregexpattern-flags-stx"><span class="header-section-number">11.2</span> <code>makeRegex(pattern, flags, stx)</code></h2>
+<h2 id="makeregexpattern-flags-stx"><a href="#makeregexpattern-flags-stx"><span class="header-section-number">11.2</span> <code>makeRegex(pattern, flags, stx)</code></a></h2>
 <p>Returns a syntax object with the lexical context of <code>stx</code> and the regular expression literal pattern of <code>pattern</code> and flags of <code>flags</code>. <code>pattern</code> is a string representation of the regex pattern and <code>flags</code> is the string representation of the regex flags.</p>
-<h2 id="makeidentval-stx"><span class="header-section-number">11.3</span> <code>makeIdent(val, stx)</code></h2>
+<h2 id="makeidentval-stx"><a href="#makeidentval-stx"><span class="header-section-number">11.3</span> <code>makeIdent(val, stx)</code></a></h2>
 <p>Returns a syntax object with the lexical context of <code>stx</code> and the identifier name of <code>val</code>. <code>val</code> is a string representing an identifier.</p>
-<h2 id="makepuncval-stx"><span class="header-section-number">11.4</span> <code>makePunc(val, stx)</code></h2>
+<h2 id="makepuncval-stx"><a href="#makepuncval-stx"><span class="header-section-number">11.4</span> <code>makePunc(val, stx)</code></a></h2>
 <p>Returns a syntax object with the lexical context of <code>stx</code> and the punctuator value of <code>val</code>. <code>val</code> is a string representing a punctuation token (e.g. <code>=</code>, <code>,</code>, <code>&gt;</code>, etc.).</p>
-<h2 id="makedelimval-inner-stx"><span class="header-section-number">11.5</span> <code>makeDelim(val, inner, stx)</code></h2>
+<h2 id="makedelimval-inner-stx"><a href="#makedelimval-inner-stx"><span class="header-section-number">11.5</span> <code>makeDelim(val, inner, stx)</code></a></h2>
 <p>Returns a syntax object with the lexical context of <code>stx</code> and delimiter type of <code>val</code> and the inner syntax objects of <code>inner</code>. <code>val</code> represents which delimiter to make and can be either <code>&quot;()&quot;</code>, <code>&quot;[]&quot;</code>, or <code>&quot;{}&quot;</code> and <code>inner</code> is an array of syntax objects for all of the tokens inside the delimiter.</p>
-<h2 id="unwrapsyntaxstx"><span class="header-section-number">11.6</span> <code>unwrapSyntax(stx)</code></h2>
+<h2 id="unwrapsyntaxstx"><a href="#unwrapsyntaxstx"><span class="header-section-number">11.6</span> <code>unwrapSyntax(stx)</code></a></h2>
 <p>Returns the value of the given syntax object.</p>
 <pre class="js"><code>&quot;foo&quot; === unwrapSyntax(makeIdent(&quot;foo&quot;, null))
 42    === unwrapSyntax(makeValue(42, null))</code></pre>
-<h2 id="localexpandstx"><span class="header-section-number">11.7</span> <code>localExpand(stx)</code></h2>
+<h2 id="localexpandstx"><a href="#localexpandstx"><span class="header-section-number">11.7</span> <code>localExpand(stx)</code></a></h2>
 <p>Force the expansion of all macros in the array of syntax objects <code>stx</code>. Returns an array of syntax objects.</p>
 <pre class="js"><code>macro PI { rule {} =&gt; { 3.14159 }}
 
@@ -1076,8 +1092,8 @@ macro ex {
 
 ex { PI }</code></pre>
 <p>Note that <code>localExpand</code> is currently experimental. If you're coming from Racket you might also be expecting a stop list which is not yet implemented.</p>
-<h1 id="compiler-api"><span class="header-section-number">12</span> Compiler API</h1>
-<h2 id="sweet.compile"><span class="header-section-number">12.1</span> <code>sweet.compile</code></h2>
+<h1 id="compiler-api"><a href="#compiler-api"><span class="header-section-number">12</span> Compiler API</a></h1>
+<h2 id="sweet.compile"><a href="#sweet.compile"><span class="header-section-number">12.1</span> <code>sweet.compile</code></a></h2>
 <p>Expands all macros and return the expanded code as a string.</p>
 <pre class="js"><code>(Str, {
         sourceMap: Bool,
@@ -1106,7 +1122,7 @@ sweet.compile(code, options)</code></pre>
 <li><code>code</code> the expanded code</li>
 <li><code>sourceMap</code> the source map</li>
 </ul>
-<h2 id="sweet.parse"><span class="header-section-number">12.2</span> <code>sweet.parse</code></h2>
+<h2 id="sweet.parse"><a href="#sweet.parse"><span class="header-section-number">12.2</span> <code>sweet.parse</code></a></h2>
 <p>Expands all macros and returns an AST.</p>
 <pre class="js"><code>(Str, [...[...Syntax]], { maxExpands: Num }) -&gt; AST
 sweet.parse(code, modules, options)</code></pre>
@@ -1121,7 +1137,7 @@ sweet.parse(code, modules, options)</code></pre>
 </ul>
 <p><strong>Return</strong>:</p>
 <p>The abstract syntax tree. See the <a href="https://developer.mozilla.org/en-US/docs/SpiderMonkey/Parser_API">Parser API</a> for details.</p>
-<h2 id="sweet.expand"><span class="header-section-number">12.3</span> <code>sweet.expand</code></h2>
+<h2 id="sweet.expand"><a href="#sweet.expand"><span class="header-section-number">12.3</span> <code>sweet.expand</code></a></h2>
 <p>Expands all macros and returns an array of syntax objects.</p>
 <pre class="js"><code>(Str, [...[...Syntax]], { maxExpands: Num }) -&gt; [...Syntax]
 sweet.expand(code, modules, options)</code></pre>
@@ -1140,14 +1156,14 @@ sweet.expand(code, modules, options)</code></pre>
 <li><code>token</code> which is a token object that <a href="http://esprima.org/">esprima</a> understands.</li>
 <li><code>context</code> holds hygiene information.</li>
 </ul>
-<h1 id="faq"><span class="header-section-number">13</span> FAQ</h1>
-<h2 id="how-do-i-run-sweet.js-in-the-browser"><span class="header-section-number">13.1</span> How do I Run Sweet.js in the Browser?</h2>
+<h1 id="faq"><a href="#faq"><span class="header-section-number">13</span> FAQ</a></h1>
+<h2 id="how-do-i-run-sweet.js-in-the-browser"><a href="#how-do-i-run-sweet.js-in-the-browser"><span class="header-section-number">13.1</span> How do I Run Sweet.js in the Browser?</a></h2>
 <p>Load sweet.js using AMD/require.js:</p>
 <pre class="js"><code>require([&quot;./sweet&quot;], function(sweet) {
     // ...
 });</code></pre>
 <p>Then just use the sweet.js compiler <a href="#compiler-api">API</a>. You can see an example of this in action with the sweet.js editor <a href="https://github.com/mozilla/sweet.js/blob/3062bde9d3464adee868c98a2ced44d2316a6763/browser/editor.html">here</a> and <a href="https://github.com/mozilla/sweet.js/blob/3062bde9d3464adee868c98a2ced44d2316a6763/browser/scripts/editor.js">here</a>.</p>
-<h2 id="how-do-i-break-hygiene"><span class="header-section-number">13.2</span> How do I break hygiene?</h2>
+<h2 id="how-do-i-break-hygiene"><a href="#how-do-i-break-hygiene"><span class="header-section-number">13.2</span> How do I break hygiene?</a></h2>
 <p>Sometimes you really do need to break the wonderful protections provided by hygiene. Breaking hygiene is usually a bad idea but sweet.js won't judge.</p>
 <p>Breaking hygiene is done by stealing the lexical context from syntax objects in the &quot;right place&quot;. To clarify, consider <code>aif</code> the <a href="http://en.wikipedia.org/wiki/Anaphoric_macro">anaphoric</a> if macro that binds its condition to the identifier <code>it</code> in the body.</p>
 <pre class="js"><code>var it = &quot;foo&quot;;
@@ -1179,7 +1195,7 @@ aif (long.obj.path) {
       }
   }
 }</code></pre>
-<h2 id="how-do-i-output-comments"><span class="header-section-number">13.3</span> How do I output comments?</h2>
+<h2 id="how-do-i-output-comments"><a href="#how-do-i-output-comments"><span class="header-section-number">13.3</span> How do I output comments?</a></h2>
 <p>Comments in a rule macro or inside a <code>#{...}</code> template should &quot;just work&quot;. If you want to create comment strings programmatically you can use a token's <code>leadingComments</code> property.</p>
 <pre class="js"><code>macro m {
     case {_ () } =&gt; {
@@ -1197,7 +1213,7 @@ m()</code></pre>
 <p>will expand to</p>
 <pre class="js"><code>//hello, world
 42;</code></pre>
-<h2 id="how-do-i-convert-a-token-to-a-string-literal"><span class="header-section-number">13.4</span> How do I convert a token to a string literal?</h2>
+<h2 id="how-do-i-convert-a-token-to-a-string-literal"><a href="#how-do-i-convert-a-token-to-a-string-literal"><span class="header-section-number">13.4</span> How do I convert a token to a string literal?</a></h2>
 <p>Often times you'll have an identifier or numeric literal token that you'd like to convert to a string literal. This little helper macro does just that:</p>
 <pre class="js"><code>macro to_str {
   case { _ ($toks ...) } =&gt; {
@@ -1208,11 +1224,11 @@ m()</code></pre>
 to_str(1 foo &quot;bar&quot;)
 // expands to:
 // &#39;1foobar&#39;</code></pre>
-<h2 id="how-do-i-debug-macros"><span class="header-section-number">13.5</span> How do I debug macros?</h2>
-<h3 id="stepping-through-expansion"><span class="header-section-number">13.5.1</span> Stepping Through Expansion</h3>
+<h2 id="how-do-i-debug-macros"><a href="#how-do-i-debug-macros"><span class="header-section-number">13.5</span> How do I debug macros?</a></h2>
+<h3 id="stepping-through-expansion"><a href="#stepping-through-expansion"><span class="header-section-number">13.5.1</span> Stepping Through Expansion</a></h3>
 <p>You can use <code>sjs --num-expands &lt;number&gt;</code> to walk through macro expansion one step at a time. This is particularly helpful when writing recursive macros.</p>
 <p>The <a href="http://sweetjs.org/browser/editor.html">editor</a> also supports stepping.</p>
-<h3 id="understanding-case-macros"><span class="header-section-number">13.5.2</span> Understanding Case Macros</h3>
+<h3 id="understanding-case-macros"><a href="#understanding-case-macros"><span class="header-section-number">13.5.2</span> Understanding Case Macros</a></h3>
 <p>If you're trying to understand how a case macro is working two useful techniques are logging syntax objects to see what they actually contain and inserting <code>debugger</code> statements to pause the debugger during expansion.</p>
 <pre class="js"><code>macro m {
     case { _ $x } =&gt; {

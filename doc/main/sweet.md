@@ -268,6 +268,31 @@ import { a, b as c, d } from 'foo'
 Patterns with only a `rule` declaration may be collapsed into just a `rule`
 declaration in lieu of a `pattern`.
 
+### Repeating variables in patterns
+
+In contrast to other macro systems, sweet.js allows variables to appear more than once in the pattern.  Similarily to repeated variables in the body of a rule macro, the syntax captured by a variable must be the same for all occurences of that variable, otherwise the macros will not match.
+
+```js
+macro m {
+    rule { $x $x } => { "the same!" }
+    rule { $x $y } => { "different" }
+}
+m 1 1   // expands to 'the same!'
+m 1 2   // expands to 'different'
+```
+
+Of course, this also applies to repeated variables in repitition groups which
+enables complex pattern matching that would otherwise require complex case macros.
+
+```js
+macro m {
+    rule { $x $($p:(+) $x) ... }
+      => { $x * (1 $($p 1) ...) }
+}
+m 23 + 23 + 23   // expands to 23 * (1 + 1 + 1);
+m 23 + 23 + 42   // expands to 23 * (1 + 1) + 42;
+```
+
 # Hygiene
 
 The most important property of sweet.js is hygiene. Hygiene prevents variables names inside of macros from clashing with variables in the surrounding code. It's what gives macros the power to actually be syntactic abstractions by hiding implementation details and allowing you to use a hygienic macro *anywhere* in your code.
