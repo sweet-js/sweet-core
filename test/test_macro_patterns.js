@@ -1239,4 +1239,12 @@ describe("macro expander", function() {
         expect(m [a 1] [a 2]).to.be(true);
         expect(m [a 1] [b 2] [a 3] [b 4]).to.be(true);
     });
+
+    it("should support empty groups of level 2", function() {
+        macro m {
+            rule { [ $a ... ] ... } => { [ $( 0 $( + $a ) ... ) (,) ... ] }
+        }
+        expect(m [1 2] [2 3]).to.eql([3, 5]);
+        expect(m []).to.eql([0]);
+    });
 });

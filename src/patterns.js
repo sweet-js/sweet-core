@@ -717,6 +717,11 @@
             } else if (patternEnv[pattern.value] &&
                       (patternEnv[pattern.value].level === 0)) {
                 var prev = patternEnv[pattern.value].match;
+                while (prev.length === 1 && pattern.class === "expr" &&
+                    prev[0].token.type === parser.Token.Delimiter &&
+                    prev[0].token.value === "()") {
+                    prev = prev[0].token.inner;
+                }
                 match = matchPatterns(loadPattern(prev), stx, context, true);
                 success = match.success;
                 rest = match.rest;
