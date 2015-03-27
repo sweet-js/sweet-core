@@ -1778,19 +1778,21 @@ function expandToTermTree(stx, context) {
                                                  context.phase));
         }
 
-        if (head.isNamedFunTerm) {
-            // addToDefinitionCtx([head.name], context.defscope, true, context.paramscope);
-            head.name = head.name.delScope(context.useScope);
-            context.bindings.add(head.name, fresh(), context.phase);
-            context.env.set(head.name,
+        if (head.isNamedFunTerm ||
+            (head.isExportDefaultTerm && head.decl.isNamedFunTerm) ||
+            (head.isExportDeclTerm && head.decl.isNamedFunTerm)) {
+            let funTerm = head.decl ? head.decl : head;
+            funTerm.name = funTerm.name.delScope(context.useScope);
+            context.bindings.add(funTerm.name, fresh(), context.phase);
+            context.env.set(funTerm.name,
                             context.phase,
-                            new CompiletimeValue(new VarTransform(head.name),
+                            new CompiletimeValue(new VarTransform(funTerm.name),
                                                  context.moduleRecord.name,
                                                  context.phase));
 
-            context.store.set(head.name,
+            context.store.set(funTerm.name,
                 context.phase,
-                new CompiletimeValue(new VarTransform(head.name),
+                new CompiletimeValue(new VarTransform(funTerm.name),
                     context.moduleRecord.name,
                     context.phase));
         }
