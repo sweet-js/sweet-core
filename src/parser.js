@@ -3546,14 +3546,21 @@ function parseExportSpecifier() {
 
 function parseExportDeclaration() {
     var backtrackToken, id, previousAllowKeyword, declaration = null,
+        backtrackIndex,
         isExportFromIdentifier,
         src = null, specifiers = [],
         marker = markerCreate();
 
     function rewind(token) {
-        index = token.range[0];
+        streamIndex = backtrackIndex;
+        lookaheadIndex = backtrackIndex;
+
         lineNumber = token.lineNumber;
         lineStart = token.lineStart;
+        sm_lineNumber = token.sm_lineNumber;
+        sm_lineStart = token.sm_lineStart;
+        sm_range = token.sm_range;
+
         lookahead = token;
     }
 
@@ -3565,6 +3572,7 @@ function parseExportDeclaration() {
         lex();
         if (matchKeyword('function') || matchKeyword('class')) {
             backtrackToken = lookahead;
+            backtrackIndex = streamIndex;
             lex();
             if (isIdentifierName(lookahead)) {
                 // covers:
