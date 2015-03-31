@@ -12,6 +12,7 @@ var makeMultiToken = syn.makeMultiToken;
 
 function ImportEntry(term, importName, localName) {
     this._term = term;
+    this.isDefault = term.clause[0].isDefaultImportTerm;
     this.moduleRequest = term.from;
     this.importName = makeMultiToken(importName) ;
     this.localName = makeMultiToken(localName);

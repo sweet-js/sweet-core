@@ -1,5 +1,6 @@
-#lang "./macros/stxcase.js";
+#lang "js";
 
-function id(x) { return x }
+export default Foo(msg) {
+    console.log(msg);
+}
 
-export { id }

@@ -2551,9 +2551,13 @@ function bindImportInMod(impEntries, modTerm, modRecord, context, phase) {
             assert(false, "not implemented yet: missing export name")
         }
 
-        var localName = entry.localName;
-
-        context.bindings.addForward(localName, exportName, phase + entry.forPhase);
+        // default imports of runtime values do not get a forwarding
+        if (entry.isDefault && !isCompiletimeName(inExports.localName, context)) {
+            entry.localName = entry.localName.delScope(context.useScope)
+            context.bindings.add(entry.localName, fresh(), phase + entry.forPhase);
+        } else {
+            context.bindings.addForward(entry.localName, exportName, phase + entry.forPhase);
+        }
     });
 }
 
