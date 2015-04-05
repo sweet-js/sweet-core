@@ -832,8 +832,9 @@
                 if (repeat && toEnv[patternName].repeat) {
                     return toEnv[patternName].level === patternVal.level + 1;
                 } else {
-                    // otherwise the tokens have to match
                     return isEquivPatternEnvMatch(toEnv[patternName], patternVal);
+                    // otherwise the tokens have to match
+                    // (this comment has be below the return due to bug #464)
                 }
             }
             return true;
