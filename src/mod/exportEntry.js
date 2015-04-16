@@ -49,7 +49,7 @@ function makeExportEntries(exp) {
         } else if (exp.decl.isNamedFunTerm) {
             localName = exp.decl.name;
         } else if (exp.decl.isMacroTerm || exp.decl.isLetMacroTerm) {
-            localName = syn.makeDelim("()", [exp.decl.name], exp.decl.name);
+            localName = exp.decl.name;
         } else if (exp.decl.isExprTerm) {
             localName = syn.makeIdent("*default*", exp.defaultkw);
         } else {

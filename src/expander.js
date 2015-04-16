@@ -2381,8 +2381,8 @@ function visitTerms(terms, modRecord, phase, context) {
                 macBody = term.isExportDefaultTerm ? term.decl.body : term.body;
 
             if (term.isExportDefaultTerm) {
-                multiTokName = entries[0].exportName;
-                fullName = [entries[0].exportName];
+                multiTokName = entries[0].localName;
+                fullName = [entries[0].localName];
             } else {
                 multiTokName = makeMultiToken(term.name);
                 fullName = term.name.token.inner;
@@ -2552,10 +2552,10 @@ function bindImportInMod(impEntries, modRecord, context, phase) {
 
         // default imports of runtime values do not get a forwarding
         if (entry.isDefault && !isCompiletimeName(inExports.localName, context)) {
-            entry.localName = entry.localName.delScope(context.useScope)
+            entry.localName = entry.localName.delScope(context.useScope);
             context.bindings.add(entry.localName, fresh(), phase + entry.forPhase);
         } else {
-            context.bindings.addForward(entry.localName, exportName, phase + entry.forPhase);
+            context.bindings.addForward(entry.localName, inExports.localName, phase + entry.forPhase);
         }
     });
 }
