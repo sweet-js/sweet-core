@@ -190,10 +190,10 @@ module.exports = function(grunt) {
         },
         pandoc: {
             options: {
-                pandocOptions: ["--to=html5",  
-                                "--standalone", 
-                                "--toc", 
-                                "--number-sections", 
+                pandocOptions: ["--to=html5",
+                                "--standalone",
+                                "--toc",
+                                "--number-sections",
                                 "--include-in-header=doc/main/style/main.css"]
             },
             files: {
@@ -304,7 +304,7 @@ module.exports = function(grunt) {
 
             });
         });
-        
+
     });
 
     grunt.registerTask("dist", ["build:release", "copy:dist"]);
