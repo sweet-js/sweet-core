@@ -1676,7 +1676,7 @@ function expandToTermTree(stx, context) {
             context = visit(importMod.term, importMod.record, context.phase, context);
             // bind the imported names in the rest of the module
             // todo: how to handle references before an import?
-            bindImportInMod(entries, importMod.term, importMod.record, context, context.phase);
+            bindImportInMod(entries, importMod.record, context, context.phase);
         }
 
         if (head.isImportForPhaseTerm) {
@@ -1692,7 +1692,7 @@ function expandToTermTree(stx, context) {
             context = visit(importMod.term, importMod.record, context.phase + head.phase.token.value, context);
             // bind the imported names in the rest of the module
             // todo: how to handle references before an import?
-            bindImportInMod(entries, importMod.term, importMod.record, context, context.phase);
+            bindImportInMod(entries, importMod.record, context, context.phase);
         }
 
         if (head.isForPhaseTerm) {
@@ -2478,7 +2478,6 @@ function visit(modTerm, modRecord, phase, context) {
         });
 
         bindImportInMod(impEntries,
-                        importMod.term,
                         importMod.record,
                         context,
                         phase);
@@ -2528,8 +2527,8 @@ function loadImport(path, context, parentPath) {
 }
 
 
-// @ (ImportTerm, [...SyntaxObject], ModuleTerm, ModuleRecord, ExpanderContext, Num) -> Void
-function bindImportInMod(impEntries, modTerm, modRecord, context, phase) {
+// @ (ImportTerm, [...SyntaxObject], ModuleRecord, ExpanderContext, Num) -> Void
+function bindImportInMod(impEntries, modRecord, context, phase) {
     impEntries.forEach(entry => {
         var isBase = modRecord.language === "base";
 
