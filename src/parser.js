@@ -3694,7 +3694,7 @@ function parseNamedImports() {
 function parseImportDefaultSpecifier() {
     // import <foo> ...;
     var id, marker = markerCreate();
-    id = parseNonComputedProperty();
+    id = parseNonComputedProperty(true);
 
     return markerApply(marker, delegate.createImportDefaultSpecifier(id));
 }
