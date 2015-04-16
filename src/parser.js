@@ -3708,7 +3708,7 @@ function parseImportNamespaceSpecifier() {
         throwError({}, Messages.NoAsAfterImportNamespace);
     }
     lex();
-    id = parseNonComputedProperty();
+    id = parseNonComputedProperty(true);
 
     return markerApply(marker, delegate.createImportNamespaceSpecifier(id));
 }
