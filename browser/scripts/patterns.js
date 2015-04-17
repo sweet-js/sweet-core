@@ -455,15 +455,7 @@
                         }
                     }
                     if (pattern.repeat && !pattern.leading && success) {
-                        if (// if (i < patterns.length - 1 && rest.length > 0) {
-                            //     var restMatch = matchPatterns(patterns.slice(i+1), rest, env, topLevel);
-                            //     if (restMatch.success) {
-                            //         patternEnv = _.extend(patternEnv, restMatch.patternEnv);
-                            //         rest = restMatch.rest;
-                            //         break patternLoop;
-                            //     }
-                            // }
-                            pattern.separator === ' ') {
+                        if (pattern.separator === ' ') {
                             // no separator specified (using the empty string for this)
                             // so keep going
                             continue;
@@ -482,6 +474,10 @@
                         }
                     }
                 } while (pattern.repeat && success && rest.length > 0);
+                // Closing up a repeat, so clear all open vars in environment
+                var newPatternEnv = {};
+                loadPatternEnv(newPatternEnv, patternEnv, topLevel);
+                patternEnv = newPatternEnv;
             }
         if (// If we are in a delimiter and we haven't matched all the syntax, it
             // was a failed match.
@@ -535,7 +531,12 @@
                         match: subMatch.result,
                         topLevel: topLevel
                     };
-                    subMatch.patternEnv = loadPatternEnv(namedMatch, subMatch.patternEnv, topLevel, false, pattern.value);
+                    var env = loadPatternEnv(namedMatch, subMatch.patternEnv, topLevel, false, pattern.value);
+                    if (env) {
+                        subMatch.patternEnv = env;
+                    } else {
+                        success = false;
+                    }
                 }
             } else if (stx[0] && stx[0].token.type === parser.Token.Delimiter && stx[0].token.value === pattern.value) {
                 stx[0].expose();
@@ -557,8 +558,9 @@
                 subMatch = { patternEnv: initPatternEnv(pattern) };
             }
             if (success) {
-                patternEnv = loadPatternEnv(patternEnv, subMatch.patternEnv, topLevel, pattern.repeat);
-            } else if (pattern.repeat) {
+                success = !!loadPatternEnv(patternEnv, subMatch.patternEnv, topLevel, pattern.repeat);
+            }
+            if (!success && pattern.repeat) {
                 patternEnv = copyPatternEnv(patternEnv, subMatch.patternEnv, topLevel);
             }
         } else {
@@ -574,6 +576,14 @@
                     success = false;
                     rest = stx;
                 }
+            } else if (patternEnv[pattern.value] && patternEnv[pattern.value].level === 0) {
+                var prev = patternEnv[pattern.value].match;
+                while (prev.length === 1 && pattern.class === 'expr' && prev[0].token.type === parser.Token.Delimiter && prev[0].token.value === '()') {
+                    prev = prev[0].token.inner;
+                }
+                match = matchPatterns(loadPattern(prev), stx, context, true);
+                success = match.success;
+                rest = match.rest;
             } else {
                 match = matchPatternClass(pattern, stx, context);
                 success = match.result !== null;
@@ -598,7 +608,7 @@
                 } else {
                     patternEnv[pattern.value] = matchEnv;
                 }
-                patternEnv = loadPatternEnv(patternEnv, match.patternEnv, topLevel, pattern.repeat, pattern.value);
+                success = success && !!loadPatternEnv(patternEnv, match.patternEnv, topLevel, pattern.repeat, pattern.value);
             }
         }
         return {
@@ -619,23 +629,88 @@
         });
         return toEnv;
     }
+    function isEquivPatternEnvToken(toToken, fromToken) {
+        if (!toToken)
+            return;
+        if (fromToken.type !== toToken.type)
+            return;
+        if (fromToken.value !== toToken.value)
+            return;
+        if (fromToken.type !== parser.Token.Delimiter)
+            return true;
+        if (fromToken.inner.length !== toToken.inner.length)
+            return;
+        for (var i = 0; i < fromToken.inner.length; i++) {
+            if (!isEquivPatternEnvToken(fromToken.inner[i].token, toToken.inner[i].token)) {
+                return;
+            }
+        }
+        return true;
+    }
+    function isEquivPatternEnvMatch(toMatch, fromMatch) {
+        if (fromMatch.token)
+            return isEquivPatternEnvToken(toMatch.token, fromMatch.token);
+        if (// can never match a token with a group
+            fromMatch.level < toMatch.level)
+            return;
+        if (fromMatch.level > toMatch.level) {
+            for (// match a group with a token if all members are compatible
+                var i = 0; i < fromMatch.match.length; i++) {
+                if (!isEquivPatternEnvMatch(toMatch, fromMatch.match[i])) {
+                    return;
+                }
+            }
+        } else {
+            if (// match a group with a group by element-wise comparison
+                // (special case for empty match resulting from zero repitition)
+                fromMatch.match.length > 0 && fromMatch.match.length !== toMatch.match.length)
+                return;
+            for (var i = 0; i < fromMatch.match.length; i++) {
+                if (!isEquivPatternEnvMatch(toMatch.match[i], fromMatch.match[i])) {
+                    return;
+                }
+            }
+        }
+        return true;
+    }
+    function isEquivPatternEnv(toEnv, fromEnv, repeat, prefix) {
+        return _.all(fromEnv, function (patternVal, patternKey) {
+            var patternName = prefix + patternKey;
+            if (_.has(toEnv, patternName)) {
+                if (// if repeat and also toEnv.repeat then you just
+                    // compare levels
+                    repeat && toEnv[patternName].repeat) {
+                    return toEnv[patternName].level === patternVal.level + 1;
+                } else {
+                    return isEquivPatternEnvMatch(toEnv[patternName], patternVal);
+                }
+            }
+            return true;
+        });
+    }
     function loadPatternEnv(toEnv, fromEnv, topLevel, repeat, prefix) {
         prefix = prefix || '';
+        toEnv = toEnv || {};
+        if (!isEquivPatternEnv(toEnv, fromEnv, repeat, prefix))
+            return;
         _.forEach(fromEnv, function (patternVal, patternKey) {
             var patternName = prefix + patternKey;
             if (repeat) {
                 var nextLevel = patternVal.level + 1;
                 if (toEnv[patternName]) {
-                    toEnv[patternName].level = nextLevel;
-                    toEnv[patternName].match.push(patternVal);
+                    if (toEnv[patternName].repeat) {
+                        toEnv[patternName].match.push(patternVal);
+                    }
                 } else {
                     toEnv[patternName] = {
                         level: nextLevel,
                         match: [patternVal],
-                        topLevel: topLevel
+                        topLevel: topLevel,
+                        repeat: true
                     };
                 }
             } else {
+                delete patternVal.repeat;
                 toEnv[patternName] = patternVal;
             }
         });
