@@ -1,0 +1,286 @@
+"use strict";
+
+var path775 = require("path"),
+    fs776 = require("fs"),
+    resolveSync777 = require("resolve/lib/sync"),
+    gen778 = require("escodegen"),
+    _779 = require("underscore"),
+    parser780 = require("./parser"),
+    expander781 = require("./expander"),
+    syn782 = require("./syntax"),
+    babel783 = require("babel"),
+    escope784 = require("escope");
+var lib850 = path775.join(path775.dirname(fs776.realpathSync(__filename)), "../macros");
+var stxcaseModule851 = fs776.readFileSync(lib850 + "/stxcase.js", "utf8");
+var moduleCache852 = {};
+var cwd853 = process.cwd();
+var requireModule854 = function requireModule854(id867, filename868) {
+    var basedir869 = filename868 ? path775.dirname(filename868) : cwd853;
+    var key870 = basedir869 + id867;
+    if (!moduleCache852[key870]) {
+        moduleCache852[key870] = require(resolveSync777(id867, { basedir: basedir869 }));
+    }
+    return moduleCache852[key870];
+};
+// Alow require('./example') for an example.sjs file.
+require.extensions[".sjs"] = function (module871, filename872) {
+    var content873 = require("fs").readFileSync(filename872, "utf8");
+    module871._compile(gen778.generate(exports.parse(content873, exports.loadedMacros)), filename872);
+};
+function expandSyntax855(stx874, modules875, options876) {
+    if (!stxcaseCtx) {
+        stxcaseCtx = expander781.expandModule(parser780.read(stxcaseModule851));
+    }
+    var isSyntax877 = syn782.isSyntax(stx874);
+    options876 = options876 || {};
+    options876.flatten = false;
+    if (!isSyntax877) {
+        stx874 = syn782.tokensToSyntax(stx874);
+    }
+    try {
+        var result878 = expander781.expand(stx874, [stxcaseCtx].concat(modules875), options876);
+        return isSyntax877 ? result878 : syn782.syntaxToTokens(result878);
+    } catch (err879) {
+        if (err879 instanceof syn782.MacroSyntaxError) {
+            throw new SyntaxError(syn782.printSyntaxError(source, err879));
+        } else {
+            throw err879;
+        }
+    }
+}
+function expand856(code880, options881) {
+    var toString882 = String;
+    if (typeof code880 !== "string" && !(code880 instanceof String)) {
+        code880 = toString882(code880);
+    }
+    var source883 = code880;
+    if (source883.length > 0) {
+        if (typeof source883[0] === "undefined") {
+            if ( // Try first to convert to a string. This is good as fast path
+            // for old IE which understands string indexing for string
+            // literals only and not for string object.
+            code880 instanceof String) {
+                source883 = code880.valueOf();
+            }
+            if ( // Force accessing the characters via an array.
+            typeof source883[0] === "undefined") {
+                source883 = stringToArray(code880);
+            }
+        }
+    }
+    if (source883 === "") {
+        // old version of esprima doesn't play nice with the empty string
+        // and loc/range info so until we can upgrade hack in a single space
+        source883 = " ";
+    }
+    var tokenTree884 = parser780.read(source883);
+    try {
+        return expander781.compileModule(tokenTree884, options881);
+    } catch (err885) {
+        if (err885 instanceof syn782.MacroSyntaxError) {
+            throw new SyntaxError(syn782.printSyntaxError(source883, err885));
+        } else {
+            throw err885;
+        }
+    }
+}
+function parseExpanded857(expanded886, options887) {
+    return expanded886.map(function (c888) {
+        var ast889 = parser780.parse(c888.code);
+        if (options887.readableNames) {
+            ast889 = optimizeHygiene864(ast889);
+        }
+        return {
+            path: c888.path,
+            code: ast889
+        };
+    });
+}
+function parse858(code890, options891) {
+    options891 = options891 || {};
+    var expanded892 = expand856(code890, options891);
+    return parseExpanded857(expanded892, options891);
+}
+function compile859(code893, options894) {
+    options894 = options894 || { compileSuffix: ".jsc" };
+    var expanded895 = expand856(code893, options894);
+    return parseExpanded857(expanded895, options894).map(function (c896) {
+        var expandedOutput897;
+        return (function (c898) {
+            var output899 = c898;
+            if (options894.babel) {
+                var babelOptions900 = {
+                    blacklist: ["es6.tailCall"],
+                    // causing problems with enforest
+                    compact: false
+                };
+                if (options894.babelModules) {
+                    babelOptions900.modules = options894.babelModules;
+                }
+                output899 = babel783.transform(c898.code, babelOptions900);
+                return {
+                    path: c898.path,
+                    code: output899.code,
+                    sourceMap: output899.map
+                };
+            }
+            return output899;
+        })((function (c901) {
+            if (options894.sourceMap) {
+                var output902 = gen778.generate(c901.code, _779.extend({
+                    comment: true,
+                    sourceMap: options894.filename,
+                    sourceMapWithCode: true
+                }, options894.escodegen));
+                return {
+                    path: c901.path,
+                    code: output902.code,
+                    sourceMap: output902.map.toString()
+                };
+            }
+            return {
+                path: c901.path,
+                code: gen778.generate(c901.code, _779.extend({ comment: true }, options894.escodegen))
+            };
+        })(c896));
+    });
+}
+var baseReadtable860 = Object.create({
+    extend: function extend(obj903) {
+        var extended904 = Object.create(this);
+        Object.keys(obj903).forEach(function (ch905) {
+            extended904[ch905] = obj903[ch905];
+        });
+        return extended904;
+    }
+});
+parser780.setReadtable(baseReadtable860, syn782);
+function setReadtable861(readtableModule906) {
+    var filename907 = resolveSync777(readtableModule906, { basedir: process.cwd() });
+    var readtable908 = require(filename907);
+    parser780.setReadtable(require(filename907));
+}
+function currentReadtable862() {
+    return parser780.currentReadtable();
+}
+function loadNodeModule863(root909, moduleName910, options911) {
+    options911 = options911 || {};
+    if (moduleName910[0] === ".") {
+        moduleName910 = path775.resolve(root909, moduleName910);
+    }
+    var filename912 = resolveSync777(moduleName910, {
+        basedir: root909,
+        extensions: [".js", ".sjs"]
+    });
+    return expandModule(fs776.readFileSync(filename912, "utf8"), undefined, {
+        filename: moduleName910,
+        requireModule: options911.requireModule || requireModule854
+    });
+}
+function optimizeHygiene864(ast913) {
+    var // escope hack: sweet doesn't rename global vars. We wrap in a closure
+    // to create a 'static` scope for all of the vars sweet renamed.
+    wrapper914 = parse858("(function(){})()")[0].code;
+    wrapper914.body[0].expression.callee.body.body = ast913.body;
+    function sansUnique915(name919) {
+        var match920 = name919.match(/^(.+)\$[\d]+$/);
+        return match920 ? match920[1] : null;
+    }
+    function wouldShadow916(name921, scope922) {
+        while (scope922) {
+            if (scope922.scrubbed && scope922.scrubbed.has(name921)) {
+                return scope922.scrubbed.get(name921);
+            }
+            scope922 = scope922.upper;
+        }
+        return 0;
+    }
+    var scopes917 = escope784.analyze(wrapper914).scopes;
+    var globalScope918;
+    // The first pass over the scope collects any non-static references,
+    // which means references from the global scope. We need to make these
+    // verboten so we don't accidently mangle a name to match. This could
+    // cause seriously hard to find bugs if you were just testing with
+    // --readable-names on.
+    scopes917.forEach(function (scope923) {
+        scope923.scrubbed = new expander781.StringMap();
+        if ( // There aren't any references declared in the global scope since
+        // we wrapped our input in a static closure.
+        !scope923.isStatic()) {
+            globalScope918 = scope923;
+            return;
+        }
+        scope923.references.forEach(function (ref924) {
+            if (!ref924.isStatic()) {
+                globalScope918.scrubbed.set(ref924.identifier.name, 1);
+            }
+        });
+    });
+    // The second pass mangles the names to get rid of the hygiene tag
+    // wherever possible.
+    scopes917.forEach(function (scope925) {
+        if ( // No need to rename things in the global scope.
+        !scope925.isStatic()) {
+            return;
+        }
+        scope925.variables.forEach(function (variable926) {
+            var name927 = sansUnique915(variable926.name);
+            if (!name927) {
+                return;
+            }
+            var level928 = wouldShadow916(name927, scope925);
+            if (level928) {
+                scope925.scrubbed.set(name927, level928 + 1);
+                name927 = name927 + "$" + (level928 + 1);
+            } else {
+                scope925.scrubbed.set(name927, 1);
+            }
+            variable926.identifiers.forEach(function (i929) {
+                i929.name = name927;
+            });
+            variable926.references.forEach(function (r930) {
+                r930.identifier.name = name927;
+            });
+        });
+    });
+    return ast913;
+}
+var loadedMacros865 = [];
+function loadMacro866(relative_file931) {
+    loadedMacros865.push(loadNodeModule863(process.cwd(), relative_file931));
+}
+exports.expand856 = expand856;
+exports.expandSyntax855 = expandSyntax855;
+exports.parse858 = parse858;
+exports.compile859 = compile859;
+exports.setReadtable861 = setReadtable861;
+exports.currentReadtable862 = currentReadtable862;
+exports.loadNodeModule863 = loadNodeModule863;
+exports.loadedMacros865 = loadedMacros865;
+exports.loadMacro866 = loadMacro866;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+/*
+  Copyright (C) 2012 Tim Disney <tim@disnet.me>
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/

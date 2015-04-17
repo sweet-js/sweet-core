@@ -1,7 +1,7 @@
 #lang "../macros/stxcase.js";
 var expect = require("expect.js");
 
-let describe = macro {
+stxnonrec describe {
     case {_ $description:lit { $body ... } } => {
         return syntax {
             describe($description, function() {
@@ -11,7 +11,7 @@ let describe = macro {
     }
 }
 
-let it = macro {
+stxnonrec it {
     case {_ $description:lit { $body ... }} => {
         return syntax {
             it($description, function() {
@@ -22,17 +22,17 @@ let it = macro {
 }
 
 describe "procedural (syntax-case) macros" {
-	it "should make a literal syntax object" {
-		macro m {
-			case { _ () } => {
+    it "should make a literal syntax object" {
+        stxrec m {
+            case { _ () } => {
                 return [makeValue (42, #{here})];
-			}
-		}
-		expect(m()).to.be(42);
-	}
+            }
+        }
+        expect(m()).to.be(42);
+    }
 
     it "should work with syntax" {
-        macro m {
+        stxrec m {
             case { _ () } => {
                 return syntax { 42 }
             }
@@ -41,7 +41,7 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "should work with #" {
-        macro m {
+        stxrec m {
             case { _ () } => {
                 return #{ 42 }
             }
@@ -51,7 +51,7 @@ describe "procedural (syntax-case) macros" {
 
 
     it "should handle returning a single pattern variable" {
-        macro m {
+        stxrec m {
             case { _ ($x:expr) } => {
                 return #{ $x }
             }
@@ -61,7 +61,7 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "should handle a repeated pattern in the template" {
-        macro m {
+        stxrec m {
             case { _ ($x ...) } => {
                 return #{ [$x (,) ...] }
             }
@@ -70,7 +70,7 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "should support withSyntax" {
-        macro m {
+        stxrec m {
             case {_ $x } => {
                 return withSyntax($y = [makeValue(42, #{here})]) {
                     return #{
@@ -83,7 +83,7 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "withSyntax should only modify its own scope" {
-        macro test {
+        stxrec test {
             case { _ $x } => {
                 function foo() {
                     return #{ $x };
@@ -96,11 +96,11 @@ describe "procedural (syntax-case) macros" {
         }
         expect(test 42).to.be(42)
     }
-    
+
     it "should support withSyntax with multiple patterns" {
-        macro m {
+        stxrec m {
             case {_ $x } => {
-                return withSyntax($y = [makeValue(10, #{here})], 
+                return withSyntax($y = [makeValue(10, #{here})],
                                   $z = [makeValue(20, #{here})]) {
                     return #{$x + $y + $z}
                 }
@@ -110,7 +110,7 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "should support withSyntax with repeaters" {
-        macro m {
+        stxrec m {
             case {_ $x } => {
                 return withSyntax($y ... = [makeValue(10, #{here}),
                                             makePunc('+', #{here}),
@@ -124,7 +124,7 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "should support shorthand withSyntax form" {
-        macro m {
+        stxrec m {
             case {_ $x } => {
                 return withSyntax($y = [makeValue(42, #{here})]) #{
                     $x + $y
@@ -133,11 +133,11 @@ describe "procedural (syntax-case) macros" {
         }
         expect(m 100).to.be(142);
     }
-    
+
     it "should support let bound macros" {
-        let m = macro {
-            case {_ $x} => { 
-                return #{$x} 
+        stxnonrec m {
+            case {_ $x} => {
+                return #{$x}
             }
         }
 
@@ -145,9 +145,9 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "should support let bound macros" {
-        let function = macro {
-            case {_ $x} => { 
-                return #{function foo() { return $x; } } 
+        stxnonrec function {
+            case {_ $x} => {
+                return #{function foo() { return $x; } }
             }
         }
 
@@ -155,7 +155,7 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "should unwrap the context syntax array for makeDelim" {
-        macro $delim {
+        stxrec $delim {
             case { $$mac $val } => {
                 var d = makeDelim('[]', #{$val}, #{$$mac});
                 return [d];
@@ -166,7 +166,7 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "should unwrap single element arrays in unwrapSyntax" {
-        macro m {
+        stxrec m {
             case {_ () } => {
                 var num = unwrapSyntax(#{42})
                 return [makeValue(num, #{here})];
@@ -176,7 +176,7 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "should handle negative numbers in makeValue" {
-        macro m {
+        stxrec m {
             case {_ () } => {
                 return [makeValue(-42, #{here})];
             }
@@ -185,7 +185,7 @@ describe "procedural (syntax-case) macros" {
     }
 
     it "should handle NaN in makeValue" {
-        macro m {
+        stxrec m {
             case {_ () } => {
                 return [makeValue(0/0, #{here})];
             }
@@ -195,51 +195,51 @@ describe "procedural (syntax-case) macros" {
         expect(n).not.to.equal(n);
     }
 
-    it "should handle letstx" {
-        let l = macro {
-            case {_ $x } => {
-                letstx $y = [makeValue(42, #{here})];
-                return #{ $x + $y }
-            }
-        }
-        expect(l 100).to.be(142);
-    }
+    // it "should handle letstx" {
+    //     stxnonrec l {
+    //         case {_ $x } => {
+    //             letstx $y = [makeValue(42, #{here})];
+    //             return #{ $x + $y }
+    //         }
+    //     }
+    //     expect(l 100).to.be(142);
+    // }
 
-    it "should handle letstx with multiple patterns" {
-        let l = macro {
-            case {_ $x } => {
-                letstx $y = [makeValue(42, #{here})], $z = [makeValue(100, #{here})];
-                return #{ $x + $y + $z}
-            }
-        }
-        expect(l 100).to.be(242);
-    }
+    // it "should handle letstx with multiple patterns" {
+    //     stxnonrec l {
+    //         case {_ $x } => {
+    //             letstx $y = [makeValue(42, #{here})], $z = [makeValue(100, #{here})];
+    //             return #{ $x + $y + $z}
+    //         }
+    //     }
+    //     expect(l 100).to.be(242);
+    // }
 
-    it "should handle letstx with repeaters" {
-        let l = macro {
-            case {_ $x } => {
-                letstx $y ... = [makeValue(10, #{here}),
-                                            makePunc('+', #{here}),
-                                            makeValue(20, #{here})],
-                       $z = [makeValue(30, #{here})];
-                return #{$x + $y ... + $z}
-            }
-        }
-        expect(l 5).to.be(65);
-    }
+    // it "should handle letstx with repeaters" {
+    //     stxnonrec l {
+    //         case {_ $x } => {
+    //             letstx $y ... = [makeValue(10, #{here}),
+    //                                         makePunc('+', #{here}),
+    //                                         makeValue(20, #{here})],
+    //                    $z = [makeValue(30, #{here})];
+    //             return #{$x + $y ... + $z}
+    //         }
+    //     }
+    //     expect(l 5).to.be(65);
+    // }
 
-    it "should handle syntax quotes on the rhs of letstx" {
-        let l = macro {
-            case {_ $x } => {
-                letstx $y = #{ $x + 1 };
-                return #{ $y };
-            }
-        }
-        expect(l 1).to.be(2);
-    }
+    // it "should handle syntax quotes on the rhs of letstx" {
+    //     stxnonrec l {
+    //         case {_ $x } => {
+    //             letstx $y = #{ $x + 1 };
+    //             return #{ $y };
+    //         }
+    //     }
+    //     expect(l 1).to.be(2);
+    // }
 
     it "should handle getExpr" {
-        let m = macro {
+        stxnonrec m {
             case {_ ($e ...) } => {
                 var e = getExpr(#{$e ...});
                 if (e.success && unwrapSyntax(e.result[0]) === 2) {
@@ -255,13 +255,13 @@ describe "procedural (syntax-case) macros" {
 
         (function() {
             // make sure the locally scoped macro `id` expands in the getExpr
-            let id = macro { rule { $x } => { $x } }
+            stxnonrec id { rule { $x } => { $x } }
             expect(m (id 2 + 2)).to.be(true);
         })();
     }
 
     it "should handle getId/getLit" {
-        let m = macro {
+        stxnonrec m {
             case {_ ($id ...) ($lit ...) } => {
                 var i = getIdent(#{$id ...});
                 var l = getLit(#{$lit ...});
@@ -282,20 +282,20 @@ describe "procedural (syntax-case) macros" {
         expect (m (100 foo) (id 200)).to.be("other")
     }
 
-    it "should handle taking the lexical context from a delimiter" {
-        let m = macro {
-            case {_ $tok } => {
-                letstx $foo = [makeIdent("foo", #{$tok})];
-                return #{$foo}
-            }
-        }
-
-        var foo = 100;
-        expect(m ()).to.be(100);
-    }
+    // it "should handle taking the lexical context from a delimiter" {
+    //     stxnonrec m {
+    //         case {_ $tok } => {
+    //             letstx $foo = [makeIdent("foo", #{$tok})];
+    //             return #{$foo}
+    //         }
+    //     }
+    //
+    //     var foo = 100;
+    //     expect(m ()).to.be(100);
+    // }
 
     it "should handle localExpand" {
-        let m = macro {
+        stxnonrec m {
             case {_ ($e ...) } => {
                 var e = localExpand(#{$e ...});
                 if (unwrapSyntax(e[0]) === 42) {
@@ -304,12 +304,12 @@ describe "procedural (syntax-case) macros" {
                 return #{false}
             }
         }
-        let id = macro { rule { $x } => { $x } }
+        stxnonrec id { rule { $x } => { $x } }
         expect(m (id 42)).to.be(true);
     }
 
     it "should handle localExpand with macros inside functions" {
-        macro ex {
+        stxrec ex {
             case {_ { $body ... } } => {
                 return localExpand(#{$body ...});
             }
@@ -317,7 +317,7 @@ describe "procedural (syntax-case) macros" {
 
         var f = ex {
             function foo(x) {
-                macro arg {
+                stxrec arg {
                     rule {} => { x }
                 }
                 return {
@@ -334,7 +334,7 @@ describe "procedural (syntax-case) macros" {
 
 describe "syntax objects" {
     it "should have identifier testing functions" {
-        let m = macro {
+        stxnonrec m {
             case {_} => {
                 var s = makeIdent("foo", null);
                 if (s.isIdentifier()) {
@@ -347,7 +347,7 @@ describe "syntax objects" {
     }
 
     it "should have number testing functions" {
-        let m = macro {
+        stxnonrec m {
             case {_} => {
                 var s = makeValue(42, null);
                 if (s.isNumericLiteral()) {
@@ -360,7 +360,7 @@ describe "syntax objects" {
     }
 
     it "should have string testing functions" {
-        let m = macro {
+        stxnonrec m {
             case {_} => {
                 var s = makeValue("foo", null);
                 if (s.isStringLiteral()) {
@@ -373,7 +373,7 @@ describe "syntax objects" {
     }
 
     it "should have boolean testing functions" {
-        let m = macro {
+        stxnonrec m {
             case {_} => {
                 var s = makeValue(true, null);
                 if (s.isBooleanLiteral()) {
@@ -386,7 +386,7 @@ describe "syntax objects" {
     }
 
     it "should have null testing functions" {
-        let m = macro {
+        stxnonrec m {
             case {_} => {
                 var s = makeValue(null, null);
                 if (s.isNullLiteral()) {
@@ -399,7 +399,7 @@ describe "syntax objects" {
     }
 
     it "should have keyword testing functions" {
-        let m = macro {
+        stxnonrec m {
             case {_} => {
                 var s = makeKeyword("for", null);
                 if (s.isKeyword()) {
@@ -412,7 +412,7 @@ describe "syntax objects" {
     }
 
     it "should have regexp testing functions" {
-        let m = macro {
+        stxnonrec m {
             case {_} => {
                 var s = makeRegex("abc", "i", null);
                 if (s.isRegularExpression()) {
@@ -425,7 +425,7 @@ describe "syntax objects" {
     }
 
     it "should have punctuator testing functions" {
-        let m = macro {
+        stxnonrec m {
             case {_} => {
                 var s = makePunc(";", null);
                 if (s.isPunctuator()) {
@@ -438,7 +438,7 @@ describe "syntax objects" {
     }
 
     it "should have punctuator testing functions" {
-        let m = macro {
+        stxnonrec m {
             case {_} => {
                 var s = makePunc(";", null);
                 if (s.isPunctuator()) {
@@ -451,7 +451,7 @@ describe "syntax objects" {
     }
 
     it "should have delimiter testing functions" {
-        let m = macro {
+        stxnonrec m {
             case {_} => {
                 var s = makeDelim("()", [], null);
                 if (s.isDelimiter()) {

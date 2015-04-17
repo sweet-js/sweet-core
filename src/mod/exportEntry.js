@@ -15,22 +15,11 @@ function ExportEntry(term, exportName, localName) {
     this.localName = makeMultiToken(localName);
 }
 
-// ImportEntry.prototype.toTerm = function() {
-//     var term = _.clone(this._term);
-//     if (term.clause.isNamedImportTerm) {
-//         term.clause = _.clone(term.clause);
-//         term.clause.names = term.clause.names.clone();
-
-//         if (this.importName.token.value === this.localName.token.value) {
-//             term.clause.names.token.inner = [this.localName];
-//         } else {
-//             term.clause.names.token.inner = [this.importName,
-//                                              syn.makeIdent("as", this.importName),
-//                                              this.localName];
-//         }
-//     }
-//     return term;
-// };
+ExportEntry.prototype.toTerm = function() {
+    var term = _.clone(this._term);
+    term.name = syn.makeDelim("{}", [this.localName], this.localName);
+    return term;
+};
 
 function makeExportEntries(exp) {
     assert(exp.isExportNameTerm || exp.isExportDefaultTerm || exp.isExportDeclTerm,
@@ -60,7 +49,7 @@ function makeExportEntries(exp) {
         } else if (exp.decl.isNamedFunTerm) {
             localName = exp.decl.name;
         } else if (exp.decl.isMacroTerm || exp.decl.isLetMacroTerm) {
-            localName = syn.makeDelim("()", [exp.decl.name], exp.decl.name);
+            localName = exp.decl.name;
         } else if (exp.decl.isExprTerm) {
             localName = syn.makeIdent("*default*", exp.defaultkw);
         } else {
@@ -69,7 +58,7 @@ function makeExportEntries(exp) {
                              exp.decl);
         }
         res.push(new ExportEntry(exp,
-                                 exp.defaultkw.rename(exp.defaultkw, syn.fresh()),
+                                 exp.defaultkw,
                                  localName));
     } else if (exp.isExportDeclTerm) {
         if (exp.decl.isVariableStatementTerm ||

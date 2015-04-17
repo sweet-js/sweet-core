@@ -1,12 +1,12 @@
 #lang "../../macros/stxcase.js";
 
-let (number?) = macro {
+stxrec (number?) {
     rule { ($cond ...) } => {
         typeof ($cond ...) === 'number'
     }
 }
 
-macro (string?) {
+stxrec (string?) {
     rule { ($cond ...) } => {
         typeof ($cond ...) === 'string'
     }

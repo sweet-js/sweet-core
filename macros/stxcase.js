@@ -1,403 +1,51 @@
 #lang "js";
 
-let quoteSyntax = macro {
-    function(stx) {
-        var name_stx = stx[0];
-
-        if (!(stx[1] && stx[1].token && stx[1].token.inner)) {
-            throwSyntaxError("macro", "Macro `quoteSyntax` could not be matched" , stx[1]);
-        }
-
-        var res = [
-            makeIdent("#quoteSyntax", null),
-            stx[1]
-        ];
-
-        return {
-            result: res,
-            rest: stx.slice(2)
-        };
-    }
-}
-
-let syntax = macro {
-    function(stx) {
-        var name_stx = stx[0];
-        var here = quoteSyntax{here};
-        var takeLineContext = patternModule.takeLineContext;
-        var takeLine = patternModule.takeLine;
-        var mod = makeIdent("patternModule", here);
-
-        if (!(stx[1] && stx[1].token && stx[1].token.inner)) {
-            throwSyntaxError("macro", "Macro `syntax` could not be matched", stx[1]);
-        }
-
-        var res = [mod,
-                   makePunc(".", here),
-                   makeIdent("transcribe", here),
-                   makeDelim("()", [
-                       makeIdent("#quoteSyntax", here),
-                       stx[1],
-                       makePunc(",", here),
-                       // breaking hygiene to capture `name_stx`, `match`, and
-                       // `patternEnv` inside the syntaxCase macro
-                       makeIdent("name_stx", name_stx),
-                       makePunc(",", here),
-                       makeIdent("match", name_stx),
-                       makePunc(".", here),
-                       makeIdent("patternEnv", name_stx)
-                   ], here)];
+import {quoteSyntax, syntax, #} from "./base.js" for phase 1;
+import {quoteSyntax, syntax, #} from "./base.js" for phase 2;
 
 
-        return {
-            result: res,
-            rest: stx.slice(2)
-        };
-    }
-}
-
-macro # {
+stxrec stxnonrec {
     function (stx) {
-        return {
-            // breaking hygiene to capture inside syntaxCase
-            result: [makeIdent("syntax", stx[0]),
-                     stx[1]],
-            rest: stx.slice(2)
-        }
-    }
-}
+        var name = stx[1];
+        var body = stx[2];
 
+        var nonRecScope = __freshScope(__bindings);
 
-let syntaxCase = macro {
-    function(stx, context) {
-        var name_stx = stx[0];
-        var here = quoteSyntax{here};
+        var nonRecBody = body.mark(nonRecScope);
+        var nonRecName = name.mark(nonRecScope);
+        var surroundingName = name.delScope(__scope);
 
-        if (!(stx[1] && stx[1].token && stx[1].token.inner) ||
-            !(stx[2] && stx[2].token && stx[2].token.inner)) {
-            throwSyntaxError("macro", "Macro `syntaxCase` could not be matched" , stx[1]);
+        if (name.isDelimiter()) {
+            surroundingName = surroundingName.token.inner;
         }
 
-        var arg_stx = stx[1].token.inner;
-        var cases_stx = stx[2].token.inner;
-
-        var Token = parser.Token;
-        var assert = parser.assert;
-        var loadPattern = patternModule.loadPattern;
-        var takeLine = patternModule.takeLine;
-        var matchPatterns = matchPatterns;
-
-        function makeFunc(params, body) {
-            return [
-                makeKeyword("function", here),
-                makeDelim("()", params, here),
-                makeDelim("{}", body, here)
-            ];
-        }
-
-        function makeVarDef(id, expr) {
-            return [
-                makeKeyword("var", here),
-                makeIdent(id, name_stx),
-                makePunc("=", here)
-            ].concat(expr, makePunc(";", here));
-        }
-
-        function makeAssign(id, expr) {
-          return [
-            makeIdent(id, name_stx),
-            makePunc("=", here)
-          ].concat(expr, makePunc(";", here));
-        }
-
-        function cloneSyntax(stx) {
-            var clone = _.extend({}, stx, { token: _.clone(stx.token) });
-            if (clone.token.inner) {
-                clone.token.inner = clone.token.inner.map(cloneSyntax);
-            }
-            return clone;
-        }
-
-        if (cases_stx.length == 0) {
-            throw new Error("Must have at least one case")
-        }
-
-        var cases = [];
-
-        for (var i = 0; i < cases_stx.length; i += 4) {
-            var caseKwd = cases_stx[i];
-            var isInfix = cases_stx[i + 1].token.value === "infix";
-            if (isInfix) {
-                i += 1;
-            }
-            var casePattern = cases_stx[i + 1];
-            var caseArrow = cases_stx[i + 2];
-            var caseBody = cases_stx[i + 3];
-
-            if (!(caseKwd && caseKwd.token && caseKwd.token.value === "case")) {
-                throw new Error("expecting case keyword in syntax case");
-            }
-            if (!(casePattern && casePattern.token && casePattern.token.value === "{}")) {
-                throw new Error("expecting a pattern surrounded by {} in syntax case");
-            }
-            if (!(caseArrow && caseArrow.token && caseArrow.token.value === "=>")) {
-                throw new Error("expecting an arrow separating pattern from body in syntax case");
-            }
-            if (!(caseBody && caseBody.token && caseBody.token.value === "{}")) {
-                throw new Error("expecting a body surrounded by {} in syntax case");
-            }
-
-            // If infix, loop through the pattern separating the lhs and rhs.
-            if (isInfix) {
-                var pattern = cloneSyntax(casePattern).token.inner;
-                var lhs = [];
-                var rhs = [];
-                var separator = null;
-                for (var j = 0; j < pattern.length; j++) {
-                    if (separator) {
-                        rhs.push(pattern[j]);
-                    } else {
-                        if (pattern[j].token.type === parser.Token.Punctuator &&
-                            pattern[j].token.value === '|') {
-                            separator = pattern[j];
-                        } else {
-                            lhs.push(pattern[j]);
-                        }
+        // hacky unquote
+        function traverse(stx, rep) {
+            return stx.reduce(function(acc, s) {
+                if (s.token.inner) {
+                    s.token.inner = traverse(s.token.inner, rep);
+                    return acc.concat(s);
+                }
+                for (var i = 0; i < rep.length; i++) {
+                    if (s.token.value === "$" + (i+1)) {
+                        return acc.concat(rep[i]);
                     }
                 }
-                if (!separator) {
-                    throwSyntaxError("syntaxCase", "Infix macros require a `|` separator", casePattern);
+                return acc.concat(s);
+            }, []);
+        }
+
+        var res = traverse(quoteSyntax {
+            stxrec $1 {
+                function(stx) {
+                    return {
+                        result: quoteSyntax{$2},
+                        rest: stx.slice(1)
+                    };
                 }
-                cases.push({
-                    lookbehind: loadPattern(lhs, true),
-                    pattern: loadPattern(rhs),
-                    body: caseBody.token.inner
-                });
-            } else {
-                cases.push({
-                    lookbehind: [],
-                    pattern: loadPattern(cloneSyntax(casePattern).token.inner),
-                    body: caseBody.token.inner
-                });
             }
-        }
-
-        function patternsToObject(pats) {
-            if (!pats.length) {
-                return makeDelim("[]", [], here);
-            }
-
-            var freshId = __fresh();
-            context.patternMap.set(freshId, pats);
-
-            return [
-                makeIdent("getPattern", here),
-                makeDelim("()", [
-                    makeValue(freshId, here)
-                ], here)
-            ];
-        }
-
-        function makeMatch(caseObj) {
-            var lhs = makeAssign("lhs", patternsToObject(caseObj.lookbehind));
-            var rhs = makeAssign("rhs", patternsToObject(caseObj.pattern));
-
-            var lhsMatch = makeAssign("lhsMatch", [
-                makeIdent("patternModule", here),
-                makePunc(".", here),
-                makeIdent("matchLookbehind", here),
-                makeDelim("()", [
-                    makeIdent("lhs", name_stx),
-                    makePunc(",", here),
-                    makeIdent("prevStx", name_stx),
-                    makePunc(",", here),
-                    makeIdent("prevTerms", name_stx),
-                    makePunc(",", here),
-                    makeIdent("context", name_stx)
-                ], here)
-            ]);
-
-            var rhsMatch = makeAssign("rhsMatch", [
-                makeIdent("patternModule", here),
-                makePunc(".", here),
-                makeIdent("matchPatterns", here),
-                makeDelim("()", [
-                    makeIdent("rhs", name_stx),
-                    makePunc(",", here),
-                    makeIdent("arg", name_stx),
-                    makePunc(",", here),
-                    makeIdent("context", name_stx),
-                    makePunc(",", here),
-                    makeValue(true, here)
-                ], here)
-            ]);
-
-            var mergeMatch = makeAssign("match", [
-                makeIdent("mergeMatches", here),
-                makeDelim("()", [
-                    makeIdent("rhsMatch", name_stx),
-                    makePunc(",", here),
-                ].concat(
-                    makeIdent("mergeMatches", here),
-                    makeDelim("()", [
-                        makeIdent("lhsMatch", name_stx),
-                        makePunc(",", here),
-                        makeIdent("parentMatch", name_stx)
-                    ], here)
-                ), here)
-            ]);
-
-            return lhs.concat(lhsMatch, [
-                makeKeyword("if", here),
-                makeDelim("()", [
-                    makeIdent("lhsMatch", name_stx),
-                    makePunc(".", here),
-                    makeIdent("success", here)
-                ], here),
-                makeDelim("{}", rhs.concat(rhsMatch, [
-                    makeKeyword("if", here),
-                    makeDelim("()", [
-                        makeIdent("rhsMatch", name_stx),
-                        makePunc(".", here),
-                        makeIdent("success", here)
-                    ], here),
-                    makeDelim("{}", mergeMatch.concat(makeTranscribe(caseObj)), here)
-                ]), here)
-            ]);
-        }
-
-        function makeTranscribe(caseObj) {
-            // applyMarkToPatternEnv (context.mark, match.patternEnv);
-            var applyPreMark = [
-                makeIdent("applyMarkToPatternEnv", here),
-                makeDelim("()", [
-                    makeIdent("context", name_stx),
-                    makePunc(".", here),
-                    makeIdent("mark", name_stx),
-                    makePunc(",", here),
-                    makeIdent("match", name_stx),
-                    makePunc(".", here),
-                    makeIdent("patternEnv", name_stx)
-                ], here),
-                makePunc(";", here)
-            ];
-            // var res = (function() { <caseObj.body> })();
-            var runBody = makeVarDef("res", [
-                makeDelim("()", makeFunc([], caseObj.body), here),
-                makeDelim("()", [], here)
-            ]);
-            // if (!Array.isArray(res)) { throwSyntaxError("macro", "Macro must return a syntax array", stx); }
-            var errHandling = [
-                makeKeyword("if", here),
-                makeDelim("()", [
-                    makePunc("!", here),
-                    makeIdent("Array", here),
-                    makePunc(".", here),
-                    makeIdent("isArray", here),
-                    makeDelim("()", [
-                        makeIdent("res", name_stx)
-                    ], here)
-                ], here),
-                makeDelim("{}", [
-                    makeIdent("throwSyntaxError", here),
-                    makeDelim("()", [
-                        makeValue("macro", here),
-                        makePunc(",", here),
-                        makeValue("Macro must return a syntax array", here),
-                        makePunc(",", here),
-                        makeIdent("stx", name_stx)
-                    ], here)
-                ], here)
-            ];
-            // res = res.map(function(stx) { return stx.mark(context.mark); })
-            var applyPostMark = [
-                makeIdent("res", name_stx),
-                makePunc("=", here),
-                makeIdent("res", name_stx),
-                makePunc(".", here),
-                makeIdent("map", here),
-                makeDelim("()", makeFunc([makeIdent("stx", here)], [
-                        makeKeyword("return", here),
-                        makeIdent("stx", here),
-                        makePunc(".", here),
-                        makeIdent("mark", here),
-                        makeDelim("()", [
-                            makeIdent("context", name_stx),
-                            makePunc(".", here),
-                            makeIdent("mark", here)
-                        ], here)
-                ]), here),
-                makePunc(";", here)
-            ];
-            // return { result: res, rest: match.rest };
-            var retResult = [
-                makeKeyword("return", here),
-                makeDelim("{}", [
-                    makeIdent("result", here), makePunc(":", here),
-                    makeIdent("res", name_stx),
-                    makePunc(",", here),
-                    makeIdent("rest", here), makePunc(":", here),
-                    makeIdent("match", name_stx), makePunc(".", here), makeIdent("rest", here),
-                    makePunc(",", here),
-                    makeIdent("prevStx", here), makePunc(":", here),
-                    makeIdent("lhsMatch", name_stx), makePunc(".", here), makeIdent("prevStx", here),
-                    makePunc(",", here),
-                    makeIdent("prevTerms", here), makePunc(":", here),
-                    makeIdent("lhsMatch", name_stx), makePunc(".", here), makeIdent("prevTerms", here)
-                ], here)
-            ];
-            return applyPreMark.concat(runBody, errHandling, applyPostMark, retResult);
-        }
-
-        var arg_def = makeVarDef("arg", [makeIdent("stx", name_stx)]);
-        var name_def = makeVarDef("name_stx", [
-            makeIdent("arg", name_stx),
-            makeDelim("[]", [makeValue(0, here)], here)
-        ]);
-        var match_defs = [
-            makeKeyword('var', here),
-            makeIdent('lhs', name_stx), makePunc(',', here),
-            makeIdent('lhsMatch', name_stx), makePunc(',', here),
-            makeIdent('rhs', name_stx), makePunc(',', here),
-            makeIdent('rhsMatch', name_stx), makePunc(',', here),
-            makeIdent('match', name_stx), makePunc(',', here),
-            makeIdent('res', name_stx), makePunc(';', here),
-        ];
-
-        var body = arg_def.concat(name_def, match_defs);
-
-        for (var i = 0; i < cases.length; i++) {
-            body = body.concat(makeMatch(cases[i]));
-        }
-
-        body = body.concat(quoteSyntax {
-            throwSyntaxCaseError("Could not match any cases");
-        });
-
-        var res = makeFunc([
-            makeIdent("stx", name_stx),
-            makePunc(",", here),
-            makeIdent("context", name_stx),
-            makePunc(",", here),
-            makeIdent("prevStx", name_stx),
-            makePunc(",", here),
-            makeIdent("prevTerms", name_stx),
-            makePunc(",", here),
-            makeIdent("parentMatch", name_stx)
-        ], body).concat([
-            makeDelim("()", arg_stx.concat([
-                makePunc(",", here),
-                makeKeyword("typeof", here),
-                makeIdent("match", name_stx),
-                makePunc("!==", here),
-                makeValue("undefined", here),
-                makePunc("?", here),
-                makeIdent("match", name_stx),
-                makePunc(":", here),
-                makeDelim("{}", [], here)
-            ]), here)
-        ]);
-
+            stxrec $3 $4
+        }, [nonRecName, surroundingName, name, nonRecBody]);
         return {
             result: res,
             rest: stx.slice(3)
@@ -405,10 +53,424 @@ let syntaxCase = macro {
     }
 }
 
+forPhase 1 {
+    stxrec bindSyntax {
+        function(stx) {
+            var here = quoteSyntax{here};
 
-let macro = macro {
-    function(stx) {
-        var name_stx = stx[0];
+            var res = [makeIdent("patternModule", here),
+                       makePunc(".", here),
+                       makeIdent("transcribe", here),
+                       makeDelim("()", [
+                           makeIdent("#quoteSyntax", here),
+                           stx[2],
+                           makePunc(",", here),
+                           makeValue(null, here),
+                           makePunc(",", here),
+                           stx[1],
+                           makePunc(".", here),
+                           makeIdent("patternEnv", here)
+                       ], here)];
+
+            return {
+                result: res,
+                rest: stx.slice(3)
+            };
+        }
+    }
+}
+
+forPhase 1 {
+
+    var __communicateMatch;
+    stxrec syntaxCase {
+        function(stx, context) {
+            var name_stx = stx[0];
+            var here = quoteSyntax{here};
+
+            if (!(stx[1] && stx[1].token && stx[1].token.inner) ||
+                !(stx[2] && stx[2].token && stx[2].token.inner)) {
+                throwSyntaxError("macro", "Macro `syntaxCase` could not be matched" , stx[1]);
+            }
+
+            var arg_stx = stx[1].token.inner;
+            var cases_stx = stx[2].token.inner;
+
+            var Token = parser.Token;
+            var assert = parser.assert;
+            var loadPattern = patternModule.loadPattern;
+            var takeLine = patternModule.takeLine;
+            var matchPatterns = matchPatterns;
+
+            function makeFunc(params, body) {
+                return [
+                    makeKeyword("function", here),
+                    makeDelim("()", params, here),
+                    makeDelim("{}", body, here)
+                ];
+            }
+
+            function makeVarDef(id, expr) {
+                return [
+                    makeKeyword("var", here),
+                    makeIdent(id, here),
+                    makePunc("=", here)
+                ].concat(expr, makePunc(";", here));
+            }
+
+            function makeAssign(id, expr) {
+                return [
+                    makeIdent(id, here),
+                    makePunc("=", here)
+                ].concat(expr, makePunc(";", here));
+            }
+
+            function cloneSyntax(stx) {
+                var clone = _.extend({}, stx, { token: _.clone(stx.token) });
+                if (clone.token.inner) {
+                    clone.token.inner = clone.token.inner.map(cloneSyntax);
+                }
+                return clone;
+            }
+
+            if (cases_stx.length == 0) {
+                throw new Error("Must have at least one case")
+            }
+
+            var cases = [];
+
+            for (var i = 0; i < cases_stx.length; i += 4) {
+                var caseKwd = cases_stx[i];
+                var isInfix = cases_stx[i + 1].token.value === "infix";
+                if (isInfix) {
+                    i += 1;
+                }
+                var casePattern = cases_stx[i + 1];
+                var caseArrow = cases_stx[i + 2];
+                var caseBody = cases_stx[i + 3];
+
+                if (!(caseKwd && caseKwd.token && caseKwd.token.value === "case")) {
+                    throw new Error("expecting case keyword in syntax case");
+                }
+                if (!(casePattern && casePattern.token && casePattern.token.value === "{}")) {
+                    throw new Error("expecting a pattern surrounded by {} in syntax case");
+                }
+                if (!(caseArrow && caseArrow.token && caseArrow.token.value === "=>")) {
+                    throw new Error("expecting an arrow separating pattern from body in syntax case");
+                }
+                if (!(caseBody && caseBody.token && caseBody.token.value === "{}")) {
+                    throw new Error("expecting a body surrounded by {} in syntax case");
+                }
+
+                var bodyStx = localExpand(caseBody.token.inner, quoteSyntax{syntax __communicateMatch});
+
+                var skipNext = false; // hacky
+                function traverse(stx, f) {
+                    return stx.reduce(function(acc, stx) {
+                        if (skipNext) {
+                            skipNext = false;
+                            return acc;
+                        }
+                        if (stx.token.inner) {
+                            stx.token.inner = traverse(stx.token.inner, f);
+                            return acc.concat(stx);
+                        }
+                        return acc.concat(f(stx));
+                    }, []);
+                }
+                bodyStx = traverse(bodyStx, function(stx) {
+                    // should be free-identifiers
+                    if (stx.token.value === "syntax" && stx.isIdentifier()) {
+                        return quoteSyntax {bindSyntax match};
+                    }
+                    if (stx.token.value === "__communicateMatch" && stx.isIdentifier()) {
+                        skipNext = true;
+                        return makeIdent("match", here);
+                    }
+                    return stx;
+                });
+
+                // If infix, loop through the pattern separating the lhs and rhs.
+                if (isInfix) {
+                    var pattern = cloneSyntax(casePattern).token.inner;
+                    var lhs = [];
+                    var rhs = [];
+                    var separator = null;
+                    for (var j = 0; j < pattern.length; j++) {
+                        if (separator) {
+                            rhs.push(pattern[j]);
+                        } else {
+                            if (pattern[j].token.type === parser.Token.Punctuator &&
+                                pattern[j].token.value === '|') {
+                                separator = pattern[j];
+                            } else {
+                                lhs.push(pattern[j]);
+                            }
+                        }
+                    }
+                    if (!separator) {
+                        throwSyntaxError("syntaxCase", "Infix macros require a `|` separator", casePattern);
+                    }
+                    cases.push({
+                        lookbehind: loadPattern(lhs, true),
+                        pattern: loadPattern(rhs),
+                        body: bodyStx
+                    });
+                } else {
+                    cases.push({
+                        lookbehind: [],
+                        pattern: loadPattern(cloneSyntax(casePattern).token.inner),
+                        body: bodyStx
+                    });
+                }
+            }
+
+            function patternsToObject(pats) {
+                if (!pats.length) {
+                    return makeDelim("[]", [], here);
+                }
+
+                var freshId = __fresh();
+                context.patternMap.set(freshId, pats);
+
+                return [
+                    makeIdent("getPattern", here),
+                    makeDelim("()", [
+                        makeValue(freshId, here)
+                    ], here)
+                ];
+            }
+
+            function makeMatch(caseObj) {
+                var lhs = makeAssign("lhs", patternsToObject(caseObj.lookbehind));
+                var rhs = makeAssign("rhs", patternsToObject(caseObj.pattern));
+
+                var lhsMatch = makeAssign("lhsMatch", [
+                    makeIdent("patternModule", here),
+                    makePunc(".", here),
+                    makeIdent("matchLookbehind", here),
+                    makeDelim("()", [
+                        makeIdent("lhs", here),
+                        makePunc(",", here),
+                        makeIdent("prevStx", here),
+                        makePunc(",", here),
+                        makeIdent("prevTerms", here),
+                        makePunc(",", here),
+                        makeIdent("context", here)
+                    ], here)
+                ]);
+
+                var rhsMatch = makeAssign("rhsMatch", [
+                    makeIdent("patternModule", here),
+                    makePunc(".", here),
+                    makeIdent("matchPatterns", here),
+                    makeDelim("()", [
+                        makeIdent("rhs", here),
+                        makePunc(",", here),
+                        makeIdent("arg", here),
+                        makePunc(",", here),
+                        makeIdent("context", here),
+                        makePunc(",", here),
+                        makeValue(true, here)
+                    ], here)
+                ]);
+
+                var mergeMatch = [
+                    makeKeyword("var", here)
+                ]
+                var mergeMatch = makeAssign("match", [
+                    makeIdent("mergeMatches", here),
+                    makeDelim("()", [
+                        makeIdent("rhsMatch", here),
+                        makePunc(",", here),
+                    ].concat(
+                        makeIdent("mergeMatches", here),
+                        makeDelim("()", [
+                            makeIdent("lhsMatch", here),
+                            makePunc(",", here),
+                            makeIdent("parentMatch", here)
+                        ], here)
+                    ), here)
+                ]);
+
+                return lhs.concat(lhsMatch, [
+                    makeKeyword("if", here),
+                    makeDelim("()", [
+                        makeIdent("lhsMatch", here),
+                        makePunc(".", here),
+                        makeIdent("success", here)
+                    ], here),
+                    makeDelim("{}", rhs.concat(rhsMatch, [
+                        makeKeyword("if", here),
+                        makeDelim("()", [
+                            makeIdent("rhsMatch", here),
+                            makePunc(".", here),
+                            makeIdent("success", here)
+                        ], here),
+                        makeDelim("{}", mergeMatch.concat(makeTranscribe(caseObj)), here)
+                    ]), here)
+                ]);
+            }
+
+            function makeTranscribe(caseObj) {
+                // applyMarkToPatternEnv (context.mark, match.patternEnv);
+                var applyPreMark1 = [
+                    makeIdent("applyMarkToPatternEnv", here),
+                    makeDelim("()", [
+                        makeIdent("context", here),
+                        makePunc(".", here),
+                        makeIdent("useScope", here),
+                        makePunc(",", here),
+                        makeIdent("match", here),
+                        makePunc(".", here),
+                        makeIdent("patternEnv", here)
+                    ], here),
+                    makePunc(";", here)
+                ];
+                // applyMarkToPatternEnv (context.useScope, match.patternEnv);
+                var applyPreMark2 = [
+                    makeIdent("applyMarkToPatternEnv", here),
+                    makeDelim("()", [
+                        makeIdent("context", here),
+                        makePunc(".", here),
+                        makeIdent("mark", here),
+                        makePunc(",", here),
+                        makeIdent("match", here),
+                        makePunc(".", here),
+                        makeIdent("patternEnv", here)
+                    ], here),
+                    makePunc(";", here)
+                ];
+                // var res = (function() { <caseObj.body> })();
+                var runBody = makeVarDef("res", [
+                    makeDelim("()", makeFunc([], caseObj.body), here),
+                    makeDelim("()", [], here)
+                ]);
+                // if (!Array.isArray(res)) { throwSyntaxError("macro", "Macro must return a syntax array", stx); }
+                var errHandling = [
+                    makeKeyword("if", here),
+                    makeDelim("()", [
+                        makePunc("!", here),
+                        makeIdent("Array", here),
+                        makePunc(".", here),
+                        makeIdent("isArray", here),
+                        makeDelim("()", [
+                            makeIdent("res", here)
+                        ], here)
+                    ], here),
+                    makeDelim("{}", [
+                        makeIdent("throwSyntaxError", here),
+                        makeDelim("()", [
+                            makeValue("macro", here),
+                            makePunc(",", here),
+                            makeValue("Macro must return a syntax array", here),
+                            makePunc(",", here),
+                            makeIdent("stx", here)
+                        ], here)
+                    ], here)
+                ];
+                // res = res.map(function(stx) { return stx.mark(context.mark); })
+                var applyPostMark = [
+                    makeIdent("res", here),
+                    makePunc("=", here),
+                    makeIdent("res", here),
+                    makePunc(".", here),
+                    makeIdent("map", here),
+                    makeDelim("()", makeFunc([makeIdent("stx", here)], [
+                        makeKeyword("return", here),
+                        makeIdent("stx", here),
+                        makePunc(".", here),
+                        makeIdent("mark", here),
+                        makeDelim("()", [
+                            makeIdent("context", here),
+                            makePunc(".", here),
+                            makeIdent("mark", here)
+                        ], here)
+                    ]), here),
+                    makePunc(";", here)
+                ];
+                // return { result: res, rest: match.rest };
+                var retResult = [
+                    makeKeyword("return", here),
+                    makeDelim("{}", [
+                        makeIdent("result", here), makePunc(":", here),
+                        makeIdent("res", here),
+                        makePunc(",", here),
+                        makeIdent("rest", here), makePunc(":", here),
+                        makeIdent("match", here), makePunc(".", here), makeIdent("rest", here),
+                        makePunc(",", here),
+                        makeIdent("prevStx", here), makePunc(":", here),
+                        makeIdent("lhsMatch", here), makePunc(".", here), makeIdent("prevStx", here),
+                        makePunc(",", here),
+                        makeIdent("prevTerms", here), makePunc(":", here),
+                        makeIdent("lhsMatch", here), makePunc(".", here), makeIdent("prevTerms", here)
+                    ], here)
+                ];
+                return applyPreMark1.concat(applyPreMark2, runBody, errHandling, applyPostMark, retResult);
+            }
+
+            var arg_def = makeVarDef("arg", [makeIdent("stx", here)]);
+            var name_def = makeVarDef("here", [
+                makeIdent("arg", here),
+                makeDelim("[]", [makeValue(0, here)], here)
+            ]);
+            var match_defs = [
+                makeKeyword('var', here),
+                makeIdent('lhs', here), makePunc(',', here),
+                makeIdent('lhsMatch', here), makePunc(',', here),
+                makeIdent('rhs', here), makePunc(',', here),
+                makeIdent('rhsMatch', here), makePunc(',', here),
+                makeIdent('match', here), makePunc(',', here),
+                makeIdent('res', here), makePunc(';', here),
+            ];
+
+            var body = arg_def.concat(name_def, match_defs);
+
+            for (var i = 0; i < cases.length; i++) {
+                body = body.concat(makeMatch(cases[i]));
+            }
+
+            body = body.concat(quoteSyntax {
+                throwSyntaxCaseError("Could not match any cases");
+            });
+
+            var res = makeFunc([
+                makeIdent("stx", here),
+                makePunc(",", here),
+                makeIdent("context", here),
+                makePunc(",", here),
+                makeIdent("prevStx", here),
+                makePunc(",", here),
+                makeIdent("prevTerms", here),
+                makePunc(",", here),
+                makeIdent("parentMatch", here)
+            ], body).concat([
+                makeDelim("()", arg_stx.concat([
+                    makePunc(",", here),
+                    makeKeyword("typeof", here),
+                    makeIdent("match", here),
+                    makePunc("!==", here),
+                    makeValue("undefined", here),
+                    makePunc("?", here),
+                    makeIdent("match", here),
+                    makePunc(":", here),
+                    makeDelim("{}", [], here)
+                ]), here)
+            ]);
+
+            return {
+                result: res,
+                rest: stx.slice(3)
+            }
+        }
+    }
+}
+
+
+
+stxrec stxrec {
+    function(st) {
+        var name_stx = st[0];
         var here = quoteSyntax{here};
         var mac_name_stx;
         var body_inner_stx;
@@ -417,18 +479,18 @@ let macro = macro {
         var makeIdentityRule = patternModule.makeIdentityRule;
         var rest;
 
-        if (stx[1] && stx[1].token.type === parser.Token.Delimiter &&
-            stx[1].token.value === "{}") {
+        if (st[1] && st[1].token.type === parser.Token.Delimiter &&
+            st[1].token.value === "{}") {
             mac_name_stx = null;
-            body_stx = stx[1];
-            body_inner_stx = stx[1].token.inner;
-            rest = stx.slice(2);
+            body_stx = st[1];
+            body_inner_stx = st[1].token.inner;
+            rest = st.slice(2);
         } else {
             mac_name_stx = [];
-            mac_name_stx.push(stx[1]);
-            body_stx = stx[2];
-            body_inner_stx = stx[2].token.inner;
-            rest = stx.slice(3);
+            mac_name_stx.push(st[1]);
+            body_stx = st[2];
+            body_inner_stx = st[2].token.inner;
+            rest = st.slice(3);
         }
 
         function makeFunc(params, body) {
@@ -466,7 +528,7 @@ let macro = macro {
 
             var translatedDef = [
                 makeKeyword("return", here),
-                takeLine(here[0], makeIdent("syntax", name_stx)),
+                takeLine(here[0], makeIdent("syntax", here)),
                 makeDelim("{}", def, here)
             ];
 
@@ -481,14 +543,14 @@ let macro = macro {
         if (body_inner_stx[0] && body_inner_stx[0].token.value === "function") {
 
             if (mac_name_stx) {
-                var res = [makeIdent("macro", here)].concat(mac_name_stx).concat(body_stx)
+                var res = [makeIdent("stxrec", null)].concat(mac_name_stx).concat(body_stx)
                 return {
                     result: res,
                     rest: rest
                 };
             } else {
                 var res = [
-                    makeIdent("macro", here),
+                    makeIdent("stxrec", null),
                     body_stx
                 ];
                 return {
@@ -529,26 +591,26 @@ let macro = macro {
             rules = body_stx;
         }
 
-        var stxSyntaxCase = takeLine(here[0], makeIdent("syntaxCase", name_stx));
+        var stxSyntaxCase = takeLine(here[0], makeIdent("syntaxCase", here));
         var res = mac_name_stx
-            ? [makeIdent("macro", here)].concat(mac_name_stx)
-            : [makeIdent("macro", here)];
-        res = res.concat(makeDelim("{}", makeFunc([makeIdent("stx", name_stx),
+            ? [makeIdent("stxrec", null)].concat(mac_name_stx)
+            : [makeIdent("stxrec", null)];
+        res = res.concat(makeDelim("{}", makeFunc([makeIdent("st", here),
                                                    makePunc(",", here),
-                                                   makeIdent("context", name_stx),
+                                                   makeIdent("context", here),
                                                    makePunc(",", here),
-                                                   makeIdent("prevStx", name_stx),
+                                                   makeIdent("prevStx", here),
                                                    makePunc(",", here),
-                                                   makeIdent("prevTerms", name_stx)],
+                                                   makeIdent("prevTerms", here)],
                                                    [makeKeyword("return", here),
                                                     stxSyntaxCase,
-                                                    makeDelim("()", [makeIdent("stx", name_stx),
+                                                    makeDelim("()", [makeIdent("st", here),
                                                                      makePunc(",", here),
-                                                                     makeIdent("context", name_stx),
+                                                                     makeIdent("context", here),
                                                                      makePunc(",", here),
-                                                                     makeIdent("prevStx", name_stx),
+                                                                     makeIdent("prevStx", here),
                                                                      makePunc(",", here),
-                                                                     makeIdent("prevTerms", name_stx)], here),
+                                                                     makeIdent("prevTerms", here)], here),
                                                     rules]),
                                     here));
 
@@ -560,7 +622,22 @@ let macro = macro {
     }
 }
 
-macro withSyntax_done {
+// stx let {
+//     rule { $name = macro { $body ...} } => {
+//         stx $name { $body ... }
+//     }
+//     rule { $else ... } => { let $else ...}
+// }
+//
+// stx macro {
+//     rule { $name { $body ...} } => {
+//         stxrec $name { $body ... }
+//     }
+// }
+
+
+
+stxrec withSyntax_done {
     case { _ $ctx ($vars ...) {$rest ...} } => {
         var ctx = #{ $ctx };
         var here = #{ here };
@@ -576,7 +653,7 @@ macro withSyntax_done {
 
             if (repeat) {
                 res.push(
-                    makeIdent('match', ctx),
+                    makeIdent('match', here),
                     makePunc('.', here),
                     makeIdent('patternEnv', here),
                     makeDelim('[]', [makeValue(name.token.value, here)], here),
@@ -595,7 +672,7 @@ macro withSyntax_done {
                 );
             } else {
                 res.push(
-                    makeIdent('match', ctx),
+                    makeIdent('match', here),
                     makePunc('.', here),
                     makeIdent('patternEnv', here),
                     makeDelim('[]', [makeValue(name.token.value, here)], here),
@@ -609,18 +686,38 @@ macro withSyntax_done {
             }
         }
 
-        res = res.concat(rest);
+        var body = localExpand(rest, quoteSyntax{syntax});
+        function traverse(stx, f) {
+            return stx.reduce(function(acc, stx) {
+                if (stx.token.inner) {
+                    stx.token.inner = traverse(stx.token.inner, f);
+                    return acc.concat(stx);
+                }
+                return acc.concat(f(stx));
+            }, []);
+        }
+        body = traverse(body, function(stx) {
+            // should be free-identifiers
+            if (stx.token.value === "syntax" && stx.isIdentifier()) {
+                debugger;
+                // return quoteSyntax {bindSyntax match};
+                return [makeIdent("bindSyntax", here), makeIdent("match", here)];
+            }
+            return stx;
+        });
+
+        res = res.concat(body);
         res = [
             makeDelim("()", [
                 makeKeyword("function", here),
-                makeDelim("()", [makeIdent("match", ctx)], here),
+                makeDelim("()", [makeIdent("match", here)], here),
                 makeDelim("{}", res, here)
             ], here),
             makeDelim("()", [
                 makeIdent("patternModule", here),
                 makePunc(".", here),
                 makeIdent("cloneMatch", here),
-                makeDelim("()", [makeIdent("match", ctx)], here)
+                makeDelim("()", [makeIdent("__communicateMatch", here), makeDelim("{}", [], here)], here)
             ], here)
         ];
 
@@ -628,7 +725,7 @@ macro withSyntax_done {
     }
 }
 
-macro withSyntax_bind {
+stxrec withSyntax_bind {
     rule { $name:ident $[...] = $rhs:expr } => {
         $name (true) $rhs
     }
@@ -637,7 +734,7 @@ macro withSyntax_bind {
     }
 }
 
-let withSyntax = macro {
+stxnonrec withSyntax {
     case { $name ($binders:withSyntax_bind (,) ...) { $body ... } } => {
         return #{
             withSyntax_done $name ($binders ...) { $body ... }
@@ -652,7 +749,7 @@ let withSyntax = macro {
     }
 }
 
-macro letstx_bind {
+stxrec letstx_bind {
     rule { $name:ident = $rhs:expr , $more:letstx_bind } => {
         $name () $rhs $more
     }
@@ -673,7 +770,7 @@ macro letstx_bind {
     }
 }
 
-let letstx = macro {
+stxnonrec letstx {
     case { $name $binders:letstx_bind $rest ... } => {
         return #{
             return withSyntax_done $name ($binders) { $rest ... }
@@ -682,9 +779,9 @@ let letstx = macro {
 }
 
 
-macro macroclass {
+stxrec macroclass {
     rule { $name:ident { $decls:macroclass_decl ... } } => {
-        macro $name {
+        stxrec $name {
             function (stx, context, prevStx, prevTerms) {
                 var name_stx = stx[0];
                 var match;
@@ -694,7 +791,7 @@ macro macroclass {
     }
 }
 
-macro macroclass_decl {
+stxrec macroclass_decl {
     rule { $kw:[name] = $name:lit ;... } => {
         ($kw $name)
     }
@@ -706,7 +803,7 @@ macro macroclass_decl {
     }
 }
 
-macro macroclass_modifier {
+stxrec macroclass_modifier {
     rule { $kw:[name] = $name:lit ;... } => {
         ($kw $name)
     }
@@ -719,17 +816,17 @@ macro macroclass_modifier {
     rule { ; ;... } => { }
 }
 
-macro macroclass_with_lhs {
+stxrec macroclass_with_lhs {
     rule { $name:ident $[...] }
     rule { $name:ident }
 }
 
-macro macroclass_with_rhs {
+stxrec macroclass_with_rhs {
     rule { #{ $stx ... } }
     rule { $code:expr }
 }
 
-macro macroclass_create {
+stxrec macroclass_create {
     function(stx, context, prevStx, prevTerms) {
         var here = quoteSyntax { here };
         var macName = stx[0];
@@ -738,6 +835,7 @@ macro macroclass_create {
         var ctxName = stx[3];
         var matchName = stx[4];
         var decls = stx[5].token.inner;
+        throwSyntaxCaseError('macroclass', 'not currently implemented', macName);
         var mclass = decls.reduce(function(m, decl) {
             var tag = unwrapSyntax(decl.token.inner[0]);
             if (tag === 'name') {
@@ -836,7 +934,7 @@ macro macroclass_create {
                     matchName, makePunc('.', here), makeIdent('success', here)
                 ], here), makeDelim('{}', inner, here)
             ];
-          
+
             return stx.concat(res);
 
         }, []);
@@ -857,40 +955,40 @@ macro macroclass_create {
 }
 
 
-macro safemacro {
-    rule { $name:ident { rule $body ... } } => {
-        let $name = macro {
-            rule { : } => { $name : }
-            rule infix { . | } => { . $name }
-            rule $body ...
-        }
-    }
-    rule { $name:ident { case $body ... } } => {
-        let $name = macro {
-            case { _ : } => { return #{ $name : } }
-            case infix { . | _ } => { return #{ . $name } }
-            case $body ...
-        }
-    }
-}
+// stxrec safemacro {
+//     rule { $name:ident { rule $body ... } } => {
+//         let $name = macro {
+//             rule { : } => { $name : }
+//             rule infix { . | } => { . $name }
+//             rule $body ...
+//         }
+//     }
+//     rule { $name:ident { case $body ... } } => {
+//         let $name = macro {
+//             case { _ : } => { return #{ $name : } }
+//             case infix { . | _ } => { return #{ . $name } }
+//             case $body ...
+//         }
+//     }
+// }
 
-macro op_assoc {
+stxrec op_assoc {
     rule { left }
     rule { right }
 }
 
-macro op_name {
+stxrec op_name {
     rule { ($name ...) }
     rule { $name } => { ($name) }
 }
 
-safemacro operator {
+stxnonrec operator {
     rule {
         $name:op_name $prec:lit $assoc:op_assoc
         { $left:ident, $right:ident } => #{ $body ... }
     } => {
         binaryop $name $prec $assoc {
-            macro {
+            stxrec _ {
                 rule { ($left:expr) ($right:expr) } => { $body ... }
             }
         }
@@ -899,66 +997,23 @@ safemacro operator {
         $name:op_name $prec:lit { $op:ident } => #{ $body ... }
     } => {
         unaryop $name $prec {
-            macro {
+            stxrec _ {
                 rule { $op:expr } => { $body ... }
             }
         }
     }
 }
 
-// macro __log {
-//     case { _ defctx $stx } => {
-//         var context = #{ $stx }[0].context;
-//         console.log("defctx context for " + unwrapSyntax(#{$stx}) + "]");
-//         while (context) {
-//             if (context.defctx) {
-//                 console.log(context.defctx.map(function(d) {
-//                     return d.id.token.value
-//                 }));
-//             }
-//             context = context.context;
-//         }
-//         return [];
-//     }
-//     case {_ rename $stx } => {
-//         var context = #{ $stx }[0].context;
-//         console.log("rename context for " + unwrapSyntax(#{$stx}) + ":");
-//         while (context) {
-//             if (context.name) {
-//                 console.log("[name: " + context.name + ", id: " + context.id.token.value + "]");
-//             }
-//             context = context.context;
-//         }
-//         return [];
-//     }
-//     case {_ all $stx } => {
-//         var context = #{ $stx }[0].context;
-//         console.log("context for " + unwrapSyntax(#{$stx}) + ":");
-//         while (context) {
-//             if (context.name) {
-//                 console.log("rename@[name: " + context.name + ", id: " + context.id.token.value + "]");
-//             }
-//             if (context.mark) {
-//                 console.log("mark@[mark: " + context.mark + "]");
-//             }
-//             if (context.defctx) {
-//                 console.log("defctx@[" + context.defctx.map(function(d) {
-//                     return d.id.token.value
-//                 }) + "]");
-//             }
-//             context = context.context;
-//         }
-//         return [];
-//     }
-// }
-// export __log;
 
 export {
     quoteSyntax,
     syntax,
     #,
     syntaxCase,
-    macro,
+    // macro,
+    // let,
+    stxnonrec,
+    stxrec,
     withSyntax,
     letstx,
     macroclass,

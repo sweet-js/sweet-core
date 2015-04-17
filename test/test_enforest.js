@@ -20,7 +20,7 @@ describe("enforest", function() {
     });
 
     it("should enforest a macro definition", function() {
-        var res = enforest(read("macro id { case $x => { $x } } fun"), mkContext());
+        var res = enforest(read("stxrec id { case $x => { $x } } fun"), mkContext());
         expect(res.result.name.token.inner[0].token.value).to.be("id");
         expect(res.result.body.length).to.be(4);
         expect(res.rest[0].token.value).to.be("fun")

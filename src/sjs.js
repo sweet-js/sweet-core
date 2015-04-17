@@ -4,19 +4,12 @@ var path = require("path");
 var pkg = require('../package.json');
 var sweet = require("./sweet.js");
 var syn = require("./syntax.js");
-var esTranspiler = require("es6-module-transpiler");
-var Container = esTranspiler.Container;
-var FileResolver = esTranspiler.FileResolver;
-var BundleFormatter = esTranspiler.formatters.bundle;
 
 
 var argv = require("optimist")
     .usage("Usage: sjs [options] path/to/file.js")
     .alias('o', 'output')
     .describe('o', 'write files to the specified directory')
-    .alias('e', 'transpile')
-    .describe('e', 'use es6-module-transpiler to transpile modules into a bundle')
-    .boolean('transpile')
     .alias('m', 'sourcemap')
     .describe('m', 'generate a sourcemap')
     .boolean("sourcemap")
@@ -46,7 +39,10 @@ var argv = require("optimist")
     .describe('format-indent', 'number of spaces for indentation')
     .alias('l', 'load-readtable')
     .describe('load-readtable', 'readtable module to install')
-    .describe("to-es5", "run output through 6to5 compiler")
+    .alias('b', 'babel')
+    .describe('babel', 'run output through babel compiler')
+    .boolean('babel')
+    .describe('babel-modules', 'have babel output with specified module formatter')
     .alias('v', 'version')
     .describe('v', 'display version info')
     .boolean('version')
@@ -71,7 +67,8 @@ exports.run = function() {
     var readableNames = argv['readable-names'];
     var formatIndent = parseInt(argv['format-indent'], 10);
     var readtableModules = argv['load-readtable'];
-    var to5 = argv['to-es5'];
+    var babel = argv['babel'];
+    var babelModules = argv['babel-modules'];
     if (formatIndent !== formatIndent) {
         formatIndent = 4;
     }
@@ -105,7 +102,8 @@ exports.run = function() {
         compileSuffix: ".jsc",
         ast: ast,
         sourceMap: sourcemap,
-        to5: to5,
+        babel: babel,
+        babelModules: babelModules,
         readableNames: readableNames,
         escodegen: {
             format: {
@@ -141,16 +139,6 @@ exports.run = function() {
             }
         });
 
-        // todo: waiting for https://github.com/esnext/es6-module-transpiler/pull/181
-        // if (transpile) {
-        //     var container = new Container({
-        //         resolvers: [new FileResolver(['../sweet.js'])],
-        //         formatter: new BundleFormatter()
-        //     });
-        //     console.log("transpiling: " + "./" + infile + options.compileSuffix);
-        //     container.getModule("./" + infile + options.compileSuffix);
-        //     container.write('mylib.js');
-        // }
     }
 
     if (watch && writeToDisk) {

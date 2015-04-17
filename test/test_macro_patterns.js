@@ -1,9 +1,21 @@
 #lang "../macros/stxcase.js";
 var expect = require("expect.js");
 
+stxnonrec macro {
+    rule { $name { $body ...} } => {
+        stxrec $name { $body ...}
+    }
+}
+
+stxnonrec let {
+    rule { $name = macro { $body ...} } => {
+        stxnonrec $name { $body ... }
+    }
+}
+
 describe("macro expander", function() {
     it("should expand a macro with an empty body", function() {
-        macro m {
+        stxrec m {
             case { _ () } => {
                 return #{}
             }
@@ -14,7 +26,7 @@ describe("macro expander", function() {
 
 
     it("should expand a macro with pattern `$x:lit`", function() {
-        macro id {
+        stxrec id {
             case { _ ($x:lit) }  => {
                 return #{ $x }
             }
@@ -24,7 +36,7 @@ describe("macro expander", function() {
     });
 
     it("should expand a macro with pattern `=> $x:lit`", function() {
-        macro litid {
+        stxrec litid {
             case {_ (=> $x:lit)}  => {
                 return #{$x}
             }
@@ -470,20 +482,20 @@ describe("macro expander", function() {
 
     it("should allow macro defining macros", function() {
         macro mm {
-            case {_ ($x:lit) }=> {
+            case {_ $x }=> {
                 return #{
-                    macro m {
+                    macro $x {
                         case {_ ($y:lit)} => {
-                            return #{[$x, $y]}
+                            return #{[$y]}
                         }
                     }
                 }
             }
         }
 
-        mm (42)
+        mm m
         var z = m (24);
-        expect(z).to.eql([42,24])
+        expect(z).to.eql([24])
     });
 
     it("should allow matching of unparsed tokens", function() {
@@ -521,9 +533,9 @@ describe("macro expander", function() {
 
     it("should allow literal syntax with pattern var literals", function() {
         macro $test {
-            case {_ ($op (|) ...) }=> {
+            case {_ $name ($op (|) ...) }=> {
                 return #{
-                    macro rel {
+                    macro $name {
                         case {_ $x} => {return #{$x} }
                         $(case {_ ($x $op $y)} => { return #{1} }) ...
                     }
@@ -531,7 +543,7 @@ describe("macro expander", function() {
             }
         }
 
-        $test (<|>)
+        $test rel (<|>)
         rel(1 < 2 < 3)
     });
 
@@ -739,7 +751,7 @@ describe("macro expander", function() {
     });
 
     it("should work with multi punctuator infix macros", function() {
-        let (->) = macro {
+        stxnonrec (->) {
             rule infix { $arg:ident | $body:expr } => {
                 function($arg) { return $body }
             }
@@ -1082,7 +1094,7 @@ describe("macro expander", function() {
     it("should allow repeated delimiters match at least one", function() {
         macro m {
             rule { [$faz] ... }  => {
-                [$faz (,) ...]   
+                [$faz (,) ...]
             }
         }
 

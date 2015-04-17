@@ -1,7 +1,7 @@
 #lang "../../macros/stxcase.js";
 
 import { id, di } from "./id.js";
-import { map } from "./map.js" for macros;
+import { map } from "./map.js" for phase 1;
 import { (**) } from "./operators.js";
 import { (number?), (string?) } from "./multi-tok.js";
 
@@ -16,7 +16,7 @@ describe("importing modules", function() {
     });
 
     it("should import a runtime value from another module for macros", function() {
-        macro m {
+        stxrec m {
             case {_ } => {
                 var nums = map([1, 2, 3], function(n) {
                     return makeValue(n, #{here});

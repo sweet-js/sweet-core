@@ -37,11 +37,10 @@ var codegen = require('escodegen'),
     se = require('./scopedEval'),
     StringMap = require("./data/stringMap"),
     NameMap = require("./data/nameMap"),
+    BindingMap = require("./data/bindingMap"),
     SyntaxTransform = require("./data/transforms").SyntaxTransform,
     VarTransform = require("./data/transforms").VarTransform,
     resolve = require("./stx/resolve").resolve,
-    marksof = require("./stx/resolve").marksof,
-    arraysEqual = require("./stx/resolve").arraysEqual,
     makeImportEntries = require("./mod/importEntry").makeImportEntries,
     ExportEntry = require("./mod/exportEntry").ExportEntry,
     ModuleRecord = require("./mod/moduleRecord").ModuleRecord,
@@ -55,9 +54,15 @@ var throwSyntaxCaseError = syn.throwSyntaxCaseError;
 var SyntaxCaseError = syn.SyntaxCaseError;
 var unwrapSyntax = syn.unwrapSyntax;
 var makeIdent = syn.makeIdent;
+var makePunc = syn.makePunc;
+var makeDelim = syn.makeDelim;
+var makeValue = syn.makeValue;
 var adjustLineContext = syn.adjustLineContext;
 var fresh = syn.fresh;
+var freshScope = syn.freshScope;
 var makeMultiToken = syn.makeMultiToken;
+
+var Scope = syn.Scope;
 
 var TermTree                  = termTree.TermTree,
     EOFTerm                   = termTree.EOFTerm,
@@ -67,7 +72,7 @@ var TermTree                  = termTree.TermTree,
     ModuleTimeTerm            = termTree.ModuleTimeTerm,
     ModuleTerm                = termTree.ModuleTerm,
     ImportTerm                = termTree.ImportTerm,
-    ImportForMacrosTerm       = termTree.ImportForMacrosTerm,
+    ImportForPhaseTerm        = termTree.ImportForPhaseTerm,
     NamedImportTerm           = termTree.NamedImportTerm,
     DefaultImportTerm         = termTree.DefaultImportTerm,
     NamespaceImportTerm       = termTree.NamespaceImportTerm,
@@ -77,10 +82,10 @@ var TermTree                  = termTree.TermTree,
     ExportDefaultTerm         = termTree.ExportDefaultTerm,
     ExportDeclTerm            = termTree.ExportDeclTerm,
     CompileTimeTerm           = termTree.CompileTimeTerm,
-    LetMacroTerm              = termTree.LetMacroTerm,
     MacroTerm                 = termTree.MacroTerm,
-    AnonMacroTerm             = termTree.AnonMacroTerm,
+    ClassDeclarationTerm      = termTree.ClassDeclarationTerm,
     OperatorDefinitionTerm    = termTree.OperatorDefinitionTerm,
+    ForPhaseTerm              = termTree.ForPhaseTerm,
     VariableDeclarationTerm   = termTree.VariableDeclarationTerm,
     StatementTerm             = termTree.StatementTerm,
     EmptyTerm                 = termTree.EmptyTerm,
@@ -101,6 +106,7 @@ var TermTree                  = termTree.TermTree,
     TemplateTerm              = termTree.TemplateTerm,
     CallTerm                  = termTree.CallTerm,
     QuoteSyntaxTerm           = termTree.QuoteSyntaxTerm,
+    StopQuotedTerm            = termTree.StopQuotedTerm,
     PrimaryExpressionTerm     = termTree.PrimaryExpressionTerm,
     ThisExpressionTerm        = termTree.ThisExpressionTerm,
     LitTerm                   = termTree.LitTerm,
@@ -130,22 +136,6 @@ var availableModules;
 
 var push = Array.prototype.push;
 
-
-// wraps the array of syntax objects in the delimiters given by the second argument
-// ([...CSyntax], CSyntax) -> [...CSyntax]
-function wrapDelim(towrap, delimSyntax) {
-    assert(delimSyntax.isDelimiterToken(),
-                  "expecting a delimiter token");
-
-    return syntaxFromToken({
-        type: parser.Token.Delimiter,
-        value: delimSyntax.token.value,
-        inner: towrap,
-        range: delimSyntax.token.range,
-        startLineNumber: delimSyntax.token.startLineNumber,
-        lineStart: delimSyntax.token.lineStart
-    }, delimSyntax);
-}
 
 // (CSyntax) -> [...CSyntax]
 function getParamIdentifiers(argSyntax) {
@@ -188,7 +178,7 @@ function getUnaryOpPrec(op) {
         "void": 14,
         "delete": 14,
         "yield": 2
-    }
+    };
     return operatorPrecedence[op];
 }
 
@@ -217,7 +207,7 @@ function getBinaryOpPrec(op) {
         "|": 6,
         "&&": 5,
         "||":4
-    }
+    };
     return operatorPrecedence[op];
 }
 
@@ -246,7 +236,7 @@ function getBinaryOpAssoc(op) {
         "|": "left",
         "&&": "left",
         "||": "left"
-    }
+    };
     return operatorAssoc[op];
 }
 
@@ -302,32 +292,33 @@ function enforestImport(head, rest) {
     assert(unwrapSyntax(head) === "import", "only call for imports");
 
     var clause = enforestImportClauseList(rest);
+    var importRest;
     rest = clause.rest;
 
     if (rest[0] && unwrapSyntax(rest[0]) === "from" &&
         rest[1] && rest[1].isStringLiteral() &&
         rest[2] && unwrapSyntax(rest[2]) === "for" &&
-        rest[3] && unwrapSyntax(rest[3]) === "macros") {
-        var importRest;
-        if (rest[4] && rest[4].isPunctuator() &&
-            rest[4].token.value === ";") {
-            importRest = rest.slice(5);
+        rest[3] && unwrapSyntax(rest[3]) === "phase" &&
+        rest[4] && rest[4].isNumericLiteral()) {
+        if (rest[5] && rest[5].isPunctuator() &&
+            rest[5].token.value === ";") {
+            importRest = rest.slice(6);
         } else {
-            importRest = rest.slice(4);
+            importRest = rest.slice(5);
         }
 
         return {
-            result: ImportForMacrosTerm.create(head,
-                                               clause.result,
-                                               rest[0],
-                                               rest[1],
-                                               rest[2],
-                                               rest[3]),
+            result: ImportForPhaseTerm.create(head,
+                                              clause.result,
+                                              rest[0],
+                                              rest[1],
+                                              rest[2],
+                                              rest[3],
+                                              rest[4]),
             rest: importRest
         };
     } else if (rest[0] && unwrapSyntax(rest[0]) === "from" &&
                rest[1] && rest[1].isStringLiteral()) {
-        var importRest;
         if (rest[2] && rest[2].isPunctuator() &&
             rest[2].token.value === ";") {
             importRest = rest.slice(3);
@@ -459,16 +450,6 @@ function enforestParenExpression(parens, context) {
 
 
 
-// This should only be used on things that can't be rebound except by
-// macros (puncs, keywords).
-function resolveFast(stx, context, phase) {
-    var name = unwrapSyntax(stx);
-    if (context.env.hasName(name) || context.store.hasName(name)) {
-        return resolve(stx, phase);
-    }
-    return name;
-}
-
 function CompiletimeValue(trans, module, phase) {
     this.trans = trans;
     this.module = module;
@@ -487,7 +468,7 @@ function getCompiletimeValue(stx, context, phase) {
     if (env !== null) {
         return env.trans;
     } else {
-        store = context.store.getWithModule(stx, phase);
+        store = context.store.get(stx, phase);
         return store !== null ? store.trans : null;
     }
 }
@@ -500,8 +481,20 @@ function getSyntaxTransform(stx, context, phase) {
     return t;
 }
 
+function getVarTransform(stx, context, phase) {
+    var t = getCompiletimeValue(stx, context, phase);
+    if (t && t instanceof VarTransform) {
+        return t;
+    }
+    return null;
+}
+
 function hasSyntaxTransform(stx, context, phase) {
     return getSyntaxTransform(stx, context, phase) !== null;
+}
+
+function hasVarTransform(stx, context, phase) {
+    return getVarTransform(stx, context, phase) !== null;
 }
 
 // checks if a compiletime value exists in the env or store
@@ -527,10 +520,7 @@ function expandMacro(stx, context, opCtx, opType, macroObj) {
            + head.token.value);
 
 
-    // create a new mark to be used for the input to
-    // the macro
-    var newMark = fresh();
-    var transformerContext = makeExpanderContext(_.defaults({mark: newMark}, context));
+    var transformerContext = makeExpanderContext(_.defaults({mark: freshScope(context.bindings)}, context));
 
     // apply the transformer
     var rt;
@@ -580,7 +570,7 @@ function expandMacro(stx, context, opCtx, opType, macroObj) {
 
 
     if(rt.result.length > 0) {
-        var adjustedResult = adjustLineContext(rt.result, head);
+        let adjustedResult = adjustLineContext(rt.result, head);
         if (stx[0].token.leadingComments) {
             if (adjustedResult[0].token.leadingComments) {
                 adjustedResult[0].token.leadingComments = adjustedResult[0].token.leadingComments.concat(head.token.leadingComments);
@@ -600,23 +590,6 @@ function comparePrec(left, right, assoc) {
     return left < right;
 }
 
-
-// @ (SyntaxObject, SyntaxObject) -> Bool
-function toksAdjacent(a, b) {
-    var arange = a.token.sm_range || a.token.range || a.token.endRange;
-    var brange = b.token.sm_range || b.token.range || b.token.endRange;
-    return arange && brange && arange[1] === brange[0];
-}
-
-// @ (SyntaxObject, SyntaxObject) -> Bool
-function syntaxInnerValuesEq(synA, synB) {
-    var a = synA.token.inner, b = synB.token.inner;
-    return a.length === b.length &&
-        _.zip(a, b) |> ziped => _.all(ziped, pair => {
-            return unwrapSyntax(pair[0]) === unwrapSyntax(pair[1]);
-        });
-
-}
 
 // enforest the tokens, returns an object with the `result` TermTree and
 // the uninterpreted `rest` of the syntax
@@ -820,14 +793,14 @@ function enforest(toks, context, prevStx, prevTerms) {
                 }
             // Conditional ( x ? true : false)
             } else if (head.isExprTerm &&
-                       (rest[0] && resolveFast(rest[0], context, context.phase) === "?")) {
+                       (rest[0] && resolve(rest[0], context.phase) === "?")) {
                 var question = rest[0];
                 var condRes = enforest(rest.slice(1), context);
                 if (condRes.result) {
                     var truExpr = condRes.result;
                     var condRight = condRes.rest;
                     if (truExpr.isExprTerm &&
-                        condRight[0] && resolveFast(condRight[0], context, context.phase) === ":") {
+                        condRight[0] && resolve(condRight[0], context.phase) === ":") {
                         var colon = condRight[0];
                         var flsRes = enforest(condRight.slice(1), context);
                         var flsExpr = flsRes.result;
@@ -870,7 +843,7 @@ function enforest(toks, context, prevStx, prevTerms) {
                        head.delim.token.value === "()" &&
                        rest[0] &&
                        rest[0].isPunctuator() &&
-                       resolveFast(rest[0], context, context.phase) === "=>") {
+                       resolve(rest[0], context.phase) === "=>") {
                 var arrowRes = enforest(rest.slice(1), context);
                 if (arrowRes.result && arrowRes.result.isExprTerm) {
                     return step(ArrowFunTerm.create(head.delim,
@@ -887,7 +860,7 @@ function enforest(toks, context, prevStx, prevTerms) {
             } else if (head.isIdTerm &&
                        rest[0] &&
                        rest[0].isPunctuator() &&
-                       resolveFast(rest[0], context, context.phase) === "=>") {
+                       resolve(rest[0], context.phase) === "=>") {
                 var res = enforest(rest.slice(1), context);
                 if (res.result && res.result.isExprTerm) {
                     return step(ArrowFunTerm.create(head.id,
@@ -996,7 +969,6 @@ function enforest(toks, context, prevStx, prevTerms) {
             } else if (head.isIdTerm &&
                         unwrapSyntax(head.id) === "#quoteSyntax" &&
                         rest[0] && rest[0].token.value === "{}") {
-
                 return step(QuoteSyntaxTerm.create(rest[0]), rest.slice(1), opCtx);
             // return statement
             } else if (head.isKeywordTerm && unwrapSyntax(head.keyword) === "return") {
@@ -1029,28 +1001,11 @@ function enforest(toks, context, prevStx, prevTerms) {
                     normalizedName = syn.makeDelim("()", [rest[0]], rest[0]);
                 }
 
-                // Let macro
-                if (rest[1] && rest[1].token.value === "=" &&
-                    rest[2] && rest[2].token.value === "macro") {
-                    var mac = enforest(rest.slice(2), context);
-                    if(mac.result) {
-                        if (!mac.result.isAnonMacroTerm) {
-                            throwSyntaxError("enforest",
-                                             "expecting an anonymous macro definition in syntax let binding",
-                                             rest.slice(2));
-                        }
-                        return step(LetMacroTerm.create(normalizedName, mac.result.body),
-                                    mac.rest,
-                                    opCtx);
-                    }
-                // Let statement
-                } else {
-                    var lsRes = enforestVarStatement(rest, context, head.keyword);
-                    if (lsRes && lsRes.result) {
-                        return step(LetStatementTerm.create(head, lsRes.result),
-                                    lsRes.rest,
-                                    opCtx);
-                    }
+                var lsRes = enforestVarStatement(rest, context, head.keyword);
+                if (lsRes && lsRes.result) {
+                    return step(LetStatementTerm.create(head, lsRes.result),
+                                lsRes.rest,
+                                opCtx);
                 }
             // VariableStatement
             } else if (head.isKeywordTerm &&
@@ -1084,8 +1039,12 @@ function enforest(toks, context, prevStx, prevTerms) {
             var macroObj = expandCount < maxExpands &&
                 getSyntaxTransform([head].concat(rest), context, context.phase);
 
+            if (head && context.stopMap.has(resolve(head, context.phase))) {
+                return step(StopQuotedTerm.create(head, rest[0]),
+                            rest.slice(1),
+                            opCtx);
             // macro invocation
-            if (macroObj && typeof macroObj.fn === "function" && !macroObj.isOp) {
+            } else if (macroObj && typeof macroObj.fn === "function" && !macroObj.isOp) {
                 var rt = expandMacro([head].concat(rest), context, opCtx, null, macroObj);
                 var newOpCtx = opCtx;
 
@@ -1100,19 +1059,10 @@ function enforest(toks, context, prevStx, prevTerms) {
                 } else {
                     return step(EmptyTerm.create(), rt.rest, newOpCtx);
                 }
-            // anon macro definition
-            } else if (head.isIdentifier() &&
-                       unwrapSyntax(head) === "macro" &&
-                       resolve(head, context.phase) === "macro" &&
-                       rest[0] && rest[0].token.value === "{}") {
-
-                return step(AnonMacroTerm.create(rest[0].token.inner),
-                            rest.slice(1),
-                            opCtx);
             // macro definition
             } else if (head.isIdentifier() &&
-                       unwrapSyntax(head) === "macro" &&
-                       resolve(head, context.phase) === "macro") {
+                       unwrapSyntax(head) === "stxrec" &&
+                       resolve(head, context.phase) === "stxrec") {
                 var normalizedName;
                 if (rest[0] && rest[0].isDelimiter() &&
                     rest[0].token.value === "()") {
@@ -1189,8 +1139,6 @@ function enforest(toks, context, prevStx, prevTerms) {
                        rest[3] && rest[3].isDelimiter() &&
                        rest[3].token.value === "{}") {
 
-                rest[2].token.inner = rest[2].token.inner;
-                rest[3].token.inner = rest[3].token.inner;
                 return step(NamedFunTerm.create(head, rest[0], rest[1],
                                             rest[2],
                                             rest[3]),
@@ -1204,14 +1152,23 @@ function enforest(toks, context, prevStx, prevTerms) {
                       rest[1] && rest[1].isDelimiter() &&
                       rest[1].token.value === "{}") {
 
-                rest[0].token.inner = rest[0].token.inner;
-                rest[1].token.inner = rest[1].token.inner;
                 return step(AnonFunTerm.create(head,
                                             null,
                                             rest[0],
                                             rest[1]),
                             rest.slice(2),
                             opCtx);
+            // } else if(head.isKeyword() &&
+            //           unwrapSyntax(head) === "class" &&
+            //           rest[0] && rest[0].isIdentifier() &&
+            //           rest[1] && rest[1].isDelimiter() &&
+            //           rest[1].token.value === "{}") {
+            //
+            //     return step(ClassDeclarationTerm.create(head,
+            //                                             rest[0],
+            //                                             rest[1]),
+            //                 rest.slice(2),
+            //                 opCtx);
             // anonymous generator function definition
             } else if(head.isKeyword() &&
                       unwrapSyntax(head) === "function" &&
@@ -1235,12 +1192,18 @@ function enforest(toks, context, prevStx, prevTerms) {
                         head.token.value === "()") ||
                        head.isIdentifier()) &&
                       rest[0] && rest[0].isPunctuator() &&
-                      resolveFast(rest[0], context, context.phase) === "=>" &&
+                      resolve(rest[0], context.phase) === "=>" &&
                       rest[1] && rest[1].isDelimiter() &&
                       rest[1].token.value === "{}") {
                 return step(ArrowFunTerm.create(head, rest[0], rest[1]),
                             rest.slice(2),
                             opCtx);
+            } else if (head.isIdentifier() &&
+                       head.token.value === "forPhase" &&
+                       rest[0] && rest[0].isNumericLiteral() &&
+                       rest[1] && rest[1].isDelimiter()) {
+                return step(ForPhaseTerm.create(rest[0], rest[1].token.inner),
+                            rest.slice(2), opCtx);
             // catch statement
             } else if (head.isKeyword() &&
                        unwrapSyntax(head) === "catch" &&
@@ -1323,7 +1286,7 @@ function enforest(toks, context, prevStx, prevTerms) {
 
         // Potentially an infix macro
         // This should only be invoked on runtime syntax terms
-        if (!head.isMacroTerm && !head.isLetMacroTerm && !head.isAnonMacroTerm && !head.isOperatorDefinitionTerm &&
+        if (!head.isMacroTerm && !head.isAnonMacroTerm && !head.isOperatorDefinitionTerm &&
             rest.length && hasSyntaxTransform(rest, context, context.phase) &&
             getSyntaxTransform(rest, context, context.phase).isOp === false) {
             var infLeftTerm = opCtx.prevTerms[0] && opCtx.prevTerms[0].isPartialTerm
@@ -1531,7 +1494,7 @@ function markIn(arr, mark) {
 
 function markDefOut(arr, mark, def) {
     return arr.map(function(stx) {
-        return stx.mark(mark).addDefCtx(def);
+        return stx.mark(mark);
     });
 }
 
@@ -1554,11 +1517,16 @@ function loadMacroDef(body, context, phase) {
         makePunc: syn.makePunc,
         makeDelim: syn.makeDelim,
         localExpand: function(stx, stop) {
-            assert(!stop || stop.length === 0,
-                   "localExpand stop lists are not currently supported");
-
+            stop = stop || [];
             var markedStx = markIn(stx, localCtx.mark);
-            var terms = expand(markedStx, localCtx);
+            var stopMap = new StringMap();
+            stop.forEach(stop => {
+                stopMap.set(resolve(stop, localCtx.phase), true);
+            })
+            var localExpandCtx = makeExpanderContext(_.extend({},
+                                                              localCtx,
+                                                              {stopMap: stopMap}))
+            var terms = expand(markedStx, localExpandCtx);
             var newStx = terms.reduce(function(acc, term) {
                 acc.push.apply(acc, term.destruct(localCtx, {stripCompileTerm: true}));
                 return acc;
@@ -1597,7 +1565,7 @@ function loadMacroDef(body, context, phase) {
                 rest: stx
             };
         },
-        getLit: function(stx) {
+    getLit: function(stx) {
             if (stx[0] && patternModule.typeIsLiteral(stx[0].token.type)) {
                 return {
                     success: true,
@@ -1617,6 +1585,9 @@ function loadMacroDef(body, context, phase) {
         prettyPrint: syn.prettyPrint,
         parser: parser,
         __fresh: fresh,
+        __freshScope: freshScope,
+        __scope: context.scope,
+        __bindings: context.bindings,
         _: _,
         patternModule: patternModule,
         getPattern: function(id) {
@@ -1654,13 +1625,7 @@ function loadMacroDef(body, context, phase) {
             macroGlobal[key] = val.trans.value;
         }
     });
-    var macroFn;
-    if (vm) {
-        macroFn = vm.runInNewContext("(function() { return " + bodyCode + " })()",
-                                     macroGlobal);
-    } else {
-        macroFn = scopedEval(bodyCode, macroGlobal);
-    }
+    let macroFn = scopedEval(bodyCode, macroGlobal);
 
     return function(stx, context, prevStx, prevTerms) {
         localCtx = context;
@@ -1705,29 +1670,36 @@ function expandToTermTree(stx, context) {
             // record the import in the module record for easier access
             var entries = context.moduleRecord.addImport(head);
             // load up the (possibly cached) import module
-            var importMod = loadImport(unwrapSyntax(head.from), context);
+            var importMod = loadImport(unwrapSyntax(head.from), context, context.moduleRecord.name);
             // visiting an imported module loads the compiletime values
             // into the compiletime environment for this phase
             context = visit(importMod.term, importMod.record, context.phase, context);
             // bind the imported names in the rest of the module
             // todo: how to handle references before an import?
-            rest = bindImportInMod(entries, rest, importMod.term, importMod.record, context, context.phase);
+            bindImportInMod(entries, importMod.record, context, context.phase);
         }
 
-        if (head.isImportForMacrosTerm) {
+        if (head.isImportForPhaseTerm) {
             // record the import in the module record for easier access
             var entries = context.moduleRecord.addImport(head);
             // load up the (possibly cached) import module
-            var importMod = loadImport(unwrapSyntax(head.from), context);
+            var importMod = loadImport(unwrapSyntax(head.from), context, context.moduleRecord.name);
             // invoking an imported module loads the runtime values
             // into the environment for this phase
-            context = invoke(importMod.term, importMod.record, context.phase + 1, context);
+            context = invoke(importMod.term, importMod.record, context.phase + head.phase.token.value, context);
             // visiting an imported module loads the compiletime values
             // into the compiletime environment for this phase
-            context = visit(importMod.term, importMod.record, context.phase + 1, context);
+            context = visit(importMod.term, importMod.record, context.phase + head.phase.token.value, context);
             // bind the imported names in the rest of the module
             // todo: how to handle references before an import?
-            rest = bindImportInMod(entries, rest, importMod.term, importMod.record, context, context.phase + 1);
+            bindImportInMod(entries, importMod.record, context, context.phase);
+        }
+
+        if (head.isForPhaseTerm) {
+            let phaseShiftedContext = makeExpanderContext(_.defaults({
+                phase: context.phase + head.phase.token.value
+            }, context));
+            head.body = expand(head.body, phaseShiftedContext);
         }
 
         if (((head.isExportDefaultTerm && head.decl.isMacroTerm) || head.isMacroTerm) && expandCount < maxExpands) {
@@ -1741,18 +1713,14 @@ function expandToTermTree(stx, context) {
             }
             // expand the body
             macroDecl.body = expand(macroDecl.body,
-                                    makeExpanderContext(_.extend({},
-                                                                 context,
-                                                                 {phase: context.phase + 1})));
+                                    makeExpanderContext(_.defaults({phase: context.phase + 1},
+                                                                   context)));
             //  and load the macro definition into the environment
             macroDefinition = loadMacroDef(macroDecl.body, context, context.phase + 1);
             var fullName = macroDecl.name.token.inner;
             var multiTokName = makeMultiToken(macroDecl.name);
-
-            addToDefinitionCtx([multiTokName],
-                               context.defscope,
-                               false,
-                               context.paramscope);
+            multiTokName = multiTokName.delScope(context.useScope);
+            context.bindings.add(multiTokName, fresh(), context.phase);
 
             context.env.set(multiTokName,
                             context.phase,
@@ -1764,42 +1732,6 @@ function expandToTermTree(stx, context) {
                                                  context.phase));
         }
 
-        if (head.isLetMacroTerm && expandCount < maxExpands) {
-            // raw function primitive form
-            if(!(head.body[0] && head.body[0].isKeyword() &&
-                 head.body[0].token.value === "function")) {
-                throwSyntaxError("load macro",
-                                 "Primitive macro form must contain a function for the macro body",
-                                 head.body);
-            }
-            // expand the body
-            head.body = expand(head.body,
-                               makeExpanderContext(_.extend({phase: context.phase + 1},
-                                                            context)));
-            //  and load the macro definition into the environment
-            macroDefinition = loadMacroDef(head.body, context, context.phase + 1);
-
-            var fullName = head.name.token.inner;
-            var multiTokName = makeMultiToken(head.name);
-
-            var freshName = fresh();
-            var renamedName = multiTokName.rename(multiTokName, freshName);
-
-            head.name = head.name.rename(multiTokName, freshName);
-
-            rest = _.map(rest, function(stx) {
-                return stx.rename(multiTokName, freshName);
-            });
-
-            context.env.set(renamedName,
-                            context.phase,
-                            new CompiletimeValue(new SyntaxTransform(macroDefinition,
-                                                                     false,
-                                                                     builtinMode,
-                                                                     fullName),
-                                                 context.moduleRecord.name,
-                                                 context.phase));
-        }
 
         if (head.isOperatorDefinitionTerm) {
             // raw function primitive form
@@ -1811,14 +1743,17 @@ function expandToTermTree(stx, context) {
             }
             // expand the body
             head.body = expand(head.body,
-                               makeExpanderContext(_.extend({phase: context.phase + 1},
-                                                            context)));
+                               makeExpanderContext(_.defaults({phase: context.phase + 1},
+                                                              context)));
             //  and load the macro definition into the environment
             var opDefinition = loadMacroDef(head.body, context, context.phase + 1);
 
             var fullName = head.name.token.inner;
             var multiTokName = makeMultiToken(head.name);
-            addToDefinitionCtx([multiTokName], context.defscope, false, context.paramscope);
+
+            multiTokName = multiTokName.delScope(context.useScope);
+            context.bindings.add(multiTokName, fresh(), context.phase);
+
             var opObj = getSyntaxTransform(multiTokName, context, context.phase);
             if (!opObj) {
                 opObj = {
@@ -1843,26 +1778,61 @@ function expandToTermTree(stx, context) {
                                                  context.phase));
         }
 
-        if (head.isNamedFunTerm) {
-            addToDefinitionCtx([head.name], context.defscope, true, context.paramscope);
+        if (head.isNamedFunTerm ||
+            (head.isExportDefaultTerm && head.decl.isNamedFunTerm) ||
+            (head.isExportDeclTerm && head.decl.isNamedFunTerm)) {
+            let funTerm = head.decl ? head.decl : head;
+            funTerm.name = funTerm.name.delScope(context.useScope);
+            context.bindings.add(funTerm.name, fresh(), context.phase);
+            context.env.set(funTerm.name,
+                            context.phase,
+                            new CompiletimeValue(new VarTransform(funTerm.name),
+                                                 context.moduleRecord.name,
+                                                 context.phase));
+
+            context.store.set(funTerm.name,
+                context.phase,
+                new CompiletimeValue(new VarTransform(funTerm.name),
+                    context.moduleRecord.name,
+                    context.phase));
         }
 
         if (head.isVariableStatementTerm ||
             head.isLetStatementTerm ||
             head.isConstStatementTerm) {
-            addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
-                               context.defscope,
-                               true,
-                               context.paramscope);
+            head.decls = head.decls.map(decl => {
+                decl.ident = decl.ident.delScope(context.useScope);
+                context.bindings.add(decl.ident, fresh(), context.phase);
+                context.env.set(decl.ident,
+                                context.phase,
+                                new CompiletimeValue(new VarTransform(decl.ident),
+                                                     context.moduleRecord.name,
+                                                     context.name));
+                context.store.set(decl.ident,
+                    context.phase,
+                    new CompiletimeValue(new VarTransform(decl.ident),
+                        context.moduleRecord.name,
+                        context.name));
+                return decl;
+            });
+            // addToDefinitionCtx(_.map(head.decls, function(decl) { return decl.ident; }),
+            //                    context.defscope,
+            //                    true,
+            //                    context.paramscope);
         }
 
         if(head.isBlockTerm && head.body.isDelimiterTerm) {
             head.body.delim.token.inner.forEach(function(term) {
                 if (term.isVariableStatementTerm) {
-                    addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
-                                       context.defscope,
-                                       true,
-                                       context.paramscope);
+                    term.decls = term.decls.map(decl => {
+                        decl.ident = decl.ident.delScope(context.useScope);
+                        context.bindings.add(decl.ident, fresh(), context.phase);
+                        return decl;
+                    })
+                    // addToDefinitionCtx(_.map(term.decls, function(decl)  { return decl.ident; }),
+                    //                    context.defscope,
+                    //                    true,
+                    //                    context.paramscope);
                 }
             });
 
@@ -1871,10 +1841,15 @@ function expandToTermTree(stx, context) {
         if(head.isDelimiterTerm) {
             head.delim.token.inner.forEach(function(term)  {
                 if (term.isVariableStatementTerm) {
-                    addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
-                                       context.defscope,
-                                       true,
-                                       context.paramscope);
+                    term.decls = term.decls.map(decl => {
+                        decl.ident = decl.ident.delScope(context.useScope);
+                        context.bindings.add(decl.ident, fresh(), context.phase);
+                        return decl;
+                    })
+                    // addToDefinitionCtx(_.map(term.decls, function(decl) { return decl.ident; }),
+                    //                    context.defscope,
+                    //                    true,
+                    //                    context.paramscope);
 
                 }
             });
@@ -1926,58 +1901,6 @@ function expandToTermTree(stx, context) {
     };
 }
 
-function addToDefinitionCtx(idents, defscope, skipRep, paramscope) {
-    assert(idents && idents.length > 0, "expecting some variable identifiers");
-    // flag for skipping repeats since we reuse this function to place both
-    // variables declarations (which need to skip redeclarations) and
-    // macro definitions which don't
-    skipRep = skipRep || false;
-    _.chain(idents)
-        .filter(function(id) {
-            if (skipRep) {
-                /*
-                   When var declarations repeat in the same function scope:
-
-                   var x = 24;
-                   ...
-                   var x = 42;
-
-                   we just need to use the first renaming and leave the
-                   definition context as is.
-                */
-                var varDeclRep = _.find(defscope, function(def) {
-                    var stopName = def.name;
-                    return def.id.token.value === id.token.value &&
-                        arraysEqual(marksof(def.id.context, stopName),
-                                    marksof(id.context, stopName));
-                });
-                /*
-                    When var declaration repeat one of the function parameters:
-
-                    function foo(x) {
-                        var x;
-                    }
-
-                    we don't need to add the var to the definition context.
-                */
-                var paramDeclRep = _.find(paramscope, function(param) {
-                    var stopName = param.context.name;
-                    return param.token.value === id.token.value &&
-                        arraysEqual(marksof(param.context, stopName),
-                                    marksof(id.context, stopName));
-                });
-                return (typeof varDeclRep === 'undefined') &&
-                       (typeof paramDeclRep === 'undefined');
-            }
-            return true;
-        }).each(function(id) {
-            var name = fresh();
-            defscope.push({
-                id: id,
-                name: name
-            });
-        });
-}
 
 
 // similar to `parse2` in the honu paper except here we
@@ -2044,6 +1967,12 @@ function expandTermTreeToFinal (term, context) {
             term.id = syntaxFromToken(term.id.token, varTrans.id) ;
         }
         return term;
+    // } else if (term.isClassDeclarationTerm) {
+    //     let newScope = freshScope(context.bindings);
+    //     context.
+    //     term.body = term.body.mark(newScope);
+    //     term.body.token.inner = expand(term.body.token.inner, context);
+    //     return term;
     } else if (term.isNamedFunTerm ||
                term.isAnonFunTerm ||
                term.isCatchClauseTerm ||
@@ -2052,6 +1981,9 @@ function expandTermTreeToFinal (term, context) {
         // function definitions need a bunch of hygiene logic
         // push down a fresh definition context
         var newDef = [];
+
+        let scope = freshScope(context.bindings);
+        let useScope = freshScope(context.bindings);
 
         var paramSingleIdent = term.params && term.params.isIdentifier();
 
@@ -2069,24 +2001,27 @@ function expandTermTreeToFinal (term, context) {
         } else {
             bodies = term.body;
         }
-        bodies = bodies.addDefCtx(newDef);
+
 
         var paramNames = _.map(getParamIdentifiers(params), function(param) {
-            var freshName = fresh();
-            var renamed = param.rename(param, freshName);
-            context.env.set(renamed,
+            let paramNew = param.mark(scope);
+
+            context.bindings.add(paramNew, fresh(), context.phase);
+
+            context.env.set(paramNew,
                             context.phase,
-                            new CompiletimeValue(new VarTransform(renamed),
+                            new CompiletimeValue(new VarTransform(paramNew),
                                                  context.moduleRecord.name,
                                                  context.phase));
             return {
-                freshName: freshName,
                 originalParam: param,
-                renamedParam: renamed
+                renamedParam: paramNew
             };
         });
 
         var bodyContext = makeExpanderContext(_.defaults({
+            scope: scope,
+            useScope: useScope,
             defscope: newDef,
             // paramscope is used to filter out var redeclarations
             paramscope: paramNames.map(function(p) {
@@ -2095,11 +2030,7 @@ function expandTermTreeToFinal (term, context) {
         }, context));
 
 
-        // rename the function body for each of the parameters
-        var renamedBody = _.reduce(paramNames, function(accBody, p) {
-            return accBody.rename(p.originalParam, p.freshName)
-        }, bodies);
-        renamedBody = renamedBody;
+        var renamedBody = bodies.mark(scope);
 
         var expandedResult = expandToTermTree(renamedBody.token.inner, bodyContext);
         var bodyTerms = expandedResult.terms;
@@ -2144,9 +2075,9 @@ function expandTermTreeToFinal (term, context) {
                 // blocks defer macro expansion.
                 var blockFinal = expandTermTreeToFinal(bodyTerm,
                                                        expandedResult.context);
-                return blockFinal.addDefCtx(newDef);
+                return blockFinal;
             } else {
-                var termWithCtx = bodyTerm.addDefCtx(newDef);
+                var termWithCtx = bodyTerm;
                 // finish expansion
                 return expandTermTreeToFinal(termWithCtx,
                                              expandedResult.context);
@@ -2201,6 +2132,7 @@ function makeExpanderContext(o) {
 
     var env = o.env || new NameMap();
     var store = o.store || new NameMap();
+    var bindings = o.bindings || new BindingMap();
 
     return Object.create(Object.prototype, {
         filename: {value: o.filename,
@@ -2221,30 +2153,32 @@ function makeExpanderContext(o) {
                      writable: false, enumerable: true, configurable: false},
         mark: {value: o.mark,
                       writable: false, enumerable: true, configurable: false},
+        bindings: {value: bindings,
+                      writable: false, enumerable: true, configurable: false},
+        scope: {value: o.scope,
+                      writable: false, enumerable: true, configurable: false},
+        useScope: {value: o.useScope,
+                      writable: false, enumerable: true, configurable: false},
         phase: {value: o.phase || 0,
                       writable: false, enumerable: true, configurable: false},
         implicitImport: {value: o.implicitImport || new StringMap(),
+                         writable: false, enumerable: true, configurable: false},
+        stopMap: {value: o.stopMap || new StringMap(),
                          writable: false, enumerable: true, configurable: false},
         moduleRecord: {value: o.moduleRecord || {},
                        writable: false, enumerable: true, configurable: false}
     });
 }
 
-function makeModuleExpanderContext(filename, templateMap, patternMap, phase, moduleRecord, compileSuffix) {
+function makeModuleExpanderContext(filename, templateMap, patternMap, phase, moduleRecord, compileSuffix, bindings) {
     return makeExpanderContext({
         filename: filename,
         templateMap: templateMap,
         patternMap: patternMap,
         phase: phase,
         moduleRecord: moduleRecord,
-        compileSuffix: compileSuffix
-    });
-}
-
-function makeTopLevelExpanderContext(options) {
-    var filename = options && options.filename ? options.filename : "<anonymous module>";
-    return makeExpanderContext({
-        filename: filename,
+        compileSuffix: compileSuffix,
+        bindings: bindings
     });
 }
 
@@ -2265,21 +2199,28 @@ function resolvePath(name, parent) {
 
 // (Str) -> [...SyntaxObject]
 function defaultImportStx(importPath, ctx) {
-    var names = [
+    let rtNames = [
+        "stxnonrec",
+        "stxrec",
+        "macroclass",
+        "operator"
+    ]
+    var ctNames = [
         "quoteSyntax",
         "syntax",
         "#",
         "syntaxCase",
-        "macro",
+        "stxnonrec",
+        "stxrec",
         "withSyntax",
         "letstx",
         "macroclass",
         "operator"
     ];
 
-    var importNames = names.map(name => syn.makeIdent(name, ctx));
-    var importForMacrosNames = names.map(name => syn.makeIdent(name, ctx));
-    // import { names ... } from "importPath" for macros
+    var importNames = rtNames.map(name => syn.makeIdent(name, ctx));
+    var importForMacrosNames = ctNames.map(name => syn.makeIdent(name, ctx));
+    // import { names ... } from "importPath" for phase 1
     var importForMacrosStmt = [syn.makeKeyword("import", ctx),
                                syn.makeDelim("{}", joinSyntax(importForMacrosNames,
                                                               syn.makePunc(",", ctx)),
@@ -2287,7 +2228,8 @@ function defaultImportStx(importPath, ctx) {
                                syn.makeIdent("from", ctx),
                                syn.makeValue(importPath, ctx),
                                syn.makeKeyword("for", ctx),
-                               syn.makeIdent("macros", ctx)];
+                               syn.makeIdent("phase", ctx),
+                               syn.makeValue(1, ctx)];
 
     // import { names ... } from "importPath"
     var importStmt = [syn.makeKeyword("import", ctx),
@@ -2355,13 +2297,12 @@ function invoke(modTerm, modRecord, phase, context) {
         var exported = require(modRecord.name);
         Object.keys(exported).forEach(exp => {
             // create new bindings in the context
-            var freshName = fresh();
-            var expName = syn.makeIdent(exp, null);
-            var renamed = expName.imported(expName, expName, phase, modRecord.name);
+            var expName = syn.makeIdent(exp, null).mark(freshScope(context.bindings));
+            context.bindings.add(expName, fresh(), phase);
 
-            modRecord.exportEntries.push(new ExportEntry(null, renamed, renamed));
+            modRecord.exportEntries.push(new ExportEntry(null, expName, expName));
 
-            context.store.setWithModule(renamed,
+            context.store.setWithModule(expName,
                                         phase,
                                         modRecord.name,
                                         new RuntimeValue({value: exported[exp]},
@@ -2372,7 +2313,7 @@ function invoke(modTerm, modRecord, phase, context) {
         // recursively invoke any imports in this module at this
         // phase and update the context
         modRecord.importedModules.forEach(impPath => {
-            var importMod = loadImport(impPath, context);
+            var importMod = loadImport(impPath, context, modRecord.name);
 
             var impEntries = modRecord.getImportsForModule(impPath);
 
@@ -2397,96 +2338,36 @@ function invoke(modTerm, modRecord, phase, context) {
         // eval but with a fresh heap
         vm.runInNewContext(code, global);
 
+
+
         // update the exports with the runtime values
         modRecord.exportEntries.forEach(entry => {
             // we have to get the value with the localName
-            var expName = resolve(entry.localName, phase);
+            var expName = resolve(entry.localName, 0);
             var expVal = global[expName];
-            // and set it as the export name
-            context.store.setWithModule(entry.exportName.imported(entry.exportName, entry.exportName, phase, modRecord.name),
-                                        phase,
-                                        modRecord.name,
-                                        new RuntimeValue({value: expVal},
-                                                         modRecord.name,
-                                                         phase));
+            if (expVal) {
+                context.bindings.add(entry.exportName, fresh(), phase);
+                // and set it as the export name
+                context.store.set(entry.exportName,
+                                  phase,
+                                  new RuntimeValue({value: expVal},
+                                                   modRecord.name,
+                                                   phase));
+
+            }
         });
     }
 
     return context;
 }
 
+function visitTerms(terms, modRecord, phase, context) {
+    var name;
+    var macroDefinition;
+    var exportName;
+    var entries;
 
-// For a given module, phase, and context, load the compiletime values into
-// the context and return the modified context
-// @ (ModuleTerm, ModuleRecord, Num, ExpanderContext) -> ExpanderContext
-function visit(modTerm, modRecord, phase, context) {
-    let defctx = [];
-    // don't need to visit base modules since they do not support macros
-    if (modRecord.language === "base") {
-        return context;
-    }
-    // add a visiting definition context since we are binding
-    // macros in the module scope
-    modTerm.body = modTerm.body.map(term => term.addDefCtx(defctx));
-    // reset the exports
-    modRecord.exportEntries = [];
-
-    // for each of the imported modules, recursively visit and
-    // invoke them at the appropriate phase and then bind the
-    // imported names in this module
-    modRecord.importedModules.forEach(impPath => {
-        // load the (possibly cached) module for this import
-        var importMod = loadImport(impPath, context);
-        // grab all the import statements for that module
-        var impEntries = modRecord.getImportsForModule(impPath);
-
-        if(_.any(impEntries, entry => entry.forPhase === 0)) {
-            // importing for phase 0 just needs to visit (load
-            // compiletime values)
-            context = visit(importMod.term, importMod.record, phase, context);
-        } else if (_.any(impEntries, entry => entry.forPhase === 1)) {
-            // importing for phase 1 needs to visit (load compiletime
-            // values) and invoke (load runtime values for phase 1
-            // code)
-            context = invoke(importMod.term, importMod.record, phase + 1, context);
-            context = visit(importMod.term, importMod.record, phase + 1, context);
-        } else {
-            // todo: arbitrary phase
-            assert(false, "not implemented yet");
-        }
-
-        modTerm.body = bindImportInMod(impEntries,
-                                       modTerm.body,
-                                       importMod.term,
-                                       importMod.record,
-                                       context,
-                                       phase);
-    });
-
-    var transformerNames = [];
-
-    // grab hold of each top level syntax transformer name
-    modTerm.body.forEach(term => {
-        if (term.isMacroTerm) {
-            transformerNames.push(term.name[0]);
-        }
-        if (term.isLetMacroTerm) {
-            transformerNames.push(term.name[0]);
-        }
-
-        if (term.isOperatorDefinitionTerm) {
-            transformerNames.push(term.name[0]);
-        }
-
-    });
-
-    // load the transformers into the store
-    modTerm.body.forEach(term => {
-        var name;
-        var macroDefinition;
-        var exportName;
-        var entries;
-
+    terms.forEach(term => {
         // add the exported names to the module record
         if (term.isExportNameTerm ||
             term.isExportDeclTerm ||
@@ -2495,127 +2376,117 @@ function visit(modTerm, modRecord, phase, context) {
         }
 
 
-        if ((term.isExportDefaultTerm && term.decl.isMacroTerm) ||
-             term.isMacroTerm || term.isLetMacroTerm) {
+        if ((term.isExportDefaultTerm && term.decl.isMacroTerm) || term.isMacroTerm) {
             let multiTokName, fullName,
                 macBody = term.isExportDefaultTerm ? term.decl.body : term.body;
-            macroDefinition = loadMacroDef(macBody, context, phase + 1);
 
             if (term.isExportDefaultTerm) {
-                multiTokName = entries[0].exportName;
-                fullName = [entries[0].exportName];
+                multiTokName = entries[0].localName;
+                fullName = [entries[0].localName];
             } else {
                 multiTokName = makeMultiToken(term.name);
                 fullName = term.name.token.inner;
             }
 
-            // bind in the store for the current name (to catch implicits)
-            // var templateName = multiTokName.imported(multiTokName,
-            //                                          multiTokName,
-            //                                          phase - 1,
-            //                                          modRecord.name);
-            context.store.set(multiTokName,
-                              phase,
-                              new CompiletimeValue(
-                                  new SyntaxTransform(macroDefinition,
-                                                      false,
-                                                      builtinMode,
-                                                      fullName),
-                                  phase,
-                                  modRecord.name));
+            // todo: handle implicit imports
 
-            // bind in the store for the current phase
-            var phaseName = multiTokName.imported(multiTokName,
-                                                  multiTokName,
-                                                  phase,
-                                                  modRecord.name);
-            context.store.set(phaseName,
-                              phase,
-                              new CompiletimeValue(
-                                  new SyntaxTransform(macroDefinition,
-                                                      false,
-                                                      builtinMode,
-                                                      fullName),
-                                  phase,
-                                  modRecord.name));
+            if (!context.store.has(multiTokName, phase)) {
+                macroDefinition = loadMacroDef(macBody, context, phase + 1);
+
+                context.bindings.add(multiTokName, fresh(), phase);
+                context.store.set(multiTokName,
+                    phase,
+                    new CompiletimeValue(
+                        new SyntaxTransform(macroDefinition,
+                            false,
+                            builtinMode,
+                            fullName),
+                        phase,
+                        modRecord.name));
+            }
+        }
+
+        if (term.isForPhaseTerm) {
+            visitTerms(term.body, modRecord, phase + term.phase.token.value, context);
         }
 
         if (term.isOperatorDefinitionTerm) {
-            var opDefinition = loadMacroDef(term.body, context, phase + 1);
 
             var multiTokName = makeMultiToken(term.name);
             var fullName = term.name.token.inner;
 
-            var opObj = {
-                isOp: true,
-                builtin: builtinMode,
-                fullName: fullName
+            if (!context.store.has(multiTokName, phase)) {
+                var opDefinition = loadMacroDef(term.body, context, phase + 1);
+
+                var opObj = {
+                    isOp: true,
+                    builtin: builtinMode,
+                    fullName: fullName
+                }
+                assert(unwrapSyntax(term.type) === "binary" ||
+                    unwrapSyntax(term.type) === "unary",
+                    "operator must either be binary or unary");
+                opObj[unwrapSyntax(term.type)] = {
+                    fn: opDefinition,
+                    prec: term.prec.token.value,
+                    assoc: term.assoc ? term.assoc.token.value : null
+                };
+
+
+                // bind in the store for the current phase
+                context.bindings.add(multiTokName, fresh(), phase);
+                context.store.set(multiTokName,
+                    phase,
+                    new CompiletimeValue(opObj,
+                        phase,
+                        modRecord.name));
             }
-            assert(unwrapSyntax(term.type) === "binary" ||
-                   unwrapSyntax(term.type) === "unary",
-                   "operator must either be binary or unary");
-            opObj[unwrapSyntax(term.type)] = {
-                fn: opDefinition,
-                prec: term.prec.token.value,
-                assoc: term.assoc ? term.assoc.token.value : null
-            };
-
-            // bind in the store for the current name (to catch implicits)
-            context.store.set(multiTokName,
-                              phase,
-                              new CompiletimeValue(opObj,
-                                                   phase,
-                                                   modRecord.name));
-
-
-            // bind in the store for the current phase
-            var phaseName = multiTokName.imported(multiTokName,
-                                                  multiTokName,
-                                                  phase,
-                                                  modRecord.name)
-            context.store.set(phaseName,
-                              phase,
-                              new CompiletimeValue(opObj,
-                                                   phase,
-                                                   modRecord.name));
 
         }
+    })
 
+}
+
+
+// For a given module, phase, and context, load the compiletime values into
+// the context and return the modified context
+// @ (ModuleTerm, ModuleRecord, Num, ExpanderContext) -> ExpanderContext
+function visit(modTerm, modRecord, phase, context) {
+    // don't need to visit base modules since they do not support macros
+    if (modRecord.language === "base") {
+        return context;
+    }
+    // reset the exports
+    modRecord.exportEntries = [];
+
+    // for each of the imported modules, recursively visit and
+    // invoke them at the appropriate phase and then bind the
+    // imported names in this module
+    modRecord.importedModules.forEach(impPath => {
+        // load the (possibly cached) module for this import
+        let importMod = loadImport(impPath, context, modRecord.name);
+        // grab all the import statements for that module
+        let impEntries = modRecord.getImportsForModule(impPath);
+
+        let uniquePhases = _.uniq(impEntries.map(entry => entry.forPhase));
+        uniquePhases.forEach(impPhase => {
+            context = visit(importMod.term, importMod.record, phase + impPhase, context);
+            // don't need to invoke when importing for phase 0 (runtime)
+            if (impPhase > 0) {
+                context = invoke(importMod.term, importMod.record, phase + impPhase, context);
+            }
+        });
+
+        bindImportInMod(impEntries,
+                        importMod.record,
+                        context,
+                        phase);
     });
+
+    // load the transformers into the store
+    visitTerms(modTerm.body, modRecord, phase, context);
 
     return context;
-}
-
-// a version of map where the callback only runs on the non comma items in
-// the comma separated list.
-function mapCommaSep(l, f) {
-    return l.map((stx, idx) => {
-        if (idx % 2 !== 0 && ((!stx.isPunctuator()) ||
-                              stx.token.value !== ",")) {
-            throwSyntaxError("import",
-                             "expecting a comma separated list",
-                             stx);
-        } else if (idx % 2 !== 0) {
-            return stx;
-        } else {
-            return f(stx);
-        }
-    });
-}
-
-function filterModuleCommaSep(stx) {
-    return stx.filter((stx, idx) => {
-        if (idx % 2 !== 0 && ((!stx.isPunctuator()) ||
-                              stx.token.value !== ",")) {
-            throwSyntaxError("import",
-                             "expecting a comma separated list",
-                             stx);
-        } else if (idx % 2 !== 0) {
-            return false;
-        } else {
-            return true;
-        }
-    });
 }
 
 
@@ -2623,8 +2494,8 @@ function filterModuleCommaSep(stx) {
 //     term: ModuleTerm
 //     record: ModuleRecord
 // }
-function loadImport(path, context) {
-    var modFullPath = resolvePath(path, context.filename);
+function loadImport(path, context, parentPath) {
+    var modFullPath = resolvePath(path, parentPath);
     if(!availableModules.has(modFullPath)) {
         // load it
         var modToImport = loadModule(modFullPath)
@@ -2635,12 +2506,15 @@ function loadImport(path, context) {
                         record: mod.record
                     };
                 }
-                var expanded = expandModule(mod.term,
-                                            modFullPath,
-                                            context.templateMap,
-                                            context.patternMap,
-                                            mod.record,
-                                            context.compileSuffix);
+                let loadContext = makeExpanderContext(_.defaults({
+                    // need to expand with a fresh environment but we keep the store
+                    env: new NameMap(),
+                    // always expand from phase 0
+                    phase: 0,
+                    filename: modFullPath,
+                    moduleRecord: mod.record
+                }, context));
+                var expanded = expandModule(mod.term, loadContext);
                 return {
                     term: expanded.mod,
                     record: expanded.context.moduleRecord
@@ -2653,10 +2527,9 @@ function loadImport(path, context) {
 }
 
 
-// @ (ImportTerm, [...SyntaxObject], ModuleTerm, ModuleRecord, ExpanderContext, Num) -> Void
-function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
-    // first collect the import names and their associated bindings
-    var renamedNames = impEntries.map(entry => {
+// @ (ImportTerm, [...SyntaxObject], ModuleRecord, ExpanderContext, Num) -> Void
+function bindImportInMod(impEntries, modRecord, context, phase) {
+    impEntries.forEach(entry => {
         var isBase = modRecord.language === "base";
 
         var inExports = _.find(modRecord.exportEntries, expEntry => {
@@ -2670,93 +2543,46 @@ function bindImportInMod(impEntries, stx, modTerm, modRecord, context, phase) {
                              entry.importName);
         }
 
-        var exportName, trans, nameStr;
-        if (!inExports) {
-            // case when importing from a non ES6
-            // module but not for macros so the module
-            // was not invoked and thus nothing in the
-            // context for this name
-            trans = null;
-        } else {
+        var exportName;
+        if (inExports) {
             exportName = inExports.exportName;
-            trans = getSyntaxTransform(exportName, context, phase);
+        } else {
+            assert(false, "not implemented yet: missing export name")
         }
-        var localName = entry.localName;
-        var renamedLocal = localName.imported(localName,
-                                              exportName,
-                                              phase,
-                                              modRecord.name);
 
-        if (unwrapSyntax(entry.localName) !== unwrapSyntax(entry.importName)) {
-            context.store.set(renamedLocal,
-                              phase,
-                              context.store.get(exportName, phase));
-        }
-        entry.localName = renamedLocal;
-        return {
-            exportName: exportName,
-            localName: localName,
-            trans: trans,
-            entry: entry
-        };
-    });
-
-    // set the new bindings in the context
-    renamedNames.forEach(name => {
-        // setup a reverse map from each import name to
-        // the import term but only for runtime values
-        if (name.trans === null || (name.trans && name.trans.value)) {
-            var resolvedName = resolve(name.localName, phase);
-            context.implicitImport.set(resolvedName, name.entry);
+        // default imports of runtime values do not get a forwarding
+        if (entry.isDefault && !isCompiletimeName(inExports.localName, context)) {
+            entry.localName = entry.localName.delScope(context.useScope);
+            context.bindings.add(entry.localName, fresh(), phase + entry.forPhase);
+        } else {
+            context.bindings.addForward(entry.localName, inExports.localName, phase + entry.forPhase);
         }
     });
-
-    return stx.map(stx => renamedNames.reduce((acc, name) => {
-        return acc.imported(name.localName, name.exportName, phase, modRecord.name);
-    }, stx));
 }
 
-// (ModuleTerm, Str, Map, Map, ModuleRecord) -> {
-//     context: ExpanderContext,
-//     mod: ModuleTerm
-// }
-function expandModule(mod, filename, templateMap, patternMap, moduleRecord, compileSuffix) {
-    // create a new expander context for this module
-    var context = makeModuleExpanderContext(filename,
-                                            templateMap,
-                                            patternMap,
-                                            0,
-                                            moduleRecord,
-                                            compileSuffix);
+function expandModule(mod, context) {
     return {
         context: context,
         mod: expandTermTreeToFinal(mod, context)
     };
 }
 
-function isCompileName(stx, context) {
+function isRuntimeName(stx, context) {
     if (stx.isDelimiter()) {
-        return !hasSyntaxTransform(stx.token.inner, context, 0);
+        return hasVarTransform(stx.token.inner, context, 0);
     } else {
-        return !hasSyntaxTransform(stx, context, 0);
+        return hasVarTransform(stx, context, 0);
     }
 }
 
-function filterCompileNames(stx, context) {
-    assert(stx.isDelimiter(), "must be a delimter");
-
-    var runtimeNames = stx.token.inner
-        |> filterModuleCommaSep
-        |> names => names.filter(name => isCompileName(name, context));
-    var newInner = runtimeNames.reduce((acc, name, idx, orig) => {
-        acc.push(name);
-        if (orig.length - 1 !== idx) { // don't add trailing comma
-            acc.push(syn.makePunc(",", name));
-        }
-        return acc;
-    }, []);
-    return syn.makeDelim("{}", newInner, stx);
+function isCompiletimeName(stx, context) {
+    if (stx.isDelimiter()) {
+        return hasSyntaxTransform(stx.token.inner, context, 0);
+    } else {
+        return hasSyntaxTransform(stx, context, 0);
+    }
 }
+
 
 // Takes an expanded module term and flattens it.
 // @ (ModuleTerm, SweetOptions, TemplateMap, PatternMap) -> [...SyntaxObject]
@@ -2765,12 +2591,14 @@ function flattenModule(modTerm, modRecord, context) {
     // filter the imports to just the imports and names that are
     // actually available at runtime
     var imports = modRecord.getRuntimeImportEntries().filter(entry => {
-        return isCompileName(entry.localName, context);
+        return !isCompiletimeName(entry.localName, context);
     });
 
     var exports = modRecord.exportEntries.filter(entry => {
-        return isCompileName(entry.localName, context);
-    })
+        return isRuntimeName(entry.localName, context);
+    });
+
+    let eof;
 
     // filter out all of the import and export statements
     var output = modTerm.body.reduce((acc, term) => {
@@ -2778,7 +2606,11 @@ function flattenModule(modTerm, modRecord, context) {
             term.isExportDeclTerm ||
             term.isExportDefaultTerm ||
             term.isImportTerm ||
-            term.isImportForMacrosTerm) {
+            term.isImportForPhaseTerm) {
+            return acc;
+        }
+        if (term.isEOFTerm) {
+            eof = term.destruct(context);
             return acc;
         }
         return acc.concat(term.destruct(context, {stripCompileTerm: true}));
@@ -2799,7 +2631,7 @@ function flattenModule(modTerm, modRecord, context) {
                     imports.push(implicit);
                 }
             }
-            return stx
+            return stx;
         });
 
     // flatten everything
@@ -2811,30 +2643,16 @@ function flattenModule(modTerm, modRecord, context) {
                                   .concat(syn.makePunc(";", entry.moduleRequest))));
     }, []);
 
+    let flatExports = exports.reduce((acc, entry) => {
+            return acc.concat(flatten(entry.toTerm()
+                                           .destruct(context)
+                                           .concat(syn.makePunc(";", entry.localName))));
+    }, []);
+
     return {
         imports: imports.map(entry => entry.toTerm()),
-        body: flatImports.concat(output)
+        body: flatImports.concat(output).concat(flatExports).concat(eof)
     };
-}
-
-function flattenImports(imports, mod, context) {
-    return imports.reduce((acc, imp) => {
-        var modFullPath = resolvePath(unwrapSyntax(imp.from), context.filename);
-        if (availableModules.has(modFullPath)) {
-            var modPair = availableModules.get(modFullPath);
-            if (modPair.record.language === "base") { return acc; }
-
-            var flattened = flattenModule(modPair.term, modPair.record, context);
-            acc.push({
-                path: modFullPath,
-                code: flattened.body
-            });
-            acc = acc.concat(flattenImports(flattened.imports, mod, context))
-            return acc;
-        } else {
-            assert(false, "module was unexpectedly not available for compilation" + modFullPath);
-        }
-    }, []);
 }
 
 // The entry point to expanding with modules. Starting from the
@@ -2855,19 +2673,32 @@ function compileModule(stx, options) {
     var patternMap = new StringMap();
     availableModules = new StringMap();
 
-    var expanded = expandModule(mod.term,
-                                filename,
-                                templateMap,
-                                patternMap,
-                                mod.record,
-                                options.compileSuffix);
+    let context = makeExpanderContext({
+        filename: filename,
+        templateMap: templateMap,
+        patternMap: patternMap,
+        phase: 0,
+        moduleRecord: mod.record,
+        compileSuffix: options.compileSuffix
+    });
+
+    var expanded = expandModule(mod.term, context);
     var flattened = flattenModule(expanded.mod,
                                   expanded.context.moduleRecord,
                                   expanded.context);
 
-    var compiledModules = flattenImports(flattened.imports,
-                                         expanded.mod,
-                                         expanded.context);
+    let compiledModules = [];
+    availableModules.keys().forEach(modName => {
+        let mod = availableModules.get(modName);
+        if (mod.record.language !== "base") {
+            var flattened = flattenModule(mod.term, mod.record, expanded.context);
+            compiledModules.push({
+                path: modName,
+                code: flattened.body
+            });
+        }
+    });
+
     return [{
         path: filename,
         code: flattened.body

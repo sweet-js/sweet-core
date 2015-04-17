@@ -20,7 +20,10 @@ function ModuleRecord(name, language) {
 ModuleRecord.prototype.addImport = function(imp) {
     var entries = makeImportEntries(imp);
     this.importEntries = this.importEntries.concat(entries);
-    this.importedModules.push(imp.from.token.value);
+    if (!this.importedModules.some(mod => mod === imp.from.token.value)) {
+        // only add new imported modules to the imported array
+        this.importedModules.push(imp.from.token.value);
+    }
     return entries;
 };
 

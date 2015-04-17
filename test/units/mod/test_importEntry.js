@@ -64,7 +64,7 @@ describe("import entries", function() {
         var entry = makeImportEntries(t)[0];
 
         var originalParam = entry.localName;
-        var renamedParam = originalParam.rename(originalParam, -1);
+        var renamedParam = originalParam;
         entry.localName = renamedParam;
 
         expect(entry.toTerm().clause[0].names.token.inner[2]).to.be(renamedParam);

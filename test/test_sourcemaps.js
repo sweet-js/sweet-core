@@ -3,7 +3,7 @@ var expect = require("expect.js");
 var sm = require("source-map");
 var sweet = require("../build/lib/sweet");
 
-let describe = macro {
+stxnonrec describe {
     case {_ $description:lit { $body ... } } => {
         return syntax {
             describe($description, function() {
@@ -13,7 +13,7 @@ let describe = macro {
     }
 }
 
-let it = macro {
+stxnonrec it {
     case {_ $description:lit { $body ... }} => {
         return syntax {
             it($description, function() {
@@ -125,5 +125,5 @@ describe "source mapping" {
     //     expect(pos.column).to.be(32);
     // }
 
-    
+
 }

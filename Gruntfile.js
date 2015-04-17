@@ -15,7 +15,7 @@ module.exports = function(grunt) {
             dev: {
                 options: {
                     sourceMap: false,
-                    to5: true,
+                    babel: true,
                     compileFrom: "./lib/sweet",
                 },
                 files: [{
@@ -27,7 +27,7 @@ module.exports = function(grunt) {
             },
             release: {
                 options: {
-                    to5: true,
+                    babel: true,
                     compileFrom: "./lib/sweet"
                 },
                 files: [{
@@ -39,7 +39,8 @@ module.exports = function(grunt) {
             },
             tests: {
                 options: {
-                    compileFrom: "./build/lib/sweet"
+                    compileFrom: "./build/lib/sweet",
+                    readableNames: false
                 },
                 files: [{
                     expand: true,
@@ -75,7 +76,7 @@ module.exports = function(grunt) {
             single: {
                 options: {
                     sourceMap: false,
-                    to5: true,
+                    babel: true,
                     readableNames: false,
                     compileFrom: "./build/lib/sweet"
                 },
@@ -190,10 +191,10 @@ module.exports = function(grunt) {
         },
         pandoc: {
             options: {
-                pandocOptions: ["--to=html5",  
-                                "--standalone", 
-                                "--toc", 
-                                "--number-sections", 
+                pandocOptions: ["--to=html5",
+                                "--standalone",
+                                "--toc",
+                                "--number-sections",
                                 "--include-in-header=doc/main/style/main.css"]
             },
             files: {
@@ -278,7 +279,7 @@ module.exports = function(grunt) {
                 var output = sweet.compile(code, {
                     sourceMap: options.sourceMap,
                     filename: file,
-                    to5: options.to5,
+                    babel: options.babel,
                     readableNames: options.readableNames,
                     modules: modules
                 })[0];
@@ -304,7 +305,7 @@ module.exports = function(grunt) {
 
             });
         });
-        
+
     });
 
     grunt.registerTask("dist", ["build:release", "copy:dist"]);

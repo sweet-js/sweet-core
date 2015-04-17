@@ -1,5 +1,4 @@
 #lang "js";
-// import @ from "contracts.js"
 
 /*global require: true, exports:true
 */
@@ -8,6 +7,8 @@
 var _ = require("underscore"),
     parser = require("./parser"),
     expander = require("./expander"),
+    Immutable = require("immutable"),
+    StringMap = require("./data/stringMap"),
     assert = require("assert");
 
 
@@ -23,6 +24,8 @@ var nextFresh = 0;
 
 // @ () -> Num
 function fresh() { return nextFresh++; }
+
+function freshScope(bindings) { return new Scope(bindings); }
 
 // @ let Token = {
 //     type: ?Num,
@@ -40,123 +43,71 @@ function fresh() { return nextFresh++; }
 // }
 
 
-// (CSyntax, Str) -> CContext
-function Rename(id, name, ctx, defctx, phase) {
-    defctx = defctx || null;
 
-    this.id = id;
-    this.name = name;
-    this.context = ctx;
-    this.def = defctx;
-    this.instNum = globalContextInstanceNumber++;
-    this.phase = phase;
-}
+let scopeIndex = 0;
 
-// (Num) -> CContext
-function Mark(mark, ctx) {
-    this.mark = mark;
-    this.context = ctx;
-    this.instNum = globalContextInstanceNumber++;
-}
+class Scope {
+    constructor(bindings) {
+        assert(bindings, "must pass in the bindings");
+        // name is just for debugging, comparison of scopes is by object identity
+        this.name = scopeIndex++;
+        // each scope has a reference to the global binding map
+        // (for efficiency might be able to just store the relevant bindings)
+        this.bindings = bindings;
+    }
 
-function Def(defctx, ctx) {
-    this.defctx = defctx;
-    this.context = ctx;
-    this.instNum = globalContextInstanceNumber++;
-}
-
-function Imported(localName, exportName, phase, mod, ctx) {
-    this.localName = localName;
-    this.exportName = exportName;
-    this.phase = phase;
-    this.mod = mod;
-    this.context = ctx;
-    this.instNum = globalContextInstanceNumber++;
+    toString() {
+        return this.name;
+    }
 }
 
 function Syntax(token, oldstx) {
     this.token = token;
-    this.context = (oldstx && oldstx.context) ? oldstx.context : null;
-    this.deferredContext = (oldstx && oldstx.deferredContext) ? oldstx.deferredContext : null;
+    this.context = (oldstx && oldstx.context) ? oldstx.context : Immutable.List();
     this.props = (oldstx && oldstx.props) ? oldstx.props : {};
 }
 
 Syntax.prototype = {
-    // (Int) -> CSyntax
-    // non mutating
     mark: function(newMark) {
-        if (this.token.inner) {
-            this.token.inner = this.token.inner.map(function(stx) {
-                return stx.mark(newMark);
-            });
-            return syntaxFromToken(this.token, {context: new Mark(newMark, this.context),
-                                                props: this.props});
+        var next = this.clone();
+        if (next.token.inner) {
+            next.token.inner = next.token.inner.map(stx => stx.mark(newMark));
         }
-        return syntaxFromToken(this.token, {context: new Mark(newMark, this.context),
+        let newCtx;
+        if (next.context.first() === newMark) {
+            // double scopes cancel
+            newCtx = next.context.rest();
+        } else {
+            newCtx = next.context.unshift(newMark);
+        }
+        return syntaxFromToken(next.token, {context: newCtx,
                                             props: this.props});
     },
-
+    delScope: function(scope) {
+        var next = this.clone();
+        if (next.token.inner) {
+            next.token.inner = next.token.inner.map(stx => stx.delScope(scope));
+        }
+        return syntaxFromToken(next.token, {
+            context: next.context.filter(s => s !== scope),
+            props: next.props
+        });
+    },
     // (CSyntax or [...CSyntax], Str) -> CSyntax
     // non mutating
     rename: function(id, name, defctx, phase) {
-        // defer renaming of delimiters
-        if (this.token.inner) {
-            this.token.inner = this.token.inner.map(function(stx) {
-                return stx.rename(id, name, defctx, phase);
-            });
-            return syntaxFromToken(this.token,
-                                   {context: new Rename(id, name, this.context, defctx, phase),
-                                    props: this.props});
-        }
-
-        return syntaxFromToken(this.token,
-                               {context: new Rename(id, name, this.context, defctx, phase),
-                                props: this.props});
+        console.log("rename is deprecated no longer needed");
+        return this;
     },
 
-    imported: function(localName, exportName, phase, mod) {
-        if (this.token.inner) {
-            this.token.inner = this.token.inner.map(function(stx) {
-                return stx.imported(localName, exportName, phase, mod);
-            });
-            return syntaxFromToken(this.token,
-                                   {context: new Imported(localName,
-                                                          exportName,
-                                                          phase,
-                                                          mod,
-                                                          this.context),
-                                    props: this.props});
-
-        }
-        return syntaxFromToken(this.token, {context: new Imported(localName,
-                                                                  exportName,
-                                                                  phase,
-                                                                  mod,
-                                                                  this.context),
-                                            props: this.props});
-    },
 
     addDefCtx: function(defctx) {
-        if (this.token.inner) {
-            this.token.inner = this.token.inner.map(function(stx) {
-                return stx.addDefCtx(defctx);
-            });
-            return syntaxFromToken(this.token,
-                                   {context: new Def(defctx, this.context),
-                                    props: this.props});
-        }
-        return syntaxFromToken(this.token, {context: new Def(defctx, this.context),
-                                            props: this.props});
+        console.log("addDefCtx is deprecated no longer needed");
+        return this;
     },
 
     getDefCtx: function() {
-        var ctx = this.context;
-        while(ctx !== null) {
-            if (ctx instanceof Def) {
-                return ctx.defctx;
-            }
-            ctx = ctx.context;
-        }
+        console.log("getDefCtx is deprecated no longer needed");
         return null;
     },
 
@@ -645,10 +596,7 @@ exports.makeIdent = makeIdent;
 exports.makeRegex = makeRegex;
 exports.makeValue = makeValue;
 
-exports.Rename = Rename;
-exports.Mark = Mark;
-exports.Def = Def;
-exports.Imported = Imported;
+exports.Scope = Scope;
 
 exports.syntaxFromToken = syntaxFromToken;
 exports.tokensToSyntax = tokensToSyntax;
@@ -672,3 +620,4 @@ exports.throwSyntaxCaseError = throwSyntaxCaseError;
 exports.printSyntaxError = printSyntaxError;
 exports.adjustLineContext = adjustLineContext;
 exports.fresh = fresh;
+exports.freshScope = freshScope;

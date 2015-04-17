@@ -13,8 +13,6 @@ var _ = require("underscore"),
 function NameMap() {
     // stores compiletime values
     this._map = new StringMap();
-    // for fast path checking
-    this._names = new StringMap();
 }
 
 
@@ -22,7 +20,6 @@ NameMap.prototype.set = function(stx, phase, value) {
     assert(phase != null, "must provide a phase");
     assert(value != null, "must provide a value");
     // store the unresolved name string into the fast path lookup map
-    this._names.set(unwrapSyntax(stx), true);
     this._map.set(resolve(stx, phase), value);
 };
 
@@ -30,8 +27,6 @@ NameMap.prototype.setWithModule = function(stx, phase, module, value) {
     assert(phase != null, "must provide a phase");
     assert(value != null, "must provide a value");
     // store the unresolved name string into the fast path lookup map
-    this._names.set(unwrapSyntax(stx), true);
-    // this._map.set(resolve(stx, phase), value);
     this._map.set(resolve(stx, phase), value);
 };
 
@@ -77,24 +72,20 @@ function get(stxl, phase, module, withMod) {
     var name = getName(head, rest);
     // simple case, don't need to create a new syntax object
     if (name.length === 1) {
-        if (this._names.get(unwrapSyntax(name[0]))) {
-            resolvedName = resolve(name[0], phase);
-            // resolvedName = withMod ? resolvedName + "_p" + phase : resolvedName;
-            if (this._map.has(resolvedName)) {
-                return this._map.get(resolvedName);
-            }
+        resolvedName = resolve(name[0], phase);
+        // resolvedName = withMod ? resolvedName + "_p" + phase : resolvedName;
+        if (this._map.has(resolvedName)) {
+            return this._map.get(resolvedName);
         }
         return null;
     } else {
         while (name.length > 0) {
             var nameStr = name.map(unwrapSyntax).join("");
-            if (this._names.get(nameStr)) {
-                var nameStx = makeIdent(nameStr, name[0]);
-                resolvedName = resolve(nameStx, phase);
-                // resolvedName = withMod ? resolvedName + "_p" + phase : resolvedName;
-                if (this._map.has(resolvedName)) {
-                    return this._map.get(resolvedName);
-                }
+            var nameStx = makeIdent(nameStr, name[0]);
+            resolvedName = resolve(nameStx, phase);
+            // resolvedName = withMod ? resolvedName + "_p" + phase : resolvedName;
+            if (this._map.has(resolvedName)) {
+                return this._map.get(resolvedName);
             }
             name.pop();
         }
@@ -112,10 +103,6 @@ NameMap.prototype.getWithModule = function(stxl, phase, module) {
     return get.call(this, stxl, phase, module, true);
 };
 
-NameMap.prototype.hasName = function(stx) {
-    return this._names.has(unwrapSyntax(stx));
-};
-
 NameMap.prototype.has = function(stx, phase) {
     return this.get(stx, phase) !== null;
 };
@@ -126,9 +113,6 @@ NameMap.prototype.keysStr = function() {
 
 NameMap.prototype.getStr = function(key) {
     return this._map.get(key);
-};
-NameMap.prototype.hasName = function(name) {
-    return this._names.has(name);
 };
 
 module.exports = NameMap;

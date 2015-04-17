@@ -21,7 +21,7 @@ function inherit(parent, child, methods) {
     _.extend(child.prototype, methods);
 }
 
-macro cloned {
+stxrec cloned {
     rule { $dest:ident <- $source:expr ;... } => {
         var src = $source;
         var keys = Object.keys(src);
@@ -33,7 +33,7 @@ macro cloned {
     }
 }
 
-macro to_str {
+stxrec to_str {
     case { _ ($toks (,) ...) } => {
         var toks = #{ $toks ... };
         // We aren't using unwrapSyntax because it breaks since its defined
@@ -43,19 +43,19 @@ macro to_str {
     }
 }
 
-macro class_method {
+stxrec class_method {
     rule { $name:ident $args $body } => {
         to_str($name): function $args $body
     }
 }
 
-macro class_extend {
+stxrec class_extend {
     rule { $name $parent $methods } => {
         inherit($parent, $name, $methods);
     }
 }
 
-macro class_ctr {
+stxrec class_ctr {
     rule { $name ($field ...) } => {
         function $name($field (,) ...) {
             $(this.$field = $field;) ...
@@ -63,7 +63,7 @@ macro class_ctr {
     }
 }
 
-macro class_create {
+stxrec class_create {
     rule { $name ($arg (,) ...) } => {
         $name.properties = [$(to_str($arg)) (,) ...];
         $name.create = function($arg (,) ...) {
@@ -72,7 +72,7 @@ macro class_create {
     }
 }
 
-macro dataclass {
+stxrec dataclass {
     rule {
         $name:ident ($field:ident (,) ...) extends $parent:ident {
             $methods:class_method ...
@@ -209,47 +209,6 @@ dataclass TermTree() {
         }, []);
     }
 
-    addDefCtx(def) {
-        var self = this;
-        _.each(this.constructor.properties, function(prop) {
-            if (Array.isArray(self[prop])) {
-                self[prop] = _.map(self[prop], function (item) {
-                    return item.addDefCtx(def);
-                });
-            } else if (self[prop]) {
-                self[prop] = self[prop].addDefCtx(def);
-            }
-        });
-        return this;
-    }
-
-    rename(id, name, phase) {
-        var self = this;
-        _.each(this.constructor.properties, function(prop) {
-            if (Array.isArray(self[prop])) {
-                self[prop] = _.map(self[prop], function (item) {
-                    return item.rename(id, name, phase);
-                });
-            } else if (self[prop]) {
-                self[prop] = self[prop].rename(id, name, phase);
-            }
-        });
-        return this;
-    }
-
-    imported(id, name, phase, mod) {
-        var self = this;
-        _.each(this.constructor.properties, function(prop) {
-            if (Array.isArray(self[prop])) {
-                self[prop] = _.map(self[prop], function (item) {
-                    return item.imported(id, name, phase, mod);
-                });
-            } else if (self[prop]) {
-                self[prop] = self[prop].imported(id, name, phase, mod);
-            }
-        });
-        return this;
-    }
 }
 
 dataclass EOFTerm                   (eof)                               extends TermTree;
@@ -261,8 +220,8 @@ dataclass ModuleTimeTerm            ()                                  extends 
 
 dataclass ModuleTerm                (body)                              extends ModuleTimeTerm;
 dataclass ImportTerm                (kw, clause, fromkw, from)          extends ModuleTimeTerm;
-dataclass ImportForMacrosTerm       (kw, clause, fromkw, from,
-                                     forkw, macroskw)                   extends ModuleTimeTerm;
+dataclass ImportForPhaseTerm       (kw, clause, fromkw, from,
+                                    forkw, macroskw, phase)             extends ModuleTimeTerm;
 dataclass NamedImportTerm           (names)                             extends ModuleTimeTerm;
 dataclass DefaultImportTerm         (name)                              extends ModuleTimeTerm;
 dataclass NamespaceImportTerm       (star, askw, name)                  extends ModuleTimeTerm;
@@ -274,10 +233,9 @@ dataclass ExportDeclTerm            (kw, decl)                          extends 
 
 dataclass CompileTimeTerm           ()                                  extends TermTree;
 
-dataclass LetMacroTerm              (name, body)                        extends CompileTimeTerm;
 dataclass MacroTerm                 (name, body)                        extends CompileTimeTerm;
-dataclass AnonMacroTerm             (body)                              extends CompileTimeTerm;
 dataclass OperatorDefinitionTerm    (type, name, prec, assoc, body)     extends CompileTimeTerm;
+dataclass ForPhaseTerm              (phase, body)                       extends CompileTimeTerm;
 
 dataclass VariableDeclarationTerm   (ident, eq, init, comma)            extends TermTree;
 
@@ -286,6 +244,7 @@ dataclass StatementTerm             ()                                  extends 
 dataclass EmptyTerm                 ()                                  extends StatementTerm;
 dataclass CatchClauseTerm           (keyword, params, body)             extends StatementTerm;
 dataclass ForStatementTerm          (keyword, cond)                     extends StatementTerm;
+dataclass ClassDeclarationTerm      (keyword, name, body)               extends StatementTerm;
 dataclass ReturnStatementTerm       (keyword, expr)                     extends StatementTerm {
     destruct(context, options) {
         var expr = this.expr.destruct(context, options);
@@ -323,6 +282,7 @@ dataclass QuoteSyntaxTerm           (stx)                               extends 
 
     }
 }
+dataclass StopQuotedTerm            (name, body)                       extends ExprTerm;
 
 
 dataclass PrimaryExpressionTerm     ()                                  extends ExprTerm;
@@ -380,7 +340,7 @@ module.exports = {
     ModuleTimeTerm: ModuleTimeTerm,
     ModuleTerm: ModuleTerm,
     ImportTerm: ImportTerm,
-    ImportForMacrosTerm: ImportForMacrosTerm,
+    ImportForPhaseTerm: ImportForPhaseTerm,
     NamedImportTerm: NamedImportTerm,
     NamespaceImportTerm: NamespaceImportTerm,
     DefaultImportTerm: DefaultImportTerm,
@@ -390,10 +350,9 @@ module.exports = {
     ExportDefaultTerm: ExportDefaultTerm,
     ExportDeclTerm: ExportDeclTerm,
     CompileTimeTerm: CompileTimeTerm,
-    LetMacroTerm: LetMacroTerm,
     MacroTerm: MacroTerm,
-    AnonMacroTerm: AnonMacroTerm,
     OperatorDefinitionTerm: OperatorDefinitionTerm,
+    ForPhaseTerm: ForPhaseTerm,
     VariableDeclarationTerm: VariableDeclarationTerm,
     StatementTerm: StatementTerm,
     EmptyTerm: EmptyTerm,
@@ -414,6 +373,7 @@ module.exports = {
     TemplateTerm: TemplateTerm,
     CallTerm: CallTerm,
     QuoteSyntaxTerm: QuoteSyntaxTerm,
+    StopQuotedTerm: StopQuotedTerm,
     PrimaryExpressionTerm: PrimaryExpressionTerm,
     ThisExpressionTerm:ThisExpressionTerm,
     LitTerm: LitTerm,
@@ -426,6 +386,7 @@ module.exports = {
     BindingStatementTerm: BindingStatementTerm,
     VariableStatementTerm: VariableStatementTerm,
     LetStatementTerm: LetStatementTerm,
+    ClassDeclarationTerm: ClassDeclarationTerm,
     ConstStatementTerm: ConstStatementTerm,
     ParenExpressionTerm: ParenExpressionTerm
 };

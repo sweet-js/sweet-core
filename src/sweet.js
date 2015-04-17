@@ -23,6 +23,8 @@
   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+"use strict";
+
 
 var path        = require('path'),
     fs          = require('fs'),
@@ -36,7 +38,7 @@ var path        = require('path'),
     escope      = require("escope");
 
 
-macro (->) {
+stxrec (->) {
     rule infix { $param:ident | { $body ... } } => {
         function ($param) { $body ...}
     }
@@ -210,11 +212,17 @@ function compile(code, options) {
             };
         } |> (c) -> {
             var output = c;
-            if (options.to5) {
-                output = babel.transform(c.code, {
-                    blacklist: ["es6.tailCall"]
-                });
+            if (options.babel) {
+                let babelOptions = {
+                    blacklist: ["es6.tailCall"], // causing problems with enforest
+                    compact: false
+                };
+                if(options.babelModules) {
+                    babelOptions.modules = options.babelModules;
+                }
+                output = babel.transform(c.code, babelOptions);
                 return {
+                    path: c.path,
                     code: output.code,
                     sourceMap: output.map
                 };
@@ -361,3 +369,8 @@ exports.currentReadtable = currentReadtable;
 exports.loadNodeModule = loadNodeModule;
 exports.loadedMacros = loadedMacros;
 exports.loadMacro = loadMacro;
+
+// export {
+//     expand,
+//     compile
+// }

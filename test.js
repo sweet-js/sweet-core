@@ -1,5 +1,6 @@
-#lang "./macros/stxcase.js";
+#lang "js";
 
-import { id } from "./mod.js";
+import Foo from "./mod.js"
 
-id(42);
+Foo("hello");
+
