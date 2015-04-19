@@ -111,7 +111,7 @@
                 next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: to.token.value,
-                    inner: takeLineContext(from, to.token.inner),
+                    inner: to.token.inner,
                     startRange: from.token.startRange,
                     endRange: from.token.endRange,
                     startLineNumber: from.token.startLineNumber,
@@ -130,7 +130,7 @@
                 next = syntaxFromToken({
                     type: parser.Token.Delimiter,
                     value: to.token.value,
-                    inner: takeLineContext(from, to.token.inner),
+                    inner: to.token.inner,
                     startRange: from.token.range,
                     endRange: from.token.range,
                     startLineNumber: from.token.lineNumber,

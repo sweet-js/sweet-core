@@ -662,6 +662,20 @@ describe("macro expander", function() {
         expect(x).to.be(42);
     });
 
+    it("should work with ASI and pattern matching a delimiter", function() {
+        // throws parse error if ASI is wrong
+        let m  = macro {
+            rule { $body } => {
+                $body
+            }
+        }
+
+        m {
+            42
+            24
+        }
+    });
+
     it("should match tokens as is in literal groups", function() {
         let m = macro {
             rule { $a $[...] $b } => {
@@ -1247,4 +1261,5 @@ describe("macro expander", function() {
         expect(m [1 2] [2 3]).to.eql([3, 5]);
         expect(m []).to.eql([0]);
     });
+
 });
