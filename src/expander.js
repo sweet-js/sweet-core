@@ -2297,6 +2297,7 @@ function invoke(modTerm, modRecord, phase, context) {
         var exported = require(modRecord.name);
         Object.keys(exported).forEach(exp => {
             // create new bindings in the context
+            assert(false, "breadcrumb: number of things are wrong here");
             var expName = syn.makeIdent(exp, null).mark(freshScope(context.bindings));
             context.bindings.add(expName, fresh(), phase);
 
