@@ -2283,7 +2283,7 @@ function loadModule(name) {
     var fs = require("fs");
     return fs.readFileSync(name, 'utf8')
         |> parser.read |> body => {
-            return createModule(name, body)
+            return createModule(name, body);
         };
 
 }
@@ -2309,7 +2309,7 @@ function invoke(modTerm, modRecord, phase, context) {
                                         new RuntimeValue({value: exported[exp]},
                                                          modRecord.name,
                                                          phase));
-        })
+        });
     } else {
         // recursively invoke any imports in this module at this
         // phase and update the context
