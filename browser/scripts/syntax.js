@@ -89,6 +89,23 @@
             }
             return null;
         },
+        addLineComment: function (comment) {
+            var newComment = {
+                type: 'Line',
+                value: comment,
+                // hacky way to get around some bugs in esprima: https://github.com/mozilla/sweet.js/issues/468#issuecomment-95996634
+                range: [
+                    0,
+                    0
+                ]
+            };
+            if (this.token.leadingComments) {
+                this.token.leadingComments.push(newComment);
+            } else {
+                this.token.leadingComments = [newComment];
+            }
+            return this;
+        },
         expose: function () {
             assert(this.token.type === parser.Token.Delimiter, 'Only delimiters can be exposed');
             function applyContext(stxCtx, ctx) {
