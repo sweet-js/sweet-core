@@ -1401,26 +1401,21 @@ macro aif {
 
 ## How do I output comments?
 
-Comments in a rule macro or inside a `#{...}` template should "just work". If you want to create comment strings programmatically you can use a token's `leadingComments` property.
+Comments in a rule macro or inside a `#{...}` template should "just work". If you want to create comment strings programmatically you can do so via the `addLineComment` method on syntax objects:
 
 ```js
 macro m {
     case {_ () } => {
         var x = makeValue(42, #{here});
-        x.token.leadingComments = [{
-            type: "Line",
-            value: "hello, world"
-        }];
-        return withSyntax ($x = [x]) #{
-            $x
-        }
+        letstx $x = [x.addLineComment(" hello, world")];
+        return #{ $x };
     }
 }
 m()
 ```
 will expand to
 ```js
-//hello, world
+// hello, world
 42;
 ```
 
