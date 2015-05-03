@@ -2297,18 +2297,16 @@ function invoke(modTerm, modRecord, phase, context) {
         var exported = require(modRecord.name);
         Object.keys(exported).forEach(exp => {
             // create new bindings in the context
-            assert(false, "breadcrumb: number of things are wrong here");
+
             var expName = syn.makeIdent(exp, null).mark(freshScope(context.bindings));
+
             context.bindings.add(expName, fresh(), phase);
-
             modRecord.exportEntries.push(new ExportEntry(null, expName, expName));
-
-            context.store.setWithModule(expName,
-                                        phase,
-                                        modRecord.name,
-                                        new RuntimeValue({value: exported[exp]},
-                                                         modRecord.name,
-                                                         phase));
+            context.store.set(expName,
+                              phase,
+                              new RuntimeValue({value: exported[exp]},
+                                               modRecord.name,
+                                               phase));
         });
     } else {
         // recursively invoke any imports in this module at this

@@ -1,5 +1,5 @@
 #lang "../../macros/stxcase.js";
-import { eql } from "expect.js" for macros;
+import { eql } from "expect.js" for phase 1;
 
 var expect = require("expect.js");
 
