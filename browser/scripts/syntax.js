@@ -142,6 +142,31 @@
         toString: function () {
             var val = this.token.type === parser.Token.EOF ? 'EOF' : this.token.value;
             return '[Syntax: ' + val + ']';
+        },
+        clone: function () {
+            var newTok = {};
+            var keys = Object.keys(this.token);
+            for (var i = 0, len = keys.length, key; i < len; i++) {
+                key = keys[i];
+                if (Array.isArray(this.token[key])) {
+                    if (key === 'inner') {
+                        // need to clone the children of a delimiter
+                        newTok[key] = this.token[key].reduce(function (acc, stx) {
+                            acc.push(stx.clone());
+                            return acc;
+                        }, []);
+                    } else {
+                        // don't need to deep copy normal arrays
+                        newTok[key] = this.token[key].reduce(function (acc, el) {
+                            acc.push(el);
+                            return acc;
+                        }, []);
+                    }
+                } else {
+                    newTok[key] = this.token[key];
+                }
+            }
+            return syntaxFromToken(newTok, this);
         }
     };
     function syntaxFromToken(token, oldstx) {
