@@ -184,11 +184,16 @@
                     if (key === "inner") {
                         // need to clone the children of a delimiter
                         newTok[key] = this.token[key].reduce(function(acc, stx) {
-                            return acc.push(stx.clone());
+                            acc.push(stx.clone());
+                            return acc;
+                        }, []);
+                    } else {
+                        // don't need to deep copy normal arrays
+                        newTok[key] = this.token[key].reduce(function(acc, el) {
+                            acc.push(el);
+                            return acc;
                         }, []);
                     }
-                    assert(this.token[key].length === 2, "the only arrays on tokens should be ranges with two items");
-                    newTok[key] = [this.token[key][0], this.token[key][1]];
                 } else {
                     newTok[key] = this.token[key];
                 }
