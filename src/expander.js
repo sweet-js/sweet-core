@@ -2296,8 +2296,6 @@ function invoke(modTerm, modRecord, phase, context) {
         // base modules can just use the normal require pipeline
         var exported = require(modRecord.name);
         Object.keys(exported).forEach(exp => {
-            // create new bindings in the context
-
             var expName = syn.makeIdent(exp, null).mark(freshScope(context.bindings));
 
             context.bindings.add(expName, fresh(), phase);
@@ -2336,8 +2334,6 @@ function invoke(modTerm, modRecord, phase, context) {
 
         // eval but with a fresh heap
         vm.runInNewContext(code, global);
-
-
 
         // update the exports with the runtime values
         modRecord.exportEntries.forEach(entry => {
