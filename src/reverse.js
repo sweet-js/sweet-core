@@ -27,7 +27,7 @@
 // custom macro classes
 // scope-sensitive reverse matching
 // nested macros
-// named bindings
+// optional semicolon/expr-parens insertion
 // verbatim labeled statements
 
 (function (root, factory) {
@@ -116,23 +116,22 @@
             if (res.success) {
                 var name = patternModule.transcribe(expandN, 0, res.patternEnv);
                 var con = patternModule.transcribe(expandE, 0, res.patternEnv);
-                return macros.concat(findMacroRules(name, con, stx));
+                return macros.concat(findMacroRules(name, con));
             }
             return macros;
         }, stx, []);
     }
 
-    function findMacroRules(name, m, stx) {
+    function findMacroRules(name, m) {
         return foldReadTree(function(macros, init, rest, path) {
             var res = patternModule.matchPatterns(rulePattern, rest,
                                                   {env: {}}, true);
-            if (res.success) macros.push(new MacroRule(name, res.patternEnv, stx));
+            if (res.success) macros.push(new MacroRule(name, res.patternEnv));
             return macros;
         }, m, []);
     }
 
-    function MacroRule(name, patternEnv, stx) {
-        this.compUnit = {inner: stx};
+    function MacroRule(name, patternEnv) {
         this.expansion = patternModule.transcribe(expandE, 0, patternEnv);
         this.expansionRule = patternModule.loadPattern(this.expansion);
         this.pattern = patternModule.transcribe(expandP, 0, patternEnv);
@@ -182,7 +181,7 @@
     }
 
     function startRange(token) {
-        if (!token) return 9999999999;
+        if (!token) return Number.MAX_VALUE;
         if (token.token) token = token.token;
         if (token.type === parser.Token.Delimiter) {
             return token.startRange[0];
@@ -231,7 +230,7 @@
         }, this.patternRule);
     }
 
-    MacroRule.prototype.tryMatch = function(init, rest, path, src) {
+    MacroRule.prototype.tryMatch = function(init, rest, path, src, expanded) {
         var c = {env: {}};
         if (rest.length === 0 || this.isInMacro(rest[0])) return;
         var res = patternModule.matchPatterns(this.expansionRule, rest, c, true, _.clone(this.envLevels));
@@ -248,9 +247,11 @@
         var newSrc = prefix + repSrc + suffix;
         try {
             // this might fail with an exception
-            var expanded = sweet.expand(newSrc);
-            var newCompUnit = {inner: expanded};
-            if (patternModule.isEquivPatternEnvToken(newCompUnit, this.compUnit)) {
+            var newExpanded = {
+                inner: sweet.expand(newSrc),
+                type: parser.Token.Delimiter
+            };
+            if (patternModule.isEquivPatternEnvToken(expanded, newExpanded)) {
                 return {
                     matchedTokens: matched,
                     matchedSrc: syntax.prettyPrint(expander.flatten(matched)),
@@ -265,9 +266,13 @@
         var stx = parser.read(src);
         stx = expander.adjustLineContext(stx, stx[0]);
         var macros = findMacros(src);
+        var expanded = {
+            inner: sweet.expand(src),
+            type: parser.Token.Delimiter
+        };
         var res = foldReadTree(function(matches, init, rest, path) {
             for (var i = 0; i < macros.length; i++) {
-                var match = macros[i].tryMatch(init, rest, path, src);
+                var match = macros[i].tryMatch(init, rest, path, src, expanded);
                 if (match) matches.push(match);
             }
             return matches;

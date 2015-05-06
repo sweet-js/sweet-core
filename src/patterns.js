@@ -763,6 +763,7 @@
     function isEquivPatternEnvToken(toToken, fromToken) {
         if (!toToken) return;
         if (fromToken.type !== toToken.type) return;
+        if (fromToken.type === parser.Token.EOF) return true;
         if (fromToken.value !== toToken.value) return;
         if (fromToken.type !== parser.Token.Delimiter) return true;
         if (fromToken.inner.length !== toToken.inner.length) return;

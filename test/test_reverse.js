@@ -8,7 +8,7 @@ var _ = require("underscore");
 var Token = parser.Token;
 
 var idMacro  = "macro id {\n  rule { ( $x ) } => { $x }\n}";
-var letMacro = "macro let {    rule { $($id:ident = $val:expr) (,) ... } =>" +
+var letMacro = "macro let {    rule { $($id:ident = $val) (,) ... } =>" +
                "                    { $(var $id = $val;) ... } }";
 
 var swapMacro = "macro swap {  rule { $x:ident, $y:ident } =>" +
@@ -16,6 +16,15 @@ var swapMacro = "macro swap {  rule { $x:ident, $y:ident } =>" +
 
 var swapMacro2 = "macro swap {  rule { $x:expr, $y:expr } =>" +
                  "                   { var $tmp = $x; $x = $y; $y = $tmp; }}";
+
+var inc3Macro = "macro inc { rule { 1 } => { 3 } " +
+                "            rule { $x } => { $x + 1 } }"
+
+var incMacro = "macro inc { rule { $x } => { $x + 1 } }"
+
+var decPrintMacro = "macro decprint {" +
+                    "  rule { $x }" +
+                    "    => { var a = $x - 1; print(a); } }"
 
 describe("reverse.findMacros", function() {
     it("should return pattern and expansion for id macro", function() {
@@ -53,9 +62,9 @@ describe("reverse.findReverseMatches", function() {
         var matches = reverse.findReverseMatches(letMacro + "\nvar a = 1; var b = 2;");
         expect(matches).to.have.length(2);
         expect(matches[0].matchedTokens).to.have.length(10);
-        expect(matches[0].replacement).to.be("let a = ( 1 ) , b = ( 2 )\n");
+        expect(matches[0].replacement).to.be("let a = 1 , b = 2\n");
         expect(matches[1].matchedTokens).to.have.length(5);
-        expect(matches[1].replacement).to.be("let b = ( 2 )\n");
+        expect(matches[1].replacement).to.be("let b = 2\n");
     });
 
     it("should return possible reverse match for swap macro", function() {
@@ -80,10 +89,9 @@ describe("reverse.findReverseMatches", function() {
         var s = "macro m { rule { $x $y ... } => { $( $x $y ) ... } }\n";
         s += "+ 1 + 2";
         var matches = reverse.findReverseMatches(s);
-        expect(matches).to.have.length(3);
+        expect(matches).to.have.length(2);
         expect(matches[0].replacement).to.be("m + 1 2\n");
-        expect(matches[1].replacement).to.be("m 1 +\n");
-        expect(matches[2].replacement).to.be("m + 2\n");
+        expect(matches[1].replacement).to.be("m + 2\n");
     });
 
     var classMacro = "macro class { rule { $typename {" +
@@ -97,6 +105,47 @@ describe("reverse.findReverseMatches", function() {
         s += "function toString() { return this.a; };";
         var matches = reverse.findReverseMatches(s);
         expect(matches).to.have.length(1);
+    });
+
+    it("should work for the inc3 macro ", function() {
+        var s = inc3Macro + "\n3";
+        var matches = reverse.findReverseMatches(s);
+        expect(matches).to.have.length(1);
+    });
+
+    it("should preserve expansion order for multiple rules", function() {
+        var s = inc3Macro + "\n1 + 1";
+        var matches = reverse.findReverseMatches(s);
+        expect(matches).to.have.length(0);
+    });
+
+    it("should catch errorneous refactorings", function() {
+        var s = incMacro + "\n2 + 1 + 1";
+        var matches = reverse.findReverseMatches(s);
+        expect(matches).to.have.length(2);
+        var s2 = matches[0].replacedSrc;
+        var matches2 = reverse.findReverseMatches(s2);
+        expect(matches2).to.have.length(0);
+    });
+
+    it("should work for the decprint macro", function() {
+        var s = decPrintMacro + "\n";
+        s += "var a = 23\n";
+        s += "var b = b - 1\n";
+        s += "print(b);\n";
+        s += "print(a);\n";
+        var matches = reverse.findReverseMatches(s);
+        expect(matches).to.have.length(0);
+    });
+
+    it("should respect hygiene", function() {
+        var s = decPrintMacro + "\n";
+        s += "var a = 23\n";
+        s += "var a = a - 1\n";
+        s += "print(a);\n";
+        s += "print(a);\n";
+        var matches = reverse.findReverseMatches(s);
+        expect(matches).to.have.length(0);
     });
 });
 
