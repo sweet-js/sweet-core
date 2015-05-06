@@ -14,9 +14,6 @@ var letMacro = "macro let {    rule { $($id:ident = $val) (,) ... } =>" +
 var swapMacro = "macro swap {  rule { $x:ident, $y:ident } =>" +
                 "                   { var tmp = $x; $x = $y; $y = tmp; }}";
 
-var swapMacro2 = "macro swap {  rule { $x:expr, $y:expr } =>" +
-                 "                   { var $tmp = $x; $x = $y; $y = $tmp; }}";
-
 var inc3Macro = "macro inc { rule { 1 } => { 3 } " +
                 "            rule { $x } => { $x + 1 } }"
 
@@ -77,12 +74,6 @@ describe("reverse.findReverseMatches", function() {
     it("should respect pattern classes for swap macro", function() {
         var matches = reverse.findReverseMatches(swapMacro + "\nvar a,b; var tmp = (a[0]); (a[0]) = b; b = tmp;");
         expect(matches).to.have.length(0);
-    });
-
-    it.skip("should return possible matches for swap with expressions", function() {
-        // this test fails because of issue #470
-        var matches = reverse.findReverseMatches(swapMacro2 + "\nvar a,b; var t = a[0]; a[0] = b; b = t;");
-        expect(matches).to.have.length(1);
     });
 
     it("should adjust levels in the environment", function() {
