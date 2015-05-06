@@ -113,11 +113,20 @@ mirrors
     // as CodeMirror overlays.
     .subscribe(applyArgs(commitHighlights));
 
-// highlight macro candidates
-mirrors.flatMap(editorChange).
+// macrofication
+var candidates = mirrors.flatMap(editorChange).
     combineLatest(ckMacrofy(), concat.bind([])).
-    map(macroCandidates).
+    map(applyArgs(macroCandidates));
+
+// highlight macro candidates
+candidates.
     subscribe(applyArgs(commitHighlights));
+
+// popup dialog on macro candidate
+candidates.
+    combineLatest(mirrors.flatMap(editorCursor), concat.bind([])).
+    flatMap(applyArgs(selectMacroficationHighlight)).
+    subscribe(applyArgs(popupMacrofication));
 
 return mirrors.connect() && documentReadyObs.connect();
 
@@ -773,10 +782,15 @@ function editorChange(editors) {
         map(function() { return editors[0]; });
 }
 
-function macroCandidates(editorAndAuto) {
-    var editor = editorAndAuto[0];
+function editorCursor(editors) {
+    return Rx.Observable.fromEvent(editors[0], "cursorActivity").
+        debounce(750).
+        map(function() { return editors[0].doc.getCursor(); });
+}
+
+function macroCandidates(editor, macrofy) {
     var highlights = [];
-    if (editorAndAuto[1]) {
+    if (macrofy) {
         try {
             var highlights = reverse.findReverseMatches(editor.getValue()).
                 map(function(match) {
@@ -844,6 +858,38 @@ function ckMacrofy() {
         .changeAsObservable()
         .scan(highlightMacrofy.is(":checked"), Rx.helpers.not)
         .startWith(highlightMacrofy.is(":checked"))
+}
+
+function selectMacroficationHighlight(editor, name, highlights, cursor) {
+    $('.replace').hide('fast', function() { $(this).remove(); });
+    return highlights.
+        filter(function(highlight) {
+            return  (highlight.start.line < cursor.line + 1 ||
+                        (highlight.start.line === cursor.line + 1 &&
+                        highlight.start.column < cursor.ch)) &&
+                    (highlight.end.line > cursor.line + 1 ||
+                        (highlight.end.line === cursor.line + 1 &&
+                        highlight.end.column > cursor.ch)); }).
+        map(function(highlight) {
+            return [editor, highlight.match];
+        });
+}
+
+function popupMacrofication(editor, highlight) {
+    var coords = editor.cursorCoords();
+    $('<div class="replace"></div>')
+        .css('left', coords.left)
+        .css('top', coords.top)
+        .css('display', 'none')
+        .append($('<span>Replace with macro?</span>'))
+        .append($('<pre class="cm-s-solarized">' + highlight.replacement + '</pre>'))
+        .click(function() {
+            editor.removeOverlay('candidates');
+            editor.setValue(highlight.replacedSrc);
+            $(this).hide('fast', function() { $(this).remove(); });
+        })
+        .appendTo('#edit-box')
+        .show('fast');
 }
 
 });
