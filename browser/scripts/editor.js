@@ -126,6 +126,7 @@ candidates.
 candidates.
     combineLatest(mirrors.flatMap(editorCursor), concat.bind([])).
     flatMap(applyArgs(selectMacroficationHighlight)).
+    debounce(100).
     subscribe(applyArgs(popupMacrofication));
 
 return mirrors.connect() && documentReadyObs.connect();
@@ -877,19 +878,27 @@ function selectMacroficationHighlight(editor, name, highlights, cursor) {
 
 function popupMacrofication(editor, highlight) {
     var coords = editor.cursorCoords();
-    $('<div class="replace"></div>')
-        .css('left', coords.left)
-        .css('top', coords.top)
-        .css('display', 'none')
-        .append($('<span>Replace with macro?</span>'))
-        .append($('<pre class="cm-s-solarized">' + highlight.replacement + '</pre>'))
-        .click(function() {
+    var options = {
+        theme: 'solarized dark',
+        readOnly: 'nocursor',
+        lineNumbers: false,
+        scrollbarStyle: 'null'
+    };
+    var srcView = $('<textarea class="CodeMirror cm-s-solarized cm-s-dark">' + highlight.replacement + '</textarea>');
+    $('<div class="replace"></div>').
+        css('left', coords.left).
+        css('top', coords.top).
+        css('display', 'none').
+        append($('<span>Replace with macro?</span>')).
+        append(srcView).
+        click(function() {
             editor.removeOverlay('candidates');
             editor.setValue(highlight.replacedSrc);
             $(this).hide('fast', function() { $(this).remove(); });
-        })
-        .appendTo('#edit-box')
-        .show('fast');
+        }).
+        appendTo('#edit-box').
+        show('fast');
+    _.defer(function() { CodeMirror.fromTextArea(srcView[0], options) });
 }
 
 });
