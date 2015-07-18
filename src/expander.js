@@ -2715,9 +2715,19 @@
                     }, exposed);
 
                     if (tok.leadingComments) {
+                        tok.leadingComments.forEach(function(comment) {
+                            var rangeDiff = comment.range[1] - openParen.token.range[0];
+                            comment.range[1] -= rangeDiff;
+                            comment.range[0] -= rangeDiff;
+                        });
                         openParen.token.leadingComments = tok.leadingComments;
                     }
                     if (tok.trailingComments) {
+                        tok.trailingComments.forEach(function(comment) {
+                            var rangeDiff = comment.range[1] - openParen.token.range[0];
+                            comment.range[1] -= rangeDiff;
+                            comment.range[0] -= rangeDiff;
+                        });
                         openParen.token.trailingComments = tok.trailingComments;
                     }
 
