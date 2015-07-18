@@ -432,6 +432,11 @@ describe("reader", function() {
             .to.be(Token.Punctuator);
     });
 
+    it('should read / following a o.if() / 42 as divide', function() {
+        expect(read("o.if() / 42 /i")[4].type)
+            .to.be(Token.Punctuator);
+    });
+
     it('should read line comments', function() {
         var stx = read("//foo\nbar;");
         expect(stx[0].leadingComments[0].type).to.be("Line");

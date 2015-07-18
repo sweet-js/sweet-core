@@ -5524,13 +5524,13 @@ parseYieldExpression: true
             var prev = back(1);
             if (prev) {
                 if (prev.value === "()") {
-                    if (isIn(back(2).value, parenIdents)) {
+                    if (isIn(back(2).value, parenIdents) && back(3).value !== ".") {
                         // ... if (...) / ...
                         return _scanRegExp();
-                    } 
+                    }
                     // ... (...) / ...
                     return _advance();
-                } 
+                }
                 if (prev.value === "{}") {
                     if(blockAllowed(toks, 0, inExprDelim, parentIsBlock)) {
                         if (back(2).value === "()") {
