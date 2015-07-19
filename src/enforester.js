@@ -1,0 +1,601 @@
+import {
+    Term,
+    EOFTerm,
+
+    SyntaxQuoteTerm,
+
+    ExpressionStatementTerm,
+    FunctionDeclarationTerm,
+    VariableDeclarationTerm,
+    VariableDeclaratorTerm,
+    ReturnStatementTerm,
+    EmptyStatementTerm,
+
+    ExpressionTerm,
+    ParenthesizedExpressionTerm,
+    MemberExpressionTerm,
+    FunctionExpressionTerm,
+    ArrayExpressionTerm,
+    BinaryExpressionTerm,
+    CallTerm,
+    ObjectExpressionTerm,
+    PropertyTerm,
+    LiteralTerm,
+    IdentifierTerm } from "./terms";
+
+import {
+    FunctionDeclTransform,
+    VariableDeclTransform,
+    LetDeclTransform,
+    ConstDeclTransform,
+    SyntaxDeclTransform,
+    SyntaxQuoteTransform,
+    ReturnStatementTransform,
+    CompiletimeTransform
+} from "./transforms";
+import { List } from "immutable";
+import { expect, assert } from "./errors";
+import {
+    isOperator,
+    getOperatorAssoc,
+    getOperatorPrec,
+    operatorLt
+} from "./operators";
+
+import { matchCommaSeparatedIdentifiers } from "./matcher";
+
+export default function enforest(stxl, context) {
+    let p = {
+        term: null,
+        rest: stxl
+    };
+    if (stxl.size === 0) {
+        return p;
+    }
+    if (p.rest.first().isEOF()) {
+        return enforestEOFTerm(p, context);
+    }
+
+    return enforestModuleItem(p, context);
+}
+
+function enforestModuleItem(p, context) {
+    return enforestStatement(p, context);
+}
+
+function lineNumberEq(a, b) {
+    if (!(a && b)) {
+        return false;
+    }
+    let aLineNumber = a.isDelimiter() ? a.token.startLineNumber : a.token.lineNumber;
+    let bLineNumber = b.isDelimiter() ? b.token.startLineNumber : b.token.lineNumber;
+    return aLineNumber === bLineNumber;
+}
+
+function consumeSemicolon(p) {
+    if (matchPunc(";", p.rest.first())) {
+        p.rest = p.rest.rest();
+    }
+    return p;
+}
+
+function enforestReturnStatement(p, context) {
+    let kw = p.rest.first();
+    let rest = p.rest.rest();
+    p.rest = rest;
+
+    // short circuit for the empty expression case
+    if (p.rest.size === 0 ||
+        (p.rest.first() && !lineNumberEq(kw, p.rest.first()))) {
+        p.term = new ReturnStatementTerm(null);
+        return p;
+    }
+
+    p = enforestExpressionLoop(p, context);
+
+    expect(p.term instanceof ExpressionTerm,
+           "expecting an expression in the return statement", rest.first(), rest.unshift(kw));
+    p = consumeSemicolon(p);
+    p.term = new ReturnStatementTerm(p.term);
+    return p;
+}
+
+function enforestEmptyStatement(p, context) {
+    let semi = p.rest.first();
+
+    expect(semi && semi.isPunctuator() && semi.val() === ";",
+           "expecting a semicolon", semi, p.rest);
+
+    p.term = new EmptyStatementTerm();
+    p.rest = p.rest.rest();
+    return p;
+}
+
+function expandMacro(p, context) {
+    let name = p.rest.first();
+
+    let ct = context.env.get(name.resolve());
+    expect(ct, "expecting a compiletime value for the syntax:" + name.val(),
+           name, p.rest);
+    expect(typeof ct.value.match === "function",
+           "expecting a match function for applicable compiletime values", name, p.rest);
+    expect(typeof ct.value.transform === "function",
+           "expecting a transform function for applicable compiletime values", name, p.rest);
+
+    let matchResult = ct.value.match(p.rest);
+    expect(matchResult && matchResult.subst,
+           "expecting a result with substitution from the macro: " + name.val());
+    expect(matchResult && matchResult.rest,
+           "expecting a result with the rest of the syntax from the macro: " + name.val());
+    let rest = matchResult.rest;
+
+    let transformResult = ct.value.transform(matchResult.subst);
+    expect(List.isList(transformResult),
+           "expecting a list as a result of invoking macro: " + name.val());
+
+    p.term = null;
+    p.rest = transformResult.concat(rest);
+    return p
+}
+
+
+function enforestStatement(p, context) {
+    // handle declarations
+    let first = p.rest.first();
+
+    if (p.term === null && first &&
+        context.env.get(first.resolve()) instanceof CompiletimeTransform) {
+        p = expandMacro(p, context);
+    }
+
+    if (p.term === null && first &&
+        context.env.get(first.resolve()) === FunctionDeclTransform) {
+        return enforestFunctionDeclaration(p, context);
+    }
+    if (p.term === null && first &&
+        (context.env.get(first.resolve()) === VariableDeclTransform ||
+         context.env.get(first.resolve()) === LetDeclTransform ||
+         context.env.get(first.resolve()) === ConstDeclTransform ||
+         context.env.get(first.resolve()) === SyntaxDeclTransform)) {
+        return enforestVariableDeclaration(p, context);
+    }
+    if (p.term === null && first &&
+        (context.env.get(first.resolve()) === ReturnStatementTransform)) {
+        return enforestReturnStatement(p, context);
+    }
+    if (p.term === null && first &&
+        first.isPunctuator() && first.val() === ";") {
+        return enforestEmptyStatement(p, context);
+    }
+
+    // handle expressions
+    p = enforestExpressionLoop(p, context);
+    if (p.term !== null) {
+        p.term = new ExpressionStatementTerm(p.term);
+        p = consumeSemicolon(p);
+    }
+    return p;
+}
+
+function enforestVariableDeclaration(p, context) {
+    let kind;
+    let first = p.rest.first().resolve();
+    if (context.env.get(first) === VariableDeclTransform) {
+        kind = "var";
+    } else if (context.env.get(first) === LetDeclTransform) {
+        kind = "let";
+    } else if (context.env.get(first) === ConstDeclTransform) {
+        kind = "const";
+    } else if (context.env.get(first) === SyntaxDeclTransform) {
+        kind = "syntax";
+    }
+
+    // drop the keyword
+    p.rest = p.rest.rest();
+
+    let decls = List();
+
+    while (true) {
+
+        p = enforestVariableDeclarator(p, context);
+        decls = decls.concat(p.term);
+
+        if (p.rest.first() && p.rest.first().isPunctuator() &&
+            p.rest.first().val() === ",") {
+            // drop the comma
+            p.term = null;
+            p.rest = p.rest.rest();
+        } else {
+            break;
+        }
+    }
+
+    p.term = new VariableDeclarationTerm(decls, kind);
+    p = consumeSemicolon(p);
+    return p;
+}
+
+function enforestVariableDeclarator(p, context) {
+
+    let id = p.rest.get(0);
+    let allStx = p.rest;
+
+    expect(id && id.isIdentifier(),
+           "expecting an identifier for a var declaration",
+           id, p.rest);
+
+    let eq = p.rest.get(1);
+    let init, rest;
+    // todo: handle the other assignment operators
+    if (eq && eq.val() === "=") {
+        p.rest = p.rest.slice(2);
+        let startofExpr = p.rest.first();
+
+        p = enforestExpressionLoop(p, context);
+        expect(p.term && p.term instanceof ExpressionTerm,
+               "expecting an expression as the initializer of a var declaration",
+               startofExpr, allStx);
+        init = p.term;
+        rest = p.rest;
+    } else {
+        init = null;
+        rest = p.rest.slice(1);
+    }
+    p.term = new VariableDeclaratorTerm(id, init);
+    p.rest = rest;
+    return p;
+}
+
+function enforestFunctionDeclaration(p, context) {
+    expect(p.term === null && p.rest.first() &&
+           context.env.get(p.rest.first().resolve()) === FunctionDeclTransform,
+           "expecting a function keyword", p.rest.first(), p.rest);
+
+    let id = p.rest.get(1);
+    expect(id && id.isIdentifier(),
+           "expecting an identifier for a function declaration",
+           id, p.rest);
+
+    let params = p.rest.get(2);
+    expect(params && params.isParenDelimiter(),
+           "expecting a paren list for a function declaration",
+           params, p.rest);
+
+    let body = p.rest.get(3);
+    expect(body && body.isCurlyDelimiter(),
+           "expecting a body for a function declaration",
+           body, p.rest);
+
+    let rest = p.rest.slice(4);
+    p.term = new FunctionDeclarationTerm(id,
+                                         matchCommaSeparatedIdentifiers(params.token.inner),
+                                         body.token.inner);
+    p.rest = rest;
+    return p;
+}
+
+// nice wrapper around enforesting just expressions for external consumers
+export function enforestExpr(stxl, context) {
+    return enforestExpressionLoop({term: null, rest: stxl}, context);
+}
+
+// expressions are complicated because we want to handle operators with precedence and
+// stuff so we have a loop and other strangeness
+function enforestExpressionLoop(p, context) {
+
+    let lastTerm;
+    let opCtx = {
+        prec: 0,
+        combine: (x) => x,
+        stack: List()
+    };
+
+    do {
+        lastTerm = p.term;
+
+        p = enforestExpression(p, opCtx, context);
+
+        // if nothing changed, maybe we just need to pop the expr stack
+        if (lastTerm === p.term && opCtx.stack.size > 0) {
+            p.term = opCtx.combine(p.term);
+            let {prec, combine } = opCtx.stack.last();
+            opCtx.prec = prec;
+            opCtx.combine = combine;
+            opCtx.stack = opCtx.stack.pop();
+        }
+    } while (lastTerm !== p.term);  // get a fixpoint
+    return p;
+}
+
+function enforestSyntaxQuote(p, context) {
+    let name = p.rest.get(0);
+    let body = p.rest.get(1);
+    let rest = p.rest.slice(2);
+
+    expect(body && body.isCurlyDelimiter(),
+           "expecting a body for syntax quote",
+           body, p.rest);
+
+    p.term = new SyntaxQuoteTerm(name, body.token.inner);
+    p.rest = rest;
+    return p;
+}
+
+function enforestProperty(p, context) {
+
+    let key = p.rest.get(0);
+    expect(key && key.isIdentifier(),
+           "expecting an identifier", key, p.rest);
+
+    let colon = p.rest.get(1);
+    expect(matchPunc(":", colon),
+           "expecting a `:`", colon, p.rest);
+
+    p.term = null;
+    p.rest = p.rest.slice(2);
+    let startofExpr = p.rest.first();
+
+    p = enforestExpressionLoop(p, context);
+    let value = p.term;
+    expect(value instanceof ExpressionTerm,
+           "expecting an expression", startofExpr, p.rest);
+
+    // must be separated by commas
+    if (matchPunc(",", p.rest.first())) {
+        p.rest = p.rest.rest();
+    } else if (p.rest.size !== 0) {
+        expect(false, "expecting comma", p.rest.first(), p.rest);
+    }
+    p.term = new PropertyTerm(key, value, "init");
+    return p;
+}
+
+function matchPunc(punc, stx) {
+    return stx && stx.isPunctuator() && stx.val() === punc;
+}
+
+function enforestObjectExpression(p, context) {
+    let obj = p.rest.first();
+    let rest = p.rest.rest();
+    let properties = List();
+
+    p.term = null;
+    p.rest = obj.token.inner;
+
+    while (p.rest.size > 0) {
+        p = enforestProperty(p, context);
+        properties = properties.concat(p.term);
+        p.term = null;
+    }
+
+    p.term = new ObjectExpressionTerm(properties);
+    p.rest = rest;
+    return p;
+}
+
+function enforestArrayExpression(p, context) {
+    let arr = p.rest.first();
+    let rest = p.rest.rest();
+    let elements = List();
+
+    p.rest = arr.token.inner;
+    while (p.rest.size > 0) {
+        if (matchPunc(",", p.rest.first())) {
+            elements = elements.concat(null);
+            p.rest = p.rest.rest();
+        } else {
+            let startOfExpr = p.rest.first();
+            p = enforestExpressionLoop(p, context);
+            expect(p.term && (p.term instanceof ExpressionTerm),
+                   "expecting an expression", startOfExpr, p.rest);
+            elements = elements.concat(p.term);
+            p.term = null;
+            // consume trailing commas
+            if (matchPunc(",", p.rest.first())) {
+                p.rest = p.rest.rest();
+            }
+        }
+    }
+    p.term = new ArrayExpressionTerm(elements);
+    p.rest = rest;
+    return p;
+}
+
+function enforestStaticMemberExpression (p, context) {
+    let object = p.term;
+    let dot = p.rest.get(0);
+    let property = p.rest.get(1);
+
+    expect(property && property.isIdentifier(),
+           "expecting an identifier for static member expression",
+           property, p.rest);
+
+    p.term = new MemberExpressionTerm(object, new IdentifierTerm(property), false);
+    p.rest = p.rest.slice(2);
+    return p;
+
+}
+
+function enforestExpression(p, opCtx, context) {
+
+    // check the cases where the term part of p is null first...
+
+    if (p.term === null && p.rest.first() &&
+        context.env.get(p.rest.first().resolve()) instanceof CompiletimeTransform) {
+        p = expandMacro(p, context);
+    }
+
+    // syntaxQuote { ... }
+    if (p.term === null && p.rest.first()
+        && context.env.get(p.rest.first().resolve()) === SyntaxQuoteTransform) {
+        return enforestSyntaxQuote(p, context);
+    }
+
+    // $x:ident
+    if (p.term === null && p.rest.first() && p.rest.first().isIdentifier()) {
+        return enforestIdentifier(p, opCtx, context);
+    }
+
+    // $x:number || $x:string || $x:boolean || $x:RegExp || $x:null
+    if (p.term === null && p.rest.first() &&
+        (p.rest.first().isNumericLiteral() ||
+         p.rest.first().isStringLiteral() ||
+         p.rest.first().isNullLiteral() ||
+         p.rest.first().isRegularExpression() ||
+         p.rest.first().isBooleanLiteral())) {
+        return enforestLiteral(p, opCtx, context);
+    }
+    // ($x:expr)
+    if (p.term === null && p.rest.first() &&
+        p.rest.first().isParenDelimiter()) {
+        return enforestParenthesizedExpression(p, opCtx, context);
+    }
+
+    if (p.term === null && p.rest.first() &&
+        p.rest.first().isCurlyDelimiter()) {
+        return enforestObjectExpression(p, context);
+    }
+
+    if (p.term === null && p.rest.first() &&
+        p.rest.first().isSquareDelimiter()) {
+        return enforestArrayExpression(p, context);
+    }
+
+    // and then check the cases where the term part of p is something...
+
+    // $x:expr . $prop:ident
+    if (p.term && p.term instanceof ExpressionTerm &&
+        matchPunc(".", p.rest.first())) {
+        return enforestStaticMemberExpression(p, context);
+    }
+    // $x:expr (...)
+    if (p.term && p.term instanceof ExpressionTerm &&
+        p.rest.first() &&
+        p.rest.first().isParenDelimiter()) {
+        return enforestCall(p, opCtx, context);
+    }
+    // $l:expr $op:binaryOperator $r:expr
+    if (p.term && p.term instanceof ExpressionTerm &&
+        p.rest.first() && isOperator(p.rest.first().val())) {
+        return enforestBinaryExpression(p, opCtx, context);
+    }
+
+    // $x:FunctionExpression
+    if (p.term === null && p.rest.first() &&
+        context.env.get(p.rest.first().resolve()) === FunctionDeclTransform) {
+        return enforestFunctionExpression(p, opCtx, context);
+    }
+
+    // otherwise nothing to change this time
+    return p;
+}
+
+function enforestFunctionExpression(p, opCtx, context) {
+    expect(p.term === null && p.rest.first() &&
+           context.env.get(p.rest.first().resolve()) === FunctionDeclTransform,
+           "expecting a function expression", p.rest.first(), p.rest);
+
+    expect(p.rest.get(1) && p.rest.get(2),
+           "bad syntax for function expresssion", p.rest.get(1), p.rest);
+
+    let id = null, params, body, rest;
+    if (p.rest.get(1).isIdentifier()) {
+        id = p.rest.get(1);
+        params = p.rest.get(2);
+        expect(params && params.isParenDelimiter(),
+               "expecting a function parameter list",
+               params, p.rest);
+
+        body = p.rest.get(3);
+        expect(body && body.isCurlyDelimiter(),
+               "expecting a function body",
+               body, p.rest);
+
+        rest = p.rest.slice(4);
+    } else {
+        params = p.rest.get(1);
+        expect(params && params.isParenDelimiter(),
+               "expecting a function parameter list",
+               params, p.rest);
+
+        body = p.rest.get(2);
+        expect(body && body.isCurlyDelimiter(),
+               "expecting a function body",
+               body, p.rest);
+
+        rest = p.rest.slice(3);
+    }
+    p.term = new FunctionExpressionTerm(id,
+                                        matchCommaSeparatedIdentifiers(params.token.inner),
+                                        body.token.inner);
+    p.rest = rest;
+    return p;
+}
+
+function enforestParenthesizedExpression(p, opCtx, context) {
+    let paren = p.rest.first();
+
+    let {term, rest} = enforestExpr(paren.token.inner, context);
+    // todo: won't work for arrow functions
+    expect(rest.size === 0, "expecting only a single expression",
+           null, p.rest);
+    p.term = new ParenthesizedExpressionTerm(term);
+    p.rest = p.rest.rest();
+    return p;
+}
+
+function enforestBinaryExpression(p, opCtx, context) {
+
+    let leftTerm = p.term;
+    let op = p.rest.first().val();
+    let opPrec = getOperatorPrec(op);
+    let opAssoc = getOperatorAssoc(op);
+
+    if (operatorLt(opCtx.prec, opPrec, opAssoc)) {
+        opCtx.stack = opCtx.stack.push({
+            prec: opCtx.prec,
+            combine: opCtx.combine
+        });
+        opCtx.prec = opPrec;
+        opCtx.combine = (rightTerm) => {
+            expect(rightTerm instanceof ExpressionTerm,
+                   "expecting an expression on the right side of a binary operator",
+                   null, p.rest);
+            return new BinaryExpressionTerm(leftTerm, op, rightTerm);
+        };
+        p.term = null;
+        p.rest = p.rest.rest();
+        return p;
+    } else {
+        p.term = opCtx.combine(leftTerm);
+        // p.rest does not change
+        let { prec, combine } = opCtx.stack.last();
+        opCtx.stack = opCtx.stack.pop();
+        opCtx.prec = prec;
+        opCtx.combine = combine;
+        return p
+    }
+}
+
+function enforestCall(p, opCtx, context) {
+    p.term = new CallTerm(p.term, p.rest.first());
+    p.rest = p.rest.rest();
+    return p;
+}
+
+function enforestIdentifier(p, opCtx, context) {
+    p.term = new IdentifierTerm(p.rest.first());
+    p.rest = p.rest.rest();
+    return p;
+}
+function enforestLiteral(p, opCtx, context) {
+    p.term = new LiteralTerm(p.rest.first());
+    p.rest = p.rest.rest();
+    return p;
+}
+
+function enforestEOFTerm(p, context) {
+    p.term = new EOFTerm(p.rest.first());
+    p.rest = p.rest.rest();
+    return p;
+}

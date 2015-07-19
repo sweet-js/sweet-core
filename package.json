@@ -14,7 +14,13 @@
     }
   ],
   "scripts": {
-    "test": "node --harmony ./node_modules/.bin/grunt full --stack"
+    "clean": "rm -rf build/",
+    "build:src": "babel --modules common --source-maps -d build/ src/*.js",
+    "build:test": "babel --modules common --source-maps -d build/ test/*.js",
+    "build": "npm run build:src && npm run build:test",
+    "test:single": "mocha build/test/test_expander.js",
+    "test": "mocha build/test/*.js",
+    "pretest": "npm run build"
   },
   "directories": {
     "test": "test"
@@ -23,16 +29,16 @@
     "sjs": "bin/sjs"
   },
   "dependencies": {
-    "es6-module-transpiler": "^0.9.3",
     "escodegen": "1.6.x",
     "escope": "1.0.x",
     "optimist": "~0.3.4",
     "resolve": "~0.6.1",
-    "underscore": "~1.3.3",
-    "babel": "^4.4.0"
+    "underscore": "~1.3.3"
   },
   "devDependencies": {
+    "babel": "^5.8.9",
     "contracts-js": "^0.6.0",
+    "escodegen": "^1.6.1",
     "esfuzz": "disnet/esfuzz",
     "expect.js": "0.1.x",
     "grunt-cli": "0.1.x",
@@ -41,9 +47,10 @@
     "grunt-contrib-watch": "~0.6.1",
     "grunt-mocha-test": "~0.7.0",
     "harmony-reflect": "^1.0.0",
-    "immutable": "^3.6.2",
-    "mocha": "~1.3.2",
-    "source-map": "~0.1.31"
+    "immutable": "^3.7.4",
+    "mocha": "^2.2.5",
+    "source-map": "~0.1.31",
+    "tape": "^4.0.1"
   },
   "repository": {
     "type": "git",

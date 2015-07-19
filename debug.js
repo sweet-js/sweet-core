@@ -7,21 +7,12 @@ process:
 	node-debug debug.js
 */
 
-var parser = require("./build/lib/parser");
-var expander = require("./build/lib/expander");
-var patterns = require("./build/lib/patterns");
-var sweet = require("./build/lib/sweet");
-var codegen = require("escodegen");
+var compile = require("./build/src/sweet").compile;
 
 var fs = require("fs");
 
 var source = fs.readFileSync("./test.js", "utf8");
 
-// var tokenTree = parser.read(source);
-var result = sweet.compile(source, {filename: "test.js",
-									babel: false,
-	babelModule: "common"
-									});
+var result = compile(source);
+console.log(result);
 
-console.log(result[0].code);
-// console.log(codegen.generate(parser.parse(result[0].code)));
