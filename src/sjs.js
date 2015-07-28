@@ -3,6 +3,7 @@ var path = require("path");
 var pkg = require('../package.json');
 var sweet = require("./sweet.js");
 var syn = require("./syntax.js");
+var rev = require('./reverse');
 
 var argv = require("optimist")
     .usage("Usage: sjs [options] path/to/file.js")
@@ -39,6 +40,8 @@ var argv = require("optimist")
     .describe('format-indent', 'number of spaces for indentation')
     .alias('l', 'load-readtable')
     .describe('load-readtable', 'readtable module to install')
+    .boolean('refactor')
+    .describe('refactor', 'macrofy the input by finding possible locations for macro invocations')
     .argv;
 
 
@@ -58,6 +61,7 @@ exports.run = function() {
     var readableNames = argv['readable-names'];
     var formatIndent = parseInt(argv['format-indent'], 10);
     var readtableModules = argv['load-readtable'];
+    var refactor = argv.refactor;
     if (formatIndent !== formatIndent) {
         formatIndent = 4;
     }
@@ -114,8 +118,16 @@ exports.run = function() {
             fs.writeFileSync(outfile, sweet.compile(file, options).code, "utf8");
         }
     }
-    
-    if (watch && outfile) {
+
+    if (refactor) {
+        var match = rev.findReverseMatches(file)[0];
+        if (!match) return console.log("no macorfication candidates found");
+        if (outfile) {
+            fs.writeFileSync(outfile, match.replacedSrc);
+        } else {
+            console.log("\n\n" + match.replacedSrc);
+        }
+    } else if (watch && outfile) {
         fs.watch(infile, function(){
             file = fs.readFileSync(infile, "utf8");
             try {

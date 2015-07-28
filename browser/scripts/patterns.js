@@ -348,7 +348,7 @@
             patternEnv: patternEnv
         };
     }
-    function matchPatterns(patterns, stx, context, topLevel) {
+    function matchPatterns(patterns, stx, context, topLevel, patternEnv) {
         // topLevel lets us know if the patterns are on the top level or nested inside
         // a delimiter:
         //     case $topLevel (,) ... => { }
@@ -365,7 +365,7 @@
         // and the other is the pattern environment (patternEnv) that maps
         // patterns in a macro case to syntax.
         var result = [];
-        var patternEnv = {};
+        patternEnv = patternEnv || {};
         var match;
         var pattern;
         var rest = stx;
@@ -549,7 +549,7 @@
                     success = false;
                     rest = stx;
                 }
-            } else if (patternEnv[pattern.value] && patternEnv[pattern.value].level === 0) {
+            } else if (patternEnv[pattern.value] && patternEnv[pattern.value].match && patternEnv[pattern.value].level === 0) {
                 var prev = patternEnv[pattern.value].match;
                 while (prev.length === 1 && pattern.class === 'expr' && prev[0].token.type === parser.Token.Delimiter && prev[0].token.value === '()') {
                     prev = prev[0].token.inner;
@@ -568,9 +568,11 @@
                 };
                 if (// push the match onto this value's slot in the environment
                     pattern.repeat) {
-                    if (patternEnv[pattern.value] && success) {
+                    if (patternEnv[pattern.value] && patternEnv[pattern.value].level !== 1) {
+                        success = false;
+                    } else if (patternEnv[pattern.value] && patternEnv[pattern.value].match && success) {
                         patternEnv[pattern.value].match.push(matchEnv);
-                    } else if (patternEnv[pattern.value] === undefined) {
+                    } else if (patternEnv[pattern.value] === undefined || patternEnv[pattern.value].match === undefined) {
                         // initialize if necessary
                         patternEnv[pattern.value] = {
                             level: 1,
@@ -592,7 +594,7 @@
     }
     function copyPatternEnv(toEnv, fromEnv, topLevel) {
         _.forEach(fromEnv, function (patternVal, patternKey) {
-            if (!toEnv[patternKey]) {
+            if (!toEnv[patternKey] || !toEnv[patternKey].match) {
                 toEnv[patternKey] = {
                     level: patternVal.level + 1,
                     match: [patternVal],
@@ -607,6 +609,8 @@
             return;
         if (fromToken.type !== toToken.type)
             return;
+        if (fromToken.type === parser.Token.EOF)
+            return true;
         if (fromToken.value !== toToken.value)
             return;
         if (fromToken.type !== parser.Token.Delimiter)
@@ -635,7 +639,10 @@
             }
         } else {
             if (// match a group with a group by element-wise comparison
-                // (special case for empty match resulting from zero repitition)
+                // (special case for uninitialized match
+                !toMatch.match)
+                return true;
+            if (// (special case for empty match resulting from zero repitition)
                 fromMatch.match.length > 0 && fromMatch.match.length !== toMatch.match.length)
                 return;
             for (var i = 0; i < fromMatch.match.length; i++) {
@@ -649,17 +656,26 @@
     function isEquivPatternEnv(toEnv, fromEnv, repeat, prefix) {
         return _.all(fromEnv, function (patternVal, patternKey) {
             var patternName = prefix + patternKey;
-            if (_.has(toEnv, patternName)) {
+            if (!_.has(toEnv, patternName))
+                return true;
+            var fromVal = patternVal;
+            if (repeat) {
+                var nextLevel = patternVal.level + 1;
                 if (// if repeat and also toEnv.repeat then you just
                     // compare levels
-                    repeat && toEnv[patternName].repeat) {
-                    return toEnv[patternName].level === patternVal.level + 1;
-                } else {
-                    return isEquivPatternEnvMatch(toEnv[patternName], patternVal);
+                    toEnv[patternName].repeat) {
+                    return toEnv[patternName].level === nextLevel;
                 }
+                fromVal = {
+                    level: nextLevel,
+                    match: [patternVal]
+                };
             }
-            return true;
+            return isEquivPatternEnvMatch(toEnv[patternName], fromVal);
         });
+    }
+    function decreaseLevel(match) {
+        return match.length === 0 ? [] : match[0].match;
     }
     function loadPatternEnv(toEnv, fromEnv, topLevel, repeat, prefix) {
         prefix = prefix || '';
@@ -670,16 +686,27 @@
             var patternName = prefix + patternKey;
             if (repeat) {
                 var nextLevel = patternVal.level + 1;
-                if (toEnv[patternName]) {
+                if (toEnv[patternName] && toEnv[patternName].match) {
                     if (toEnv[patternName].repeat) {
                         toEnv[patternName].match.push(patternVal);
                     }
                 } else {
+                    var match = [patternVal];
+                    var repMatch = true;
+                    if (toEnv[patternName]) {
+                        while (match.length > 0 && nextLevel > toEnv[patternName].level) {
+                            match = decreaseLevel(match);
+                            nextLevel--;
+                            repMatch = false;
+                        }
+                    }
                     toEnv[patternName] = {
                         level: nextLevel,
-                        match: [patternVal],
+                        match: match,
                         topLevel: topLevel,
-                        repeat: true
+                        // if there was a prior uninitialized match with a
+                        // lower level, then this is not just a repitition
+                        repeat: repMatch
                     };
                 }
             } else {
@@ -921,5 +948,6 @@
     exports$2.typeIsLiteral = typeIsLiteral;
     exports$2.cloneMatch = cloneMatch;
     exports$2.makeIdentityRule = makeIdentityRule;
+    exports$2.isEquivPatternEnvToken = isEquivPatternEnvToken;
 }));
 //# sourceMappingURL=patterns.js.map

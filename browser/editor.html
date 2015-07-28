@@ -199,6 +199,27 @@
         text-align: center;
     }
 
+    .replace {
+        position: absolute;
+        width: 20em;
+        font-size: 10pt;
+        padding: 5px;
+        color: #aaa;
+        background: rgba(0,0,0,0.3);
+        border-radius: 10px;
+        box-shadow: 0 0 10px #000;
+        z-index: 4;
+    }
+    .replace pre {
+        color: #268bd2;
+    }
+    .replace * {
+        background-color: rgba(0,0,0,0) !important;
+        cursor: pointer !important;
+        box-shadow: none !important;
+        -webkit-box-shadow: none !important;
+    }
+
 </style>
 </head>
 <body>
@@ -217,11 +238,15 @@
                 <input checked id="ck-readable-names" name="ck-readable-names" type="checkbox"/>
                 <label for="ck-readable-names">readable names</label>
             </span>
-        </span>
-        <span class="align-left option cks">
             <span class="ck">
                 <input id="ck-auto-compile" name="ck-auto-compile" type="checkbox" value="compile"/>
                 <label for="ck-auto-compile">auto-compile</label>
+            </span>
+        </span>
+        <span class="align-left option cks">
+            <span class="ck">
+                <input id="ck-macrofy" name="ck-macrofy" type="checkbox" />
+                <label for="ck-macrofy">highlight macrofication</label>
             </span>
             <span class="ck">
                 <input id="ck-highlighting" name="ck-highlighting" type="checkbox" />

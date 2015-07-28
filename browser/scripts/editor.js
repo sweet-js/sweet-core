@@ -14,7 +14,7 @@ requirejs.config({
     }
 });
 
-require(["./sweet", "./syntax", "./parser", "./source-map", "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, parser, srcmap, Rx) {
+require(["./sweet", "./syntax", "./parser", "./source-map", './reverse', "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, parser, srcmap, reverse, Rx) {
 
 srcmap = srcmap || sourceMap;
 /**
@@ -112,6 +112,22 @@ mirrors
     // Apply the highlights for each codeMirror instance
     // as CodeMirror overlays.
     .subscribe(applyArgs(commitHighlights));
+
+// macrofication
+var candidates = mirrors.flatMap(editorChange).
+    combineLatest(ckMacrofy(), concat.bind([])).
+    map(applyArgs(macroCandidates));
+
+// highlight macro candidates
+candidates.
+    subscribe(applyArgs(commitHighlights));
+
+// popup dialog on macro candidate
+candidates.
+    combineLatest(mirrors.flatMap(editorCursor), concat.bind([])).
+    flatMap(applyArgs(selectMacroficationHighlight)).
+    debounce(100).
+    subscribe(applyArgs(popupMacrofication));
 
 return mirrors.connect() && documentReadyObs.connect();
 
@@ -420,6 +436,13 @@ function selectCompileType(
                 .scan(readableNames.is(":checked"), Rx.helpers.not)
                 .startWith(readableNames.is(":checked"));
         }),
+
+        reverseChangeObs      = Rx.Observable.defer(function() {
+            return readableNames
+                .changeAsObservable()
+                .scan(readableNames.is(":checked"), Rx.helpers.not)
+                .startWith(readableNames.is(":checked"));
+        }),
         
         highlightChangeObs  = Rx.Observable.defer(function() {
             return highlight
@@ -642,8 +665,8 @@ function selectEditorHightlights(editor, output, result, cursor) {
     // only show macro highlights if cursor on macro name
     if (!sourcemap || !macro || !logs.length) {
         return [
-            [editor, []],
-            [output, []]
+            [editor, "macro", []],
+            [output, "macro", []]
         ];
     }
     
@@ -651,50 +674,18 @@ function selectEditorHightlights(editor, output, result, cursor) {
         mappings   = [],
         outHighlights,
         srcHighlights = [
-                mapTokensToHighlights(macro.next, true),
-                mapTokensToHighlights(macro.name, false, true)
-            ].concat(macro.matchedTokens.map(mapTokensToHighlights));
+                tokenToHighlight(macro.next, true),
+                tokenToHighlight(macro.name, false, true)
+            ].concat(macro.matchedTokens.map(tokenToHighlight));
     
     consumer.eachMapping(function(mapping) { mappings.push(mapping); });
     
     outHighlights = mappings.reduce(reduceMappingsToOutHighlights, [undefined, []]).pop();
     
     return [
-        [editor, slice.call(srcHighlights, 1)],
-        [output, outHighlights]
+        [editor, "macro", slice.call(srcHighlights, 1)],
+        [output, "macro", outHighlights]
     ];
-    
-    function mapTokensToHighlights(token, isStart, isName) {
-        var highlight = (token.type === parser.Token.Delimiter) ?
-            {
-                start: {
-                    line: token.startLineNumber,
-                    column: token.startRange[0] - token.startLineStart
-                },
-                end: {
-                    line: token.endLineNumber,
-                    column: token.endRange[1] - token.endLineStart
-                }
-            } :
-            {
-                start: {
-                    line: token.lineNumber,
-                    column: token.range[0] - token.lineStart
-                },
-                end: {
-                    line: token.lineNumber,
-                    column: token.range[1] - token.lineStart
-                }
-            };
-        
-        if(isStart === true) {
-            highlight.end = highlight.start;
-        }
-        if(isName === true) {
-            highlight.name = true;
-        }
-        return highlight;
-    }
     
     function reduceMappingsToOutHighlights(tuple, mapping) {
         
@@ -739,8 +730,8 @@ function selectEditorHightlights(editor, output, result, cursor) {
     }
 }
 
-function commitHighlights(editor, highlights) {
-    editor.removeOverlay("macro");
+function commitHighlights(editor, name, highlights) {
+    editor.removeOverlay(name);
     if (highlights.length === 0) return;
     highlights.sort(function(a, b) {
         if (a.start.line < b.start.line) return -1;
@@ -749,7 +740,7 @@ function commitHighlights(editor, highlights) {
     });
     var line = 0, currentIdx = 0;
     editor.addOverlay({
-        name: "macro",
+        name: name,
         token: function(stream) {
             if (stream.sol()) line++;
             if (currentIdx >= highlights.length) { // no more highlights
@@ -779,10 +770,135 @@ function commitHighlights(editor, highlights) {
                 current.start.column = 0;
                 stream.skipToEnd();
             }
-            return current.name ? "macro-name" : "macro";
+            return current.name ? name + "-name" : name;
         },
         blankLine: function() { line++; }
     });
+}
+
+function editorChange(editors) {
+    return Rx.Observable.fromEvent(editors[0], "change").
+        debounce(750).
+        startWith(0).
+        map(function() { return editors[0]; });
+}
+
+function editorCursor(editors) {
+    return Rx.Observable.fromEvent(editors[0], "cursorActivity").
+        debounce(750).
+        map(function() { return editors[0].doc.getCursor(); });
+}
+
+function macroCandidates(editor, macrofy) {
+    var highlights = [];
+    if (macrofy) {
+        try {
+            var highlights = reverse.findReverseMatches(editor.getValue()).
+                map(function(match) {
+                    var start = useOriginalLoc(match.matchedTokens[0].token);
+                    var end = useOriginalLoc(_.last(match.matchedTokens).token);
+                    return {
+                        start: tokenToHighlight(start).start,
+                        end: tokenToHighlight(end).end,
+                        match: match
+                    }
+                });
+        } catch(e) { }
+    }
+    return [editor, "candidate", highlights];
+
+    function useOriginalLoc(token) {
+        var props = ['lineStart', 'lineNumber', 'range', 'startLineStart',
+            'startLineNumber', 'startRange', 'endLineStart',
+            'endLineNumber', 'endRange'];
+        var obj = _.clone(token);
+        for (var i = 0; i < props.length; i++) {
+            if (obj.hasOwnProperty('sm_' + props[i])) {
+                obj[props[i]] = obj['sm_' + props[i]];
+            }
+        }
+        return obj;
+    }
+}
+
+function tokenToHighlight(token, isStart, isName) {
+    var highlight = (token.type === parser.Token.Delimiter) ?
+        {
+            start: {
+                line: token.startLineNumber,
+                column: token.startRange[0] - token.startLineStart
+            },
+            end: {
+                line: token.endLineNumber,
+                column: token.endRange[1] - token.endLineStart
+            }
+        } :
+        {
+            start: {
+                line: token.lineNumber,
+                column: token.range[0] - token.lineStart
+            },
+            end: {
+                line: token.lineNumber,
+                column: token.range[1] - token.lineStart
+            }
+        };
+
+    if(isStart === true) {
+        highlight.end = highlight.start;
+    }
+    if(isName === true) {
+        highlight.name = true;
+    }
+    return highlight;
+}
+
+function ckMacrofy() {
+    var highlightMacrofy = $("#ck-macrofy");
+    return highlightMacrofy
+        .changeAsObservable()
+        .scan(highlightMacrofy.is(":checked"), Rx.helpers.not)
+        .startWith(highlightMacrofy.is(":checked"))
+}
+
+function selectMacroficationHighlight(editor, name, highlights, cursor) {
+    $('.replace').hide('fast', function() { $(this).remove(); });
+    return highlights.
+        filter(function(highlight) {
+            return  (highlight.start.line < cursor.line + 1 ||
+                        (highlight.start.line === cursor.line + 1 &&
+                        highlight.start.column < cursor.ch)) &&
+                    (highlight.end.line > cursor.line + 1 ||
+                        (highlight.end.line === cursor.line + 1 &&
+                        highlight.end.column > cursor.ch)); }).
+        map(function(highlight) {
+            return [editor, highlight.match];
+        });
+}
+
+function popupMacrofication(editor, highlight) {
+    var coords = editor.cursorCoords();
+    var options = {
+        theme: 'solarized dark',
+        readOnly: 'nocursor',
+        lineNumbers: false,
+        scrollbarStyle: 'null'
+    };
+    var srcView = $('<textarea class="CodeMirror cm-s-solarized cm-s-dark">' + highlight.replacement + '</textarea>');
+    $('<div class="replace"></div>').
+        css('left', coords.left).
+        css('top', coords.top).
+        css('display', 'none').
+        append($('<span>Replace with macro?</span>')).
+        append(srcView).
+        click(function() {
+            editor.removeOverlay('candidates');
+            editor.setValue(highlight.replacedSrc);
+            $(this).hide('fast', function() { $(this).remove(); });
+        }).
+        appendTo('#edit-box').
+        show('fast');
+    _.defer(function() { CodeMirror.fromTextArea(srcView[0], options) });
 }
 
 });
