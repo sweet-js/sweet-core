@@ -1261,5 +1261,4 @@ describe("macro expander", function() {
         expect(m [1 2] [2 3]).to.eql([3, 5]);
         expect(m []).to.eql([0]);
     });
-
 });
