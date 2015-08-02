@@ -2,7 +2,6 @@ import read from "./reader";
 import expand from "./expander";
 import { List } from "immutable";
 import Syntax from "./syntax";
-import escodegen from "escodegen";
 import Env from "./env";
 import { transform } from "babel";
 
