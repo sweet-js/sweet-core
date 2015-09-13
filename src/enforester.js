@@ -43,6 +43,7 @@ import {
     getOperatorPrec,
     operatorLt
 } from "./operators";
+import Syntax from "./syntax";
 
 import { matchCommaSeparatedIdentifiers } from "./matcher";
 
@@ -78,38 +79,40 @@ export class Enforester {
     }
 
     unwrapSyntaxTerm(term) {
-        assert(term instanceof SyntaxTerm, "expecting a syntax term");
+        if (!(term instanceof SyntaxTerm)) {
+            return null;
+        }
         return term.getSyntax().first();
     }
 
     isEOF(term) {
         let syn = this.unwrapSyntaxTerm(term);
-        return syn && syn.isEOF();
+        return syn && (syn instanceof Syntax) && syn.isEOF();
     }
 
     isIdentifier(term) {
         let syn = this.unwrapSyntaxTerm(term);
-        return syn && syn.isIdentifier();
+        return syn && (syn instanceof Syntax) && syn.isIdentifier();
     }
     isNumericLiteral(term) {
         let syn = this.unwrapSyntaxTerm(term);
-        return syn && syn.isNumericLiteral();
+        return syn && (syn instanceof Syntax) && syn.isNumericLiteral();
     }
     isStringLiteral(term) {
         let syn = this.unwrapSyntaxTerm(term);
-        return syn && syn.isStringLiteral();
+        return syn && (syn instanceof Syntax) && syn.isStringLiteral();
     }
     isBooleanLiteral(term) {
         let syn = this.unwrapSyntaxTerm(term);
-        return syn && syn.isBooleanLiteral();
+        return syn && (syn instanceof Syntax) && syn.isBooleanLiteral();
     }
     isNullLiteral(term) {
         let syn = this.unwrapSyntaxTerm(term);
-        return syn && syn.isNullLiteral();
+        return syn && (syn instanceof Syntax) && syn.isNullLiteral();
     }
     isRegularExpression(term) {
         let syn = this.unwrapSyntaxTerm(term);
-        return syn && syn.isRegularExpression();
+        return syn && (syn instanceof Syntax) && syn.isRegularExpression();
     }
     isParenDelimiter(term) {
         return term && (term instanceof DelimiterTerm) &&
@@ -117,7 +120,11 @@ export class Enforester {
     }
     isPunctuator(term) {
         let syn = this.unwrapSyntaxTerm(term);
-        return syn && syn.isPunctuator();
+        return syn && (syn instanceof Syntax) && syn.isPunctuator();
+    }
+    isOperator(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && (syn instanceof Syntax) && isOperator(syn.val());
     }
 
     matchIdentifier() {
@@ -223,7 +230,7 @@ export class Enforester {
     enforestExpressionLoop() {
         let lastTerm;
 
-        let opCtx = {
+        this.opCtx = {
             prec: 0,
             combine: (x) => x,
             stack: List()
@@ -234,13 +241,13 @@ export class Enforester {
             this.term = this.enforestExpression();
 
             // if nothing changed, maybe we just need to pop the expr stack
-            // if (lastTerm === p.term && opCtx.stack.size > 0) {
-            //     p.term = opCtx.combine(p.term);
-            //     let {prec, combine } = opCtx.stack.last();
-            //     opCtx.prec = prec;
-            //     opCtx.combine = combine;
-            //     opCtx.stack = opCtx.stack.pop();
-            // }
+            if (lastTerm === this.term && this.opCtx.stack.size > 0) {
+                this.term = this.opCtx.combine(this.term);
+                let {prec, combine} = this.opCtx.stack.last();
+                this.opCtx.prec = prec;
+                this.opCtx.combine = combine;
+                this.opCtx.stack = this.opCtx.stack.pop();
+            }
         } while (lastTerm !== this.term);  // get a fixpoint
         return this.term;
     }
@@ -283,16 +290,53 @@ export class Enforester {
         //     matchPunc(".", p.rest.first())) {
         //     return enforestStaticMemberExpression(p, context);
         // }
+        // $l:expr $op:binaryOperator $r:expr
+        if (this.term && this.term instanceof ExpressionTerm &&
+            this.isOperator(lookahead)) {
+            return this.enforestBinaryExpression();
+        }
         // $x:expr (...)
         if (this.term && this.term instanceof ExpressionTerm &&
             this.isParenDelimiter(lookahead)) {
             let paren = this.advance().getSyntax();
-            console.log(paren);
             return new CallTerm(this.term, paren);
         }
         return this.term;
     }
 
+    enforestBinaryExpression() {
+
+        let leftTerm = this.term;
+        let opStx = this.unwrapSyntaxTerm(this.peek());
+        let op = opStx.val();
+        let opPrec = getOperatorPrec(op);
+        let opAssoc = getOperatorAssoc(op);
+
+        if (operatorLt(this.opCtx.prec, opPrec, opAssoc)) {
+            this.opCtx.stack = this.opCtx.stack.push({
+                prec: this.opCtx.prec,
+                combine: this.opCtx.combine
+            });
+            this.opCtx.prec = opPrec;
+            this.opCtx.combine = (rightTerm) => {
+                if (!(rightTerm instanceof ExpressionTerm)) {
+                    throw this.createError(rightTerm,
+                                           "expecting an expression on the right side of a binary operator");
+                }
+                return new BinaryExpressionTerm(leftTerm, op, rightTerm);
+            };
+            this.advance();
+            return null;
+        } else {
+            let term = this.opCtx.combine(leftTerm);
+            // this.rest does not change
+            let { prec, combine } = this.opCtx.stack.last();
+            this.opCtx.stack = this.opCtx.stack.pop();
+            this.opCtx.prec = prec;
+            this.opCtx.combine = combine;
+            return term;
+        }
+    }
 }
 
 export default function enforest(stxl, context) {

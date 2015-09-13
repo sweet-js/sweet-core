@@ -159,187 +159,189 @@ describe("parser", function() {
         );
     });
 
-    // it("should handle a call with a multiple args", function() {
-    //     expect(parse("x(42, 24)")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "CallExpression",
-    //                         "loc": null,
-    //                         "callee": {
-    //                             "type": "Identifier",
-    //                             "loc": null,
-    //                             "name": "x"
-    //                         },
-    //                         "arguments": [
-    //                             {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             },
-    //                             {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             }
-    //                         ]
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
-    // it("should handle errors with calls", function() {
-    //     expect(() => {
-    //         parse("x(42 24)");
-    //     }).to.throwError();
-    //     expect(() => {
-    //         parse("x(;)");
-    //     }).to.throwError();
-    // });
+    it("should handle a call with a multiple args", function() {
+        expect(parse("x(42, 24)")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "ExpressionStatement",
+                        "loc": null,
+                        "expression": {
+                            "type": "CallExpression",
+                            "loc": null,
+                            "callee": {
+                                "type": "Identifier",
+                                "loc": null,
+                                "name": "x"
+                            },
+                            "arguments": [
+                                {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 42
+                                },
+                                {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 24
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        );
+    });
 
-    // it("should handle a binary expr", function() {
-    //     expect(parse("42 + 24")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "BinaryExpression",
-    //                         "loc": null,
-    //                         "left": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 42
-    //                         },
-    //                         "operator": "+",
-    //                         "right": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 24
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
+    it("should handle errors with calls", function() {
+        expect(() => {
+            parse("x(42 24)");
+        }).to.throwError();
 
-    //     expect(parse("42 + 24 + 2")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "BinaryExpression",
-    //                         "loc": null,
-    //                         "left": {
-    //                             "type": "BinaryExpression",
-    //                             "loc": null,
-    //                             "left": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             },
-    //                             "operator": "+",
-    //                             "right": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             }
-    //                         },
-    //                         "operator": "+",
-    //                         "right": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 2
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
+        expect(() => {
+            parse("x(;)");
+        }).to.throwError();
+    });
 
-    //     expect(parse("42 + 24 * 2")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "BinaryExpression",
-    //                         "loc": null,
-    //                         "left": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 42
-    //                         },
-    //                         "operator": "+",
-    //                         "right": {
-    //                             "type": "BinaryExpression",
-    //                             "loc": null,
-    //                             "left": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             },
-    //                             "operator": "*",
-    //                             "right": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 2
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
+    it("should handle a binary expr", function() {
+        expect(parse("42 + 24")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "ExpressionStatement",
+                        "loc": null,
+                        "expression": {
+                            "type": "BinaryExpression",
+                            "loc": null,
+                            "left": {
+                                "type": "Literal",
+                                "loc": null,
+                                "value": 42
+                            },
+                            "operator": "+",
+                            "right": {
+                                "type": "Literal",
+                                "loc": null,
+                                "value": 24
+                            }
+                        }
+                    }
+                ]
+            }
+        );
 
-    //     expect(parse("42 * 24 + 2")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "BinaryExpression",
-    //                         "loc": null,
-    //                         "left": {
-    //                             "type": "BinaryExpression",
-    //                             "loc": null,
-    //                             "left": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             },
-    //                             "operator": "*",
-    //                             "right": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             }
-    //                         },
-    //                         "operator": "+",
-    //                         "right": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 2
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
+        expect(parse("42 + 24 + 2")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "ExpressionStatement",
+                        "loc": null,
+                        "expression": {
+                            "type": "BinaryExpression",
+                            "loc": null,
+                            "left": {
+                                "type": "BinaryExpression",
+                                "loc": null,
+                                "left": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 42
+                                },
+                                "operator": "+",
+                                "right": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 24
+                                }
+                            },
+                            "operator": "+",
+                            "right": {
+                                "type": "Literal",
+                                "loc": null,
+                                "value": 2
+                            }
+                        }
+                    }
+                ]
+            }
+        );
+
+        expect(parse("42 + 24 * 2")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "ExpressionStatement",
+                        "loc": null,
+                        "expression": {
+                            "type": "BinaryExpression",
+                            "loc": null,
+                            "left": {
+                                "type": "Literal",
+                                "loc": null,
+                                "value": 42
+                            },
+                            "operator": "+",
+                            "right": {
+                                "type": "BinaryExpression",
+                                "loc": null,
+                                "left": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 24
+                                },
+                                "operator": "*",
+                                "right": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 2
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        );
+
+        expect(parse("42 * 24 + 2")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "ExpressionStatement",
+                        "loc": null,
+                        "expression": {
+                            "type": "BinaryExpression",
+                            "loc": null,
+                            "left": {
+                                "type": "BinaryExpression",
+                                "loc": null,
+                                "left": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 42
+                                },
+                                "operator": "*",
+                                "right": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 24
+                                }
+                            },
+                            "operator": "+",
+                            "right": {
+                                "type": "Literal",
+                                "loc": null,
+                                "value": 2
+                            }
+                        }
+                    }
+                ]
+            }
+        );
 
     //     expect(parse("42 * (24 + 2)")).to.eql({
     //             "type": "Program",
@@ -377,7 +379,7 @@ describe("parser", function() {
     //             ]
     //         }
     //     );
-    // });
+    });
 
     // it("should handle a function expression", function() {
     //     expect(parse("(function(x) { });")).to.eql({
