@@ -5,15 +5,16 @@ import Syntax from "./syntax";
 import Env from "./env";
 import { transform } from "babel";
 
-import { ProgramTerm } from "./terms";
+import { SyntaxTerm, DelimiterTerm, ProgramTerm } from "./terms";
 
 // todo: do this in read itself
 function tokenArrayToSyntaxList(toks) {
     return List(toks.map(t => {
         if (Array.isArray(t.inner)) {
             t.inner = tokenArrayToSyntaxList(t.inner);
+            return new DelimiterTerm(new Syntax(t));
         }
-        return new Syntax(t);
+        return new SyntaxTerm(new Syntax(t));
     }));
 }
 

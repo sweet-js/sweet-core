@@ -9,7 +9,7 @@ describe("reader", function() {
 
     it("should accept a #", function() {
         expect(read("#")[0].value)
-            .to.equal("#")
+            .to.equal("#");
     });
 
     it("should throw an error for an unmatched elimiter", function() {

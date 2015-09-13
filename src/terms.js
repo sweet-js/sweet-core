@@ -1,8 +1,9 @@
 import expand from "./expander";
-import { enforestExpr } from "./enforester";
+import { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert, expect } from "./errors";
 import { mixin } from "./utils";
+import Syntax from "./syntax";
 
 import {
     Program,
@@ -30,29 +31,58 @@ import {
 } from "./nodes";
 
 export class Term {
-    constructor(type, loc = null) {
-        this.type = type;
-        this.loc = loc;
+    constructor() {
         this.expanded = false;
     }
     parse() {
-        return new Term(this.type, this.loc);
+        throw "must implement in subclass";
     }
     expand(context) {
-        return this;
+        throw "must implement in subclass";
+    }
+
+    getSyntax() {
+        return List();
     }
 }
+
 export class EOFTerm extends Term { }
+
+export class SyntaxTerm extends Term {
+    constructor(stx) {
+        super();
+        assert(stx instanceof Syntax, "expecting a syntax object");
+        this.stx = stx;
+    }
+
+    getSyntax() {
+        return List([this.stx]);
+    }
+}
+
+export class DelimiterTerm extends SyntaxTerm {
+    constructor(stx) {
+        super(stx);
+
+        assert(stx.isDelimiter(), "expecting a delimiter syntax object");
+
+        this.kind = stx.token.value;
+    }
+    getSyntax() {
+        return this.stx.token.inner;
+    }
+}
 
 export class CompileTimeTerm extends Term {}
 
 export class ProgramTerm extends Term {
-    constructor(body, loc = null) {
-        super("Program", loc);
+    constructor(body) {
+        super();
         this.body = body;
     }
     parse() {
-        return new Program(this.body.map(b => b.parse()).toArray(), this.loc);
+        return new Program(this.body.map(b => b.parse()).toArray(),
+                           this.loc);
     }
 
     expand(context) {
@@ -99,8 +129,8 @@ export class StatementTerm extends Term { }
 export class DeclarationTerm extends StatementTerm { }
 
 export class EmptyStatementTerm extends StatementTerm {
-    constructor(loc = null) {
-        super("EmptyStatement", loc);
+    constructor() {
+        super();
     }
     parse() {
         return new EmptyStatement();
@@ -112,8 +142,8 @@ export class EmptyStatementTerm extends StatementTerm {
 }
 
 export class ReturnStatementTerm extends StatementTerm {
-    constructor(argument, loc = null) {
-        super("ReturnStatement", loc);
+    constructor(argument) {
+        super();
 
         assert(argument === null || argument instanceof ExpressionTerm,
                "expecting an expression for the return argument");
@@ -133,8 +163,8 @@ export class ReturnStatementTerm extends StatementTerm {
 }
 
 export class BlockStatementTerm extends StatementTerm {
-    constructor(body, loc = null) {
-        super("BlockStatement", loc);
+    constructor(body) {
+        super();
         this.body = body;
         this.loc = loc;
     }
@@ -149,8 +179,8 @@ export class BlockStatementTerm extends StatementTerm {
 }
 
 export class ExpressionStatementTerm extends StatementTerm {
-    constructor(expression, loc = null) {
-        super("ExpressionStatement", loc);
+    constructor(expression) {
+        super();
         this.expression = expression;
     }
     parse() {
@@ -166,8 +196,8 @@ export class ExpressionStatementTerm extends StatementTerm {
     }
 }
 export class FunctionDeclarationTerm extends mixin(DeclarationTerm, FunctionTerm) {
-    constructor(id, params, body, loc) {
-        super("FunctionDeclaration", loc);
+    constructor(id, params, body) {
+        super();
         this.id = id;
         this.params = params;
         this.body = body;
@@ -176,8 +206,8 @@ export class FunctionDeclarationTerm extends mixin(DeclarationTerm, FunctionTerm
 }
 
 export class VariableDeclarationTerm extends DeclarationTerm {
-    constructor(declarations, kind, loc = null) {
-        super("VariableDeclaration", loc);
+    constructor(declarations, kind) {
+        super();
 
         assert(List.isList(declarations),
             "expecting declarations to be a list of VariableDeclarators");
@@ -203,8 +233,8 @@ export class VariableDeclarationTerm extends DeclarationTerm {
 }
 
 export class VariableDeclaratorTerm extends Term {
-    constructor(id, init, loc = null) {
-        super("VariableDeclarator", loc);
+    constructor(id, init) {
+        super();
 
         assert(id != null && id.isIdentifier(), "expecting an identifier");
         this.id = id;
@@ -235,8 +265,8 @@ export class VariableDeclaratorTerm extends Term {
 export class ExpressionTerm extends Term { }
 
 export class SyntaxQuoteTerm extends ExpressionTerm {
-    constructor(name, stx, loc = null) {
-        super("SyntaxQuoteTerm", loc);
+    constructor(name, stx) {
+        super();
 
         assert(name && name.isIdentifier(), "expecting an identifier syntax object");
         this.name = name; // for hygiene purposes
@@ -259,8 +289,8 @@ export class SyntaxQuoteTerm extends ExpressionTerm {
 
 
 export class IdentifierTerm extends ExpressionTerm {
-    constructor(ident, loc = null) {
-        super("Identifier", loc);
+    constructor(ident) {
+        super();
         this.name = ident;
     }
     parse() {
@@ -274,8 +304,8 @@ export class IdentifierTerm extends ExpressionTerm {
 }
 
 export class LiteralTerm extends ExpressionTerm {
-    constructor(value, loc = null) {
-        super("Literal", loc);
+    constructor(value) {
+        super();
         this.value = value;
     }
     parse() {
@@ -304,8 +334,8 @@ export class LiteralTerm extends ExpressionTerm {
 }
 
 export class ArrayExpressionTerm extends ExpressionTerm {
-    constructor(elements, loc = null) {
-        super("ArrayExpression", loc);
+    constructor(elements) {
+        super();
 
 
         assert(List.isList(elements), "expecting a list of expressions");
@@ -333,8 +363,8 @@ export class ArrayExpressionTerm extends ExpressionTerm {
 }
 
 export class ObjectExpressionTerm extends ExpressionTerm {
-    constructor(properties, loc = null) {
-        super("ObjectExpression", loc);
+    constructor(properties) {
+        super();
 
         assert(List.isList(properties), "expecting a list of properties");
         // List[PropertyTerm]
@@ -352,8 +382,8 @@ export class ObjectExpressionTerm extends ExpressionTerm {
 }
 
 export class PropertyTerm extends Term {
-    constructor(key, value, kind, loc = null) {
-        super("Property", loc);
+    constructor(key, value, kind) {
+        super();
 
         assert(key && (key.isNumericLiteral() ||
                        key.isIdentifier() ||
@@ -389,8 +419,8 @@ export class PropertyTerm extends Term {
 }
 
 export class MemberExpressionTerm extends ExpressionTerm {
-    constructor(object, property, computed, loc = null) {
-        super("MemberExpression", loc);
+    constructor(object, property, computed) {
+        super();
 
         assert(object && object instanceof ExpressionTerm, "expecting an expression for object");
         this.object = object;
@@ -418,21 +448,21 @@ export class MemberExpressionTerm extends ExpressionTerm {
 }
 
 export class CallTerm extends ExpressionTerm {
-    constructor(callee, args, loc = null) {
-        super("CallExpression", loc);
+    constructor(callee, args) {
+        super();
         this.callee = callee;
         this.arguments = args;
     }
 
     parse() {
         return new CallExpression(this.callee.parse(),
-                        this.arguments.map(a => a.parse()).toArray());
+                                  this.arguments.map(a => a.parse()).toArray());
     }
 
     expand(context) {
         assert(!this.expanded, "CallTerm already expanded");
         this.callee  = this.callee.expand(context);
-        let matchedArgs = matchCommaSeparatedExpressions(this.arguments.token.inner,
+        let matchedArgs = matchCommaSeparatedExpressions(this.arguments,
                                                          context);
         this.arguments = matchedArgs.map(t => t.expand());
         this.expanded = true;
@@ -441,8 +471,8 @@ export class CallTerm extends ExpressionTerm {
 }
 
 export class BinaryExpressionTerm extends ExpressionTerm {
-    constructor(left, operator, right, loc = null) {
-        super("BinaryExpression", loc);
+    constructor(left, operator, right) {
+        super();
         this.left = left;
         this.operator = operator;
         this.right = right;
@@ -465,8 +495,8 @@ export class BinaryExpressionTerm extends ExpressionTerm {
 
 
 export class FunctionExpressionTerm extends mixin(ExpressionTerm, FunctionTerm) {
-    constructor(id, params, body, loc) {
-        super("FunctionExpression", loc);
+    constructor(id, params, body) {
+        super();
         assert(id === null || id.isIdentifier(), "expecting an identifier syntax object");
         this.id = id;
         assert(List.isList(params), "expecting a list of syntax objects for the params");
@@ -478,8 +508,8 @@ export class FunctionExpressionTerm extends mixin(ExpressionTerm, FunctionTerm) 
 
 // just a term, no ParenthesizedExpression node
 export class ParenthesizedExpressionTerm extends ExpressionTerm {
-    constructor(expression, loc = null) {
-        super("ParenthesizedExpressionTerm", loc);
+    constructor(expression) {
+        super();
         assert(expression && (expression instanceof ExpressionTerm), "expecting an expression");
 
         this.expression = expression;
@@ -501,22 +531,19 @@ export class ParenthesizedExpressionTerm extends ExpressionTerm {
 // matching helpers
 
 function matchCommaSeparatedExpressions(stxl, context) {
-    var rest = stxl;
     let result = List();
-    while (rest.size > 0) {
-        var {term, rest} = enforestExpr(rest, context);
+    if (stxl.size === 0) { return result; }
+
+    let enf = new Enforester(stxl, context);
+    while (!enf.done) {
+        let term = enf.enforest("expression");
         if (term instanceof ExpressionTerm) {
             result = result.concat(term);
-            if (rest.first() && rest.first().isPunctuator() &&
-                rest.first().token.value === ",") {
-                rest = rest.rest();
-            } else if (rest.size !== 0) {
-                expect(false, "expecting a comma",
-                    rest, context);
+            if (!enf.done) {
+                enf.matchPunctuator(",");
             }
         } else {
-            expect(false, "expecting an expression",
-                rest, context);
+            throw enf.createError(term, "expecting an expression");
         }
 
     }

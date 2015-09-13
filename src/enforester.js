@@ -4,6 +4,8 @@ import {
 
     SyntaxQuoteTerm,
 
+    SyntaxTerm,
+    DelimiterTerm,
     ExpressionStatementTerm,
     FunctionDeclarationTerm,
     VariableDeclarationTerm,
@@ -44,6 +46,255 @@ import {
 
 import { matchCommaSeparatedIdentifiers } from "./matcher";
 
+export class Enforester {
+    constructor(stxl, prev, context) {
+        this.done = false;
+
+        this.rest = stxl;
+        this.prev = prev;
+
+        this.context = context;
+    }
+
+    peek(n = 0) {
+        return this.rest.get(n);
+    }
+
+    advance() {
+        let ret = this.rest.first();
+        this.rest = this.rest.rest();
+        return ret;
+    }
+
+    consumeSemicolon() {
+        let lookahead = this.peek();
+
+        if (lookahead && (lookahead instanceof SyntaxTerm)) {
+            let syn = lookahead.getSyntax().first();
+            if(syn && syn.isPunctuator() && syn.val() === ";") {
+                this.advance();
+            }
+        }
+    }
+
+    unwrapSyntaxTerm(term) {
+        assert(term instanceof SyntaxTerm, "expecting a syntax term");
+        return term.getSyntax().first();
+    }
+
+    isEOF(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && syn.isEOF();
+    }
+
+    isIdentifier(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && syn.isIdentifier();
+    }
+    isNumericLiteral(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && syn.isNumericLiteral();
+    }
+    isStringLiteral(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && syn.isStringLiteral();
+    }
+    isBooleanLiteral(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && syn.isBooleanLiteral();
+    }
+    isNullLiteral(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && syn.isNullLiteral();
+    }
+    isRegularExpression(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && syn.isRegularExpression();
+    }
+    isParenDelimiter(term) {
+        return term && (term instanceof DelimiterTerm) &&
+            term.kind === "()";
+    }
+    isPunctuator(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && syn.isPunctuator();
+    }
+
+    matchIdentifier() {
+        let lookahead = this.advance();
+        if (this.isIdentifier(lookahead)) {
+            return lookahead.getSyntax().first();
+        }
+        throw this.createError(lookahead, "expecting an identifier");
+    }
+    matchLiteral() {
+        let lookahead = this.advance();
+        if (this.isNumericLiteral(lookahead) ||
+            this.isStringLiteral(lookahead) ||
+            this.isBooleanLiteral(lookahead) ||
+            this.isNullLiteral(lookahead) ||
+            this.isRegularExpression(lookahead)) {
+            return lookahead.getSyntax().first();
+        }
+        throw this.createError(lookahead, "expecting a literal");
+    }
+
+    matchPunctuator(val) {
+        let lookahead = this.advance();
+        if (this.isPunctuator(lookahead)) {
+            let syn = lookahead.getSyntax().first();
+            if (typeof val !== 'undefined') {
+                if (syn.val() === val) {
+                    return syn;
+                } else {
+                    throw this.createError(lookahead,
+                                           "expecting a " + val + " punctuator");
+                }
+            }
+            return syn;
+        }
+        throw this.createError(lookahead, "expecting a punctuator");
+    }
+
+    createError(stx, message) {
+        let ctx = "";
+        let offending = stx == null ? null : stx.getSyntax().first();
+        if (this.rest.size > 0) {
+            ctx = this.rest.slice(0, 20).map(term => {
+                return term.getSyntax();
+            }).flatten().map(s => {
+                if (s === offending) {
+                    return "__" + s.val() + "__";
+                }
+                return s.val();
+            }).join(" ");
+        }
+        return new Error("[error]: " + message + "\n" + ctx);
+    }
+
+    /*
+     enforest works over:
+     prev - a list of the previously enforest Terms
+     term - the current term being enforested (initially null)
+     rest - remaining Terms to enforest
+     */
+    enforest(type = "Module") {
+        // initialize the term
+        this.term = null;
+
+        if (this.rest.size === 0) {
+            this.done = true;
+            return this.term;
+        }
+
+        if (this.isEOF(this.peek())) {
+            this.term = new EOFTerm(this.advance());
+            return this.term;
+        }
+
+        let result;
+        if (type === "expression") {
+            result = this.enforestExpressionLoop();
+        } else {
+            result = this.enforestModuleItem();
+        }
+
+        if (this.rest.size === 0) {
+            this.done = true;
+        }
+        return result;
+    }
+
+    enforestModuleItem() {
+        return this.enforestStatement();
+    }
+
+    enforestStatement() {
+        return this.enforestExpressionStatement();
+    }
+
+    enforestExpressionStatement() {
+        let expr = this.enforestExpressionLoop();
+        this.consumeSemicolon();
+
+        return new ExpressionStatementTerm(expr);
+    }
+
+    enforestExpressionLoop() {
+        let lastTerm;
+
+        let opCtx = {
+            prec: 0,
+            combine: (x) => x,
+            stack: List()
+        };
+
+        do {
+            lastTerm = this.term;
+            this.term = this.enforestExpression();
+
+            // if nothing changed, maybe we just need to pop the expr stack
+            // if (lastTerm === p.term && opCtx.stack.size > 0) {
+            //     p.term = opCtx.combine(p.term);
+            //     let {prec, combine } = opCtx.stack.last();
+            //     opCtx.prec = prec;
+            //     opCtx.combine = combine;
+            //     opCtx.stack = opCtx.stack.pop();
+            // }
+        } while (lastTerm !== this.term);  // get a fixpoint
+        return this.term;
+    }
+
+    enforestExpression() {
+        let lookahead = this.peek();
+
+        // $x:ident
+        if (this.term === null && this.isIdentifier(lookahead)) {
+            return new IdentifierTerm(this.unwrapSyntaxTerm(this.advance()));
+        }
+        // $x:number || $x:string || $x:boolean || $x:RegExp || $x:null
+        if (this.term === null && 
+            (this.isNumericLiteral(lookahead) ||
+             this.isStringLiteral(lookahead) ||
+             this.isNullLiteral(lookahead) ||
+             this.isRegularExpression(lookahead) ||
+             this.isBooleanLiteral(lookahead))) {
+            return new LiteralTerm(this.unwrapSyntaxTerm(this.advance()));
+        }
+        // // ($x:expr)
+        // if (p.term === null && p.rest.first() &&
+        //     p.rest.first().isParenDelimiter()) {
+        //     return enforestParenthesizedExpression(p, opCtx, context);
+        // }
+
+        // if (p.term === null && p.rest.first() &&
+        //     p.rest.first().isCurlyDelimiter()) {
+        //     return enforestObjectExpression(p, context);
+        // }
+
+        // if (p.term === null && p.rest.first() &&
+        //     p.rest.first().isSquareDelimiter()) {
+        //     return enforestArrayExpression(p, context);
+        // }
+        // and then check the cases where the term part of p is something...
+
+        // $x:expr . $prop:ident
+        // if (p.term && p.term instanceof ExpressionTerm &&
+        //     matchPunc(".", p.rest.first())) {
+        //     return enforestStaticMemberExpression(p, context);
+        // }
+        // $x:expr (...)
+        if (this.term && this.term instanceof ExpressionTerm &&
+            this.isParenDelimiter(lookahead)) {
+            let paren = this.advance().getSyntax();
+            console.log(paren);
+            return new CallTerm(this.term, paren);
+        }
+        return this.term;
+    }
+
+}
+
 export default function enforest(stxl, context) {
     let p = {
         term: null,
@@ -58,6 +309,7 @@ export default function enforest(stxl, context) {
 
     return enforestModuleItem(p, context);
 }
+
 
 function enforestModuleItem(p, context) {
     return enforestStatement(p, context);
@@ -135,7 +387,7 @@ function expandMacro(p, context) {
 
     p.term = null;
     p.rest = transformResult.concat(rest);
-    return p
+    return p;
 }
 
 
@@ -279,8 +531,8 @@ export function enforestExpr(stxl, context) {
     return enforestExpressionLoop({term: null, rest: stxl}, context);
 }
 
-// expressions are complicated because we want to handle operators with precedence and
-// stuff so we have a loop and other strangeness
+// expressions are complicated because we want to handle operators with
+// precedence and stuff so we have a loop and other strangeness
 function enforestExpressionLoop(p, context) {
 
     let lastTerm;

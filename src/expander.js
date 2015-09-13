@@ -1,4 +1,4 @@
-import enforest, { enforestExpr } from "./enforester";
+import enforest, { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert } from "./errors";
 import {
@@ -52,14 +52,16 @@ function loadForCompiletime(ast, context) {
     return geval(result.code).apply(undefined, sandboxVals);
 }
 
+
 function expandTokens(stxl, context) {
     let result = List();
-    var rest = stxl;
     if (stxl.size === 0) {
         return result;
     }
-    do {
-        var {term, rest} = enforest(rest, context);
+    let prev = List();
+    let enf = new Enforester(stxl, prev, context);
+    while (!enf.done) {
+        let term = enf.enforest();
         assert(term !== null, "enforest returned a null term");
 
         if (term instanceof VariableDeclarationTerm && term.kind === "syntax") {
@@ -84,7 +86,7 @@ function expandTokens(stxl, context) {
             break;
         }
         result = result.concat(term);
-    } while (rest.size > 0);
+    }
     return result;
 }
 
