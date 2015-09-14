@@ -343,42 +343,42 @@ describe("parser", function() {
             }
         );
 
-    //     expect(parse("42 * (24 + 2)")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "BinaryExpression",
-    //                         "loc": null,
-    //                         "left": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 42
-    //                         },
-    //                         "operator": "*",
-    //                         "right": {
-    //                             "type": "BinaryExpression",
-    //                             "loc": null,
-    //                             "left": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             },
-    //                             "operator": "+",
-    //                             "right": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 2
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
+        expect(parse("42 * (24 + 2)")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "ExpressionStatement",
+                        "loc": null,
+                        "expression": {
+                            "type": "BinaryExpression",
+                            "loc": null,
+                            "left": {
+                                "type": "Literal",
+                                "loc": null,
+                                "value": 42
+                            },
+                            "operator": "*",
+                            "right": {
+                                "type": "BinaryExpression",
+                                "loc": null,
+                                "left": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 24
+                                },
+                                "operator": "+",
+                                "right": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 2
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        );
     });
 
     // it("should handle a function expression", function() {

@@ -268,11 +268,16 @@ export class Enforester {
              this.isBooleanLiteral(lookahead))) {
             return new LiteralTerm(this.unwrapSyntaxTerm(this.advance()));
         }
-        // // ($x:expr)
-        // if (p.term === null && p.rest.first() &&
-        //     p.rest.first().isParenDelimiter()) {
-        //     return enforestParenthesizedExpression(p, opCtx, context);
-        // }
+        // ($x:expr)
+        if (this.term === null && this.isParenDelimiter(lookahead)) {
+            let enf = new Enforester(lookahead.getSyntax(), this.context);
+            let expr = enf.enforest("expression");
+            if (!enf.done) {
+                throw enf.createError(enf.peek(), "unexpected syntax");
+            }
+            this.advance();
+            return new ParenthesizedExpressionTerm(expr);
+        }
 
         // if (p.term === null && p.rest.first() &&
         //     p.rest.first().isCurlyDelimiter()) {
