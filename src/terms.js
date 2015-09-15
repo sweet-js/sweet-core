@@ -104,12 +104,18 @@ class FunctionTerm {
             id = new Identifier(id.resolve());
         }
 
-        let FunctionNode = this instanceof FunctionExpressionTerm ? FunctionExpression : FunctionDeclaration;
+        let FunctionNode = this instanceof FunctionExpressionTerm ?
+                FunctionExpression : FunctionDeclaration;
 
         return new FunctionNode(id,
-                this.params.map(s => new Identifier(s.resolve())).toArray(),
-                new BlockStatement(this.body.map(t => t.parse()).toArray()),
-                this.loc);
+                                this.params.map(term => {
+                                    let syn = term.getSyntax().first();
+                                    return new Identifier(syn.resolve());
+                                }).toArray(),
+                                new BlockStatement(this.body.map(t => {
+                                    return t.parse();
+                                }).toArray()),
+                                this.loc);
     }
 
     expand(context) {
@@ -534,7 +540,7 @@ function matchCommaSeparatedExpressions(stxl, context) {
     let result = List();
     if (stxl.size === 0) { return result; }
 
-    let enf = new Enforester(stxl, context);
+    let enf = new Enforester(stxl, List(), context);
     while (!enf.done) {
         let term = enf.enforest("expression");
         if (term instanceof ExpressionTerm) {

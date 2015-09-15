@@ -50,6 +50,10 @@ import { matchCommaSeparatedIdentifiers } from "./matcher";
 export class Enforester {
     constructor(stxl, prev, context) {
         this.done = false;
+        assert(List.isList(stxl), "expecting a list of terms to enforest");
+        assert(List.isList(prev), "expecting a list of terms to enforest");
+        assert(context, "expecting a context to enforest");
+        this.term = null;
 
         this.rest = stxl;
         this.prev = prev;
@@ -77,6 +81,17 @@ export class Enforester {
             }
         }
     }
+    consumeComma() {
+        let lookahead = this.peek();
+
+        if (lookahead && (lookahead instanceof SyntaxTerm)) {
+            let syn = lookahead.getSyntax().first();
+            if(syn && syn.isPunctuator() && syn.val() === ",") {
+                this.advance();
+            }
+        }
+    }
+
 
     unwrapSyntaxTerm(term) {
         if (!(term instanceof SyntaxTerm)) {
@@ -118,13 +133,54 @@ export class Enforester {
         return term && (term instanceof DelimiterTerm) &&
             term.kind === "()";
     }
-    isPunctuator(term) {
+    isCurlyDelimiter(term) {
+        return term && (term instanceof DelimiterTerm) &&
+            term.kind === "{}";
+    }
+    isSquareDelimiter(term) {
+        return term && (term instanceof DelimiterTerm) &&
+            term.kind === "[]";
+    }
+    isPunctuator(term, val = null) {
         let syn = this.unwrapSyntaxTerm(term);
-        return syn && (syn instanceof Syntax) && syn.isPunctuator();
+        return syn && (syn instanceof Syntax) &&
+            syn.isPunctuator() && ((val === null) || (syn.val() === val));
     }
     isOperator(term) {
         let syn = this.unwrapSyntaxTerm(term);
         return syn && (syn instanceof Syntax) && isOperator(syn.val());
+    }
+
+
+    isFnDeclTransform(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && (syn instanceof Syntax) &&
+            this.context.env.get(syn.resolve()) === FunctionDeclTransform;
+    }
+    isVarDeclTransform(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && (syn instanceof Syntax) &&
+            this.context.env.get(syn.resolve()) === VariableDeclTransform;
+    }
+    isLetDeclTransform(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && (syn instanceof Syntax) &&
+            this.context.env.get(syn.resolve()) === LetDeclTransform;
+    }
+    isConstDeclTransform(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && (syn instanceof Syntax) &&
+            this.context.env.get(syn.resolve()) === ConstDeclTransform;
+    }
+    isSyntaxDeclTransform(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && (syn instanceof Syntax) &&
+            this.context.env.get(syn.resolve()) === SyntaxDeclTransform;
+    }
+    isReturnStmtTransform(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && (syn instanceof Syntax) &&
+            this.context.env.get(syn.resolve()) === ReturnStatementTransform;
     }
 
     matchIdentifier() {
@@ -144,6 +200,22 @@ export class Enforester {
             return lookahead.getSyntax().first();
         }
         throw this.createError(lookahead, "expecting a literal");
+    }
+
+    matchParens() {
+        let lookahead = this.advance();
+        if (this.isParenDelimiter(lookahead)) {
+            return lookahead.getSyntax();
+        }
+        throw this.createError(lookahead, "expecting parens");
+    }
+
+    matchCurlies() {
+        let lookahead = this.advance();
+        if (this.isCurlyDelimiter(lookahead)) {
+            return lookahead.getSyntax();
+        }
+        throw this.createError(lookahead, "expecting curly braces");
     }
 
     matchPunctuator(val) {
@@ -217,7 +289,94 @@ export class Enforester {
     }
 
     enforestStatement() {
+        let lookahead = this.peek();
+
+        if (this.term === null && this.isFnDeclTransform(lookahead)) {
+            return this.enforestFunctionDeclaration();
+        }
+
+        if (this.term === null &&
+            (this.isVarDeclTransform(lookahead) ||
+             this.isLetDeclTransform(lookahead) ||
+             this.isConstDeclTransform(lookahead) ||
+             this.isSyntaxDeclTransform(lookahead))) {
+            return this.enforestVariableDeclaration();
+        }
+
+        if (this.term === null && this.isReturnStmtTransform(lookahead)) {
+            return this.enforestReturnStatement();
+        }
         return this.enforestExpressionStatement();
+    }
+
+    enforestReturnStatement() {
+        let kw = this.advance();
+        let lookahead = this.peek();
+
+        // short circuit for the empty expression case
+        if (this.rest.size === 0 ||
+            (lookahead && !lineNumberEq(kw, lookahead))) {
+            return new ReturnStatementTerm(null);
+        }
+
+        let term = this.enforestExpressionLoop();
+        this.consumeSemicolon();
+
+        return new ReturnStatementTerm(term);
+    }
+
+    enforestVariableDeclaration() {
+        let kind;
+        let lookahead = this.advance();
+        let kindSyn = this.unwrapSyntaxTerm(lookahead);
+
+        if (kindSyn &&
+            this.context.env.get(kindSyn.resolve()) === VariableDeclTransform) {
+            kind = "var";
+        } else if (kindSyn &&
+                   this.context.env.get(kindSyn.resolve()) === LetDeclTransform) {
+            kind = "let";
+        } else if (kindSyn &&
+                   this.context.env.get(kindSyn.resolve()) === ConstDeclTransform) {
+            kind = "const";
+        } else if (kindSyn &&
+                   this.context.env.get(kindSyn.resolve()) === SyntaxDeclTransform) {
+            kind = "syntax";
+        }
+
+        let decls = List();
+
+        while (true) {
+
+            let term =  this.enforestVariableDeclarator();
+
+            decls = decls.concat(term);
+
+            let lookahead = this.peek();
+
+            if (this.isPunctuator(lookahead, ",")) {
+                this.advance();
+            } else {
+                break;
+            }
+        }
+
+        this.consumeSemicolon();
+        return new VariableDeclarationTerm(decls, kind);
+    }
+
+    enforestVariableDeclarator() {
+        let id = this.matchIdentifier();
+        let eq = this.unwrapSyntaxTerm(this.advance());
+
+        let init, rest;
+        // todo: handle the other assignment operators
+        if (eq && eq.val() === "=") {
+            init = this.enforestExpressionLoop();
+        } else {
+            init = null;
+        }
+        return new VariableDeclaratorTerm(id, init);
     }
 
     enforestExpressionStatement() {
@@ -230,6 +389,7 @@ export class Enforester {
     enforestExpressionLoop() {
         let lastTerm;
 
+        this.term = null;
         this.opCtx = {
             prec: 0,
             combine: (x) => x,
@@ -252,6 +412,7 @@ export class Enforester {
         return this.term;
     }
 
+
     enforestExpression() {
         let lookahead = this.peek();
 
@@ -270,13 +431,23 @@ export class Enforester {
         }
         // ($x:expr)
         if (this.term === null && this.isParenDelimiter(lookahead)) {
-            let enf = new Enforester(lookahead.getSyntax(), this.context);
+            let enf = new Enforester(lookahead.getSyntax(),
+                                     List(),
+                                     this.context);
             let expr = enf.enforest("expression");
             if (!enf.done) {
                 throw enf.createError(enf.peek(), "unexpected syntax");
             }
             this.advance();
             return new ParenthesizedExpressionTerm(expr);
+        }
+        // $x:FunctionExpression
+        if (this.term === null && this.isFnDeclTransform(lookahead)) {
+            return this.enforestFunctionExpression();
+        }
+
+        if (this.term === null && this.isCurlyDelimiter(lookahead)) {
+            return this.enforestObjectExpression();
         }
 
         // if (p.term === null && p.rest.first() &&
@@ -306,7 +477,74 @@ export class Enforester {
             let paren = this.advance().getSyntax();
             return new CallTerm(this.term, paren);
         }
+
         return this.term;
+    }
+
+    enforestObjectExpression() {
+        let obj = this.advance();
+
+        let properties = List();
+
+        let enf = new Enforester(obj.getSyntax(), List(), this.context);
+
+        while (enf.rest.size > 0) {
+            let prop = enf.enforestProperty();
+            properties = properties.concat(prop);
+        }
+
+        return new ObjectExpressionTerm(properties);
+    }
+
+    enforestProperty() {
+        let key = this.matchIdentifier();
+        let colon = this.matchPunctuator(":");
+
+        let value = this.enforestExpressionLoop();
+        this.consumeComma();
+
+        return new PropertyTerm(key, value, "init");
+    }
+
+    enforestFunctionExpression() {
+        let id = null, params, body, rest;
+        // eat the function keyword
+        this.advance();
+        let lookahead = this.peek();
+
+        if (this.isIdentifier(lookahead)) {
+            id = this.unwrapSyntaxTerm(this.advance());
+        }
+        params = this.matchParens("expecting a function parameter list");
+        body = this.matchCurlies("expecting a function body");
+
+        let paramIdents = params.filter(term => {
+            return this.isIdentifier(term);
+        });
+
+        return new FunctionExpressionTerm(id,
+                                          paramIdents,
+                                          body);
+    }
+
+
+    enforestFunctionDeclaration() {
+        let id, params, body, rest;
+        // eat the function keyword
+        this.advance();
+        let lookahead = this.peek();
+
+        id = this.unwrapSyntaxTerm(this.advance());
+        params = this.matchParens("expecting a function parameter list");
+        body = this.matchCurlies("expecting a function body");
+
+        let paramIdents = params.filter(term => {
+            return this.isIdentifier(term);
+        });
+
+        return new FunctionDeclarationTerm(id,
+                                           paramIdents,
+                                           body);
     }
 
     enforestBinaryExpression() {
@@ -365,11 +603,14 @@ function enforestModuleItem(p, context) {
 }
 
 function lineNumberEq(a, b) {
-    if (!(a && b)) {
+    let asyn = this.unwrapSyntaxTerm(a),
+        bsyn = this.unwrapSyntaxTerm(b);
+
+    if (!(asyn && bsyn)) {
         return false;
     }
-    let aLineNumber = a.isDelimiter() ? a.token.startLineNumber : a.token.lineNumber;
-    let bLineNumber = b.isDelimiter() ? b.token.startLineNumber : b.token.lineNumber;
+    let aLineNumber = asyn.isDelimiter() ? asyn.token.startLineNumber : asyn.token.lineNumber;
+    let bLineNumber = bsyn.isDelimiter() ? bsyn.token.startLineNumber : bsyn.token.lineNumber;
     return aLineNumber === bLineNumber;
 }
 

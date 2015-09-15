@@ -381,431 +381,465 @@ describe("parser", function() {
         );
     });
 
-    // it("should handle a function expression", function() {
-    //     expect(parse("(function(x) { });")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "FunctionExpression",
-    //                         "loc": null,
-    //                         "id": null,
-    //                         "params": [
-    //                             {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             }
-    //                         ],
-    //                         "body": {
-    //                             "type": "BlockStatement",
-    //                             "loc": null,
-    //                             "body": []
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a function expression", function() {
+        expect(parse("(function(x) { });")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "ExpressionStatement",
+                        "loc": null,
+                        "expression": {
+                            "type": "FunctionExpression",
+                            "loc": null,
+                            "id": null,
+                            "params": [
+                                {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "x"
+                                }
+                            ],
+                            "body": {
+                                "type": "BlockStatement",
+                                "loc": null,
+                                "body": []
+                            }
+                        }
+                    }
+                ]
+            }
+        );
+    });
 
-    // it("should handle a function declaration", function() {
-    //     expect(parse("function id(x) { }")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "FunctionDeclaration",
-    //                     "loc": null,
-    //                     "id": {
-    //                         "type": "Identifier",
-    //                         "loc": null,
-    //                         "name": "id"
-    //                     },
-    //                     "params": [
-    //                         {
-    //                             "type": "Identifier",
-    //                             "loc": null,
-    //                             "name": "x"
-    //                         }
-    //                     ],
-    //                     "body": {
-    //                         "type": "BlockStatement",
-    //                         "loc": null,
-    //                         "body": []
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a named function expression", function() {
+        expect(parse("(function x(x) { });")).to.eql({
+            "type": "Program",
+            "loc": null,
+            "body": [
+                {
+                    "type": "ExpressionStatement",
+                    "loc": null,
+                    "expression": {
+                        "type": "FunctionExpression",
+                        "loc": null,
+                        "id": {
+                            "type": "Identifier",
+                            "loc": null,
+                            "name": "x"
+                        },
+                        "params": [
+                            {
+                                "type": "Identifier",
+                                "loc": null,
+                                "name": "x"
+                            }
+                        ],
+                        "body": {
+                            "type": "BlockStatement",
+                            "loc": null,
+                            "body": []
+                        }
+                    }
+                }
+            ]
+        });
+    });
 
-    // it("should throw an error for a bad return statement", function() {
-    //     expect(() => parse("function foo() { return return }")).to.throwError();
-    // });
+    it("should handle a function declaration", function() {
+        expect(parse("function id(x) { }")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "FunctionDeclaration",
+                        "loc": null,
+                        "id": {
+                            "type": "Identifier",
+                            "loc": null,
+                            "name": "id"
+                        },
+                        "params": [
+                            {
+                                "type": "Identifier",
+                                "loc": null,
+                                "name": "x"
+                            }
+                        ],
+                        "body": {
+                            "type": "BlockStatement",
+                            "loc": null,
+                            "body": []
+                        }
+                    }
+                ]
+            }
+        );
+    });
 
-    // it("should thrown an error for a bad var decl", function() {
-    //     expect(() => parse("var 42")).to.throwError();
-    // })
+    it("should throw an error for a bad return statement", function() {
+        expect(() => parse("function foo() { return return }")).to.throwError();
+    });
 
-    // it("should handle a var declaration", function() {
-    //     expect(parse("var x")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             },
-    //                             "init": null
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
-    //     expect(parse("var x = 42")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             },
-    //                             "init": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
-    //     expect(parse("var x = 42, y = 42 + 24")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             },
-    //                             "init": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             }
-    //                         },
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "y"
-    //                             },
-    //                             "init": {
-    //                                 "type": "BinaryExpression",
-    //                                 "loc": null,
-    //                                 "left": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 42
-    //                                 },
-    //                                 "operator": "+",
-    //                                 "right": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 24
-    //                                 }
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
+    it("should thrown an error for a bad var decl", function() {
+        expect(() => parse("var 42")).to.throwError();
+    });
+
+    it("should handle a var declaration", function() {
+        expect(parse("var x")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "VariableDeclaration",
+                        "loc": null,
+                        "declarations": [
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "x"
+                                },
+                                "init": null
+                            }
+                        ],
+                        "kind": "var"
+                    }
+                ]
+            }
+        );
+        expect(parse("var x = 42")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "VariableDeclaration",
+                        "loc": null,
+                        "declarations": [
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "x"
+                                },
+                                "init": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 42
+                                }
+                            }
+                        ],
+                        "kind": "var"
+                    }
+                ]
+            }
+        );
+        expect(parse("var x = 42, y = 42 + 24")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "VariableDeclaration",
+                        "loc": null,
+                        "declarations": [
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "x"
+                                },
+                                "init": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 42
+                                }
+                            },
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "y"
+                                },
+                                "init": {
+                                    "type": "BinaryExpression",
+                                    "loc": null,
+                                    "left": {
+                                        "type": "Literal",
+                                        "loc": null,
+                                        "value": 42
+                                    },
+                                    "operator": "+",
+                                    "right": {
+                                        "type": "Literal",
+                                        "loc": null,
+                                        "value": 24
+                                    }
+                                }
+                            }
+                        ],
+                        "kind": "var"
+                    }
+                ]
+            }
+        );
 
 
 
-    //     expect(parse("let x = 42, y = 42 + 24")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             },
-    //                             "init": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             }
-    //                         },
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "y"
-    //                             },
-    //                             "init": {
-    //                                 "type": "BinaryExpression",
-    //                                 "loc": null,
-    //                                 "left": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 42
-    //                                 },
-    //                                 "operator": "+",
-    //                                 "right": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 24
-    //                                 }
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "let"
-    //                 }
-    //             ]
-    //         }
-    //     );
+        expect(parse("let x = 42, y = 42 + 24")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "VariableDeclaration",
+                        "loc": null,
+                        "declarations": [
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "x"
+                                },
+                                "init": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 42
+                                }
+                            },
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "y"
+                                },
+                                "init": {
+                                    "type": "BinaryExpression",
+                                    "loc": null,
+                                    "left": {
+                                        "type": "Literal",
+                                        "loc": null,
+                                        "value": 42
+                                    },
+                                    "operator": "+",
+                                    "right": {
+                                        "type": "Literal",
+                                        "loc": null,
+                                        "value": 24
+                                    }
+                                }
+                            }
+                        ],
+                        "kind": "let"
+                    }
+                ]
+            }
+        );
 
-    //     expect(parse("const x = 42, y = 42 + 24")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             },
-    //                             "init": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             }
-    //                         },
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "y"
-    //                             },
-    //                             "init": {
-    //                                 "type": "BinaryExpression",
-    //                                 "loc": null,
-    //                                 "left": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 42
-    //                                 },
-    //                                 "operator": "+",
-    //                                 "right": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 24
-    //                                 }
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "const"
-    //                 }
-    //             ]
-    //         }
-    //     );
+        expect(parse("const x = 42, y = 42 + 24")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "VariableDeclaration",
+                        "loc": null,
+                        "declarations": [
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "x"
+                                },
+                                "init": {
+                                    "type": "Literal",
+                                    "loc": null,
+                                    "value": 42
+                                }
+                            },
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "y"
+                                },
+                                "init": {
+                                    "type": "BinaryExpression",
+                                    "loc": null,
+                                    "left": {
+                                        "type": "Literal",
+                                        "loc": null,
+                                        "value": 42
+                                    },
+                                    "operator": "+",
+                                    "right": {
+                                        "type": "Literal",
+                                        "loc": null,
+                                        "value": 24
+                                    }
+                                }
+                            }
+                        ],
+                        "kind": "const"
+                    }
+                ]
+            }
+        );
 
-    // });
+    });
 
-    // it("should handle a empty object literal", function() {
-    //     expect(parse("var o = {}")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "o"
-    //                             },
-    //                             "init": {
-    //                                 "type": "ObjectExpression",
-    //                                 "loc": null,
-    //                                 "properties": []
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a empty object literal", function() {
+        expect(parse("var o = {}")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "VariableDeclaration",
+                        "loc": null,
+                        "declarations": [
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "o"
+                                },
+                                "init": {
+                                    "type": "ObjectExpression",
+                                    "loc": null,
+                                    "properties": []
+                                }
+                            }
+                        ],
+                        "kind": "var"
+                    }
+                ]
+            }
+        );
+    });
 
-    // it("should handle an object literal with a single property", function() {
-    //     expect(parse("var o = { foo: 42 }")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "o"
-    //                             },
-    //                             "init": {
-    //                                 "type": "ObjectExpression",
-    //                                 "loc": null,
-    //                                 "properties": [
-    //                                     {
-    //                                         "type": "Property",
-    //                                         "loc": null,
-    //                                         "key": {
-    //                                             "type": "Identifier",
-    //                                             "loc": null,
-    //                                             "name": "foo"
-    //                                         },
-    //                                         "value": {
-    //                                             "type": "Literal",
-    //                                             "loc": null,
-    //                                             "value": 42
-    //                                         },
-    //                                         "kind": "init"
-    //                                     }
-    //                                 ]
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle an object literal with a single property", function() {
+        expect(parse("var o = { foo: 42 }")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "VariableDeclaration",
+                        "loc": null,
+                        "declarations": [
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "o"
+                                },
+                                "init": {
+                                    "type": "ObjectExpression",
+                                    "loc": null,
+                                    "properties": [
+                                        {
+                                            "type": "Property",
+                                            "loc": null,
+                                            "key": {
+                                                "type": "Identifier",
+                                                "loc": null,
+                                                "name": "foo"
+                                            },
+                                            "value": {
+                                                "type": "Literal",
+                                                "loc": null,
+                                                "value": 42
+                                            },
+                                            "kind": "init"
+                                        }
+                                    ]
+                                }
+                            }
+                        ],
+                        "kind": "var"
+                    }
+                ]
+            }
+        );
+    });
 
-    // it("should handle a object literal with multiple properties", function() {
-    //     expect(parse("var o = { foo: 42, bar: 24};")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "o"
-    //                             },
-    //                             "init": {
-    //                                 "type": "ObjectExpression",
-    //                                 "loc": null,
-    //                                 "properties": [
-    //                                     {
-    //                                         "type": "Property",
-    //                                         "loc": null,
-    //                                         "key": {
-    //                                             "type": "Identifier",
-    //                                             "loc": null,
-    //                                             "name": "foo"
-    //                                         },
-    //                                         "value": {
-    //                                             "type": "Literal",
-    //                                             "loc": null,
-    //                                             "value": 42
-    //                                         },
-    //                                         "kind": "init"
-    //                                     },
-    //                                     {
-    //                                         "type": "Property",
-    //                                         "loc": null,
-    //                                         "key": {
-    //                                             "type": "Identifier",
-    //                                             "loc": null,
-    //                                             "name": "bar"
-    //                                         },
-    //                                         "value": {
-    //                                             "type": "Literal",
-    //                                             "loc": null,
-    //                                             "value": 24
-    //                                         },
-    //                                         "kind": "init"
-    //                                     }
-    //                                 ]
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a object literal with multiple properties", function() {
+        expect(parse("var o = { foo: 42, bar: 24};")).to.eql({
+                "type": "Program",
+                "loc": null,
+                "body": [
+                    {
+                        "type": "VariableDeclaration",
+                        "loc": null,
+                        "declarations": [
+                            {
+                                "type": "VariableDeclarator",
+                                "loc": null,
+                                "id": {
+                                    "type": "Identifier",
+                                    "loc": null,
+                                    "name": "o"
+                                },
+                                "init": {
+                                    "type": "ObjectExpression",
+                                    "loc": null,
+                                    "properties": [
+                                        {
+                                            "type": "Property",
+                                            "loc": null,
+                                            "key": {
+                                                "type": "Identifier",
+                                                "loc": null,
+                                                "name": "foo"
+                                            },
+                                            "value": {
+                                                "type": "Literal",
+                                                "loc": null,
+                                                "value": 42
+                                            },
+                                            "kind": "init"
+                                        },
+                                        {
+                                            "type": "Property",
+                                            "loc": null,
+                                            "key": {
+                                                "type": "Identifier",
+                                                "loc": null,
+                                                "name": "bar"
+                                            },
+                                            "value": {
+                                                "type": "Literal",
+                                                "loc": null,
+                                                "value": 24
+                                            },
+                                            "kind": "init"
+                                        }
+                                    ]
+                                }
+                            }
+                        ],
+                        "kind": "var"
+                    }
+                ]
+            }
+        );
+    });
 
     // it("should handle an empty array literal", function() {
     //     expect(parse("[];")).to.eql({
