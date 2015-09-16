@@ -140,7 +140,7 @@ export class Enforester {
 
         // short circuit for the empty expression case
         if (this.rest.size === 0 ||
-            (lookahead && !lineNumberEq(kw, lookahead))) {
+            (lookahead && !this.lineNumberEq(kw, lookahead))) {
             return new ReturnStatementTerm(null);
         }
 
@@ -579,6 +579,15 @@ export class Enforester {
         let syn = this.unwrapSyntaxTerm(term);
         return syn && (syn instanceof Syntax) &&
             this.context.env.get(syn.resolve()) === ReturnStatementTransform;
+    }
+
+    lineNumberEq(a, b) {
+        if (!(a && b)) {
+            return false;
+        }
+        let alineNum = (a instanceof DelimiterTerm) ? a.stx.token.startLineNumber : a.stx.token.lineNumber;
+        let blineNum = (b instanceof DelimiterTerm) ? b.stx.token.startLineNumber : b.stx.token.lineNumber;
+        return alineNum === blineNum;
     }
 
     matchIdentifier() {
