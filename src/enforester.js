@@ -370,7 +370,6 @@ export class Enforester {
         let eq = this.unwrapSyntaxTerm(this.advance());
 
         let init, rest;
-        // todo: handle the other assignment operators
         if (eq && eq.val() === "=") {
             init = this.enforestExpressionLoop();
         } else {
@@ -400,6 +399,7 @@ export class Enforester {
             lastTerm = this.term;
             this.term = this.enforestExpression();
 
+
             // if nothing changed, maybe we just need to pop the expr stack
             if (lastTerm === this.term && this.opCtx.stack.size > 0) {
                 this.term = this.opCtx.combine(this.term);
@@ -408,6 +408,12 @@ export class Enforester {
                 this.opCtx.combine = combine;
                 this.opCtx.stack = this.opCtx.stack.pop();
             }
+            // if we had that chance to pop the operator stack and still the
+            // current term and last term are null then we got into an infinite
+            // loop
+            assert(!(this.term === null && lastTerm === null),
+                   "enforesting an expression should never be null");
+
         } while (lastTerm !== this.term);  // get a fixpoint
         return this.term;
     }
@@ -446,8 +452,14 @@ export class Enforester {
             return this.enforestFunctionExpression();
         }
 
+        // { $p:prop (,) ... }
         if (this.term === null && this.isCurlyDelimiter(lookahead)) {
             return this.enforestObjectExpression();
+        }
+
+        // [$x:expr (,) ...]
+        if (this.term === null && this.isSquareDelimiter(lookahead)) {
+            return this.enforestArrayExpression();
         }
 
         // if (p.term === null && p.rest.first() &&
@@ -481,6 +493,28 @@ export class Enforester {
         return this.term;
     }
 
+    enforestArrayExpression() {
+        let arr = this.advance();
+
+        let elements = List();
+
+        let enf = new Enforester(arr.getSyntax(), List(), this.context);
+
+        while (enf.rest.size > 0) {
+            let lookahead = enf.peek();
+            if (enf.isPunctuator(lookahead, ",")) {
+                enf.advance();
+                elements = elements.concat(null);
+            } else {
+                let term = enf.enforestExpressionLoop();
+                elements = elements.concat(term);
+                enf.consumeComma();
+            }
+        }
+        return new ArrayExpressionTerm(elements);
+
+    }
+
     enforestObjectExpression() {
         let obj = this.advance();
 
@@ -488,9 +522,15 @@ export class Enforester {
 
         let enf = new Enforester(obj.getSyntax(), List(), this.context);
 
+        let lastProp = null;
         while (enf.rest.size > 0) {
             let prop = enf.enforestProperty();
             properties = properties.concat(prop);
+
+            if (lastProp === prop) {
+                throw enf.createError(prop, "invalid syntax in object");
+            }
+            lastProp = prop;
         }
 
         return new ObjectExpressionTerm(properties);

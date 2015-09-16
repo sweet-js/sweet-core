@@ -60,9 +60,13 @@ function expandTokens(stxl, context) {
     }
     let prev = List();
     let enf = new Enforester(stxl, prev, context);
+    let lastTerm = null;
     while (!enf.done) {
         let term = enf.enforest();
-        assert(term !== null, "enforest returned a null term");
+        // check for coding mistake
+        assert(term !== null, "enforester returned a null term");
+        assert(term !== lastTerm, "enforester is not done but produced same term");
+        lastTerm = term;
 
         if (term instanceof VariableDeclarationTerm && term.kind === "syntax") {
             // todo: hygiene
@@ -85,6 +89,7 @@ function expandTokens(stxl, context) {
         if (term instanceof EOFTerm) {
             break;
         }
+
         result = result.concat(term);
     }
     return result;
