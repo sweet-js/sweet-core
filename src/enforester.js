@@ -111,6 +111,10 @@ export class Enforester {
     enforestStatement() {
         let lookahead = this.peek();
 
+        if (this.term === null && this.isCompiletimeTransform(lookahead)) {
+            return this.expandMacro();
+        }
+
         if (this.term === null && this.isFnDeclTransform(lookahead)) {
             return this.enforestFunctionDeclaration();
         }
@@ -243,14 +247,17 @@ export class Enforester {
         return this.term;
     }
 
-
     enforestExpression() {
         let lookahead = this.peek();
 
-        // if (p.term === null && p.rest.first() &&
-        //     context.env.get(p.rest.first().resolve()) instanceof CompiletimeTransform) {
-        //     p = expandMacro(p, context);
-        // }
+        if (this.term === null && this.isCompiletimeTransform(lookahead)) {
+            let term = this.expandMacro("expression");
+            if (!(term instanceof ExpressionTerm)) {
+                throw this.createError(term,
+                                       "expecting macro to return an expression");
+            }
+            return term;
+        }
 
         // syntaxQuote { ... }
         if (this.term === null && this.isSyntaxQuoteTransform(lookahead)) {
@@ -317,6 +324,13 @@ export class Enforester {
         }
 
         return this.term;
+    }
+
+    enforestMacroResultTerm() {
+        let enf = new Enforester(this.term.getSyntax(), List(), this.context);
+        let term = enf.enforest();
+        this.rest = enf.rest.concat(this.rest);
+        return term;
     }
 
     enforestSyntaxQuote() {
@@ -464,6 +478,22 @@ export class Enforester {
         }
     }
 
+    expandMacro(enforestType) {
+        let name = this.unwrapSyntaxTerm(this.advance());
+
+        let ct = this.context.env.get(name.resolve());
+        if (ct == null || typeof ct.value !== "function") {
+            throw this.createError(name, "macro name not bound to function");
+        }
+        let result = ct.value();
+
+        let enf = new Enforester(result, List(), this.context);
+        let term = enf.enforest(enforestType);
+
+        this.rest = enf.rest.concat(this.rest);
+        return term;
+    }
+
     consumeSemicolon() {
         let lookahead = this.peek();
 
@@ -580,6 +610,12 @@ export class Enforester {
         return syn && (syn instanceof Syntax) &&
             this.context.env.get(syn.resolve()) === ReturnStatementTransform;
     }
+    isCompiletimeTransform(term) {
+        let syn = this.unwrapSyntaxTerm(term);
+        return syn && (syn instanceof Syntax) &&
+            this.context.env.get(syn.resolve()) instanceof CompiletimeTransform;
+    }
+
 
     lineNumberEq(a, b) {
         if (!(a && b)) {
@@ -661,30 +697,4 @@ export class Enforester {
 
 
 
-function expandMacro(p, context) {
-    let name = p.rest.first();
-
-    let ct = context.env.get(name.resolve());
-    expect(ct, "expecting a compiletime value for the syntax:" + name.val(),
-           name, p.rest);
-    expect(typeof ct.value.match === "function",
-           "expecting a match function for applicable compiletime values", name, p.rest);
-    expect(typeof ct.value.transform === "function",
-           "expecting a transform function for applicable compiletime values", name, p.rest);
-
-    let matchResult = ct.value.match(p.rest);
-    expect(matchResult && matchResult.subst,
-           "expecting a result with substitution from the macro: " + name.val());
-    expect(matchResult && matchResult.rest,
-           "expecting a result with the rest of the syntax from the macro: " + name.val());
-    let rest = matchResult.rest;
-
-    let transformResult = ct.value.transform(matchResult.subst);
-    expect(List.isList(transformResult),
-           "expecting a list as a result of invoking macro: " + name.val());
-
-    p.term = null;
-    p.rest = transformResult.concat(rest);
-    return p;
-}
 

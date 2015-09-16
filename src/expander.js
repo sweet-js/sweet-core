@@ -3,6 +3,8 @@ import { List } from "immutable";
 import { assert } from "./errors";
 import {
     CallTerm,
+    SyntaxTerm,
+    DelimiterTerm,
     ExpressionStatementTerm,
     VariableDeclarationTerm,
     EOFTerm
@@ -43,7 +45,13 @@ function loadForCompiletime(ast, context) {
             return enforestExpr(stxl, context);
         },
         syntaxQuote: function(str) {
-            return List(JSON.parse(str)).map(t => new Syntax(t.token, t.scopeset));
+            return List(JSON.parse(str)).map(t => {
+                let stx = new Syntax(t.stx.token, t.stx.scopeset);
+                if (t.stx && t.stx.token && t.stx.token.inner) {
+                    return new DelimiterTerm(stx);
+                }
+                return new SyntaxTerm(stx);
+            });
         }
     };
     let keys = Object.keys(sandbox);
