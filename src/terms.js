@@ -31,9 +31,6 @@ import {
 } from "./nodes";
 
 export class Term {
-    constructor() {
-        this.expanded = false;
-    }
     parse() {
         throw "must implement in subclass";
     }
