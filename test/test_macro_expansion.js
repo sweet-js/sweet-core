@@ -60,4 +60,51 @@ let v = m`)).to.eql({
             }
         )
     });
+
+    it("should handle expansion where an argument is eaten", function() {
+        expect(parse(`
+syntax m = function(ctx) {
+    ctx.next();
+    return syntaxQuote { 200 }
+}
+m 42`)).to.eql({
+    "type": "Program",
+    "loc": null,
+    "body": [
+        {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "Literal",
+                "loc": null,
+                "value": 200
+            }
+        }
+    ]
+});
+
+    });
+
+    it("should handle expansion the eats an expression", function() {
+        expect(parse(`
+syntax m = function(ctx) {
+    ctx.nextExpression();
+    return syntaxQuote { 200 }
+}
+m 100 + 200`)).to.eql({
+    "type": "Program",
+    "loc": null,
+    "body": [
+        {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "Literal",
+                "loc": null,
+                "value": 200
+            }
+        }
+    ]
+});
+    });
 });

@@ -45,6 +45,8 @@ import {
 } from "./operators";
 import Syntax from "./syntax";
 
+import MacroContext from "./macroContext";
+
 import { matchCommaSeparatedIdentifiers } from "./matcher";
 
 export class Enforester {
@@ -326,13 +328,6 @@ export class Enforester {
         return this.term;
     }
 
-    enforestMacroResultTerm() {
-        let enf = new Enforester(this.term.getSyntax(), List(), this.context);
-        let term = enf.enforest();
-        this.rest = enf.rest.concat(this.rest);
-        return term;
-    }
-
     enforestSyntaxQuote() {
         let name = this.unwrapSyntaxTerm(this.advance());
         let body = this.matchCurlies();
@@ -485,7 +480,10 @@ export class Enforester {
         if (ct == null || typeof ct.value !== "function") {
             throw this.createError(name, "macro name not bound to function");
         }
-        let result = ct.value();
+
+        let ctx = new MacroContext(this);
+
+        let result = ct.value(ctx);
 
         let enf = new Enforester(result, List(), this.context);
         let term = enf.enforest(enforestType);
