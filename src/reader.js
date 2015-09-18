@@ -61,6 +61,118 @@ FnExprTokens = ['(', '{', '[', 'in', 'typeof', 'instanceof', 'new',
                 '+', '-', '*', '/', '%', '++', '--', '<<', '>>', '>>>', '&',
                 '|', '^', '!', '~', '&&', '||', '?', ':', '===', '==', '>=',
                 '<=', '<', '>', '!=', '!=='];
+Messages = {
+    UnexpectedToken: 'Unexpected token %0',
+    UnexpectedNumber: 'Unexpected number',
+    UnexpectedString: 'Unexpected string',
+    UnexpectedIdentifier: 'Unexpected identifier',
+    UnexpectedReserved: 'Unexpected reserved word',
+    UnexpectedTemplate: 'Unexpected quasi %0',
+    UnexpectedEOS: 'Unexpected end of input',
+    NewlineAfterThrow: 'Illegal newline after throw',
+    InvalidRegExp: 'Invalid regular expression',
+    UnterminatedRegExp: 'Invalid regular expression: missing /',
+    InvalidLHSInAssignment: 'Invalid left-hand side in assignment',
+    InvalidLHSInForIn: 'Invalid left-hand side in for-in',
+    InvalidLHSInForLoop: 'Invalid left-hand side in for-loop',
+    MultipleDefaultsInSwitch: 'More than one default clause in switch statement',
+    NoCatchOrFinally: 'Missing catch or finally after try',
+    UnknownLabel: 'Undefined label \'%0\'',
+    Redeclaration: '%0 \'%1\' has already been declared',
+    IllegalContinue: 'Illegal continue statement',
+    IllegalBreak: 'Illegal break statement',
+    IllegalReturn: 'Illegal return statement',
+    StrictModeWith: 'Strict mode code may not include a with statement',
+    StrictCatchVariable: 'Catch variable may not be eval or arguments in strict mode',
+    StrictVarName: 'Variable name may not be eval or arguments in strict mode',
+    StrictParamName: 'Parameter name eval or arguments is not allowed in strict mode',
+    StrictParamDupe: 'Strict mode function may not have duplicate parameter names',
+    StrictFunctionName: 'Function name may not be eval or arguments in strict mode',
+    StrictOctalLiteral: 'Octal literals are not allowed in strict mode.',
+    StrictDelete: 'Delete of an unqualified identifier in strict mode.',
+    StrictLHSAssignment: 'Assignment to eval or arguments is not allowed in strict mode',
+    StrictLHSPostfix: 'Postfix increment/decrement may not have eval or arguments operand in strict mode',
+    StrictLHSPrefix: 'Prefix increment/decrement may not have eval or arguments operand in strict mode',
+    StrictReservedWord: 'Use of future reserved word in strict mode',
+    TemplateOctalLiteral: 'Octal literals are not allowed in template strings.',
+    ParameterAfterRestParameter: 'Rest parameter must be last formal parameter',
+    DefaultRestParameter: 'Unexpected token =',
+    ObjectPatternAsRestParameter: 'Unexpected token {',
+    DuplicateProtoProperty: 'Duplicate __proto__ fields are not allowed in object literals',
+    ConstructorSpecialMethod: 'Class constructor may not be an accessor',
+    DuplicateConstructor: 'A class may only have one constructor',
+    StaticPrototype: 'Classes may not have static property named prototype',
+    MissingFromClause: 'Unexpected token',
+    NoAsAfterImportNamespace: 'Unexpected token',
+    InvalidModuleSpecifier: 'Unexpected token',
+    IllegalImportDeclaration: 'Unexpected token',
+    IllegalExportDeclaration: 'Unexpected token',
+    DuplicateBinding: 'Duplicate binding %0'
+};
+
+function constructError(msg, column) {
+    var error = new Error(msg);
+    try {
+        throw error;
+    } catch (base) {
+        /* istanbul ignore else */
+        if (Object.create && Object.defineProperty) {
+            error = Object.create(base);
+            Object.defineProperty(error, 'column', { value: column });
+        }
+    } finally {
+        return error;
+    }
+}
+function createError(line, pos, description) {
+    var msg, column, error;
+
+    msg = 'Line ' + line + ': ' + description;
+    column = pos - lineStart + 1;
+    error = constructError(msg, column);
+    error.lineNumber = line;
+    error.description = description;
+    error.index = pos;
+    return error;
+}
+
+function unexpectedTokenError(token, message) {
+    var value, msg = message || Messages.UnexpectedToken;
+
+    if (token) {
+        if (!message) {
+            msg = (token.type === Token.EOF) ? Messages.UnexpectedEOS :
+                (token.type === Token.Identifier) ? Messages.UnexpectedIdentifier :
+                (token.type === Token.NumericLiteral) ? Messages.UnexpectedNumber :
+                (token.type === Token.StringLiteral) ? Messages.UnexpectedString :
+                (token.type === Token.Template) ? Messages.UnexpectedTemplate :
+                Messages.UnexpectedToken;
+
+            if (token.type === Token.Keyword) {
+                if (isFutureReservedWord(token.value)) {
+                    msg = Messages.UnexpectedReserved;
+                } else if (strict && isStrictModeReservedWord(token.value)) {
+                    msg = Messages.StrictReservedWord;
+                }
+            }
+        }
+
+        value = (token.type === Token.Template) ? token.value.raw : token.value;
+    } else {
+        value = 'ILLEGAL';
+    }
+
+    msg = msg.replace('%0', value);
+
+    return (token && typeof token.lineNumber === 'number') ?
+        createError(token.lineNumber, token.start, msg) :
+        createError(lineNumber, index, msg);
+}
+
+function throwUnexpectedToken(token, message) {
+    throw unexpectedTokenError(token, message);
+}
+
 function advanceSlash() {
     var prevToken,
         checkToken;
@@ -147,7 +259,8 @@ function advance() {
         return scanStringLiteral();
     }
 
-    if (ch === 96) {
+    if (ch === 0x60 || (ch === 0x7D && state.curlyStack[state.curlyStack.length - 1] === '${')) {
+
         return scanTemplate();
     }
     if (isIdentifierStart(ch)) {
@@ -1190,22 +1303,26 @@ function scanStringLiteral() {
 }
 
 function scanTemplate() {
-    var cooked = '', ch, start, terminated, tail, restore, unescaped, code, octal;
+    var cooked = '', ch, start, rawOffset, terminated, head, tail, restore, unescaped;
 
     terminated = false;
     tail = false;
     start = index;
+    head = (source[index] === '`');
+    rawOffset = 2;
 
     ++index;
 
     while (index < length) {
         ch = source[index++];
         if (ch === '`') {
+            rawOffset = 1;
             tail = true;
             terminated = true;
             break;
         } else if (ch === '$') {
             if (source[index] === '{') {
+                state.curlyStack.push('${');
                 ++index;
                 terminated = true;
                 break;
@@ -1251,27 +1368,15 @@ function scanTemplate() {
                     break;
 
                 default:
-                    if (isOctalDigit(ch)) {
-                        code = '01234567'.indexOf(ch);
-
-                        // \0 is not octal escape sequence
-                        if (code !== 0) {
-                            octal = true;
+                    if (ch === '0') {
+                        if (isDecimalDigit(source.charCodeAt(index))) {
+                            // Illegal: \01 \02 and so on
+                            throwError(Messages.TemplateOctalLiteral);
                         }
-
-                        if (index < length && isOctalDigit(source[index])) {
-                            octal = true;
-                            code = code * 8 + '01234567'.indexOf(source[index++]);
-
-                            // 3 digits are only allowed when string starts
-                            // with 0, 1, 2, 3
-                            if ('0123'.indexOf(ch) >= 0 &&
-                                    index < length &&
-                                    isOctalDigit(source[index])) {
-                                code = code * 8 + '01234567'.indexOf(source[index++]);
-                            }
-                        }
-                        cooked += String.fromCharCode(code);
+                        cooked += '\0';
+                    } else if (isOctalDigit(ch)) {
+                        // Illegal: \1 \2
+                        throwError(Messages.TemplateOctalLiteral);
                     } else {
                         cooked += ch;
                     }
@@ -1279,14 +1384,14 @@ function scanTemplate() {
                 }
             } else {
                 ++lineNumber;
-                if (ch ===  '\r' && source[index] === '\n') {
+                if (ch === '\r' && source[index] === '\n') {
                     ++index;
                 }
                 lineStart = index;
             }
         } else if (isLineTerminator(ch.charCodeAt(0))) {
             ++lineNumber;
-            if (ch ===  '\r' && source[index] === '\n') {
+            if (ch === '\r' && source[index] === '\n') {
                 ++index;
             }
             lineStart = index;
@@ -1297,38 +1402,26 @@ function scanTemplate() {
     }
 
     if (!terminated) {
-        throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
+        throwUnexpectedToken();
+    }
+
+    if (!head) {
+        state.curlyStack.pop();
     }
 
     return {
         type: Token.Template,
         value: {
             cooked: cooked,
-            raw: source.slice(start + 1, index - ((tail) ? 1 : 2))
+            raw: source.slice(start + 1, index - rawOffset)
         },
+        head: head,
         tail: tail,
-        octal: octal,
         lineNumber: lineNumber,
         lineStart: lineStart,
-        range: [start, index]
+        start: start,
+        end: index
     };
-}
-
-function scanTemplateElement(option) {
-    var startsWith, template;
-
-    lookahead = null;
-    skipComment();
-
-    startsWith = (option.head) ? '`' : '}';
-
-    if (source[index] !== startsWith) {
-        throwError({}, Messages.UnexpectedToken, 'ILLEGAL');
-    }
-
-    template = scanTemplate();
-
-    return template;
 }
 
 function scanRegExp() {
@@ -1950,7 +2043,8 @@ export default function read(code) {
         lastParenthesized: null,
         inFunctionBody: false,
         inIteration: false,
-        inSwitch: false
+        inSwitch: false,
+        curlyStack: []
     };
 
     while(index < length || readtables.peekQueued()) {
