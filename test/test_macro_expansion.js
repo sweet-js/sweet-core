@@ -85,7 +85,7 @@ m 42`)).to.eql({
 
     });
 
-    it("should handle expansion the eats an expression", function() {
+    it("should handle expansion that eats an expression", function() {
         expect(parse(`
 syntax m = function(ctx) {
     ctx.nextExpression();

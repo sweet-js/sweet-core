@@ -141,6 +141,7 @@ export class EmptyStatementTerm extends StatementTerm {
     expand() {
         assert(!this.expanded, "already expanded");
         this.expanded = true;
+        return this;
     }
 }
 

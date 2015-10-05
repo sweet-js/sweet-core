@@ -1,5 +1,3 @@
-syntax m = function(ctx) {
-    ctx.nextExpression();
-    return syntaxQuote { 200 }
+function foo(arg) {
+    console.log(arg);
 }
-m 100 + 200
