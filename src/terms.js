@@ -58,15 +58,16 @@ export class SyntaxTerm extends Term {
 }
 
 export class DelimiterTerm extends SyntaxTerm {
-    constructor(stx) {
+    constructor(stx, inner) {
         super(stx);
 
         assert(stx.isDelimiter(), "expecting a delimiter syntax object");
 
         this.kind = stx.token.value;
+        this.inner = inner;
     }
     getSyntax() {
-        return this.stx.token.inner;
+        return this.inner;
     }
 }
 

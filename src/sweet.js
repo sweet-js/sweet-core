@@ -7,12 +7,11 @@ import { transform } from "babel";
 
 import { SyntaxTerm, DelimiterTerm, ProgramTerm } from "./terms";
 
-// todo: do this in read itself
 function tokenArrayToSyntaxList(toks) {
     return List(toks.map(t => {
         if (Array.isArray(t.inner)) {
-            t.inner = tokenArrayToSyntaxList(t.inner);
-            return new DelimiterTerm(new Syntax(t));
+            return new DelimiterTerm(new Syntax(t),
+                                     tokenArrayToSyntaxList(t.inner));
         }
         return new SyntaxTerm(new Syntax(t));
     }));

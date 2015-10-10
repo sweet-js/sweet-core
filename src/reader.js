@@ -1,3 +1,7 @@
+import stampit from "stampit";
+import { Cloneable, Frozen } from "./stamps";
+
+
 var TokenName,
     FnExprTokens,
     Syntax,
@@ -38,6 +42,29 @@ export var Token = {
     Template: 10,
     Delimiter: 11
 };
+
+const makeToken = stampit().init(({instance}) => {
+    if (instance.type === Token.Delimiter) {
+        // move the line info to an open and close property
+        instance.openInfo = {};
+        instance.closeInfo = {};
+
+        instance.openInfo.lineNumber = instance.startLineNumber;
+        instance.closeInfo.lineNumber = instance.endLineNumber;
+        delete instance.startLineNumber;
+        delete instance.endLineNumber;
+
+        instance.openInfo.lineStart = instance.startLineStart;
+        instance.closeInfo.lineStart = instance.endLineStart;
+        delete instance.startLineStart;
+        delete instance.endLineStart;
+
+        instance.openInfo.range = instance.startRange;
+        instance.closeInfo.range = instance.endRange;
+        delete instance.startRange;
+        delete instance.endRange;
+    }
+}).compose(Frozen);
 
 TokenName = {};
 TokenName[Token.BooleanLiteral] = 'Boolean';
@@ -1597,8 +1624,8 @@ function blockAllowed(toks, start, inExprDelim, parentIsBlock) {
         //
         // otherwise an object literal, so it's an
         // expression and thus / is divide
-        var currLineNumber = typeof back(start + 1).startLineNumber !== 'undefined' ?
-            back(start + 1).startLineNumber :
+        var currLineNumber = typeof back(start + 1).openInfo !== 'undefined' ?
+            back(start + 1).openInfo.lineNumber :
             back(start + 1).lineNumber;
         if (back(start + 2).lineNumber !== currLineNumber) {
             return true;
@@ -1971,7 +1998,7 @@ function readDelim(toks, inExprDelim, parentIsBlock) {
         } else if(token.type === Token.EOF) {
             throwError({}, Messages.UnexpectedEOS);
         } else {
-            inner.push(token);
+            inner.push(makeToken(token));
         }
     }
 
@@ -1988,7 +2015,7 @@ function readDelim(toks, inExprDelim, parentIsBlock) {
     delimToken.endLineNumber = endLineNumber;
     delimToken.endLineStart = endLineStart;
     delimToken.endRange = endRange;
-    return delimToken;
+    return makeToken(delimToken);
 }
 
 function setReadtable(readtable, syn) {
@@ -2052,13 +2079,13 @@ export default function read(code) {
     }
     var last = tokenTree[tokenTree.length-1];
     if(last && last.type !== Token.EOF) {
-        tokenTree.push({
+        tokenTree.push(makeToken({
             type: Token.EOF,
             value: "",
             lineNumber: last.lineNumber,
             lineStart: last.lineStart,
             range: [index, index]
-        });
+        }));
     }
 
     return tokenTree;

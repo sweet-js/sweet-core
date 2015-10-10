@@ -1,7 +1,8 @@
 export default class MacroContext {
-    constructor(enf) {
+    constructor(enf, name) {
         // todo: perhaps replace with a symbol to keep mostly private?
         this._enf = enf;
+        this.name = name;
     }
 
     next() {

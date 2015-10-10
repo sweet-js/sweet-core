@@ -211,7 +211,11 @@ export class Enforester {
     }
 
     enforestExpressionStatement() {
+        let start = this.rest.get(0);
         let expr = this.enforestExpressionLoop();
+        if (expr === null) {
+            throw this.createError(start, "not a valid expression");
+        }
         this.consumeSemicolon();
 
         return new ExpressionStatementTerm(expr);
@@ -219,6 +223,7 @@ export class Enforester {
 
     enforestExpressionLoop() {
         let lastTerm;
+        let firstTime = true;
 
         this.term = null;
         this.opCtx = {
@@ -231,6 +236,12 @@ export class Enforester {
             lastTerm = this.term;
             this.term = this.enforestExpression();
 
+            if (firstTime) {
+                firstTime = false;
+                if (this.term === null) {
+                    break;
+                }
+            }
 
             // if nothing changed, maybe we just need to pop the expr stack
             if (lastTerm === this.term && this.opCtx.stack.size > 0) {
@@ -272,7 +283,7 @@ export class Enforester {
             return new IdentifierTerm(this.unwrapSyntaxTerm(this.advance()));
         }
         // $x:number || $x:string || $x:boolean || $x:RegExp || $x:null
-        if (this.term === null && 
+        if (this.term === null &&
             (this.isNumericLiteral(lookahead) ||
              this.isStringLiteral(lookahead) ||
              this.isNullLiteral(lookahead) ||
@@ -479,13 +490,15 @@ export class Enforester {
 
         let ct = this.context.env.get(name.resolve());
         if (ct == null || typeof ct.value !== "function") {
-            throw this.createError(name, "macro name not bound to function");
+            throw this.createError(name, "the macro name was not bound to a value that could be invoked");
         }
 
-        let ctx = new MacroContext(this);
+        let ctx = new MacroContext(this, name);
 
         let result = ct.value(ctx);
 
+        // enforesting result to handle precedence issues
+        // (this surrounds macro results with implicit parens)
         let enf = new Enforester(result, List(), this.context);
         let term = enf.enforest(enforestType);
 
@@ -693,7 +706,3 @@ export class Enforester {
         return new Error("[error]: " + message + "\n" + ctx);
     }
 }
-
-
-
-
