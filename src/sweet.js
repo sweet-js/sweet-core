@@ -5,7 +5,11 @@ import Syntax from "./syntax";
 import Env from "./env";
 import { transform } from "babel";
 
-import { SyntaxTerm, DelimiterTerm, ProgramTerm } from "./terms";
+import { SyntaxTerm, DelimiterTerm, ModuleTerm } from "./terms";
+
+import {
+    Module
+} from "./nodes";
 
 function tokenArrayToSyntaxList(toks) {
     return List(toks.map(t => {
@@ -17,11 +21,11 @@ function tokenArrayToSyntaxList(toks) {
     }));
 }
 
-export function parse(source) {
+export function parse(source, options = {}) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
     let exStxl = expand(stxl, {env: new Env()});
-    let ast = new ProgramTerm(exStxl).parse();
+    let ast = new ModuleTerm(List(), exStxl).parse();
     return ast;
 }
 
@@ -30,3 +34,11 @@ export function compile(source) {
     let code = transform.fromAst(ast);
     return code.code;
 }
+
+function expandForExport(source) {
+    const toks = read(source);
+    const stxl = tokenArrayToSyntaxList(toks);
+    let exStxl = expand(stxl, {env: new Env()});
+    return new ModuleTerm(List(), exStxl);
+}
+export {expandForExport as expand};

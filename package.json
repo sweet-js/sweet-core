@@ -37,6 +37,7 @@
     "expect.js": "0.1.x",
     "immutable": "^3.7.4",
     "mocha": "^2.2.5",
+    "shift-reducer": "^2.0.4",
     "source-map": "~0.1.31",
     "source-map-support": "^0.3.2",
     "stampit": "^2.1.1"

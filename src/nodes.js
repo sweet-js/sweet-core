@@ -1,16 +1,25 @@
 import { assert } from "./errors";
 
+
 export class Node {
     constructor(type, loc = null) {
         this.type = type;
-        this.loc = loc;
     }
 }
 
-export class Program extends Node {
-    constructor(body, loc = null) {
-        super("Program", loc);
-        this.body = body;
+export class Module extends Node {
+    constructor(directives, items, loc = null) {
+        super("Module", loc);
+        this.directives = directives;
+        this.items = items;
+    }
+}
+
+export class Script extends Node {
+    constructor(directives, statements, loc = null) {
+        super("Script", loc);
+        this.directives = directives;
+        this.statements = statements;
     }
 }
 
@@ -26,7 +35,6 @@ export class BlockStatement extends Statement {
     constructor(body, loc = null) {
         super("BlockStatement", loc);
         this.body = body;
-        this.loc = loc;
     }
 }
 
@@ -51,7 +59,7 @@ export class FunctionDeclaration extends Declaration {
     constructor(id, params, body, loc = null) {
         super("FunctionDeclaration", loc);
 
-        assert(id instanceof Identifier,
+        assert(id instanceof IdentifierExpression,
             "expecting a string for the identifier");
         this.id = id;
 
@@ -83,7 +91,7 @@ export class VariableDeclarator extends Node {
     constructor(id, init, loc = null) {
         super("VariableDeclarator", loc);
 
-        assert(id instanceof Identifier, "expecting an identifier");
+        assert(id instanceof IdentifierExpression, "expecting an identifier");
         this.id = id;
 
         assert(init === null || init instanceof Expression,
@@ -94,16 +102,16 @@ export class VariableDeclarator extends Node {
 
 export class Expression extends Node { }
 
-export class Identifier extends Expression {
+export class IdentifierExpression extends Expression {
     constructor(ident, loc = null) {
-        super("Identifier", loc);
+        super("IdentifierExpression", loc);
         this.name = ident;
     }
 }
 
-export class Literal extends Expression {
+export class LiteralExpression extends Expression {
     constructor(value, loc = null) {
-        super("Literal", loc);
+        super("LiteralExpression", loc);
         this.value = value;
     }
 }
@@ -133,7 +141,7 @@ export class Property extends Node {
     constructor(key, value, kind, loc = null) {
         super("Property", loc);
 
-        assert((key instanceof Literal) || (key instanceof Identifier), "expecting a literal or an identifier for the key");
+        assert((key instanceof LiteralExpression) || (key instanceof IdentifierExpression), "expecting a literal or an identifier for the key");
         // Literal | Identifier
         this.key = key;
 
@@ -157,7 +165,7 @@ export class MemberExpression extends Expression {
         if (computed === true) {
             assert(property && property instanceof Expression, "expecting an expression for property");
         } else {
-            assert(property && property instanceof Identifier, "expecting an identifier for property");
+            assert(property && property instanceof IdentifierExpression, "expecting an identifier for property");
         }
         this.property = property;
         assert(typeof computed === "boolean", "expecting a boolean for computed");
@@ -185,7 +193,7 @@ export class BinaryExpression extends Expression {
 export class FunctionExpression extends Expression {
     constructor(id, params, body, loc = null) {
         super("FunctionExpression", loc);
-        assert(id === null || (id instanceof Identifier),
+        assert(id === null || (id instanceof IdentifierExpression),
             "expecting null or a string for the identifier");
         this.id = id;
         assert(Array.isArray(params),

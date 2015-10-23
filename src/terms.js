@@ -6,7 +6,8 @@ import { mixin } from "./utils";
 import Syntax from "./syntax";
 
 import {
-    Program,
+    Module,
+    Script,
 
     Statement,
     Declaration,
@@ -22,8 +23,8 @@ import {
     Expression,
     MemberExpression,
     ArrayExpression,
-    Identifier,
-    Literal,
+    IdentifierExpression,
+    LiteralExpression,
     CallExpression,
     ObjectExpression,
     Property,
@@ -45,6 +46,7 @@ export class Term {
 
 export class EOFTerm extends Term { }
 
+// SyntaxTerm and DelimiterTerm are just for internal use, not part of the ast
 export class SyntaxTerm extends Term {
     constructor(stx) {
         super();
@@ -73,25 +75,55 @@ export class DelimiterTerm extends SyntaxTerm {
 
 export class CompileTimeTerm extends Term {}
 
-export class ProgramTerm extends Term {
-    constructor(body) {
+
+export class ModuleTerm extends Term {
+    constructor(directives, items) {
         super();
-        this.body = body;
+        this.type = "Module";
+        this.directives = directives;
+        this.items = items;
     }
     parse() {
-        return new Program(this.body.map(b => b.parse()).toArray(),
-                           this.loc);
+        return new Module(this.directives.map(d => d.parse()).toArray(),
+                          this.items.map(i => i.parse()).toArray(),
+                          this.loc);
     }
 
     expand(context) {
-        assert(!this.expanded, "ProgramTerm already expanded");
+        assert(!this.expanded, "ModuleTerm already expanded");
 
-        this.body = this.body.map(b => b.expand(context));
+        this.directives = this.directives.map(d => d.expand(context));
+        this.items = this.items.map(i => i.expand(context));
 
         this.expanded = true;
         return this;
     }
 }
+
+export class ScriptTerm extends Term {
+    constructor(directives, statements) {
+        super();
+        this.type = "Script";
+        this.directives = directives;
+        this.statements = statements;
+    }
+    parse() {
+        return new Script(this.directives.map(d => d.parse()).toArray(),
+                          this.statements.map(s => s.parse()).toArray(),
+                          this.loc);
+    }
+
+    expand(context) {
+        assert(!this.expanded, "ScriptTerm already expanded");
+
+        this.directives = this.directives.map(d => d.expand(context));
+        this.statements = this.statements.map(s => s.expand(context));
+
+        this.expanded = true;
+        return this;
+    }
+}
+
 
 // mixin for FunctionDeclarationTerm and FunctionExpression
 class FunctionTerm {
@@ -99,7 +131,7 @@ class FunctionTerm {
     parse() {
         let id = this.id;
         if (id !== null) {
-            id = new Identifier(id.resolve());
+            id = new IdentifierExpression(id.resolve());
         }
 
         let FunctionNode = this instanceof FunctionExpressionTerm ?
@@ -108,7 +140,7 @@ class FunctionTerm {
         return new FunctionNode(id,
                                 this.params.map(term => {
                                     let syn = term.getSyntax().first();
-                                    return new Identifier(syn.resolve());
+                                    return new IdentifierExpression(syn.resolve());
                                 }).toArray(),
                                 new BlockStatement(this.body.map(t => {
                                     return t.parse();
@@ -186,6 +218,7 @@ export class BlockStatementTerm extends StatementTerm {
 export class ExpressionStatementTerm extends StatementTerm {
     constructor(expression) {
         super();
+        this.type = "ExpressionStatement";
         this.expression = expression;
     }
     parse() {
@@ -253,7 +286,7 @@ export class VariableDeclaratorTerm extends Term {
         if (this.init) {
             init = this.init.parse();
         }
-        return new VariableDeclarator(new Identifier(this.id.resolve(), this.loc),
+        return new VariableDeclarator(new IdentifierExpression(this.id.resolve(), this.loc),
                                       init);
     }
     expand(context) {
@@ -281,8 +314,8 @@ export class SyntaxQuoteTerm extends ExpressionTerm {
     }
     parse() {
         let val = JSON.stringify(this.stx);
-        return new CallExpression(new Identifier(this.name.resolve()),
-            [new Literal(val)]);
+        return new CallExpression(new IdentifierExpression(this.name.resolve()),
+            [new LiteralExpression(val)]);
     }
     expand(context) {
         assert(!this.expanded, "already expanded");
@@ -293,22 +326,105 @@ export class SyntaxQuoteTerm extends ExpressionTerm {
 }
 
 
-export class IdentifierTerm extends ExpressionTerm {
+export class IdentifierExpressionTerm extends ExpressionTerm {
     constructor(ident) {
         super();
+        this.type = "IdentifierExpression";
         this.name = ident;
     }
     parse() {
-        return new Identifier(this.name.resolve(), this.loc);
+        return new IdentifierExpression(this.name.resolve(), this.loc);
     }
     expand(context) {
-        assert(!this.expanded, "IdentifierTerm already expanded");
+        assert(!this.expanded, "IdentifierExpressionTerm already expanded");
         this.expanded = true;
         return this;
     }
 }
 
-export class LiteralTerm extends ExpressionTerm {
+
+export class LiteralNumericExpressionTerm extends ExpressionTerm {
+
+    constructor(value) {
+        super();
+        this.value = value;
+    }
+
+    parse() {
+        return new LiteralNumericExpression(this.value);
+    }
+
+    expand(context) {
+        assert(!this.expanded, "LiteralExpressionTerm already expanded");
+        this.expanded = true;
+        return this;
+    }
+}
+export class LiteralStringExpressionTerm extends ExpressionTerm {
+
+    constructor(value) {
+        super();
+        this.value = value;
+    }
+
+    parse() {
+        return new LiteralStringExpression(this.value);
+    }
+
+    expand(context) {
+        assert(!this.expanded, "LiteralExpressionTerm already expanded");
+        this.expanded = true;
+        return this;
+    }
+}
+export class BooleanLiteralExpressionTerm extends ExpressionTerm {
+    constructor(value) {
+        super();
+        this.value = value;
+    }
+    parse() {
+        return new BooleanLiteralExpression(this.value.token.value === "true");
+    }
+
+    expand(context) {
+        assert(!this.expanded, "LiteralExpressionTerm already expanded");
+        this.expanded = true;
+        return this;
+    }
+
+}
+export class NullLiteralExpressionTerm extends ExpressionTerm {
+    constructor() {
+        super();
+    }
+
+    parse() {
+        return new NullLiteralExpression();
+    }
+
+    expand(context) {
+        assert(!this.expanded, "LiteralExpressionTerm already expanded");
+        this.expanded = true;
+        return this;
+    }
+}
+export class RegularExpressionLiteralTerm extends ExpressionTerm {
+    constructor(value) {
+        super();
+    }
+
+    parse() {
+        return new RegularExpressionLiteralExpression();
+    }
+
+    expand(context) {
+        assert(!this.expanded, "LiteralExpressionTerm already expanded");
+        this.expanded = true;
+        return this;
+    }
+}
+
+export class LiteralExpressionTerm extends ExpressionTerm {
     constructor(value) {
         super();
         this.value = value;
@@ -329,10 +445,10 @@ export class LiteralTerm extends ExpressionTerm {
         } else {
             assert(false, "unknown token type");
         }
-        return new Literal(val, this.loc);
+        return new LiteralExpression(val, this.loc);
     }
     expand(context) {
-        assert(!this.expanded, "LiteralTerm already expanded");
+        assert(!this.expanded, "LiteralExpressionTerm already expanded");
         this.expanded = true;
         return this;
     }
@@ -408,9 +524,9 @@ export class PropertyTerm extends Term {
     parse() {
         let key;
         if (this.key.isNumericLiteral() || this.key.isStringLiteral()) {
-            key = new Literal(this.key.val());
+            key = new LiteralExpression(this.key.val());
         } else {
-            key = new Identifier(this.key.val());
+            key = new IdentifierExpression(this.key.val());
         }
         return new Property(key, this.value.parse(), this.kind);
     }
@@ -432,7 +548,7 @@ export class MemberExpressionTerm extends ExpressionTerm {
         if (computed === true) {
             assert(property && property instanceof ExpressionTerm, "expecting an expression for property");
         } else {
-            assert(property && property instanceof IdentifierTerm, "expecting an identifier for property");
+            assert(property && property instanceof IdentifierExpressionTerm, "expecting an identifier for property");
         }
         this.property = property;
         assert(typeof computed === "boolean", "expecting a boolean for computed");

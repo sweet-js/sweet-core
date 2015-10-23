@@ -22,8 +22,8 @@ import {
     CallTerm,
     ObjectExpressionTerm,
     PropertyTerm,
-    LiteralTerm,
-    IdentifierTerm } from "./terms";
+    LiteralExpressionTerm,
+    IdentifierExpressionTerm } from "./terms";
 
 import {
     FunctionDeclTransform,
@@ -280,16 +280,22 @@ export class Enforester {
 
         // $x:ident
         if (this.term === null && this.isIdentifier(lookahead)) {
-            return new IdentifierTerm(this.unwrapSyntaxTerm(this.advance()));
+            return new IdentifierExpressionTerm(this.unwrapSyntaxTerm(this.advance()));
         }
-        // $x:number || $x:string || $x:boolean || $x:RegExp || $x:null
-        if (this.term === null &&
-            (this.isNumericLiteral(lookahead) ||
-             this.isStringLiteral(lookahead) ||
-             this.isNullLiteral(lookahead) ||
-             this.isRegularExpression(lookahead) ||
-             this.isBooleanLiteral(lookahead))) {
-            return new LiteralTerm(this.unwrapSyntaxTerm(this.advance()));
+        if (this.term === null && this.isNumericLiteral(lookahead)) {
+            return new LiteralNumericExpressionTerm(this.unwrapSyntaxTerm(this.advance()));
+        }
+        if (this.term === null && this.isStringLiteral(lookahead)) {
+            return new LiteralStringExpressionTerm(this.unwrapSyntaxTerm(this.advance()));
+        }
+        if (this.term === null && this.isBooleanLiteral(lookahead)) {
+            return new BooleanLiteralExpressionTerm(this.unwrapSyntaxTerm(this.advance()));
+        }
+        if (this.term === null && this.isNullLiteral(lookahead)) {
+            return new NullLiteralExpressionTerm();
+        }
+        if (this.term === null && this.isRegularExpression(lookahead)) {
+            return new RegularExpressionLiteralTerm(this.unwrapSyntaxTerm(this.advance()));
         }
         // ($x:expr)
         if (this.term === null && this.isParenDelimiter(lookahead)) {
@@ -353,7 +359,7 @@ export class Enforester {
         let property = this.matchIdentifier();
 
         return new MemberExpressionTerm(object,
-                                        new IdentifierTerm(property),
+                                        new IdentifierExpressionTerm(property),
                                         false);
     }
 
