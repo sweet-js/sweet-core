@@ -4,8 +4,9 @@ import { List } from "immutable";
 import Syntax from "./syntax";
 import Env from "./env";
 import { transform } from "babel";
+import reduce, { MonoidalReducer, CloneReducer } from "shift-reducer";
 
-import { SyntaxTerm, DelimiterTerm, ModuleTerm } from "./terms";
+import { SyntaxTerm, DelimiterTerm, ModuleTerm, IdentifierExpressionTerm } from "./terms";
 
 import {
     Module
@@ -21,11 +22,17 @@ function tokenArrayToSyntaxList(toks) {
     }));
 }
 
+class ParseReducer extends CloneReducer {
+    reduceIdentifierExpression(node, state) {
+        return new IdentifierExpressionTerm(node.name.resolve());
+    }
+}
+
 export function parse(source, options = {}) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
     let exStxl = expand(stxl, {env: new Env()});
-    let ast = new ModuleTerm(List(), exStxl).parse();
+    let ast = reduce.default(new ParseReducer(), new ModuleTerm(List(), exStxl));
     return ast;
 }
 
@@ -34,6 +41,7 @@ export function compile(source) {
     let code = transform.fromAst(ast);
     return code.code;
 }
+
 
 function expandForExport(source) {
     const toks = read(source);

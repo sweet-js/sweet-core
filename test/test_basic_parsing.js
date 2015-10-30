@@ -9,19 +9,16 @@ describe("parser", function() {
     it("should handle a single identifier", function() {
         testParse("x", stmt, {
                 "type": "ExpressionStatement",
+                "loc" : null,
                 "expression": {
                     "type": "IdentifierExpression",
+                    "loc": null,
                     "name": "x"
                 }
         });
 
     });
 
-    it("trying ou the reducer", function () {
-        let ast = expand("x");
-        reduce.default(new CloneReducer(), ast);
-        console.log(ast);
-    });
 
     // it("should handle a literal", function() {
     //     testParse("42;", stmt, {

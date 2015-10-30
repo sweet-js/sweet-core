@@ -11,6 +11,8 @@ import {
 } from "./terms";
 import Syntax from "./syntax";
 
+import reduce from "shift-reducer";
+import { MonoidalReducer, CloneReducer } from "shift-reducer";
 import {
     CompiletimeTransform
 } from "./transforms";
@@ -103,9 +105,9 @@ function expandTokens(stxl, context) {
     return result;
 }
 
+class ExpandReducer extends CloneReducer { }
+
 export default function expand(stxl, context) {
     let terms = expandTokens(stxl, context);
-    return terms.map(term => {
-        return term.expand(context);
-    });
+    return terms.map(t => reduce.default(new ExpandReducer(), t));
 }
