@@ -19,7 +19,7 @@
     "build:test": "babel --modules common --source-maps -d build/ test/*.js",
     "build": "npm run build:src && npm run build:test",
     "test:single": "mocha build/test/test_expander.js",
-    "test": "mocha --require source-map-support/register build/test/*.js",
+    "test": "mocha --reporter dot --require source-map-support/register build/test/*.js",
     "pretest": "npm run build"
   },
   "directories": {
