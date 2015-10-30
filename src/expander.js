@@ -17,16 +17,6 @@ import {
     CompiletimeTransform
 } from "./transforms";
 
-import {
-    Program,
-    ExpressionStatement,
-    FunctionExpression,
-    BlockStatement,
-    Identifier,
-    ReturnStatement
-
-} from "./nodes";
-
 import { transform } from "babel";
 
 // indirect eval so in the global scope
@@ -73,7 +63,7 @@ function expandTokens(stxl, context) {
     let lastTerm = null;
     while (!enf.done) {
         let term = enf.enforest();
-        // check for coding mistake
+        // check for coding mistakes
         assert(term !== null, "enforester returned a null term");
         assert(term !== lastTerm, "enforester is not done but produced same term");
         lastTerm = term;
