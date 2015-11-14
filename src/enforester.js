@@ -1,29 +1,4 @@
-import {
-    Term,
-    EOFTerm,
-
-    SyntaxQuoteTerm,
-
-    SyntaxTerm,
-    DelimiterTerm,
-    ExpressionStatementTerm,
-    FunctionDeclarationTerm,
-    VariableDeclarationTerm,
-    VariableDeclaratorTerm,
-    ReturnStatementTerm,
-    EmptyStatementTerm,
-
-    ExpressionTerm,
-    ParenthesizedExpressionTerm,
-    MemberExpressionTerm,
-    FunctionExpressionTerm,
-    ArrayExpressionTerm,
-    BinaryExpressionTerm,
-    CallTerm,
-    ObjectExpressionTerm,
-    PropertyTerm,
-    LiteralExpressionTerm,
-    IdentifierExpressionTerm } from "./terms";
+import * as T from "./terms";
 
 import {
     FunctionDeclTransform,
@@ -89,7 +64,7 @@ export class Enforester {
         }
 
         if (this.isEOF(this.peek())) {
-            this.term = new EOFTerm(this.advance());
+            this.term = new T.EOFTerm(this.advance());
             return this.term;
         }
 
@@ -135,7 +110,7 @@ export class Enforester {
 
         if (this.term === null && this.isPunctuator(lookahead, ";")) {
             this.advance();
-            return new EmptyStatementTerm();
+            return new T.EmptyStatementTerm();
         }
 
         return this.enforestExpressionStatement();
@@ -148,19 +123,19 @@ export class Enforester {
         // short circuit for the empty expression case
         if (this.rest.size === 0 ||
             (lookahead && !this.lineNumberEq(kw, lookahead))) {
-            return new ReturnStatementTerm(null);
+            return new T.ReturnStatementTerm(null);
         }
 
         let term = this.enforestExpressionLoop();
         this.consumeSemicolon();
 
-        return new ReturnStatementTerm(term);
+        return new T.ReturnStatementTerm(term);
     }
 
     enforestVariableDeclaration() {
         let kind;
         let lookahead = this.advance();
-        let kindSyn = this.unwrapSyntaxTerm(lookahead);
+        let kindSyn = this.unwrap(lookahead);
 
         if (kindSyn &&
             this.context.env.get(kindSyn.resolve()) === VariableDeclTransform) {
@@ -194,12 +169,12 @@ export class Enforester {
         }
 
         this.consumeSemicolon();
-        return new VariableDeclarationTerm(decls, kind);
+        return new T.VariableDeclarationTerm(decls, kind);
     }
 
     enforestVariableDeclarator() {
         let id = this.matchIdentifier();
-        let eq = this.unwrapSyntaxTerm(this.advance());
+        let eq = this.unwrap(this.advance());
 
         let init, rest;
         if (eq && eq.val() === "=") {
@@ -207,7 +182,7 @@ export class Enforester {
         } else {
             init = null;
         }
-        return new VariableDeclaratorTerm(id, init);
+        return new T.VariableDeclaratorTerm(id, init);
     }
 
     enforestExpressionStatement() {
@@ -218,7 +193,7 @@ export class Enforester {
         }
         this.consumeSemicolon();
 
-        return new ExpressionStatementTerm(expr);
+        return new T.ExpressionStatementTerm(expr);
     }
 
     enforestExpressionLoop() {
@@ -266,7 +241,7 @@ export class Enforester {
 
         if (this.term === null && this.isCompiletimeTransform(lookahead)) {
             let term = this.expandMacro("expression");
-            if (!(term instanceof ExpressionTerm)) {
+            if (!(term instanceof T.ExpressionTerm)) {
                 throw this.createError(term,
                                        "expecting macro to return an expression");
             }
@@ -280,34 +255,28 @@ export class Enforester {
 
         // $x:ident
         if (this.term === null && this.isIdentifier(lookahead)) {
-            return new IdentifierExpressionTerm(this.unwrapSyntaxTerm(this.advance()));
+            return new T.IdentifierExpressionTerm(this.unwrap(this.advance()));
         }
         if (this.term === null && this.isNumericLiteral(lookahead)) {
-            return new LiteralNumericExpressionTerm(this.unwrapSyntaxTerm(this.advance()));
+            return new T.LiteralNumericExpressionTerm(this.unwrap(this.advance()));
         }
         if (this.term === null && this.isStringLiteral(lookahead)) {
-            return new LiteralStringExpressionTerm(this.unwrapSyntaxTerm(this.advance()));
+            return new T.LiteralStringExpressionTerm(this.unwrap(this.advance()));
         }
         if (this.term === null && this.isBooleanLiteral(lookahead)) {
-            return new BooleanLiteralExpressionTerm(this.unwrapSyntaxTerm(this.advance()));
+            return new T.LiteralBooleanExpressionTerm(this.unwrap(this.advance()));
         }
         if (this.term === null && this.isNullLiteral(lookahead)) {
-            return new NullLiteralExpressionTerm();
+            this.advance();
+            return new T.LiteralNullExpressionTerm();
         }
         if (this.term === null && this.isRegularExpression(lookahead)) {
-            return new RegularExpressionLiteralTerm(this.unwrapSyntaxTerm(this.advance()));
+            let reStx = this.unwrap(this.advance());
+            return new T.LiteralRegExpExpressionTerm(reStx.token.regex.pattern, reStx.token.regex.flags);
         }
         // ($x:expr)
         if (this.term === null && this.isParenDelimiter(lookahead)) {
-            let enf = new Enforester(lookahead.getSyntax(),
-                                     List(),
-                                     this.context);
-            let expr = enf.enforest("expression");
-            if (!enf.done) {
-                throw enf.createError(enf.peek(), "unexpected syntax");
-            }
-            this.advance();
-            return new ParenthesizedExpressionTerm(expr);
+            return new T.ParenthesizedExpressionTerm(this.advance().getSyntax());
         }
         // $x:FunctionExpression
         if (this.term === null && this.isFnDeclTransform(lookahead)) {
@@ -327,30 +296,30 @@ export class Enforester {
         // and then check the cases where the term part of p is something...
 
         // $x:expr . $prop:ident
-        if (this.term && this.term instanceof ExpressionTerm &&
+        if (this.term && this.term instanceof T.ExpressionTerm &&
             this.isPunctuator(lookahead, ".")) {
             return this.enforestStaticMemberExpression();
         }
         // $l:expr $op:binaryOperator $r:expr
-        if (this.term && this.term instanceof ExpressionTerm &&
+        if (this.term && this.term instanceof T.ExpressionTerm &&
             this.isOperator(lookahead)) {
             return this.enforestBinaryExpression();
         }
         // $x:expr (...)
-        if (this.term && this.term instanceof ExpressionTerm &&
+        if (this.term && this.term instanceof T.ExpressionTerm &&
             this.isParenDelimiter(lookahead)) {
-            let paren = this.advance().getSyntax();
-            return new CallTerm(this.term, paren);
+            let paren = this.advance();
+            return new T.CallExpressionTerm(this.term, paren);
         }
 
         return this.term;
     }
 
     enforestSyntaxQuote() {
-        let name = this.unwrapSyntaxTerm(this.advance());
+        let name = this.unwrap(this.advance());
         let body = this.matchCurlies();
 
-        return new SyntaxQuoteTerm(name, body);
+        return new T.SyntaxQuoteTerm(name, body);
     }
 
     enforestStaticMemberExpression() {
@@ -358,8 +327,8 @@ export class Enforester {
         let dot = this.advance();
         let property = this.matchIdentifier();
 
-        return new MemberExpressionTerm(object,
-                                        new IdentifierExpressionTerm(property),
+        return new T.MemberExpressionTerm(object,
+                                        new T.IdentifierExpressionTerm(property),
                                         false);
     }
 
@@ -381,7 +350,7 @@ export class Enforester {
                 enf.consumeComma();
             }
         }
-        return new ArrayExpressionTerm(elements);
+        return new T.ArrayExpressionTerm(elements);
 
     }
 
@@ -403,7 +372,7 @@ export class Enforester {
             lastProp = prop;
         }
 
-        return new ObjectExpressionTerm(properties);
+        return new T.ObjectExpressionTerm(properties);
     }
 
     enforestProperty() {
@@ -413,54 +382,69 @@ export class Enforester {
         let value = this.enforestExpressionLoop();
         this.consumeComma();
 
-        return new PropertyTerm(key, value, "init");
+        return new T.PropertyTerm(key, value, "init");
     }
 
     enforestFunctionExpression() {
-        let id = null, params, body, rest;
+        let name = null, params, body, rest;
         // eat the function keyword
         this.advance();
         let lookahead = this.peek();
 
         if (this.isIdentifier(lookahead)) {
-            id = this.unwrapSyntaxTerm(this.advance());
+            name = new T.BindingIdentifierTerm(this.unwrap(this.advance()));
         }
+
         params = this.matchParens("expecting a function parameter list");
         body = this.matchCurlies("expecting a function body");
 
-        let paramIdents = params.filter(term => {
-            return this.isIdentifier(term);
-        });
+        let enf = new Enforester(params, List(), this.context);
+        let formalParams = enf.enforestFormalParameters();
 
-        return new FunctionExpressionTerm(id,
-                                          paramIdents,
-                                          body);
+        return new T.FunctionExpressionTerm(name, false, formalParams, body);
     }
 
-
     enforestFunctionDeclaration() {
-        let id, params, body, rest;
+        let name, params, body, rest;
         // eat the function keyword
         this.advance();
         let lookahead = this.peek();
 
-        id = this.unwrapSyntaxTerm(this.advance());
+        name = new T.BindingIdentifierTerm(this.unwrap(this.advance()));
+
         params = this.matchParens("expecting a function parameter list");
         body = this.matchCurlies("expecting a function body");
 
-        let paramIdents = params.filter(term => {
-            return this.isIdentifier(term);
-        });
+        let enf = new Enforester(params, List(), this.context);
+        let formalParams = enf.enforestFormalParameters();
 
-        return new FunctionDeclarationTerm(id,
-                                           paramIdents,
-                                           body);
+        return new T.FunctionDeclarationTerm(name, false, formalParams, body);
     }
+
+    enforestFormalParameters() {
+        let items = [];
+        while (this.rest.size !== 0) {
+            let lookahead = this.peek();
+
+            if (this.isIdentifier(lookahead)) {
+                let name = this.unwrap(this.advance())
+                items.push(new T.BindingIdentifierTerm(name))
+            } else if (this.isPunctuator(lookahead, ",")) {
+                this.advance();
+            } else {
+                assert(false, "not implemented yet");
+            }
+        }
+        return new T.FormalParametersTerm(List(items));
+
+    }
+
+
 
     enforestBinaryExpression() {
 
         let leftTerm = this.term;
-        let opStx = this.unwrapSyntaxTerm(this.peek());
+        let opStx = this.unwrap(this.peek());
         let op = opStx.val();
         let opPrec = getOperatorPrec(op);
         let opAssoc = getOperatorAssoc(op);
@@ -472,11 +456,11 @@ export class Enforester {
             });
             this.opCtx.prec = opPrec;
             this.opCtx.combine = (rightTerm) => {
-                if (!(rightTerm instanceof ExpressionTerm)) {
+                if (!(rightTerm instanceof T.ExpressionTerm)) {
                     throw this.createError(rightTerm,
                                            "expecting an expression on the right side of a binary operator");
                 }
-                return new BinaryExpressionTerm(leftTerm, op, rightTerm);
+                return new T.BinaryExpressionTerm(leftTerm, opStx, rightTerm);
             };
             this.advance();
             return null;
@@ -492,7 +476,7 @@ export class Enforester {
     }
 
     expandMacro(enforestType) {
-        let name = this.unwrapSyntaxTerm(this.advance());
+        let name = this.unwrap(this.advance());
 
         let ct = this.context.env.get(name.resolve());
         if (ct == null || typeof ct.value !== "function") {
@@ -515,7 +499,7 @@ export class Enforester {
     consumeSemicolon() {
         let lookahead = this.peek();
 
-        if (lookahead && (lookahead instanceof SyntaxTerm)) {
+        if (lookahead && (lookahead instanceof T.SyntaxTerm)) {
             let syn = lookahead.getSyntax().first();
             if(syn && syn.isPunctuator() && syn.val() === ";") {
                 this.advance();
@@ -525,7 +509,7 @@ export class Enforester {
     consumeComma() {
         let lookahead = this.peek();
 
-        if (lookahead && (lookahead instanceof SyntaxTerm)) {
+        if (lookahead && (lookahead instanceof T.SyntaxTerm)) {
             let syn = lookahead.getSyntax().first();
             if(syn && syn.isPunctuator() && syn.val() === ",") {
                 this.advance();
@@ -534,102 +518,102 @@ export class Enforester {
     }
 
 
-    unwrapSyntaxTerm(term) {
-        if (!(term instanceof SyntaxTerm)) {
+    unwrap(term) {
+        if (!(term instanceof T.SyntaxTerm)) {
             return null;
         }
         return term.getSyntax().first();
     }
 
     isEOF(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) && syn.isEOF();
     }
 
     isIdentifier(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) && syn.isIdentifier();
     }
     isNumericLiteral(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) && syn.isNumericLiteral();
     }
     isStringLiteral(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) && syn.isStringLiteral();
     }
     isBooleanLiteral(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) && syn.isBooleanLiteral();
     }
     isNullLiteral(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) && syn.isNullLiteral();
     }
     isRegularExpression(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) && syn.isRegularExpression();
     }
     isParenDelimiter(term) {
-        return term && (term instanceof DelimiterTerm) &&
+        return term && (term instanceof T.DelimiterTerm) &&
             term.kind === "()";
     }
     isCurlyDelimiter(term) {
-        return term && (term instanceof DelimiterTerm) &&
+        return term && (term instanceof T.DelimiterTerm) &&
             term.kind === "{}";
     }
     isSquareDelimiter(term) {
-        return term && (term instanceof DelimiterTerm) &&
+        return term && (term instanceof T.DelimiterTerm) &&
             term.kind === "[]";
     }
     isPunctuator(term, val = null) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) &&
             syn.isPunctuator() && ((val === null) || (syn.val() === val));
     }
     isOperator(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) && isOperator(syn.val());
     }
 
 
     isFnDeclTransform(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) &&
             this.context.env.get(syn.resolve()) === FunctionDeclTransform;
     }
     isVarDeclTransform(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) &&
             this.context.env.get(syn.resolve()) === VariableDeclTransform;
     }
     isLetDeclTransform(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) &&
             this.context.env.get(syn.resolve()) === LetDeclTransform;
     }
     isConstDeclTransform(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) &&
             this.context.env.get(syn.resolve()) === ConstDeclTransform;
     }
     isSyntaxDeclTransform(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) &&
             this.context.env.get(syn.resolve()) === SyntaxDeclTransform;
     }
     isSyntaxQuoteTransform(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) &&
             this.context.env.get(syn.resolve()) === SyntaxQuoteTransform;
     }
     isReturnStmtTransform(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) &&
             this.context.env.get(syn.resolve()) === ReturnStatementTransform;
     }
     isCompiletimeTransform(term) {
-        let syn = this.unwrapSyntaxTerm(term);
+        let syn = this.unwrap(term);
         return syn && (syn instanceof Syntax) &&
             this.context.env.get(syn.resolve()) instanceof CompiletimeTransform;
     }
@@ -639,8 +623,8 @@ export class Enforester {
         if (!(a && b)) {
             return false;
         }
-        let alineNum = (a instanceof DelimiterTerm) ? a.stx.token.startLineNumber : a.stx.token.lineNumber;
-        let blineNum = (b instanceof DelimiterTerm) ? b.stx.token.startLineNumber : b.stx.token.lineNumber;
+        let alineNum = (a instanceof T.DelimiterTerm) ? a.stx.token.startLineNumber : a.stx.token.lineNumber;
+        let blineNum = (b instanceof T.DelimiterTerm) ? b.stx.token.startLineNumber : b.stx.token.lineNumber;
         return alineNum === blineNum;
     }
 

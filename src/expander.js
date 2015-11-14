@@ -1,18 +1,10 @@
-import enforest, { enforestExpr, Enforester } from "./enforester";
+import { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert } from "./errors";
-import {
-    CallTerm,
-    SyntaxTerm,
-    DelimiterTerm,
-    ExpressionStatementTerm,
-    VariableDeclarationTerm,
-    EOFTerm
-} from "./terms";
+
+import * as T from "./terms";
 import Syntax from "./syntax";
 
-import reduce from "shift-reducer";
-import { MonoidalReducer, CloneReducer } from "shift-reducer";
 import {
     CompiletimeTransform
 } from "./transforms";
@@ -40,9 +32,9 @@ function loadForCompiletime(ast, context) {
             return List(JSON.parse(str)).map(t => {
                 let stx = new Syntax(t.stx.token, t.stx.scopeset);
                 if (t.stx && t.stx.token && t.stx.token.inner) {
-                    return new DelimiterTerm(stx);
+                    return new T.DelimiterTerm(stx);
                 }
-                return new SyntaxTerm(stx);
+                return new T.SyntaxTerm(stx);
             });
         }
     };
@@ -68,7 +60,7 @@ function expandTokens(stxl, context) {
         assert(term !== lastTerm, "enforester is not done but produced same term");
         lastTerm = term;
 
-        if (term instanceof VariableDeclarationTerm && term.kind === "syntax") {
+        if (term instanceof T.VariableDeclarationTerm && term.kind === "syntax") {
             // todo: hygiene
             term.declarations.forEach(decl => {
                 // finish the expansion early for the declaration
@@ -86,7 +78,7 @@ function expandTokens(stxl, context) {
 
 
         // don't need the EOF term in the final AST
-        if (term instanceof EOFTerm) {
+        if (term instanceof T.EOFTerm) {
             break;
         }
 
@@ -95,9 +87,121 @@ function expandTokens(stxl, context) {
     return result;
 }
 
-class ExpandReducer extends CloneReducer { }
+class TermExpander {
+    constructor(context) {
+        this.context = context;
+    }
+    // TODO: auto generate this from definition of terms
+    expand(term) {
+        if (term instanceof T.IdentifierExpressionTerm) {
+            return this.expandIdentifierExpression(term);
+        }
+        if (term instanceof T.ExpressionStatementTerm) {
+            return this.expandExpressionStatement(term);
+        }
+        if (term instanceof T.LiteralNumericExpressionTerm) {
+            return this.expandLiteralNumericExpression(term);
+        }
+        if (term instanceof T.LiteralBooleanExpressionTerm) {
+            return this.expandLiteralBooleanExpression(term);
+        }
+        if (term instanceof T.LiteralNullExpressionTerm) {
+            return this.expandLiteralNullExpression(term);
+        }
+        if (term instanceof T.LiteralStringExpressionTerm) {
+            return this.expandLiteralStringExpression(term);
+        }
+        if (term instanceof T.LiteralRegExpExpressionTerm) {
+            return this.expandLiteralRegExpExpression(term);
+        }
+        if (term instanceof T.CallExpressionTerm) {
+            return this.expandCallExpression(term);
+        }
+        if (term instanceof T.BinaryExpressionTerm) {
+            return this.expandBinaryExpression(term);
+        }
+        if (term instanceof T.ParenthesizedExpressionTerm) {
+            return this.expandParenthesiszedExpression(term);
+        }
+        if (term instanceof T.FunctionExpressionTerm) {
+            return this.expandFunctionExpression(term);
+        }
+        if (term instanceof T.FunctionDeclarationTerm) {
+            return this.expandFunctionDeclaration(term);
+        }
+        assert(false, "not implemented yet: " + term.type);
+    }
+
+    expandParenthesiszedExpression(term) {
+        let enf = new Enforester(term.inner, List(), this.context);
+        let t = enf.enforest("expression");
+        if (!enf.done || t == null) {
+            throw enf.createError(enf.peek(), "unexpected syntax");
+        }
+        return this.expand(t);
+    }
+    expandBinaryExpression(term) {
+        let left = this.expand(term.left);
+        let right = this.expand(term.right);
+        return new T.BinaryExpressionTerm(left, term.operator, right);
+    }
+    expandCallExpression(term) {
+        let callee = this.expand(term.callee);
+        let args = expandExpressionList(term.arguments.getSyntax(), this.context);
+        return new T.CallExpressionTerm(callee, args);
+    }
+    expandExpressionStatement(term) {
+        let child = this.expand(term.expression);
+        return new T.ExpressionStatementTerm(child);
+    }
+    expandFunctionDeclaration(term) {
+        // TODO: hygiene
+        let bodyTerm = new T.FunctionBodyTerm(List(), expand(term.body, this.context));
+        return new T.FunctionDeclarationTerm(term.name,
+                                             false,
+                                             term.params,
+                                             bodyTerm);
+    }
+    expandFunctionExpression(term) {
+        // TODO: hygiene
+        let bodyTerm = new T.FunctionBodyTerm(List(), expand(term.body, this.context));
+        return new T.FunctionExpressionTerm(term.name,
+                                            false,
+                                            term.params,
+                                            bodyTerm);
+    }
+    expandLiteralBooleanExpression(term) { return term; }
+    expandLiteralNumericExpression(term) { return term; }
+    expandIdentifierExpression(term) { return term; }
+    expandLiteralNullExpression(term) { return term; }
+    expandLiteralStringExpression(term) { return term; }
+    expandLiteralRegExpExpression(term) { return term; }
+}
+
+function expandExpressionList(stxl, context) {
+    let result = List();
+    let prev = List();
+    if (stxl.size === 0) { return List(); }
+    let enf = new Enforester(stxl, prev, context);
+    let lastTerm = null;
+    while (!enf.done) {
+        let term = enf.enforest("expression");
+        if (term == null) {
+            throw enf.createError(null, "expecting an expression");
+        }
+        result = result.concat(term);
+
+        if (!enf.isPunctuator(enf.peek(), ",") && enf.rest.size !== 0) {
+            throw enf.createError(enf.peek(), "expecting a comma");
+        }
+        enf.advance();
+    }
+    let te = new TermExpander(context);
+    return result.map(t => te.expand(t));
+}
 
 export default function expand(stxl, context) {
     let terms = expandTokens(stxl, context);
-    return terms.map(t => reduce.default(new ExpandReducer(), t));
+    let te = new TermExpander(context);
+    return terms.map(t => te.expand(t));
 }

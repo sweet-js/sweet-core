@@ -19,433 +19,365 @@ describe("parser", function() {
 
     });
 
+    it("should handle a literal", function() {
+        testParse("42;", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "LiteralNumericExpression",
+                "loc": null,
+                "value": 42
+            }
+        });
+        testParse("false;", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "LiteralBooleanExpression",
+                "loc": null,
+                "value": false
+            }
+        });
+        testParse("null;", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "LiteralNullExpression",
+                "loc": null
+            }
+        });
+        testParse("'foo';", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "LiteralStringExpression",
+                "loc": null,
+                "value": "foo"
+            }
+        });
+        testParse("/foo/i;", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "LiteralRegExpExpression",
+                "loc": null,
+                "pattern": "foo",
+                "flags": "i"
+            }
+        });
+    });
 
-    // it("should handle a literal", function() {
-    //     testParse("42;", stmt, {
-    //         "type": "ExpressionStatement",
-    //         "expression": {
-    //             "type": "LiteralExpression",
-    //             "value": 42
-    //         }
-    //     });
-    //     testParse("false;", stmt, {
-    //         "type": "ExpressionStatement",
-    //         "expression": {
-    //             "type": "LiteralExpression",
-    //             "value": false
-    //         }
-    //     });
-    //     testParse("null;", stmt, {
-    //         "type": "ExpressionStatement",
-    //         "expression": {
-    //             "type": "LiteralExpression"
-    //         }
-    //     });
-        // expect(parse("'foo'")).to.eql({
-        //         "type": "Program",
-        //         "loc": null,
-        //         "body": [
-        //             {
-        //                 "type": "ExpressionStatement",
-        //                 "loc": null,
-        //                 "expression": {
-        //                     "type": "Literal",
-        //                     "loc": null,
-        //                     "value": "foo"
-        //                 }
-        //             }
-        //         ]
-        //     }
-        // );
-        // expect(parse("/abc/i;")).to.eql({
-        //         "type": "Program",
-        //         "loc": null,
-        //         "body": [
-        //             {
-        //                 "type": "ExpressionStatement",
-        //                 "loc": null,
-        //                 "expression": {
-        //                     "type": "Literal",
-        //                     "loc": null,
-        //                     "value": {}
-        //                 }
-        //             }
-        //         ]
-        //     }
-        // );
-    // });
+    it("should handle a call", function() {
+        testParse("x()", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "CallExpression",
+                "loc": null,
+                "callee": {
+                    "type": "IdentifierExpression",
+                    "loc": null,
+                    "name": "x"
+                },
+                "arguments": []
+            }
+        });
+    });
 
-    // it("should handle a call", function() {
-    //     expect(parse("x()")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "CallExpression",
-    //                         "loc": null,
-    //                         "callee": {
-    //                             "type": "Identifier",
-    //                             "loc": null,
-    //                             "name": "x"
-    //                         },
-    //                         "arguments": []
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a call with a single arg", function() {
+        testParse("x(42)", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "CallExpression",
+                "loc": null,
+                "callee": {
+                    "type": "IdentifierExpression",
+                    "loc": null,
+                    "name": "x"
+                },
+                "arguments": [{
+                    "type": "LiteralNumericExpression",
+                    "loc": null,
+                    "value": 42
+                }]
+            }
+        });
+    });
 
-    // it("should handle a call with a single arg", function() {
-    //     expect(parse("x(42)")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "CallExpression",
-    //                         "loc": null,
-    //                         "callee": {
-    //                             "type": "Identifier",
-    //                             "loc": null,
-    //                             "name": "x"
-    //                         },
-    //                         "arguments": [
-    //                             {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             }
-    //                         ]
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a call with a multiple args", function() {
+        testParse("x(42, 24)", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "CallExpression",
+                "loc": null,
+                "callee": {
+                    "type": "IdentifierExpression",
+                    "loc": null,
+                    "name": "x"
+                },
+                "arguments": [{
+                    "type": "LiteralNumericExpression",
+                    "loc": null,
+                    "value": 42
+                }, {
+                    "type": "LiteralNumericExpression",
+                    "loc": null,
+                    "value": 24
+                }]
+            }
+        });
+    });
 
-    // it("should handle a call with a multiple args", function() {
-    //     expect(parse("x(42, 24)")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "CallExpression",
-    //                         "loc": null,
-    //                         "callee": {
-    //                             "type": "Identifier",
-    //                             "loc": null,
-    //                             "name": "x"
-    //                         },
-    //                         "arguments": [
-    //                             {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             },
-    //                             {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             }
-    //                         ]
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle errors with calls", function() {
+        expect(() => {
+            parse("x(42 24)");
+        }).to.throwError();
 
-    // it("should handle errors with calls", function() {
-    //     expect(() => {
-    //         parse("x(42 24)");
-    //     }).to.throwError();
+        expect(() => {
+            parse("x(;)");
+        }).to.throwError();
+    });
 
-    //     expect(() => {
-    //         parse("x(;)");
-    //     }).to.throwError();
-    // });
+    it("should handle a binary expr", function() {
+        testParse("42 + 24", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "BinaryExpression",
+                "loc": null,
+                "left": {
+                    "type": "LiteralNumericExpression",
+                    "loc": null,
+                    "value": 42
+                },
+                "operator": "+",
+                "right": {
+                    "type": "LiteralNumericExpression",
+                    "loc": null,
+                    "value": 24
+                }
+            }
+        });
 
-    // it("should handle a binary expr", function() {
-    //     expect(parse("42 + 24")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "BinaryExpression",
-    //                         "loc": null,
-    //                         "left": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 42
-    //                         },
-    //                         "operator": "+",
-    //                         "right": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 24
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
+        testParse("42 + 24 + 2", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "BinaryExpression",
+                "loc": null,
+                "left": {
+                    "type": "BinaryExpression",
+                    "loc": null,
+                    "left": {
+                        "type": "LiteralNumericExpression",
+                        "loc": null,
+                        "value": 42
+                    },
+                    "operator": "+",
+                    "right": {
+                        "type": "LiteralNumericExpression",
+                        "loc": null,
+                        "value": 24
+                    }
+                },
+                "operator": "+",
+                "right": {
+                    "type": "LiteralNumericExpression",
+                    "loc": null,
+                    "value": 2
+                }
+            }
+        });
 
-    //     expect(parse("42 + 24 + 2")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "BinaryExpression",
-    //                         "loc": null,
-    //                         "left": {
-    //                             "type": "BinaryExpression",
-    //                             "loc": null,
-    //                             "left": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             },
-    //                             "operator": "+",
-    //                             "right": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             }
-    //                         },
-    //                         "operator": "+",
-    //                         "right": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 2
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
+        testParse("42 + 24 * 2", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "BinaryExpression",
+                "loc": null,
+                "left": {
+                    "type": "LiteralNumericExpression",
+                    "loc": null,
+                    "value": 42
+                },
+                "operator": "+",
+                "right": {
+                    "type": "BinaryExpression",
+                    "loc": null,
+                    "left": {
+                        "type": "LiteralNumericExpression",
+                        "loc": null,
+                        "value": 24
+                    },
+                    "operator": "*",
+                    "right": {
+                        "type": "LiteralNumericExpression",
+                        "loc": null,
+                        "value": 2
+                    }
+                }
+            }
+        });
 
-    //     expect(parse("42 + 24 * 2")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "BinaryExpression",
-    //                         "loc": null,
-    //                         "left": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 42
-    //                         },
-    //                         "operator": "+",
-    //                         "right": {
-    //                             "type": "BinaryExpression",
-    //                             "loc": null,
-    //                             "left": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             },
-    //                             "operator": "*",
-    //                             "right": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 2
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
+        testParse("42 * 24 + 2", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "BinaryExpression",
+                "loc": null,
+                "left": {
+                    "type": "BinaryExpression",
+                    "loc": null,
+                    "left": {
+                        "type": "LiteralNumericExpression",
+                        "loc": null,
+                        "value": 42
+                    },
+                    "operator": "*",
+                    "right": {
+                        "type": "LiteralNumericExpression",
+                        "loc": null,
+                        "value": 24
+                    }
+                },
+                "operator": "+",
+                "right": {
+                    "type": "LiteralNumericExpression",
+                    "loc": null,
+                    "value": 2
+                }
+            }
+        });
 
-    //     expect(parse("42 * 24 + 2")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "BinaryExpression",
-    //                         "loc": null,
-    //                         "left": {
-    //                             "type": "BinaryExpression",
-    //                             "loc": null,
-    //                             "left": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             },
-    //                             "operator": "*",
-    //                             "right": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             }
-    //                         },
-    //                         "operator": "+",
-    //                         "right": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 2
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
+        testParse("42 * (24 + 2)", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "BinaryExpression",
+                "loc": null,
+                "left": {
+                    "type": "LiteralNumericExpression",
+                    "loc": null,
+                    "value": 42
+                },
+                "operator": "*",
+                "right": {
+                    "type": "BinaryExpression",
+                    "loc": null,
+                    "left": {
+                        "type": "LiteralNumericExpression",
+                        "loc": null,
+                        "value": 24
+                    },
+                    "operator": "+",
+                    "right": {
+                        "type": "LiteralNumericExpression",
+                        "loc": null,
+                        "value": 2
+                    }
+                }
+            }
+        });
+        expect(() => {
+            parse("42 + (11 11)");
+        }).to.throwError();
+    });
 
-    //     expect(parse("42 * (24 + 2)")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "BinaryExpression",
-    //                         "loc": null,
-    //                         "left": {
-    //                             "type": "Literal",
-    //                             "loc": null,
-    //                             "value": 42
-    //                         },
-    //                         "operator": "*",
-    //                         "right": {
-    //                             "type": "BinaryExpression",
-    //                             "loc": null,
-    //                             "left": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             },
-    //                             "operator": "+",
-    //                             "right": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 2
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
 
-    // it("should handle a function expression", function() {
-    //     expect(parse("(function(x) { });")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "FunctionExpression",
-    //                         "loc": null,
-    //                         "id": null,
-    //                         "params": [
-    //                             {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             }
-    //                         ],
-    //                         "body": {
-    //                             "type": "BlockStatement",
-    //                             "loc": null,
-    //                             "body": []
-    //                         }
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a function expression", function() {
+        testParse("(function(x) { });", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "FunctionExpression",
+                "loc": null,
+                "name": null,
+                "isGenerator": false,
+                "params":{
+                    "type": "FormalParameters",
+                    "loc": null,
+                    "rest": null,
+                    "items": [{
+                        "type": "BindingIdentifier",
+                        "loc": null,
+                        "name": "x"
+                    }]
+                },
+                "body": {
+                    "type": "FunctionBody",
+                    "loc": null,
+                    "directives": [],
+                    "statements": []
+                }
+            }
+        });
+    });
 
-    // it("should handle a named function expression", function() {
-    //     expect(parse("(function x(x) { });")).to.eql({
-    //         "type": "Program",
-    //         "loc": null,
-    //         "body": [
-    //             {
-    //                 "type": "ExpressionStatement",
-    //                 "loc": null,
-    //                 "expression": {
-    //                     "type": "FunctionExpression",
-    //                     "loc": null,
-    //                     "id": {
-    //                         "type": "Identifier",
-    //                         "loc": null,
-    //                         "name": "x"
-    //                     },
-    //                     "params": [
-    //                         {
-    //                             "type": "Identifier",
-    //                             "loc": null,
-    //                             "name": "x"
-    //                         }
-    //                     ],
-    //                     "body": {
-    //                         "type": "BlockStatement",
-    //                         "loc": null,
-    //                         "body": []
-    //                     }
-    //                 }
-    //             }
-    //         ]
-    //     });
-    // });
+    it("should handle a named function expression", function() {
+        testParse("(function x(x) { });", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "FunctionExpression",
+                "loc": null,
+                "name": {
+                    "type": "BindingIdentifier",
+                    "loc": null,
+                    "name": "x"
+                },
+                "isGenerator": false,
+                "params":{
+                    "type": "FormalParameters",
+                    "loc": null,
+                    "rest": null,
+                    "items": [{
+                        "type": "BindingIdentifier",
+                        "loc": null,
+                        "name": "x"
+                    }]
+                },
+                "body": {
+                    "type": "FunctionBody",
+                    "loc": null,
+                    "directives": [],
+                    "statements": []
+                }
+            }
+        });
+    });
 
-    // it("should handle a function declaration", function() {
-    //     expect(parse("function id(x) { }")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "FunctionDeclaration",
-    //                     "loc": null,
-    //                     "id": {
-    //                         "type": "Identifier",
-    //                         "loc": null,
-    //                         "name": "id"
-    //                     },
-    //                     "params": [
-    //                         {
-    //                             "type": "Identifier",
-    //                             "loc": null,
-    //                             "name": "x"
-    //                         }
-    //                     ],
-    //                     "body": {
-    //                         "type": "BlockStatement",
-    //                         "loc": null,
-    //                         "body": []
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a function declaration", function() {
+        testParse("function id(x) { }", stmt, {
+            "type": "FunctionDeclaration",
+            "loc": null,
+            "name": {
+                "type": "BindingIdentifier",
+                "loc": null,
+                "name": "id"
+            },
+            "isGenerator": false,
+            "params":{
+                "type": "FormalParameters",
+                "loc": null,
+                "rest": null,
+                "items": [{
+                    "type": "BindingIdentifier",
+                    "loc": null,
+                    "name": "x"
+                }]
+            },
+            "body": {
+                "type": "FunctionBody",
+                "loc": null,
+                "directives": [],
+                "statements": []
+            }
+        });
+    });
+
+
 
     // it("should throw an error for a bad return statement", function() {
     //     expect(() => parse("function foo() { return return }")).to.throwError();

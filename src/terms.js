@@ -3,6 +3,7 @@ import { assert, expect } from "./errors";
 import { mixin } from "./utils";
 import Syntax from "./syntax";
 
+
 export class Term {
     constructor(loc = null) {
         this.loc = loc;
@@ -58,6 +59,8 @@ export class ModuleTerm extends Term {
         this.items = items;
     }
 }
+
+
 export class ScriptTerm extends Term {
     constructor(directives, statements) {
         super();
@@ -67,30 +70,53 @@ export class ScriptTerm extends Term {
     }
 }
 
+export class BindingWithDefaultTerm extends Term {
+    constructor(binding, init) {
+        super();
+        this.type = "BindingWithDefault";
+        this.binding = binding;
+        this.init = init;
+    }
+}
 
-// mixin for FunctionDeclarationTerm and FunctionExpression
-class FunctionTerm {
-
-    // parse() {
-    //     let id = this.id;
-    //     if (id !== null) {
-    //         id = new IdentifierExpression(id.resolve());
-    //     }
-    //
-    //     let FunctionNode = this instanceof FunctionExpressionTerm ?
-    //             FunctionExpression : FunctionDeclaration;
-    //
-    //     return new FunctionNode(id,
-    //                             this.params.map(term => {
-    //                                 let syn = term.getSyntax().first();
-    //                                 return new IdentifierExpression(syn.resolve());
-    //                             }).toArray(),
-    //                             new BlockStatement(this.body.map(t => {
-    //                                 return t.parse();
-    //                             }).toArray()),
-    //                             this.loc);
-    // }
-
+export class BindingIdentifierTerm extends Term {
+    constructor(name) {
+        super();
+        this.type = "BindingIdentifier";
+        this.name = name;
+    }
+}
+export class ArrayBindingTerm extends Term {
+    constructor(elements, restElement = null) {
+        super();
+        this.type = "ArrayBinding";
+        this.elements = elements;
+        this.restElement = restElement;
+    }
+}
+export class ObjectBindingTerm extends Term {
+    constructor(properties) {
+        super();
+        this.type = "ObjectBinding";
+        this.properties = properties;
+    }
+}
+export class BindingPropertyTerm extends Term { }
+export class BindingPropertyIdentifierTerm extends BindingPropertyTerm {
+    constructor(binding, init = null) {
+        super();
+        this.type = "BindingPropertyIdentifier";
+        this.binding = binding;
+        this.init = init;
+    }
+}
+export class BindingPropertyPropertyTerm extends BindingPropertyTerm {
+    constructor(name, binding) {
+        super();
+        this.type = "BindingPropertyProperty";
+        this.name = name;
+        this.binding = binding;
+    }
 }
 
 
@@ -102,8 +128,6 @@ export class ReturnStatementTerm extends StatementTerm {
     constructor(argument) {
         super();
 
-        assert(argument === null || argument instanceof ExpressionTerm,
-               "expecting an expression for the return argument");
         this.argument = argument;
     }
 }
@@ -120,10 +144,12 @@ export class ExpressionStatementTerm extends StatementTerm {
         this.expression = expression;
     }
 }
-export class FunctionDeclarationTerm extends mixin(DeclarationTerm, FunctionTerm) {
-    constructor(id, params, body) {
+export class FunctionDeclarationTerm extends DeclarationTerm {
+    constructor(name, isGenerator, params, body) {
         super();
-        this.id = id;
+        this.type = "FunctionDeclaration";
+        this.name = name;
+        this.isGenerator = isGenerator;
         this.params = params;
         this.body = body;
     }
@@ -132,12 +158,8 @@ export class VariableDeclarationTerm extends DeclarationTerm {
     constructor(declarations, kind) {
         super();
 
-        assert(List.isList(declarations),
-            "expecting declarations to be a list of VariableDeclarators");
         this.declarations = declarations;
 
-        assert(kind === "var" || kind === "let" || kind === "const" || kind === "syntax",
-               "expecting kind to be var, let, syntax, or const");
         this.kind = kind;
     }
 }
@@ -145,11 +167,8 @@ export class VariableDeclaratorTerm extends Term {
     constructor(id, init) {
         super();
 
-        assert(id != null && id.isIdentifier(), "expecting an identifier");
         this.id = id;
 
-        assert(init === null || init instanceof ExpressionTerm,
-            "expecting an expression");
         this.init = init;
     }
 }
@@ -160,64 +179,77 @@ export class SyntaxQuoteTerm extends ExpressionTerm {
     constructor(name, stx) {
         super();
 
-        assert(name && name.isIdentifier(), "expecting an identifier syntax object");
         this.name = name; // for hygiene purposes
 
-        assert(List.isList(stx), "expecting a list of syntax objects");
         this.stx = stx;
     }
 }
+
+
 export class IdentifierExpressionTerm extends ExpressionTerm {
-    constructor(ident) {
+    constructor(name) {
         super();
         this.type = "IdentifierExpression";
-        this.name = ident;
+        // syntax
+        this.name = name;
     }
 }
+
 export class LiteralNumericExpressionTerm extends ExpressionTerm {
-
     constructor(value) {
         super();
+        this.type = "LiteralNumericExpression";
         this.value = value;
     }
-
 }
+export class LiteralInfinityExpressionTerm extends ExpressionTerm {
+    constructor(value) {
+        super();
+        this.type = "LiteralInfinityExpression";
+        // syntax
+        this.value = value;
+    }
+}
+
+
 export class LiteralStringExpressionTerm extends ExpressionTerm {
-
     constructor(value) {
         super();
-        this.value = value;
-    }
-
-}
-export class BooleanLiteralExpressionTerm extends ExpressionTerm {
-    constructor(value) {
-        super();
+        this.type = "LiteralStringExpression";
         this.value = value;
     }
 }
-export class NullLiteralExpressionTerm extends ExpressionTerm {
+
+
+export class LiteralBooleanExpressionTerm extends ExpressionTerm {
+    constructor(value) {
+        super();
+        this.type = "LiteralBooleanExpression";
+        this.value = value;
+    }
+}
+
+
+export class LiteralNullExpressionTerm extends ExpressionTerm {
     constructor() {
         super();
-    }
-}
-export class RegularExpressionLiteralTerm extends ExpressionTerm {
-    constructor(value) {
-        super();
+        this.type = "LiteralNullExpression";
     }
 }
 
-export class LiteralExpressionTerm extends ExpressionTerm {
-    constructor(value) {
+
+export class LiteralRegExpExpressionTerm extends ExpressionTerm {
+    constructor(pattern, flags) {
         super();
-        this.value = value;
+        this.type = "LiteralRegExpExpression";
+        this.pattern = pattern;
+        this.flags = flags;
     }
 }
 
 export class ArrayExpressionTerm extends ExpressionTerm {
     constructor(elements) {
         super();
-        assert(List.isList(elements), "expecting a list of expressions");
         // List(null | ExpressionTerm)
         this.elements = elements;
     }
@@ -227,7 +259,6 @@ export class ObjectExpressionTerm extends ExpressionTerm {
     constructor(properties) {
         super();
 
-        assert(List.isList(properties), "expecting a list of properties");
         // List[PropertyTerm]
         this.properties = properties;
     }
@@ -236,18 +267,10 @@ export class PropertyTerm extends Term {
     constructor(key, value, kind) {
         super();
 
-        assert(key && (key.isNumericLiteral() ||
-                       key.isIdentifier() ||
-                       key.isStringLiteral()),
-            "expecting a number, string, or identifier syntax object for the property key");
         this.key = key;
 
-        assert(value instanceof ExpressionTerm,
-            "expecting an expression term for the property value");
         this.value = value;
 
-        assert(kind === "init" || kind === "get" || kind === "set",
-            "expecting init, get or set for property");
         this.kind = kind;
     }
 }
@@ -255,51 +278,66 @@ export class MemberExpressionTerm extends ExpressionTerm {
     constructor(object, property, computed) {
         super();
 
-        assert(object && object instanceof ExpressionTerm, "expecting an expression for object");
         this.object = object;
-        if (computed === true) {
-            assert(property && property instanceof ExpressionTerm, "expecting an expression for property");
-        } else {
-            assert(property && property instanceof IdentifierExpressionTerm, "expecting an identifier for property");
-        }
         this.property = property;
-        assert(typeof computed === "boolean", "expecting a boolean for computed");
         this.computed = computed;
     }
 }
-export class CallTerm extends ExpressionTerm {
+export class CallExpressionTerm extends ExpressionTerm {
     constructor(callee, args) {
         super();
+        this.type = "CallExpression";
         this.callee = callee;
         this.arguments = args;
     }
 }
+
 export class BinaryExpressionTerm extends ExpressionTerm {
     constructor(left, operator, right) {
         super();
+        this.type = "BinaryExpression";
         this.left = left;
         this.operator = operator;
         this.right = right;
     }
 }
-export class FunctionExpressionTerm extends mixin(ExpressionTerm, FunctionTerm) {
-    constructor(id, params, body) {
+
+
+export class FunctionExpressionTerm extends ExpressionTerm {
+    constructor(name, isGenerator, params, body) {
         super();
-        assert(id === null || id.isIdentifier(), "expecting an identifier syntax object");
-        this.id = id;
-        assert(List.isList(params), "expecting a list of syntax objects for the params");
+        this.type = "FunctionExpression";
+        this.name = name;
+        this.isGenerator = isGenerator;
         this.params = params;
-        assert(List.isList(body), "expecting a list of syntax objects for the body");
         this.body = body;
     }
 }
+export class FunctionBodyTerm extends Term {
+    constructor(directives, statements) {
+        super();
+        this.type = "FunctionBody";
+        this.directives = directives;
+        this.statements = statements;
+    }
+}
+
+export class FormalParametersTerm extends Term {
+    constructor(items, rest = null) {
+        super();
+        this.type = "FormalParameters";
+        this.items = items;
+        this.rest = rest;
+    }
+}
+
+
 // just a term, no ParenthesizedExpression node
 export class ParenthesizedExpressionTerm extends ExpressionTerm {
-    constructor(expression) {
+    constructor(inner) {
         super();
-        assert(expression && (expression instanceof ExpressionTerm), "expecting an expression");
-
-        this.expression = expression;
+        this.type = "ParenthesizedExpression";
+        this.inner = inner;
     }
 }
 

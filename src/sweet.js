@@ -6,25 +6,49 @@ import Env from "./env";
 import { transform } from "babel";
 import reduce, { MonoidalReducer, CloneReducer } from "shift-reducer";
 
-import { SyntaxTerm, DelimiterTerm, ModuleTerm, IdentifierExpressionTerm } from "./terms";
-
-import {
-    Module
-} from "./nodes";
+import * as T from "./terms";
 
 function tokenArrayToSyntaxList(toks) {
     return List(toks.map(t => {
         if (Array.isArray(t.inner)) {
-            return new DelimiterTerm(new Syntax(t),
+            return new T.DelimiterTerm(new Syntax(t),
                                      tokenArrayToSyntaxList(t.inner));
         }
-        return new SyntaxTerm(new Syntax(t));
+        return new T.SyntaxTerm(new Syntax(t));
     }));
+}
+
+export function readAsTerms(code) {
+    return tokenArrayToSyntaxList(read(code));
 }
 
 class ParseReducer extends CloneReducer {
     reduceIdentifierExpression(node, state) {
-        return new IdentifierExpressionTerm(node.name.resolve());
+        return new T.IdentifierExpressionTerm(node.name.resolve());
+    }
+    reduceLiteralNumericExpression(node, state) {
+        return new T.LiteralNumericExpressionTerm(node.value.val());
+    }
+    reduceLiteralBooleanExpression(node, state) {
+        return new T.LiteralBooleanExpressionTerm(node.value.val() === 'true');
+    }
+    reduceLiteralStringExpression(node, state) {
+        return new T.LiteralStringExpressionTerm(node.value.val());
+    }
+    reduceCallExpression(node, state) {
+        return new T.CallExpressionTerm(state.callee, state.arguments.toArray());
+    }
+    reduceFunctionBody(node, state) {
+        return new T.FunctionBodyTerm(state.directives.toArray(), state.statements.toArray());
+    }
+    reduceFormalParameters(node, state) {
+        return new T.FormalParametersTerm(state.items.toArray(), state.rest);
+    }
+    reduceBindingIdentifier(node, state) {
+        return new T.BindingIdentifierTerm(node.name.resolve());
+    }
+    reduceBinaryExpression(node, state) {
+        return new T.BinaryExpressionTerm(state.left, node.operator.val(), state.right);
     }
 }
 
@@ -32,7 +56,7 @@ export function parse(source, options = {}) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
     let exStxl = expand(stxl, {env: new Env()});
-    let ast = reduce.default(new ParseReducer(), new ModuleTerm(List(), exStxl));
+    let ast = reduce.default(new ParseReducer(), new T.ModuleTerm(List(), exStxl));
     return ast;
 }
 
@@ -47,6 +71,6 @@ function expandForExport(source) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
     let exStxl = expand(stxl, {env: new Env()});
-    return new ModuleTerm(List(), exStxl);
+    return new T.ModuleTerm(List(), exStxl);
 }
 export {expandForExport as expand};
