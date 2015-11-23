@@ -16,7 +16,6 @@ describe("parser", function() {
                     "name": "x"
                 }
         });
-
     });
 
     it("should handle a literal", function() {

@@ -1,5 +1,14 @@
 import read, { Token } from "../src/reader";
 import expect from "expect.js";
+import Reader from "../src/shift-reader";
+import { TokenType } from "shift-parser/dist/tokenizer";
+
+describe("shift reader", function() {
+    it("should work", function() {
+        let reader = new Reader("42");
+        let r = reader.read("42");
+    });
+});
 
 describe("reader", function() {
     it("should tokenize an identifier", function() {
