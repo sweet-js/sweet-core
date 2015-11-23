@@ -129,9 +129,24 @@ class TermExpander {
         if (term instanceof T.FunctionDeclarationTerm) {
             return this.expandFunctionDeclaration(term);
         }
-        assert(false, "not implemented yet: " + term.type);
+        if (term instanceof T.VariableDeclarationTerm) {
+            return this.expandVariableDeclaration(term);
+        }
+        if (term instanceof T.VariableDeclaratorTerm) {
+            return this.expandVariableDeclarator(term);
+        }
+        assert(false, "expand not implemented yet for: " + term.type);
     }
 
+    expandVariableDeclarator(term) {
+        let init = term.init == null ? null : this.expand(term.init);
+        return new T.VariableDeclaratorTerm(term.binding, init);
+    }
+    expandVariableDeclaration(term) {
+        return new T.VariableDeclarationTerm(term.kind, term.declarators.map(d => {
+            return this.expand(d);
+        }).toArray());
+    }
     expandParenthesiszedExpression(term) {
         let enf = new Enforester(term.inner, List(), this.context);
         let t = enf.enforest("expression");

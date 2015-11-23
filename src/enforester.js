@@ -169,7 +169,7 @@ export class Enforester {
         }
 
         this.consumeSemicolon();
-        return new T.VariableDeclarationTerm(decls, kind);
+        return new T.VariableDeclarationTerm(kind, decls);
     }
 
     enforestVariableDeclarator() {
@@ -178,11 +178,13 @@ export class Enforester {
 
         let init, rest;
         if (eq && eq.val() === "=") {
-            init = this.enforestExpressionLoop();
+            let enf = new Enforester(this.rest, List(), this.context);
+            init = enf.enforest("expression");
+            this.rest = enf.rest;
         } else {
             init = null;
         }
-        return new T.VariableDeclaratorTerm(id, init);
+        return new T.VariableDeclaratorTerm(new T.BindingIdentifierTerm(id), init);
     }
 
     enforestExpressionStatement() {

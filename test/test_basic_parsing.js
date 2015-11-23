@@ -378,229 +378,182 @@ describe("parser", function() {
 
 
 
-    // it("should throw an error for a bad return statement", function() {
-    //     expect(() => parse("function foo() { return return }")).to.throwError();
-    // });
+    it("should throw an error for a bad return statement", function() {
+        expect(() => parse("function foo() { return return }")).to.throwError();
+    });
 
-    // it("should thrown an error for a bad var decl", function() {
-    //     expect(() => parse("var 42")).to.throwError();
-    // });
+    it("should thrown an error for a bad var decl", function() {
+        expect(() => parse("var 42")).to.throwError();
+    });
 
-    // it("should handle a var declaration", function() {
-    //     expect(parse("var x")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             },
-    //                             "init": null
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
-    //     expect(parse("var x = 42")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             },
-    //                             "init": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
-    //     expect(parse("var x = 42, y = 42 + 24")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             },
-    //                             "init": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             }
-    //                         },
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "y"
-    //                             },
-    //                             "init": {
-    //                                 "type": "BinaryExpression",
-    //                                 "loc": null,
-    //                                 "left": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 42
-    //                                 },
-    //                                 "operator": "+",
-    //                                 "right": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 24
-    //                                 }
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
+    it("should handle a var declaration", function() {
+        testParse("var x", stmt, {
+            "type": "VariableDeclaration",
+            "loc": null,
+            "kind": "var",
+            "declarators": [{
+                "type": "VariableDeclarator",
+                "loc": null,
+                "binding": {
+                    "loc": null,
+                    "type": "BindingIdentifier",
+                    "name": "x"
+                },
+                "init": null
+            }]
+        });
 
+        testParse("var x = 42", stmt, {
+            "type": "VariableDeclaration",
+            "loc": null,
+            "kind": "var",
+            "declarators": [{
+                "type": "VariableDeclarator",
+                "loc": null,
+                "binding": {
+                    "loc": null,
+                    "type": "BindingIdentifier",
+                    "name": "x"
+                },
+                "init": {
+                    "loc": null,
+                    "type": "LiteralNumericExpression",
+                    "value": 42
+                }
+            }]
+        });
 
+        testParse("var x = 42, y = 42 + 24", stmt, {
+            "type": "VariableDeclaration",
+            "loc": null,
+            "kind": "var",
+            "declarators": [{
+                "type": "VariableDeclarator",
+                "loc": null,
+                "binding": {
+                    "loc": null,
+                    "type": "BindingIdentifier",
+                    "name": "x"
+                },
+                "init": {
+                    "loc": null,
+                    "type": "LiteralNumericExpression",
+                    "value": 42
+                }
+            }, {
+                "type": "VariableDeclarator",
+                "loc": null,
+                "binding": {
+                    "loc": null,
+                    "type": "BindingIdentifier",
+                    "name": "y"
+                },
+                "init": {
+                    "loc": null,
+                    "type": "BinaryExpression",
+                    "left": {
+                        "loc": null,
+                        "type": "LiteralNumericExpression",
+                        "value": 42
+                    },
+                    "operator": "+",
+                    "right": {
+                        "loc": null,
+                        "type": "LiteralNumericExpression",
+                        "value": 24
+                    }
+                }
+            }]
+        }
+        );
 
-    //     expect(parse("let x = 42, y = 42 + 24")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             },
-    //                             "init": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             }
-    //                         },
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "y"
-    //                             },
-    //                             "init": {
-    //                                 "type": "BinaryExpression",
-    //                                 "loc": null,
-    //                                 "left": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 42
-    //                                 },
-    //                                 "operator": "+",
-    //                                 "right": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 24
-    //                                 }
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "let"
-    //                 }
-    //             ]
-    //         }
-    //     );
+        testParse("let x = 42, y = 42 + 24", stmt, {
+            "type": "VariableDeclaration",
+            "loc": null,
+            "kind": "let",
+            "declarators": [{
+                "type": "VariableDeclarator",
+                "loc": null,
+                "binding": {
+                    "loc": null,
+                    "type": "BindingIdentifier",
+                    "name": "x"
+                },
+                "init": {
+                    "loc": null,
+                    "type": "LiteralNumericExpression",
+                    "value": 42
+                }
+            }, {
+                "type": "VariableDeclarator",
+                "loc": null,
+                "binding": {
+                    "loc": null,
+                    "type": "BindingIdentifier",
+                    "name": "y"
+                },
+                "init": {
+                    "loc": null,
+                    "type": "BinaryExpression",
+                    "left": {
+                        "loc": null,
+                        "type": "LiteralNumericExpression",
+                        "value": 42
+                    },
+                    "operator": "+",
+                    "right": {
+                        "loc": null,
+                        "type": "LiteralNumericExpression",
+                        "value": 24
+                    }
+                }
+            }]
+        });
 
-    //     expect(parse("const x = 42, y = 42 + 24")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "x"
-    //                             },
-    //                             "init": {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             }
-    //                         },
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "y"
-    //                             },
-    //                             "init": {
-    //                                 "type": "BinaryExpression",
-    //                                 "loc": null,
-    //                                 "left": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 42
-    //                                 },
-    //                                 "operator": "+",
-    //                                 "right": {
-    //                                     "type": "Literal",
-    //                                     "loc": null,
-    //                                     "value": 24
-    //                                 }
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "const"
-    //                 }
-    //             ]
-    //         }
-    //     );
+        testParse("const x = 42, y = 42 + 24", stmt, {
+            "type": "VariableDeclaration",
+            "loc": null,
+            "kind": "const",
+            "declarators": [{
+                "type": "VariableDeclarator",
+                "loc": null,
+                "binding": {
+                    "loc": null,
+                    "type": "BindingIdentifier",
+                    "name": "x"
+                },
+                "init": {
+                    "loc": null,
+                    "type": "LiteralNumericExpression",
+                    "value": 42
+                }
+            }, {
+                "type": "VariableDeclarator",
+                "loc": null,
+                "binding": {
+                    "loc": null,
+                    "type": "BindingIdentifier",
+                    "name": "y"
+                },
+                "init": {
+                    "loc": null,
+                    "type": "BinaryExpression",
+                    "left": {
+                        "loc": null,
+                        "type": "LiteralNumericExpression",
+                        "value": 42
+                    },
+                    "operator": "+",
+                    "right": {
+                        "loc": null,
+                        "type": "LiteralNumericExpression",
+                        "value": 24
+                    }
+                }
+            }]
+        });
 
-    // });
+    });
 
     // it("should handle a empty object literal", function() {
     //     expect(parse("var o = {}")).to.eql({

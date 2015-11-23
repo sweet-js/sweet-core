@@ -154,21 +154,19 @@ export class FunctionDeclarationTerm extends DeclarationTerm {
         this.body = body;
     }
 }
-export class VariableDeclarationTerm extends DeclarationTerm {
-    constructor(declarations, kind) {
+export class VariableDeclarationTerm extends Term {
+    constructor(kind, declarators) {
         super();
-
-        this.declarations = declarations;
-
+        this.type = "VariableDeclaration";
         this.kind = kind;
+        this.declarators = declarators;
     }
 }
 export class VariableDeclaratorTerm extends Term {
-    constructor(id, init) {
+    constructor(binding, init) {
         super();
-
-        this.id = id;
-
+        this.type = "VariableDeclarator";
+        this.binding = binding;
         this.init = init;
     }
 }
