@@ -144,9 +144,17 @@ class TermExpander {
         if (term instanceof T.StaticPropertyNameTerm) {
             return this.expandStaticPropertyName(term);
         }
+        if (term instanceof T.ArrayExpressionTerm) {
+            return this.expandArrayExpression(term);
+        }
         assert(false, "expand not implemented yet for: " + term.type);
     }
 
+    expandArrayExpression(term) {
+        return new T.ArrayExpressionTerm(term.elements.map(t => {
+            return t == null ? t : this.expand(t);
+        }));
+    }
     expandStaticPropertyName(term) {
         return term;
     }

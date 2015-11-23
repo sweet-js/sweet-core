@@ -667,75 +667,53 @@ describe("parser", function() {
         });
     });
 
-    // it("should handle an empty array literal", function() {
-    //     expect(parse("[];")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "ArrayExpression",
-    //                         "loc": null,
-    //                         "elements": []
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle an empty array literal", function() {
+        testParse("[];", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "loc": null,
+                "type": "ArrayExpression",
+                "elements": []
+            }
+        });
+    });
 
-    // it("should handle an single null element array literal", function() {
-    //     expect(parse("[,];")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "ArrayExpression",
-    //                         "loc": null,
-    //                         "elements": [
-    //                             null
-    //                         ]
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle an single null element array literal", function() {
+        testParse("[,];", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "loc": null,
+                "type": "ArrayExpression",
+                "elements": [
+                    null
+                ]
+        }});
+    });
 
-    // it("should handle an two element array literal", function() {
-    //     expect(parse("[42,24];")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "ArrayExpression",
-    //                         "loc": null,
-    //                         "elements": [
-    //                             {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             },
-    //                             {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 24
-    //                             }
-    //                         ]
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle an two element array literal", function() {
+        testParse("[42,24];", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "loc": null,
+                "type": "ArrayExpression",
+                "elements": [
+                    {
+                        "loc": null,
+                        "type": "LiteralNumericExpression",
+                        "value": 42
+                    },
+                    {
+                        "loc": null,
+                        "type": "LiteralNumericExpression",
+                        "value": 24
+                    }
+                ]
+            }
+        });
+    });
 
     // it("should handle a static member access", function() {
     //     expect(parse("foo.bar;")).to.eql({

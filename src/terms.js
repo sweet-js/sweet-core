@@ -248,7 +248,8 @@ export class LiteralRegExpExpressionTerm extends ExpressionTerm {
 export class ArrayExpressionTerm extends ExpressionTerm {
     constructor(elements) {
         super();
-        // List(null | ExpressionTerm)
+        this.type = "ArrayExpression";
+        // (SpreadElement or Expression)?[]
         this.elements = elements;
     }
 }
