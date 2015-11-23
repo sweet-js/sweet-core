@@ -329,9 +329,7 @@ export class Enforester {
         let dot = this.advance();
         let property = this.matchIdentifier();
 
-        return new T.MemberExpressionTerm(object,
-                                        new T.IdentifierExpressionTerm(property),
-                                        false);
+        return new T.StaticMemberExpressionTerm(object, property);
     }
 
     enforestArrayExpression() {

@@ -3,7 +3,7 @@ import { List } from "immutable";
 import { assert } from "./errors";
 
 import * as T from "./terms";
-import Syntax from "./syntax";
+import Syntax, {makeStringSyntax} from "./syntax";
 
 import {
     CompiletimeTransform
@@ -147,9 +147,24 @@ class TermExpander {
         if (term instanceof T.ArrayExpressionTerm) {
             return this.expandArrayExpression(term);
         }
+        if (term instanceof T.StaticMemberExpressionTerm) {
+            return this.expandStaticMemberExpression(term);
+        }
+        if (term instanceof T.SyntaxQuoteTerm) {
+            return this.expandSyntaxQuote(term);
+        }
         assert(false, "expand not implemented yet for: " + term.type);
     }
 
+    expandSyntaxQuote(term) {
+        let id = new T.IdentifierExpressionTerm(term.name)
+        let str = new T.LiteralStringExpressionTerm(makeStringSyntax(JSON.stringify(term.stx)));
+        return new T.CallExpressionTerm(id, List.of(str));
+    }
+
+    expandStaticMemberExpression(term) {
+        return new T.StaticMemberExpressionTerm(this.expand(term.object), term.property);
+    }
     expandArrayExpression(term) {
         return new T.ArrayExpressionTerm(term.elements.map(t => {
             return t == null ? t : this.expand(t);

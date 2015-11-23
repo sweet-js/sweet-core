@@ -176,9 +176,8 @@ export class ExpressionTerm extends Term { }
 export class SyntaxQuoteTerm extends ExpressionTerm {
     constructor(name, stx) {
         super();
-
+        this.type = "SyntaxQuote";
         this.name = name; // for hygiene purposes
-
         this.stx = stx;
     }
 }
@@ -304,19 +303,28 @@ export class MethodDefinitionTerm extends NamedObjectPropertyTerm {
     }
 }
 export class MemberExpressionTerm extends ExpressionTerm {
-    constructor(object, property, computed) {
+    constructor(object) {
         super();
-
+        this.type = "MemberExpression";
+        // Expression or Super
         this.object = object;
+    }
+}
+export class StaticMemberExpressionTerm extends MemberExpressionTerm {
+    constructor(object, property) {
+        super(object);
+        this.type = "StaticMemberExpression";
+        // Syntax ... String
         this.property = property;
-        this.computed = computed;
     }
 }
 export class CallExpressionTerm extends ExpressionTerm {
     constructor(callee, args) {
         super();
         this.type = "CallExpression";
+        // Expression
         this.callee = callee;
+        // Arguments
         this.arguments = args;
     }
 }

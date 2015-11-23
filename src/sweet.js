@@ -62,6 +62,9 @@ class ParseReducer extends CloneReducer {
     reduceArrayExpression(node, state) {
         return new T.ArrayExpressionTerm(state.elements.toArray());
     }
+    reduceStaticMemberExpression(node, state) {
+        return new T.StaticMemberExpressionTerm(state.object, state.property.val());
+    }
 }
 
 export function parse(source, options = {}) {

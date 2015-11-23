@@ -715,96 +715,70 @@ describe("parser", function() {
         });
     });
 
-    // it("should handle a static member access", function() {
-    //     expect(parse("foo.bar;")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "MemberExpression",
-    //                         "loc": null,
-    //                         "object": {
-    //                             "type": "Identifier",
-    //                             "loc": null,
-    //                             "name": "foo"
-    //                         },
-    //                         "property": {
-    //                             "type": "Identifier",
-    //                             "loc": null,
-    //                             "name": "bar"
-    //                         },
-    //                         "computed": false
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a static member access", function() {
+        testParse("foo.bar;", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "loc": null,
+                "type": "StaticMemberExpression",
+                "object": {
+                    "loc": null,
+                    "type": "IdentifierExpression",
+                    "name": "foo"
+                },
+                "property": "bar"
+            }
+        });
+    });
 
-    // it("should throw an error for a bad static member access", function() {
-    //     expect(() => parse("foo.+")).to.throwError();
-    // });
+    it("should throw an error for a bad static member access", function() {
+        expect(() => parse("foo.+")).to.throwError();
+    });
 
-    // it("should throw an error for a bad variable decl expression", function() {
-    //     expect(() => parse("var x = var")).to.throwError();
-    // });
+    it("should throw an error for a bad variable decl expression", function() {
+        expect(() => parse("var x = var")).to.throwError();
+    });
 
-    // it("should handle an single element array literal with a trailing comma", function() {
-    //     expect(parse("[42,];")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "ArrayExpression",
-    //                         "loc": null,
-    //                         "elements": [
-    //                             {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": 42
-    //                             }
-    //                         ]
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle an single element array literal with a trailing comma", function() {
+        testParse("[42,];", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "loc": null,
+                "type": "ArrayExpression",
+                "elements": [
+                    {
+                        "loc": null,
+                        "type": "LiteralNumericExpression",
+                        "value": 42
+                    }
+                ]
+            }
+        });
+    });
 
-    // it("should handle a syntax quote", function() {
-    //     expect(parse("syntaxQuote { foo }")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "ExpressionStatement",
-    //                     "loc": null,
-    //                     "expression": {
-    //                         "type": "CallExpression",
-    //                         "loc": null,
-    //                         "callee": {
-    //                             "type": "Identifier",
-    //                             "loc": null,
-    //                             "name": "syntaxQuote"
-    //                         },
-    //                         "arguments": [
-    //                             {
-    //                                 "type": "Literal",
-    //                                 "loc": null,
-    //                                 "value": "[{\"stx\":{\"token\":{\"type\":3,\"value\":\"foo\",\"lineNumber\":1,\"lineStart\":0,\"range\":[14,17]},\"scopeset\":[]}}]"
-    //                             }
-    //                         ]
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     )
-    // });
+    it("should handle a syntax quote", function() {
+        testParse("syntaxQuote { foo }", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "loc": null,
+                "type": "CallExpression",
+                "callee": {
+                    "loc": null,
+                    "type": "IdentifierExpression",
+                    "name": "syntaxQuote"
+                },
+                "arguments": [
+                    {
+                        "loc": null,
+                        "type": "LiteralStringExpression",
+                        "value": "[{\"loc\":null,\"type\":\"SyntaxTerm\",\"stx\":{\"token\":{\"type\":3,\"value\":\"foo\",\"lineNumber\":1,\"lineStart\":0,\"range\":[14,17]},\"scopeset\":[]}}]"
+                    }
+                ]
+            }
+        });
+    });
     // // todo: test expr list
 });

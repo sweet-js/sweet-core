@@ -1,6 +1,12 @@
 import { List } from "immutable";
 import { Token } from "./reader";
 
+export function makeStringSyntax(value, ctx) {
+    let ss = ctx && ctx.scopeset ? ctx.scopeset : undefined;
+    return new Syntax({
+        value: value
+    }, ss);
+}
 
 export default class Syntax {
     constructor(token, scopeset = List()) {
