@@ -384,7 +384,9 @@ export class Enforester {
         let value = this.enforestExpressionLoop();
         this.consumeComma();
 
-        return new T.PropertyTerm(key, value, "init");
+        let name = new T.StaticPropertyNameTerm(key);
+
+        return new T.DataPropertyTerm(name, value);
     }
 
     enforestFunctionExpression() {

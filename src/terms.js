@@ -256,20 +256,50 @@ export class ArrayExpressionTerm extends ExpressionTerm {
 export class ObjectExpressionTerm extends ExpressionTerm {
     constructor(properties) {
         super();
-
-        // List[PropertyTerm]
+        this.type = "ObjectExpression";
+        // [ObjectProperty]
         this.properties = properties;
     }
 }
-export class PropertyTerm extends Term {
-    constructor(key, value, kind) {
+export class ObjectPropertyTerm extends Term { }
+export class NamedObjectPropertyTerm extends ObjectPropertyTerm {
+    constructor(name) {
         super();
-
-        this.key = key;
-
+        this.type = "NamedObjectProperty";
+        // PropertyName
+        this.name = name;
+    }
+}
+export class PropertyNameTerm extends Term { }
+export class StaticPropertyNameTerm extends PropertyNameTerm {
+    constructor(value) {
+        super();
+        this.type = "StaticPropertyName";
+        // Syntax ... string
         this.value = value;
-
-        this.kind = kind;
+    }
+}
+export class ComputedPropertyNameTerm extends PropertyNameTerm {
+    constructor(expression) {
+        super();
+        this.type = "ComputedPropertyName";
+        // Expression
+        this.expression = expression;
+    }
+}
+export class DataPropertyTerm extends NamedObjectPropertyTerm {
+    constructor(name, expression) {
+        super(name);
+        this.type = "DataProperty";
+        // Expression
+        this.expression = expression;
+    }
+}
+export class MethodDefinitionTerm extends NamedObjectPropertyTerm {
+    constructor(body) {
+        super();
+        this.type = "MethodDefinition";
+        this.body = body;
     }
 }
 export class MemberExpressionTerm extends ExpressionTerm {

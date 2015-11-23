@@ -555,145 +555,117 @@ describe("parser", function() {
 
     });
 
-    // it("should handle a empty object literal", function() {
-    //     expect(parse("var o = {}")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "o"
-    //                             },
-    //                             "init": {
-    //                                 "type": "ObjectExpression",
-    //                                 "loc": null,
-    //                                 "properties": []
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a empty object literal", function() {
+        testParse("var o = {}", stmt, {
+            "type": "VariableDeclaration",
+            "loc": null,
+            "kind": "var",
+            "declarators": [{
+                "type": "VariableDeclarator",
+                "loc": null,
+                "binding": {
+                    "loc": null,
+                    "type": "BindingIdentifier",
+                    "name": "o"
+                },
+                "init": {
+                    "type": "ObjectExpression",
+                    "loc": null,
+                    "properties": []
+                }
+            }]
+        });
+    });
 
-    // it("should handle an object literal with a single property", function() {
-    //     expect(parse("var o = { foo: 42 }")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "o"
-    //                             },
-    //                             "init": {
-    //                                 "type": "ObjectExpression",
-    //                                 "loc": null,
-    //                                 "properties": [
-    //                                     {
-    //                                         "type": "Property",
-    //                                         "loc": null,
-    //                                         "key": {
-    //                                             "type": "Identifier",
-    //                                             "loc": null,
-    //                                             "name": "foo"
-    //                                         },
-    //                                         "value": {
-    //                                             "type": "Literal",
-    //                                             "loc": null,
-    //                                             "value": 42
-    //                                         },
-    //                                         "kind": "init"
-    //                                     }
-    //                                 ]
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle an object literal with a single property", function() {
+        testParse("var o = { foo: 42 }", stmt, {
+            "loc": null,
+            "type": "VariableDeclaration",
+            "kind": "var",
+            "declarators": [{
+                    "type": "VariableDeclarator",
+                    "loc": null,
+                    "binding": {
+                        "loc": null,
+                        "type": "BindingIdentifier",
+                        "name": "o"
+                    },
+                    "init": {
+                        "loc": null,
+                        "type": "ObjectExpression",
+                        "properties": [
+                            {
+                                "type": "DataProperty",
+                                "loc": null,
+                                "name": {
+                                    "loc": null,
+                                    "type": "StaticPropertyName",
+                                    "value": "foo"
+                                },
+                                "expression": {
+                                    "loc": null,
+                                    "type": "LiteralNumericExpression",
+                                    "value": 42
+                                }
+                            }
+                        ]
+                    }
+                }
+        ]});
+    });
 
-    // it("should handle a object literal with multiple properties", function() {
-    //     expect(parse("var o = { foo: 42, bar: 24};")).to.eql({
-    //             "type": "Program",
-    //             "loc": null,
-    //             "body": [
-    //                 {
-    //                     "type": "VariableDeclaration",
-    //                     "loc": null,
-    //                     "declarations": [
-    //                         {
-    //                             "type": "VariableDeclarator",
-    //                             "loc": null,
-    //                             "id": {
-    //                                 "type": "Identifier",
-    //                                 "loc": null,
-    //                                 "name": "o"
-    //                             },
-    //                             "init": {
-    //                                 "type": "ObjectExpression",
-    //                                 "loc": null,
-    //                                 "properties": [
-    //                                     {
-    //                                         "type": "Property",
-    //                                         "loc": null,
-    //                                         "key": {
-    //                                             "type": "Identifier",
-    //                                             "loc": null,
-    //                                             "name": "foo"
-    //                                         },
-    //                                         "value": {
-    //                                             "type": "Literal",
-    //                                             "loc": null,
-    //                                             "value": 42
-    //                                         },
-    //                                         "kind": "init"
-    //                                     },
-    //                                     {
-    //                                         "type": "Property",
-    //                                         "loc": null,
-    //                                         "key": {
-    //                                             "type": "Identifier",
-    //                                             "loc": null,
-    //                                             "name": "bar"
-    //                                         },
-    //                                         "value": {
-    //                                             "type": "Literal",
-    //                                             "loc": null,
-    //                                             "value": 24
-    //                                         },
-    //                                         "kind": "init"
-    //                                     }
-    //                                 ]
-    //                             }
-    //                         }
-    //                     ],
-    //                     "kind": "var"
-    //                 }
-    //             ]
-    //         }
-    //     );
-    // });
+    it("should handle a object literal with multiple properties", function() {
+        testParse("var o = { foo: 42, bar: 24};", stmt, {
+            "loc": null,
+            "type": "VariableDeclaration",
+            "kind": "var",
+            "declarators": [
+                {
+                    "type": "VariableDeclarator",
+                    "loc": null,
+                    "binding": {
+                        "loc": null,
+                        "type": "BindingIdentifier",
+                        "name": "o"
+                    },
+                    "init": {
+                        "loc": null,
+                        "type": "ObjectExpression",
+                        "properties": [
+                            {
+                                "type": "DataProperty",
+                                "loc": null,
+                                "name": {
+                                    "loc": null,
+                                    "type": "StaticPropertyName",
+                                    "value": "foo"
+                                },
+                                "expression": {
+                                    "loc": null,
+                                    "type": "LiteralNumericExpression",
+                                    "value": 42
+                                }
+                            },
+                            {
+                                "type": "DataProperty",
+                                "loc": null,
+                                "name": {
+                                    "loc": null,
+                                    "type": "StaticPropertyName",
+                                    "value": "bar"
+                                },
+                                "expression": {
+                                    "loc": null,
+                                    "type": "LiteralNumericExpression",
+                                    "value": 24
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        });
+    });
 
     // it("should handle an empty array literal", function() {
     //     expect(parse("[];")).to.eql({

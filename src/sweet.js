@@ -50,6 +50,15 @@ class ParseReducer extends CloneReducer {
     reduceBinaryExpression(node, state) {
         return new T.BinaryExpressionTerm(state.left, node.operator.val(), state.right);
     }
+    reduceObjectExpression(node, state) {
+        return new T.ObjectExpressionTerm(state.properties.toArray());
+    }
+    reduceVariableDeclaration(node, state) {
+        return new T.VariableDeclarationTerm(state.kind, state.declarators.toArray());
+    }
+    reduceStaticPropertyName(node, state) {
+        return new T.StaticPropertyNameTerm(node.value.val());
+    }
 }
 
 export function parse(source, options = {}) {
