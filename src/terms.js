@@ -183,6 +183,13 @@ export class SyntaxQuoteTerm extends ExpressionTerm {
 }
 
 
+export class ThisExpressionTerm extends ExpressionTerm {
+    constructor(stx) {
+        super();
+        this.type = "ThisExpression";
+        this.stx = stx;
+    }
+}
 export class IdentifierExpressionTerm extends ExpressionTerm {
     constructor(name) {
         super();

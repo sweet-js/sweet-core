@@ -255,6 +255,10 @@ export class Enforester {
             return this.enforestSyntaxQuote();
         }
 
+        // $x:ThisExpression
+        if (this.term === null && this.isKeyword(lookahead, "this")) {
+            return new T.ThisExpressionTerm(this.unwrap(this.advance()));
+        }
         // $x:ident
         if (this.term === null && this.isIdentifier(lookahead)) {
             return new T.IdentifierExpressionTerm(this.unwrap(this.advance()));
@@ -567,6 +571,11 @@ export class Enforester {
     isSquareDelimiter(term) {
         return term && (term instanceof T.DelimiterTerm) &&
             term.kind === "[]";
+    }
+    isKeyword(term, val = null) {
+        let syn = this.unwrap(term);
+        return syn && (syn instanceof Syntax) &&
+            syn.isKeyword() && ((val === null) || (syn.val() === val));
     }
     isPunctuator(term, val = null) {
         let syn = this.unwrap(term);

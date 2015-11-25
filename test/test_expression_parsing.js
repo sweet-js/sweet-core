@@ -4,7 +4,18 @@ import { expr, stmt, testParse } from "./assertions";
 
 import reduce, { MonoidalReducer, CloneReducer } from "shift-reducer";
 
-expect("parsing expressions", function() {
+describe("parsing primary expressions", function() {
+
+    it("should handle the `this` keyword", function() {
+        testParse("this;", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "ThisExpression",
+                "loc": null
+            }
+        });
+    });
 
     it("should handle a single identifier", function() {
         testParse("x", stmt, {
