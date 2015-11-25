@@ -358,6 +358,39 @@ describe("parsing primary expressions", function() {
         });
     });
 
+    it("should handle a generator function", function() {
+        testParse("(function * id(x) {})", stmt, {
+            "type": "ExpressionStatement",
+            "loc": null,
+            "expression": {
+                "type": "FunctionExpression",
+                "loc": null,
+                "name": {
+                    "type": "BindingIdentifier",
+                    "loc": null,
+                    "name": "id"
+                },
+                "isGenerator": true,
+                "params":{
+                    "type": "FormalParameters",
+                    "loc": null,
+                    "rest": null,
+                    "items": [{
+                        "type": "BindingIdentifier",
+                        "loc": null,
+                        "name": "x"
+                    }]
+                },
+                "body": {
+                    "type": "FunctionBody",
+                    "loc": null,
+                    "directives": [],
+                    "statements": []
+                }
+            }
+        });
+    });
+
     it("should handle an empty array literal", function() {
         testParse("[];", stmt, {
             "type": "ExpressionStatement",

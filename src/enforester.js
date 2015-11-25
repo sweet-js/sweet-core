@@ -393,9 +393,16 @@ export class Enforester {
 
     enforestFunctionExpression() {
         let name = null, params, body, rest;
+        let isGenerator = false;
         // eat the function keyword
         this.advance();
         let lookahead = this.peek();
+
+        if (this.isPunctuator(lookahead, "*")) {
+            isGenerator = true;
+            this.advance();
+            lookahead = this.peek();
+        }
 
         if (this.isIdentifier(lookahead)) {
             name = new T.BindingIdentifierTerm(this.unwrap(this.advance()));
@@ -407,14 +414,20 @@ export class Enforester {
         let enf = new Enforester(params, List(), this.context);
         let formalParams = enf.enforestFormalParameters();
 
-        return new T.FunctionExpressionTerm(name, false, formalParams, body);
+        return new T.FunctionExpressionTerm(name, isGenerator, formalParams, body);
     }
 
     enforestFunctionDeclaration() {
         let name, params, body, rest;
+        let isGenerator = false;
         // eat the function keyword
         this.advance();
         let lookahead = this.peek();
+
+        if (this.isPunctuator(lookahead, "*")) {
+            isGenerator = true;
+            this.advance();
+        }
 
         name = new T.BindingIdentifierTerm(this.unwrap(this.advance()));
 
@@ -424,7 +437,7 @@ export class Enforester {
         let enf = new Enforester(params, List(), this.context);
         let formalParams = enf.enforestFormalParameters();
 
-        return new T.FunctionDeclarationTerm(name, false, formalParams, body);
+        return new T.FunctionDeclarationTerm(name, isGenerator, formalParams, body);
     }
 
     enforestFormalParameters() {

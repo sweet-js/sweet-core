@@ -220,7 +220,7 @@ class TermExpander {
         // TODO: hygiene
         let bodyTerm = new T.FunctionBodyTerm(List(), expand(term.body, this.context));
         return new T.FunctionDeclarationTerm(term.name,
-                                             false,
+                                             term.isGenerator,
                                              term.params,
                                              bodyTerm);
     }
@@ -228,7 +228,7 @@ class TermExpander {
         // TODO: hygiene
         let bodyTerm = new T.FunctionBodyTerm(List(), expand(term.body, this.context));
         return new T.FunctionExpressionTerm(term.name,
-                                            false,
+                                            term.isGenerator,
                                             term.params,
                                             bodyTerm);
     }

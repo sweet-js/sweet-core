@@ -35,6 +35,34 @@ describe("parsing statements", function() {
         });
     });
 
+    it("should handle a generator function declaration", function() {
+        testParse("function * id(x) {}", stmt, {
+            "type": "FunctionDeclaration",
+            "loc": null,
+            "name": {
+                "type": "BindingIdentifier",
+                "loc": null,
+                "name": "id"
+            },
+            "isGenerator": true,
+            "params":{
+                "type": "FormalParameters",
+                "loc": null,
+                "rest": null,
+                "items": [{
+                    "type": "BindingIdentifier",
+                    "loc": null,
+                    "name": "x"
+                }]
+            },
+            "body": {
+                "type": "FunctionBody",
+                "loc": null,
+                "directives": [],
+                "statements": []
+            }
+        });
+    });
 
 
     it("should throw an error for a bad return statement", function() {
