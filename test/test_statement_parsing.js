@@ -2,9 +2,7 @@ import { parse, expand } from "../src/sweet";
 import expect from "expect.js";
 import { expr, stmt, testParse } from "./assertions";
 
-import reduce, { MonoidalReducer, CloneReducer } from "shift-reducer";
-
-describe("parsing statements", function() {
+describe("parsing function declarations", function() {
 
     it("should handle a function declaration", function() {
         testParse("function id(x) { }", stmt, {
@@ -68,6 +66,9 @@ describe("parsing statements", function() {
     it("should throw an error for a bad return statement", function() {
         expect(() => parse("function foo() { return return }")).to.throwError();
     });
+});
+
+describe("parsing variable declarations", function() {
 
     it("should thrown an error for a bad var decl", function() {
         expect(() => parse("var 42")).to.throwError();
@@ -242,122 +243,16 @@ describe("parsing statements", function() {
 
     });
 
-    it("should handle a empty object literal", function() {
-        testParse("var o = {}", stmt, {
-            "type": "VariableDeclaration",
-            "loc": null,
-            "kind": "var",
-            "declarators": [{
-                "type": "VariableDeclarator",
-                "loc": null,
-                "binding": {
-                    "loc": null,
-                    "type": "BindingIdentifier",
-                    "name": "o"
-                },
-                "init": {
-                    "type": "ObjectExpression",
-                    "loc": null,
-                    "properties": []
-                }
-            }]
-        });
-    });
 
-    it("should handle an object literal with a single property", function() {
-        testParse("var o = { foo: 42 }", stmt, {
-            "loc": null,
-            "type": "VariableDeclaration",
-            "kind": "var",
-            "declarators": [{
-                    "type": "VariableDeclarator",
-                    "loc": null,
-                    "binding": {
-                        "loc": null,
-                        "type": "BindingIdentifier",
-                        "name": "o"
-                    },
-                    "init": {
-                        "loc": null,
-                        "type": "ObjectExpression",
-                        "properties": [
-                            {
-                                "type": "DataProperty",
-                                "loc": null,
-                                "name": {
-                                    "loc": null,
-                                    "type": "StaticPropertyName",
-                                    "value": "foo"
-                                },
-                                "expression": {
-                                    "loc": null,
-                                    "type": "LiteralNumericExpression",
-                                    "value": 42
-                                }
-                            }
-                        ]
-                    }
-                }
-        ]});
-    });
 
-    it("should handle a object literal with multiple properties", function() {
-        testParse("var o = { foo: 42, bar: 24 };", stmt, {
-            "loc": null,
-            "type": "VariableDeclaration",
-            "kind": "var",
-            "declarators": [
-                {
-                    "type": "VariableDeclarator",
-                    "loc": null,
-                    "binding": {
-                        "loc": null,
-                        "type": "BindingIdentifier",
-                        "name": "o"
-                    },
-                    "init": {
-                        "loc": null,
-                        "type": "ObjectExpression",
-                        "properties": [
-                            {
-                                "type": "DataProperty",
-                                "loc": null,
-                                "name": {
-                                    "loc": null,
-                                    "type": "StaticPropertyName",
-                                    "value": "foo"
-                                },
-                                "expression": {
-                                    "loc": null,
-                                    "type": "LiteralNumericExpression",
-                                    "value": 42
-                                }
-                            },
-                            {
-                                "type": "DataProperty",
-                                "loc": null,
-                                "name": {
-                                    "loc": null,
-                                    "type": "StaticPropertyName",
-                                    "value": "bar"
-                                },
-                                "expression": {
-                                    "loc": null,
-                                    "type": "LiteralNumericExpression",
-                                    "value": 24
-                                }
-                            }
-                        ]
-                    }
-                }
-            ]
-        });
-    });
 
     it("should throw an error for a bad variable decl expression", function() {
         expect(() => parse("var x = var")).to.throwError();
     });
 
+});
+
+describe("parsing syntax extensions", function() {
 
     it("should handle a syntax quote", function() {
         testParse("syntaxQuote { foo }", stmt, {
