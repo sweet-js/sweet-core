@@ -64,7 +64,8 @@ export class Enforester {
         }
 
         if (this.isEOF(this.peek())) {
-            this.term = new T.EOFTerm(this.advance());
+            this.term = new Term("EOF", {});
+            this.advance();
             return this.term;
         }
 
@@ -115,7 +116,7 @@ export class Enforester {
 
         if (this.term === null && this.isPunctuator(lookahead, ";")) {
             this.advance();
-            return new T.EmptyStatementTerm();
+            return new Term("EmptyStatement");
         }
 
         return this.enforestExpressionStatement();
@@ -132,14 +133,18 @@ export class Enforester {
     }
 
     enforestBindingIdentifier() {
-        var name = this.unwrap(this.advance());
         return new Term("BindingIdentifier", {
-            name: name
+            name: this.enforestIdentifier()
         });
     }
-    // enforestIdentifier() {
-    //
-    // }
+    enforestIdentifier() {
+        let lookahead = this.peek();
+        // TODO handle yields
+        if (this.isIdentifier(lookahead)) {
+            return this.unwrap(this.advance());
+        }
+        throw this.createError(lookahead, "expecting an identifier");
+    }
 
     // TODO: something like this
     // enforestStatementListItem() {
@@ -158,13 +163,17 @@ export class Enforester {
         // short circuit for the empty expression case
         if (this.rest.size === 0 ||
             (lookahead && !this.lineNumberEq(kw, lookahead))) {
-            return new T.ReturnStatementTerm(null);
+            return new Term("ReturnStatement", {
+                argument: null
+            });
         }
 
         let term = this.enforestExpressionLoop();
         this.consumeSemicolon();
 
-        return new T.ReturnStatementTerm(term);
+        return new Term("ReturnStatement", {
+            argument: term
+        });
     }
 
     enforestVariableDeclaration() {
@@ -204,7 +213,10 @@ export class Enforester {
         }
 
         this.consumeSemicolon();
-        return new T.VariableDeclarationTerm(kind, decls);
+        return new Term("VariableDeclaration", {
+            kind: kind,
+            declarators: decls
+        });
     }
 
     enforestVariableDeclarator() {
@@ -219,7 +231,11 @@ export class Enforester {
         } else {
             init = null;
         }
-        return new T.VariableDeclaratorTerm(new T.BindingIdentifierTerm(id), init);
+        return new Term("VariableDeclarator", {
+            // TODO: move to enforestBindingIdentifier?
+            binding: new Term("BindingIdentifier", { name: id }),
+            init: init
+        });
     }
 
     enforestExpressionStatement() {
@@ -230,7 +246,9 @@ export class Enforester {
         }
         this.consumeSemicolon();
 
-        return new T.ExpressionStatementTerm(expr);
+        return new Term("ExpressionStatement", {
+            expression: expr
+        });
     }
 
     enforestExpressionLoop() {
@@ -278,10 +296,11 @@ export class Enforester {
 
         if (this.term === null && this.isCompiletimeTransform(lookahead)) {
             let term = this.expandMacro("expression");
-            if (!(term instanceof T.ExpressionTerm)) {
-                throw this.createError(term,
-                                       "expecting macro to return an expression");
-            }
+            // TODO: need to figure out the right way of checking if terms are expressions
+            // if (!(term instanceof T.ExpressionTerm)) {
+            //     throw this.createError(term,
+            //                            "expecting macro to return an expression");
+            // }
             return term;
         }
 
@@ -292,32 +311,47 @@ export class Enforester {
 
         // $x:ThisExpression
         if (this.term === null && this.isKeyword(lookahead, "this")) {
-            return new T.ThisExpressionTerm(this.unwrap(this.advance()));
+            return new Term("ThisExpression", {
+                stx: this.unwrap(this.advance())
+            });
         }
         // $x:ident
         if (this.term === null && this.isIdentifier(lookahead)) {
-            return new T.IdentifierExpressionTerm(this.unwrap(this.advance()));
+            return new Term("IdentifierExpression", {
+                name: this.unwrap(this.advance())
+            });
         }
         if (this.term === null && this.isNumericLiteral(lookahead)) {
-            return new T.LiteralNumericExpressionTerm(this.unwrap(this.advance()));
+            return new Term("LiteralNumericExpression", {
+                value: this.unwrap(this.advance())
+            });
         }
         if (this.term === null && this.isStringLiteral(lookahead)) {
-            return new T.LiteralStringExpressionTerm(this.unwrap(this.advance()));
+            return new Term("LiteralStringExpression", {
+                value: this.unwrap(this.advance())
+            });
         }
         if (this.term === null && this.isBooleanLiteral(lookahead)) {
-            return new T.LiteralBooleanExpressionTerm(this.unwrap(this.advance()));
+            return new Term("LiteralBooleanExpression", {
+                value: this.unwrap(this.advance())
+            });
         }
         if (this.term === null && this.isNullLiteral(lookahead)) {
             this.advance();
-            return new T.LiteralNullExpressionTerm();
+            return new Term("LiteralNullExpression", {});
         }
         if (this.term === null && this.isRegularExpression(lookahead)) {
             let reStx = this.unwrap(this.advance());
-            return new T.LiteralRegExpExpressionTerm(reStx.token.regex.pattern, reStx.token.regex.flags);
+            return new Term("LiteralRegExpExpression", {
+                pattern: reStx.token.regex.pattern,
+                flags: reStx.token.regex.flags
+            });
         }
         // ($x:expr)
         if (this.term === null && this.isParenDelimiter(lookahead)) {
-            return new T.ParenthesizedExpressionTerm(this.advance().getSyntax());
+            return new Term("ParenthesizedExpression", {
+                inner: this.advance().getSyntax()
+            });
         }
         // $x:FunctionExpression
         if (this.term === null && this.isFnDeclTransform(lookahead)) {
@@ -337,20 +371,20 @@ export class Enforester {
         // and then check the cases where the term part of p is something...
 
         // $x:expr . $prop:ident
-        if (this.term && this.term instanceof T.ExpressionTerm &&
-            this.isPunctuator(lookahead, ".")) {
+        if (this.term && this.isPunctuator(lookahead, ".")) {
             return this.enforestStaticMemberExpression();
         }
         // $l:expr $op:binaryOperator $r:expr
-        if (this.term && this.term instanceof T.ExpressionTerm &&
-            this.isOperator(lookahead)) {
+        if (this.term && this.isOperator(lookahead)) {
             return this.enforestBinaryExpression();
         }
         // $x:expr (...)
-        if (this.term && this.term instanceof T.ExpressionTerm &&
-            this.isParenDelimiter(lookahead)) {
+        if (this.term && this.isParenDelimiter(lookahead)) {
             let paren = this.advance();
-            return new T.CallExpressionTerm(this.term, paren);
+            return new Term("CallExpression", {
+                callee: this.term,
+                arguments: paren
+            });
         }
 
         return this.term;
@@ -360,7 +394,10 @@ export class Enforester {
         let name = this.unwrap(this.advance());
         let body = this.matchCurlies();
 
-        return new T.SyntaxQuoteTerm(name, body);
+        return new Term("SyntaxQuote", {
+            name: name,
+            stx: body
+        });
     }
 
     enforestStaticMemberExpression() {
@@ -368,7 +405,10 @@ export class Enforester {
         let dot = this.advance();
         let property = this.matchIdentifier();
 
-        return new T.StaticMemberExpressionTerm(object, property);
+        return new Term("StaticMemberExpression", {
+            object: object,
+            property: property
+        });
     }
 
     enforestArrayExpression() {
@@ -389,8 +429,10 @@ export class Enforester {
                 enf.consumeComma();
             }
         }
-        return new T.ArrayExpressionTerm(elements);
 
+        return new Term("ArrayExpression", {
+            elements: elements
+        });
     }
 
     enforestObjectExpression() {
@@ -411,7 +453,9 @@ export class Enforester {
             lastProp = prop;
         }
 
-        return new T.ObjectExpressionTerm(properties);
+        return new Term("ObjectExpression", {
+            properties: properties
+        });
     }
 
     enforestProperty() {
@@ -421,9 +465,14 @@ export class Enforester {
         let value = this.enforestExpressionLoop();
         this.consumeComma();
 
-        let name = new T.StaticPropertyNameTerm(key);
+        let name = new Term("StaticPropertyName", {
+            value: key
+        });
 
-        return new T.DataPropertyTerm(name, value);
+        return new Term("DataProperty", {
+            name: name,
+            expression: value
+        });
     }
 
     enforestFunctionExpression() {
@@ -440,7 +489,7 @@ export class Enforester {
         }
 
         if (this.isIdentifier(lookahead)) {
-            name = new T.BindingIdentifierTerm(this.unwrap(this.advance()));
+            name = new Term("BindingIdentifier", { name: this.unwrap(this.advance())});
         }
 
         params = this.matchParens("expecting a function parameter list");
@@ -449,7 +498,12 @@ export class Enforester {
         let enf = new Enforester(params, List(), this.context);
         let formalParams = enf.enforestFormalParameters();
 
-        return new T.FunctionExpressionTerm(name, isGenerator, formalParams, body);
+        return new Term("FunctionExpression", {
+            name: name,
+            isGenerator: isGenerator,
+            params: formalParams,
+            body: body
+        });
     }
 
     enforestFunctionDeclaration() {
@@ -464,7 +518,9 @@ export class Enforester {
             this.advance();
         }
 
-        name = new T.BindingIdentifierTerm(this.unwrap(this.advance()));
+        name = new Term("BindingIdentifier", {
+            name: this.unwrap(this.advance())
+        });
 
         params = this.matchParens("expecting a function parameter list");
         body = this.matchCurlies("expecting a function body");
@@ -472,7 +528,12 @@ export class Enforester {
         let enf = new Enforester(params, List(), this.context);
         let formalParams = enf.enforestFormalParameters();
 
-        return new T.FunctionDeclarationTerm(name, isGenerator, formalParams, body);
+        return new Term("FunctionDeclaration", {
+            name: name,
+            isGenerator: isGenerator,
+            params: formalParams,
+            body: body
+        });
     }
 
     enforestFormalParameters() {
@@ -482,15 +543,17 @@ export class Enforester {
 
             if (this.isIdentifier(lookahead)) {
                 let name = this.unwrap(this.advance());
-                items.push(new T.BindingIdentifierTerm(name));
+                items.push(new Term("BindingIdentifier", { name: name }));
             } else if (this.isPunctuator(lookahead, ",")) {
                 this.advance();
             } else {
                 assert(false, "not implemented yet");
             }
         }
-        return new T.FormalParametersTerm(List(items));
-
+        return new Term("FormalParameters", {
+            items: List(items),
+            rest: null
+        });
     }
 
 
@@ -510,11 +573,11 @@ export class Enforester {
             });
             this.opCtx.prec = opPrec;
             this.opCtx.combine = (rightTerm) => {
-                if (!(rightTerm instanceof T.ExpressionTerm)) {
-                    throw this.createError(rightTerm,
-                                           "expecting an expression on the right side of a binary operator");
-                }
-                return new T.BinaryExpressionTerm(leftTerm, opStx, rightTerm);
+                return new Term("BinaryExpression", {
+                    left: leftTerm,
+                    operator: opStx,
+                    right: rightTerm
+                });
             };
             this.advance();
             return null;

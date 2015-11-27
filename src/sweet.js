@@ -7,7 +7,7 @@ import { transform } from "babel";
 import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
 
-import * as T from "./terms";
+import Term, * as T from "./terms";
 
 function tokenArrayToSyntaxList(toks) {
     return List(toks.map(t => {
@@ -28,7 +28,10 @@ export function parse(source, options = {}) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
     let exStxl = expand(stxl, {env: new Env()});
-    let ast = reduce.default(new ParseReducer(), new T.ModuleTerm(List(), exStxl));
+    let ast = reduce.default(new ParseReducer(), new Term("Module", {
+        directives: List(),
+        items: exStxl
+    }));
     return ast;
 }
 
@@ -43,6 +46,9 @@ function expandForExport(source) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
     let exStxl = expand(stxl, {env: new Env()});
-    return new T.ModuleTerm(List(), exStxl);
+    return new Term("Module", {
+        directives: List(),
+        items: exStxl
+    });
 }
 export {expandForExport as expand};

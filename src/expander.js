@@ -2,7 +2,7 @@ import { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert } from "./errors";
 
-import * as T from "./terms";
+import Term, * as T from "./terms";
 import Syntax, {makeStringSyntax} from "./syntax";
 
 import {
@@ -60,7 +60,7 @@ function expandTokens(stxl, context) {
         assert(term !== lastTerm, "enforester is not done but produced same term");
         lastTerm = term;
 
-        if (term instanceof T.VariableDeclarationTerm && term.kind === "syntax") {
+        if (term.type === 'VariableDeclaration' && term.kind === "syntax") {
             // todo: hygiene
             term.declarations.forEach(decl => {
                 // finish the expansion early for the declaration
@@ -78,7 +78,7 @@ function expandTokens(stxl, context) {
 
 
         // don't need the EOF term in the final AST
-        if (term instanceof T.EOFTerm) {
+        if (term.type === "EOF") {
             break;
         }
 
@@ -91,73 +91,10 @@ class TermExpander {
     constructor(context) {
         this.context = context;
     }
-    // TODO: auto generate this from definition of terms
     expand(term) {
-        if (term instanceof T.IdentifierExpressionTerm) {
-            return this.expandIdentifierExpression(term);
-        }
-        if (term instanceof T.ExpressionStatementTerm) {
-            return this.expandExpressionStatement(term);
-        }
-        if (term instanceof T.LiteralNumericExpressionTerm) {
-            return this.expandLiteralNumericExpression(term);
-        }
-        if (term instanceof T.LiteralBooleanExpressionTerm) {
-            return this.expandLiteralBooleanExpression(term);
-        }
-        if (term instanceof T.LiteralNullExpressionTerm) {
-            return this.expandLiteralNullExpression(term);
-        }
-        if (term instanceof T.LiteralStringExpressionTerm) {
-            return this.expandLiteralStringExpression(term);
-        }
-        if (term instanceof T.LiteralRegExpExpressionTerm) {
-            return this.expandLiteralRegExpExpression(term);
-        }
-        if (term instanceof T.CallExpressionTerm) {
-            return this.expandCallExpression(term);
-        }
-        if (term instanceof T.BinaryExpressionTerm) {
-            return this.expandBinaryExpression(term);
-        }
-        if (term instanceof T.ParenthesizedExpressionTerm) {
-            return this.expandParenthesiszedExpression(term);
-        }
-        if (term instanceof T.FunctionExpressionTerm) {
-            return this.expandFunctionExpression(term);
-        }
-        if (term instanceof T.FunctionDeclarationTerm) {
-            return this.expandFunctionDeclaration(term);
-        }
-        if (term instanceof T.VariableDeclarationTerm) {
-            return this.expandVariableDeclaration(term);
-        }
-        if (term instanceof T.VariableDeclaratorTerm) {
-            return this.expandVariableDeclarator(term);
-        }
-        if (term instanceof T.ObjectExpressionTerm) {
-            return this.expandObjectExpression(term);
-        }
-        if (term instanceof T.DataPropertyTerm) {
-            return this.expandDataProperty(term);
-        }
-        if (term instanceof T.StaticPropertyNameTerm) {
-            return this.expandStaticPropertyName(term);
-        }
-        if (term instanceof T.ArrayExpressionTerm) {
-            return this.expandArrayExpression(term);
-        }
-        if (term instanceof T.StaticMemberExpressionTerm) {
-            return this.expandStaticMemberExpression(term);
-        }
-        if (term instanceof T.SyntaxQuoteTerm) {
-            return this.expandSyntaxQuote(term);
-        }
-        if (term instanceof T.ThisExpressionTerm) {
-            return this.expandThisExpression(term);
-        }
-        if (term.type === "ClassDeclaration") {
-            return this.expandClassDeclaration(term);
+        let field = "expand" + term.type;
+        if (typeof this[field] === 'function') {
+            return this[field](term);
         }
         assert(false, "expand not implemented yet for: " + term.type);
     }
@@ -169,38 +106,61 @@ class TermExpander {
         return term;
     }
     expandSyntaxQuote(term) {
-        let id = new T.IdentifierExpressionTerm(term.name);
-        let str = new T.LiteralStringExpressionTerm(makeStringSyntax(JSON.stringify(term.stx)));
-        return new T.CallExpressionTerm(id, List.of(str));
+        let id = new Term("IdentifierExpression", {
+            name: term.name
+        });
+
+        let str = new Term("LiteralStringExpression", {
+            value: makeStringSyntax(JSON.stringify(term.stx))
+        });
+
+        return new Term("CallExpression", {
+            callee: id,
+            arguments: List.of(str)
+        });
     }
 
     expandStaticMemberExpression(term) {
-        return new T.StaticMemberExpressionTerm(this.expand(term.object), term.property);
+        return new Term("StaticMemberExpression", {
+            object: this.expand(term.object),
+            property: term.property
+        });
     }
+
     expandArrayExpression(term) {
-        return new T.ArrayExpressionTerm(term.elements.map(t => {
-            return t == null ? t : this.expand(t);
-        }));
+        return new Term("ArrayExpression", {
+            elements: term.elements.map(t => t == null ? t : this.expand(t))
+        });
     }
+
     expandStaticPropertyName(term) {
         return term;
     }
     expandDataProperty(term) {
-        return new T.DataPropertyTerm(this.expand(term.name), this.expand(term.expression));
+        return new Term("DataProperty", {
+            name: this.expand(term.name),
+            expression: this.expand(term.expression)
+        });
     }
     expandObjectExpression(term) {
-        return new T.ObjectExpressionTerm(term.properties.map(t => this.expand(t)));
+        return new Term("ObjectExpression", {
+            properties: term.properties.map(t => this.expand(t))
+        });
     }
     expandVariableDeclarator(term) {
         let init = term.init == null ? null : this.expand(term.init);
-        return new T.VariableDeclaratorTerm(term.binding, init);
+        return new Term("VariableDeclarator", {
+            binding: term.binding,
+            init: init
+        });
     }
     expandVariableDeclaration(term) {
-        return new T.VariableDeclarationTerm(term.kind, term.declarators.map(d => {
-            return this.expand(d);
-        }));
+        return new Term("VariableDeclaration", {
+            kind: term.kind,
+            declarators: term.declarators.map(d => this.expand(d))
+        });
     }
-    expandParenthesiszedExpression(term) {
+    expandParenthesizedExpression(term) {
         let enf = new Enforester(term.inner, List(), this.context);
         let t = enf.enforest("expression");
         if (!enf.done || t == null) {
@@ -211,32 +171,51 @@ class TermExpander {
     expandBinaryExpression(term) {
         let left = this.expand(term.left);
         let right = this.expand(term.right);
-        return new T.BinaryExpressionTerm(left, term.operator, right);
+        return new Term("BinaryExpression", {
+            left: left,
+            operator: term.operator,
+            right: right
+        });
     }
     expandCallExpression(term) {
         let callee = this.expand(term.callee);
         let args = expandExpressionList(term.arguments.getSyntax(), this.context);
-        return new T.CallExpressionTerm(callee, args);
+        return new Term("CallExpression", {
+            callee: callee,
+            arguments: args
+        });
     }
     expandExpressionStatement(term) {
         let child = this.expand(term.expression);
-        return new T.ExpressionStatementTerm(child);
+        return new Term("ExpressionStatement", {
+            expression: child
+        });
     }
     expandFunctionDeclaration(term) {
         // TODO: hygiene
-        let bodyTerm = new T.FunctionBodyTerm(List(), expand(term.body, this.context));
-        return new T.FunctionDeclarationTerm(term.name,
-                                             term.isGenerator,
-                                             term.params,
-                                             bodyTerm);
+        let bodyTerm = new Term("FunctionBody", {
+            directives: List(),
+            statements: expand(term.body, this.context)
+        });
+        return new Term("FunctionDeclaration", {
+            name: term.name,
+            isGenerator: term.isGenerator,
+            params: term.params,
+            body: bodyTerm
+        });
     }
     expandFunctionExpression(term) {
         // TODO: hygiene
-        let bodyTerm = new T.FunctionBodyTerm(List(), expand(term.body, this.context));
-        return new T.FunctionExpressionTerm(term.name,
-                                            term.isGenerator,
-                                            term.params,
-                                            bodyTerm);
+        let bodyTerm = new Term("FunctionBody", {
+            directives: List(),
+            statements: expand(term.body, this.context)
+        });
+        return new Term("FunctionExpression", {
+            name: term.name,
+            isGenerator: term.isGenerator,
+            params: term.params,
+            body: bodyTerm
+        });
     }
     expandLiteralBooleanExpression(term) { return term; }
     expandLiteralNumericExpression(term) { return term; }
