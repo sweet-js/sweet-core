@@ -1,4 +1,4 @@
-import * as T from "./terms";
+import Term, * as T from "./terms";
 import { CloneReducer } from "shift-reducer";
 
 export default class ParseReducer extends CloneReducer {
@@ -43,5 +43,13 @@ export default class ParseReducer extends CloneReducer {
     }
     reduceStaticMemberExpression(node, state) {
         return new T.StaticMemberExpressionTerm(state.object, state.property.val());
+    }
+    reduceClassDeclaration(node, state) {
+        return new Term("ClassDeclaration", {
+            name: state.name,
+            super: state.super,
+            elements: state.elements.toArray(),
+            loc: null
+        });
     }
 }

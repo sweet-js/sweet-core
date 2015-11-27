@@ -1,4 +1,4 @@
-import * as T from "./terms";
+import Term, * as T from "./terms";
 
 import {
     FunctionDeclTransform,
@@ -88,6 +88,11 @@ export class Enforester {
     enforestStatement() {
         let lookahead = this.peek();
 
+        // TODO: put somewhere else
+        if (this.term === null && this.isKeyword(lookahead, "class")) {
+            return this.enforestClass({ isExpr: false });
+        }
+
         if (this.term === null && this.isCompiletimeTransform(lookahead)) {
             return this.expandMacro();
         }
@@ -115,6 +120,36 @@ export class Enforester {
 
         return this.enforestExpressionStatement();
     }
+
+    enforestClass({ isExpr }) {
+        this.advance();
+        let name = this.enforestBindingIdentifier();
+        this.advance();
+        return new Term("ClassDeclaration", {
+            name: name,
+            elements: List()
+        });
+    }
+
+    enforestBindingIdentifier() {
+        var name = this.unwrap(this.advance());
+        return new Term("BindingIdentifier", {
+            name: name
+        });
+    }
+    // enforestIdentifier() {
+    //
+    // }
+
+    // TODO: something like this
+    // enforestStatementListItem() {
+    //     let lookahead = this.peek();
+    //     if (this.isKeyword("function")) {
+    //         return this.enforestFunction({ isExpr: false });
+    //     } else if (this.isKeyword("class")) {
+    //         return this.enforestClass({ isExpr: false });
+    //     }
+    // }
 
     enforestReturnStatement() {
         let kw = this.advance();
@@ -446,8 +481,8 @@ export class Enforester {
             let lookahead = this.peek();
 
             if (this.isIdentifier(lookahead)) {
-                let name = this.unwrap(this.advance())
-                items.push(new T.BindingIdentifierTerm(name))
+                let name = this.unwrap(this.advance());
+                items.push(new T.BindingIdentifierTerm(name));
             } else if (this.isPunctuator(lookahead, ",")) {
                 this.advance();
             } else {

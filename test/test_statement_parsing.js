@@ -277,3 +277,19 @@ describe("parsing syntax extensions", function() {
         });
     });
 });
+
+describe("parsing classes", () => {
+    it("should parse an empty class", () => {
+        testParse("class F {}", stmt, {
+            "type": "ClassDeclaration",
+            "loc": null,
+            "name": {
+                "loc": null,
+                "type": "BindingIdentifier",
+                "name": "F"
+            },
+            "super": null,
+            "elements": []
+        });
+    });
+});

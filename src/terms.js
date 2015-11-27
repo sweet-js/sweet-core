@@ -3,6 +3,14 @@ import { assert, expect } from "./errors";
 import { mixin } from "./utils";
 import Syntax from "./syntax";
 
+export default class {
+    constructor(type, fields) {
+        this.type = type;
+        for (let field of Object.keys(fields)) {
+            this[field] = fields[field];
+        }
+    }
+}
 
 export class Term {
     constructor(loc = null) {
@@ -144,6 +152,20 @@ export class ExpressionStatementTerm extends StatementTerm {
         this.expression = expression;
     }
 }
+
+export class ClassDeclarationTerm extends StatementTerm {
+    constructor(name, _super, elements) {
+        super();
+        this.type = "ClassDeclaration";
+        // BindingIdentifier
+        this.name = name;
+        // Expression?
+        this.super = _super;
+        // ClassElement[]
+        this.elements = elements;
+    }
+}
+
 export class FunctionDeclarationTerm extends DeclarationTerm {
     constructor(name, isGenerator, params, body) {
         super();

@@ -156,14 +156,20 @@ class TermExpander {
         if (term instanceof T.ThisExpressionTerm) {
             return this.expandThisExpression(term);
         }
+        if (term.type === "ClassDeclaration") {
+            return this.expandClassDeclaration(term);
+        }
         assert(false, "expand not implemented yet for: " + term.type);
     }
 
+    expandClassDeclaration(term) {
+        return term;
+    }
     expandThisExpression(term) {
         return term;
     }
     expandSyntaxQuote(term) {
-        let id = new T.IdentifierExpressionTerm(term.name)
+        let id = new T.IdentifierExpressionTerm(term.name);
         let str = new T.LiteralStringExpressionTerm(makeStringSyntax(JSON.stringify(term.stx)));
         return new T.CallExpressionTerm(id, List.of(str));
     }
