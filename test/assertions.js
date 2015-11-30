@@ -6,7 +6,7 @@ function expr(program) {
 }
 
 function stmt(program) {
-    return program.items.get(0);
+    return program.items[0];
 }
 
 function testParse(code, acc, expectedAst) {

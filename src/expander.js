@@ -3,13 +3,18 @@ import { List } from "immutable";
 import { assert } from "./errors";
 
 import Term, * as T from "./terms";
-import Syntax, {makeStringSyntax} from "./syntax";
+import Syntax, {makeStringSyntax, makeIdentifierSyntax} from "./syntax";
 
 import {
     CompiletimeTransform
 } from "./transforms";
 
 import { transform } from "babel";
+import reduce from "shift-reducer";
+import ParseReducer from "./parse-reducer";
+import codegen from "shift-codegen";
+
+import * as convert from "shift-spidermonkey-converter";
 
 // indirect eval so in the global scope
 let geval = eval;
@@ -22,12 +27,9 @@ function wrapForCompiletime(ast, keys) {
     return new Program([new ExpressionStatement(fn)]);
 }
 
-// (ExpressionTerm, Context) -> [function]
-function loadForCompiletime(ast, context) {
+// (Expression, Context) -> [function]
+function loadForCompiletime(expr, context) {
     let sandbox = {
-        getExpr: function(stxl) {
-            return enforestExpr(stxl, context);
-        },
         syntaxQuote: function(str) {
             return List(JSON.parse(str)).map(t => {
                 let stx = new Syntax(t.stx.token, t.stx.scopeset);
@@ -38,9 +40,42 @@ function loadForCompiletime(ast, context) {
             });
         }
     };
-    let keys = Object.keys(sandbox);
-    let sandboxVals = keys.map(k => sandbox[k]);
-    let result = transform.fromAst(wrapForCompiletime(ast, keys));
+
+    let sandboxKeys = List(Object.keys(sandbox));
+    let sandboxVals = sandboxKeys.map(k => sandbox[k]).toArray();
+
+    let parsed = reduce.default(new ParseReducer(), new Term("Module", {
+        directives: List(),
+        items: List.of(new Term("ExpressionStatement", {
+            expression: new Term("FunctionExpression", {
+                isGenerator: false,
+                name: null,
+                params: new Term("FormalParameters", {
+                    items: sandboxKeys.map(param => {
+                        return new Term("BindingIdentifier", {
+                            name: makeIdentifierSyntax(param)
+                        });
+                    }),
+                    rest: null
+                }),
+                body: new Term("FunctionBody", {
+                    directives: List(),
+                    statements: List.of(new Term("ReturnStatement", {
+                        expression: expr
+                    }))
+                })
+            })
+        }))
+    }));
+
+    // TODO: should just pass an AST to babel but the estree converter still
+    // needs some work so until then just gen a string
+    // let estree = convert.toSpiderMonkey(parsed);
+    // let result = transform.fromAst(wrapForCompiletime(estree, sandboxKeys));
+
+    // let result = babel.transform(wrapForCompiletime(estree, sandboxKeys));
+    let gen = codegen.default(parsed);
+    let result = transform(gen);
     return geval(result.code).apply(undefined, sandboxVals);
 }
 
@@ -52,6 +87,7 @@ function expandTokens(stxl, context) {
     }
     let prev = List();
     let enf = new Enforester(stxl, prev, context);
+    let te = new TermExpander(context);
     let lastTerm = null;
     while (!enf.done) {
         let term = enf.enforest();
@@ -62,14 +98,13 @@ function expandTokens(stxl, context) {
 
         if (term.type === 'VariableDeclaration' && term.kind === "syntax") {
             // todo: hygiene
-            term.declarations.forEach(decl => {
+            term.declarators.forEach(decl => {
                 // finish the expansion early for the declaration
-                decl.init = decl.init.expand(context);
+                let init = te.expand(decl.init);
+                let resolvedName = decl.binding.name.resolve();
+                let initValue = loadForCompiletime(init, context);
 
-                context.env.set(decl.id.resolve(),
-                                new CompiletimeTransform(
-                                    loadForCompiletime(decl.init.parse(),
-                                                       context)));
+                context.env.set(resolvedName, new CompiletimeTransform(initValue));
             });
 
             // do not add to the result
@@ -99,6 +134,11 @@ class TermExpander {
         assert(false, "expand not implemented yet for: " + term.type);
     }
 
+    expandReturnStatement(term) {
+        return new Term("ReturnStatement", {
+            expression: this.expand(term.expression)
+        });
+    }
     expandClassDeclaration(term) {
         return term;
     }

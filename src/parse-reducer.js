@@ -2,6 +2,12 @@ import Term from "./terms";
 import { CloneReducer } from "shift-reducer";
 
 export default class ParseReducer extends CloneReducer {
+    reduceModule(node, state) {
+        return new Term("Module", {
+            directives: state.directives.toArray(),
+            items: state.items.toArray()
+        });
+    }
     reduceIdentifierExpression(node, state) {
         return new Term("IdentifierExpression", {
             name: node.name.resolve()

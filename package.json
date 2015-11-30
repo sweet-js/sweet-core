@@ -37,9 +37,11 @@
     "expect.js": "0.1.x",
     "immutable": "^3.7.4",
     "mocha": "^2.2.5",
+    "shift-codegen": "^3.0.0",
     "shift-js": "^0.2.1",
     "shift-parser": "^3.0.5",
     "shift-reducer": "^2.0.4",
+    "shift-spidermonkey-converter": "^1.0.0",
     "source-map": "~0.1.31",
     "source-map-support": "^0.3.2",
     "stampit": "^2.1.1"

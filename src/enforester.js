@@ -132,6 +132,14 @@ export class Enforester {
         });
     }
 
+    enforestBindingTarget() {
+        let lookahead = this.peek();
+        if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, "yield") || this.isKeyword(lookahead, "let")) {
+            return this.enforestBindingIdentifier();
+        }
+        throw "not implemented yet";
+    }
+
     enforestBindingIdentifier() {
         return new Term("BindingIdentifier", {
             name: this.enforestIdentifier()
@@ -164,7 +172,7 @@ export class Enforester {
         if (this.rest.size === 0 ||
             (lookahead && !this.lineNumberEq(kw, lookahead))) {
             return new Term("ReturnStatement", {
-                argument: null
+                expression: null
             });
         }
 
@@ -172,7 +180,7 @@ export class Enforester {
         this.consumeSemicolon();
 
         return new Term("ReturnStatement", {
-            argument: term
+            expression: term
         });
     }
 
@@ -220,7 +228,7 @@ export class Enforester {
     }
 
     enforestVariableDeclarator() {
-        let id = this.matchIdentifier();
+        let id = this.enforestBindingTarget();
         let eq = this.unwrap(this.advance());
 
         let init, rest;
@@ -232,8 +240,7 @@ export class Enforester {
             init = null;
         }
         return new Term("VariableDeclarator", {
-            // TODO: move to enforestBindingIdentifier?
-            binding: new Term("BindingIdentifier", { name: id }),
+            binding: id,
             init: init
         });
     }
@@ -489,7 +496,7 @@ export class Enforester {
         }
 
         if (this.isIdentifier(lookahead)) {
-            name = new Term("BindingIdentifier", { name: this.unwrap(this.advance())});
+            name = this.enforestBindingIdentifier();
         }
 
         params = this.matchParens("expecting a function parameter list");
@@ -518,9 +525,7 @@ export class Enforester {
             this.advance();
         }
 
-        name = new Term("BindingIdentifier", {
-            name: this.unwrap(this.advance())
-        });
+        name = this.enforestBindingIdentifier();
 
         params = this.matchParens("expecting a function parameter list");
         body = this.matchCurlies("expecting a function body");
@@ -542,8 +547,7 @@ export class Enforester {
             let lookahead = this.peek();
 
             if (this.isIdentifier(lookahead)) {
-                let name = this.unwrap(this.advance());
-                items.push(new Term("BindingIdentifier", { name: name }));
+                items.push(this.enforestBindingIdentifier());
             } else if (this.isPunctuator(lookahead, ",")) {
                 this.advance();
             } else {

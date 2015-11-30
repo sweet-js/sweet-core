@@ -8,6 +8,14 @@ export function makeStringSyntax(value, ctx) {
     }, ss);
 }
 
+export function makeIdentifierSyntax(value, ctx) {
+    let ss = ctx && ctx.scopeset ? ctx.scopeset : undefined;
+    return new Syntax({
+        type: Token.Identifier,
+        value: value
+    }, ss);
+}
+
 export default class Syntax {
     constructor(token, scopeset = List()) {
         this.token = token;
