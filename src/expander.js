@@ -9,7 +9,7 @@ import {
     CompiletimeTransform
 } from "./transforms";
 
-import { transform } from "babel";
+import { transform } from "babel-core";
 import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
 import codegen from "shift-codegen";

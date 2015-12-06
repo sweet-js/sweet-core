@@ -1,9 +1,11 @@
+/* @flow */
+
 import read from "./reader";
 import expand from "./expander";
 import { List } from "immutable";
 import Syntax from "./syntax";
 import Env from "./env";
-import { transform } from "babel";
+import { transform } from "babel-core";
 import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
 
@@ -19,12 +21,12 @@ function tokenArrayToSyntaxList(toks) {
     }));
 }
 
-export function readAsTerms(code) {
+export function readAsTerms(code: string) {
     return tokenArrayToSyntaxList(read(code));
 }
 
 
-export function parse(source, options = {}) {
+export function parse(source: string, options = {}) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
     let exStxl = expand(stxl, {env: new Env()});
@@ -35,14 +37,14 @@ export function parse(source, options = {}) {
     return ast;
 }
 
-export function compile(source) {
+export function compile(source: string) {
     let ast = parse(source);
     let code = transform.fromAst(ast);
     return code.code;
 }
 
 
-function expandForExport(source) {
+function expandForExport(source: string) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
     let exStxl = expand(stxl, {env: new Env()});

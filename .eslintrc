@@ -7,5 +7,6 @@
     },
     "rules": {
         "semi": 2
-    }
+    },
+    "plugins": ["flowtype"]
 }
