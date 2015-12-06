@@ -25,8 +25,11 @@ export function readAsTerms(code: string) {
     return tokenArrayToSyntaxList(read(code));
 }
 
+type SweetOptions = {
+    foo?: boolean
+}
 
-export function parse(source: string, options = {}) {
+export function parse(source: string, options: SweetOptions = {}) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
     let exStxl = expand(stxl, {env: new Env()});
