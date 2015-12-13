@@ -10,3 +10,9 @@ declare module "babel-core" {
 declare module "shift-reducer" {
     declare function reduce(x: any): any
 }
+
+declare class Map {
+    get(x: any): any;
+    has(x: any): boolean;
+    set(x: any, y: any): any;
+}

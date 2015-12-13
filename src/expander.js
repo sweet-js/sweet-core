@@ -3,7 +3,7 @@ import { List } from "immutable";
 import { assert } from "./errors";
 
 import Term, * as T from "./terms";
-import Syntax, {makeStringSyntax, makeIdentifierSyntax} from "./syntax";
+import Syntax, {makeString, makeIdentifier} from "./syntax";
 
 import {
     CompiletimeTransform
@@ -53,7 +53,7 @@ function loadForCompiletime(expr, context) {
                 params: new Term("FormalParameters", {
                     items: sandboxKeys.map(param => {
                         return new Term("BindingIdentifier", {
-                            name: makeIdentifierSyntax(param)
+                            name: makeIdentifier(param)
                         });
                     }),
                     rest: null
@@ -151,7 +151,7 @@ class TermExpander {
         });
 
         let str = new Term("LiteralStringExpression", {
-            value: makeStringSyntax(JSON.stringify(term.stx))
+            value: makeString(JSON.stringify(term.stx))
         });
 
         return new Term("CallExpression", {

@@ -1,6 +1,6 @@
 /* @flow */
 
-import read from "./reader";
+import read, { Token } from "./reader";
 import expand from "./expander";
 import { List } from "immutable";
 import Syntax from "./syntax";
@@ -10,6 +10,7 @@ import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
 
 import Term, * as T from "./terms";
+import { Symbol } from "./symbol";
 
 function tokenArrayToSyntaxList(toks) {
     return List(toks.map(t => {

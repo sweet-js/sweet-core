@@ -1,19 +1,34 @@
+/* flow */
+
 import { List } from "immutable";
 import { Token } from "./reader";
+import { Symbol } from "./symbol";
 
-export function makeStringSyntax(value, ctx) {
+export function makeString(value, ctx) {
     let ss = ctx && ctx.scopeset ? ctx.scopeset : undefined;
     return new Syntax({
         value: value
     }, ss);
 }
 
-export function makeIdentifierSyntax(value, ctx) {
+export function makeIdentifier(value, ctx) {
     let ss = ctx && ctx.scopeset ? ctx.scopeset : undefined;
     return new Syntax({
         type: Token.Identifier,
         value: value
     }, ss);
+}
+
+let integer = 0;
+function nextInteger() {
+    return integer++;
+}
+
+function mkScope(bindings) {
+    return {
+        debugName: nextInteger(),
+        bindings: bindings
+    };
 }
 
 export default class Syntax {
