@@ -281,7 +281,7 @@ m 1 1   // expands to 'the same!'
 m 1 2   // expands to 'different'
 ```
 
-Of course, this also applies to repeated variables in repitition groups which
+Of course, this also applies to repeated variables in repetition groups which
 enables complex pattern matching that would otherwise require complex case macros.
 
 ```js
