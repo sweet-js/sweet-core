@@ -1,3 +1,5 @@
+﻿# CS297-Syntax Parameter
+
 [![Build Status](https://travis-ci.org/mozilla/sweet.js.png)](https://travis-ci.org/mozilla/sweet.js)
 
 # sweet.js
@@ -80,8 +82,51 @@ $ grunt dist
 $ git add lib/
 $ git commit -m "sweet!"
 ```
-    
+
+##Syntax Parameter 
+
+```sh
+SyntaxParameter(it, $cond ... , aif , function ()…)  =>
+
+SyntaxParameter(<parameter>,<Mapped to>,<Scope/Macro Name>,<In Function>)
+```
+Example :
+
+```sh
+macro aif {
+    case {
+        $aif_name  
+        ($cond ...) {$tru ...} else { $els ... }
+
+    } => {
+       SyntaxParameter(it, $cond ... , aif ,
+        return #{
+             (function () {
+          
+                if ($cond ...) {
+                    $tru ...
+                } else {
+                    $els ...
+                }
+            });
+            
+	
+        } )
+    }
+}
+
+
+long = [1, 2, 3];
+aif (long) {
+  console.log(it);
+} else { 
+   console.log(" in else");
+    }
+
+```
 
 ## Credits
 
 Built on top of [esprima](http://esprima.org/) and [escodegen](https://github.com/Constellation/escodegen). [Contributors](https://github.com/mozilla/sweet.js/graphs/contributors) are awesome!
+
+
