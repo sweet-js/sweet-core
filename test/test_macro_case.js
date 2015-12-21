@@ -332,7 +332,14 @@ describe "procedural (syntax-case) macros" {
         }
 
         var f = ex {
-            function foo(x) {
+            // The naive implementation proposed in this changeset disables
+            // behavior that may be considered a feature. Specifically: macros
+            // that expand to named functions can be used in place of an
+            // expression or a statement.  Although this test is intended to
+            // exercise other code, it unintentionally leverages that
+            // functionality and must be updated to meet
+            // the new (more stringent) requirements.
+            function(x) {
                 macro arg {
                     rule {} => { x }
                 }
