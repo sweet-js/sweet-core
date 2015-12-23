@@ -32,7 +32,7 @@ function loadForCompiletime(expr, context) {
     let sandbox = {
         syntaxQuote: function(str) {
             return List(JSON.parse(str)).map(t => {
-                let stx = new Syntax(t.stx.token, t.stx.scopeset);
+                let stx = new Syntax(t.stx.token, List(t.stx.scopeset));
                 if (t.stx && t.stx.token && t.stx.token.inner) {
                     return new T.DelimiterTerm(stx);
                 }
