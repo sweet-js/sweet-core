@@ -19,18 +19,6 @@ export function makeIdentifier(value, ctx) {
     }, ss);
 }
 
-let integer = 0;
-function nextInteger() {
-    return integer++;
-}
-
-function mkScope(bindings) {
-    return {
-        debugName: nextInteger(),
-        bindings: bindings
-    };
-}
-
 export default class Syntax {
     constructor(token, scopeset = List()) {
         this.token = token;
@@ -38,11 +26,25 @@ export default class Syntax {
     }
 
     resolve() {
-        return this.token.value;
+        if (this.scopeset.size === 0) {
+            return this.token.value;
+        }
+        let scope = this.scopeset.last();
+        if (scope) {
+            let scopesetBindingList = scope.bindings.get(this);
+            return scopesetBindingList.get(0).get(1);
+        } else {
+            return this.token.value;
+        }
+
     }
 
     val() {
         return this.token.value;
+    }
+
+    addScope(scope) {
+        return new Syntax(this.token, this.scopeset.push(scope));
     }
 
     isIdentifier() {
