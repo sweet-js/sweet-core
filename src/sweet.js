@@ -8,6 +8,7 @@ import Env from "./env";
 import { transform } from "babel-core";
 import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
+import codegen from "shift-codegen";
 
 import Term, * as T from "./terms";
 import { Symbol } from "./symbol";
@@ -43,8 +44,8 @@ export function parse(source: string, options: SweetOptions = {}) {
 
 export function compile(source: string) {
     let ast = parse(source);
-    let code = transform.fromAst(ast);
-    return code.code;
+    let gen = codegen.default(ast);
+    return transform(gen);
 }
 
 
