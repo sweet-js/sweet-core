@@ -19,6 +19,16 @@ export function makeIdentifier(value, ctx) {
     }, ss);
 }
 
+function sizeDecending(a, b) {
+    if (a.scopes.size > b.scopes.size) {
+        return -1;
+    } else if (b.scopes.size > a.scopes.size) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 export default class Syntax {
     constructor(token, scopeset = List()) {
         this.token = token;
@@ -30,12 +40,27 @@ export default class Syntax {
             return this.token.value;
         }
         let scope = this.scopeset.last();
+        let stxScopes = this.scopeset;
         if (scope) {
+            // List<{ scopes: List<Scope>, binding: Symbol }>
             let scopesetBindingList = scope.bindings.get(this);
-            return scopesetBindingList.get(0).get(1);
-        } else {
-            return this.token.value;
+
+            if (scopesetBindingList) {
+                // { scopes: List<Scope>, binding: Symbol }
+                let biggestBindingPair = scopesetBindingList.filter(({scopes, binding}) => {
+                    return scopes.isSubset(stxScopes);
+                }).sort(sizeDecending);
+
+                if (biggestBindingPair && biggestBindingPair.size === 1) {
+                    return biggestBindingPair.get(0).binding.toString();
+                }
+                if (biggestBindingPair && biggestBindingPair.size !== 1) {
+                    throw new Error("Ambiguous scopeset");
+                }
+            }
+
         }
+        return this.token.value;
 
     }
 
