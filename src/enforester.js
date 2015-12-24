@@ -89,13 +89,15 @@ export class Enforester {
     enforestStatement() {
         let lookahead = this.peek();
 
-        // TODO: put somewhere else
-        if (this.term === null && this.isKeyword(lookahead, "class")) {
-            return this.enforestClass({ isExpr: false });
-        }
 
         if (this.term === null && this.isCompiletimeTransform(lookahead)) {
             return this.expandMacro();
+        }
+
+
+        // TODO: put somewhere else
+        if (this.term === null && this.isKeyword(lookahead, "class")) {
+            return this.enforestClass({ isExpr: false });
         }
 
         if (this.term === null && this.isFnDeclTransform(lookahead)) {
@@ -298,6 +300,7 @@ export class Enforester {
         return this.term;
     }
 
+
     enforestExpression() {
         let lookahead = this.peek();
 
@@ -309,6 +312,13 @@ export class Enforester {
             //                            "expecting macro to return an expression");
             // }
             return term;
+        }
+
+
+        // todo: not complete
+        // $x:ident = $init:expr
+        if (this.term === null && this.isIdentifier(lookahead) && this.isPunctuator(this.peek(1), "=")) {
+            return this.enforestAssignmentExpression();
         }
 
         // syntaxQuote { ... }
@@ -395,6 +405,22 @@ export class Enforester {
         }
 
         return this.term;
+    }
+
+    enforestAssignmentExpression() {
+        let id = this.enforestBindingTarget();
+        let op = this.advance();
+        // todo: too restrictive right now
+        assert(this.isPunctuator(op, "="), "expecting an assignment operator");
+
+        let enf = new Enforester(this.rest, List(), this.context);
+        let init = enf.enforest("expression");
+        this.rest = enf.rest;
+
+        return new Term("AssignmentExpression", {
+            binding: id,
+            expression: init
+        });
     }
 
     enforestSyntaxQuote() {

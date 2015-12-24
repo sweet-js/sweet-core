@@ -257,6 +257,12 @@ class TermExpander {
             body: bodyTerm
         });
     }
+    expandAssignmentExpression(term) {
+        return new Term("AssignmentExpression", {
+            binding: term.binding,
+            expression: this.expand(term.expression)
+        });
+    }
     expandLiteralBooleanExpression(term) { return term; }
     expandLiteralNumericExpression(term) { return term; }
     expandIdentifierExpression(term) { return term; }

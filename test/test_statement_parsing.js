@@ -293,3 +293,26 @@ describe("parsing classes", () => {
         });
     });
 });
+
+describe('assignment expresssions', () => {
+    it('should parse a simple assignment', () => {
+        testParse("x = 42", stmt, {
+            type: 'ExpressionStatement',
+            loc: null,
+            expression: {
+                type: 'AssignmentExpression',
+                loc: null,
+                binding: {
+                    type: 'BindingIdentifier',
+                    loc: null,
+                    name: 'x'
+                },
+                expression: {
+                    type: 'LiteralNumericExpression',
+                    loc: null,
+                    value: 42
+                }
+            }
+        });
+    });
+});

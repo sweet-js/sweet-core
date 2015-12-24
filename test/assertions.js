@@ -1,4 +1,4 @@
-import { parse } from "../src/sweet";
+import { parse, compile } from "../src/sweet";
 import expect from "expect.js";
 
 function expr(program) {
@@ -15,6 +15,14 @@ function testParse(code, acc, expectedAst) {
     expect(acc(parsedAst)).to.eql(expectedAst);
 }
 
+
+function testEval(source, expectedOutput) {
+    let result = compile(source);
+    var output;
+    eval(result.code);
+    expect(output).to.be(expectedOutput);
+}
+
 export {
-    expr, stmt, testParse
+    expr, stmt, testParse, testEval
 };
