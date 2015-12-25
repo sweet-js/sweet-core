@@ -1,4 +1,5 @@
-import Tokenizer, { TokenClass, TokenType } from "shift-parser/dist/tokenizer";
+import Tokenizer from "shift-parser/dist/tokenizer";
+import { TokenClass, TokenType } from "shift-parser/dist/tokenizer";
 import { List } from "immutable";
 import Syntax from "./syntax";
 

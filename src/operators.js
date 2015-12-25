@@ -66,5 +66,8 @@ export function getOperatorAssoc(op) {
 }
 
 export function isOperator(op) {
-    return operatorPrecedence.hasOwnProperty(op);
+    if (op.isPunctuator() || op.isIdentifier() || op.isKeyword()) {
+        return operatorPrecedence.hasOwnProperty(op);
+    }
+    return false;
 }

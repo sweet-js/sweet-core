@@ -1,6 +1,7 @@
 /* @flow */
 
 import read, { Token } from "./reader";
+import Reader from "./shift-reader";
 import expand from "./expander";
 import { List } from "immutable";
 import Syntax from "./syntax";
@@ -12,30 +13,16 @@ import codegen from "shift-codegen";
 
 import BindingMap from "./bindingMap.js";
 
-import Term, * as T from "./terms";
+import Term from "./terms";
 import { Symbol } from "./symbol";
-
-function tokenArrayToSyntaxList(toks) {
-    return List(toks.map(t => {
-        if (Array.isArray(t.inner)) {
-            return new T.DelimiterTerm(new Syntax(t),
-                                     tokenArrayToSyntaxList(t.inner));
-        }
-        return new T.SyntaxTerm(new Syntax(t));
-    }));
-}
-
-export function readAsTerms(code: string) {
-    return tokenArrayToSyntaxList(read(code));
-}
 
 type SweetOptions = {
     foo?: boolean
 }
 
 export function parse(source: string, options: SweetOptions = {}) {
-    const toks = read(source);
-    const stxl = tokenArrayToSyntaxList(toks);
+    let reader = new Reader(source);
+    let stxl = reader.read();
     let exStxl = expand(stxl, {
         env: new Env(),
         bindings: new BindingMap()
@@ -55,8 +42,8 @@ export function compile(source: string) {
 
 
 function expandForExport(source: string) {
-    const toks = read(source);
-    const stxl = tokenArrayToSyntaxList(toks);
+    let reader = new Reader(source);
+    let stxl = reader.read();
     let exStxl = expand(stxl, {
         env: new Env(),
         bindings: new BindingMap()

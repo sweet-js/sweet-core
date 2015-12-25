@@ -252,32 +252,6 @@ describe("parsing variable declarations", function() {
 
 });
 
-describe("parsing syntax extensions", function() {
-
-    it("should handle a syntax quote", function() {
-        testParse("syntaxQuote { foo }", stmt, {
-            "type": "ExpressionStatement",
-            "loc": null,
-            "expression": {
-                "loc": null,
-                "type": "CallExpression",
-                "callee": {
-                    "loc": null,
-                    "type": "IdentifierExpression",
-                    "name": "syntaxQuote"
-                },
-                "arguments": [
-                    {
-                        "loc": null,
-                        "type": "LiteralStringExpression",
-                        "value": "[{\"loc\":null,\"type\":\"SyntaxTerm\",\"stx\":{\"token\":{\"type\":3,\"value\":\"foo\",\"lineNumber\":1,\"lineStart\":0,\"range\":[14,17]},\"scopeset\":[]}}]"
-                    }
-                ]
-            }
-        });
-    });
-});
-
 describe("parsing classes", () => {
     it("should parse an empty class", () => {
         testParse("class F {}", stmt, {

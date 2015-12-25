@@ -3,8 +3,9 @@ import { List } from "immutable";
 import { assert } from "./errors";
 
 import Scope from "./scope";
-import Term, * as T from "./terms";
+import Term from "./terms";
 import Syntax, {makeString, makeIdentifier} from "./syntax";
+import { serialize, deserialize } from "./serializer";
 
 import {
     CompiletimeTransform
@@ -32,13 +33,7 @@ function wrapForCompiletime(ast, keys) {
 function loadForCompiletime(expr, context) {
     let sandbox = {
         syntaxQuote: function(str) {
-            return List(JSON.parse(str)).map(t => {
-                let stx = new Syntax(t.stx.token, List(t.stx.scopeset));
-                if (t.stx && t.stx.token && t.stx.token.inner) {
-                    return new T.DelimiterTerm(stx);
-                }
-                return new T.SyntaxTerm(stx);
-            });
+            return deserialize.read(str);
         }
     };
 
@@ -152,7 +147,7 @@ class TermExpander {
         });
 
         let str = new Term("LiteralStringExpression", {
-            value: makeString(JSON.stringify(term.stx))
+            value: makeString(serialize.write(term.stx))
         });
 
         return new Term("CallExpression", {
@@ -220,7 +215,7 @@ class TermExpander {
     }
     expandCallExpression(term) {
         let callee = this.expand(term.callee);
-        let args = expandExpressionList(term.arguments.getSyntax(), this.context);
+        let args = expandExpressionList(term.arguments.inner(), this.context);
         return new Term("CallExpression", {
             callee: callee,
             arguments: args

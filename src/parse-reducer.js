@@ -25,7 +25,7 @@ export default class ParseReducer extends CloneReducer {
     }
     reduceLiteralStringExpression(node, state) {
         return new Term("LiteralStringExpression", {
-            value: node.value.val()
+            value: node.value.token.str
         });
     }
     reduceCallExpression(node, state) {

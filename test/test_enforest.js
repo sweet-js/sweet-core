@@ -3,10 +3,11 @@ import { List } from "immutable";
 import { readAsTerms as read } from "../src/sweet";
 import expect from "expect.js";
 import { expr, stmt, testParse } from "./assertions";
+import Reader from "../src/shift-reader";
 
 function mkEnf(code) {
-    let stxl = read(code);
-    stxl = stxl.pop() // drop EOF
+    let reader = new Reader(code);
+    let stxl = reader.read();
     return new Enforester(stxl, List(), {});
 }
 

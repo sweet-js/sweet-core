@@ -3,20 +3,22 @@
 import { List } from "immutable";
 import { Token } from "./reader";
 import { Symbol } from "./symbol";
+import { assert } from "./errors";
 
 import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
 
 export function makeString(value, ctx) {
     let ss = ctx && ctx.scopeset ? ctx.scopeset : undefined;
     return new Syntax({
-        value: value
+        type: TokenType.STRING,
+        str: value
     }, ss);
 }
 
 export function makeIdentifier(value, ctx) {
     let ss = ctx && ctx.scopeset ? ctx.scopeset : undefined;
     return new Syntax({
-        type: Token.Identifier,
+        type: TokenType.IDENTIFIER,
         value: value
     }, ss);
 }
@@ -68,11 +70,25 @@ export default class Syntax {
     }
 
     val() {
+        assert(!this.isDelimiter(), "cannot get the val of a delimiter");
+        if (this.isStringLiteral()) {
+            return this.token.str;
+        }
         return this.token.value;
+    }
+
+    lineNumber() {
+        if (!this.isDelimiter()) {
+            return this.token.slice.startLocation.line;
+        } else {
+            // TODO: this is the start of the delimiter...correct?
+            return this.token.get(0).lineNumber();
+        }
     }
 
     // () -> List<Syntax>
     inner() {
+        assert(this.isDelimiter(), "can only get the inner of a delimiter");
         return this.token.slice(1, this.token.size - 1);
     }
 
@@ -81,53 +97,59 @@ export default class Syntax {
     }
 
     isIdentifier() {
-        return this.token.type.klass === TokenClass.Ident;
+        return !this.isDelimiter() && this.token.type.klass === TokenClass.Ident;
     }
     isBooleanLiteral() {
-        return this.token.type === TokenType.TRUE ||
+        return !this.isDelimiter() && this.token.type === TokenType.TRUE ||
                this.token.type === TokenType.FALSE;
     }
     isKeyword() {
-        return this.token.type.klass === TokenClass.Keyword;
+        return !this.isDelimiter() && this.token.type.klass === TokenClass.Keyword;
     }
     isNullLiteral() {
-        return this.token.type === TokenType.NULL;
+        return !this.isDelimiter() && this.token.type === TokenType.NULL;
     }
     isNumericLiteral() {
-        return this.token.type.klass === TokenClass.NumericLiteral;
+        return !this.isDelimiter() && this.token.type.klass === TokenClass.NumericLiteral;
     }
     isPunctuator() {
-        return this.token.type.klass === TokenClass.Punctuator;
+        return !this.isDelimiter() && this.token.type.klass === TokenClass.Punctuator;
     }
     isStringLiteral() {
-        return this.token.type.klass === TokenClass.StringLiteral;
+        return !this.isDelimiter() && this.token.type.klass === TokenClass.StringLiteral;
     }
     isRegularExpression() {
-        return this.token.type.klass === TokenClass.RegularExpression;
+        return !this.isDelimiter() && this.token.type.klass === TokenClass.RegularExpression;
     }
     isTemplate() {
-        return this.token.type === TokenType.TEMPLATE;
+        return !this.isDelimiter() && this.token.type === TokenType.TEMPLATE;
     }
     isDelimiter() {
         return List.isList(this.token);
     }
     isParenDelimiter() {
         return this.isDelimiter() &&
-               this.token.get(0).type === TokenType.LPAREN;
+               this.token.get(0).token.type === TokenType.LPAREN;
     }
     isCurlyDelimiter() {
         return this.isDelimiter() &&
-               this.token.get(0).type === TokenType.LBRACE;
+               this.token.get(0).token.type === TokenType.LBRACE;
     }
     isSquareDelimiter() {
         return this.isDelimiter() &&
-               this.token.get(0).type === TokenType.LBRACK;
+               this.token.get(0).token.type === TokenType.LBRACK;
     }
     isEOF() {
-        return this.token.type === TokenType.EOS;
+        return !this.isDelimiter() && this.token.type === TokenType.EOS;
     }
 
     toString() {
+        if (this.isDelimiter()) {
+            return this.token.map(s => s.toString()).join(" ");
+        }
+        if (this.isStringLiteral()) {
+            return "'" + this.token.str;
+        }
         return this.token.value;
     }
 }

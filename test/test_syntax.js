@@ -3,6 +3,9 @@ import expect from "expect.js";
 import Scope from "../src/scope";
 import BindingMap from "../src/bindingMap";
 
+import Reader from "../src/shift-reader";
+import { serialize, deserialize } from "../src/serializer";
+
 import { Symbol, gensym } from "../src/symbol";
 
 describe('syntax objects', () => {
@@ -86,5 +89,35 @@ describe('syntax objects', () => {
         bindings.add(foo_12, gensym('foo'));
 
         expect(() => foo_123.resolve()).to.throwError();
+    });
+});
+
+describe('serializing', () => {
+    it('should work for a numeric literal', () => {
+        let reader = new Reader("42");
+        let json = serialize.write(reader.read());
+        let stxl = deserialize.read(json);
+
+        expect(stxl.get(0).isNumericLiteral()).to.be(true);
+        expect(stxl.get(0).val()).to.be(42);
+    });
+
+    it('should work for a string literal', () => {
+        let reader = new Reader("'foo'");
+        let json = serialize.write(reader.read());
+        let stxl = deserialize.read(json);
+
+        expect(stxl.get(0).isStringLiteral()).to.be(true);
+        expect(stxl.get(0).val()).to.be('foo');
+    });
+
+    it('should work for a paren delimiter', () => {
+        let reader = new Reader("( 42 )");
+        let json = serialize.write(reader.read());
+        let stxl = deserialize.read(json);
+
+        expect(stxl.get(0).isParenDelimiter()).to.be(true);
+        expect(stxl.get(0).inner().get(0).isNumericLiteral()).to.be(true);
+        expect(stxl.get(0).inner().get(0).val()).to.be(42);
     });
 });
