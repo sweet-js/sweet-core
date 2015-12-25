@@ -18,7 +18,7 @@
     "build:src": "node_modules/babel-cli/bin/babel.js --source-maps -d build/ src/*.js",
     "build:test": "node_modules/babel-cli/bin/babel.js --source-maps -d build/ test/*.js",
     "build": "npm run clean && npm run build:src && npm run build:test",
-    "test:single": "mocha build/test/test_expander.js",
+    "test:single": "mocha build/test/test_reader.js",
     "test": "mocha --reporter dot --require source-map-support/register build/test/*.js",
     "pretest": "npm run build"
   },

@@ -4,6 +4,8 @@ import { List } from "immutable";
 import { Token } from "./reader";
 import { Symbol } from "./symbol";
 
+import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
+
 export function makeString(value, ctx) {
     let ss = ctx && ctx.scopeset ? ctx.scopeset : undefined;
     return new Syntax({
@@ -30,11 +32,13 @@ function sizeDecending(a, b) {
 }
 
 export default class Syntax {
+    // (Token or List<Syntax>, List<Scope>) -> Syntax
     constructor(token, scopeset = List()) {
         this.token = token;
         this.scopeset = scopeset;
     }
 
+    // () -> string
     resolve() {
         if (this.scopeset.size === 0 || !(this.isIdentifier() || this.isKeyword())) {
             return this.token.value;
@@ -61,11 +65,15 @@ export default class Syntax {
 
         }
         return this.token.value;
-
     }
 
     val() {
         return this.token.value;
+    }
+
+    // () -> List<Syntax>
+    inner() {
+        return this.token.slice(1, this.token.size - 1);
     }
 
     addScope(scope) {
@@ -73,49 +81,50 @@ export default class Syntax {
     }
 
     isIdentifier() {
-        return this.token.type === Token.Identifier;
+        return this.token.type.klass === TokenClass.Ident;
     }
     isBooleanLiteral() {
-        return this.token.type === Token.BooleanLiteral;
+        return this.token.type === TokenType.TRUE ||
+               this.token.type === TokenType.FALSE;
     }
     isKeyword() {
-        return this.token.type === Token.Keyword;
+        return this.token.type.klass === TokenClass.Keyword;
     }
     isNullLiteral() {
-        return this.token.type === Token.NullLiteral;
+        return this.token.type === TokenType.NULL;
     }
     isNumericLiteral() {
-        return this.token.type === Token.NumericLiteral;
+        return this.token.type.klass === TokenClass.NumericLiteral;
     }
     isPunctuator() {
-        return this.token.type === Token.Punctuator;
+        return this.token.type.klass === TokenClass.Punctuator;
     }
     isStringLiteral() {
-        return this.token.type === Token.StringLiteral;
+        return this.token.type.klass === TokenClass.StringLiteral;
     }
     isRegularExpression() {
-        return this.token.type === Token.RegularExpression;
+        return this.token.type.klass === TokenClass.RegularExpression;
     }
     isTemplate() {
-        return this.token.type === Token.Template;
+        return this.token.type === TokenType.TEMPLATE;
     }
     isDelimiter() {
-        return this.token.type === Token.Delimiter;
+        return List.isList(this.token);
     }
     isParenDelimiter() {
-        return this.token.type === Token.Delimiter &&
-               this.token.value === "()";
+        return this.isDelimiter() &&
+               this.token.get(0).type === TokenType.LPAREN;
     }
     isCurlyDelimiter() {
-        return this.token.type === Token.Delimiter &&
-            this.token.value === "{}";
+        return this.isDelimiter() &&
+               this.token.get(0).type === TokenType.LBRACE;
     }
     isSquareDelimiter() {
-        return this.token.type === Token.Delimiter &&
-            this.token.value === "[]";
+        return this.isDelimiter() &&
+               this.token.get(0).type === TokenType.LBRACK;
     }
     isEOF() {
-        return this.token.type === Token.EOF;
+        return this.token.type === TokenType.EOS;
     }
 
     toString() {
