@@ -36,7 +36,7 @@ export default class Syntax {
     }
 
     resolve() {
-        if (this.scopeset.size === 0) {
+        if (this.scopeset.size === 0 || !(this.isIdentifier() || this.isKeyword())) {
             return this.token.value;
         }
         let scope = this.scopeset.last();

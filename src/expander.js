@@ -2,6 +2,7 @@ import { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert } from "./errors";
 
+import Scope from "./scope";
 import Term, * as T from "./terms";
 import Syntax, {makeString, makeIdentifier} from "./syntax";
 
@@ -246,9 +247,12 @@ class TermExpander {
     }
     expandFunctionExpression(term) {
         // TODO: hygiene
+        let scope = new Scope(this.context.bindings, "new");
+        let markedBody = term.body.map(b => b.addScope(scope));
+
         let bodyTerm = new Term("FunctionBody", {
             directives: List(),
-            statements: expand(term.body, this.context)
+            statements: expand(markedBody, this.context)
         });
         return new Term("FunctionExpression", {
             name: term.name,

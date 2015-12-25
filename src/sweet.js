@@ -10,6 +10,8 @@ import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
 import codegen from "shift-codegen";
 
+import BindingMap from "./bindingMap.js";
+
 import Term, * as T from "./terms";
 import { Symbol } from "./symbol";
 
@@ -34,7 +36,10 @@ type SweetOptions = {
 export function parse(source: string, options: SweetOptions = {}) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
-    let exStxl = expand(stxl, {env: new Env()});
+    let exStxl = expand(stxl, {
+        env: new Env(),
+        bindings: new BindingMap()
+    });
     let ast = reduce.default(new ParseReducer(), new Term("Module", {
         directives: List(),
         items: exStxl
@@ -52,7 +57,10 @@ export function compile(source: string) {
 function expandForExport(source: string) {
     const toks = read(source);
     const stxl = tokenArrayToSyntaxList(toks);
-    let exStxl = expand(stxl, {env: new Env()});
+    let exStxl = expand(stxl, {
+        env: new Env(),
+        bindings: new BindingMap()
+    });
     return new Term("Module", {
         directives: List(),
         items: exStxl

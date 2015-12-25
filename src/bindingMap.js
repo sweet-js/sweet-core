@@ -10,7 +10,6 @@ export default class BindingMap {
     // add the binding to the map associating the binding with the syntax object's
     // scope set
     add(stx, binding, phase) {
-        assert(stx.isIdentifier(), "expecting an identifier");
         let stxName = stx.token.value;
 
         if (this._map.has(stxName)) {
@@ -29,7 +28,6 @@ export default class BindingMap {
 
     // Syntax -> ?List<{ scopes: ScopeSet, binding: Binding }>
     get(stx) {
-        assert(stx.isIdentifier(), "expecting an identifier");
         return this._map.get(stx.token.value);
     }
 

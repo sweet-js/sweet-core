@@ -43,6 +43,10 @@ export class SyntaxTerm extends Term {
     getSyntax() {
         return List([this.stx]);
     }
+
+    addScope(scope) {
+        return new SyntaxTerm(this.stx.addScope(scope));
+    }
 }
 
 export class DelimiterTerm extends SyntaxTerm {
@@ -53,8 +57,14 @@ export class DelimiterTerm extends SyntaxTerm {
         this.kind = stx.token.value;
         this.inner = inner;
     }
+
     getSyntax() {
         return this.inner;
+    }
+
+    addScope(scope) {
+        return new DelimiterTerm(this.stx.addScope(scope),
+                                 this.inner.map(s => s.addScope(scope)));
     }
 }
 
