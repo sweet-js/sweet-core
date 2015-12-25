@@ -3,86 +3,86 @@ import expect from "expect.js";
 import Reader from "../src/shift-reader";
 import { TokenType } from "shift-parser/dist/tokenizer";
 
-describe("shift reader", function() {
-    it("should read a numeric", function() {
-        let reader = new Reader("42");
-        let r = reader.read();
-        expect(r.get(0).val()).to.be(42);
-        expect(r.get(0).isNumericLiteral()).to.be(true);
-    });
+describe("shift reader", function () {
+  it("should read a numeric", function () {
+    let reader = new Reader("42");
+    let r = reader.read();
+    expect(r.get(0).val()).to.be(42);
+    expect(r.get(0).isNumericLiteral()).to.be(true);
+  });
 
-    it("should read an identifier", function() {
-        let reader = new Reader('foo');
-        let r = reader.read();
+  it("should read an identifier", function () {
+    let reader = new Reader('foo');
+    let r = reader.read();
 
-        expect(r.get(0).val()).to.be('foo');
-        expect(r.get(0).isIdentifier()).to.be(true);
-    });
+    expect(r.get(0).val()).to.be('foo');
+    expect(r.get(0).isIdentifier()).to.be(true);
+  });
 
-    it("should read a true keyword", function() {
-        let reader = new Reader('true');
-        let r = reader.read();
+  it("should read a true keyword", function () {
+    let reader = new Reader('true');
+    let r = reader.read();
 
-        expect(r.get(0).val()).to.be('true');
-        expect(r.get(0).isKeyword()).to.be(true);
-        expect(r.get(0).isBooleanLiteral()).to.be(true);
-    });
+    expect(r.get(0).val()).to.be('true');
+    expect(r.get(0).isKeyword()).to.be(true);
+    expect(r.get(0).isBooleanLiteral()).to.be(true);
+  });
 
-    it("should read a null keyword", function() {
-        let reader = new Reader('null');
-        let r = reader.read();
+  it("should read a null keyword", function () {
+    let reader = new Reader('null');
+    let r = reader.read();
 
-        expect(r.get(0).val()).to.be('null');
-        expect(r.get(0).isKeyword()).to.be(true);
-        expect(r.get(0).isNullLiteral()).to.be(true);
-    });
+    expect(r.get(0).val()).to.be('null');
+    expect(r.get(0).isKeyword()).to.be(true);
+    expect(r.get(0).isNullLiteral()).to.be(true);
+  });
 
-    it("should read a string literal", function() {
-        let reader = new Reader('"foo"');
-        let r = reader.read();
+  it("should read a string literal", function () {
+    let reader = new Reader('"foo"');
+    let r = reader.read();
 
-        expect(r.get(0).token.str).to.be('foo');
-        expect(r.get(0).isStringLiteral()).to.be(true);
-    });
+    expect(r.get(0).token.str).to.be('foo');
+    expect(r.get(0).isStringLiteral()).to.be(true);
+  });
 
-    it("should read a punctuator", function() {
-        let reader = new Reader('+');
-        let r = reader.read();
+  it("should read a punctuator", function () {
+    let reader = new Reader('+');
+    let r = reader.read();
 
-        expect(r.get(0).val()).to.be('+');
-        expect(r.get(0).isPunctuator()).to.be(true);
-    });
+    expect(r.get(0).val()).to.be('+');
+    expect(r.get(0).isPunctuator()).to.be(true);
+  });
 
-    it("should read an empty delimiter", function() {
-        let reader = new Reader('()');
-        let r = reader.read();
+  it("should read an empty delimiter", function () {
+    let reader = new Reader('()');
+    let r = reader.read();
 
-        expect(r.get(0).isDelimiter()).to.be(true);
-    });
+    expect(r.get(0).isDelimiter()).to.be(true);
+  });
 
-    it("should read a () delimiter with one element", function() {
-        let reader = new Reader('(42)');
-        let r = reader.read();
+  it("should read a () delimiter with one element", function () {
+    let reader = new Reader('(42)');
+    let r = reader.read();
 
-        expect(r.get(0).isDelimiter()).to.be(true);
-        expect(r.get(0).inner().get(0).val()).to.be(42);
-    });
+    expect(r.get(0).isDelimiter()).to.be(true);
+    expect(r.get(0).inner().get(0).val()).to.be(42);
+  });
 
-    it("should read a [] delimiter with one element", function() {
-        let reader = new Reader('[42]');
-        let r = reader.read();
+  it("should read a [] delimiter with one element", function () {
+    let reader = new Reader('[42]');
+    let r = reader.read();
 
-        expect(r.get(0).isDelimiter()).to.be(true);
-        expect(r.get(0).inner().get(0).val()).to.be(42);
-    });
+    expect(r.get(0).isDelimiter()).to.be(true);
+    expect(r.get(0).inner().get(0).val()).to.be(42);
+  });
 
-    it("should read a {} delimiter with one element", function() {
-        let reader = new Reader('{42}');
-        let r = reader.read();
+  it("should read a {} delimiter with one element", function () {
+    let reader = new Reader('{42}');
+    let r = reader.read();
 
-        expect(r.get(0).isDelimiter()).to.be(true);
-        expect(r.get(0).inner().get(0).val()).to.be(42);
-    });
+    expect(r.get(0).isDelimiter()).to.be(true);
+    expect(r.get(0).inner().get(0).val()).to.be(42);
+  });
 });
 
 // describe("reader", function() {
@@ -351,176 +351,14 @@ describe("shift reader", function() {
 //         expect(read("/42/i\nfunction foo() {} /42/i")[5].literal)
 //             .to.equal("/42/i");
 //
-//         expect(read("for (;;) {\nbreak\nfunction foo() {} /42/i\n}")[2].inner[5].literal)
-//             .to.equal("/42/i");
-//
-//         expect(read("debugger\nfunction foo() {} /42/i")[5].literal)
-//             .to.equal("/42/i");
-//
-//         expect(read("if(false)\nfalse\nelse\nfunction foo() {} /42/i")[8].literal)
-//             .to.equal("/42/i");
-//
-//         expect(read("[42][0]\nfunction foo() {} /42/i")[6].literal)
-//             .to.equal("/42/i");
-//
-//         expect(read("{function foo() {} /42/i}")[0].inner[4].type)
-//             .to.be(Token.RegularExpression);
-//     });
-//
-//
-//     it("should read a / after {} in a function expression as divide", function() {
-//         expect(read("x = function foo() {} /asdf/")[6].value)
-//             .to.equal("/");
-//
-//         expect(read("a = function () {}\n/4/\n7")[5].value)
-//             .to.equal("/");
-//
-//         expect(read("x = 42 / function foo() {} /42/i")[8].value)
-//             .to.equal("/");
-//
-//         expect(read("42 >> function foo() {} /42/i")[8].value)
-//             .to.equal("/");
-//
-//         expect(read("i = 0;+function foo() {} /42/i")[9].value)
-//             .to.equal("/");
-//
-//         expect(read("(function foo() {} /42/i)")[0].inner[4].value)
-//             .to.equal("/");
-//
-//         expect(read("foo /\nfunction foo() {} /42/i")[6].value)
-//             .to.equal("/");
-//
-//         expect(read("new function foo() {} /42/i")[5].value)
-//             .to.equal("/");
-//
-//         expect(read("typeof function foo() {} /42/i")[5].value)
-//             .to.equal("/");
-//
-//         expect(read("2 in function foo() {} /42/i")[6].value)
-//             .to.equal("/");
-//
-//         expect(read("(function foo() {return function foo() {} /42/i})()")[0].inner[3].inner[5].value)
-//             .to.equal("/");
-//
-//         expect(read("void function foo() {} /42/i")[5].value)
-//             .to.equal("/");
-//
-//         expect(read("[function foo() {} /42/i]")[0].inner[4].value)
-//             .to.equal("/");
-//
-//         expect(read("4,\nfunction foo() {} /42/i")[6].value)
-//             .to.equal("/");
-//
-//         expect(read("++function foo() {} /42/i")[5].value)
-//             .to.equal("/");
-//
-//         expect(read("x /= function foo() {} /42/i")[6].value)
-//             .to.equal("/");
-//
-//         expect(read("switch (\"foo\") {case \"foo\": {true;}\ncase function foo() {} /42/i: {true;}}")[2]
-//             .inner[9].value)
-//             .to.equal("/");
-//     });
-//
-//     it('should read / following {x=4}/b/i; as a regex', function() {
-//         expect(read("{x=4}/b/i;")[1].type)
-//             .to.be(Token.RegularExpression);
-//     });
-//
-//     it('should read / following {x:4}/b/i; as a regex', function() {
-//         expect(read("{x:4}/b/i;")[1].type)
-//             .to.be(Token.RegularExpression);
-//     });
-//
-//     it('should read / following {y:5}{x:4}/b/i; as a regex', function() {
-//         expect(read("{y:5}{x:4}/b/i;")[2].type)
-//             .to.be(Token.RegularExpression);
-//     });
-//
-//     it('should read / following {y:{x:4}/b/i}; as a regex', function() {
-//         expect(read("{y:{x:4}/b/i};")[0].inner[3].type)
-//             .to.be(Token.RegularExpression);
-//     });
-//
-//     it('should read / following return\n{x:4}/b/i; as a regex', function() {
-//         expect(read("return\n{x:4}/b/i;")[2].type)
-//             .to.be(Token.RegularExpression);
-//     });
-//
-//
-//     it('should read / following a foo\n{} /b/i as a regex', function() {
-//         expect(read("foo\n{} /b/i")[2].type)
-//             .to.be(Token.RegularExpression);
-//
-//     });
-//
-//     it('should read / following a foo = 2\n{} /b/i as a regex', function() {
-//         expect(read("foo = 2\n{} /b/i")[4].type)
-//             .to.be(Token.RegularExpression);
-//
-//     });
-//
-//     it('should read / following a {a:function foo() {}/b/i} as a regex', function() {
-//         expect(read("{a:function foo() {}/b/i}")[0].inner[6].type)
-//             .to.be(Token.RegularExpression);
-//
-//     });
-//
-//     it('should read / following a a={x:4}/b/i; as a divide', function() {
-//         expect(read("a={x:4}/b/i;")[3].type)
-//             .to.be(Token.Punctuator);
-//     });
-//
-//     it('should read / following a foo({x:4}/b/i); as a divide', function() {
-//         expect(read("foo({x:4}/b/i);")[1].inner[1].type)
-//             .to.be(Token.Punctuator);
-//     });
-//
-//     it('should read / following a a={y:{x:4}/b/i}; as a divide', function() {
-//         expect(read("a={y:{x:4}/b/i};")[2].inner[3].type)
-//             .to.be(Token.Punctuator);
-//     });
-//
-//     it('should read / following a return{x:4}/b/i; as a divide', function() {
-//         expect(read("return{x:4}/b/i;")[2].type)
-//             .to.be(Token.Punctuator);
-//     });
-//
-//     it('should read / following a throw{x:4}/b/i; as a divide', function() {
-//         expect(read("throw{x:4}/b/i;")[2].type)
-//             .to.be(Token.Punctuator);
-//     });
-//
-//     it('should read / following a for( ; {a:2}/a/g ; ){} as a divide', function() {
-//         expect(read("for( ; {a:2}/a/g ; ){}")[1].inner[2].type)
-//             .to.be(Token.Punctuator);
-//     });
-//
-//     it('should read / following a for( ; {a:/a/g} ; ){} as a regex', function() {
-//         expect(read("for( ; {a:/a/g} ; ){}")[1].inner[1].inner[2].type)
-//             .to.be(Token.RegularExpression);
-//     });
-//
-//     it('should read / following a for( ; function(){ /a/g; } /a/g; ){} as a divide', function() {
-//         expect(read("for( ; function(){ /a/g; } /a/g; ){}")[1].inner[4].type)
-//             .to.be(Token.Punctuator);
-//     });
-//
-//     it('should read / following a o.if() / 42 as divide', function() {
-//         expect(read("o.if() / 42 /i")[4].type)
-//             .to.be(Token.Punctuator);
-//     });
-//
-//     it('should read line comments', function() {
-//         var stx = read("//foo\nbar;");
-//         expect(stx[0].leadingComments[0].type).to.be("Line");
-//         expect(stx[0].leadingComments[0].value).to.be("foo");
-//     });
-//
-//     it('should read block comments', function() {
-//         var stx = read("/*foo*/\nbar;");
-//         expect(stx[0].leadingComments[0].type).to.be("Block");
-//         expect(stx[0].leadingComments[0].value).to.be("foo");
-//     });
-//
-// });
+//         expect(read("for (;;) {\nbreak\nfunction foo() {}
+// /42/i\n}")[2].inner[5].literal) .to.equal("/42/i");  expect(read("debugger\nfunction
+// foo() {} /42/i")[5].literal) .to.equal("/42/i");
+// expect(read("if(false)\nfalse\nelse\nfunction foo() {} /42/i")[8].literal)
+// .to.equal("/42/i");  expect(read("[42][0]\nfunction foo() {} /42/i")[6].literal)
+// .to.equal("/42/i");  expect(read("{function foo() {} /42/i}")[0].inner[4].type)
+// .to.be(Token.RegularExpression); });   it("should read a / after {} in a function
+// expression as divide", function() { expect(read("x = function foo() {}
+// /asdf/")[6].value) .to.equal("/");  expect(read("a = function ()
+// {}\n/4/\n7")[5].value) .to.equal("/");  expect(read("x = 42 / function foo() {}
+// /42/i")[8].value) .to.equal("/");  expect(read("42 >> function foo() {} /42/i")[8].value) .to.equal("/");  expect(read("i = 0;+function foo() {} /42/i")[9].value) .to.equal("/");  expect(read("(function foo() {} /42/i)")[0].inner[4].value) .to.equal("/");  expect(read("foo /\nfunction foo() {} /42/i")[6].value) .to.equal("/");  expect(read("new function foo() {} /42/i")[5].value) .to.equal("/");  expect(read("typeof function foo() {} /42/i")[5].value) .to.equal("/");  expect(read("2 in function foo() {} /42/i")[6].value) .to.equal("/");  expect(read("(function foo() {return function foo() {} /42/i})()")[0].inner[3].inner[5].value) .to.equal("/");  expect(read("void function foo() {} /42/i")[5].value) .to.equal("/");  expect(read("[function foo() {} /42/i]")[0].inner[4].value) .to.equal("/");  expect(read("4,\nfunction foo() {} /42/i")[6].value) .to.equal("/");  expect(read("++function foo() {} /42/i")[5].value) .to.equal("/");  expect(read("x /= function foo() {} /42/i")[6].value) .to.equal("/");  expect(read("switch (\"foo\") {case \"foo\": {true;}\ncase function foo() {} /42/i: {true;}}")[2] .inner[9].value) .to.equal("/"); });  it('should read / following {x=4}/b/i; as a regex', function() { expect(read("{x=4}/b/i;")[1].type) .to.be(Token.RegularExpression); });  it('should read / following {x:4}/b/i; as a regex', function() { expect(read("{x:4}/b/i;")[1].type) .to.be(Token.RegularExpression); });  it('should read / following {y:5}{x:4}/b/i; as a regex', function() { expect(read("{y:5}{x:4}/b/i;")[2].type) .to.be(Token.RegularExpression); });  it('should read / following {y:{x:4}/b/i}; as a regex', function() { expect(read("{y:{x:4}/b/i};")[0].inner[3].type) .to.be(Token.RegularExpression); });  it('should read / following return\n{x:4}/b/i; as a regex', function() { expect(read("return\n{x:4}/b/i;")[2].type) .to.be(Token.RegularExpression); });   it('should read / following a foo\n{} /b/i as a regex', function() { expect(read("foo\n{} /b/i")[2].type) .to.be(Token.RegularExpression);  });  it('should read / following a foo = 2\n{} /b/i as a regex', function() { expect(read("foo = 2\n{} /b/i")[4].type) .to.be(Token.RegularExpression);  });  it('should read / following a {a:function foo() {}/b/i} as a regex', function() { expect(read("{a:function foo() {}/b/i}")[0].inner[6].type) .to.be(Token.RegularExpression);  });  it('should read / following a a={x:4}/b/i; as a divide', function() { expect(read("a={x:4}/b/i;")[3].type) .to.be(Token.Punctuator); });  it('should read / following a foo({x:4}/b/i); as a divide', function() { expect(read("foo({x:4}/b/i);")[1].inner[1].type) .to.be(Token.Punctuator); });  it('should read / following a a={y:{x:4}/b/i}; as a divide', function() { expect(read("a={y:{x:4}/b/i};")[2].inner[3].type) .to.be(Token.Punctuator); });  it('should read / following a return{x:4}/b/i; as a divide', function() { expect(read("return{x:4}/b/i;")[2].type) .to.be(Token.Punctuator); });  it('should read / following a throw{x:4}/b/i; as a divide', function() { expect(read("throw{x:4}/b/i;")[2].type) .to.be(Token.Punctuator); });  it('should read / following a for( ; {a:2}/a/g ; ){} as a divide', function() { expect(read("for( ; {a:2}/a/g ; ){}")[1].inner[2].type) .to.be(Token.Punctuator); });  it('should read / following a for( ; {a:/a/g} ; ){} as a regex', function() { expect(read("for( ; {a:/a/g} ; ){}")[1].inner[1].inner[2].type) .to.be(Token.RegularExpression); });  it('should read / following a for( ; function(){ /a/g; } /a/g; ){} as a divide', function() { expect(read("for( ; function(){ /a/g; } /a/g; ){}")[1].inner[4].type) .to.be(Token.Punctuator); });  it('should read / following a o.if() / 42 as divide', function() { expect(read("o.if() / 42 /i")[4].type) .to.be(Token.Punctuator); });  it('should read line comments', function() { var stx = read("//foo\nbar;"); expect(stx[0].leadingComments[0].type).to.be("Line"); expect(stx[0].leadingComments[0].value).to.be("foo"); });  it('should read block comments', function() { var stx = read("/*foo*/\nbar;"); expect(stx[0].leadingComments[0].type).to.be("Block"); expect(stx[0].leadingComments[0].value).to.be("foo"); });  });

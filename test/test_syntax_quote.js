@@ -1,4 +1,3 @@
-
 import Syntax, { makeIdentifier } from "../src/syntax";
 import expect from "expect.js";
 import Scope from "../src/scope";

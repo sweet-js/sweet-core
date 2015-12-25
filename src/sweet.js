@@ -1,5 +1,3 @@
-/* @flow */
-
 import read, { Token } from "./reader";
 import Reader from "./shift-reader";
 import expand from "./expander";
@@ -16,41 +14,36 @@ import BindingMap from "./bindingMap.js";
 import Term from "./terms";
 import { Symbol } from "./symbol";
 
-type SweetOptions = {
-    foo?: boolean
+export function parse(source, options = {}) {
+  let reader = new Reader(source);
+  let stxl = reader.read();
+  let exStxl = expand(stxl, {
+    env: new Env(),
+    bindings: new BindingMap()
+  });
+  let ast = reduce.default(new ParseReducer(), new Term("Module", {
+    directives: List(),
+    items: exStxl
+  }));
+  return ast;
 }
 
-export function parse(source: string, options: SweetOptions = {}) {
-    let reader = new Reader(source);
-    let stxl = reader.read();
-    let exStxl = expand(stxl, {
-        env: new Env(),
-        bindings: new BindingMap()
-    });
-    let ast = reduce.default(new ParseReducer(), new Term("Module", {
-        directives: List(),
-        items: exStxl
-    }));
-    return ast;
+export function compile(source) {
+  let ast = parse(source);
+  let gen = codegen.default(ast);
+  return transform(gen);
 }
 
-export function compile(source: string) {
-    let ast = parse(source);
-    let gen = codegen.default(ast);
-    return transform(gen);
-}
-
-
-function expandForExport(source: string) {
-    let reader = new Reader(source);
-    let stxl = reader.read();
-    let exStxl = expand(stxl, {
-        env: new Env(),
-        bindings: new BindingMap()
-    });
-    return new Term("Module", {
-        directives: List(),
-        items: exStxl
-    });
+function expandForExport(source) {
+  let reader = new Reader(source);
+  let stxl = reader.read();
+  let exStxl = expand(stxl, {
+    env: new Env(),
+    bindings: new BindingMap()
+  });
+  return new Term("Module", {
+    directives: List(),
+    items: exStxl
+  });
 }
 export {expandForExport as expand};

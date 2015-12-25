@@ -31,52 +31,52 @@ let typeMap = [TokenType.STRING, TokenType.EOS, TokenType.LPAREN, TokenType.RPAR
                TokenType.ILLEGAL];
 
 let ListHandler = transit.makeWriteHandler({
-    tag: () => "array",
-    rep: (v) => v
+  tag: () => "array",
+  rep: (v) => v
 });
 
 let SyntaxHandler = transit.makeWriteHandler({
-    tag: () => "stx",
-    rep: (v) => {
-        if (List.isList(v.token)) {
-            return [v.token];
-        } else {
-            let t = transit.objectToMap(v.token);
-            t.set("type", typeMap.indexOf(v.token.type));
-            return [t];
-        }
+  tag: () => "stx",
+  rep: (v) => {
+    if (List.isList(v.token)) {
+      return [v.token];
+    } else {
+      let t = transit.objectToMap(v.token);
+      t.set("type", typeMap.indexOf(v.token.type));
+      return [t];
     }
+  }
 });
 
 let writer = transit.writer("json", {
-    handlers: transit.map([
-        List, ListHandler,
-        Syntax, SyntaxHandler
-    ])
+  handlers: transit.map([
+    List, ListHandler,
+    Syntax, SyntaxHandler
+  ])
 });
 let reader = transit.reader("json", {
-    arrayBuilder: {
-        init: (node) => List().asMutable(),
-        add: (ret, val, node) => ret.push(val),
-        finalize: (ret, node) => ret.asImmutable(),
-        fromArray: (arr, node) => List(arr)
-    },
-    handlers: {
-        "stx": (rep) => {
-            if (List.isList(rep[0])) {
-                let token = rep[0];
-                return new Syntax(token);
-            } else {
-                let token = transit.mapToObject(rep[0]);
-                token.type = typeMap[rep[0].get("type")];
-                token.slice = transit.mapToObject(rep[0].get("slice"));
-                return new Syntax(token);
-            }
-        }
+  arrayBuilder: {
+    init: (node) => List().asMutable(),
+    add: (ret, val, node) => ret.push(val),
+    finalize: (ret, node) => ret.asImmutable(),
+    fromArray: (arr, node) => List(arr)
+  },
+  handlers: {
+    "stx": (rep) => {
+      if (List.isList(rep[0])) {
+        let token = rep[0];
+        return new Syntax(token);
+      } else {
+        let token = transit.mapToObject(rep[0]);
+        token.type = typeMap[rep[0].get("type")];
+        token.slice = transit.mapToObject(rep[0].get("slice"));
+        return new Syntax(token);
+      }
     }
+  }
 
 });
 
 export {
-    reader as deserialize, writer as serialize
+  reader as deserialize, writer as serialize
 };
