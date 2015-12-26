@@ -3,6 +3,7 @@ import { TokenClass, TokenType } from "shift-parser/dist/tokenizer";
 import { List } from "immutable";
 import Syntax from "./syntax";
 
+// TODO: port regex disambiguation from old reader
 export default class Reader extends Tokenizer.default {
   constructor(source) {
     super(source);

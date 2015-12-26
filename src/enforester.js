@@ -22,8 +22,6 @@ import Syntax from "./syntax";
 
 import MacroContext from "./macro-context";
 
-import { matchCommaSeparatedIdentifiers } from "./matcher";
-
 export class Enforester {
   constructor(stxl, prev, context) {
     this.done = false;
