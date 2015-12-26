@@ -2,23 +2,26 @@ import { List } from "immutable";
 import { Token } from "./reader";
 import { Symbol } from "./symbol";
 import { assert } from "./errors";
+import BindingMap from "./bindingMap";
 
 import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
 
 export function makeString(value, ctx) {
-  let ss = ctx && ctx.scopeset ? ctx.scopeset : undefined;
+  let bindings = ctx && ctx.context && ctx.context.bindings ? ctx.context.bindings : undefined;
+  let scopeset = ctx && ctx.context && ctx.context.scopeset ? ctx.context.scopeset : undefined;
   return new Syntax({
     type: TokenType.STRING,
     str: value
-  }, ss);
+  }, bindings, scopeset);
 }
 
 export function makeIdentifier(value, ctx) {
-  let ss = ctx && ctx.scopeset ? ctx.scopeset : undefined;
+  let bindings = ctx && ctx.context && ctx.context.bindings ? ctx.context.bindings : undefined;
+  let scopeset = ctx && ctx.context && ctx.context.scopeset ? ctx.context.scopeset : undefined;
   return new Syntax({
     type: TokenType.IDENTIFIER,
     value: value
-  }, ss);
+  }, bindings, scopeset);
 }
 
 function sizeDecending(a, b) {
@@ -33,21 +36,25 @@ function sizeDecending(a, b) {
 
 export default class Syntax {
   // (Token or List<Syntax>, List<Scope>) -> Syntax
-  constructor(token, scopeset = List()) {
+  constructor(token, bindings = new BindingMap(), scopeset = List()) {
     this.token = token;
-    this.scopeset = scopeset;
+    this.context = {
+      scopeset: scopeset,
+      bindings: bindings
+    };
   }
 
   // () -> string
   resolve() {
-    if (this.scopeset.size === 0 || !(this.isIdentifier() || this.isKeyword())) {
+    if (this.context.scopeset.size === 0 || !(this.isIdentifier() || this.isKeyword())) {
       return this.token.value;
     }
-    let scope = this.scopeset.last();
-    let stxScopes = this.scopeset;
+    let scope = this.context.scopeset.last();
+    let stxScopes = this.context.scopeset;
+    let bindings = this.context.bindings;
     if (scope) {
       // List<{ scopes: List<Scope>, binding: Symbol }>
-      let scopesetBindingList = scope.bindings.get(this);
+      let scopesetBindingList = bindings.get(this);
 
       if (scopesetBindingList) {
         // { scopes: List<Scope>, binding: Symbol }
@@ -62,7 +69,6 @@ export default class Syntax {
           throw new Error("Ambiguous scopeset");
         }
       }
-
     }
     return this.token.value;
   }
@@ -90,8 +96,8 @@ export default class Syntax {
     return this.token.slice(1, this.token.size - 1);
   }
 
-  addScope(scope) {
-    return new Syntax(this.token, this.scopeset.push(scope));
+  addScope(scope, bindings) {
+    return new Syntax(this.token, bindings, this.context.scopeset.push(scope));
   }
 
   isIdentifier() {

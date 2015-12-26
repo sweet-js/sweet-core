@@ -2,10 +2,10 @@ import { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert } from "./errors";
 
-import Scope from "./scope";
+import { Scope, freshScope } from "./scope";
 import Term from "./terms";
 import Syntax, {makeString, makeIdentifier} from "./syntax";
-import { serialize, deserialize } from "./serializer";
+import { serializer, makeDeserializer } from "./serializer";
 
 import {
   CompiletimeTransform
@@ -31,9 +31,10 @@ function wrapForCompiletime(ast, keys) {
 
 // (Expression, Context) -> [function]
 function loadForCompiletime(expr, context) {
+  let deserializer = makeDeserializer(context.bindings);
   let sandbox = {
     syntaxQuote: function (str) {
-      return deserialize.read(str);
+      return deserializer.read(str);
     }
   };
 
@@ -149,7 +150,7 @@ class TermExpander {
     });
 
     let str = new Term("LiteralStringExpression", {
-      value: makeString(serialize.write(term.stx))
+      value: makeString(serializer.write(term.stx))
     });
 
     return new Term("CallExpression", {
@@ -254,8 +255,8 @@ class TermExpander {
 
   expandFunctionExpression(term) {
     // TODO: hygiene
-    let scope = new Scope(this.context.bindings, "new");
-    let markedBody = term.body.map(b => b.addScope(scope));
+    let scope = freshScope();
+    let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
 
     let bodyTerm = new Term("FunctionBody", {
       directives: List(),

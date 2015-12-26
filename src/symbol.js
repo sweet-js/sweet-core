@@ -3,7 +3,7 @@ let internedMap = new Map();
 let counter = 0;
 
 export function gensym(name) {
-  let prefix = name == null ? "s" : name;
+  let prefix = name == null ? "s_" : name + "_";
   let sym = new Symbol(prefix + counter);
   counter++;
   return sym;
@@ -16,7 +16,7 @@ Symbol.prototype.toString = function () {
   return "@" + this.name;
 };
 
-function mkSymbol(name) {
+function makeSymbol(name) {
   if (internedMap.has(name)) {
     return internedMap.get(name);
   } else {
@@ -27,5 +27,6 @@ function mkSymbol(name) {
 }
 
 export {
-  mkSymbol as Symbol
+  makeSymbol as Symbol,
+  Symbol as SymbolClass
 };

@@ -1,10 +1,10 @@
 import Syntax, { makeIdentifier } from "../src/syntax";
 import expect from "expect.js";
-import Scope from "../src/scope";
+import { Scope, freshScope } from "../src/scope";
 import BindingMap from "../src/bindingMap";
 
 import Reader from "../src/shift-reader";
-import { serialize, deserialize } from "../src/serializer";
+import { serializer, makeDeserializer } from "../src/serializer";
 
 import { Symbol, gensym } from "../src/symbol";
 
@@ -14,30 +14,30 @@ describe('syntax objects', () => {
     expect(foo.resolve()).to.be('foo');
   });
 
-  it( 'where one identifier has a scope and associated binding and the other does not will resolve to different names', () => {
+  it('where one identifier has a scope and associated binding and the other does not will resolve to different names', () => {
       let bindings = new BindingMap();
-      let scope1 = new Scope(bindings, "1");
+      let scope1 = freshScope("1");
 
       let foo = makeIdentifier('foo');
       let foo_1 = makeIdentifier('foo');
 
-      foo_1 = foo_1.addScope(scope1);
+      foo_1 = foo_1.addScope(scope1, bindings);
 
       bindings.add(foo_1, gensym('foo'));
 
       expect(foo.resolve()).to.not.be(foo_1.resolve());
     });
 
-  it( 'resolve to different bindings when both identifiers have a binding on a different scope', () => {
+  it('resolve to different bindings when both identifiers have a binding on a different scope', () => {
       let bindings = new BindingMap();
-      let scope1 = new Scope(bindings, "1");
-      let scope2 = new Scope(bindings, "2");
+      let scope1 = freshScope("1");
+      let scope2 = freshScope("2");
 
       let foo_1 = makeIdentifier('foo');
       let foo_2 = makeIdentifier('foo');
 
-      foo_1 = foo_1.addScope(scope1);
-      foo_2 = foo_2.addScope(scope2);
+      foo_1 = foo_1.addScope(scope1, bindings);
+      foo_2 = foo_2.addScope(scope2, bindings);
 
       bindings.add(foo_1, gensym('foo'));
       bindings.add(foo_2, gensym('foo'));
@@ -47,18 +47,18 @@ describe('syntax objects', () => {
 
   it('should resolve when syntax object has a scopeset that is a superset of the binding', () => {
       let bindings = new BindingMap();
-      let scope1 = new Scope(bindings, "1");
-      let scope2 = new Scope(bindings, "2");
-      let scope3 = new Scope(bindings, "3");
+      let scope1 = freshScope("1");
+      let scope2 = freshScope("2");
+      let scope3 = freshScope("3");
 
       let foo_1 = makeIdentifier('foo');
       let foo_123 = makeIdentifier('foo');
 
-      foo_1 = foo_1.addScope(scope1);
+      foo_1 = foo_1.addScope(scope1, bindings);
 
-      foo_123 = foo_123.addScope(scope1)
-        .addScope(scope2)
-        .addScope(scope3);
+      foo_123 = foo_123.addScope(scope1, bindings)
+        .addScope(scope2, bindings)
+        .addScope(scope3, bindings);
 
       bindings.add(foo_1, gensym('foo'));
 
@@ -67,23 +67,23 @@ describe('syntax objects', () => {
 
   it('should throw an error for ambiguous scops sets', () => {
     let bindings = new BindingMap();
-    let scope1 = new Scope(bindings, "1");
-    let scope2 = new Scope(bindings, "2");
-    let scope3 = new Scope(bindings, "3");
+    let scope1 = freshScope("1");
+    let scope2 = freshScope("2");
+    let scope3 = freshScope("3");
 
     let foo_13 = makeIdentifier('foo');
     let foo_12 = makeIdentifier('foo');
     let foo_123 = makeIdentifier('foo');
 
-    foo_13 = foo_13.addScope(scope1)
-      .addScope(scope3);
+    foo_13 = foo_13.addScope(scope1, bindings)
+      .addScope(scope3, bindings);
 
-    foo_12 = foo_12.addScope(scope1)
-      .addScope(scope2);
+    foo_12 = foo_12.addScope(scope1, bindings)
+      .addScope(scope2, bindings);
 
-    foo_123 = foo_123.addScope(scope1)
-      .addScope(scope2)
-      .addScope(scope3);
+    foo_123 = foo_123.addScope(scope1, bindings)
+      .addScope(scope2, bindings)
+      .addScope(scope3, bindings);
 
     bindings.add(foo_13, gensym('foo'));
     bindings.add(foo_12, gensym('foo'));
@@ -93,10 +93,11 @@ describe('syntax objects', () => {
 });
 
 describe('serializing', () => {
+  let deserializer = makeDeserializer();
   it('should work for a numeric literal', () => {
     let reader = new Reader("42");
-    let json = serialize.write(reader.read());
-    let stxl = deserialize.read(json);
+    let json = serializer.write(reader.read());
+    let stxl = deserializer.read(json);
 
     expect(stxl.get(0).isNumericLiteral()).to.be(true);
     expect(stxl.get(0).val()).to.be(42);
@@ -104,8 +105,8 @@ describe('serializing', () => {
 
   it('should work for a string literal', () => {
     let reader = new Reader("'foo'");
-    let json = serialize.write(reader.read());
-    let stxl = deserialize.read(json);
+    let json = serializer.write(reader.read());
+    let stxl = deserializer.read(json);
 
     expect(stxl.get(0).isStringLiteral()).to.be(true);
     expect(stxl.get(0).val()).to.be('foo');
@@ -113,11 +114,28 @@ describe('serializing', () => {
 
   it('should work for a paren delimiter', () => {
     let reader = new Reader("( 42 )");
-    let json = serialize.write(reader.read());
-    let stxl = deserialize.read(json);
+    let json = serializer.write(reader.read());
+    let stxl = deserializer.read(json);
 
     expect(stxl.get(0).isParenDelimiter()).to.be(true);
     expect(stxl.get(0).inner().get(0).isNumericLiteral()).to.be(true);
     expect(stxl.get(0).inner().get(0).val()).to.be(42);
+  });
+
+  it('should work for an identifier', () => {
+    let reader = new Reader("foo");
+    let json = serializer.write(reader.read());
+    let stxl = deserializer.read(json);
+
+    expect(stxl.get(0).isIdentifier()).to.be(true);
+    expect(stxl.get(0).val()).to.be('foo');
+  });
+
+  it('should work for a scope', () => {
+    let bindings = new BindingMap();
+    let scope = freshScope("1");
+
+    let rtScope = deserializer.read(serializer.write(scope));
+    expect(scope).to.be(rtScope);
   });
 });

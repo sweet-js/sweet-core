@@ -15,12 +15,12 @@ export default class BindingMap {
     if (this._map.has(stxName)) {
       let scopesetBindingList = this._map.get(stxName);
       this._map.set(stxName, scopesetBindingList.push({
-        scopes: stx.scopeset,
+        scopes: stx.context.scopeset,
         binding: binding
       }));
     } else {
       this._map.set(stxName, List.of({
-        scopes: stx.scopeset,
+        scopes: stx.context.scopeset,
         binding: binding
       }));
     }

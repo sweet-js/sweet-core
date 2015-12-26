@@ -1,6 +1,7 @@
 import transit from "transit-js";
 import { List } from "immutable";
 import Syntax from "./syntax";
+import { Symbol, gensym, SymbolClass } from "./symbol";
 import { TokenClass, TokenType } from "shift-parser/dist/tokenizer";
 
 let typeMap = [TokenType.STRING, TokenType.EOS, TokenType.LPAREN, TokenType.RPAREN,
@@ -47,36 +48,46 @@ let SyntaxHandler = transit.makeWriteHandler({
     }
   }
 });
+let SymbolHandler = transit.makeWriteHandler({
+  tag: () => "symb",
+  rep: (v) =>  [v.name]
+});
 
 let writer = transit.writer("json", {
   handlers: transit.map([
     List, ListHandler,
-    Syntax, SyntaxHandler
+    Syntax, SyntaxHandler,
+    SymbolClass, SymbolHandler
   ])
 });
-let reader = transit.reader("json", {
-  arrayBuilder: {
-    init: (node) => List().asMutable(),
-    add: (ret, val, node) => ret.push(val),
-    finalize: (ret, node) => ret.asImmutable(),
-    fromArray: (arr, node) => List(arr)
-  },
-  handlers: {
-    "stx": (rep) => {
-      if (List.isList(rep[0])) {
-        let token = rep[0];
-        return new Syntax(token);
-      } else {
-        let token = transit.mapToObject(rep[0]);
-        token.type = typeMap[rep[0].get("type")];
-        token.slice = transit.mapToObject(rep[0].get("slice"));
-        return new Syntax(token);
+
+function makeReader(bindings) {
+  return transit.reader("json", {
+    arrayBuilder: {
+      init: (node) => List().asMutable(),
+      add: (ret, val, node) => ret.push(val),
+      finalize: (ret, node) => ret.asImmutable(),
+      fromArray: (arr, node) => List(arr)
+    },
+    handlers: {
+      "stx": (rep) => {
+        if (List.isList(rep[0])) {
+          let token = rep[0];
+          return new Syntax(token);
+        } else {
+          let token = transit.mapToObject(rep[0]);
+          token.type = typeMap[rep[0].get("type")];
+          token.slice = transit.mapToObject(rep[0].get("slice"));
+          return new Syntax(token);
+        }
+      },
+      "symb": (rep) => {
+        return Symbol(rep[0]);
       }
     }
-  }
-
-});
+  });
+}
 
 export {
-  reader as deserialize, writer as serialize
+  makeReader as makeDeserializer, writer as serializer
 };
