@@ -114,7 +114,7 @@ export class Enforester {
 
     if (this.term === null && this.isPunctuator(lookahead, ";")) {
       this.advance();
-      return new Term("EmptyStatement");
+      return new Term("EmptyStatement", {});
     }
 
     return this.enforestExpressionStatement();

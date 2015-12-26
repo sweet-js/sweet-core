@@ -15,4 +15,18 @@ describe("hygiene", function () {
  }(1);`, 1);
      });
 
+  it("should work with references to function declaration parameters", function () {
+    testEval(`
+ function foo(x) {
+     syntax m = function (ctx) {
+         return syntaxQuote { x }
+     }
+     function bar(x) {
+         return m;
+     }
+     return bar(2);
+ };
+ output = foo(1)`, 1);
+  });
+
 });

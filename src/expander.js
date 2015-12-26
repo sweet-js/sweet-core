@@ -241,21 +241,24 @@ class TermExpander {
   }
 
   expandFunctionDeclaration(term) {
-    // TODO: hygiene
+    let scope = freshScope("fd");
+    let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
+    let red = new ScopeApplyingReducer(scope, this.context);
+    let params = reduce.default(red, term.params);
+
     let bodyTerm = new Term("FunctionBody", {
       directives: List(),
-      statements: expand(term.body, this.context)
+      statements: expand(markedBody, this.context)
     });
     return new Term("FunctionDeclaration", {
       name: term.name,
       isGenerator: term.isGenerator,
-      params: term.params,
+      params: params,
       body: bodyTerm
     });
   }
 
   expandFunctionExpression(term) {
-    // TODO: hygiene
     let scope = freshScope("fe");
     let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
     let red = new ScopeApplyingReducer(scope, this.context);
@@ -278,6 +281,10 @@ class TermExpander {
       binding: term.binding,
       expression: this.expand(term.expression)
     });
+  }
+
+  expandEmptyStatement(term) {
+    return term;
   }
 
   expandLiteralBooleanExpression(term) {
