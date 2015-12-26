@@ -1,6 +1,7 @@
 import Term from "./terms";
 import { CloneReducer } from "shift-reducer";
 import { gensym } from "./symbol";
+import { FunctionArgumentTransform } from "./transforms";
 
 export default class ScopeApplyingReducer extends CloneReducer {
   constructor(scope, context, phase = 0) {
@@ -12,7 +13,11 @@ export default class ScopeApplyingReducer extends CloneReducer {
 
   reduceBindingIdentifier(node, state) {
     let name = node.name.addScope(this.scope, this.context.bindings);
-    this.context.bindings.add(name, gensym(), this.phase);
+    let newBinding = gensym(name.val());
+
+    this.context.env.set(newBinding.toString(), new FunctionArgumentTransform(name));
+    this.context.bindings.add(name, newBinding, this.phase);
+
     return new Term("BindingIdentifier", {
       name: name
     });

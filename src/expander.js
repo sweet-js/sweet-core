@@ -240,8 +240,8 @@ class TermExpander {
     });
   }
 
-  expandFunctionDeclaration(term) {
-    let scope = freshScope("fd");
+  doFunctionExpansion(term, type) {
+    let scope = freshScope("fun");
     let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
     let red = new ScopeApplyingReducer(scope, this.context);
     let params = reduce.default(red, term.params);
@@ -250,7 +250,8 @@ class TermExpander {
       directives: List(),
       statements: expand(markedBody, this.context)
     });
-    return new Term("FunctionDeclaration", {
+
+    return new Term(type, {
       name: term.name,
       isGenerator: term.isGenerator,
       params: params,
@@ -258,22 +259,12 @@ class TermExpander {
     });
   }
 
-  expandFunctionExpression(term) {
-    let scope = freshScope("fe");
-    let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
-    let red = new ScopeApplyingReducer(scope, this.context);
-    let params = reduce.default(red, term.params);
+  expandFunctionDeclaration(term) {
+    return this.doFunctionExpansion(term, "FunctionDeclaration");
+  }
 
-    let bodyTerm = new Term("FunctionBody", {
-      directives: List(),
-      statements: expand(markedBody, this.context)
-    });
-    return new Term("FunctionExpression", {
-      name: term.name,
-      isGenerator: term.isGenerator,
-      params: params,
-      body: bodyTerm
-    });
+  expandFunctionExpression(term) {
+    return this.doFunctionExpansion(term, "FunctionExpression");
   }
 
   expandAssignmentExpression(term) {
@@ -296,6 +287,12 @@ class TermExpander {
   }
 
   expandIdentifierExpression(term) {
+    let trans = this.context.env.get(term.name.resolve());
+    if (trans) {
+      return new Term("IdentifierExpression", {
+        name: trans.id
+      });
+    }
     return term;
   }
 
