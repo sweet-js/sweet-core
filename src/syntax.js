@@ -99,9 +99,21 @@ export default class Syntax {
     return this.token.slice(1, this.token.size - 1);
   }
 
-  addScope(scope, bindings) {
-    let token = this.isDelimiter() ? this.token.map(s => s.addScope(scope, bindings)) : this.token;
-    return new Syntax(token, bindings, this.context.scopeset.push(scope));
+  addScope(scope, bindings, options = { flip: false }) {
+    let token = this.isDelimiter() ? this.token.map(s => s.addScope(scope, bindings, options)) : this.token;
+    let newScopeset;
+    // TODO: clean this logic up
+    if (!options.flip) {
+      let index = this.context.scopeset.indexOf(scope);
+      if (index !== -1) {
+        newScopeset = this.context.scopeset.remove(index);
+      } else {
+        newScopeset = this.context.scopeset.push(scope);
+      }
+    } else {
+      newScopeset = this.context.scopeset.push(scope);
+    }
+    return new Syntax(token, bindings, newScopeset);
   }
 
   isIdentifier() {

@@ -1,7 +1,7 @@
 import { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert } from "./errors";
-import ScopeApplyingReducer from "./scope-applying-reducer";
+import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
 
 import { Scope, freshScope } from "./scope";
 import Term from "./terms";
@@ -13,11 +13,15 @@ import {
 } from "./transforms";
 
 import { transform } from "babel-core";
-import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
 import codegen from "shift-codegen";
 
 import * as convert from "shift-spidermonkey-converter";
+
+import reducer from "shift-reducer";
+
+// TODO: fix default import fail
+let reduce = reducer.default;
 
 // indirect eval so in the global scope
 let geval = eval;
@@ -42,7 +46,7 @@ function loadForCompiletime(expr, context) {
   let sandboxKeys = List(Object.keys(sandbox));
   let sandboxVals = sandboxKeys.map(k => sandbox[k]).toArray();
 
-  let parsed = reduce.default(new ParseReducer(), new Term("Module", {
+  let parsed = reduce(new ParseReducer(), new Term("Module", {
     directives: List(),
     items: List.of(new Term("ExpressionStatement", {
       expression: new Term("FunctionExpression", {
@@ -243,8 +247,8 @@ class TermExpander {
   doFunctionExpansion(term, type) {
     let scope = freshScope("fun");
     let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
-    let red = new ScopeApplyingReducer(scope, this.context);
-    let params = reduce.default(red, term.params);
+    let red = new ApplyScopeInParamsReducer(scope, this.context);
+    let params = reduce(red, term.params);
 
     let bodyTerm = new Term("FunctionBody", {
       directives: List(),

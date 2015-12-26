@@ -20,6 +20,8 @@ import {
 } from "./operators";
 import Syntax from "./syntax";
 
+import { freshScope } from "./scope";
+
 import MacroContext from "./macro-context";
 
 export class Enforester {
@@ -622,8 +624,10 @@ export class Enforester {
       throw this.createError(name,
         "the macro name was not bound to a value that could be invoked");
     }
+    let useSiteScope = freshScope("u");
+    let introducedScope = freshScope("i");
 
-    let ctx = new MacroContext(this, name);
+    let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 
     let result = ct.value(ctx);
 
