@@ -13,7 +13,7 @@ function Symbol(name) {
   this.name = name;
 }
 Symbol.prototype.toString = function () {
-  return "@" + this.name;
+  return this.name;
 };
 
 function makeSymbol(name) {

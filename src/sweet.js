@@ -9,7 +9,7 @@ import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
 import codegen from "shift-codegen";
 
-import BindingMap from "./bindingMap.js";
+import BindingMap from "./binding-map.js";
 
 import Term from "./terms";
 import { Symbol } from "./symbol";

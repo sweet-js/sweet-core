@@ -20,7 +20,7 @@ import {
 } from "./operators";
 import Syntax from "./syntax";
 
-import MacroContext from "./macroContext";
+import MacroContext from "./macro-context";
 
 import { matchCommaSeparatedIdentifiers } from "./matcher";
 

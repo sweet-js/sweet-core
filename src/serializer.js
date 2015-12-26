@@ -40,11 +40,11 @@ let SyntaxHandler = transit.makeWriteHandler({
   tag: () => "stx",
   rep: (v) => {
     if (List.isList(v.token)) {
-      return [v.token];
+      return [v.token, v.context.scopeset];
     } else {
       let t = transit.objectToMap(v.token);
       t.set("type", typeMap.indexOf(v.token.type));
-      return [t];
+      return [t, v.context.scopeset];
     }
   }
 });
@@ -73,12 +73,12 @@ function makeReader(bindings) {
       "stx": (rep) => {
         if (List.isList(rep[0])) {
           let token = rep[0];
-          return new Syntax(token);
+          return new Syntax(token, bindings, rep[1]);
         } else {
           let token = transit.mapToObject(rep[0]);
           token.type = typeMap[rep[0].get("type")];
-          token.slice = transit.mapToObject(rep[0].get("slice"));
-          return new Syntax(token);
+          token.slice = rep[0].has("slice") ? transit.mapToObject(rep[0].get("slice")) : undefined;
+          return new Syntax(token, bindings, rep[1]);
         }
       },
       "symb": (rep) => {

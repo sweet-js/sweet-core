@@ -1,7 +1,7 @@
 import Syntax, { makeIdentifier } from "../src/syntax";
 import expect from "expect.js";
 import { Scope, freshScope } from "../src/scope";
-import BindingMap from "../src/bindingMap";
+import BindingMap from "../src/binding-map";
 
 import Reader from "../src/shift-reader";
 import { serializer, makeDeserializer } from "../src/serializer";
@@ -137,5 +137,20 @@ describe('serializing', () => {
 
     let rtScope = deserializer.read(serializer.write(scope));
     expect(scope).to.be(rtScope);
+  });
+
+  it('should work for an identifier with a scope', () => {
+    let bindings = new BindingMap();
+    let scope1 = freshScope("1");
+    let deserializer = makeDeserializer(bindings);
+
+    let foo = makeIdentifier('foo');
+    foo = foo.addScope(scope1, bindings);
+
+    bindings.add(foo, gensym('foo'));
+
+    let rtFoo = deserializer.read(serializer.write(foo));
+
+    expect(rtFoo.resolve()).to.be(foo.resolve());
   });
 });

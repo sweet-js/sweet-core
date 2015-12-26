@@ -2,7 +2,7 @@ import { List } from "immutable";
 import { Token } from "./reader";
 import { Symbol } from "./symbol";
 import { assert } from "./errors";
-import BindingMap from "./bindingMap";
+import BindingMap from "./binding-map";
 
 import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
 
@@ -62,12 +62,15 @@ export default class Syntax {
           return scopes.isSubset(stxScopes);
         }).sort(sizeDecending);
 
-        if (biggestBindingPair && biggestBindingPair.size === 1) {
-          return biggestBindingPair.get(0).binding.toString();
+        if (biggestBindingPair.size >= 2 &&
+            biggestBindingPair.get(0).scopes.size === biggestBindingPair.get(1).scopes.size) {
+          let debugBase = '{' + stxScopes.map(s => s.toString()).join(', ') + '}';
+          let debugAmbigousScopesets = biggestBindingPair.map(({scopes}) => {
+            return '{' + scopes.map(s => s.toString()).join(', ') + '}';
+          }).join(', ');
+          throw new Error('Scopeset ' + debugBase + ' has ambiguous subsets ' + debugAmbigousScopesets);
         }
-        if (biggestBindingPair && biggestBindingPair.size !== 1) {
-          throw new Error("Ambiguous scopeset");
-        }
+        return biggestBindingPair.get(0).binding.toString();
       }
     }
     return this.token.value;
@@ -97,7 +100,8 @@ export default class Syntax {
   }
 
   addScope(scope, bindings) {
-    return new Syntax(this.token, bindings, this.context.scopeset.push(scope));
+    let token = this.isDelimiter() ? this.token.map(s => s.addScope(scope, bindings)) : this.token;
+    return new Syntax(token, bindings, this.context.scopeset.push(scope));
   }
 
   isIdentifier() {

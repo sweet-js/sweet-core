@@ -1,6 +1,7 @@
 import { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert } from "./errors";
+import ScopeApplyingReducer from "./scope-applying-reducer";
 
 import { Scope, freshScope } from "./scope";
 import Term from "./terms";
@@ -255,8 +256,10 @@ class TermExpander {
 
   expandFunctionExpression(term) {
     // TODO: hygiene
-    let scope = freshScope();
+    let scope = freshScope("fe");
     let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
+    let red = new ScopeApplyingReducer(scope, this.context);
+    let params = reduce.default(red, term.params);
 
     let bodyTerm = new Term("FunctionBody", {
       directives: List(),
@@ -265,7 +268,7 @@ class TermExpander {
     return new Term("FunctionExpression", {
       name: term.name,
       isGenerator: term.isGenerator,
-      params: term.params,
+      params: params,
       body: bodyTerm
     });
   }
