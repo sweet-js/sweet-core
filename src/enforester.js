@@ -1,5 +1,7 @@
 import Term from "./terms";
 
+import MapSyntaxReducer from "./map-syntax-reducer";
+import reducer from "shift-reducer";
 import {
   FunctionDeclTransform,
   VariableDeclTransform,
@@ -23,6 +25,7 @@ import Syntax from "./syntax";
 import { freshScope } from "./scope";
 
 import MacroContext from "./macro-context";
+let reduce = reducer.default;
 
 export class Enforester {
   constructor(stxl, prev, context) {
@@ -637,7 +640,13 @@ export class Enforester {
     let term = enf.enforest(enforestType);
 
     this.rest = enf.rest.concat(this.rest);
-    return term;
+
+    let red = new MapSyntaxReducer(stx => {
+      return stx
+        .addScope(introducedScope, this.context.bindings, { flip: true});
+    });
+    return reduce(red, term);
+
   }
 
   consumeSemicolon() {

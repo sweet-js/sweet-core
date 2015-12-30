@@ -16,10 +16,10 @@ export default class MapSyntaxReducer extends CloneReducer {
   }
 
   reduceIdentifierExpression(node, state) {
-    let id = this.fn(node.id);
+    let name = this.fn(node.name);
 
     return new Term("IdentifierExpression", {
-      id: id
+      name: name
     });
   }
 }

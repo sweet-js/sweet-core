@@ -103,7 +103,7 @@ export default class Syntax {
     let token = this.isDelimiter() ? this.token.map(s => s.addScope(scope, bindings, options)) : this.token;
     let newScopeset;
     // TODO: clean this logic up
-    if (!options.flip) {
+    if (options.flip) {
       let index = this.context.scopeset.indexOf(scope);
       if (index !== -1) {
         newScopeset = this.context.scopeset.remove(index);
