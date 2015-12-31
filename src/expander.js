@@ -2,7 +2,7 @@ import { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert } from "./errors";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
-import { cond, T, both, either, where, whereEq, equals } from "ramda";
+import { is, isNil, complement, and, curry, __, cond, T, both, either, where, whereEq, equals } from "ramda";
 import { Maybe } from 'ramda-fantasy';
 
 import { gensym } from "./symbol";
@@ -96,7 +96,27 @@ const isSyntaxDeclaration = both(isVariableDeclaration, whereEq({ kind: 'syntax'
 const isFunctionDeclaration = whereEq({ type: 'FunctionDeclaration' });
 const isFunctionExpression = whereEq({ type: 'FunctionExpression' });
 const isFunctionTerm = either(isFunctionDeclaration, isFunctionExpression);
+const isFunctionWithName = and(isFunctionTerm, complement(where({ name: isNil })));
+const isBindingIdentifier = where({ name: is(Syntax) });
 
+let registerBindings = cond([
+  [isBindingIdentifier, ({name}, context) => {
+    let newBinding = gensym(name.val());
+    context.env.set(newBinding.toString(), new VarBindingTransform(name));
+    context.bindings.add(name, newBinding);
+  }],
+  [T, _ => assert(false, "not implemented yet")]
+]);
+
+let loadSyntax = cond([
+  [where({binding: isBindingIdentifier}), curry(({binding, init}, te, context) => {
+    // finish the expansion early for the initialization
+    let initValue = loadForCompiletime(te.expand(init), context);
+
+    context.env.set(binding.name.resolve(), new CompiletimeTransform(initValue));
+  })],
+  [T, _ => assert(false, "not implemented yet")]
+]);
 
 function expandTokens(stxl, context) {
   let result = List();
@@ -105,7 +125,6 @@ function expandTokens(stxl, context) {
   }
   let prev = List();
   let enf = new Enforester(stxl, prev, context);
-  let te = new TermExpander(context);
   let lastTerm = null;
   while (!enf.done) {
     let term = enf.enforest();
@@ -117,39 +136,18 @@ function expandTokens(stxl, context) {
     let filteredTerm = cond([
       [isVariableDeclarationStatement, (term) => {
         // first, add each binding to the environment
-        term.declaration.declarators.forEach(decl => {
-          // TODO: support other binding forms
-          if (decl.binding.name) {
-            let name = decl.binding.name;
-            let newBinding = gensym(name.val());
-
-            context.env.set(newBinding.toString(), new VarBindingTransform(name));
-            context.bindings.add(name, newBinding);
-          } else {
-            assert(false, 'not implemented yet');
-          }
-        });
-
+        term.declaration.declarators.forEach(decl => registerBindings(decl.binding, context));
         // then, for syntax declarations we need to load the compiletime value into the
         // environment
         if (isSyntaxDeclaration(term.declaration)) {
-          term.declaration.declarators.forEach(decl => {
-            // TODO: support other binding forms
-            if (decl.binding.name) {
-              // finish the expansion early for the declaration
-              let init = te.expand(decl.init);
-
-              let resolvedName = decl.binding.name.resolve();
-              let initValue = loadForCompiletime(init, context);
-
-              context.env.set(resolvedName, new CompiletimeTransform(initValue));
-            } else {
-              assert(false, "not implemented yet");
-            }
-          });
-          // do not add to the result
+          term.declaration.declarators.forEach(loadSyntax(__, new TermExpander(context), context));
+          // do not add syntax declarations to the result
           return Nothing();
         }
+        return Just(term);
+      }],
+      [isFunctionWithName, (term) => {
+        registerBindings(term.name, context);
         return Just(term);
       }],
       [isEOF, Nothing],

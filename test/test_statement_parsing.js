@@ -11,7 +11,7 @@ describe("parsing function declarations", function () {
       "name": {
         "type": "BindingIdentifier",
         "loc": null,
-        "name": "id"
+        "name": "<<hygiene>>"
       },
       "isGenerator": false,
       "params": {
@@ -40,7 +40,7 @@ describe("parsing function declarations", function () {
       "name": {
         "type": "BindingIdentifier",
         "loc": null,
-        "name": "id"
+        "name": "<<hygiene>>"
       },
       "isGenerator": true,
       "params": {
@@ -270,7 +270,7 @@ describe("parsing classes", () => {
       "name": {
         "loc": null,
         "type": "BindingIdentifier",
-        "name": "F"
+        "name": "<<hygiene>>"
       },
       "super": null,
       "elements": []
