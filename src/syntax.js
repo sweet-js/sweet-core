@@ -3,6 +3,9 @@ import { Token } from "./reader";
 import { Symbol } from "./symbol";
 import { assert } from "./errors";
 import BindingMap from "./binding-map";
+import { Maybe } from "ramda-fantasy";
+const Just = Maybe.Just;
+const Nothing = Maybe.Nothing;
 
 import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
 
@@ -69,8 +72,9 @@ export default class Syntax {
             return '{' + scopes.map(s => s.toString()).join(', ') + '}';
           }).join(', ');
           throw new Error('Scopeset ' + debugBase + ' has ambiguous subsets ' + debugAmbigousScopesets);
+        } else if (biggestBindingPair.size !== 0) {
+          return biggestBindingPair.get(0).binding.toString();
         }
-        return biggestBindingPair.get(0).binding.toString();
       }
     }
     return this.token.value;

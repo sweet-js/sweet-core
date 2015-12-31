@@ -2,13 +2,17 @@ import { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert } from "./errors";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
+import { cond, T, both, either, where, whereEq, equals } from "ramda";
+import { Maybe } from 'ramda-fantasy';
 
+import { gensym } from "./symbol";
 import { Scope, freshScope } from "./scope";
 import Term from "./terms";
 import Syntax, {makeString, makeIdentifier} from "./syntax";
 import { serializer, makeDeserializer } from "./serializer";
 
 import {
+  VarBindingTransform ,
   CompiletimeTransform
 } from "./transforms";
 
@@ -19,6 +23,9 @@ import codegen from "shift-codegen";
 import * as convert from "shift-spidermonkey-converter";
 
 import reducer from "shift-reducer";
+
+const Just = Maybe.Just;
+const Nothing = Maybe.Nothing;
 
 // TODO: fix default import fail
 let reduce = reducer.default;
@@ -81,6 +88,16 @@ function loadForCompiletime(expr, context) {
   return geval(result.code).apply(undefined, sandboxVals);
 }
 
+
+const isEOF = whereEq({ type: 'EOF' });
+const isVariableDeclaration = whereEq({ type: 'VariableDeclaration' });
+const isVariableDeclarationStatement = whereEq({ type: 'VariableDeclarationStatement' });
+const isSyntaxDeclaration = both(isVariableDeclaration, whereEq({ kind: 'syntax' }));
+const isFunctionDeclaration = whereEq({ type: 'FunctionDeclaration' });
+const isFunctionExpression = whereEq({ type: 'FunctionExpression' });
+const isFunctionTerm = either(isFunctionDeclaration, isFunctionExpression);
+
+
 function expandTokens(stxl, context) {
   let result = List();
   if (stxl.size === 0) {
@@ -97,27 +114,49 @@ function expandTokens(stxl, context) {
     assert(term !== lastTerm, "enforester is not done but produced same term");
     lastTerm = term;
 
-    if (term.type === 'VariableDeclaration' && term.kind === "syntax") {
-      // todo: hygiene
-      term.declarators.forEach(decl => {
-        // finish the expansion early for the declaration
-        let init = te.expand(decl.init);
-        let resolvedName = decl.binding.name.resolve();
-        let initValue = loadForCompiletime(init, context);
+    let filteredTerm = cond([
+      [isVariableDeclarationStatement, (term) => {
+        // first, add each binding to the environment
+        term.declaration.declarators.forEach(decl => {
+          // TODO: support other binding forms
+          if (decl.binding.name) {
+            let name = decl.binding.name;
+            let newBinding = gensym(name.val());
 
-        context.env.set(resolvedName, new CompiletimeTransform(initValue));
-      });
+            context.env.set(newBinding.toString(), new VarBindingTransform(name));
+            context.bindings.add(name, newBinding);
+          } else {
+            assert(false, 'not implemented yet');
+          }
+        });
 
-      // do not add to the result
-      continue;
-    }
+        // then, for syntax declarations we need to load the compiletime value into the
+        // environment
+        if (isSyntaxDeclaration(term.declaration)) {
+          term.declaration.declarators.forEach(decl => {
+            // TODO: support other binding forms
+            if (decl.binding.name) {
+              // finish the expansion early for the declaration
+              let init = te.expand(decl.init);
 
-    // don't need the EOF term in the final AST
-    if (term.type === "EOF") {
-      break;
-    }
+              let resolvedName = decl.binding.name.resolve();
+              let initValue = loadForCompiletime(init, context);
 
-    result = result.concat(term);
+              context.env.set(resolvedName, new CompiletimeTransform(initValue));
+            } else {
+              assert(false, "not implemented yet");
+            }
+          });
+          // do not add to the result
+          return Nothing();
+        }
+        return Just(term);
+      }],
+      [isEOF, Nothing],
+      [T, Just]
+    ])(term);
+
+    result = result.concat(filteredTerm.getOrElse(List()));
   }
   return result;
 }
@@ -135,7 +174,15 @@ class TermExpander {
     assert(false, "expand not implemented yet for: " + term.type);
   }
 
+  expandVariableDeclarationStatement(term) {
+    return new Term('VariableDeclarationStatement', {
+      declaration: this.expand(term.declaration)
+    });
+  }
   expandReturnStatement(term) {
+    if (term.expression == null) {
+      return term;
+    }
     return new Term("ReturnStatement", {
       expression: this.expand(term.expression)
     });
@@ -338,7 +385,9 @@ function expandExpressionList(stxl, context) {
 }
 
 export default function expand(stxl, context) {
-  let terms = expandTokens(stxl, context);
+  let scope = freshScope("top");
+  context.currentScope = scope;
+  let terms = expandTokens(stxl.map(s => s.addScope(scope, context.bindings)), context);
   let te = new TermExpander(context);
   return terms.map(t => te.expand(t));
 }

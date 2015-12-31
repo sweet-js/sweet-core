@@ -12,7 +12,7 @@ export class SyntaxQuoteTransform {
 }
 export class ReturnStatementTransform {
 }
-export class FunctionArgumentTransform {
+export class VarBindingTransform {
   constructor(id) {
     this.id = id;
   }

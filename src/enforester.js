@@ -1,7 +1,5 @@
 import Term from "./terms";
 
-import MapSyntaxReducer from "./map-syntax-reducer";
-import reducer from "shift-reducer";
 import {
   FunctionDeclTransform,
   VariableDeclTransform,
@@ -25,7 +23,6 @@ import Syntax from "./syntax";
 import { freshScope } from "./scope";
 
 import MacroContext from "./macro-context";
-let reduce = reducer.default;
 
 export class Enforester {
   constructor(stxl, prev, context) {
@@ -182,6 +179,7 @@ export class Enforester {
     }
 
     let term = this.enforestExpressionLoop();
+    expect(term != null, "Expecting an expression to follow return keyword", lookahead, this.rest);
     this.consumeSemicolon();
 
     return new Term("ReturnStatement", {
@@ -223,9 +221,12 @@ export class Enforester {
     }
 
     this.consumeSemicolon();
-    return new Term("VariableDeclaration", {
-      kind: kind,
-      declarators: decls
+
+    return new Term('VariableDeclarationStatement', {
+      declaration: new Term("VariableDeclaration", {
+        kind: kind,
+        declarators: decls
+      })
     });
   }
 
@@ -632,7 +633,9 @@ export class Enforester {
 
     let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 
-    let result = ct.value(ctx);
+    let result = ct.value(ctx).map(stx => {
+      return stx.addScope(introducedScope, this.context.bindings, { flip: true });
+    });
 
     // enforesting result to handle precedence issues
     // (this surrounds macro results with implicit parens)
@@ -641,11 +644,7 @@ export class Enforester {
 
     this.rest = enf.rest.concat(this.rest);
 
-    let red = new MapSyntaxReducer(stx => {
-      return stx
-        .addScope(introducedScope, this.context.bindings, { flip: true});
-    });
-    return reduce(red, term);
+    return term;
 
   }
 

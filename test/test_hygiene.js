@@ -29,4 +29,14 @@ describe("hygiene", function () {
  output = foo(1)`, 1);
   });
 
+  it("should work with introduced var declarations", function () {
+    testEval(`
+syntax m = function (ctx) {
+  return syntaxQuote { var x = 42; }
+}
+output = function foo() {
+  m;
+  return x
+}()`, undefined);
+  });
 });
