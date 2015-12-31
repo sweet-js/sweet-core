@@ -26,25 +26,28 @@ syntax m = function (ctx) {
     return syntaxQuote { 200 }
 }
 let v = m`, stmt, {
-      "type": "VariableDeclaration",
-      "loc": null,
-      "kind": "let",
-      "declarators": [
-        {
-          "type": "VariableDeclarator",
-          "loc": null,
-          "binding": {
-            "type": "BindingIdentifier",
+      "type": "VariableDeclarationStatement",
+      "declaration": {
+        "type": "VariableDeclaration",
+        "loc": null,
+        "kind": "let",
+        "declarators": [
+          {
+            "type": "VariableDeclarator",
             "loc": null,
-            "name": "v"
-          },
-          "init": {
-            "type": "LiteralNumericExpression",
-            "loc": null,
-            "value": 200
+            "binding": {
+              "type": "BindingIdentifier",
+              "loc": null,
+              "name": "<<hygiene>>"
+            },
+            "init": {
+              "type": "LiteralNumericExpression",
+              "loc": null,
+              "value": 200
+            }
           }
-        }
-      ],
+        ],
+      }
     });
   });
 

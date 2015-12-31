@@ -35,8 +35,9 @@ syntax m = function (ctx) {
   return syntaxQuote { var x = 42; }
 }
 output = function foo() {
+  var x = 100;
   m;
-  return x
-}()`, undefined);
+  return x;
+}()`, 100);
   });
 });
