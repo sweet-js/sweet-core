@@ -108,6 +108,13 @@ let registerBindings = cond([
   [T, _ => assert(false, "not implemented yet")]
 ]);
 
+let removeScope = cond([
+  [isBindingIdentifier, ({name}, scope) => new Term('BindingIdentifier', {
+      name: name.removeScope(scope)
+  })],
+  [T, _ => assert(false, "not implemented yet")]
+]);
+
 let loadSyntax = cond([
   [where({binding: isBindingIdentifier}), curry(({binding, init}, te, context) => {
     // finish the expansion early for the initialization
@@ -117,6 +124,8 @@ let loadSyntax = cond([
   })],
   [T, _ => assert(false, "not implemented yet")]
 ]);
+
+
 
 function expandTokens(stxl, context) {
   let result = List();
@@ -135,7 +144,14 @@ function expandTokens(stxl, context) {
 
     let filteredTerm = cond([
       [isVariableDeclarationStatement, (term) => {
-        // first, add each binding to the environment
+        // first, remove the use scope from each binding
+        term.declaration.declarators = term.declaration.declarators.map(decl => {
+          return new Term('VariableDeclarator', {
+            binding: removeScope(decl.binding, context.useScope),
+            init: decl.init
+          });
+        });
+        // second, add each binding to the environment
         term.declaration.declarators.forEach(decl => registerBindings(decl.binding, context));
         // then, for syntax declarations we need to load the compiletime value into the
         // environment

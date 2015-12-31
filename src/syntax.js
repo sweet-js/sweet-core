@@ -119,6 +119,15 @@ export default class Syntax {
     }
     return new Syntax(token, bindings, newScopeset);
   }
+  removeScope(scope) {
+    let token = this.isDelimiter() ? this.token.map(s => s.removeScope(scope)) : this.token;
+    let newScopeset = this.context.scopeset;
+    let index = this.context.scopeset.indexOf(scope);
+    if (index !== -1) {
+      newScopeset = this.context.scopeset.remove(index);
+    }
+    return new Syntax(token, this.context.bindings, newScopeset);
+  }
 
   isIdentifier() {
     return !this.isDelimiter() && this.token.type.klass === TokenClass.Ident;
