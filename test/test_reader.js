@@ -142,6 +142,14 @@ describe('shift reader for regex', () => {
     expect(r.get(2).isRegularExpression()).to.be(true);
     expect(r.get(2).val()).to.be('/42/i');
   });
+
+  it("should read a regex when it follows a function declaration", function () {
+    let reader = new Reader('function foo () {} /42/i');
+    let r = reader.read();
+
+    expect(r.get(4).isRegularExpression()).to.be(true);
+    expect(r.get(4).val()).to.be('/42/i');
+  });
 });
 
 describe('shift reader for div', () => {
@@ -249,6 +257,14 @@ describe('shift reader for div', () => {
 
     expect(r.get(2).isPunctuator()).to.be(true);
     expect(r.get(2).val()).to.be('/');
+  });
+
+  it("should read a regex when it follows a function expression", function () {
+    let reader = new Reader('f = function foo () {} /42/i');
+    let r = reader.read();
+
+    expect(r.get(6).isPunctuator()).to.be(true);
+    expect(r.get(6).val()).to.be('/');
   });
 });
 

@@ -3,6 +3,9 @@ import { TokenClass, TokenType } from "shift-parser/dist/tokenizer";
 import { List } from "immutable";
 import Syntax from "./syntax";
 import * as R from 'ramda';
+import { Maybe } from 'ramda-fantasy';
+const Just = Maybe.Just;
+const Nothing = Maybe.Nothing;
 
 const isLeftBracket = R.whereEq({ type: TokenType.LBRACK });
 const isLeftBrace = R.whereEq({ type: TokenType.LBRACE });
@@ -27,6 +30,42 @@ const literalKeywords = ['this', 'null', 'true', 'false'];
 // a -> Boolean
 const isLiteralKeyword = x => R.any(R.equals(x), literalKeywords);
 
+// (List a) => a -> Maybe a
+let last = (p) => p.last() ? Just(p.last()) : Nothing();
+
+// (Syntax a) => a -> Boolean
+let isFunKwd = t => t.isKeyword() && t.val() === 'function';
+
+// TODO: better name
+let stuffTrue = R.curry((p, b) => b ? Just(p) : Nothing());
+
+// (List a) => a -> Maybe a
+let isCurly = p => last(p).map(s => s.isCurlyDelimiter()).chain(stuffTrue(p));
+let isParen = p => last(p).map(s => s.isParenDelimiter()).chain(stuffTrue(p));
+let isFunction = p => last(p).map(isFunKwd).chain(stuffTrue(p));
+let isIdent = p => last(p).map(s => s.isIdentifier()).chain(stuffTrue(p));
+let isNonLiteralKeyword = p =>
+  last(p)
+    .map(s => s.isKeyword() && !isLiteralKeyword(s.val()))
+    .chain(stuffTrue(p));
+
+let isNotDot = p => {
+  if (p.size === 0) {
+    return Just(p);
+  }
+  return last(p).map(s => !(s.isPunctuator() && s.val() === '.')).chain(stuffTrue(p));
+}
+
+// (List a) => a -> Maybe a
+let pop = R.compose(Just, p => p.pop());
+
+let isNotExprPrefix = p => {
+  if (p.size === 0) {
+    return Just(p);
+  }
+  return last(p).map(s => s.val() !== '=').chain(stuffTrue(p));
+};
+
 const isRegexPrefix = R.anyPass([
   // ε
   R.whereEq({ size: 0 }),
@@ -34,31 +73,46 @@ const isRegexPrefix = R.anyPass([
   p => p.last() && p.last().isPunctuator(),
   // P . t . t'  where t != "." and t' ∈ (Keyword \setminus  LiteralKeyword)
   p => {
-    let last = p.last();
-    if (last.isKeyword() && !(isLiteralKeyword(last.val())) && p.pop().size !== 0) {
-      let last = p.pop().last();
-      return last.isPunctuator() && last.val() !== '.';
-    }
-    return last.isKeyword() && !isLiteralKeyword(last.val());
+    let isKeywordStatement = R.pipeK(
+      isNonLiteralKeyword,
+      pop,
+      isNotDot
+    )(Maybe.of(p));
+    return isKeywordStatement.isJust();
   },
   // P . t . t' . (T)  where t \not = "." and t' ∈ (Keyword \setminus LiteralKeyword)
   p => {
-    let last = p.last();
-    if (last.isParenDelimiter() && p.pop().size !== 0) {
-      let last = p.pop().last();
-      if (last.isKeyword() && !(isLiteralKeyword(last.val())) && p.pop().pop().size !== 0) {
-        let last = p.pop().pop().last();
-        return !(last.isPunctuator() && last.val() === '.');
-      }
-      return last.isKeyword() && !isLiteralKeyword(last.val());
-    }
-    return false;
+    let isKeywordParenStatement = R.pipeK(
+      isParen,
+      pop,
+      isNonLiteralKeyword,
+      pop,
+      isNotDot
+    )(Maybe.of(p));
+    return isKeywordParenStatement.isJust();
+  },
+  // P . function^l . x? . () . {}     where isExprPrefix(P, b, l) = false
+  p => {
+
+    let isFunctionDeclaration = R.pipeK(
+      isCurly,
+      pop,
+      isParen,
+      pop,
+      isIdent,
+      pop,
+      isFunction,
+      pop,
+      isNotExprPrefix
+    )(Maybe.of(p));
+
+    return isFunctionDeclaration.isJust();
   },
   // P . {T}^l  where isExprPrefix(P, b, l) = false
-  p => {
-    let last = p.last();
-    return last.isCurlyDelimiter();
-  }
+  //p => {
+  //  let last = p.last();
+  //  return last.isCurlyDelimiter();
+  //}
 ]);
 
 export default class Reader extends Tokenizer.default {
