@@ -2,12 +2,16 @@ import { enforestExpr, Enforester } from "./enforester";
 import { List } from "immutable";
 import { assert } from "./errors";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
-import { is, isNil, complement, and, curry, __, cond, T, both, either, where, whereEq, equals } from "ramda";
+import { identity, pipe, bind, is, isNil, complement, and, curry, __, cond, T, both, either, where, whereEq, equals } from "ramda";
 import { Maybe } from 'ramda-fantasy';
 
 import { gensym } from "./symbol";
 import { Scope, freshScope } from "./scope";
-import Term from "./terms";
+import Term, {
+  isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
+  isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isVariableDeclaration,
+  isVariableDeclarationStatement
+} from "./terms";
 import Syntax, {makeString, makeIdentifier} from "./syntax";
 import { serializer, makeDeserializer } from "./serializer";
 
@@ -88,17 +92,6 @@ function loadForCompiletime(expr, context) {
   return geval(result.code).apply(undefined, sandboxVals);
 }
 
-
-const isEOF = whereEq({ type: 'EOF' });
-const isVariableDeclaration = whereEq({ type: 'VariableDeclaration' });
-const isVariableDeclarationStatement = whereEq({ type: 'VariableDeclarationStatement' });
-const isSyntaxDeclaration = both(isVariableDeclaration, whereEq({ kind: 'syntax' }));
-const isFunctionDeclaration = whereEq({ type: 'FunctionDeclaration' });
-const isFunctionExpression = whereEq({ type: 'FunctionExpression' });
-const isFunctionTerm = either(isFunctionDeclaration, isFunctionExpression);
-const isFunctionWithName = and(isFunctionTerm, complement(where({ name: isNil })));
-const isBindingIdentifier = where({ name: is(Syntax) });
-
 let registerBindings = cond([
   [isBindingIdentifier, ({name}, context) => {
     let newBinding = gensym(name.val());
@@ -126,7 +119,6 @@ let loadSyntax = cond([
 ]);
 
 
-
 function expandTokens(stxl, context) {
   let result = List();
   if (stxl.size === 0) {
@@ -134,43 +126,41 @@ function expandTokens(stxl, context) {
   }
   let prev = List();
   let enf = new Enforester(stxl, prev, context);
-  let lastTerm = null;
   while (!enf.done) {
-    let term = enf.enforest();
-    // check for coding mistakes
-    assert(term !== null, "enforester returned a null term");
-    assert(term !== lastTerm, "enforester is not done but produced same term");
-    lastTerm = term;
 
-    let filteredTerm = cond([
-      [isVariableDeclarationStatement, (term) => {
-        // first, remove the use scope from each binding
-        term.declaration.declarators = term.declaration.declarators.map(decl => {
-          return new Term('VariableDeclarator', {
-            binding: removeScope(decl.binding, context.useScope),
-            init: decl.init
+    let term = pipe(
+      bind(enf.enforest, enf),
+      cond([
+        [isVariableDeclarationStatement, (term) => {
+          // first, remove the use scope from each binding
+          term.declaration.declarators = term.declaration.declarators.map(decl => {
+            return new Term('VariableDeclarator', {
+              binding: removeScope(decl.binding, context.useScope),
+              init: decl.init
+            });
           });
-        });
-        // second, add each binding to the environment
-        term.declaration.declarators.forEach(decl => registerBindings(decl.binding, context));
-        // then, for syntax declarations we need to load the compiletime value into the
-        // environment
-        if (isSyntaxDeclaration(term.declaration)) {
-          term.declaration.declarators.forEach(loadSyntax(__, new TermExpander(context), context));
-          // do not add syntax declarations to the result
-          return Nothing();
-        }
-        return Just(term);
-      }],
-      [isFunctionWithName, (term) => {
-        registerBindings(term.name, context);
-        return Just(term);
-      }],
-      [isEOF, Nothing],
-      [T, Just]
-    ])(term);
+          // second, add each binding to the environment
+          term.declaration.declarators.forEach(decl => registerBindings(decl.binding, context));
+          // then, for syntax declarations we need to load the compiletime value into the
+          // environment
+          if (isSyntaxDeclaration(term.declaration)) {
+            term.declaration.declarators.forEach(loadSyntax(__, new TermExpander(context), context));
+            // do not add syntax declarations to the result
+            return Nothing();
+          }
+          return Just(term);
+        }],
+        [isFunctionWithName, (term) => {
+          registerBindings(term.name, context);
+          return Just(term);
+        }],
+        [isEOF, Nothing],
+        [T, Just]
+      ]),
+      Maybe.maybe(List(), identity)
+    )();
 
-    result = result.concat(filteredTerm.getOrElse(List()));
+    result = result.concat(term);
   }
   return result;
 }
