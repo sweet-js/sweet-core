@@ -259,8 +259,24 @@ describe('shift reader for div', () => {
     expect(r.get(2).val()).to.be('/');
   });
 
-  it("should read a regex when it follows a function expression", function () {
+  it("should read a div when it follows a function expression", function () {
     let reader = new Reader('f = function foo () {} /42/i');
+    let r = reader.read();
+
+    expect(r.get(6).isPunctuator()).to.be(true);
+    expect(r.get(6).val()).to.be('/');
+  });
+
+  it("should read a div when it follows an anonymous function expression", function () {
+    let reader = new Reader('f = function () {} /42/i');
+    let r = reader.read();
+
+    expect(r.get(5).isPunctuator()).to.be(true);
+    expect(r.get(5).val()).to.be('/');
+  });
+
+  it("should read a div when it follows a function expression", function () {
+    let reader = new Reader('f / function foo () {} /42/i');
     let r = reader.read();
 
     expect(r.get(6).isPunctuator()).to.be(true);

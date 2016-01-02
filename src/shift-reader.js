@@ -36,6 +36,7 @@ let last = (p) => p.last() ? Just(p.last()) : Nothing();
 // (Syntax a) => a -> Boolean
 let isFunKwd = t => t.isKeyword() && t.val() === 'function';
 
+
 // TODO: better name
 let stuffTrue = R.curry((p, b) => b ? Just(p) : Nothing());
 
@@ -49,22 +50,27 @@ let isNonLiteralKeyword = p =>
     .map(s => s.isKeyword() && !isLiteralKeyword(s.val()))
     .chain(stuffTrue(p));
 
-let isNotDot = p => {
-  if (p.size === 0) {
-    return Just(p);
-  }
-  return last(p).map(s => !(s.isPunctuator() && s.val() === '.')).chain(stuffTrue(p));
-}
+let opt = R.curry((a, b, p) => {
+  let result = R.pipeK(a, b)(Maybe.of(p));
+  return Maybe.isJust(result) ? result : Maybe.of(p);
+});
+
+let isNotDot = R.ifElse(
+  R.whereEq({size: 0}),
+  Just,
+  p => last(p).map(s => !(s.isPunctuator() && s.val() === '.')).chain(stuffTrue(p))
+);
 
 // (List a) => a -> Maybe a
 let pop = R.compose(Just, p => p.pop());
 
-let isNotExprPrefix = p => {
-  if (p.size === 0) {
-    return Just(p);
-  }
-  return last(p).map(s => s.val() !== '=').chain(stuffTrue(p));
-};
+let isExprPunctuator = s => s.isPunctuator();
+
+let isNotExprPrefix = l => R.ifElse(
+  R.whereEq({size: 0}),
+  Just,
+  p => last(p).map(R.complement(isExprPunctuator)).chain(stuffTrue(p))
+);
 
 const isRegexPrefix = R.anyPass([
   // ε
@@ -93,17 +99,20 @@ const isRegexPrefix = R.anyPass([
   },
   // P . function^l . x? . () . {}     where isExprPrefix(P, b, l) = false
   p => {
-
     let isFunctionDeclaration = R.pipeK(
       isCurly,
       pop,
       isParen,
       pop,
-      isIdent,
-      pop,
+      opt(isIdent, pop),
       isFunction,
-      pop,
-      isNotExprPrefix
+      p => {
+        return last(p)
+          .map(s => s.lineNumber())
+          .chain(l => {
+            return isNotExprPrefix(l)(p.pop());
+          });
+      }
     )(Maybe.of(p));
 
     return isFunctionDeclaration.isJust();
