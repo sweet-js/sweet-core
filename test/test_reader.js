@@ -150,6 +150,30 @@ describe('shift reader for regex', () => {
     expect(r.get(4).isRegularExpression()).to.be(true);
     expect(r.get(4).val()).to.be('/42/i');
   });
+
+  it("should read a regex when it follows a return keyword", function () {
+    let reader = new Reader('return /42/i');
+    let r = reader.read();
+
+    expect(r.get(1).isRegularExpression()).to.be(true);
+    expect(r.get(1).val()).to.be('/42/i');
+  });
+
+  it("should read a regex when it follows a block statement", function () {
+    let reader = new Reader('{x: 42} /42/i');
+    let r = reader.read();
+
+    expect(r.get(1).isRegularExpression()).to.be(true);
+    expect(r.get(1).val()).to.be('/42/i');
+  });
+
+  it("should read a regex when it follows a function declaration following a return", function () {
+    let reader = new Reader('return\nfunction foo() {} /42/i');
+    let r = reader.read();
+
+    expect(r.get(5).isRegularExpression()).to.be(true);
+    expect(r.get(5).val()).to.be('/42/i');
+  });
 });
 
 describe('shift reader for div', () => {
@@ -282,6 +306,23 @@ describe('shift reader for div', () => {
     expect(r.get(6).isPunctuator()).to.be(true);
     expect(r.get(6).val()).to.be('/');
   });
+
+  it("should read a div when it follows a function expression following a return", function () {
+    let reader = new Reader('return function foo () {} /42/i');
+    let r = reader.read();
+
+    expect(r.get(5).isPunctuator()).to.be(true);
+    expect(r.get(5).val()).to.be('/');
+  });
+
+  it("should read a div when it follows a object literal following a return", function () {
+    let reader = new Reader('return {} /42/i');
+    let r = reader.read();
+
+    expect(r.get(2).isPunctuator()).to.be(true);
+    expect(r.get(2).val()).to.be('/');
+  });
+
 });
 
 describe('shift reader with bad syntax', () => {
