@@ -133,8 +133,8 @@ const functionPrefix = R.pipeK(
     opt(ident, pop),
     func);
 
-// List a -> Boolean
-const isRegexPrefix = R.anyPass([
+// Boolean -> List a -> Boolean
+const isRegexPrefix = b => R.anyPass([
   // ε
   isEmpty,
   // P . t   where t ∈ Punctuator
@@ -169,13 +169,14 @@ const isRegexPrefix = R.anyPass([
         return safeLast(p)
           .map(s => s.lineNumber())
           .chain(fnLine => {
-            return pop(p).map(isExprPrefix(fnLine, false));
+            return pop(p).map(isExprPrefix(fnLine, b));
           })
           .chain(stuffFalse(p));
       }
     ),
     Maybe.isJust
   ),
+  // P . {T}^l  where isExprPrefix(P, b, l) = false
   p => {
     let isCurly = Maybe.isJust(safeLast(p).map(isCurlyDelimiter));
     let alreadyCheckedFunction = R.pipe(
@@ -193,48 +194,27 @@ const isRegexPrefix = R.anyPass([
         return safeLast(p)
         .map(s => s.lineNumber())
         .chain(curlyLine => {
-          return pop(p).map(isExprPrefix(curlyLine, false));
+          return pop(p).map(isExprPrefix(curlyLine, b));
         })
         .chain(stuffFalse(p));
       }),
       Maybe.isJust
     )(p);
   }
-    //[R.pipe(
-    //  Maybe.of,
-    //  R.pipeK(
-    //    curly,
-    //    p => {
-    //      return safeLast(p)
-    //      .map(s => s.lineNumber())
-    //      .chain(curlyLine => {
-    //        return pop(p).map(isExprPrefix(curlyLine, false));
-    //      })
-    //      .chain(stuffFalse(p));
-    //    }
-    //  ),
-    //  Maybe.isJust), R.T],
-    //[R.T, R.F]
-  //]),
 
 
-  // P . {T}^l  where isExprPrefix(P, b, l) = false
-  //p => {
-  //  let last = p.last();
-  //  return last.isCurlyDelimiter();
-  //}
 ]);
 
 export default class Reader extends Tokenizer.default {
   constructor(source/*: string */) {
     super(source);
     this.delimStack = new Map();
-    this.prefix = List();
   }
 
-  read(stack/*: Array<any> */ = [])/*: List */ {
+  read(stack/*: Array<any> */ = [], b = false)/*: List */ {
+    let prefix = List();
     while (true) {
-      let tok = this.advance();
+      let tok = this.advance(prefix, b);
 
       if (tok.type === TokenType.EOS) {
         if (stack[0] && isLeftDelimiter(stack[0].token)) {
@@ -244,9 +224,11 @@ export default class Reader extends Tokenizer.default {
       }
 
       if (isLeftDelimiter(tok)) {
-        let inner = this.read([new Syntax(tok)]);
+        let line = tok.slice.startLocation.line;
+        let innerB = isLeftBrace(tok) ? isExprPrefix(line, b)(prefix) : true;
+        let inner = this.read([new Syntax(tok)], innerB);
         let stx = new Syntax(inner);
-        this.prefix = this.prefix.concat(stx);
+        prefix = prefix.concat(stx);
         stack.push(stx);
       } else if (isRightDelimiter(tok)) {
         if (stack[0] && !isMatchingDelimiters(stack[0].token, tok)) {
@@ -257,16 +239,16 @@ export default class Reader extends Tokenizer.default {
         break;
       } else {
         let stx = new Syntax(tok);
-        this.prefix = this.prefix.concat(stx);
+        prefix = prefix.concat(stx);
         stack.push(stx);
       }
     }
     return List(stack);
   }
 
-    advance()/*: any */ {
+  advance(prefix, b)/*: any */ {
     let lookahead = super.advance();
-    if (lookahead.type === TokenType.DIV && isRegexPrefix(this.prefix)) {
+    if (lookahead.type === TokenType.DIV && isRegexPrefix(b)(prefix)) {
       return super.scanRegExp("/");
     }
     return lookahead;

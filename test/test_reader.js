@@ -144,7 +144,7 @@ describe('shift reader for regex', () => {
   });
 
   it("should read a regex when it follows a function declaration", function () {
-    let reader = new Reader('function foo () {} /42/i');
+    let reader = new Reader('function foo () { } /42/i');
     let r = reader.read();
 
     expect(r.get(4).isRegularExpression()).to.be(true);
@@ -173,6 +173,14 @@ describe('shift reader for regex', () => {
 
     expect(r.get(5).isRegularExpression()).to.be(true);
     expect(r.get(5).val()).to.be('/42/i');
+  });
+
+  it("should read a regex when it follows a labeled statement inside a labeled statement", function () {
+    let reader = new Reader('{x: {x: 42}/42/i}');
+    let r = reader.read();
+
+    expect(r.get(0).inner().get(3).isRegularExpression()).to.be(true);
+    expect(r.get(0).inner().get(3).val()).to.be('/42/i');
   });
 });
 
@@ -316,11 +324,19 @@ describe('shift reader for div', () => {
   });
 
   it("should read a div when it follows a object literal following a return", function () {
-    let reader = new Reader('return {} /42/i');
+    let reader = new Reader('return {x: 42} /42/i');
     let r = reader.read();
 
     expect(r.get(2).isPunctuator()).to.be(true);
     expect(r.get(2).val()).to.be('/');
+  });
+
+  it("should read a div when it follows a object literal inside an object literal", function () {
+    let reader = new Reader('o = {x: {x: 42}/42/i}');
+    let r = reader.read();
+
+    expect(r.get(2).inner().get(3).isPunctuator()).to.be(true);
+    expect(r.get(2).inner().get(3).val()).to.be('/');
   });
 
 });
@@ -481,13 +497,3 @@ describe('shift reader with bad syntax', () => {
 //  expect(read("x /= function foo() {} /42/i")[6].value) .to.equal("/");
 //  expect(read("switch (\"foo\") {case \"foo\": {true;}\ncase function foo() {} /42/i: {true;}}")[2] .inner[9].value) .to.equal("/");
 //});
-
-
-// describe("reader", function() {
-//     it("should throw an error for an unmatched elimiter", function() {
-//         function baddelim() {
-//             read("{");
-//         }
-//         expect(baddelim).to.throwError();
-//     });
-

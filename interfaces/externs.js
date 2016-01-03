@@ -42,6 +42,7 @@ declare module 'ramda' {
     declare var curry: (...x: any) => any;
     declare var compose: (...f: any) => (...x: any) => any;
     declare var any: (p: predicate) => (x: Array<any>) => boolean;
+    declare function chain(x: any): any;
     declare function none(p: predicate): (x: Array<any>) => boolean;
     declare function none(p: predicate, x: Array<any>): boolean;
     declare var equals: (a: any) => (b: any) => boolean;
