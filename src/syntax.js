@@ -1,5 +1,4 @@
 import { List } from "immutable";
-import { Token } from "./reader";
 import { Symbol } from "./symbol";
 import { assert } from "./errors";
 import BindingMap from "./binding-map";

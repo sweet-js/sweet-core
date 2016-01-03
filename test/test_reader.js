@@ -1,4 +1,3 @@
-import read, { Token } from "../src/reader";
 import expect from "expect.js";
 import Reader from "../src/shift-reader";
 import { TokenType } from "shift-parser/dist/tokenizer";

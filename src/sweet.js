@@ -1,4 +1,3 @@
-import read, { Token } from "./reader";
 import Reader from "./shift-reader";
 import expand from "./expander";
 import { List } from "immutable";
