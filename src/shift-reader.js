@@ -30,6 +30,14 @@ const isMatchingDelimiters = R.cond([
   [R.T, R.F]
 ]);
 
+const assignOps =  ["=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=",
+                  "&=", "|=", "^=", ","];
+
+const binaryOps = ["+", "-", "*", "/", "%","<<", ">>", ">>>", "&", "|", "^",
+                 "&&", "||", "?", ":",
+                 "===", "==", ">=", "<=", "<", ">", "!=", "!==", "instanceof"];
+
+const unaryOps = ["++", "--", "~", "!", "delete", "void", "typeof", "yield", "throw", "new"];
 
 // List -> Boolean
 const isEmpty = R.whereEq({size: 0});
@@ -52,9 +60,14 @@ const isVal = R.curry((v, s) => s.val() === v);
 const isDot = R.allPass([isPunctuator, isVal('.')]);
 const isColon = R.allPass([isPunctuator, isVal(':')]);
 const isFunctionKeyword = R.allPass([isKeyword, isVal('function')]);
+const isOperator = s => (s.isPunctuator() || s.isKeyword()) &&
+                          R.any(R.equals(s.val()),
+                                assignOps.concat(binaryOps).concat(unaryOps));
 const isNonLiteralKeyword = R.allPass([isKeyword,
                                        s => R.none(R.equals(s.val()), literalKeywords)]);
-
+const isKeywordExprPrefix = R.allPass([isKeyword,
+  s => R.any(R.equals(s.val()), ['instanceof', 'typeof', 'delete', 'void',
+                                  'yield', 'throw', 'new', 'case'])]);
 // List a -> a?
 let last = p => p.last();
 // List a -> Maybe a
@@ -94,11 +107,32 @@ let isExprReturn = R.curry((l, p) => {
   }).getOrElse(false);
 });
 
+const isTopOperator = R.pipe(
+  safeLast,
+  R.map(isOperator),
+  Maybe.maybe(false, R.identity)
+);
+
+const isTopKeywordExprPrefix = R.pipe(
+  safeLast,
+  R.map(isKeywordExprPrefix),
+  Maybe.maybe(false, R.identity)
+);
+
 // Number -> Boolean -> List -> Boolean
 let isExprPrefix = R.curry((l, b) => R.cond([
+  // ... ({x: 42} /r/i)
   [isEmpty, R.always(b)],
+  // ... ({x: {x: 42} /r/i })
   [isTopColon, R.always(b)],
-  [isTopPunctuator, R.T],
+  // ... throw {x: 42} /r/i
+  [isTopKeywordExprPrefix, R.T],
+  // ... 42 + {x: 42} /r/i
+  [isTopOperator, R.T],
+  // ... for ( ; {x: 42}/r/i)
+  [isTopPunctuator, R.always(b)],
+  // ... return {x: 42} /r /i
+  // ... return\n{x: 42} /r /i
   [isExprReturn(l), R.T],
   [R.T, R.F],
 ]));
