@@ -1,7 +1,10 @@
 {
   "name": "sweet.js",
   "description": "Hygienic Macros for JavaScript",
-  "main": "lib/sweet.js",
+  "main": "dist/sweet.js",
+  "bin": {
+    "sjs": "bin/sjs"
+  },
   "version": "0.10.0-alpha.0",
   "engines": {
     "node": ">4.0.0"
@@ -14,19 +17,10 @@
     }
   ],
   "scripts": {
-    "clean": "rm -rf build/",
-    "build:src": "node_modules/.bin/babel --source-maps -d build/ src/*.js",
-    "build:test": "node_modules/.bin/babel --source-maps -d build/ test/*.js",
-    "build": "npm run clean && npm run build:src && npm run build:test",
-    "test:single": "mocha build/test/test_expression_parsing.js",
-    "test": "mocha --reporter dot --require source-map-support/register build/test/*.js",
-    "pretest": "npm run build"
+    "test": "node_modules/.bin/gulp"
   },
   "directories": {
     "test": "test"
-  },
-  "bin": {
-    "sjs": "bin/sjs"
   },
   "dependencies": {
     "optimist": "~0.3.4",
@@ -43,6 +37,10 @@
     "core-js": "^1.2.6",
     "eslint-plugin-flowtype": "^1.0.0",
     "expect.js": "0.1.x",
+    "gulp": "^3.9.0",
+    "gulp-babel": "^6.1.1",
+    "gulp-mocha": "^2.2.0",
+    "gulp-sourcemaps": "^1.6.0",
     "immutable": "^3.7.4",
     "mocha": "^2.2.5",
     "ramda": "^0.19.0",
@@ -53,7 +51,8 @@
     "shift-reducer": "^2.0.4",
     "shift-spidermonkey-converter": "^1.0.0",
     "source-map": "~0.1.31",
-    "source-map-support": "^0.3.2"
+    "source-map-support": "^0.3.2",
+    "yargs": "^3.31.0"
   },
   "repository": {
     "type": "git",

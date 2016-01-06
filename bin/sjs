@@ -1,7 +1,14 @@
 #!/usr/bin/env node
 
+var argv = require('yargs').argv;
+
 var path = require('path');
 var fs   = require('fs');
-var lib  = path.join(path.dirname(fs.realpathSync(__filename)), '../lib');
+var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
 
-require(lib + '/sjs').run();
+var fname = argv._[0];
+
+var infile = fs.readFileSync(fname, 'utf8');
+var output = require(dir + '/sweet.js').compile(infile);
+
+console.log(output.code);

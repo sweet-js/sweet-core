@@ -30,6 +30,8 @@ export function parse(source, options = {}) {
 export function compile(source) {
   let ast = parse(source);
   let gen = codegen.default(ast);
+  // TODO use AST instead of shipping string to babel
+  // need to fix shift to estree converter first
   return transform(gen);
 }
 
