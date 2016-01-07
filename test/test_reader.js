@@ -277,6 +277,7 @@ describe('shift reader for regex', () => {
     expect(r.get(7).val()).to.be('/42/i');
   });
 });
+
 //         expect(read("function foo() {} function foo() {} /42/i")[8].literal)
 //             .to.equal("/42/i");
 //

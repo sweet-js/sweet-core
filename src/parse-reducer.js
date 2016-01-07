@@ -9,6 +9,21 @@ export default class ParseReducer extends CloneReducer {
     });
   }
 
+  reduceImport(node, state) {
+    return new Term('Import', {
+      defaultBinding: state.defaultBinding,
+      namedImports: state.namedImports.toArray(),
+      moduleSpecifier: state.moduleSpecifier
+    });
+  }
+
+  reduceImportSpecifier(node, state) {
+    return new Term('ImportSpecifier', {
+      name: state.name,
+      binding: state.binding
+    });
+  }
+
   reduceIdentifierExpression(node, state) {
     return new Term("IdentifierExpression", {
       name: node.name.resolve()

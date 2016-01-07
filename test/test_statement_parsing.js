@@ -300,3 +300,35 @@ describe('assignment expresssions', () => {
     });
   });
 });
+
+describe('module import/export', () => {
+
+  it('should parse an import with a single named import', () => {
+    testParse('import { x } from "foo";', x => x, {
+        "type": "Module",
+        "loc": null,
+        "directives": [],
+        "items": [
+          {
+            "type": "Import",
+            "loc": null,
+            "defaultBinding": null,
+            "namedImports": [
+              {
+                "type": "ImportSpecifier",
+                "loc": null,
+                "name": null,
+                "binding": {
+                  "type": "BindingIdentifier",
+                  "loc": null,
+                  "name": "x"
+                }
+              }
+            ],
+            "moduleSpecifier": "foo"
+          }
+        ]
+    });
+  });
+
+});

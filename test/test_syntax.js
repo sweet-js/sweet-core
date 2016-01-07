@@ -8,6 +8,7 @@ import { serializer, makeDeserializer } from "../src/serializer";
 
 import { Symbol, gensym } from "../src/symbol";
 
+
 describe('syntax objects', () => {
   it('that have no bindings or scopes should resolve to their original name ', () => {
     let foo = makeIdentifier('foo');

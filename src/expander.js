@@ -228,6 +228,10 @@ class TermExpander {
     });
   }
 
+  expandImport(term) {
+    return term;
+  }
+
   expandStaticPropertyName(term) {
     return term;
   }

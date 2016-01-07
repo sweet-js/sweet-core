@@ -73,7 +73,7 @@ export class Enforester {
     if (type === "expression") {
       result = this.enforestExpressionLoop();
     } else {
-      result = this.enforestModuleItem();
+      result = this.enforestModule();
     }
 
     if (this.rest.size === 0) {
@@ -82,9 +82,72 @@ export class Enforester {
     return result;
   }
 
+  enforestModule() {
+    return this.enforestBody();
+  }
+
+  enforestBody() {
+    return this.enforestModuleItem();
+  }
+
   enforestModuleItem() {
+    let lookahead = this.peek();
+    if (this.isKeyword(lookahead, 'import')) {
+      this.advance();
+      return this.enforestImportDeclaration();
+    }
     return this.enforestStatement();
   }
+
+  enforestImportDeclaration() {
+    let lookahead = this.peek();
+
+    if (this.isCurlyDelimiter(lookahead)) {
+      let imports = this.enforestNamedImports();
+      let fromClause = this.enforestFromClause();
+
+      return new Term("Import", {
+        defaultBinding: null,
+        // List(ImportSpecifier)
+        namedImports: imports,
+        // String
+        moduleSpecifier: fromClause
+      });
+    }
+    throw "not implemented yet";
+  }
+
+  enforestNamedImports() {
+    let enf = new Enforester(this.matchCurlies(), List(), this.context);
+    let result = [];
+    while (enf.rest.size !== 0) {
+      result.push(enf.enforestImportSpecifiers());
+    }
+    return List(result);
+  }
+
+  enforestImportSpecifiers() {
+    let lookahead = this.peek();
+    if (this.isIdentifier(lookahead)) {
+      let name = this.advance();
+      this.consumeComma();
+      return new Term('ImportSpecifier', {
+        name: null,
+        binding: new Term('BindingIdentifier', {
+          name: name
+        })
+      });
+    }
+    throw this.createError(lookahead, 'unexpected token in import specifier');
+  }
+
+  enforestFromClause() {
+    this.matchIdentifier('from');
+    let lookahead = this.matchStringLiteral();
+    this.consumeSemicolon();
+    return lookahead.val();
+  }
+
 
   enforestStatement() {
     let lookahead = this.peek();
@@ -669,8 +732,9 @@ export class Enforester {
     return term && (term instanceof Syntax) && term.isEOF();
   }
 
-  isIdentifier(term) {
-    return term && (term instanceof Syntax) && term.isIdentifier();
+  isIdentifier(term, val = null) {
+    return term && (term instanceof Syntax) && term.isIdentifier() &&
+            ((val === null) || (term.val() === val));
   }
 
   isNumericLiteral(term) {
@@ -768,12 +832,20 @@ export class Enforester {
     return a.lineNumber() === b.lineNumber();
   }
 
-  matchIdentifier() {
+  matchIdentifier(val) {
     let lookahead = this.advance();
     if (this.isIdentifier(lookahead)) {
       return lookahead;
     }
     throw this.createError(lookahead, "expecting an identifier");
+  }
+
+  matchKeyword(val) {
+    let lookahead = this.advance();
+    if (this.isKeyword(lookahead, val)) {
+      return lookahead;
+    }
+    throw this.createError(lookahead, 'expecting ' + val);
   }
 
   matchLiteral() {
@@ -786,6 +858,14 @@ export class Enforester {
       return lookahead;
     }
     throw this.createError(lookahead, "expecting a literal");
+  }
+
+  matchStringLiteral() {
+    let lookahead = this.advance();
+    if (this.isStringLiteral(lookahead)) {
+      return lookahead;
+    }
+    throw this.createError(lookahead, 'expecting a string literal');
   }
 
   matchParens() {
