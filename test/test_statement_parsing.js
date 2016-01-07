@@ -331,4 +331,62 @@ describe('module import/export', () => {
     });
   });
 
+  // it('should parse an export of a syntax decl', () => {
+  //   testParse('export syntax m = function () {}', x => x, {
+  //     test: 'foo'
+  //   });
+  // });
+
+  it('should parse an export of a var decl', () => {
+    testParse('export var x = function () {}', x => x, {
+      "type": "Module",
+      "loc": null,
+      "directives": [],
+      "items": [
+        {
+          "type": "Export",
+          "loc": null,
+          "declaration": {
+            "type": "VariableDeclarationStatement",
+            "loc": null,
+            "declaration": {
+              "type": "VariableDeclaration",
+              "loc": null,
+              "kind": "var",
+              "declarators": [
+                {
+                  "type": "VariableDeclarator",
+                  "loc": null,
+                  "binding": {
+                    "type": "BindingIdentifier",
+                    "loc": null,
+                    "name": "x"
+                  },
+                  "init": {
+                    "type": "FunctionExpression",
+                    "loc": null,
+                    "isGenerator": false,
+                    "name": null,
+                    "params": {
+                      "type": "FormalParameters",
+                      "loc": null,
+                      "items": [],
+                      "rest": null
+                    },
+                    "body": {
+                      "type": "FunctionBody",
+                      "loc": null,
+                      "directives": [],
+                      "statements": []
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    });
+  });
+
 });

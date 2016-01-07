@@ -232,6 +232,12 @@ class TermExpander {
     return term;
   }
 
+  expandExport(term) {
+    return new Term('Export', {
+      declaration: this.expand(term.declaration)
+    });
+  }
+
   expandStaticPropertyName(term) {
     return term;
   }

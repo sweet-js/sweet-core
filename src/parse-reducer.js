@@ -17,6 +17,12 @@ export default class ParseReducer extends CloneReducer {
     });
   }
 
+  reduceExport(node, state) {
+    return new Term('Export', {
+      declaration: state.declaration
+    });
+  }
+
   reduceImportSpecifier(node, state) {
     return new Term('ImportSpecifier', {
       name: state.name,

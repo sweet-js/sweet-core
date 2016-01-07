@@ -95,8 +95,24 @@ export class Enforester {
     if (this.isKeyword(lookahead, 'import')) {
       this.advance();
       return this.enforestImportDeclaration();
+    } else if (this.isKeyword(lookahead, 'export')) {
+      this.advance();
+      return this.enforestExportDeclaration();
     }
     return this.enforestStatement();
+  }
+
+  enforestExportDeclaration() {
+    let lookahead = this.peek();
+    if (this.isVarDeclTransform(lookahead) ||
+        this.isLetDeclTransform(lookahead) ||
+        this.isConstDeclTransform(lookahead) ||
+        this.isSyntaxDeclTransform(lookahead)) {
+      return new Term('Export', {
+        declaration: this.enforestVariableDeclaration()
+      });
+    }
+    throw "not implemented yet";
   }
 
   enforestImportDeclaration() {
