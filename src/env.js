@@ -20,6 +20,10 @@ export default class Env {
     this.map.set("return", ReturnStatementTransform);
   }
 
+  has(key) {
+    return this.map.has(key);
+  }
+
   get(key) {
     return this.map.get(key);
   }

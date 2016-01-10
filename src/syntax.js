@@ -72,7 +72,15 @@ export default class Syntax {
           }).join(', ');
           throw new Error('Scopeset ' + debugBase + ' has ambiguous subsets ' + debugAmbigousScopesets);
         } else if (biggestBindingPair.size !== 0) {
-          return biggestBindingPair.get(0).binding.toString();
+          let bindingStr = biggestBindingPair.get(0).binding.toString();
+          if (Maybe.isJust(biggestBindingPair.get(0).alias)) {
+            return biggestBindingPair.get(0).alias.getOrElse(null).resolve();
+          }
+          return bindingStr;
+          // if (Maybe.isJust(biggestBindingPair.get(0).alias)) {
+          //   return biggestBindingPair.get(0).alias.just().resolve();
+          // }
+          // return ;
         }
       }
     }

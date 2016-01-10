@@ -39,3 +39,7 @@ gulp.task("dist", function () {
 gulp.task('watch', ['default'], function () {
   gulp.watch(['src/**/*.js', 'test/**/*.js'], ['default']);
 });
+
+gulp.task('watch:build', ['build:src'], function () {
+  gulp.watch(['src/**/*.js',], ['build:src']);
+});

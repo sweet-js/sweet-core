@@ -4,13 +4,18 @@ import { assert } from "./errors";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
 import { identity, pipe, bind, is, isNil, complement, and, curry, __, cond, T, both, either, where, whereEq, equals } from "ramda";
 import { Maybe } from 'ramda-fantasy';
+import { readFileSync } from 'fs';
+import Reader from "./shift-reader";
+import resolve from 'resolve';
+import Env from "./env";
+import BindingMap from "./binding-map.js";
 
 import { gensym } from "./symbol";
 import { Scope, freshScope } from "./scope";
 import Term, {
   isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isVariableDeclaration,
-  isVariableDeclarationStatement
+  isVariableDeclarationStatement, isImport, isExport
 } from "./terms";
 import Syntax, {makeString, makeIdentifier} from "./syntax";
 import { serializer, makeDeserializer } from "./serializer";
@@ -26,7 +31,7 @@ import codegen from "shift-codegen";
 
 import * as convert from "shift-spidermonkey-converter";
 
-import reducer from "shift-reducer";
+import reducer, { MonoidalReducer } from "shift-reducer";
 
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
@@ -36,6 +41,8 @@ let reduce = reducer.default;
 
 // indirect eval so in the global scope
 let geval = eval;
+
+let loadedModules = new Map();
 
 function wrapForCompiletime(ast, keys) {
   // todo: hygiene
@@ -109,15 +116,89 @@ let removeScope = cond([
 ]);
 
 let loadSyntax = cond([
-  [where({binding: isBindingIdentifier}), curry(({binding, init}, te, context) => {
+  [where({binding: isBindingIdentifier}), curry(({binding, init}, te, context, env) => {
     // finish the expansion early for the initialization
     let initValue = loadForCompiletime(te.expand(init), context);
 
-    context.env.set(binding.name.resolve(), new CompiletimeTransform(initValue));
+    env.set(binding.name.resolve(), new CompiletimeTransform(initValue));
   })],
   [T, _ => assert(false, "not implemented yet")]
 ]);
 
+function resolveModulePath(path, cwd) {
+  return resolve.sync(path, { basedir: cwd });
+}
+
+// ... -> { body: [Term], importEntries: [Import], exportEntries: [Export] }
+function loadModule(modulePath, context) {
+  let path = resolveModulePath(modulePath, context.cwd);
+  if (!loadedModules.has(path)) {
+    let modStr = readFileSync(path, 'utf8');
+    let reader = new Reader(modStr);
+    let stxl = reader.read();
+    let terms = expandTokens(stxl, {
+      env: new Env(),
+      store: new Env(),
+      bindings: new BindingMap()
+    });
+    let importEntries = [];
+    let exportEntries = [];
+    terms.forEach(t => {
+      cond([
+        [isImport, t => importEntries.push(t)],
+        [isExport, t => exportEntries.push(t)]
+      ])(t);
+    });
+    loadedModules.set(path, {
+      moduleSpecifier: path,
+      body: terms,
+      importEntries: List(importEntries),
+      exportEntries: List(exportEntries)
+    });
+  }
+  return loadedModules.get(path);
+}
+
+// (Module) -> Context
+function visit(module, context) {
+  module.exportEntries.forEach(ex => {
+    if (isSyntaxDeclaration(ex.declaration.declaration)) {
+      ex.declaration.declaration.declarators.forEach(loadSyntax(__, new TermExpander(context), context, context.store));
+    }
+  });
+  return context;
+}
+
+function findNameInExports(name, exp) {
+  let foundNames = exp.reduce((acc, e) => {
+    if (e.declaration) {
+      return acc.concat(e.declaration.declaration.declarators.reduce((acc, decl) => {
+        if (decl.binding.name.val() === name.val()) {
+          return acc.concat(decl.binding.name);
+        }
+        return acc;
+      }, List()));
+    }
+    return acc;
+  }, List());
+  assert(foundNames.size <= 1, 'expecting no more than 1 matching name in exports');
+  return foundNames.get(0);
+}
+
+
+function bindImports(impTerm, exModule, context) {
+  impTerm.namedImports.forEach(specifier => {
+    let name = specifier.binding.name;
+    let exportName = findNameInExports(name, exModule.exportEntries);
+    if (exportName != null) {
+      let newBinding = gensym(name.val());
+      context.bindings.addForward(name, exportName, newBinding);
+    }
+    // // TODO: better error
+    // throw 'imported binding ' + name.val() + ' not found in exports of module' + exModule.moduleSpecifier;
+
+  });
+}
 
 function expandTokens(stxl, context) {
   let result = List();
@@ -144,7 +225,7 @@ function expandTokens(stxl, context) {
           // then, for syntax declarations we need to load the compiletime value into the
           // environment
           if (isSyntaxDeclaration(term.declaration)) {
-            term.declaration.declarators.forEach(loadSyntax(__, new TermExpander(context), context));
+            term.declaration.declarators.forEach(loadSyntax(__, new TermExpander(context), context, context.env));
             // do not add syntax declarations to the result
             return Nothing();
           }
@@ -153,6 +234,12 @@ function expandTokens(stxl, context) {
         [isFunctionWithName, (term) => {
           registerBindings(term.name, context);
           return Just(term);
+        }],
+        [isImport, impTerm => {
+          let mod = loadModule(impTerm.moduleSpecifier, context);
+          context = visit(mod, context);
+          bindImports(impTerm, mod, context);
+          return Just(impTerm);
         }],
         [isEOF, Nothing],
         [T, Just]

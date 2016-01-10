@@ -18,7 +18,9 @@ export function parse(source, options = {}) {
   let stxl = reader.read();
   let exStxl = expand(stxl, {
     env: new Env(),
-    bindings: new BindingMap()
+    store: new Env(),
+    bindings: new BindingMap(),
+    cwd: options.cwd
   });
   let ast = reduce.default(new ParseReducer(), new Term("Module", {
     directives: List(),
@@ -27,8 +29,10 @@ export function parse(source, options = {}) {
   return ast;
 }
 
-export function compile(source) {
-  let ast = parse(source);
+export function compile(source, cwd) {
+  let ast = parse(source, {
+    cwd: cwd
+  });
   let gen = codegen.default(ast);
   // TODO use AST instead of shipping string to babel
   // need to fix shift to estree converter first
@@ -40,6 +44,7 @@ function expandForExport(source) {
   let stxl = reader.read();
   let exStxl = expand(stxl, {
     env: new Env(),
+    store: new Env(),
     bindings: new BindingMap()
   });
   return new Term("Module", {

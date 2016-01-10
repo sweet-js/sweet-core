@@ -45,6 +45,7 @@
     "mocha": "^2.2.5",
     "ramda": "^0.19.0",
     "ramda-fantasy": "^0.4.1",
+    "resolve": "^0.6.3",
     "shift-codegen": "^3.0.0",
     "shift-js": "^0.2.1",
     "shift-parser": "^3.0.5",

@@ -128,6 +128,7 @@ export class Enforester {
         namedImports: imports,
         // String
         moduleSpecifier: fromClause
+
       });
     }
     throw "not implemented yet";
@@ -702,7 +703,7 @@ export class Enforester {
   expandMacro(enforestType) {
     let name = this.advance();
 
-    let ct = this.context.env.get(name.resolve());
+    let ct = this.getCompiletimeTransform(name);
     if (ct == null || typeof ct.value !== "function") {
       throw this.createError(name,
         "the macro name was not bound to a value that could be invoked");
@@ -836,7 +837,15 @@ export class Enforester {
 
   isCompiletimeTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) instanceof CompiletimeTransform;
+           (this.context.env.get(term.resolve()) instanceof CompiletimeTransform ||
+            this.context.store.get(term.resolve()) instanceof CompiletimeTransform);
+  }
+
+  getCompiletimeTransform(term) {
+    if (this.context.env.has(term.resolve())) {
+      return this.context.env.get(term.resolve());
+    }
+    return this.context.store.get(term.resolve());
   }
 
   lineNumberEq(a, b) {

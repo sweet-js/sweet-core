@@ -1,5 +1,6 @@
 import { List } from "immutable";
 import { expect, assert } from "./errors";
+import { Maybe } from 'ramda-fantasy';
 
 export default class BindingMap {
   constructor() {
@@ -16,14 +17,36 @@ export default class BindingMap {
       let scopesetBindingList = this._map.get(stxName);
       this._map.set(stxName, scopesetBindingList.push({
         scopes: stx.context.scopeset,
-        binding: binding
+        binding: binding,
+        alias: Maybe.Nothing()
       }));
     } else {
       this._map.set(stxName, List.of({
         scopes: stx.context.scopeset,
-        binding: binding
+        binding: binding,
+        alias: Maybe.Nothing()
       }));
     }
+  }
+
+  addForward(stx, forwardStx, binding, phase = 0) {
+    let stxName = stx.token.value;
+
+    if (this._map.has(stxName)) {
+      let scopesetBindingList = this._map.get(stxName);
+      this._map.set(stxName, scopesetBindingList.push({
+        scopes: stx.context.scopeset,
+        binding: binding,
+        alias: Maybe.of(forwardStx)
+      }));
+    } else {
+      this._map.set(stxName, List.of({
+        scopes: stx.context.scopeset,
+        binding: binding,
+        alias: Maybe.of(forwardStx)
+      }));
+    }
+
   }
 
   // Syntax -> ?List<{ scopes: ScopeSet, binding: Binding }>
