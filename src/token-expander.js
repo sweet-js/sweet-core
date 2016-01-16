@@ -47,14 +47,39 @@ let removeScope = _.cond([
 ]);
 
 let loadSyntax = _.cond([
-  [_.where({binding: isBindingIdentifier}), _.curry(({binding, init}, te, context, env) => {
+  [_.where({binding: isBindingIdentifier}), _.curry(({binding, init}, context, env) => {
     // finish the expansion early for the initialization
-    let initValue = loadForCompiletime(te.expand(init), context);
+    let termExpander = new TermExpander(context);
+    let initValue = loadForCompiletime(termExpander.expand(init), context);
 
     env.set(binding.name.resolve(), new CompiletimeTransform(initValue));
   })],
   [_.T, _ => assert(false, "not implemented yet")]
 ]);
+
+class Module {
+  constructor(moduleSpecifier, importEntries, exportEntries, body) {
+    this.moduleSpecifier = moduleSpecifier;
+    this.importEntries = importEntries;
+    this.exportEntries = exportEntries;
+    this.body = body;
+  }
+
+  // put all compiltime transforms in the returned store
+  visit(context) {
+    let store = new Env();
+
+    this.exportEntries.forEach(ex => {
+      if (isSyntaxDeclaration(ex.declaration.declaration)) {
+        ex.declaration.declaration.declarators.forEach(
+          loadSyntax(_.__, context, store)
+        );
+      }
+    });
+
+    return store;
+  }
+}
 
 class ModuleLoader {
   constructor(context) {
@@ -83,27 +108,17 @@ class ModuleLoader {
           [isExport, t => exportEntries.push(t)]
         ])(t);
       });
-      this.loadedModules.set(path, {
-        moduleSpecifier: path,
-        body: terms,
-        importEntries: List(importEntries),
-        exportEntries: List(exportEntries)
-      });
+      this.loadedModules.set(path, new Module(
+        path,
+        List(importEntries),
+        List(exportEntries),
+        terms
+      ));
     }
     return this.loadedModules.get(path);
   }
 }
 
-
-// (Module) -> Context
-function visit(module, context) {
-  module.exportEntries.forEach(ex => {
-    if (isSyntaxDeclaration(ex.declaration.declaration)) {
-      ex.declaration.declaration.declarators.forEach(loadSyntax(_.__, new TermExpander(context), context, context.store));
-    }
-  });
-  return context;
-}
 
 function findNameInExports(name, exp) {
   let foundNames = exp.reduce((acc, e) => {
@@ -222,7 +237,9 @@ export default class TokenExpander {
             // then, for syntax declarations we need to load the compiletime value into the
             // environment
             if (isSyntaxDeclaration(term.declaration)) {
-              term.declaration.declarators.forEach(loadSyntax(_.__, new TermExpander(this.context), this.context, this.context.env));
+              term.declaration.declarators.forEach(
+                loadSyntax(_.__, this.context, this.context.env)
+              );
               // do not add syntax declarations to the result
               return Nothing();
             }
@@ -234,9 +251,11 @@ export default class TokenExpander {
           }],
           [isImport, impTerm => {
             let mod = this.loader.load(impTerm.moduleSpecifier);
-            this.context = visit(mod, this.context);
+            let store = mod.visit(this.context);
+            this.context.store = store;
             bindImports(impTerm, mod, this.context);
-            return Just(impTerm);
+            // return Just(impTerm);
+            return Nothing();
           }],
           [isEOF, Nothing],
           [_.T, Just]

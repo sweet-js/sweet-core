@@ -148,24 +148,6 @@ describe('module import/export', () => {
       "directives": [],
       "items": [
         {
-          "type": "Import",
-          "loc": null,
-          "defaultBinding": null,
-          "namedImports": [
-            {
-              "type": "ImportSpecifier",
-              "loc": null,
-              "name": null,
-              "binding": {
-                "type": "BindingIdentifier",
-                "loc": null,
-                "name": "m"
-              }
-            }
-          ],
-          "moduleSpecifier": "./m.js"
-        },
-        {
           "type": "ExpressionStatement",
           "loc": null,
           "expression": {
