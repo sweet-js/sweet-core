@@ -1,6 +1,6 @@
 import { parse, expand } from "../src/sweet";
 import expect from "expect.js";
-import { expr, stmt, testParse } from "./assertions";
+import { expr, stmt, testParse, testModule } from "./assertions";
 
 describe('module import/export', () => {
 
@@ -130,6 +130,48 @@ describe('module import/export', () => {
                 }
               ]
             }
+          }
+        }
+      ]
+    });
+  });
+
+  it('should do what i want', () => {
+    let loader = {
+      "./m.js": `export syntax m = function (ctx) {
+  return syntaxQuote { 42 };
+}`
+    };
+    testModule('import { m } from "./m.js"; m', loader, {
+      "type": "Module",
+      "loc": null,
+      "directives": [],
+      "items": [
+        {
+          "type": "Import",
+          "loc": null,
+          "defaultBinding": null,
+          "namedImports": [
+            {
+              "type": "ImportSpecifier",
+              "loc": null,
+              "name": null,
+              "binding": {
+                "type": "BindingIdentifier",
+                "loc": null,
+                "name": "m"
+              }
+            }
+          ],
+          "moduleSpecifier": "./m.js"
+        },
+        {
+          "type": "ExpressionStatement",
+          "loc": null,
+          "expression": {
+            "type": "LiteralNumericExpression",
+            "loc": null,
+            "value": 42
           }
         }
       ]

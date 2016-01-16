@@ -10,13 +10,8 @@ function stmt(program) {
   return program.items[0];
 }
 
-// if a property has the string <<hygiene> it is ignored
-function testParse(code, acc, expectedAst) {
-  let parsedAst = parse(code, {
-    loc: false,
-    moduleResolver: () => "",
-    moduleLoader: () => ""
-  });
+function testParseWithOpts(code, acc, expectedAst, options) {
+  let parsedAst = parse(code, options);
   let isString = (x) => type(x) === 'String';
   let isObject = (x) => type(x) === 'Object';
   let isArray = (x) => type(x) === 'Array';
@@ -36,6 +31,23 @@ function testParse(code, acc, expectedAst) {
     }, expected);
   }
   checkObjects(expectedAst, acc(parsedAst));
+}
+
+export function testModule(code, loader, expectedAst) {
+  return testParseWithOpts(code, x => x, expectedAst, {
+    loc: false,
+    moduleResolver: x => x,
+    moduleLoader: path => loader[path]
+  });
+}
+
+// if a property has the string <<hygiene> it is ignored
+function testParse(code, acc, expectedAst) {
+  return testParseWithOpts(code, acc, expectedAst, {
+    loc: false,
+    moduleResolver: () => "",
+    moduleLoader: () => "",
+  });
 }
 
 function testEval(source, expectedOutput) {

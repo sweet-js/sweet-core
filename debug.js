@@ -13,5 +13,5 @@ var fs = require("fs");
 
 var source = fs.readFileSync("./test.js", "utf8");
 
-var result = compile(source);
+var result = compile(source, __dirname);
 console.log(result.code);
