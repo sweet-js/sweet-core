@@ -1,9 +1,6 @@
 import MapSyntaxReducer from "./map-syntax-reducer";
 import reducer from "shift-reducer";
 
-// TODO: fix babel import default fail
-let reduce = reducer.default;
-
 export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
     // todo: perhaps replace with a symbol to keep mostly private?
@@ -26,6 +23,6 @@ export default class MacroContext {
         .addScope(this.useScope, this.context.bindings)
         .addScope(this.introducedScope, this.context.bindings, { flip: true});
     });
-    return reduce(red, term);
+    return reducer(red, term);
   }
 }

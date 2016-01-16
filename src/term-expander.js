@@ -11,8 +11,6 @@ import Expander from './expander';
 import Syntax, {makeString, makeIdentifier} from "./syntax";
 import { serializer, makeDeserializer } from "./serializer";
 import { enforestExpr, Enforester } from "./enforester";
-// TODO: fix default import fail
-let reduce = reducer.default;
 
 function expandExpressionList(stxl, context) {
   let result = List();
@@ -182,7 +180,7 @@ export default class TermExpander {
     let scope = freshScope("fun");
     let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
     let red = new ApplyScopeInParamsReducer(scope, this.context);
-    let params = reduce(red, term.params);
+    let params = reducer(red, term.params);
     let expander = new Expander(this.context);
 
     let bodyTerm = new Term("FunctionBody", {

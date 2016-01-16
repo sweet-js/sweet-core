@@ -27,9 +27,6 @@ import { expect, assert } from "./errors";
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
 
-// TODO: fix default import fail
-let reduce = reducer.default;
-
 // indirect eval so in the global scope
 let geval = eval;
 
@@ -158,7 +155,7 @@ function loadForCompiletime(expr, context) {
   let sandboxKeys = List(Object.keys(sandbox));
   let sandboxVals = sandboxKeys.map(k => sandbox[k]).toArray();
 
-  let parsed = reduce(new ParseReducer(), new Term("Module", {
+  let parsed = reducer(new ParseReducer(), new Term("Module", {
     directives: List(),
     items: List.of(new Term("ExpressionStatement", {
       expression: new Term("FunctionExpression", {
