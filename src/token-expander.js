@@ -200,7 +200,7 @@ function loadForCompiletime(expr, context) {
   // let result = transform.fromAst(wrapForCompiletime(estree, sandboxKeys));
 
   // let result = babel.transform(wrapForCompiletime(estree, sandboxKeys));
-  let gen = codegen.default(parsed);
+  let gen = codegen(parsed);
   let result = transform(gen);
   return geval(result.code).apply(undefined, sandboxVals);
 }

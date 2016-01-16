@@ -239,7 +239,7 @@ const isRegexPrefix = b => R.anyPass([
 
 ]);
 
-export default class Reader extends Tokenizer.default {
+export default class Reader extends Tokenizer {
   constructor(source/*: string */) {
     super(source);
     this.delimStack = new Map();

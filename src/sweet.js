@@ -41,7 +41,7 @@ export function compile(source, cwd) {
   let ast = parse(source, {
     cwd: cwd
   });
-  let gen = codegen.default(ast);
+  let gen = codegen(ast);
   // TODO use AST instead of shipping string to babel
   // need to fix shift to estree converter first
   return transform(gen);
