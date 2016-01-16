@@ -7,7 +7,7 @@ import Term, {
 import { Scope, freshScope } from "./scope";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
 import reducer, { MonoidalReducer } from "shift-reducer";
-import expand from './expander';
+import Expander from './expander';
 import Syntax, {makeString, makeIdentifier} from "./syntax";
 import { serializer, makeDeserializer } from "./serializer";
 import { enforestExpr, Enforester } from "./enforester";
@@ -183,11 +183,11 @@ export default class TermExpander {
     let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
     let red = new ApplyScopeInParamsReducer(scope, this.context);
     let params = reduce(red, term.params);
-    // let expander = new Expander(markedBody, this.context);
+    let expander = new Expander(this.context);
 
     let bodyTerm = new Term("FunctionBody", {
       directives: List(),
-      statements: expand(markedBody, this.context)
+      statements: expander.expand(markedBody)
     });
 
     return new Term(type, {
