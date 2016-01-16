@@ -23,8 +23,8 @@ export function expand(source, options = {}) {
     store: new Env(),
     bindings: new BindingMap(),
     cwd: options.cwd,
-    moduleResolver: moduleResolver,
-    moduleLoader: moduleLoader
+    moduleResolver: options.moduleResolver ? options.moduleResolver : moduleResolver,
+    moduleLoader: options.moduleLoader ? options.moduleLoader : moduleLoader
   });
   let exStxl = expander.expand(stxl);
   return new Term("Module", {

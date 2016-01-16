@@ -12,7 +12,11 @@ function stmt(program) {
 
 // if a property has the string <<hygiene> it is ignored
 function testParse(code, acc, expectedAst) {
-  let parsedAst = parse(code, {loc: false});
+  let parsedAst = parse(code, {
+    loc: false,
+    moduleResolver: () => "",
+    moduleLoader: () => ""
+  });
   let isString = (x) => type(x) === 'String';
   let isObject = (x) => type(x) === 'Object';
   let isArray = (x) => type(x) === 'Array';
