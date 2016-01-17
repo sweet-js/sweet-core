@@ -13,6 +13,7 @@ import Term, {
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isVariableDeclaration,
   isVariableDeclarationStatement, isImport, isExport
 } from "./terms";
+import Reader from './shift-reader';
 
 // indirect eval so in the global scope
 let geval = eval;
@@ -22,7 +23,9 @@ function loadForCompiletime(expr, context) {
   let deserializer = makeDeserializer(context.bindings);
   let sandbox = {
     syntaxQuote: function (str) {
-      return deserializer.read(str);
+      let reader = new Reader(str[0]);
+      return reader.read();
+      // return deserializer.read(str);
     }
   };
 

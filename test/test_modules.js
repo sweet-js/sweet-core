@@ -139,7 +139,7 @@ describe('module import/export', () => {
   it('should load a simple syntax transformer', () => {
     let loader = {
       "./m.js": `export syntax m = function (ctx) {
-  return syntaxQuote { 42 };
+  return syntaxQuote\`42\`;
 }`
     };
     testModule('import { m } from "./m.js"; m', loader, {
@@ -164,7 +164,7 @@ describe('module import/export', () => {
     let loader = {
       "./x.js": `export var x = 42;`,
       "./m.js": `export syntax m = function (ctx) {
-  return syntaxQuote { 42 };
+  return syntaxQuote\`42\`;
 }`
     };
     testModule('import { m } from "./m.js"; import { x } from "./x.js"; m', loader, {

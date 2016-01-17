@@ -401,10 +401,10 @@ export class Enforester {
       return this.enforestAssignmentExpression();
     }
 
-    // syntaxQuote { ... }
-    if (this.term === null && this.isSyntaxQuoteTransform(lookahead)) {
-      return this.enforestSyntaxQuote();
-    }
+    // // syntaxQuote { ... }
+    // if (this.term === null && this.isSyntaxQuoteTransform(lookahead)) {
+    //   return this.enforestSyntaxQuote();
+    // }
 
     // $x:ThisExpression
     if (this.term === null && this.isKeyword(lookahead, "this")) {
@@ -515,15 +515,15 @@ export class Enforester {
     });
   }
 
-  enforestSyntaxQuote() {
-    let name = this.advance();
-    let body = this.matchCurlies();
-
-    return new Term("SyntaxQuote", {
-      name: name,
-      stx: body
-    });
-  }
+  // enforestSyntaxQuote() {
+  //   let name = this.advance();
+  //   let body = this.matchCurlies();
+  //
+  //   return new Term("SyntaxQuote", {
+  //     name: name,
+  //     stx: body
+  //   });
+  // }
 
   enforestStaticMemberExpression() {
     let object = this.term;

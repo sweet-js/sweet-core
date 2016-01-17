@@ -3,6 +3,7 @@ import { Symbol } from "./symbol";
 import { assert } from "./errors";
 import BindingMap from "./binding-map";
 import { Maybe } from "ramda-fantasy";
+import * as _ from 'ramda';
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
 
@@ -120,6 +121,17 @@ export default class Syntax {
 
   addScope(scope, bindings, options = { flip: false }) {
     let token = this.isDelimiter() ? this.token.map(s => s.addScope(scope, bindings, options)) : this.token;
+    if (this.isTemplate()) {
+      token = {
+        type: this.token.type,
+        items: token.items.map(it => {
+          if (it instanceof Syntax && it.isDelimiter()) {
+            return it.addScope(scope, bindings, options);
+          }
+          return it;
+        })
+      };
+    }
     let newScopeset;
     // TODO: clean this logic up
     if (options.flip) {

@@ -7,7 +7,7 @@ describe("macro expansion", function () {
   it("should handle basic expansion at a statement expression position", function () {
     testParse(`
 syntax m = function(ctx) {
-    return syntaxQuote { 200 };
+    return syntaxQuote\`200\`;
 }
 m`, stmt, {
       "type": "ExpressionStatement",
@@ -23,7 +23,7 @@ m`, stmt, {
   it("should handle basic expansion at an expression position", function () {
     testParse(`
 syntax m = function (ctx) {
-    return syntaxQuote { 200 }
+    return syntaxQuote\`200\`;
 }
 let v = m`, stmt, {
       "type": "VariableDeclarationStatement",
@@ -55,7 +55,7 @@ let v = m`, stmt, {
     testParse(`
 syntax m = function(ctx) {
     ctx.next();
-    return syntaxQuote { 200 }
+    return syntaxQuote\`200\`
 }
 m 42`, stmt, {
       "type": "ExpressionStatement",
@@ -72,7 +72,7 @@ m 42`, stmt, {
     testParse(`
 syntax m = function(ctx) {
     ctx.nextExpression();
-    return syntaxQuote { 200 }
+    return syntaxQuote\`200\`
 }
 m 100 + 200`, stmt, {
       "type": "ExpressionStatement",

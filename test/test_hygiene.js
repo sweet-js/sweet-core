@@ -7,7 +7,7 @@ describe("hygiene", function () {
          testEval(`
  output = function foo(x) {
      syntax m = function (ctx) {
-         return syntaxQuote { x }
+         return syntaxQuote\`x\`
      }
      return function (x) {
          return m;
@@ -19,7 +19,7 @@ describe("hygiene", function () {
     testEval(`
  function foo(x) {
      syntax m = function (ctx) {
-         return syntaxQuote { x }
+         return syntaxQuote\`x\`
      }
      function bar(x) {
          return m;
@@ -32,7 +32,7 @@ describe("hygiene", function () {
   it("should work with introduced var declarations", function () {
     testEval(`
 syntax m = function (ctx) {
-  return syntaxQuote { var x = 42; }
+  return syntaxQuote\`var x = 42;\`
 }
 output = function foo() {
   var x = 100;
