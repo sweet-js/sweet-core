@@ -136,7 +136,7 @@ describe('module import/export', () => {
     });
   });
 
-  it('should do what i want', () => {
+  it('should load a simple syntax transformer', () => {
     let loader = {
       "./m.js": `export syntax m = function (ctx) {
   return syntaxQuote { 42 };
@@ -147,6 +147,49 @@ describe('module import/export', () => {
       "loc": null,
       "directives": [],
       "items": [
+        {
+          "type": "ExpressionStatement",
+          "loc": null,
+          "expression": {
+            "type": "LiteralNumericExpression",
+            "loc": null,
+            "value": 42
+          }
+        }
+      ]
+    });
+  });
+
+  it('should load a simple syntax transformer but leave runtime imports', () => {
+    let loader = {
+      "./x.js": `export var x = 42;`,
+      "./m.js": `export syntax m = function (ctx) {
+  return syntaxQuote { 42 };
+}`
+    };
+    testModule('import { m } from "./m.js"; import { x } from "./x.js"; m', loader, {
+      "type": "Module",
+      "loc": null,
+      "directives": [],
+      "items": [
+        {
+          "type": "Import",
+          "loc": null,
+          "defaultBinding": null,
+          "namedImports": [
+            {
+              "type": "ImportSpecifier",
+              "loc": null,
+              "name": null,
+              "binding": {
+                "type": "BindingIdentifier",
+                "loc": null,
+                "name": "x"
+              }
+            }
+          ],
+          "moduleSpecifier": "./x.js"
+        },
         {
           "type": "ExpressionStatement",
           "loc": null,

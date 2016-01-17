@@ -31,7 +31,7 @@ let registerBindings = _.cond([
 
 let removeScope = _.cond([
   [isBindingIdentifier, ({name}, scope) => new Term('BindingIdentifier', {
-      name: name.removeScope(scope)
+    name: name.removeScope(scope)
   })],
   [_.T, _ => assert(false, "not implemented yet")]
 ]);
@@ -54,17 +54,21 @@ function findNameInExports(name, exp) {
 
 
 function bindImports(impTerm, exModule, context) {
+  let names = [];
   impTerm.namedImports.forEach(specifier => {
     let name = specifier.binding.name;
     let exportName = findNameInExports(name, exModule.exportEntries);
     if (exportName != null) {
       let newBinding = gensym(name.val());
       context.bindings.addForward(name, exportName, newBinding);
+      if (context.store.has(exportName.resolve())) {
+        names.push(name);
+      }
     }
     // // TODO: better error
     // throw 'imported binding ' + name.val() + ' not found in exports of module' + exModule.moduleSpecifier;
-
   });
+  return List(names);
 }
 
 
@@ -114,8 +118,11 @@ export default class TokenExpander {
             let mod = this.context.modules.load(term.moduleSpecifier, this.context);
             // mutates the store
             mod.visit(this.context);
-            bindImports(term, mod, this.context);
-            // return Just(term);
+            let boundNames = bindImports(term, mod, this.context);
+            // NOTE: this is a hack for MVP modules
+            if (boundNames.size === 0) {
+              return Just(term);
+            }
             return Nothing();
           }],
           [isEOF, Nothing],
