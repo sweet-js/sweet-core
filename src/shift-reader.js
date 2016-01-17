@@ -5,6 +5,7 @@ import { List } from "immutable";
 import Syntax from "./syntax";
 import * as R from 'ramda';
 import { Maybe } from 'ramda-fantasy';
+import { assert } from './errors';
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
 
@@ -243,9 +244,10 @@ export default class Reader extends Tokenizer {
   constructor(source/*: string */) {
     super(source);
     this.delimStack = new Map();
+    this.insideTemplate = false;
   }
 
-  read(stack/*: Array<any> */ = [], b = false)/*: List */ {
+  read(stack = [], b = false, singleDelimiter = false) {
     let prefix = List();
     while (true) {
       let tok = this.advance(prefix, b);
@@ -264,6 +266,9 @@ export default class Reader extends Tokenizer {
         let stx = new Syntax(inner);
         prefix = prefix.concat(stx);
         stack.push(stx);
+        if (singleDelimiter) {
+          break;
+        }
       } else if (isRightDelimiter(tok)) {
         if (stack[0] && !isMatchingDelimiters(stack[0].token, tok)) {
           throw this.createUnexpected(tok);
@@ -281,10 +286,74 @@ export default class Reader extends Tokenizer {
   }
 
   advance(prefix, b)/*: any */ {
+    let charCode = this.source.charCodeAt(this.index);
+
+    if (charCode === 0x60) { // `
+      let element, items = [];
+      do {
+        element = this.scanTemplateElement();
+        items.push(element);
+        if (element.interp) {
+          // only read the single delimiter
+          element = this.read([], false, true);
+          assert(element.size === 1, "should only have read a single delimiter inside a template");
+          items.push(element.get(0));
+        }
+      } while (!element.tail);
+      return {
+        type: TokenType.TEMPLATE,
+        items: List(items)
+      };
+    }
+
     let lookahead = super.advance();
     if (lookahead.type === TokenType.DIV && isRegexPrefix(b)(prefix)) {
       return super.scanRegExp("/");
     }
     return lookahead;
+  }
+
+  // need to override how templates are lexed because of delimiters
+  scanTemplateElement() {
+    let startLocation = this.getLocation();
+    let start = this.index;
+    this.index++;
+    while (this.index < this.source.length) {
+      let ch = this.source.charCodeAt(this.index);
+      switch (ch) {
+        case 0x60:  // `
+          this.index++;
+          return {
+            type: TokenType.TEMPLATE,
+            tail: true,
+            interp: false,
+            slice: this.getSlice(start, startLocation)
+          };
+        case 0x24:  // $
+          if (this.source.charCodeAt(this.index + 1) === 0x7B) {  // {
+            this.index += 1;
+            return {
+              type: TokenType.TEMPLATE,
+              tail: false,
+              interp: true,
+              slice: this.getSlice(start, startLocation)
+            };
+          }
+          this.index++;
+          break;
+        case 0x5C:  // \\
+        {
+          let octal = this.scanStringEscape("", null)[1];
+          if (octal != null) {
+            throw this.createILLEGAL();
+          }
+          break;
+        }
+        default:
+          this.index++;
+      }
+    }
+
+    throw this.createILLEGAL();
   }
 }

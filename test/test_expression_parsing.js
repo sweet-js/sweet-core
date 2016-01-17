@@ -56,6 +56,61 @@ describe("parsing primary expressions", function () {
         "loc": null
       }
     });
+
+    testParse('`x`', stmt, {
+      "type": "ExpressionStatement",
+      "loc": null,
+      "expression": {
+        "type": "TemplateExpression",
+        "loc": null,
+        "tag": null,
+        "elements": [
+          {
+            "type": "TemplateElement",
+            "loc": null,
+            "rawValue": "x"
+          }
+        ]
+      }
+    });
+
+    testParse('`x${1 + 2}y`', stmt, {
+      "type": "ExpressionStatement",
+      "loc": null,
+      "expression": {
+        "type": "TemplateExpression",
+        "loc": null,
+        "tag": null,
+        "elements": [
+          {
+            "type": "TemplateElement",
+            "loc": null,
+            "rawValue": "x"
+          },
+          {
+            "type": "BinaryExpression",
+            "loc": null,
+            "left": {
+              "type": "LiteralNumericExpression",
+              "loc": null,
+              "value": 1
+            },
+            "operator": "+",
+            "right": {
+              "type": "LiteralNumericExpression",
+              "loc": null,
+              "value": 2
+            }
+          },
+          {
+            "type": "TemplateElement",
+            "loc": null,
+            "rawValue": "y"
+          }
+        ]
+      }
+    });
+
     testParse("'foo';", stmt, {
       "type": "ExpressionStatement",
       "loc": null,
@@ -65,7 +120,7 @@ describe("parsing primary expressions", function () {
         "value": "foo"
       }
     });
-    //testParse("/foo/i;", stmt, {
+    // testParse("/foo/i;", stmt, {
     //    "type": "ExpressionStatement",
     //    "loc": null,
     //    "expression": {
@@ -74,7 +129,7 @@ describe("parsing primary expressions", function () {
     //        "pattern": "foo",
     //        "flags": "i"
     //    }
-    //});
+    // });
   });
 
   // TODO: figure out how to test with hygiene

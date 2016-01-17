@@ -11,6 +11,7 @@ import Expander from './expander';
 import Syntax, {makeString, makeIdentifier} from "./syntax";
 import { serializer, makeDeserializer } from "./serializer";
 import { enforestExpr, Enforester } from "./enforester";
+import { assert } from './errors';
 
 function expandExpressionList(stxl, context) {
   let result = List();
@@ -47,6 +48,13 @@ export default class TermExpander {
       return this[field](term);
     }
     assert(false, "expand not implemented yet for: " + term.type);
+  }
+
+  expandTemplateExpression(term) {
+    return new Term('TemplateExpression', {
+      tag: term.tag,
+      elements: term.elements.toArray()
+    });
   }
 
   expandVariableDeclarationStatement(term) {

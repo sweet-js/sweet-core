@@ -428,6 +428,12 @@ export class Enforester {
         value: this.advance()
       });
     }
+    if (this.term === null && this.isTemplate(lookahead)) {
+      return new Term('TemplateExpression', {
+        tag: null,
+        elements: this.enforestTemplateElements()
+      });
+    }
     if (this.term === null && this.isBooleanLiteral(lookahead)) {
       return new Term("LiteralBooleanExpression", {
         value: this.advance()
@@ -700,6 +706,22 @@ export class Enforester {
     }
   }
 
+  enforestTemplateElements() {
+    let lookahead = this.advance();
+    let single = lookahead.token.items.size === 1;
+    let elements = lookahead.token.items.map(it => {
+      if (it instanceof Syntax && it.isDelimiter()) {
+        let enf = new Enforester(it.inner(), List(), this.context);
+        return enf.enforest("expression");
+      }
+      let val = it.tail && !single ? it.slice.text.slice(0, -1) : it.slice.text.slice(1, -1);
+      return new Term('TemplateElement', {
+        rawValue: val
+      });
+    });
+    return elements;
+  }
+
   expandMacro(enforestType) {
     let name = this.advance();
 
@@ -761,6 +783,10 @@ export class Enforester {
 
   isStringLiteral(term) {
     return term && (term instanceof Syntax) && term.isStringLiteral();
+  }
+
+  isTemplate(term) {
+    return term && (term instanceof Syntax) && term.isTemplate();
   }
 
   isBooleanLiteral(term) {
@@ -880,6 +906,7 @@ export class Enforester {
         this.isStringLiteral(lookahead) ||
         this.isBooleanLiteral(lookahead) ||
         this.isNullLiteral(lookahead) ||
+        this.isTemplate(lookahead) ||
         this.isRegularExpression(lookahead)) {
       return lookahead;
     }

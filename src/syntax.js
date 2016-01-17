@@ -92,6 +92,14 @@ export default class Syntax {
     if (this.isStringLiteral()) {
       return this.token.str;
     }
+    if (this.isTemplate()) {
+      return this.token.items.map(el => {
+        if (el instanceof Syntax && el.isDelimiter()) {
+          return '{...}';
+        }
+        return el.slice.text;
+      }).join('');
+    }
     return this.token.value;
   }
 
@@ -202,6 +210,9 @@ export default class Syntax {
     }
     if (this.isStringLiteral()) {
       return "'" + this.token.str;
+    }
+    if (this.isTemplate()) {
+      return this.val();
     }
     return this.token.value;
   }

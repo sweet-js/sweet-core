@@ -83,6 +83,25 @@ describe("shift reader basics", function () {
     expect(r.get(0).isDelimiter()).to.be(true);
     expect(r.get(0).inner().get(0).val()).to.be(42);
   });
+
+  it("should read a `x` as a simple template", function () {
+    let reader = new Reader('`x`');
+    let r = reader.read();
+
+    expect(r.get(0).isTemplate()).to.be(true);
+    expect(r.get(0).val()).to.be("`x`");
+  });
+
+  it("should read a `x${1}y` as a template", function () {
+    let reader = new Reader('`x${1}y`');
+    let r = reader.read();
+
+    expect(r.get(0).token.items.size).to.be(3);
+    expect(r.get(0).isTemplate()).to.be(true);
+    expect(r.get(0).val()).to.be("`x${...}y`");
+    expect(r.get(0).token.items.get(1).inner().get(0).isNumericLiteral()).to.be(true);
+  });
+
 });
 
 describe('shift reader for regex', () => {
