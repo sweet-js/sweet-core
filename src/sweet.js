@@ -14,6 +14,7 @@ import BindingMap from "./binding-map.js";
 
 import Term from "./terms";
 import { Symbol } from "./symbol";
+import { Modules } from './modules';
 
 export function expand(source, options = {}) {
   let reader = new Reader(source);
@@ -23,6 +24,7 @@ export function expand(source, options = {}) {
     store: new Env(),
     bindings: new BindingMap(),
     cwd: options.cwd,
+    modules: new Modules(),
     moduleResolver: options.moduleResolver ? options.moduleResolver : moduleResolver,
     moduleLoader: options.moduleLoader ? options.moduleLoader : moduleLoader
   });

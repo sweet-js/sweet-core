@@ -5,7 +5,6 @@ import BindingMap from "./binding-map.js";
 import Env from "./env";
 import resolve from 'resolve';
 import Reader from "./shift-reader";
-import { readFileSync } from 'fs';
 import * as _ from "ramda";
 import Term, {
   isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
@@ -13,22 +12,13 @@ import Term, {
   isVariableDeclarationStatement, isImport, isExport
 } from "./terms";
 import { Maybe } from 'ramda-fantasy';
-import reducer, { MonoidalReducer } from "shift-reducer";
 import { gensym } from './symbol';
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
-import { makeDeserializer } from './serializer';
-import ParseReducer from './parse-reducer.js';
-import Syntax, {makeString, makeIdentifier} from "./syntax";
-import codegen from 'shift-codegen';
-import { transform } from "babel-core";
 import { expect, assert } from "./errors";
-
+import loadSyntax from './load-syntax';
 
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
-
-// indirect eval so in the global scope
-let geval = eval;
 
 let registerBindings = _.cond([
   [isBindingIdentifier, ({name}, context) => {
@@ -45,80 +35,6 @@ let removeScope = _.cond([
   })],
   [_.T, _ => assert(false, "not implemented yet")]
 ]);
-
-let loadSyntax = _.cond([
-  [_.where({binding: isBindingIdentifier}), _.curry(({binding, init}, context, env) => {
-    // finish the expansion early for the initialization
-    let termExpander = new TermExpander(context);
-    let initValue = loadForCompiletime(termExpander.expand(init), context);
-
-    env.set(binding.name.resolve(), new CompiletimeTransform(initValue));
-  })],
-  [_.T, _ => assert(false, "not implemented yet")]
-]);
-
-class Module {
-  constructor(moduleSpecifier, importEntries, exportEntries, body) {
-    this.moduleSpecifier = moduleSpecifier;
-    this.importEntries = importEntries;
-    this.exportEntries = exportEntries;
-    this.body = body;
-  }
-
-  // put all compiltime transforms in the returned store
-  visit(context) {
-    let store = new Env();
-
-    this.exportEntries.forEach(ex => {
-      if (isSyntaxDeclaration(ex.declaration.declaration)) {
-        ex.declaration.declaration.declarators.forEach(
-          loadSyntax(_.__, context, store)
-        );
-      }
-    });
-
-    return store;
-  }
-}
-
-class ModuleLoader {
-  constructor(context) {
-    this.context = context;
-    this.loadedModules = new Map();
-  }
-
-  // ... -> { body: [Term], importEntries: [Import], exportEntries: [Export] }
-  load(modulePath) {
-    let path = this.context.moduleResolver(modulePath, this.context.cwd);
-    if (!this.loadedModules.has(path)) {
-      let modStr = this.context.moduleLoader(path);
-      let reader = new Reader(modStr);
-      let stxl = reader.read();
-      let tokenExpander = new TokenExpander(_.merge(this.context, {
-        env: new Env(),
-        store: new Env(),
-        bindings: new BindingMap()
-      }));
-      let terms = tokenExpander.expand(stxl);
-      let importEntries = [];
-      let exportEntries = [];
-      terms.forEach(t => {
-        _.cond([
-          [isImport, t => importEntries.push(t)],
-          [isExport, t => exportEntries.push(t)]
-        ])(t);
-      });
-      this.loadedModules.set(path, new Module(
-        path,
-        List(importEntries),
-        List(exportEntries),
-        terms
-      ));
-    }
-    return this.loadedModules.get(path);
-  }
-}
-
 
 function findNameInExports(name, exp) {
   let foundNames = exp.reduce((acc, e) => {
@@ -151,65 +67,10 @@ function bindImports(impTerm, exModule, context) {
   });
 }
 
-function wrapForCompiletime(ast, keys) {
-  // todo: hygiene
-  let params = keys.map(k => new Identifier(k));
-  let body = new ReturnStatement(ast);
-  let fn = new FunctionExpression(null, params, new BlockStatement([body]));
-  return new Program([new ExpressionStatement(fn)]);
-}
-// (Expression, Context) -> [function]
-function loadForCompiletime(expr, context) {
-  let deserializer = makeDeserializer(context.bindings);
-  let sandbox = {
-    syntaxQuote: function (str) {
-      return deserializer.read(str);
-    }
-  };
-
-  let sandboxKeys = List(Object.keys(sandbox));
-  let sandboxVals = sandboxKeys.map(k => sandbox[k]).toArray();
-
-  let parsed = reducer(new ParseReducer(), new Term("Module", {
-    directives: List(),
-    items: List.of(new Term("ExpressionStatement", {
-      expression: new Term("FunctionExpression", {
-        isGenerator: false,
-        name: null,
-        params: new Term("FormalParameters", {
-          items: sandboxKeys.map(param => {
-            return new Term("BindingIdentifier", {
-              name: makeIdentifier(param)
-            });
-          }),
-          rest: null
-        }),
-        body: new Term("FunctionBody", {
-          directives: List(),
-          statements: List.of(new Term("ReturnStatement", {
-            expression: expr
-          }))
-        })
-      })
-    }))
-  }));
-
-  // TODO: should just pass an AST to babel but the estree converter still
-  // needs some work so until then just gen a string
-  // let estree = convert.toSpiderMonkey(parsed);
-  // let result = transform.fromAst(wrapForCompiletime(estree, sandboxKeys));
-
-  // let result = babel.transform(wrapForCompiletime(estree, sandboxKeys));
-  let gen = codegen(parsed);
-  let result = transform(gen);
-  return geval(result.code).apply(undefined, sandboxVals);
-}
-
 
 export default class TokenExpander {
   constructor(context) {
     this.context = context;
-    this.loader = new ModuleLoader(this.context);
   }
 
   expand(stxl) {
@@ -224,7 +85,7 @@ export default class TokenExpander {
       let term = _.pipe(
         _.bind(enf.enforest, enf),
         _.cond([
-          [isVariableDeclarationStatement, (term) => {
+          [isVariableDeclarationStatement, term => {
             // first, remove the use scope from each binding
             term.declaration.declarators = term.declaration.declarators.map(decl => {
               return new Term('VariableDeclarator', {
@@ -245,16 +106,16 @@ export default class TokenExpander {
             }
             return Just(term);
           }],
-          [isFunctionWithName, (term) => {
+          [isFunctionWithName, term => {
             registerBindings(term.name, this.context);
             return Just(term);
           }],
-          [isImport, impTerm => {
-            let mod = this.loader.load(impTerm.moduleSpecifier);
-            let store = mod.visit(this.context);
-            this.context.store = store;
-            bindImports(impTerm, mod, this.context);
-            // return Just(impTerm);
+          [isImport, term => {
+            let mod = this.context.modules.load(term.moduleSpecifier, this.context);
+            // mutates the store
+            mod.visit(this.context);
+            bindImports(term, mod, this.context);
+            // return Just(term);
             return Nothing();
           }],
           [isEOF, Nothing],
