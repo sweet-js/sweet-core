@@ -489,6 +489,12 @@ export class Enforester {
         arguments: paren
       });
     }
+    if (this.term && this.isTemplate(lookahead)) {
+      return new Term('TemplateExpression', {
+        tag: this.term,
+        elements: this.enforestTemplateElements()
+      });
+    }
 
     return this.term;
   }

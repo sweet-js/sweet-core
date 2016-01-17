@@ -74,6 +74,27 @@ describe("parsing primary expressions", function () {
       }
     });
 
+    testParse('id`x`', stmt, {
+      "type": "ExpressionStatement",
+      "loc": null,
+      "expression": {
+        "type": "TemplateExpression",
+        "loc": null,
+        "tag": {
+          "type": "IdentifierExpression",
+          "loc": null,
+          "name": "id"
+        },
+        "elements": [
+          {
+            "type": "TemplateElement",
+            "loc": null,
+            "rawValue": "x"
+          }
+        ]
+      }
+    });
+
     testParse('`x${1 + 2}y`', stmt, {
       "type": "ExpressionStatement",
       "loc": null,
