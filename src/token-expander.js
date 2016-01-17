@@ -24,7 +24,14 @@ let registerBindings = _.cond([
   [isBindingIdentifier, ({name}, context) => {
     let newBinding = gensym(name.val());
     context.env.set(newBinding.toString(), new VarBindingTransform(name));
-    context.bindings.add(name, newBinding);
+    context.bindings.add(name, {
+      binding: newBinding,
+      phase: 0,
+      // skip dup because js allows variable redeclarations
+      // (technically only for `var` but we can let later stages of the pipeline
+      // handle incorrect redeclarations of `const` and `let`)
+      skipDup: true
+    });
   }],
   [_.T, _ => assert(false, "not implemented yet")]
 ]);
@@ -97,16 +104,19 @@ export default class TokenExpander {
                 init: decl.init
               });
             });
-            // second, add each binding to the environment
-            term.declaration.declarators.forEach(decl => registerBindings(decl.binding, this.context));
-            // then, for syntax declarations we need to load the compiletime value into the
-            // environment
+            // for syntax declarations we need to load the compiletime value
+            // into the environment
             if (isSyntaxDeclaration(term.declaration)) {
               term.declaration.declarators.forEach(
                 loadSyntax(_.__, this.context, this.context.env)
               );
               // do not add syntax declarations to the result
               return Nothing();
+            } else {
+              // add each binding to the environment
+              term.declaration.declarators.forEach(decl =>
+                registerBindings(decl.binding, this.context)
+              );
             }
             return Just(term);
           }],

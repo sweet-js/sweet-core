@@ -16,7 +16,10 @@ export default class ScopeApplyingReducer extends CloneReducer {
     let newBinding = gensym(name.val());
 
     this.context.env.set(newBinding.toString(), new VarBindingTransform(name));
-    this.context.bindings.add(name, newBinding, this.phase);
+    this.context.bindings.add(name, {
+      binding: newBinding, 
+      phase: this.phase
+    });
 
     return new Term("BindingIdentifier", {
       name: name

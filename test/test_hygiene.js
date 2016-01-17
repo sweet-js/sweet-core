@@ -1,6 +1,6 @@
 import expect from "expect.js";
 
-import { expr, stmt, testParse, testEval } from "./assertions";
+import { testThrow, expr, stmt, testParse, testEval } from "./assertions";
 
 describe("hygiene", function () {
      it("should work with references to function expression parameters", function () {
@@ -39,5 +39,19 @@ output = function foo() {
   m;
   return x;
 }()`, 100);
+  });
+
+  it('should allow duplicate var declarations', () => {
+    testEval(`
+      var x = 100;
+      var x = 200;
+      output = x;
+    `, 200);
+  });
+
+  it('should throw exception for duplicate let declarations', () => {
+    testThrow(`
+      let x = 100;
+      let x = 200`);
   });
 });

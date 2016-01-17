@@ -711,6 +711,7 @@ export class Enforester {
     let useSiteScope = freshScope("u");
     let introducedScope = freshScope("i");
     this.context.useScope = useSiteScope;
+    this.context.introducedScope = introducedScope;
 
     let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 

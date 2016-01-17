@@ -10,11 +10,14 @@ export default class BindingMap {
   // given a syntax object and a binding,
   // add the binding to the map associating the binding with the syntax object's
   // scope set
-  add(stx, binding, phase) {
-    let stxName = stx.token.value;
+  add(stx, { binding, phase, skipDup = false }) {
+    let stxName = stx.val();
 
     if (this._map.has(stxName)) {
       let scopesetBindingList = this._map.get(stxName);
+      if (skipDup && scopesetBindingList.some(s => s.scopes.equals(stx.context.scopeset))) {
+        return;
+      }
       this._map.set(stxName, scopesetBindingList.push({
         scopes: stx.context.scopeset,
         binding: binding,

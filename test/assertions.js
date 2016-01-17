@@ -57,6 +57,10 @@ function testEval(source, expectedOutput) {
   expect(output).to.be(expectedOutput);
 }
 
+export function testThrow(source) {
+  expect(() => compile(source)).to.throwError();
+}
+
 export {
   expr, stmt, testParse, testEval
 };

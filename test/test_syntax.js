@@ -24,7 +24,7 @@ describe('syntax objects', () => {
 
       foo_1 = foo_1.addScope(scope1, bindings);
 
-      bindings.add(foo_1, gensym('foo'));
+      bindings.add(foo_1, { binding: gensym('foo') });
 
       expect(foo.resolve()).to.not.be(foo_1.resolve());
     });
@@ -40,8 +40,8 @@ describe('syntax objects', () => {
       foo_1 = foo_1.addScope(scope1, bindings);
       foo_2 = foo_2.addScope(scope2, bindings);
 
-      bindings.add(foo_1, gensym('foo'));
-      bindings.add(foo_2, gensym('foo'));
+      bindings.add(foo_1, {binding: gensym('foo')});
+      bindings.add(foo_2, { binding: gensym('foo')});
 
       expect(foo_1.resolve()).to.not.be(foo_2.resolve());
     });
@@ -61,7 +61,7 @@ describe('syntax objects', () => {
         .addScope(scope2, bindings)
         .addScope(scope3, bindings);
 
-      bindings.add(foo_1, gensym('foo'));
+      bindings.add(foo_1, {binding: gensym('foo')});
 
       expect(foo_1.resolve()).to.be(foo_123.resolve());
     });
@@ -86,8 +86,8 @@ describe('syntax objects', () => {
       .addScope(scope2, bindings)
       .addScope(scope3, bindings);
 
-    bindings.add(foo_13, gensym('foo'));
-    bindings.add(foo_12, gensym('foo'));
+    bindings.add(foo_13, {binding: gensym('foo')});
+    bindings.add(foo_12, {binding: gensym('foo')});
 
     expect(() => foo_123.resolve()).to.throwError();
   });
@@ -148,7 +148,7 @@ describe('serializing', () => {
     let foo = makeIdentifier('foo');
     foo = foo.addScope(scope1, bindings);
 
-    bindings.add(foo, gensym('foo'));
+    bindings.add(foo, {binding: gensym('foo')});
 
     let rtFoo = deserializer.read(serializer.write(foo));
 

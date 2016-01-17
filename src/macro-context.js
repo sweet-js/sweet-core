@@ -13,7 +13,9 @@ export default class MacroContext {
 
   next() {
     let stx = this._enf.advance();
-    return stx.addScope(this.useScope);
+    return stx
+      .addScope(this.useScope)
+      .addScope(this.introducedScope, this.context.bindings, { flip: true });
   }
 
   nextExpression() {
@@ -21,7 +23,7 @@ export default class MacroContext {
     let red = new MapSyntaxReducer(stx => {
       return stx
         .addScope(this.useScope, this.context.bindings)
-        .addScope(this.introducedScope, this.context.bindings, { flip: true});
+        .addScope(this.introducedScope, this.context.bindings, { flip: true });
     });
     return reducer(red, term);
   }
