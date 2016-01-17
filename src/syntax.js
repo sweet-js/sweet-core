@@ -95,7 +95,7 @@ export default class Syntax {
     if (this.isTemplate()) {
       return this.token.items.map(el => {
         if (el instanceof Syntax && el.isDelimiter()) {
-          return '{...}';
+          return '${...}';
         }
         return el.slice.text;
       }).join('');

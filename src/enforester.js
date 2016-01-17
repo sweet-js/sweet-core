@@ -714,15 +714,13 @@ export class Enforester {
 
   enforestTemplateElements() {
     let lookahead = this.advance();
-    let single = lookahead.token.items.size === 1;
     let elements = lookahead.token.items.map(it => {
       if (it instanceof Syntax && it.isDelimiter()) {
         let enf = new Enforester(it.inner(), List(), this.context);
         return enf.enforest("expression");
       }
-      let val = it.tail && !single ? it.slice.text.slice(0, -1) : it.slice.text.slice(1, -1);
       return new Term('TemplateElement', {
-        rawValue: val
+        rawValue: it.slice.text
       });
     });
     return elements;

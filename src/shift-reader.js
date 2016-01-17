@@ -290,6 +290,7 @@ export default class Reader extends Tokenizer {
 
     if (charCode === 0x60) { // `
       let element, items = [];
+      this.index++;
       do {
         element = this.scanTemplateElement();
         items.push(element);
@@ -317,26 +318,29 @@ export default class Reader extends Tokenizer {
   scanTemplateElement() {
     let startLocation = this.getLocation();
     let start = this.index;
-    this.index++;
     while (this.index < this.source.length) {
       let ch = this.source.charCodeAt(this.index);
       switch (ch) {
         case 0x60:  // `
+          // don't include the traling "`"
+          let slice = this.getSlice(start, startLocation);
           this.index++;
           return {
             type: TokenType.TEMPLATE,
             tail: true,
             interp: false,
-            slice: this.getSlice(start, startLocation)
+            slice: slice
           };
         case 0x24:  // $
           if (this.source.charCodeAt(this.index + 1) === 0x7B) {  // {
+            // don't include the trailing "$"
+            let slice = this.getSlice(start, startLocation);
             this.index += 1;
             return {
               type: TokenType.TEMPLATE,
               tail: false,
               interp: true,
-              slice: this.getSlice(start, startLocation)
+              slice: slice
             };
           }
           this.index++;
