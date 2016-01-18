@@ -241,10 +241,11 @@ const isRegexPrefix = b => R.anyPass([
 ]);
 
 export default class Reader extends Tokenizer {
-  constructor(source/*: string */) {
+  constructor(source, context) {
     super(source);
     this.delimStack = new Map();
     this.insideTemplate = false;
+    this.context = context;
   }
 
   read(stack = [], b = false, singleDelimiter = false) {
@@ -263,7 +264,7 @@ export default class Reader extends Tokenizer {
         let line = tok.slice.startLocation.line;
         let innerB = isLeftBrace(tok) ? isExprPrefix(line, b)(prefix) : true;
         let inner = this.read([new Syntax(tok)], innerB);
-        let stx = new Syntax(inner);
+        let stx = new Syntax(inner, this.context);
         prefix = prefix.concat(stx);
         stack.push(stx);
         if (singleDelimiter) {
@@ -273,11 +274,11 @@ export default class Reader extends Tokenizer {
         if (stack[0] && !isMatchingDelimiters(stack[0].token, tok)) {
           throw this.createUnexpected(tok);
         }
-        let stx = new Syntax(tok);
+        let stx = new Syntax(tok, this.context);
         stack.push(stx);
         break;
       } else {
-        let stx = new Syntax(tok);
+        let stx = new Syntax(tok, this.context);
         prefix = prefix.concat(stx);
         stack.push(stx);
       }

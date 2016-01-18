@@ -401,10 +401,10 @@ export class Enforester {
       return this.enforestAssignmentExpression();
     }
 
-    // // syntaxQuote { ... }
-    // if (this.term === null && this.isSyntaxQuoteTransform(lookahead)) {
-    //   return this.enforestSyntaxQuote();
-    // }
+    // syntaxQuote ` ... `
+    if (this.term === null && this.isSyntaxQuoteTransform(lookahead)) {
+      return this.enforestSyntaxQuote();
+    }
 
     // $x:ThisExpression
     if (this.term === null && this.isKeyword(lookahead, "this")) {
@@ -515,15 +515,18 @@ export class Enforester {
     });
   }
 
-  // enforestSyntaxQuote() {
-  //   let name = this.advance();
-  //   let body = this.matchCurlies();
-  //
-  //   return new Term("SyntaxQuote", {
-  //     name: name,
-  //     stx: body
-  //   });
-  // }
+  enforestSyntaxQuote() {
+    let name = this.advance();
+    return new Term('SyntaxQuote', {
+      name: name,
+      template: new Term('TemplateExpression', {
+        tag: new Term('IdentifierExpression', {
+          name: name
+        }),
+        elements: this.enforestTemplateElements()
+      })
+    });
+  }
 
   enforestStaticMemberExpression() {
     let object = this.term;
@@ -923,6 +926,14 @@ export class Enforester {
       return lookahead;
     }
     throw this.createError(lookahead, 'expecting a string literal');
+  }
+
+  matchTemplate() {
+    let lookahead = this.advance();
+    if (this.isTemplate(lookahead)) {
+      return lookahead;
+    }
+    throw this.createError(lookahead, 'expecting a template literal');
   }
 
   matchParens() {

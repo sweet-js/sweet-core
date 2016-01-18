@@ -79,20 +79,18 @@ export default class TermExpander {
     return term;
   }
 
-  // expandSyntaxQuote(term) {
-  //   let id = new Term("IdentifierExpression", {
-  //     name: term.name
-  //   });
-  //
-  //   let str = new Term("LiteralStringExpression", {
-  //     value: makeString(serializer.write(term.stx))
-  //   });
-  //
-  //   return new Term("CallExpression", {
-  //     callee: id,
-  //     arguments: List.of(str)
-  //   });
-  // }
+  expandSyntaxQuote(term) {
+    let str = new Term("LiteralStringExpression", {
+      value: makeString(serializer.write(term.name))
+    });
+
+    return new Term("TemplateExpression", {
+      tag: term.template.tag,
+      elements: term.template.elements.push(str).push(new Term('TemplateElement', {
+        rawValue: ''
+      })).toArray()
+    });
+  }
 
   expandStaticMemberExpression(term) {
     return new Term("StaticMemberExpression", {

@@ -10,21 +10,17 @@ const Nothing = Maybe.Nothing;
 import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
 
 export function makeString(value, ctx) {
-  let bindings = ctx && ctx.context && ctx.context.bindings ? ctx.context.bindings : undefined;
-  let scopeset = ctx && ctx.context && ctx.context.scopeset ? ctx.context.scopeset : undefined;
   return new Syntax({
     type: TokenType.STRING,
     str: value
-  }, bindings, scopeset);
+  }, ctx);
 }
 
 export function makeIdentifier(value, ctx) {
-  let bindings = ctx && ctx.context && ctx.context.bindings ? ctx.context.bindings : undefined;
-  let scopeset = ctx && ctx.context && ctx.context.scopeset ? ctx.context.scopeset : undefined;
   return new Syntax({
     type: TokenType.IDENTIFIER,
     value: value
-  }, bindings, scopeset);
+  }, ctx);
 }
 
 function sizeDecending(a, b) {
@@ -39,11 +35,11 @@ function sizeDecending(a, b) {
 
 export default class Syntax {
   // (Token or List<Syntax>, List<Scope>) -> Syntax
-  constructor(token, bindings = new BindingMap(), scopeset = List()) {
+  constructor(token, context = {bindings: new BindingMap(), scopeset: List()}) {
     this.token = token;
     this.context = {
-      scopeset: scopeset,
-      bindings: bindings
+      bindings: context.bindings,
+      scopeset: context.scopeset
     };
   }
 
@@ -144,7 +140,7 @@ export default class Syntax {
     } else {
       newScopeset = this.context.scopeset.push(scope);
     }
-    return new Syntax(token, bindings, newScopeset);
+    return new Syntax(token, {bindings: bindings, scopeset: newScopeset});
   }
   removeScope(scope) {
     let token = this.isDelimiter() ? this.token.map(s => s.removeScope(scope)) : this.token;
@@ -153,7 +149,7 @@ export default class Syntax {
     if (index !== -1) {
       newScopeset = this.context.scopeset.remove(index);
     }
-    return new Syntax(token, this.context.bindings, newScopeset);
+    return new Syntax(token, { bindings: this.context.bindings, scopeset: newScopeset} );
   }
 
   isIdentifier() {
