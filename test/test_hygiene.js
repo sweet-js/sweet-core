@@ -41,6 +41,7 @@ output = function foo() {
 }()`, 100);
   });
 
+
   it('should allow duplicate var declarations', () => {
     testEval(`
       var x = 100;
