@@ -50,7 +50,9 @@ function loadForCompiletime(expr, context) {
           rest: null
         }),
         body: new Term("FunctionBody", {
-          directives: List(),
+          directives: List.of(new Term('Directive', {
+            rawValue: 'use strict'
+          })),
           statements: List.of(new Term("ReturnStatement", {
             expression: expr
           }))
