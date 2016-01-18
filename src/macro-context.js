@@ -20,11 +20,8 @@ export default class MacroContext {
 
   nextExpression() {
     let term = this._enf.enforest("expression");
-    let red = new MapSyntaxReducer(stx => {
-      return stx
-        .addScope(this.useScope, this.context.bindings)
-        .addScope(this.introducedScope, this.context.bindings, { flip: true });
-    });
-    return reducer(red, term);
+    return term
+      .addScope(this.useScope, this.context.bindings)
+      .addScope(this.introducedScope, this.context.bindings, { flip: true });
   }
 }

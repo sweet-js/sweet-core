@@ -384,6 +384,11 @@ export class Enforester {
   enforestExpression() {
     let lookahead = this.peek();
 
+    if (this.term === null && this.isTerm(lookahead)) {
+      // TODO: check that this is actually an expression
+      return this.advance();
+    }
+
     if (this.term === null && this.isCompiletimeTransform(lookahead)) {
       let term = this.expandMacro("expression");
       // TODO: need to figure out the right way of checking if terms are expressions
@@ -732,8 +737,8 @@ export class Enforester {
   expandMacro(enforestType) {
     let name = this.advance();
 
-    let ct = this.getCompiletimeTransform(name);
-    if (ct == null || typeof ct.value !== "function") {
+    let syntaxTransform = this.getCompiletimeTransform(name);
+    if (syntaxTransform == null || typeof syntaxTransform.value !== "function") {
       throw this.createError(name,
         "the macro name was not bound to a value that could be invoked");
     }
@@ -744,7 +749,7 @@ export class Enforester {
 
     let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 
-    let result = ct.value(ctx).map(stx => {
+    let result = syntaxTransform.value(ctx).map(stx => {
       return stx.addScope(introducedScope, this.context.bindings, { flip: true });
     });
 
@@ -773,6 +778,10 @@ export class Enforester {
     if (lookahead && this.isPunctuator(lookahead, ',')) {
       this.advance();
     }
+  }
+
+  isTerm(term) {
+    return term && (term instanceof Term);
   }
 
   isEOF(term) {

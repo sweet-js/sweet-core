@@ -5,12 +5,17 @@ import Syntax from "./syntax";
 import * as R from "ramda";
 
 export default class {
-  constructor(type, fields) {
+  constructor(type, props) {
     this.type = type;
     this.loc = null;
-    for (let field of Object.keys(fields)) {
-      this[field] = fields[field];
+    this._fields = Object.keys(props);
+    for (let prop of this._fields) {
+      this[prop] = props[prop];
     }
+  }
+  addScope(scope, bindings, options) {
+    // todo: deal with hygiene here
+    return this;
   }
 }
 

@@ -113,4 +113,33 @@ m 100 + 200`, stmt, {
         }
       });
   });
+
+  it('should handle expansion that matches and expression argument', () => {
+    testParse(`
+      syntax m = function(ctx) {
+        var x = ctx.nextExpression();
+        return syntaxQuote\`40 + \${x}\`;
+      }
+      m 2;
+      `, stmt, {
+        type: 'ExpressionStatement',
+        loc: null,
+        expression:
+        {
+          type: 'BinaryExpression',
+          loc: null,
+          left: {
+            type: 'LiteralNumericExpression',
+            loc: null,
+            value: 40
+          },
+          operator: '+',
+          right: {
+            type: 'LiteralNumericExpression',
+            loc: null,
+            value: 2
+          }
+        }
+      });
+  });
 });
