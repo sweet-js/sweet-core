@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-// var testParse = require("../assertions").testParse;
-// // var testParseFailure = require("../assertions").testParseFailure;
-// var stmt = require("../helpers").stmt;
-
 import expect from "expect.js";
 import { expr, stmt, testParse, testParseFailure } from "./assertions";
 

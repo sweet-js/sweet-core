@@ -64,6 +64,18 @@ export default class TermExpander {
     });
   }
 
+  expandBlockStatement(term) {
+    return new Term('BlockStatement', {
+      block: this.expand(term.block)
+    });
+  }
+
+  expandBlock(term) {
+    return new Term('Block', {
+      statements: term.statements.map(s => this.expand(s)).toArray()
+    });
+  }
+
   expandVariableDeclarationStatement(term) {
     return new Term('VariableDeclarationStatement', {
       declaration: this.expand(term.declaration)

@@ -184,6 +184,10 @@ export class Enforester {
       return this.expandMacro();
     }
 
+    if (this.term === null && this.isCurlyDelimiter(lookahead)) {
+      return this.enforestBlockStatement();
+    }
+
     // TODO: put somewhere else
     if (this.term === null && this.isKeyword(lookahead, "class")) {
       return this.enforestClass({isExpr: false});
@@ -226,6 +230,31 @@ export class Enforester {
     return new Term('LabeledStatement', {
       label: label,
       body: stmt
+    });
+  }
+
+  enforestBlockStatement() {
+    return new Term('BlockStatement', {
+      block: this.enforestBlock()
+    });
+  }
+
+  enforestBlock() {
+    let b = this.matchCurlies();
+    let body = [];
+    let enf = new Enforester(b, List(), this.context);
+
+    while (enf.rest.size !== 0) {
+      let lookahead = enf.peek();
+      let stmt = enf.enforestStatement();
+      if (stmt == null) {
+        throw enf.createError(lookahead, 'not a statement');
+      }
+      body.push(stmt);
+    }
+
+    return new Term('Block', {
+      statements: List(body)
     });
   }
 
@@ -662,8 +691,8 @@ export class Enforester {
       name = this.enforestBindingIdentifier();
     }
 
-    params = this.matchParens("expecting a function parameter list");
-    body = this.matchCurlies("expecting a function body");
+    params = this.matchParens();
+    body = this.matchCurlies();
 
     let enf = new Enforester(params, List(), this.context);
     let formalParams = enf.enforestFormalParameters();
@@ -690,8 +719,8 @@ export class Enforester {
 
     name = this.enforestBindingIdentifier();
 
-    params = this.matchParens("expecting a function parameter list");
-    body = this.matchCurlies("expecting a function body");
+    params = this.matchParens();
+    body = this.matchCurlies();
 
     let enf = new Enforester(params, List(), this.context);
     let formalParams = enf.enforestFormalParameters();
