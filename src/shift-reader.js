@@ -246,6 +246,7 @@ export default class Reader extends Tokenizer {
     this.delimStack = new Map();
     this.insideTemplate = false;
     this.context = context;
+
   }
 
   read(stack = [], b = false, singleDelimiter = false) {
@@ -287,6 +288,18 @@ export default class Reader extends Tokenizer {
   }
 
   advance(prefix, b)/*: any */ {
+    let startLocation = this.getLocation();
+
+    this.lastIndex = this.index;
+    this.lastLine = this.line;
+    this.lastLineStart = this.lineStart;
+
+    this.skipComment();
+
+    this.startIndex = this.index;
+    this.startLine = this.line;
+    this.startLineStart = this.lineStart;
+
     let charCode = this.source.charCodeAt(this.index);
 
     if (charCode === 0x60) { // `
@@ -305,6 +318,16 @@ export default class Reader extends Tokenizer {
       return {
         type: TokenType.TEMPLATE,
         items: List(items)
+      };
+    } else if (charCode === 35) { // #
+      let startLocation = this.getLocation();
+      let start = this.index;
+      let slice = this.getSlice(start, startLocation);
+      this.index++;
+      return {
+        type: TokenType.IDENTIFIER,
+        value: '#',
+        slice: slice
       };
     }
 

@@ -721,7 +721,7 @@ export class Enforester {
   }
 
   enforestTemplateElements() {
-    let lookahead = this.advance();
+    let lookahead = this.matchTemplate();
     let elements = lookahead.token.items.map(it => {
       if (it instanceof Syntax && it.isDelimiter()) {
         let enf = new Enforester(it.inner(), List(), this.context);
