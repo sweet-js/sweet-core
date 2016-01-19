@@ -17,8 +17,9 @@ export default class ScopeApplyingReducer extends CloneReducer {
 
     this.context.env.set(newBinding.toString(), new VarBindingTransform(name));
     this.context.bindings.add(name, {
-      binding: newBinding, 
-      phase: this.phase
+      binding: newBinding,
+      phase: this.phase,
+      skipDup: true
     });
 
     return new Term("BindingIdentifier", {
