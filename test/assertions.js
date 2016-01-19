@@ -10,6 +10,10 @@ function stmt(program) {
   return program.items[0];
 }
 
+export function testParseFailure() {
+  // TODO
+}
+
 function testParseWithOpts(code, acc, expectedAst, options) {
   let parsedAst = parse(code, options);
   let isString = (x) => type(x) === 'String';

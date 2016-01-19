@@ -12,7 +12,18 @@ gulp.task('build:src', function () {
 });
 
 gulp.task('build:test', function () {
-  return gulp.src('test/**/*.js')
+  return gulp.src([
+    'test/*.js',
+    'test/declaration/class*',
+    'test/declaration/fun*',
+    '!test/declaration/gen*',
+    '!test/declaration/lex*',
+    '!test/destructuring/*',
+    '!test/expressions/*',
+    '!test/miscellaneous/*',
+    '!test/modules/*',
+    '!test/property-definition/*',
+    '!test/statements/*'])
     .pipe(sourcemaps.init())
     .pipe(babel())
     .pipe(sourcemaps.write("."))
