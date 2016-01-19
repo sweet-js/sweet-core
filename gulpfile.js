@@ -14,16 +14,28 @@ gulp.task('build:src', function () {
 gulp.task('build:test', function () {
   return gulp.src([
     'test/*.js',
-    'test/declaration/class*',
-    'test/declaration/fun*',
-    '!test/declaration/gen*',
-    '!test/declaration/lex*',
+    'test/declaration/*.js',
+    'test/statements/bl*',
+    '!test/statements/br*',
+    '!test/statements/c*',
+    '!test/statements/d*',
+    '!test/statements/e*',
+    'test/statements/for-s*',
+    '!test/statements/for-i*',
+    '!test/statements/for-o*',
+    'test/statements/i*',
+    '!test/statements/l*',
+    '!test/statements/r*',
+    '!test/statements/s*',
+    '!test/statements/t*',
+    '!test/statements/v*',
+    'test/statements/wh*',
+    '!test/statements/wi*',
     '!test/destructuring/*',
     '!test/expressions/*',
     '!test/miscellaneous/*',
     '!test/modules/*',
-    '!test/property-definition/*',
-    '!test/statements/*'])
+    '!test/property-definition/*'])
     .pipe(sourcemaps.init())
     .pipe(babel())
     .pipe(sourcemaps.write("."))

@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-var stmt = require("../helpers").stmt;
-var testParse = require("../assertions").testParse;
-var testParseFailure = require("../assertions").testParseFailure;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("for statement", function () {
+describe("Parser", function () {
+  it("for statement", function () {
 
     testParse("for(x, y;;);", stmt,
       { type: "ForStatement",
