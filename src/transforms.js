@@ -6,6 +6,10 @@ export class LetDeclTransform {
 }
 export class ConstDeclTransform {
 }
+export class WhileTransform {
+}
+export class IfTransform {
+}
 export class SyntaxDeclTransform {
 }
 export class SyntaxQuoteTransform {

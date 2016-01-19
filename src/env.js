@@ -5,7 +5,9 @@ import {
   ConstDeclTransform,
   SyntaxDeclTransform,
   SyntaxQuoteTransform,
-  ReturnStatementTransform
+  ReturnStatementTransform,
+  IfTransform,
+  WhileTransform
 } from "./transforms";
 
 export default class Env {
@@ -18,6 +20,8 @@ export default class Env {
     this.map.set("syntaxQuote", SyntaxQuoteTransform);
     this.map.set("syntax", SyntaxDeclTransform);
     this.map.set("return", ReturnStatementTransform);
+    this.map.set("while", WhileTransform);
+    this.map.set("if", IfTransform);
   }
 
   has(key) {

@@ -8,6 +8,8 @@ import {
   SyntaxDeclTransform,
   SyntaxQuoteTransform,
   ReturnStatementTransform,
+  WhileTransform,
+  IfTransform,
   CompiletimeTransform
 } from "./transforms";
 import { List } from "immutable";
@@ -188,6 +190,14 @@ export class Enforester {
       return this.enforestBlockStatement();
     }
 
+    if (this.term === null && this.isWhileTransform(lookahead)) {
+      return this.enforestWhileStatement();
+    }
+
+    if (this.term === null && this.isIfTransform(lookahead)) {
+      return this.enforestIfStatement();
+    }
+
     // TODO: put somewhere else
     if (this.term === null && this.isKeyword(lookahead, "class")) {
       return this.enforestClass({isExpr: false});
@@ -231,6 +241,38 @@ export class Enforester {
       label: label,
       body: stmt
     });
+  }
+
+  enforestIfStatement() {
+    this.matchKeyword('if');
+    let cond = this.matchParens();
+    let enf = new Enforester(cond, List(), this.context);
+    let lookahead = enf.peek();
+    let test = enf.enforestExpressionLoop();
+    if (test === null) {
+      throw enf.createError(lookahead, 'expecting an expression');
+    }
+    let consequent = this.enforestStatement();
+    let alternate = null;
+    if (this.isKeyword(this.peek(), 'else')) {
+      this.advance();
+      alternate = this.enforestStatement();
+    }
+    return new Term('IfStatement', { test, consequent, alternate });
+  }
+
+  enforestWhileStatement() {
+    this.matchKeyword('while');
+    let cond = this.matchParens();
+    let enf = new Enforester(cond, List(), this.context);
+    let lookahead = enf.peek();
+    let test = enf.enforestExpressionLoop();
+    if (test === null) {
+      throw enf.createError(lookahead, 'expecting an expression');
+    }
+    let body = this.enforestStatement();
+
+    return new Term('WhileStatement', { test, body });
   }
 
   enforestBlockStatement() {
@@ -942,6 +984,16 @@ export class Enforester {
   isReturnStmtTransform(term) {
     return term && (term instanceof Syntax) &&
            this.context.env.get(term.resolve()) === ReturnStatementTransform;
+  }
+
+  isWhileTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === WhileTransform;
+  }
+
+  isIfTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === IfTransform;
   }
 
   isCompiletimeTransform(term) {

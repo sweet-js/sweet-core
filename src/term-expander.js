@@ -64,6 +64,23 @@ export default class TermExpander {
     });
   }
 
+  expandWhileStatement(term) {
+    return new Term('WhileStatement', {
+      test: this.expand(term.test),
+      body: this.expand(term.body)
+    });
+  }
+
+  expandIfStatement(term) {
+    let consequent = term.consequent == null ? null : this.expand(term.consequent);
+    let alternate = term.alternate == null ? null : this.expand(term.alternate);
+    return new Term('IfStatement', {
+      test: this.expand(term.test),
+      consequent: consequent,
+      alternate: alternate
+    });
+  }
+
   expandBlockStatement(term) {
     return new Term('BlockStatement', {
       block: this.expand(term.block)
