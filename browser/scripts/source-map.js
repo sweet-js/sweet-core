@@ -1,3 +1,5 @@
+(function() {
+
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -1808,3 +1810,4 @@ window.sourceMap = {
   SourceMapGenerator: require('source-map/source-map-generator').SourceMapGenerator,
   SourceNode: require('source-map/source-node').SourceNode
 };
+})();
