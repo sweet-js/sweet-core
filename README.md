@@ -1,7 +1,5 @@
 [![Build Status](https://travis-ci.org/mozilla/sweet.js.png)](https://travis-ci.org/mozilla/sweet.js)
 
-# sweet.js
-
 Hygienic Macros for JavaScript!
 
 * Read a [tutorial](http://jlongster.com/Writing-Your-First-Sweet.js-Macro) on macros.
@@ -10,7 +8,7 @@ Hygienic Macros for JavaScript!
 * Hang out on IRC #sweet.js at irc.mozilla.org.
 * Try out other [macros](https://npmjs.org/browse/keyword/sweet-macros).
 
-## Getting started
+# Getting started
 
 Install sweet.js with npm:
 
@@ -36,11 +34,4 @@ And compile:
 ```sh
 $ node_modules/.bin/sjs my_sweet_code.js
 100 + 1;
-```
-
-## Hacking
-
-```sh
-$ npm install
-$ npm test
 ```
