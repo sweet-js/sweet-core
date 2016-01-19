@@ -182,6 +182,13 @@ export default class TermExpander {
     });
   }
 
+  expandLabeledStatement(term) {
+    return new Term('LabeledStatement', {
+      label: term.label.val(),
+      body: this.expand(term.body)
+    });
+  }
+
   doFunctionExpansion(term, type) {
     let scope = freshScope("fun");
     let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));

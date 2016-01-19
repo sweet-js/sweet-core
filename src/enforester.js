@@ -182,6 +182,11 @@ export class Enforester {
       return this.enforestFunctionDeclaration();
     }
 
+    if (this.term === null && this.isIdentifier(lookahead) &&
+        this.isPunctuator(this.peek(1), ':')) {
+      return this.enforestLabeledStatement();
+    }
+
     if (this.term === null &&
         (this.isVarDeclTransform(lookahead) ||
          this.isLetDeclTransform(lookahead) ||
@@ -200,6 +205,17 @@ export class Enforester {
     }
 
     return this.enforestExpressionStatement();
+  }
+
+  enforestLabeledStatement() {
+    let label = this.matchIdentifier();
+    let punc = this.matchPunctuator(':');
+    let stmt = this.enforestStatement();
+
+    return new Term('LabeledStatement', {
+      label: label,
+      body: stmt
+    });
   }
 
   enforestClass({ isExpr }) {
