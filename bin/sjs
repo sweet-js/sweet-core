@@ -9,6 +9,7 @@ var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
 var fname = argv._[0];
 
 var infile = fs.readFileSync(fname, 'utf8');
-var output = require(dir + '/sweet.js').compile(infile);
+var fdir = path.dirname(fs.realpathSync(infile));
+var output = require(dir + '/sweet.js').compile(infile, fdir);
 
 console.log(output.code);

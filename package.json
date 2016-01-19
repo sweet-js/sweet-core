@@ -1,7 +1,7 @@
 {
   "name": "sweet.js",
   "description": "Hygienic Macros for JavaScript",
-  "main": "dist/",
+  "main": "index.js",
   "bin": {
     "sjs": "bin/sjs"
   },
