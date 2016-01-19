@@ -32,234 +32,234 @@ describe("Parser", function () {
         update: null }
     );
 
-    testParse("for(x = 0;;);", stmt,
-      {
-        type: "ForStatement",
-        init: {
-          type: "AssignmentExpression",
-          binding: { type: "BindingIdentifier", name: "x" },
-          expression: { type: "LiteralNumericExpression", value: 0 }
-        },
-        test: null,
-        update: null,
-        body: { type: "EmptyStatement" }
-      }
-    );
-
-    testParse("for(var x = 0;;);", stmt,
-      {
-        type: "ForStatement",
-        init: {
-          type: "VariableDeclaration",
-          kind: "var",
-          declarators: [{
-            type: "VariableDeclarator",
-            binding: { type: "BindingIdentifier", name: "x" },
-            init: { type: "LiteralNumericExpression", value: 0 }
-          }]
-        },
-        test: null,
-        update: null,
-        body: { type: "EmptyStatement" }
-      }
-    );
-
-    testParse("for(let x = 0;;);", stmt,
-      {
-        type: "ForStatement",
-        init: {
-          type: "VariableDeclaration",
-          kind: "let",
-          declarators: [{
-            type: "VariableDeclarator",
-            binding: { type: "BindingIdentifier", name: "x" },
-            init: { type: "LiteralNumericExpression", value: 0 }
-          }]
-        },
-        test: null,
-        update: null,
-        body: { type: "EmptyStatement" }
-      }
-    );
-
-    testParse("for(var x = 0, y = 1;;);", stmt,
-      {
-        type: "ForStatement",
-        init: {
-          type: "VariableDeclaration",
-          kind: "var",
-          declarators: [{
-            type: "VariableDeclarator",
-            binding: { type: "BindingIdentifier", name: "x" },
-            init: { type: "LiteralNumericExpression", value: 0 }
-          }, {
-            type: "VariableDeclarator",
-            binding: { type: "BindingIdentifier", name: "y" },
-            init: { type: "LiteralNumericExpression", value: 1 }
-          }]
-        },
-        test: null,
-        update: null,
-        body: { type: "EmptyStatement" }
-      }
-    );
-
-    testParse("for(x; x < 0;);", stmt,
-      { type: "ForStatement",
-        body: { type: "EmptyStatement" },
-        init: { type: "IdentifierExpression", name: "x" },
-        test:
-          { type: "BinaryExpression",
-            operator: "<",
-            left: { type: "IdentifierExpression", name: "x" },
-            right: { type: "LiteralNumericExpression", value: 0 } },
-        update: null }
-    );
-
-    testParse("for(x; x < 0; x++);", stmt,
-      { type: "ForStatement",
-        body: { type: "EmptyStatement" },
-        init: { type: "IdentifierExpression", name: "x" },
-        test:
-          { type: "BinaryExpression",
-            operator: "<",
-            left: { type: "IdentifierExpression", name: "x" },
-            right: { type: "LiteralNumericExpression", value: 0 } },
-        update:
-          { type: "UpdateExpression",
-            isPrefix: false,
-            operand: { type: "BindingIdentifier", name: "x" },
-            operator: "++" } }
-    );
-
-    testParse("for(x; x < 0; x++) process(x);", stmt,
-      { type: "ForStatement",
-        body:
-          { type: "ExpressionStatement",
-            expression:
-              { type: "CallExpression",
-                callee: { type: "IdentifierExpression", name: "process" },
-                arguments: [ { type: "IdentifierExpression", name: "x" } ] } },
-        init: { type: "IdentifierExpression", name: "x" },
-        test:
-          { type: "BinaryExpression",
-            operator: "<",
-            left: { type: "IdentifierExpression", name: "x" },
-            right: { type: "LiteralNumericExpression", value: 0 } },
-        update:
-          { type: "UpdateExpression",
-            isPrefix: false,
-            operand: { type: "BindingIdentifier", name: "x" },
-            operator: "++" } }
-    );
-
-    testParse("for(a;b;c);", stmt,
-      { type: "ForStatement",
-        body: { type: "EmptyStatement" },
-        init: { type: "IdentifierExpression", name: "a" },
-        test: { type: "IdentifierExpression", name: "b" },
-        update: { type: "IdentifierExpression", name: "c" } }
-    );
-
-    testParse("for(var a;b;c);", stmt,
-      {
-        type: "ForStatement",
-        init: {
-          type: "VariableDeclaration",
-          kind: "var",
-          declarators: [{ type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "a" }, init: null }]
-        },
-        test: { type: "IdentifierExpression", name: "b" },
-        update: { type: "IdentifierExpression", name: "c" },
-        body: { type: "EmptyStatement" }
-      }
-    );
-
-    testParse("for(var a = 0;b;c);", stmt,
-      {
-        type: "ForStatement",
-        init: {
-          type: "VariableDeclaration",
-          kind: "var",
-          declarators: [{
-            type: "VariableDeclarator",
-            binding: { type: "BindingIdentifier", name: "a" },
-            init: { type: "LiteralNumericExpression", value: 0 }
-          }]
-        },
-        test: { type: "IdentifierExpression", name: "b" },
-        update: { type: "IdentifierExpression", name: "c" },
-        body: { type: "EmptyStatement" }
-      }
-    );
-
-    testParse("for(var a = 0;;) { let a; }", stmt,
-      {
-        type: "ForStatement",
-        init: {
-          type: "VariableDeclaration",
-          kind: "var",
-          declarators: [{
-            type: "VariableDeclarator",
-            binding: { type: "BindingIdentifier", name: "a" },
-            init: { type: "LiteralNumericExpression", value: 0 }
-          }]
-        },
-        test: null,
-        update: null,
-        body: {
-          type: "BlockStatement",
-          block: {
-            type: "Block",
-            statements: [{
-              type: "VariableDeclarationStatement",
-              declaration: {
-                type: "VariableDeclaration",
-                kind: "let",
-                declarators: [{
-                  type: "VariableDeclarator",
-                  binding: { type: "BindingIdentifier", name: "a" },
-                  init: null
-                }]
-              }
-            }]
-          }
-        }
-      }
-    );
-
-    testParse("for(;b;c);", stmt,
-      { type: "ForStatement",
-        body: { type: "EmptyStatement" },
-        init: null,
-        test: { type: "IdentifierExpression", name: "b" },
-        update: { type: "IdentifierExpression", name: "c" } }
-    );
-
-    testParse("for(let of;;);", stmt,
-      { type: "ForStatement",
-        body: { type: "EmptyStatement" },
-        init: {
-          type: "VariableDeclaration",
-          kind: "let",
-          declarators: [{ type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "of" }, init: null }]
-        },
-        test: null,
-        update: null }
-    );
-
-    testParse("for(let a;;); let a;", stmt,
-      { type: "ForStatement",
-        body: { type: "EmptyStatement" },
-        init: {
-          type: "VariableDeclaration",
-          kind: "let",
-          declarators: [{ type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "a" }, init: null }]
-        },
-        test: null,
-        update: null }
-    );
-
-    testParseFailure("for({a=0};;);", "Illegal property initializer");
+  //   testParse("for(x = 0;;);", stmt,
+  //     {
+  //       type: "ForStatement",
+  //       init: {
+  //         type: "AssignmentExpression",
+  //         binding: { type: "BindingIdentifier", name: "x" },
+  //         expression: { type: "LiteralNumericExpression", value: 0 }
+  //       },
+  //       test: null,
+  //       update: null,
+  //       body: { type: "EmptyStatement" }
+  //     }
+  //   );
+  //
+  //   testParse("for(var x = 0;;);", stmt,
+  //     {
+  //       type: "ForStatement",
+  //       init: {
+  //         type: "VariableDeclaration",
+  //         kind: "var",
+  //         declarators: [{
+  //           type: "VariableDeclarator",
+  //           binding: { type: "BindingIdentifier", name: "x" },
+  //           init: { type: "LiteralNumericExpression", value: 0 }
+  //         }]
+  //       },
+  //       test: null,
+  //       update: null,
+  //       body: { type: "EmptyStatement" }
+  //     }
+  //   );
+  //
+  //   testParse("for(let x = 0;;);", stmt,
+  //     {
+  //       type: "ForStatement",
+  //       init: {
+  //         type: "VariableDeclaration",
+  //         kind: "let",
+  //         declarators: [{
+  //           type: "VariableDeclarator",
+  //           binding: { type: "BindingIdentifier", name: "x" },
+  //           init: { type: "LiteralNumericExpression", value: 0 }
+  //         }]
+  //       },
+  //       test: null,
+  //       update: null,
+  //       body: { type: "EmptyStatement" }
+  //     }
+  //   );
+  //
+  //   testParse("for(var x = 0, y = 1;;);", stmt,
+  //     {
+  //       type: "ForStatement",
+  //       init: {
+  //         type: "VariableDeclaration",
+  //         kind: "var",
+  //         declarators: [{
+  //           type: "VariableDeclarator",
+  //           binding: { type: "BindingIdentifier", name: "x" },
+  //           init: { type: "LiteralNumericExpression", value: 0 }
+  //         }, {
+  //           type: "VariableDeclarator",
+  //           binding: { type: "BindingIdentifier", name: "y" },
+  //           init: { type: "LiteralNumericExpression", value: 1 }
+  //         }]
+  //       },
+  //       test: null,
+  //       update: null,
+  //       body: { type: "EmptyStatement" }
+  //     }
+  //   );
+  //
+  //   testParse("for(x; x < 0;);", stmt,
+  //     { type: "ForStatement",
+  //       body: { type: "EmptyStatement" },
+  //       init: { type: "IdentifierExpression", name: "x" },
+  //       test:
+  //         { type: "BinaryExpression",
+  //           operator: "<",
+  //           left: { type: "IdentifierExpression", name: "x" },
+  //           right: { type: "LiteralNumericExpression", value: 0 } },
+  //       update: null }
+  //   );
+  //
+  //   testParse("for(x; x < 0; x++);", stmt,
+  //     { type: "ForStatement",
+  //       body: { type: "EmptyStatement" },
+  //       init: { type: "IdentifierExpression", name: "x" },
+  //       test:
+  //         { type: "BinaryExpression",
+  //           operator: "<",
+  //           left: { type: "IdentifierExpression", name: "x" },
+  //           right: { type: "LiteralNumericExpression", value: 0 } },
+  //       update:
+  //         { type: "UpdateExpression",
+  //           isPrefix: false,
+  //           operand: { type: "BindingIdentifier", name: "x" },
+  //           operator: "++" } }
+  //   );
+  //
+  //   testParse("for(x; x < 0; x++) process(x);", stmt,
+  //     { type: "ForStatement",
+  //       body:
+  //         { type: "ExpressionStatement",
+  //           expression:
+  //             { type: "CallExpression",
+  //               callee: { type: "IdentifierExpression", name: "process" },
+  //               arguments: [ { type: "IdentifierExpression", name: "x" } ] } },
+  //       init: { type: "IdentifierExpression", name: "x" },
+  //       test:
+  //         { type: "BinaryExpression",
+  //           operator: "<",
+  //           left: { type: "IdentifierExpression", name: "x" },
+  //           right: { type: "LiteralNumericExpression", value: 0 } },
+  //       update:
+  //         { type: "UpdateExpression",
+  //           isPrefix: false,
+  //           operand: { type: "BindingIdentifier", name: "x" },
+  //           operator: "++" } }
+  //   );
+  //
+  //   testParse("for(a;b;c);", stmt,
+  //     { type: "ForStatement",
+  //       body: { type: "EmptyStatement" },
+  //       init: { type: "IdentifierExpression", name: "a" },
+  //       test: { type: "IdentifierExpression", name: "b" },
+  //       update: { type: "IdentifierExpression", name: "c" } }
+  //   );
+  //
+  //   testParse("for(var a;b;c);", stmt,
+  //     {
+  //       type: "ForStatement",
+  //       init: {
+  //         type: "VariableDeclaration",
+  //         kind: "var",
+  //         declarators: [{ type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "a" }, init: null }]
+  //       },
+  //       test: { type: "IdentifierExpression", name: "b" },
+  //       update: { type: "IdentifierExpression", name: "c" },
+  //       body: { type: "EmptyStatement" }
+  //     }
+  //   );
+  //
+  //   testParse("for(var a = 0;b;c);", stmt,
+  //     {
+  //       type: "ForStatement",
+  //       init: {
+  //         type: "VariableDeclaration",
+  //         kind: "var",
+  //         declarators: [{
+  //           type: "VariableDeclarator",
+  //           binding: { type: "BindingIdentifier", name: "a" },
+  //           init: { type: "LiteralNumericExpression", value: 0 }
+  //         }]
+  //       },
+  //       test: { type: "IdentifierExpression", name: "b" },
+  //       update: { type: "IdentifierExpression", name: "c" },
+  //       body: { type: "EmptyStatement" }
+  //     }
+  //   );
+  //
+  //   testParse("for(var a = 0;;) { let a; }", stmt,
+  //     {
+  //       type: "ForStatement",
+  //       init: {
+  //         type: "VariableDeclaration",
+  //         kind: "var",
+  //         declarators: [{
+  //           type: "VariableDeclarator",
+  //           binding: { type: "BindingIdentifier", name: "a" },
+  //           init: { type: "LiteralNumericExpression", value: 0 }
+  //         }]
+  //       },
+  //       test: null,
+  //       update: null,
+  //       body: {
+  //         type: "BlockStatement",
+  //         block: {
+  //           type: "Block",
+  //           statements: [{
+  //             type: "VariableDeclarationStatement",
+  //             declaration: {
+  //               type: "VariableDeclaration",
+  //               kind: "let",
+  //               declarators: [{
+  //                 type: "VariableDeclarator",
+  //                 binding: { type: "BindingIdentifier", name: "a" },
+  //                 init: null
+  //               }]
+  //             }
+  //           }]
+  //         }
+  //       }
+  //     }
+  //   );
+  //
+  //   testParse("for(;b;c);", stmt,
+  //     { type: "ForStatement",
+  //       body: { type: "EmptyStatement" },
+  //       init: null,
+  //       test: { type: "IdentifierExpression", name: "b" },
+  //       update: { type: "IdentifierExpression", name: "c" } }
+  //   );
+  //
+  //   testParse("for(let of;;);", stmt,
+  //     { type: "ForStatement",
+  //       body: { type: "EmptyStatement" },
+  //       init: {
+  //         type: "VariableDeclaration",
+  //         kind: "let",
+  //         declarators: [{ type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "of" }, init: null }]
+  //       },
+  //       test: null,
+  //       update: null }
+  //   );
+  //
+  //   testParse("for(let a;;); let a;", stmt,
+  //     { type: "ForStatement",
+  //       body: { type: "EmptyStatement" },
+  //       init: {
+  //         type: "VariableDeclaration",
+  //         kind: "let",
+  //         declarators: [{ type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "a" }, init: null }]
+  //       },
+  //       test: null,
+  //       update: null }
+  //   );
+  //
+  //   testParseFailure("for({a=0};;);", "Illegal property initializer");
   });
 });

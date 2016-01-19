@@ -21,7 +21,7 @@ var operatorPrecedence = {
   "^": 7,
   "|": 6,
   "&&": 5,
-  "||": 4
+  "||": 4,
 };
 
 var operatorAssoc = {
@@ -47,7 +47,7 @@ var operatorAssoc = {
   "^": "left",
   "|": "left",
   "&&": "left",
-  "||": "left"
+  "||": "left",
 };
 
 export function operatorLt(left, right, assoc) {

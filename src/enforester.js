@@ -253,14 +253,16 @@ export class Enforester {
     let enf = new Enforester(cond, List(), this.context);
     let right = null;
     let test = null;
+
+    // case where init is null
     if (enf.isPunctuator(enf.peek(), ';')) {
       enf.advance();
       if (!enf.isPunctuator(enf.peek(), ';')) {
-        test = enf.enforestExpressionLoop();
+        test = enf.enforestExpression();
       }
       enf.matchPunctuator(';');
       if (enf.rest.size !== 0) {
-        right = enf.enforestExpressionLoop();
+        right = enf.enforestExpression();
       }
       return new Term('ForStatement', {
         init: null,
@@ -268,6 +270,10 @@ export class Enforester {
         update: right,
         body: this.enforestStatement()
       });
+    // case where init is not null
+    } else {
+      // testing
+      let lookahead = this.peek();
     }
   }
 
@@ -276,7 +282,7 @@ export class Enforester {
     let cond = this.matchParens();
     let enf = new Enforester(cond, List(), this.context);
     let lookahead = enf.peek();
-    let test = enf.enforestExpressionLoop();
+    let test = enf.enforestExpression();
     if (test === null) {
       throw enf.createError(lookahead, 'expecting an expression');
     }
@@ -294,7 +300,7 @@ export class Enforester {
     let cond = this.matchParens();
     let enf = new Enforester(cond, List(), this.context);
     let lookahead = enf.peek();
-    let test = enf.enforestExpressionLoop();
+    let test = enf.enforestExpression();
     if (test === null) {
       throw enf.createError(lookahead, 'expecting an expression');
     }
@@ -375,7 +381,7 @@ export class Enforester {
       });
     }
 
-    let term = this.enforestExpressionLoop();
+    let term = this.enforestExpression();
     expect(term != null, "Expecting an expression to follow return keyword", lookahead, this.rest);
     this.consumeSemicolon();
 
@@ -447,7 +453,7 @@ export class Enforester {
 
   enforestExpressionStatement() {
     let start = this.rest.get(0);
-    let expr = this.enforestExpressionLoop();
+    let expr = this.enforestExpression();
     if (expr === null) {
       throw this.createError(start, "not a valid expression");
     }
@@ -456,6 +462,22 @@ export class Enforester {
     return new Term("ExpressionStatement", {
       expression: expr
     });
+  }
+
+  enforestExpression() {
+    let left = this.enforestExpressionLoop();
+    let lookahead = this.peek();
+    if (this.isPunctuator(lookahead, ',')) {
+      while (this.rest.size !== 0) {
+        if (!this.isPunctuator(this.peek(), ',')) {
+          break;
+        }
+        let operator = this.advance();
+        let right = this.enforestExpressionLoop();
+        left = new Term('BinaryExpression', {left, operator, right});
+      }
+    }
+    return left;
   }
 
   enforestExpressionLoop() {
@@ -471,7 +493,7 @@ export class Enforester {
 
     do {
       lastTerm = this.term;
-      this.term = this.enforestExpression();
+      this.term = this.enforestAssignmentExpression();
 
       if (firstTime) {
         firstTime = false;
@@ -498,7 +520,7 @@ export class Enforester {
     return this.term;
   }
 
-  enforestExpression() {
+  enforestAssignmentExpression() {
     let lookahead = this.peek();
 
     if (this.term === null && this.isTerm(lookahead)) {
@@ -523,7 +545,19 @@ export class Enforester {
     // $x:ident = $init:expr
     if (this.term === null && this.isIdentifier(lookahead) &&
         this.isPunctuator(this.peek(1), "=")) {
-      return this.enforestAssignmentExpression();
+      let id = this.enforestBindingTarget();
+      let op = this.advance();
+      // todo: too restrictive right now
+      assert(this.isPunctuator(op, "="), "expecting an assignment operator");
+
+      let enf = new Enforester(this.rest, List(), this.context);
+      let init = enf.enforest("expression");
+      this.rest = enf.rest;
+
+      return new Term("AssignmentExpression", {
+        binding: id,
+        expression: init
+      });
     }
 
     // syntaxQuote ` ... `
@@ -633,27 +667,11 @@ export class Enforester {
         expression: null
       });
     } else {
-      let expr = this.enforestExpressionLoop();
+      let expr = this.enforestExpression();
       return new Term('YieldExpression', {
         expression: expr
       });
     }
-  }
-
-  enforestAssignmentExpression() {
-    let id = this.enforestBindingTarget();
-    let op = this.advance();
-    // todo: too restrictive right now
-    assert(this.isPunctuator(op, "="), "expecting an assignment operator");
-
-    let enf = new Enforester(this.rest, List(), this.context);
-    let init = enf.enforest("expression");
-    this.rest = enf.rest;
-
-    return new Term("AssignmentExpression", {
-      binding: id,
-      expression: init
-    });
   }
 
   enforestSyntaxQuote() {

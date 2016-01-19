@@ -58,12 +58,11 @@ export default class TermExpander {
   }
 
   expandForStatement(term) {
-    return new Term('ForStatement', {
-      init: null,
-      test: null,
-      update: null,
-      body: this.expand(term.body)
-    });
+    let init = term.init == null ? null : this.expand(term.init);
+    let test = term.test == null ? null : this.expand(term.test);
+    let update = term.update == null ? null : this.expand(term.update);
+    let body = this.expand(term.body);
+    return new Term('ForStatement', { init, test, update, body });
   }
 
   expandYieldExpression(term) {
