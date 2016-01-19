@@ -7,6 +7,7 @@ import {
   SyntaxQuoteTransform,
   ReturnStatementTransform,
   IfTransform,
+  ForTransform,
   WhileTransform
 } from "./transforms";
 
@@ -22,6 +23,7 @@ export default class Env {
     this.map.set("return", ReturnStatementTransform);
     this.map.set("while", WhileTransform);
     this.map.set("if", IfTransform);
+    this.map.set("for", ForTransform);
   }
 
   has(key) {

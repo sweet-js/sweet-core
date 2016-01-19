@@ -10,6 +10,7 @@ import {
   ReturnStatementTransform,
   WhileTransform,
   IfTransform,
+  ForTransform,
   CompiletimeTransform
 } from "./transforms";
 import { List } from "immutable";
@@ -197,6 +198,9 @@ export class Enforester {
     if (this.term === null && this.isIfTransform(lookahead)) {
       return this.enforestIfStatement();
     }
+    if (this.term === null && this.isForTransform(lookahead)) {
+      return this.enforestForStatement();
+    }
 
     // TODO: put somewhere else
     if (this.term === null && this.isKeyword(lookahead, "class")) {
@@ -241,6 +245,30 @@ export class Enforester {
       label: label,
       body: stmt
     });
+  }
+
+  enforestForStatement() {
+    this.matchKeyword('for');
+    let cond = this.matchParens();
+    let enf = new Enforester(cond, List(), this.context);
+    let right = null;
+    let test = null;
+    if (enf.isPunctuator(enf.peek(), ';')) {
+      enf.advance();
+      if (!enf.isPunctuator(enf.peek(), ';')) {
+        test = enf.enforestExpressionLoop();
+      }
+      enf.matchPunctuator(';');
+      if (enf.rest.size !== 0) {
+        right = enf.enforestExpressionLoop();
+      }
+      return new Term('ForStatement', {
+        init: null,
+        test: test,
+        update: right,
+        body: this.enforestStatement()
+      });
+    }
   }
 
   enforestIfStatement() {
@@ -991,6 +1019,10 @@ export class Enforester {
            this.context.env.get(term.resolve()) === WhileTransform;
   }
 
+  isForTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === ForTransform;
+  }
   isIfTransform(term) {
     return term && (term instanceof Syntax) &&
            this.context.env.get(term.resolve()) === IfTransform;

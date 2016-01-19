@@ -10,6 +10,8 @@ export class WhileTransform {
 }
 export class IfTransform {
 }
+export class ForTransform {
+}
 export class SyntaxDeclTransform {
 }
 export class SyntaxQuoteTransform {
