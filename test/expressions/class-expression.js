@@ -20,8 +20,8 @@ var testParseFailure = require("../assertions").testParseFailure;
 var expr = require("../helpers").expr;
 var stmt = require("../helpers").stmt;
 
-suite("Parser", function () {
-  suite("class expression", function () {
+describe("Parser", function () {
+  it("class expression", function () {
 
     // TODO: move this into the testParse assertion
     function locationSanityTest(source) {

@@ -57,6 +57,13 @@ export default class TermExpander {
     });
   }
 
+  expandYieldExpression(term) {
+    let expr = term.expression == null ? null : this.expand(term.expression);
+    return new Term('YieldExpression', {
+      expression: expr
+    });
+  }
+
   expandVariableDeclarationStatement(term) {
     return new Term('VariableDeclarationStatement', {
       declaration: this.expand(term.declaration)

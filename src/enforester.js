@@ -165,6 +165,17 @@ export class Enforester {
     return lookahead.val();
   }
 
+  enforestStatementListItem() {
+    let lookahead = this.peek();
+
+    if (this.isFnDeclTransform(lookahead)) {
+      return this.enforestFunctionDeclaration({ isExpr: false });
+    } else if (this.isKeyword(lookahead, 'class')) {
+      return this.enforestClass({ isExpr: false });
+    } else {
+      return this.enforestStatement();
+    }
+  }
 
   enforestStatement() {
     let lookahead = this.peek();
@@ -246,21 +257,12 @@ export class Enforester {
   enforestIdentifier() {
     let lookahead = this.peek();
     // TODO handle yields
-    if (this.isIdentifier(lookahead)) {
+    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'yield')) {
       return this.advance();
     }
     throw this.createError(lookahead, "expecting an identifier");
   }
 
-  // TODO: something like this
-  // enforestStatementListItem() {
-  //     let lookahead = this.peek();
-  //     if (this.isKeyword("function")) {
-  //         return this.enforestFunction({ isExpr: false });
-  //     } else if (this.isKeyword("class")) {
-  //         return this.enforestClass({ isExpr: false });
-  //     }
-  // }
 
   enforestReturnStatement() {
     let kw = this.advance();
@@ -415,7 +417,10 @@ export class Enforester {
       return term;
     }
 
-    // todo: not complete
+    if (this.term === null && this.isKeyword(lookahead, 'yield')) {
+      return this.enforestYieldExpression();
+    }
+
     // $x:ident = $init:expr
     if (this.term === null && this.isIdentifier(lookahead) &&
         this.isPunctuator(this.peek(1), "=")) {
@@ -518,6 +523,22 @@ export class Enforester {
     }
 
     return this.term;
+  }
+
+  enforestYieldExpression() {
+    let kwd = this.matchKeyword('yield');
+    let lookahead = this.peek();
+
+    if (this.rest.size === 0 || (lookahead && !this.lineNumberEq(kwd, lookahead))) {
+      return new Term('YieldExpression', {
+        expression: null
+      });
+    } else {
+      let expr = this.enforestExpressionLoop();
+      return new Term('YieldExpression', {
+        expression: expr
+      });
+    }
   }
 
   enforestAssignmentExpression() {

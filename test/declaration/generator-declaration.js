@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
-var testParse = require("../assertions").testParse;
-var testParseFailure = require("../assertions").testParseFailure;
-var stmt = require("../helpers").stmt;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
 function id(x) {
   return x;
 }
 
-suite("Parser", function () {
-  suite("generator declaration", function () {
+describe("Parser", function () {
+  it("generator declaration", function () {
 
     testParse("function* a(){}", stmt,
       { type: "FunctionDeclaration",
         isGenerator: true,
-        name: { type: "BindingIdentifier", name: "a" },
+        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
         params: { type: "FormalParameters", items: [], rest: null },
         body: { type: "FunctionBody", directives: [], statements: [] }
       }
@@ -37,7 +36,7 @@ suite("Parser", function () {
     testParse("function* a(){yield}", stmt,
       { type: "FunctionDeclaration",
         isGenerator: true,
-        name: { type: "BindingIdentifier", name: "a" },
+        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
         params: { type: "FormalParameters", items: [], rest: null },
         body: {
           type: "FunctionBody",
@@ -50,14 +49,14 @@ suite("Parser", function () {
     testParse("function* a(){yield a}", stmt,
       { type: "FunctionDeclaration",
         isGenerator: true,
-        name: { type: "BindingIdentifier", name: "a" },
+        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
         params: { type: "FormalParameters", items: [], rest: null },
         body: {
           type: "FunctionBody",
           directives: [],
           statements: [{
             type: "ExpressionStatement",
-            expression: { type: "YieldExpression", expression: { type: "IdentifierExpression", name: "a" } }
+            expression: { type: "YieldExpression", expression: { type: "IdentifierExpression", name: "<<hygiene>>" } }
           }]
         }
       }
@@ -66,42 +65,42 @@ suite("Parser", function () {
     testParse("function* yield(){}", stmt,
       { type: "FunctionDeclaration",
         isGenerator: true,
-        name: { type: "BindingIdentifier", name: "yield" },
+        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
         params: { type: "FormalParameters", items: [], rest: null },
         body: { type: "FunctionBody", directives: [], statements: [] }
       }
     );
 
-    testParse("function* a(){({[yield]:a}=0)}", function (p) {
-        return stmt(p).body.statements[0].expression;
-      },
-      {
-        type: "AssignmentExpression",
-        binding: {
-          type: "ObjectBinding",
-          properties: [{
-            type: "BindingPropertyProperty",
-            name: { type: "ComputedPropertyName", expression: { type: "YieldExpression", expression: null } },
-            binding: { type: "BindingIdentifier", name: "a" }
-          }]
-        },
-        expression: { type: "LiteralNumericExpression", value: 0 }
-      });
+    // testParse("function* a(){({[yield]:a}=0)}", function (p) {
+    //     return stmt(p).body.statements[0].expression;
+    //   },
+    //   {
+    //     type: "AssignmentExpression",
+    //     binding: {
+    //       type: "ObjectBinding",
+    //       properties: [{
+    //         type: "BindingPropertyProperty",
+    //         name: { type: "ComputedPropertyName", expression: { type: "YieldExpression", expression: null } },
+    //         binding: { type: "BindingIdentifier", name: "a" }
+    //       }]
+    //     },
+    //     expression: { type: "LiteralNumericExpression", value: 0 }
+    //   });
 
     testParse("function* a() {} function a() {}", id,
       {
-        type: "Script",
+        type: "Module",
         directives: [],
-        statements: [{
+        items: [{
           type: "FunctionDeclaration",
           isGenerator: true,
-          name: { type: "BindingIdentifier", name: "a" },
+          name: { type: "BindingIdentifier", name: "<<hygiene>>" },
           params: { type: "FormalParameters", items: [], rest: null },
           body: { type: "FunctionBody", directives: [], statements: [] }
         }, {
           type: "FunctionDeclaration",
           isGenerator: false,
-          name: { type: "BindingIdentifier", name: "a" },
+          name: { type: "BindingIdentifier", name: "<<hygiene>>" },
           params: { type: "FormalParameters", items: [], rest: null },
           body: { type: "FunctionBody", directives: [], statements: [] }
         }]
@@ -111,7 +110,7 @@ suite("Parser", function () {
     testParse("function a() { function* a() {} function a() {} }", stmt,
       { type: "FunctionDeclaration",
         isGenerator: false,
-        name: { type: "BindingIdentifier", name: "a" },
+        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
         params: { type: "FormalParameters", items: [], rest: null },
         body: {
           type: "FunctionBody",
@@ -119,13 +118,13 @@ suite("Parser", function () {
           statements: [{
             type: "FunctionDeclaration",
             isGenerator: true,
-            name: { type: "BindingIdentifier", name: "a" },
+            name: { type: "BindingIdentifier", name: "<<hygiene>>" },
             params: { type: "FormalParameters", items: [], rest: null },
             body: { type: "FunctionBody", directives: [], statements: [] }
           }, {
             type: "FunctionDeclaration",
             isGenerator: false,
-            name: { type: "BindingIdentifier", name: "a" },
+            name: { type: "BindingIdentifier", name: "<<hygiene>>" },
             params: { type: "FormalParameters", items: [], rest: null },
             body: { type: "FunctionBody", directives: [], statements: [] }
           }]
