@@ -10,6 +10,7 @@ import {
   ForTransform,
   SwitchTransform,
   BreakTransform,
+  ContinueTransform,
   WhileTransform
 } from "./transforms";
 
@@ -28,6 +29,7 @@ export default class Env {
     this.map.set("for", ForTransform);
     this.map.set("switch", SwitchTransform);
     this.map.set("break", BreakTransform);
+    this.map.set("continue", ContinueTransform);
   }
 
   has(key) {

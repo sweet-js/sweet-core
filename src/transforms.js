@@ -16,6 +16,8 @@ export class SwitchTransform {
 }
 export class BreakTransform {
 }
+export class ContinueTransform {
+}
 export class SyntaxDeclTransform {
 }
 export class SyntaxQuoteTransform {

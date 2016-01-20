@@ -63,6 +63,12 @@ export default class TermExpander {
     });
   }
 
+  expandContinueStatement(term) {
+    return new Term('ContinueStatement', {
+      label: term.label ? term.label.val() : null
+    });
+  }
+
   expandSwitchStatementWithDefault(term) {
     return new Term('SwitchStatementWithDefault', {
       discriminant: this.expand(term.discriminant),

@@ -13,6 +13,7 @@ import {
   ForTransform,
   SwitchTransform,
   BreakTransform,
+  ContinueTransform,
   CompiletimeTransform
 } from "./transforms";
 import { List } from "immutable";
@@ -211,6 +212,9 @@ export class Enforester {
     if (this.term === null && this.isBreakTransform(lookahead)) {
       return this.enforestBreakStatement();
     }
+    if (this.term === null && this.isContinueTransform(lookahead)) {
+      return this.enforestContinueStatement();
+    }
 
     // TODO: put somewhere else
     if (this.term === null && this.isKeyword(lookahead, "class")) {
@@ -275,6 +279,22 @@ export class Enforester {
     this.consumeSemicolon();
 
     return new Term('BreakStatement', { label });
+  }
+
+  enforestContinueStatement() {
+    this.matchKeyword('continue');
+    let lookahead = this.peek();
+    let label = null;
+    if (this.rest.size === 0 || this.isPunctuator(lookahead, ';')) {
+      this.consumeSemicolon();
+      return new Term('ContinueStatement', { label });
+    }
+    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'yield') || this.isKeyword(lookahead, 'let')) {
+      label = this.enforestIdentifier();
+    }
+    this.consumeSemicolon();
+
+    return new Term('ContinueStatement', { label });
   }
 
   enforestSwitchStatement() {
@@ -1169,6 +1189,10 @@ export class Enforester {
   isBreakTransform(term) {
     return term && (term instanceof Syntax) &&
            this.context.env.get(term.resolve()) === BreakTransform;
+  }
+  isContinueTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === ContinueTransform;
   }
   isIfTransform(term) {
     return term && (term instanceof Syntax) &&
