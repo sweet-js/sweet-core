@@ -57,6 +57,24 @@ export default class TermExpander {
     });
   }
 
+  expandBreakStatement(term) {
+    return term;
+  }
+
+  expandSwitchStatement(term) {
+    return new Term('SwitchStatement', {
+      discriminant: this.expand(term.discriminant),
+      cases: term.cases.map(c => this.expand(c)).toArray()
+    });
+  }
+
+  expandSwitchCase(term) {
+    return new Term('SwitchCase', {
+      test: this.expand(term.test),
+      consequent: term.consequent.map(c => this.expand(c)).toArray()
+    });
+  }
+
   expandForStatement(term) {
     let init = term.init == null ? null : this.expand(term.init);
     let test = term.test == null ? null : this.expand(term.test);

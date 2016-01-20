@@ -11,6 +11,8 @@ import {
   WhileTransform,
   IfTransform,
   ForTransform,
+  SwitchTransform,
+  BreakTransform,
   CompiletimeTransform
 } from "./transforms";
 import { List } from "immutable";
@@ -203,6 +205,12 @@ export class Enforester {
     if (this.term === null && this.isForTransform(lookahead)) {
       return this.enforestForStatement();
     }
+    if (this.term === null && this.isSwitchTransform(lookahead)) {
+      return this.enforestSwitchStatement();
+    }
+    if (this.term === null && this.isBreakTransform(lookahead)) {
+      return this.enforestBreakStatement();
+    }
 
     // TODO: put somewhere else
     if (this.term === null && this.isKeyword(lookahead, "class")) {
@@ -251,6 +259,67 @@ export class Enforester {
       label: label,
       body: stmt
     });
+  }
+
+  enforestBreakStatement() {
+    this.matchKeyword('break');
+    let lookahead = this.peek();
+
+    if (this.isPunctuator(lookahead, ';')) {
+      this.consumeSemicolon();
+      return new Term('BreakStatement', {
+        label: null
+      });
+    }
+    throw "not implemented yet";
+  }
+
+  enforestSwitchStatement() {
+    this.matchKeyword('switch');
+    let cond = this.matchParens();
+    let enf = new Enforester(cond, List(), this.context);
+    let discriminant = enf.enforestExpression();
+    let body = this.matchCurlies();
+
+    if (body.size === 0) {
+      return new Term('SwitchStatement', {
+        discriminant: discriminant,
+        cases: List()
+      });
+    }
+    enf = new Enforester(body, List(), this.context);
+    let cases = enf.enforestSwitchCases();
+    return new Term('SwitchStatement', {  discriminant, cases });
+  }
+
+  enforestSwitchCases() {
+    let cases = [];
+    while (this.rest.size !== 0) {
+      cases.push(this.enforestSwitchCase());
+    }
+    return List(cases);
+  }
+
+  enforestSwitchCase() {
+    this.matchKeyword('case');
+    return new Term('SwitchCase', {
+      test: this.enforestExpression(),
+      consequent: this.enforestSwitchCaseBody()
+    });
+  }
+
+  enforestSwitchCaseBody() {
+    this.matchPunctuator(':');
+    return this.enforestStatementListInSwitchCaseBody();
+  }
+
+  enforestStatementListInSwitchCaseBody() {
+    let result = [];
+    let lookahead = this.peek();
+    while(!(this.rest.size === 0 || this.isKeyword(lookahead, 'default') || this.isKeyword(lookahead, 'case'))) {
+      result.push(this.enforestStatementListItem());
+    }
+    return List(result);
   }
 
   enforestForStatement() {
@@ -508,6 +577,7 @@ export class Enforester {
         left = new Term('BinaryExpression', {left, operator, right});
       }
     }
+    this.term = null;
     return left;
   }
 
@@ -1071,6 +1141,14 @@ export class Enforester {
   isForTransform(term) {
     return term && (term instanceof Syntax) &&
            this.context.env.get(term.resolve()) === ForTransform;
+  }
+  isSwitchTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === SwitchTransform;
+  }
+  isBreakTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === BreakTransform;
   }
   isIfTransform(term) {
     return term && (term instanceof Syntax) &&

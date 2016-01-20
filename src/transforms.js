@@ -12,6 +12,10 @@ export class IfTransform {
 }
 export class ForTransform {
 }
+export class SwitchTransform {
+}
+export class BreakTransform {
+}
 export class SyntaxDeclTransform {
 }
 export class SyntaxQuoteTransform {

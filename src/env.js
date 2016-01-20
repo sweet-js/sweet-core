@@ -8,6 +8,8 @@ import {
   ReturnStatementTransform,
   IfTransform,
   ForTransform,
+  SwitchTransform,
+  BreakTransform,
   WhileTransform
 } from "./transforms";
 
@@ -24,6 +26,8 @@ export default class Env {
     this.map.set("while", WhileTransform);
     this.map.set("if", IfTransform);
     this.map.set("for", ForTransform);
+    this.map.set("switch", SwitchTransform);
+    this.map.set("break", BreakTransform);
   }
 
   has(key) {
