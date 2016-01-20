@@ -26,7 +26,7 @@ gulp.task('build:test', function () {
     'test/statements/i*',
     '!test/statements/l*',
     '!test/statements/r*',
-    '!test/statements/s*',
+    'test/statements/s*',
     '!test/statements/t*',
     '!test/statements/v*',
     'test/statements/wh*',

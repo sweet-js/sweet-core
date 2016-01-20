@@ -61,10 +61,24 @@ export default class TermExpander {
     return term;
   }
 
+  expandSwitchStatementWithDefault(term) {
+    return new Term('SwitchStatementWithDefault', {
+      discriminant: this.expand(term.discriminant),
+      preDefaultCases: term.preDefaultCases.map(c => this.expand(c)).toArray(),
+      defaultCase: this.expand(term.defaultCase),
+      postDefaultCases: term.postDefaultCases.map(c => this.expand(c)).toArray()
+    });
+  }
   expandSwitchStatement(term) {
     return new Term('SwitchStatement', {
       discriminant: this.expand(term.discriminant),
       cases: term.cases.map(c => this.expand(c)).toArray()
+    });
+  }
+
+  expandSwitchDefault(term) {
+    return new Term('SwitchDefault', {
+      consequent: term.consequent.map(c => this.expand(c)).toArray()
     });
   }
 

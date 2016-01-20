@@ -265,7 +265,7 @@ export class Enforester {
     this.matchKeyword('break');
     let lookahead = this.peek();
 
-    if (this.isPunctuator(lookahead, ';')) {
+    if (this.rest.size === 0 || this.isPunctuator(lookahead, ';')) {
       this.consumeSemicolon();
       return new Term('BreakStatement', {
         label: null
@@ -289,12 +289,23 @@ export class Enforester {
     }
     enf = new Enforester(body, List(), this.context);
     let cases = enf.enforestSwitchCases();
+    let lookahead = enf.peek();
+    if (enf.isKeyword(lookahead, 'default')) {
+      let defaultCase = enf.enforestSwitchDefault();
+      let postDefaultCases = enf.enforestSwitchCases();
+      return new Term('SwitchStatementWithDefault', {
+        discriminant,
+        preDefaultCases: cases,
+        defaultCase,
+        postDefaultCases
+      });
+    }
     return new Term('SwitchStatement', {  discriminant, cases });
   }
 
   enforestSwitchCases() {
     let cases = [];
-    while (this.rest.size !== 0) {
+    while (!(this.rest.size === 0 || this.isKeyword(this.peek(), 'default'))) {
       cases.push(this.enforestSwitchCase());
     }
     return List(cases);
@@ -315,11 +326,17 @@ export class Enforester {
 
   enforestStatementListInSwitchCaseBody() {
     let result = [];
-    let lookahead = this.peek();
-    while(!(this.rest.size === 0 || this.isKeyword(lookahead, 'default') || this.isKeyword(lookahead, 'case'))) {
+    while(!(this.rest.size === 0 || this.isKeyword(this.peek(), 'default') || this.isKeyword(this.peek(), 'case'))) {
       result.push(this.enforestStatementListItem());
     }
     return List(result);
+  }
+
+  enforestSwitchDefault() {
+    this.matchKeyword('default');
+    return new Term('SwitchDefault', {
+      consequent: this.enforestSwitchCaseBody()
+    });
   }
 
   enforestForStatement() {

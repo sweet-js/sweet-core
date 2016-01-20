@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var testParse = require("../assertions").testParse;
-var stmt = require("../helpers").stmt;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("switch with default statement", function () {
+describe("Parser", function () {
+  it("switch with default statement", function () {
 
     testParse("switch(a){case 1:default:case 2:}", stmt,
       { type: "SwitchStatementWithDefault",
@@ -72,6 +72,6 @@ suite("Parser", function () {
         defaultCase: { type: "SwitchDefault", consequent: [ { type: "BreakStatement", label: null } ] },
         postDefaultCases: [] }
     );
-
+    
   });
 });
