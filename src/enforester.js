@@ -112,7 +112,9 @@ export class Enforester {
         this.isConstDeclTransform(lookahead) ||
         this.isSyntaxDeclTransform(lookahead)) {
       return new Term('Export', {
-        declaration: this.enforestVariableDeclaration()
+        declaration: new Term('VariableDeclarationStatement', {
+          declaration: this.enforestVariableDeclaration()
+        })
       });
     }
     throw "not implemented yet";
@@ -221,7 +223,11 @@ export class Enforester {
          this.isLetDeclTransform(lookahead) ||
          this.isConstDeclTransform(lookahead) ||
          this.isSyntaxDeclTransform(lookahead))) {
-      return this.enforestVariableDeclaration();
+      let stmt = new Term('VariableDeclarationStatement', {
+        declaration: this.enforestVariableDeclaration()
+      });
+      this.consumeSemicolon();
+      return stmt;
     }
 
     if (this.term === null && this.isReturnStmtTransform(lookahead)) {
@@ -253,6 +259,8 @@ export class Enforester {
     let enf = new Enforester(cond, List(), this.context);
     let right = null;
     let test = null;
+    let init = null;
+    let update = null;
 
     // case where init is null
     if (enf.isPunctuator(enf.peek(), ';')) {
@@ -273,7 +281,33 @@ export class Enforester {
     // case where init is not null
     } else {
       // testing
-      let lookahead = this.peek();
+      let lookahead = enf.peek();
+      if (enf.isVarDeclTransform(lookahead) ||
+          enf.isLetDeclTransform(lookahead) ||
+          enf.isConstDeclTransform(lookahead)) {
+        init = enf.enforestVariableDeclaration();
+        enf.matchPunctuator(';');
+        if (enf.isPunctuator(enf.peek(), ';')) {
+          enf.advance();
+          test = null;
+        } else {
+          test = enf.enforestExpression();
+          enf.matchPunctuator(';');
+        }
+        update = enf.enforestExpression();
+      } else {
+        init = enf.enforestExpression();
+        enf.matchPunctuator(';');
+        if (enf.isPunctuator(enf.peek(), ';')) {
+          enf.advance();
+          test = null;
+        } else {
+          test = enf.enforestExpression();
+          enf.matchPunctuator(';');
+        }
+        update = enf.enforestExpression();
+      }
+      return new Term('ForStatement', { init, test, update, body: this.enforestStatement() });
     }
   }
 
@@ -423,22 +457,19 @@ export class Enforester {
       }
     }
 
-    this.consumeSemicolon();
-
-    return new Term('VariableDeclarationStatement', {
-      declaration: new Term("VariableDeclaration", {
-        kind: kind,
-        declarators: decls
-      })
+    return new Term('VariableDeclaration', {
+      kind: kind,
+      declarators: decls
     });
   }
 
   enforestVariableDeclarator() {
     let id = this.enforestBindingTarget();
-    let eq = this.advance();
+    let lookahead = this.peek();
 
     let init, rest;
-    if (eq && eq.val() === "=") {
+    if (this.isPunctuator(lookahead, '=')) {
+      this.advance();
       let enf = new Enforester(this.rest, List(), this.context);
       init = enf.enforest("expression");
       this.rest = enf.rest;
