@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var testParse = require("../assertions").testParse;
-var stmt = require("../helpers").stmt;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("empty expression", function () {
+describe("Parser", function () {
+  it("empty expression", function () {
 
     testParse(";", stmt, { type: "EmptyStatement" });
 
