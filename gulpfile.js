@@ -16,7 +16,7 @@ gulp.task('build:test', function () {
     'test/*.js',
     'test/declaration/*.js',
     'test/statements/bl*',
-    '!test/statements/br*',
+    'test/statements/br*',
     '!test/statements/c*',
     '!test/statements/d*',
     '!test/statements/e*',

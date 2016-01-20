@@ -264,14 +264,17 @@ export class Enforester {
   enforestBreakStatement() {
     this.matchKeyword('break');
     let lookahead = this.peek();
-
+    let label = null;
     if (this.rest.size === 0 || this.isPunctuator(lookahead, ';')) {
       this.consumeSemicolon();
-      return new Term('BreakStatement', {
-        label: null
-      });
+      return new Term('BreakStatement', { label });
     }
-    throw "not implemented yet";
+    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'yield') || this.isKeyword(lookahead, 'let')) {
+      label = this.enforestIdentifier();
+    }
+    this.consumeSemicolon();
+
+    return new Term('BreakStatement', { label });
   }
 
   enforestSwitchStatement() {

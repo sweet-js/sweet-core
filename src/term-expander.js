@@ -58,7 +58,9 @@ export default class TermExpander {
   }
 
   expandBreakStatement(term) {
-    return term;
+    return new Term('BreakStatement', {
+      label: term.label ? term.label.val() : null
+    });
   }
 
   expandSwitchStatementWithDefault(term) {
