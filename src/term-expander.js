@@ -70,6 +70,15 @@ export default class TermExpander {
     });
   }
 
+  expandWithStatement(term) {
+    return new Term('WithStatement', {
+      body: this.expand(term.body),
+      object: this.expand(term.object)
+    });
+  }
+
+  expandDebuggerStatement(term) { return term;}
+
   expandContinueStatement(term) {
     return new Term('ContinueStatement', {
       label: term.label ? term.label.val() : null

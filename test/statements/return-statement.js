@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-var testParse = require("../assertions").testParse;
-var testParseFailure = require("../assertions").testParseFailure;
-var expr = require("../helpers").expr;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("return statement", function () {
+describe("Parser", function () {
+  it("return statement", function () {
     testParse("(function(){ return })", expr,
       { type: "FunctionExpression",
         isGenerator: false,
@@ -68,23 +67,23 @@ suite("Parser", function () {
       }
     );
 
-    testParse("_ => { return 0; }", expr,
-      { type: "ArrowExpression",
-        params:
-          { type: "FormalParameters",
-            items: [{ type: "BindingIdentifier", name: "_"}],
-            rest: null
-          },
-        body:
-          { type: "FunctionBody",
-            directives: [],
-            statements: [
-              { type: "ReturnStatement", expression: { type: "LiteralNumericExpression", value: 0 } },
-            ]
-          }
-      }
-    );
-
+    // testParse("_ => { return 0; }", expr,
+    //   { type: "ArrowExpression",
+    //     params:
+    //       { type: "FormalParameters",
+    //         items: [{ type: "BindingIdentifier", name: "_"}],
+    //         rest: null
+    //       },
+    //     body:
+    //       { type: "FunctionBody",
+    //         directives: [],
+    //         statements: [
+    //           { type: "ReturnStatement", expression: { type: "LiteralNumericExpression", value: 0 } },
+    //         ]
+    //       }
+    //   }
+    // );
+    // 
     testParseFailure("return;", "Illegal return statement");
     testParseFailure("{ return; }", "Illegal return statement");
     testParseFailure("if (false) { return; }", "Illegal return statement");

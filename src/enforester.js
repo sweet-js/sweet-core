@@ -15,6 +15,8 @@ import {
   BreakTransform,
   ContinueTransform,
   DoTransform,
+  DebuggerTransform,
+  WithTransform,
   CompiletimeTransform
 } from "./transforms";
 import { List } from "immutable";
@@ -219,6 +221,12 @@ export class Enforester {
     if (this.term === null && this.isDoTransform(lookahead)) {
       return this.enforestDoStatement();
     }
+    if (this.term === null && this.isDebuggerTransform(lookahead)) {
+      return this.enforestDebuggerStatement();
+    }
+    if (this.term === null && this.isWithTransform(lookahead)) {
+      return this.enforestWithStatement();
+    }
 
     // TODO: put somewhere else
     if (this.term === null && this.isKeyword(lookahead, "class")) {
@@ -283,6 +291,21 @@ export class Enforester {
     this.consumeSemicolon();
 
     return new Term('BreakStatement', { label });
+  }
+
+  enforestWithStatement() {
+    this.matchKeyword('with');
+    let objParens = this.matchParens();
+    let enf = new Enforester(objParens, List(), this.context);
+    let object = enf.enforestExpression();
+    let body = this.enforestStatement();
+    return new Term('WithStatement', { object, body });
+  }
+
+  enforestDebuggerStatement() {
+    this.matchKeyword('debugger');
+
+    return new Term('DebuggerStatement', {});
   }
 
   enforestDoStatement() {
@@ -523,7 +546,7 @@ export class Enforester {
   enforestIdentifier() {
     let lookahead = this.peek();
     // TODO handle yields
-    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'yield')) {
+    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'yield') || this.isKeyword(lookahead, 'let')) {
       return this.advance();
     }
     throw this.createError(lookahead, "expecting an identifier");
@@ -542,10 +565,13 @@ export class Enforester {
       });
     }
 
-    let term = this.enforestExpression();
-    expect(term != null, "Expecting an expression to follow return keyword", lookahead, this.rest);
-    this.consumeSemicolon();
+    let term = null;
+    if (!this.isPunctuator(lookahead, ';')) {
+      term = this.enforestExpression();
+      expect(term != null, "Expecting an expression to follow return keyword", lookahead, this.rest);
+    }
 
+    this.consumeSemicolon();
     return new Term("ReturnStatement", {
       expression: term
     });
@@ -1215,6 +1241,14 @@ export class Enforester {
   isDoTransform(term) {
     return term && (term instanceof Syntax) &&
            this.context.env.get(term.resolve()) === DoTransform;
+  }
+  isDebuggerTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === DebuggerTransform;
+  }
+  isWithTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === WithTransform;
   }
   isIfTransform(term) {
     return term && (term instanceof Syntax) &&

@@ -12,6 +12,8 @@ import {
   BreakTransform,
   ContinueTransform,
   DoTransform,
+  DebuggerTransform,
+  WithTransform,
   WhileTransform
 } from "./transforms";
 
@@ -32,6 +34,8 @@ export default class Env {
     this.map.set("break", BreakTransform);
     this.map.set("continue", ContinueTransform);
     this.map.set("do", DoTransform);
+    this.map.set("debugger", DebuggerTransform);
+    this.map.set("with", WithTransform);
   }
 
   has(key) {
