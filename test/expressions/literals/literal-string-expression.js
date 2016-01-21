@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-var expr = require("../../helpers").expr;
-var testParse = require("../../assertions").testParse;
-var testParseFailure = require("../../assertions").testParseFailure;
-var testParseModuleFailure = require("../../assertions").testParseModuleFailure;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("literal string expression", function () {
+describe("Parser", function () {
+  it("literal string expression", function () {
     testParse("('x')", expr, { type: "LiteralStringExpression", value: "x" });
     testParse("('\\\\\\'')", expr, { type: "LiteralStringExpression", value: "\\'" });
     testParse("(\"x\")", expr, { type: "LiteralStringExpression", value: "x" });

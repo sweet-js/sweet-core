@@ -763,8 +763,12 @@ export class Enforester {
       });
     }
     if (this.term === null && this.isNumericLiteral(lookahead)) {
+      let num = this.advance();
+      if (num.val() === 1 / 0) {
+        return new Term('LiteralInfinityExpression', {});
+      }
       return new Term("LiteralNumericExpression", {
-        value: this.advance()
+        value: num
       });
     }
     if (this.term === null && this.isStringLiteral(lookahead)) {

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var expr = require("../../helpers").expr;
-var testParse = require("../../assertions").testParse;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("literal regexp expression", function () {
+describe("Parser", function () {
+  it("literal regexp expression", function () {
     // Regular Expression Literals
     testParse("/a/", expr, { type: "LiteralRegExpExpression", pattern: "a", flags: "" });
     testParse("/\\0/", expr, { type: "LiteralRegExpExpression", pattern: "\\0", flags: "" });

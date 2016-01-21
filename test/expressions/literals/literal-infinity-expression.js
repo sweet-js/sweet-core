@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var expr = require("../../helpers").expr;
-var testParse = require("../../assertions").testParse;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function() {
-  suite("literal infinity expression", function () {
+describe("Parser", function() {
+  it("literal infinity expression", function () {
 
     testParse("2e308", expr, { type: "LiteralInfinityExpression" });
 

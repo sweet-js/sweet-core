@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var expr = require("../../helpers").expr;
-var testParse = require("../../assertions").testParse;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("literal null expression", function () {
+describe("Parser", function () {
+  it("literal null expression", function () {
 
     testParse("null", expr, { type: "LiteralNullExpression" });
     testParse("null;", expr, { type: "LiteralNullExpression" });

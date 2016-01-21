@@ -335,6 +335,9 @@ export default class TermExpander {
   expandLiteralNumericExpression(term) {
     return term;
   }
+  expandLiteralInfinityExpression(term) {
+    return term;
+  }
 
   expandIdentifierExpression(term) {
     let trans = this.context.env.get(term.name.resolve());

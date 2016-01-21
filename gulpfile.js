@@ -32,8 +32,24 @@ gulp.task('build:test', function () {
     'test/statements/v*',
     'test/statements/wh*',
     'test/statements/wi*',
+
+    '!test/expressions/literals/*',
+
+    'test/expressions/b*',
+
+    '!test/expressions/a*',
+    '!test/expressions/c*',
+    '!test/expressions/f*',
+    '!test/expressions/g*',
+    '!test/expressions/i*',
+    '!test/expressions/n*',
+    '!test/expressions/o*',
+    '!test/expressions/s*',
+    '!test/expressions/t*',
+    '!test/expressions/u*',
+    '!test/expressions/y*',
+
     '!test/destructuring/*',
-    '!test/expressions/*',
     '!test/miscellaneous/*',
     '!test/modules/*',
     '!test/property-definition/*'])

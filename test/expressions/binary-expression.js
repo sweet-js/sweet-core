@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var testParse = require("../assertions").testParse;
-var expr = require("../helpers").expr;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("binary expression", function () {
+describe("Parser", function () {
+  it("binary expression", function () {
     testParse("1+2;", expr,
       { type: "BinaryExpression",
         operator: "+",
