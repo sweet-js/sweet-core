@@ -18,6 +18,8 @@ export class BreakTransform {
 }
 export class ContinueTransform {
 }
+export class DoTransform {
+}
 export class SyntaxDeclTransform {
 }
 export class SyntaxQuoteTransform {

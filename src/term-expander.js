@@ -63,6 +63,13 @@ export default class TermExpander {
     });
   }
 
+  expandDoWhileStatement(term) {
+    return new Term('DoWhileStatement', {
+      body: this.expand(term.body),
+      test: this.expand(term.test)
+    });
+  }
+
   expandContinueStatement(term) {
     return new Term('ContinueStatement', {
       label: term.label ? term.label.val() : null

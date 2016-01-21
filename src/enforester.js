@@ -14,6 +14,7 @@ import {
   SwitchTransform,
   BreakTransform,
   ContinueTransform,
+  DoTransform,
   CompiletimeTransform
 } from "./transforms";
 import { List } from "immutable";
@@ -215,6 +216,9 @@ export class Enforester {
     if (this.term === null && this.isContinueTransform(lookahead)) {
       return this.enforestContinueStatement();
     }
+    if (this.term === null && this.isDoTransform(lookahead)) {
+      return this.enforestDoStatement();
+    }
 
     // TODO: put somewhere else
     if (this.term === null && this.isKeyword(lookahead, "class")) {
@@ -281,15 +285,29 @@ export class Enforester {
     return new Term('BreakStatement', { label });
   }
 
+  enforestDoStatement() {
+    this.matchKeyword('do');
+    let body = this.enforestStatement();
+    this.matchKeyword('while');
+    let testBody = this.matchParens();
+    let enf = new Enforester(testBody, List(), this.context);
+    let test = enf.enforestExpression();
+    this.consumeSemicolon();
+    return new Term('DoWhileStatement', { body, test });
+  }
+
   enforestContinueStatement() {
-    this.matchKeyword('continue');
+    let kwd = this.matchKeyword('continue');
     let lookahead = this.peek();
     let label = null;
     if (this.rest.size === 0 || this.isPunctuator(lookahead, ';')) {
       this.consumeSemicolon();
       return new Term('ContinueStatement', { label });
     }
-    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'yield') || this.isKeyword(lookahead, 'let')) {
+    if (this.lineNumberEq(kwd, lookahead) &&
+        (this.isIdentifier(lookahead) ||
+         this.isKeyword(lookahead, 'yield') ||
+         this.isKeyword(lookahead, 'let'))) {
       label = this.enforestIdentifier();
     }
     this.consumeSemicolon();
@@ -1193,6 +1211,10 @@ export class Enforester {
   isContinueTransform(term) {
     return term && (term instanceof Syntax) &&
            this.context.env.get(term.resolve()) === ContinueTransform;
+  }
+  isDoTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === DoTransform;
   }
   isIfTransform(term) {
     return term && (term instanceof Syntax) &&
