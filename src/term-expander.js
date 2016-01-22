@@ -121,6 +121,35 @@ export default class TermExpander {
     });
   }
 
+  expandTryCatchStatement(term) {
+    return new Term('TryCatchStatement', {
+      body: this.expand(term.body),
+      catchClause: this.expand(term.catchClause)
+    });
+  }
+
+  expandTryFinallyStatement(term) {
+    let catchClause = term.catchClause == null ? null : this.expand(term.catchClause);
+    return new Term('TryFinallyStatement', {
+      body: this.expand(term.body),
+      catchClause,
+      finalizer: this.expand(term.finalizer)
+    });
+  }
+
+  expandCatchClause(term) {
+    return new Term('CatchClause', {
+      binding: this.expand(term.binding),
+      body: this.expand(term.body)
+    });
+  }
+
+  expandThrowStatement(term) {
+    return new Term('ThrowStatement', {
+      expression: this.expand(term.expression)
+    });
+  }
+
   expandForOfStatement(term) {
     return new Term('ForOfStatement', {
       left: this.expand(term.left),

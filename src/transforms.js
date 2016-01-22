@@ -1,7 +1,9 @@
 export class FunctionDeclTransform { }
 export class VariableDeclTransform { }
+export class ThrowTransform { }
 export class LetDeclTransform { }
 export class ConstDeclTransform { }
+export class TryTransform { }
 export class WhileTransform { }
 export class IfTransform { }
 export class ForTransform { }

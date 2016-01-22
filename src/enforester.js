@@ -17,6 +17,8 @@ import {
   DoTransform,
   DebuggerTransform,
   WithTransform,
+  TryTransform,
+  ThrowTransform,
   CompiletimeTransform
 } from "./transforms";
 import { List } from "immutable";
@@ -227,6 +229,12 @@ export class Enforester {
     if (this.term === null && this.isWithTransform(lookahead)) {
       return this.enforestWithStatement();
     }
+    if (this.term === null && this.isTryTransform(lookahead)) {
+      return this.enforestTryStatement();
+    }
+    if (this.term === null && this.isThrowTransform(lookahead)) {
+      return this.enforestThrowStatement();
+    }
 
     // TODO: put somewhere else
     if (this.term === null && this.isKeyword(lookahead, "class")) {
@@ -291,6 +299,44 @@ export class Enforester {
     this.consumeSemicolon();
 
     return new Term('BreakStatement', { label });
+  }
+
+  enforestTryStatement() {
+    this.matchKeyword('try');
+    let body = this.enforestBlock();
+    if (this.isKeyword(this.peek(), 'catch')) {
+      let catchClause = this.enforestCatchClause();
+      if (this.isKeyword(this.peek(), 'finally')) {
+        this.advance();
+        let finalizer = this.enforestBlock();
+        return new Term('TryFinallyStatement', {
+          body, catchClause, finalizer
+        });
+      }
+      return new Term('TryCatchStatement', { body, catchClause });
+    }
+    if (this.isKeyword(this.peek(), 'finally')) {
+      this.advance();
+      let finalizer = this.enforestBlock();
+      return new Term('TryFinallyStatement', { body, catchClause: null, finalizer });
+    }
+    throw this.createError(this.peek(), 'try with no catch or finally');
+  }
+
+  enforestCatchClause() {
+    this.matchKeyword('catch');
+    let bindingParens = this.matchParens();
+    let enf = new Enforester(bindingParens, List(), this.context);
+    let binding = enf.enforestBindingTarget();
+    let body = this.enforestBlock();
+    return new Term('CatchClause', { binding, body });
+  }
+
+  enforestThrowStatement() {
+    this.matchKeyword('throw');
+    let expression = this.enforestExpression();
+    this.consumeSemicolon();
+    return new Term('ThrowStatement', { expression });
   }
 
   enforestWithStatement() {
@@ -1278,6 +1324,14 @@ export class Enforester {
   isWithTransform(term) {
     return term && (term instanceof Syntax) &&
            this.context.env.get(term.resolve()) === WithTransform;
+  }
+  isTryTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === TryTransform;
+  }
+  isThrowTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === ThrowTransform;
   }
   isIfTransform(term) {
     return term && (term instanceof Syntax) &&

@@ -14,6 +14,8 @@ import {
   DoTransform,
   DebuggerTransform,
   WithTransform,
+  TryTransform,
+  ThrowTransform,
   WhileTransform
 } from "./transforms";
 
@@ -36,6 +38,8 @@ export default class Env {
     this.map.set("do", DoTransform);
     this.map.set("debugger", DebuggerTransform);
     this.map.set("with", WithTransform);
+    this.map.set("try", TryTransform);
+    this.map.set("throw", ThrowTransform);
   }
 
   has(key) {
