@@ -407,10 +407,7 @@ export class Enforester {
     this.matchKeyword('for');
     let cond = this.matchParens();
     let enf = new Enforester(cond, List(), this.context);
-    let right = null;
-    let test = null;
-    let init = null;
-    let update = null;
+    let lookahead, test, init, right, type, left, update;
 
     // case where init is null
     if (enf.isPunctuator(enf.peek(), ';')) {
@@ -431,11 +428,26 @@ export class Enforester {
     // case where init is not null
     } else {
       // testing
-      let lookahead = enf.peek();
+      lookahead = enf.peek();
       if (enf.isVarDeclTransform(lookahead) ||
           enf.isLetDeclTransform(lookahead) ||
           enf.isConstDeclTransform(lookahead)) {
         init = enf.enforestVariableDeclaration();
+        lookahead = enf.peek();
+        if (this.isKeyword(lookahead, 'in') || this.isIdentifier(lookahead, 'of')) {
+          if (this.isKeyword(lookahead, 'in')) {
+            enf.advance();
+            right = enf.enforestExpression();
+            type = 'ForInStatement';
+          } else if (this.isIdentifier(lookahead, 'of')) {
+            enf.advance();
+            right = enf.enforestExpression();
+            type = 'ForOfStatement';
+          }
+          return new Term(type, {
+            left: init, right, body: this.enforestStatement()
+          });
+        }
         enf.matchPunctuator(';');
         if (enf.isPunctuator(enf.peek(), ';')) {
           enf.advance();
@@ -446,6 +458,19 @@ export class Enforester {
         }
         update = enf.enforestExpression();
       } else {
+        if (this.isKeyword(enf.peek(1), 'in') || this.isIdentifier(enf.peek(1), 'of')) {
+          left = enf.enforestBindingIdentifier();
+          let kind = enf.advance();
+          if (this.isKeyword(kind, 'in')) {
+            type = 'ForInStatement';
+          } else {
+            type = 'ForOfStatement';
+          }
+          right = enf.enforestExpression();
+          return new Term(type, {
+            left: left, right, body: this.enforestStatement()
+          });
+        }
         init = enf.enforestExpression();
         enf.matchPunctuator(';');
         if (enf.isPunctuator(enf.peek(), ';')) {

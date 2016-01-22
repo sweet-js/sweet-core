@@ -113,6 +113,26 @@ export default class TermExpander {
     });
   }
 
+  expandForInStatement(term) {
+    return new Term('ForInStatement', {
+      left: this.expand(term.left),
+      right: this.expand(term.right),
+      body: this.expand(term.body)
+    });
+  }
+
+  expandForOfStatement(term) {
+    return new Term('ForOfStatement', {
+      left: this.expand(term.left),
+      right: this.expand(term.right),
+      body: this.expand(term.body)
+    });
+  }
+
+  expandBindingIdentifier(term) {
+    return term;
+  }
+
   expandForStatement(term) {
     let init = term.init == null ? null : this.expand(term.init);
     let test = term.test == null ? null : this.expand(term.test);
