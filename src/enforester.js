@@ -1089,7 +1089,7 @@ export class Enforester {
   }
 
   enforestProperty() {
-    let key = this.matchIdentifier();
+    let key = this.advance();
     let colon = this.matchPunctuator(":");
 
     let value = this.enforestExpressionLoop();
