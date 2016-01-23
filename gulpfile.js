@@ -22,8 +22,9 @@ gulp.task('build:test', function () {
     'test/expressions/b*',
     'test/expressions/array*',
     'test/expressions/arrow*',
-    
-    '!test/expressions/c*',
+    'test/expressions/cal*',
+    'test/expressions/cla*',
+
     '!test/expressions/f*',
     '!test/expressions/g*',
     '!test/expressions/i*',

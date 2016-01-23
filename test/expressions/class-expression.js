@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-var ShiftParser = require("../../dist/index.js");
-var testParse = require("../assertions").testParse;
-var testParseFailure = require("../assertions").testParseFailure;
-var expr = require("../helpers").expr;
-var stmt = require("../helpers").stmt;
+// var ShiftParser = require("../../dist/index.js");
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
 describe("Parser", function () {
   it("class expression", function () {
 
-    // TODO: move this into the testParse assertion
-    function locationSanityTest(source) {
-      test(source, function() {
-        var tree = ShiftParser.default(source, {loc: true});
-      });
-    }
+    // // TODO: move this into the testParse assertion
+    // function locationSanityTest(source) {
+    //   test(source, function() {
+    //     var tree = ShiftParser.default(source, {loc: true});
+    //   });
+    // }
 
     testParse("(class {})", expr, { type: "ClassExpression", name: null, super: null, elements: [] });
     testParse("(class A{})", expr, {
