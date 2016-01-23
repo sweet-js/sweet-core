@@ -1,5 +1,6 @@
 export class FunctionDeclTransform { }
 export class VariableDeclTransform { }
+export class NewTransform { }
 export class ThrowTransform { }
 export class LetDeclTransform { }
 export class ConstDeclTransform { }

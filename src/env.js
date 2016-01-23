@@ -16,6 +16,7 @@ import {
   WithTransform,
   TryTransform,
   ThrowTransform,
+  NewTransform,
   WhileTransform
 } from "./transforms";
 
@@ -40,6 +41,7 @@ export default class Env {
     this.map.set("with", WithTransform);
     this.map.set("try", TryTransform);
     this.map.set("throw", ThrowTransform);
+    this.map.set("new", NewTransform);
   }
 
   has(key) {

@@ -350,6 +350,14 @@ export default class TermExpander {
     });
   }
 
+  expandNewExpression(term) {
+    let callee = this.expand(term.callee);
+    let args = expandExpressionList(term.arguments, this.context);
+    return new Term('NewExpression', {
+      callee,
+      arguments: args.toArray()
+    });
+  }
   expandCallExpression(term) {
     let callee = this.expand(term.callee);
     let args = expandExpressionList(term.arguments.inner(), this.context);

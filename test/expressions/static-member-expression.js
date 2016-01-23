@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var expr = require("../helpers").expr;
-var testParse = require("../assertions").testParse;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("static member expression", function () {
+describe("Parser", function () {
+  it("static member expression", function () {
     testParse("a.b", expr,
       { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "b" }
     );

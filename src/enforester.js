@@ -3,6 +3,7 @@ import Term from "./terms";
 import {
   FunctionDeclTransform,
   VariableDeclTransform,
+  NewTransform,
   LetDeclTransform,
   ConstDeclTransform,
   SyntaxDeclTransform,
@@ -813,6 +814,10 @@ export class Enforester {
       return this.enforestSyntaxQuote();
     }
 
+    if (this.term === null && this.isNewTransform(lookahead)) {
+      return this.enforestNewExpression();
+    }
+
     // $x:ThisExpression
     if (this.term === null && this.isKeyword(lookahead, "this")) {
       return new Term("ThisExpression", {
@@ -885,8 +890,13 @@ export class Enforester {
     // and then check the cases where the term part of p is something...
 
     // $x:expr . $prop:ident
-    if (this.term && this.isPunctuator(lookahead, ".")) {
+    if (this.term && this.isPunctuator(lookahead, ".") &&
+        (this.isIdentifier(this.peek(1)) || this.isKeyword(this.peek(1)))) {
       return this.enforestStaticMemberExpression();
+    }
+    // $x:expr [ $b:expr ]
+    if (this.term && this.isSquareDelimiter(lookahead)) {
+      return this.enforestComputedMemberExpression();
     }
     // $l:expr $op:binaryOperator $r:expr
     if (this.term && this.isOperator(lookahead)) {
@@ -921,12 +931,28 @@ export class Enforester {
         expression: init
       });
     }
-    // $x:expr [ $b:expr ]
-    if (this.term && this.isSquareDelimiter(lookahead)) {
-      return this.enforestComputedMemberExpression();
-    }
 
     return this.term;
+  }
+
+  enforestNewExpression() {
+    this.matchKeyword('new');
+    let callee;
+    if (this.isKeyword(this.peek(), 'new')) {
+      callee = this.enforestNewExpression();
+    } else {
+      callee = new Term('IdentifierExpression', { name : this.enforestIdentifier() });
+    }
+    let args;
+    if (this.isParenDelimiter(this.peek())) {
+      args = this.matchParens();
+    } else {
+      args = List();
+    }
+    return new Term('NewExpression', {
+      callee,
+      arguments: args
+    });
   }
 
   enforestComputedMemberExpression() {
@@ -1007,7 +1033,7 @@ export class Enforester {
   enforestStaticMemberExpression() {
     let object = this.term;
     let dot = this.advance();
-    let property = this.matchIdentifier();
+    let property = this.advance();
 
     return new Term("StaticMemberExpression", {
       object: object,
@@ -1393,6 +1419,10 @@ export class Enforester {
   isIfTransform(term) {
     return term && (term instanceof Syntax) &&
            this.context.env.get(term.resolve()) === IfTransform;
+  }
+  isNewTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === NewTransform;
   }
 
   isCompiletimeTransform(term) {
