@@ -8,8 +8,8 @@ export default class {
   constructor(type, props) {
     this.type = type;
     this.loc = null;
-    this._fields = Object.keys(props);
-    for (let prop of this._fields) {
+    // this._fields = Object.keys(props);
+    for (let prop of Object.keys(props)) {
       this[prop] = props[prop];
     }
   }

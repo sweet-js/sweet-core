@@ -921,18 +921,33 @@ export class Enforester {
         expression: init
       });
     }
+    // $x:expr [ $b:expr ]
+    if (this.term && this.isSquareDelimiter(lookahead)) {
+      return this.enforestComputedMemberExpression();
+    }
 
     return this.term;
+  }
+
+  enforestComputedMemberExpression() {
+    let enf = new Enforester(this.matchSquares(), List(), this.context);
+    return new Term('ComputedMemberExpression', {
+      object: this.term,
+      expression: enf.enforestExpression()
+    });
   }
 
   transformDestructuring(term) {
     switch (term.type) {
       case 'IdentifierExpression':
         return new Term('BindingIdentifier', {name: term.name});
+
       case 'ParenthesizedExpression':
         if (term.inner.size === 1 && this.isIdentifier(term.inner.get(0))) {
           return new Term('BindingIdentifier', { name: term.inner.get(0)});
         }
+      case 'ComputedMemberExpression':
+        return term;
     }
     assert(false, 'not implemented yet');
   }
@@ -1461,6 +1476,13 @@ export class Enforester {
       return lookahead.inner();
     }
     throw this.createError(lookahead, "expecting curly braces");
+  }
+  matchSquares() {
+    let lookahead = this.advance();
+    if (this.isSquareDelimiter(lookahead)) {
+      return lookahead.inner();
+    }
+    throw this.createError(lookahead, "expecting sqaure braces");
   }
 
   matchPunctuator(val) {

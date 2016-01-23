@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var testParse = require("../assertions").testParse;
-var expr = require("../helpers").expr;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("computed member expression", function () {
+describe("Parser", function () {
+  it("computed member expression", function () {
 
     testParse("a[b, c]", expr,
       { type: "ComputedMemberExpression",

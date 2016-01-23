@@ -93,6 +93,14 @@ export default class TermExpander {
       postDefaultCases: term.postDefaultCases.map(c => this.expand(c)).toArray()
     });
   }
+
+  expandComputedMemberExpression(term) {
+    return new Term('ComputedMemberExpression', {
+      object: this.expand(term.object),
+      expression: this.expand(term.expression)
+    });
+  }
+
   expandSwitchStatement(term) {
     return new Term('SwitchStatement', {
       discriminant: this.expand(term.discriminant),
