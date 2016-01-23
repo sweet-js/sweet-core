@@ -271,6 +271,7 @@ export class Enforester {
       return new Term("EmptyStatement", {});
     }
 
+
     return this.enforestExpressionStatement();
   }
 
@@ -798,23 +799,14 @@ export class Enforester {
       return this.enforestYieldExpression();
     }
 
-    // $x:ident = $init:expr
-    if (this.term === null && this.isIdentifier(lookahead) &&
-        this.isPunctuator(this.peek(1), "=")) {
-      let id = this.enforestBindingTarget();
-      let op = this.advance();
-      // todo: too restrictive right now
-      assert(this.isPunctuator(op, "="), "expecting an assignment operator");
-
-      let enf = new Enforester(this.rest, List(), this.context);
-      let init = enf.enforest("expression");
-      this.rest = enf.rest;
-
-      return new Term("AssignmentExpression", {
-        binding: id,
-        expression: init
-      });
+    if (this.term === null &&
+      (this.isIdentifier(lookahead) || this.isParenDelimiter(lookahead)) &&
+       this.isPunctuator(this.peek(1), '=>') &&
+       this.lineNumberEq(lookahead, this.peek(1))) {
+      return this.enforestArrowExpression();
     }
+
+
 
     // syntaxQuote ` ... `
     if (this.term === null && this.isSyntaxQuoteTransform(lookahead)) {
@@ -908,15 +900,65 @@ export class Enforester {
         arguments: paren
       });
     }
+    // $x:id `...`
     if (this.term && this.isTemplate(lookahead)) {
       return new Term('TemplateExpression', {
         tag: this.term,
         elements: this.enforestTemplateElements()
       });
     }
+    // $x:expr = $init:expr
+    if (this.term && this.isPunctuator(lookahead, "=")) {
+      let binding = this.transformDestructuring(this.term);
+      let op = this.advance();
+
+      let enf = new Enforester(this.rest, List(), this.context);
+      let init = enf.enforest("expression");
+      this.rest = enf.rest;
+
+      return new Term("AssignmentExpression", {
+        binding,
+        expression: init
+      });
+    }
 
     return this.term;
   }
+
+  transformDestructuring(term) {
+    switch (term.type) {
+      case 'IdentifierExpression':
+        return new Term('BindingIdentifier', {name: term.name});
+      case 'ParenthesizedExpression':
+        if (term.inner.size === 1 && this.isIdentifier(term.inner.get(0))) {
+          return new Term('BindingIdentifier', { name: term.inner.get(0)});
+        }
+    }
+    assert(false, 'not implemented yet');
+  }
+
+  enforestArrowExpression() {
+    let enf;
+    if (this.isIdentifier(this.peek())) {
+      enf = new Enforester(List.of(this.advance()), List(), this.context);
+    } else {
+      let p = this.matchParens();
+      enf = new Enforester(p, List(), this.context);
+    }
+    let params = enf.enforestFormalParameters();
+    this.matchPunctuator('=>');
+
+    let body;
+    if (this.isCurlyDelimiter(this.peek())) {
+      body = this.matchCurlies();
+    } else {
+      enf = new Enforester(this.rest, List(), this.context);
+      body = enf.enforestExpressionLoop();
+      this.rest = enf.rest;
+    }
+    return new Term('ArrowExpression', { params, body });
+  }
+
 
   enforestYieldExpression() {
     let kwd = this.matchKeyword('yield');

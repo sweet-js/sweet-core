@@ -20,8 +20,9 @@ gulp.task('build:test', function () {
     '!test/expressions/literals/*',
 
     'test/expressions/b*',
-
-    '!test/expressions/a*',
+    'test/expressions/array*',
+    'test/expressions/arrow*',
+    
     '!test/expressions/c*',
     '!test/expressions/f*',
     '!test/expressions/g*',

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var testParse = require("../assertions").testParse;
-var expr = require("../helpers").expr;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("array expression", function () {
+describe("Parser", function () {
+  it("array expression", function () {
 
     testParse("[]", expr, { type: "ArrayExpression", elements: [] });
 
@@ -62,16 +62,16 @@ suite("Parser", function () {
 
   });
 
-  // new test added
-  testParse("[a, ...(b=c)]", expr, {
-    type: "ArrayExpression",
-    elements: [{type: "IdentifierExpression", name: "a"}, {
-      type: "SpreadElement", 
-      expression: {
-        type: "AssignmentExpression",
-        binding: {type: "BindingIdentifier", name: "b"},
-        expression: {type: "IdentifierExpression", name: "c"}
-      }
-    }]
-  })
+  // // new test added
+  // testParse("[a, ...(b=c)]", expr, {
+  //   type: "ArrayExpression",
+  //   elements: [{type: "IdentifierExpression", name: "a"}, {
+  //     type: "SpreadElement",
+  //     expression: {
+  //       type: "AssignmentExpression",
+  //       binding: {type: "BindingIdentifier", name: "b"},
+  //       expression: {type: "IdentifierExpression", name: "c"}
+  //     }
+  //   }]
+  // })
 });

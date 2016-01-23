@@ -100,6 +100,33 @@ export default class TermExpander {
     });
   }
 
+  expandFormalParameters(term) {
+    let rest = term.rest == null ? null : this.expand(term.rest);
+    return new Term('FormalParameters', {
+      items: term.items.map(i => this.expand(i)),
+      rest
+    });
+  }
+
+  expandArrowExpression(term) {
+    let body;
+    if (List.isList(term.body)) {
+      let expander = new Expander(this.context);
+
+      body = new Term("FunctionBody", {
+        directives: List(),
+        statements: expander.expand(term.body)
+      });
+    } else {
+      body = this.expand(term.body);
+    }
+    return new Term('ArrowExpression', {
+      // TODO: hygiene
+      params: this.expand(term.params),
+      body
+    });
+  }
+
   expandSwitchDefault(term) {
     return new Term('SwitchDefault', {
       consequent: term.consequent.map(c => this.expand(c)).toArray()
