@@ -340,6 +340,12 @@ export default class TermExpander {
     return this.expand(t);
   }
 
+  expandUnaryExpression(term) {
+    return new Term('UnaryExpression', {
+      operator: term.operator,
+      operand: this.expand(term.operand)
+    });
+  }
   expandBinaryExpression(term) {
     let left = this.expand(term.left);
     let right = this.expand(term.right);

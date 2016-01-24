@@ -27,14 +27,14 @@ gulp.task('build:test', function () {
     'test/expressions/stat*',
     'test/expressions/new-ex*',
     'test/expressions/ob*',
+    'test/expressions/thi*',
+    'test/expressions/un*',
 
     '!test/expressions/new-tar*',
     '!test/expressions/cla*',
     '!test/expressions/f*',
     '!test/expressions/g*',
     '!test/expressions/i*',
-    '!test/expressions/t*',
-    '!test/expressions/u*',
     '!test/expressions/y*',
 
     '!test/destructuring/*',

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var expr = require("../helpers").expr;
-var testParse = require("../assertions").testParse;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("non-destructive unary expressions", function () {
+describe("Parser", function () {
+  it("non-destructive unary expressions", function () {
 
     testParse("!a", expr,
       { type: "UnaryExpression",

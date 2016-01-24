@@ -1,4 +1,15 @@
-var operatorPrecedence = {
+const unaryOperators = {
+  '+': true,
+  '-': true,
+  '!': true,
+  '~': true,
+  '++': true,
+  '--': true,
+  'typeof': true,
+  'void': true,
+  'delete': true,
+};
+const binaryOperatorPrecedence = {
   "*": 13,
   "/": 13,
   "%": 13,
@@ -59,15 +70,20 @@ export function operatorLt(left, right, assoc) {
 }
 
 export function getOperatorPrec(op) {
-  return operatorPrecedence[op];
+  return binaryOperatorPrecedence[op];
 }
 export function getOperatorAssoc(op) {
   return operatorAssoc[op];
 }
 
+export function isUnaryOperator(op) {
+  return (op.isPunctuator() || op.isIdentifier() || op.isKeyword()) &&
+        unaryOperators.hasOwnProperty(op.val());
+}
+
 export function isOperator(op) {
   if (op.isPunctuator() || op.isIdentifier() || op.isKeyword()) {
-    return operatorPrecedence.hasOwnProperty(op);
+    return binaryOperatorPrecedence.hasOwnProperty(op) || unaryOperators.hasOwnProperty(op.val());
   }
   return false;
 }

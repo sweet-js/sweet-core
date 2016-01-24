@@ -26,6 +26,7 @@ import { List } from "immutable";
 import { expect, assert } from "./errors";
 import {
   isOperator,
+  isUnaryOperator,
   getOperatorAssoc,
   getOperatorPrec,
   operatorLt
@@ -35,6 +36,9 @@ import Syntax from "./syntax";
 import { freshScope } from "./scope";
 
 import MacroContext from "./macro-context";
+
+const EXPR_LOOP_OPERATOR = {};
+const EXPR_LOOP_NO_CHANGE = {};
 
 export class Enforester {
   constructor(stxl, prev, context) {
@@ -739,9 +743,6 @@ export class Enforester {
   }
 
   enforestExpressionLoop() {
-    let lastTerm;
-    let firstTime = true;
-
     this.term = null;
     this.opCtx = {
       prec: 0,
@@ -750,31 +751,24 @@ export class Enforester {
     };
 
     do {
-      lastTerm = this.term;
-      this.term = this.enforestAssignmentExpression();
-
-      if (firstTime) {
-        firstTime = false;
-        if (this.term === null) {
-          break;
-        }
-      }
-
+      let term = this.enforestAssignmentExpression();
+      // no change means we've done as much enforesting as possible
       // if nothing changed, maybe we just need to pop the expr stack
-      if (lastTerm === this.term && this.opCtx.stack.size > 0) {
+      if (term === EXPR_LOOP_NO_CHANGE && this.opCtx.stack.size > 0) {
         this.term = this.opCtx.combine(this.term);
         let {prec, combine} = this.opCtx.stack.last();
         this.opCtx.prec = prec;
         this.opCtx.combine = combine;
         this.opCtx.stack = this.opCtx.stack.pop();
+      } else if (term === EXPR_LOOP_NO_CHANGE) {
+        break;
+      // operator means an opCtx was pushed on the stack
+      } else if (term === EXPR_LOOP_OPERATOR) {
+        this.term = null;
+      } else {
+        this.term = term;
       }
-      // if we had that chance to pop the operator stack and still the
-      // current term and last term are null then we got into an infinite
-      // loop
-      assert(!(this.term === null && lastTerm === null),
-        "enforesting an expression should never be null");
-
-    } while (lastTerm !== this.term);  // get a fixpoint
+    } while (true);  // get a fixpoint
     return this.term;
   }
 
@@ -887,8 +881,16 @@ export class Enforester {
       return this.enforestArrayExpression();
     }
 
+    if (this.term === null && this.isOperator(lookahead)) {
+      return this.enforestUnaryExpression();
+    }
+
     // and then check the cases where the term part of p is something...
 
+    // $l:expr $op:binaryOperator $r:expr
+    if (this.term && this.isOperator(lookahead)) {
+      return this.enforestBinaryExpression();
+    }
     // $x:expr . $prop:ident
     if (this.term && this.isPunctuator(lookahead, ".") &&
         (this.isIdentifier(this.peek(1)) || this.isKeyword(this.peek(1)))) {
@@ -897,10 +899,6 @@ export class Enforester {
     // $x:expr [ $b:expr ]
     if (this.term && this.isSquareDelimiter(lookahead)) {
       return this.enforestComputedMemberExpression();
-    }
-    // $l:expr $op:binaryOperator $r:expr
-    if (this.term && this.isOperator(lookahead)) {
-      return this.enforestBinaryExpression();
     }
     // $x:expr (...)
     if (this.term && this.isParenDelimiter(lookahead)) {
@@ -932,7 +930,7 @@ export class Enforester {
       });
     }
 
-    return this.term;
+    return EXPR_LOOP_NO_CHANGE;
   }
 
   enforestNewExpression() {
@@ -1183,6 +1181,23 @@ export class Enforester {
     });
   }
 
+  enforestUnaryExpression() {
+    let operator = this.matchUnaryOperator();
+    this.opCtx.stack = this.opCtx.stack.push({
+      prec: this.opCtx.prec,
+      combind: this.opCtx.combine
+    });
+    // TODO: all builtins are 14, custom operators will change this
+    this.opCtx.prec = 14;
+    this.opCtx.combine = rightTerm => {
+      return new Term('UnaryExpression', {
+        operator: operator.val(),
+        operand: rightTerm
+      });
+    };
+    return EXPR_LOOP_OPERATOR;
+  }
+
   enforestBinaryExpression() {
 
     let leftTerm = this.term;
@@ -1205,7 +1220,7 @@ export class Enforester {
         });
       };
       this.advance();
-      return null;
+      return EXPR_LOOP_OPERATOR;
     } else {
       let term = this.opCtx.combine(leftTerm);
       // this.rest does not change
@@ -1513,6 +1528,14 @@ export class Enforester {
       return lookahead.inner();
     }
     throw this.createError(lookahead, "expecting sqaure braces");
+  }
+
+  matchUnaryOperator() {
+    let lookahead = this.advance();
+    if (isUnaryOperator(lookahead)) {
+      return lookahead;
+    }
+    throw this.createError(lookahead, "expecting a unary operator");
   }
 
   matchPunctuator(val) {
