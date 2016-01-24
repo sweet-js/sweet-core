@@ -607,8 +607,7 @@ export class Enforester {
 
   enforestBindingTarget() {
     let lookahead = this.peek();
-    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, "yield") ||
-        this.isKeyword(lookahead, "let")) {
+    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
       return this.enforestBindingIdentifier();
     }
     throw "not implemented yet";
@@ -622,8 +621,7 @@ export class Enforester {
 
   enforestIdentifier() {
     let lookahead = this.peek();
-    // TODO handle yields
-    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'yield') || this.isKeyword(lookahead, 'let')) {
+    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
       return this.advance();
     }
     throw this.createError(lookahead, "expecting an identifier");
@@ -977,9 +975,16 @@ export class Enforester {
           return new Term('BindingIdentifier', { name: term.inner.get(0)});
         }
       case 'ComputedMemberExpression':
+      case 'StaticMemberExpression':
+      case 'ArrayBinding':
+      case 'BindingIdentifier':
+      case 'BindingPropertyIdentifier':
+      case 'BindingPropertyProperty':
+      case 'BindingWithDefault':
+      case 'ObjectBinding':
         return term;
     }
-    assert(false, 'not implemented yet');
+    assert(false, 'not implemented yet for ' + term.type);
   }
 
   enforestArrowExpression() {
