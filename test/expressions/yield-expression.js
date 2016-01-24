@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-var testParse = require("../assertions").testParse;
-var stmt = require("../helpers").stmt;
-var expr = require("../helpers").expr;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
+describe("Parser", function () {
   var emptyBody = { type: "FunctionBody", directives: [], statements: [] };
 
-  suite("yield", function () {
+  it("yield", function () {
     function yd(p) {
       return stmt(p).body.statements.map(function (es) {
         return es.expression;
@@ -35,7 +34,7 @@ suite("Parser", function () {
     testParse("function*a(){yield\na}", yd, [{
       type: "YieldExpression",
       expression: null
-    }, { type: "IdentifierExpression", name: "a" }]);
+    }, { type: "IdentifierExpression", name: "<<hygiene>>" }]);
 
     // yield as an Identifier cannot show up in body of a generator or in strict mode.
     testParse("({set a(yield){}})", expr,
@@ -43,7 +42,7 @@ suite("Parser", function () {
         type: "ObjectExpression",
         properties: [{
           type: "Setter",
-          name: { type: "StaticPropertyName", value: "a" },
+          name: { type: "StaticPropertyName", value: "<<hygiene>>" },
           param: { type: "BindingIdentifier", name: "yield" },
           body: emptyBody
         }]
@@ -54,7 +53,7 @@ suite("Parser", function () {
     testParse("function *a(){yield true}", yde, { type: "LiteralBooleanExpression", value: true });
     testParse("function *a(){yield false}", yde, { type: "LiteralBooleanExpression", value: false });
     testParse("function *a(){yield \"a\"}", yde, { type: "LiteralStringExpression", value: "a" });
-    testParse("function *a(){yield a}", yde, { type: "IdentifierExpression", name: "a" });
+    testParse("function *a(){yield a}", yde, { type: "IdentifierExpression", name: "<<hygiene>>" });
     testParse("function *a(){yield+0}", yde, {
       type: "UnaryExpression",
       operator: "+",
@@ -73,12 +72,12 @@ suite("Parser", function () {
     testParse("function *a(){yield ++a;}", yde, {
       type: "UpdateExpression",
       isPrefix: true,
-      operand: { type: "BindingIdentifier", name: "a" },
+      operand: { type: "BindingIdentifier", name: "<<hygiene>>" },
       operator: "++" });
     testParse("function *a(){yield --a;}", yde, {
       type: "UpdateExpression",
       isPrefix: true,
-      operand: { type: "BindingIdentifier", name: "a" },
+      operand: { type: "BindingIdentifier", name: "<<hygiene>>" },
       operator: "--" });
   });
 });
