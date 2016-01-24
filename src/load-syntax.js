@@ -24,11 +24,8 @@ function loadForCompiletime(expr, context) {
   let sandbox = {
     syntaxQuote: function (strings, ...values) {
       let ctx = deserializer.read(_.last(values));
-      let zipped = _.zipWith((s, v) => {
-        let reader = new Reader(s, ctx.context);
-        return reader.read().concat(v);
-      }, strings, values);
-      return _.reduce((acc, x) => acc.concat(x), List(), zipped).pop();
+      let reader = new Reader(strings, ctx.context, _.take(values.length - 1, values));
+      return reader.read();
     }
   };
 

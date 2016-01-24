@@ -8,6 +8,7 @@ import { Maybe } from 'ramda-fantasy';
 import { assert } from './errors';
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
+import Term from './terms';
 
 // TODO: also, need to handle contextual yield
 const literalKeywords = ['this', 'null', 'true', 'false'];
@@ -20,6 +21,7 @@ const isRightBracket = R.whereEq({ type: TokenType.RBRACK });
 const isRightBrace   = R.whereEq({ type: TokenType.RBRACE });
 const isRightParen   = R.whereEq({ type: TokenType.RPAREN });
 
+const isEOS = R.whereEq({ type: TokenType.EOS });
 
 const isLeftDelimiter = R.anyPass([isLeftBracket, isLeftBrace, isLeftParen]);
 const isRightDelimiter = R.anyPass([isRightBracket, isRightBrace, isRightParen]);
@@ -241,12 +243,24 @@ const isRegexPrefix = b => R.anyPass([
 ]);
 
 export default class Reader extends Tokenizer {
-  constructor(source, context) {
-    super(source);
+  constructor(strings, context, replacements) {
+    super(Array.isArray(strings) ? strings.join('') : strings);
     this.delimStack = new Map();
     this.insideTemplate = false;
     this.context = context;
 
+    // setup splicing replacement array
+    if (Array.isArray(strings)) {
+      let totalIndex = 0;
+      this.replacementIndex = R.reduce((acc, strRep) => {
+        acc.push({
+          index: totalIndex + strRep[0].length,
+          replacement: strRep[1]
+        });
+        totalIndex += strRep[0].length;
+        return acc;
+      }, [], R.zip(strings, replacements));
+    }
   }
 
   read(stack = [], b = false, singleDelimiter = false) {
@@ -254,7 +268,13 @@ export default class Reader extends Tokenizer {
     while (true) {
       let tok = this.advance(prefix, b);
 
-      if (tok.type === TokenType.EOS) {
+      // splicing allows syntax and terms
+      if (tok instanceof Syntax || tok instanceof Term) {
+        stack.push(tok);
+        continue;
+      }
+
+      if (isEOS(tok)) {
         if (stack[0] && isLeftDelimiter(stack[0].token)) {
           throw this.createUnexpected(tok);
         }
@@ -299,6 +319,12 @@ export default class Reader extends Tokenizer {
     this.startIndex = this.index;
     this.startLine = this.line;
     this.startLineStart = this.lineStart;
+
+    if (this.replacementIndex && this.replacementIndex[0] && this.index >= this.replacementIndex[0].index) {
+      let rep = this.replacementIndex[0].replacement;
+      this.replacementIndex.shift();
+      return rep;
+    }
 
     let charCode = this.source.charCodeAt(this.index);
 

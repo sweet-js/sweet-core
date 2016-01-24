@@ -114,7 +114,7 @@ m 100 + 200`, stmt, {
       });
   });
 
-  it('should handle expansion that matches and expression argument', () => {
+  it('should handle expansion that matches an expression argument', () => {
     testParse(`
       syntax m = function(ctx) {
         var x = ctx.nextExpression();
