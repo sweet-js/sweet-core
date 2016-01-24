@@ -346,6 +346,15 @@ export default class TermExpander {
       operand: this.expand(term.operand)
     });
   }
+
+  expandUpdateExpression(term) {
+    return new Term('UpdateExpression', {
+      isPrefix: term.isPrefix,
+      operator: term.operator,
+      operand: this.expand(term.operand)
+    });
+  }
+
   expandBinaryExpression(term) {
     let left = this.expand(term.left);
     let right = this.expand(term.right);

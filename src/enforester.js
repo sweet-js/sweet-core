@@ -881,11 +881,17 @@ export class Enforester {
       return this.enforestArrayExpression();
     }
 
+    // prefix unary
     if (this.term === null && this.isOperator(lookahead)) {
       return this.enforestUnaryExpression();
     }
 
     // and then check the cases where the term part of p is something...
+
+    // postfix unary
+    if (this.term && this.isUpdateOperator(lookahead)) {
+      return this.enforestUpdateExpression();
+    }
 
     // $l:expr $op:binaryOperator $r:expr
     if (this.term && this.isOperator(lookahead)) {
@@ -1181,6 +1187,16 @@ export class Enforester {
     });
   }
 
+  enforestUpdateExpression() {
+    let operator = this.matchUnaryOperator();
+
+    return new Term('UpdateExpression', {
+      isPrefix: false,
+      operator: operator.val(),
+      operand: this.transformDestructuring(this.term)
+    });
+  }
+
   enforestUnaryExpression() {
     let operator = this.matchUnaryOperator();
     this.opCtx.stack = this.opCtx.stack.push({
@@ -1190,9 +1206,20 @@ export class Enforester {
     // TODO: all builtins are 14, custom operators will change this
     this.opCtx.prec = 14;
     this.opCtx.combine = rightTerm => {
-      return new Term('UnaryExpression', {
+      let type, term, isPrefix;
+      if (operator.val() === '++' || operator.val() === '--') {
+        type = 'UpdateExpression';
+        term = this.transformDestructuring(rightTerm);
+        isPrefix = true;
+      } else {
+        type = 'UnaryExpression';
+        isPrefix = undefined;
+        term = rightTerm;
+      }
+      return new Term(type, {
         operator: operator.val(),
-        operand: rightTerm
+        operand: term,
+        isPrefix
       });
     };
     return EXPR_LOOP_OPERATOR;
@@ -1353,6 +1380,10 @@ export class Enforester {
 
   isOperator(term) {
     return term && (term instanceof Syntax) && isOperator(term);
+  }
+  isUpdateOperator(term) {
+    return term && (term instanceof Syntax) && term.isPunctuator() &&
+      (term.val() === '++' || term.val() === '--');
   }
 
   isFnDeclTransform(term) {

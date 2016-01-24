@@ -17,8 +17,8 @@
 import expect from "expect.js";
 import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("destructive unary expressions", function () {
+describe("Parser", function () {
+  it("destructive unary expressions", function () {
 
     testParse("++a", expr,
       { type: "UpdateExpression",

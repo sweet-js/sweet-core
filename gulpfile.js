@@ -29,6 +29,7 @@ gulp.task('build:test', function () {
     'test/expressions/ob*',
     'test/expressions/thi*',
     'test/expressions/un*',
+    'test/expressions/up*',
 
     '!test/expressions/new-tar*',
     '!test/expressions/cla*',
