@@ -72,7 +72,7 @@ m 42`, stmt, {
     testParse(`
 syntax m = function(ctx) {
     let iter = ctx.syntax()
-    let term = ctx.getTerm(iter, 'expression');
+    let term = ctx.getTerm(iter, 'expr');
     return syntaxQuote\`200\`
 }
 m 100 + 200`, stmt, {
@@ -119,7 +119,7 @@ m 100 + 200`, stmt, {
     testParse(`
       syntax m = function(ctx) {
         let iter = ctx.syntax();
-        var x = ctx.getTerm(iter, 'expression');
+        var x = ctx.getTerm(iter, 'expr');
         return syntaxQuote\`40 + \${x}\`;
       }
       m 2;
@@ -156,7 +156,7 @@ m 100 + 200`, stmt, {
         let parenIter = ctx.of(parens).syntax();
         let paren_id = parenIter.next().value;
         parenIter.next() // =
-        let paren_init = ctx.getTerm(parenIter, 'expression')
+        let paren_init = ctx.getTerm(parenIter, 'expr')
 
         let bodyIter = ctx.of(body).syntax();
         let b = [];

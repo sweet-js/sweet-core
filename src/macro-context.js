@@ -75,7 +75,11 @@ export default class MacroContext {
     }
     let enf = iterMap.get(iter);
     switch(type) {
-      case 'expression':
+      case 'AssignmentExpression':
+      case 'expr':
+        term = enf.enforestExpressionLoop();
+        break;
+      case 'Expression':
         term = enf.enforestExpression();
         break;
       default:
