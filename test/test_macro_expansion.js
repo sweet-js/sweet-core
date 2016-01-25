@@ -54,7 +54,7 @@ let v = m`, stmt, {
   it("should handle expansion where an argument is eaten", function () {
     testParse(`
 syntax m = function(ctx) {
-    ctx.next();
+    ctx.syntax().next();
     return syntaxQuote\`200\`
 }
 m 42`, stmt, {
@@ -71,7 +71,8 @@ m 42`, stmt, {
   it("should handle expansion that eats an expression", function () {
     testParse(`
 syntax m = function(ctx) {
-    ctx.nextExpression();
+    let iter = ctx.syntax()
+    let term = ctx.getTerm(iter, 'expression');
     return syntaxQuote\`200\`
 }
 m 100 + 200`, stmt, {
@@ -88,7 +89,7 @@ m 100 + 200`, stmt, {
   it('should handle expansion that takes an argument', () => {
     testParse(`
       syntax m = function(ctx) {
-        var x = ctx.next();
+        var x = ctx.syntax().next().value;
         return syntaxQuote\`40 + \${x}\`;
       }
       m 2;
@@ -117,7 +118,8 @@ m 100 + 200`, stmt, {
   it('should handle expansion that matches an expression argument', () => {
     testParse(`
       syntax m = function(ctx) {
-        var x = ctx.nextExpression();
+        let iter = ctx.syntax();
+        var x = ctx.getTerm(iter, 'expression');
         return syntaxQuote\`40 + \${x}\`;
       }
       m 2;

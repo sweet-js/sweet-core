@@ -273,6 +273,14 @@ export default class Reader extends Tokenizer {
         stack.push(tok);
         continue;
       }
+      if (Array.isArray(tok)) {
+        Array.prototype.push.apply(stack, tok);
+        continue;
+      }
+      if (List.isList(tok)) {
+        Array.prototype.push.apply(stack, tok.toArray());
+        continue;
+      }
 
       if (isEOS(tok)) {
         if (stack[0] && isLeftDelimiter(stack[0].token)) {
