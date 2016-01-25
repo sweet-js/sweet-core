@@ -121,6 +121,7 @@ export default class TokenExpander {
             return Just(term);
           }],
           [isFunctionWithName, term => {
+            term.name = removeScope(term.name, this.context.useScope);
             registerBindings(term.name, this.context);
             return Just(term);
           }],

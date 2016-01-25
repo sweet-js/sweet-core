@@ -18,7 +18,8 @@ export default class MacroContext {
     this._enf = enf;
     this.name = name;
     this.context = context;
-    if (this.useScope && this.introducedScope) {
+    if (useScope && introducedScope) {
+      this.noScopes = false;
       this.useScope = useScope;
       this.introducedScope = introducedScope;
     } else {
