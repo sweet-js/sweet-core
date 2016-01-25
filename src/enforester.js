@@ -7,6 +7,7 @@ import {
   LetDeclTransform,
   ConstDeclTransform,
   SyntaxDeclTransform,
+  SyntaxrecDeclTransform,
   SyntaxQuoteTransform,
   ReturnStatementTransform,
   WhileTransform,
@@ -123,6 +124,7 @@ export class Enforester {
     if (this.isVarDeclTransform(lookahead) ||
         this.isLetDeclTransform(lookahead) ||
         this.isConstDeclTransform(lookahead) ||
+        this.isSyntaxrecDeclTransform(lookahead) ||
         this.isSyntaxDeclTransform(lookahead)) {
       return new Term('Export', {
         declaration: new Term('VariableDeclarationStatement', {
@@ -259,6 +261,7 @@ export class Enforester {
         (this.isVarDeclTransform(lookahead) ||
          this.isLetDeclTransform(lookahead) ||
          this.isConstDeclTransform(lookahead) ||
+         this.isSyntaxrecDeclTransform(lookahead) ||
          this.isSyntaxDeclTransform(lookahead))) {
       let stmt = new Term('VariableDeclarationStatement', {
         declaration: this.enforestVariableDeclaration()
@@ -669,6 +672,9 @@ export class Enforester {
     } else if (kindSyn &&
                this.context.env.get(kindSyn.resolve()) === SyntaxDeclTransform) {
       kind = "syntax";
+    } else if (kindSyn &&
+               this.context.env.get(kindSyn.resolve()) === SyntaxrecDeclTransform) {
+      kind = "syntaxrec";
     }
 
     let decls = List();
@@ -1416,6 +1422,10 @@ export class Enforester {
            this.context.env.get(term.resolve()) === SyntaxDeclTransform;
   }
 
+  isSyntaxrecDeclTransform(term) {
+    return term && (term instanceof Syntax) &&
+           this.context.env.get(term.resolve()) === SyntaxrecDeclTransform;
+  }
   isSyntaxQuoteTransform(term) {
     return term && (term instanceof Syntax) &&
            this.context.env.get(term.resolve()) === SyntaxQuoteTransform;

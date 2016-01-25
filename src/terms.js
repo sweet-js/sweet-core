@@ -24,6 +24,7 @@ export const isEOF = R.whereEq({ type: 'EOF' });
 export const isVariableDeclaration = R.whereEq({ type: 'VariableDeclaration' });
 export const isVariableDeclarationStatement = R.whereEq({ type: 'VariableDeclarationStatement' });
 export const isSyntaxDeclaration = R.both(isVariableDeclaration, R.whereEq({ kind: 'syntax' }));
+export const isSyntaxrecDeclaration = R.both(isVariableDeclaration, R.whereEq({ kind: 'syntaxrec' }));
 export const isFunctionDeclaration = R.whereEq({ type: 'FunctionDeclaration' });
 export const isFunctionExpression = R.whereEq({ type: 'FunctionExpression' });
 export const isFunctionTerm = R.either(isFunctionDeclaration, isFunctionExpression);

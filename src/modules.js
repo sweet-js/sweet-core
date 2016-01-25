@@ -6,7 +6,7 @@ import TokenExpander from './token-expander.js';
 import BindingMap from "./binding-map.js";
 import Term, {
   isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
-  isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isVariableDeclaration,
+  isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
   isVariableDeclarationStatement, isImport, isExport
 } from "./terms";
 import loadSyntax from './load-syntax';
@@ -23,7 +23,7 @@ class Module {
   visit(context) {
 
     this.exportEntries.forEach(ex => {
-      if (isSyntaxDeclaration(ex.declaration.declaration)) {
+      if (isSyntaxDeclaration(ex.declaration.declaration) || isSyntaxrecDeclaration(ex.declaration.declaration)) {
         ex.declaration.declaration.declarators.forEach(
           loadSyntax(_.__, context, context.store)
         );

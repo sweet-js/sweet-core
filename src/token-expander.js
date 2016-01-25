@@ -8,7 +8,7 @@ import Reader from "./shift-reader";
 import * as _ from "ramda";
 import Term, {
   isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
-  isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isVariableDeclaration,
+  isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
   isVariableDeclarationStatement, isImport, isExport
 } from "./terms";
 import { Maybe } from 'ramda-fantasy';
@@ -106,7 +106,7 @@ export default class TokenExpander {
             });
             // for syntax declarations we need to load the compiletime value
             // into the environment
-            if (isSyntaxDeclaration(term.declaration)) {
+            if (isSyntaxDeclaration(term.declaration) || isSyntaxrecDeclaration(term.declaration)) {
               term.declaration.declarators.forEach(
                 loadSyntax(_.__, this.context, this.context.env)
               );

@@ -4,6 +4,7 @@ import {
   LetDeclTransform,
   ConstDeclTransform,
   SyntaxDeclTransform,
+  SyntaxrecDeclTransform,
   SyntaxQuoteTransform,
   ReturnStatementTransform,
   IfTransform,
@@ -28,6 +29,7 @@ export default class Env {
     this.map.set("let", LetDeclTransform);
     this.map.set("const", ConstDeclTransform);
     this.map.set("syntaxQuote", SyntaxQuoteTransform);
+    this.map.set("syntaxrec", SyntaxrecDeclTransform);
     this.map.set("syntax", SyntaxDeclTransform);
     this.map.set("return", ReturnStatementTransform);
     this.map.set("while", WhileTransform);

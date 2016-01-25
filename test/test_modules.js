@@ -33,7 +33,7 @@ describe('module import/export', () => {
   });
 
   it('should parse an export of a syntax decl', () => {
-    testParse('export syntax m = function () {}', x => x, {
+    testParse('export syntaxrec m = function () {}', x => x, {
         "type": "Module",
         "loc": null,
         "directives": [],
@@ -47,7 +47,7 @@ describe('module import/export', () => {
               "declaration": {
                 "type": "VariableDeclaration",
                 "loc": null,
-                "kind": "syntax",
+                "kind": "syntaxrec",
                 "declarators": [
                   {
                     "type": "VariableDeclarator",
@@ -138,7 +138,7 @@ describe('module import/export', () => {
 
   it('should load a simple syntax transformer', () => {
     let loader = {
-      "./m.js": `export syntax m = function (ctx) {
+      "./m.js": `export syntaxrec m = function (ctx) {
   return syntaxQuote\`42\`;
 }`
     };
@@ -163,7 +163,7 @@ describe('module import/export', () => {
   it('should load a simple syntax transformer but leave runtime imports', () => {
     let loader = {
       "./x.js": `export var x = 42;`,
-      "./m.js": `export syntax m = function (ctx) {
+      "./m.js": `export syntaxrec m = function (ctx) {
   return syntaxQuote\`42\`;
 }`
     };
