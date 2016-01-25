@@ -1288,8 +1288,8 @@ export class Enforester {
     }
     let useSiteScope = freshScope("u");
     let introducedScope = freshScope("i");
+    // TODO: needs to be a list of scopes I think
     this.context.useScope = useSiteScope;
-    this.context.introducedScope = introducedScope;
 
     let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 
