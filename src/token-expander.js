@@ -104,6 +104,15 @@ export default class TokenExpander {
                 init: decl.init
               });
             });
+
+            // syntax id^{a, b} = <init>^{a, b}
+            // ->
+            // syntaxrec id^{a,b,c} = function() { return <<id^{a}>> }
+            // syntaxrec id^{a,b} = <init>^{a,b,c}
+            if (isSyntaxDeclaration(term.declaration)) {
+              // TODO: do stuff
+            }
+
             // for syntax declarations we need to load the compiletime value
             // into the environment
             if (isSyntaxDeclaration(term.declaration) || isSyntaxrecDeclaration(term.declaration)) {
