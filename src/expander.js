@@ -11,14 +11,10 @@ export default class Expander {
   }
 
   expand(stxl) {
-    let scope = freshScope("top");
-    this.context.currentScope = scope;
-
     let tokenExpander = new TokenExpander(this.context);
     let termExpander = new TermExpander(this.context);
 
     return _.pipe(
-      _.map(s => s.addScope(scope, this.context.bindings)),
       _.bind(tokenExpander.expand, tokenExpander),
       _.map(t => termExpander.expand(t))
     )(stxl);

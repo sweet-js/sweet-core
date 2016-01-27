@@ -8,10 +8,11 @@ import { Scope, freshScope } from "./scope";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
 import reducer, { MonoidalReducer } from "shift-reducer";
 import Expander from './expander';
-import Syntax, {makeString, makeIdentifier} from "./syntax";
+import Syntax from "./syntax";
 import { serializer, makeDeserializer } from "./serializer";
 import { enforestExpr, Enforester } from "./enforester";
 import { assert } from './errors';
+import { processTemplate }from './template-processor.js';
 
 function expandExpressionList(stxl, context) {
   let result = List();
@@ -119,12 +120,15 @@ export default class TermExpander {
   expandArrowExpression(term) {
     let body;
     if (List.isList(term.body)) {
+      let scope = freshScope('fun');
+      this.context.currentScope.push(scope);
       let expander = new Expander(this.context);
 
       body = new Term("FunctionBody", {
         directives: List(),
-        statements: expander.expand(term.body)
+        statements: expander.expand(term.body.map(s => s.addScope(scope, this.context.bindings)))
       });
+      this.context.currentScope.pop();
     } else {
       body = this.expand(term.body);
     }
@@ -263,9 +267,28 @@ export default class TermExpander {
     return term;
   }
 
+  expandSyntaxTemplate(term) {
+    let expander = new Expander(this.context);
+    let r = processTemplate(term.template.inner());
+    let str = Syntax.fromString(serializer.write(r.template));
+    let callee = new Term('IdentifierExpression', { name: Syntax.fromIdentifier('syntaxTemplate') });
+
+    let expandedInterps = r.interp.map(i => {
+      let enf = new Enforester(i, List(), this.context);
+      return this.expand(enf.enforest('expression'));
+    });
+
+    let args = List.of(new Term('LiteralStringExpression', {value: str }))
+                   .concat(expandedInterps);
+
+    return new Term('CallExpression', {
+      callee, arguments: args
+    });
+  }
+
   expandSyntaxQuote(term) {
     let str = new Term("LiteralStringExpression", {
-      value: makeString(serializer.write(term.name))
+      value: Syntax.fromString(serializer.write(term.name))
     });
 
     return new Term("TemplateExpression", {
@@ -375,7 +398,7 @@ export default class TermExpander {
   }
   expandCallExpression(term) {
     let callee = this.expand(term.callee);
-    let args = expandExpressionList(term.arguments.inner(), this.context);
+    let args = expandExpressionList(term.arguments, this.context);
     return new Term("CallExpression", {
       callee: callee,
       arguments: args
@@ -401,12 +424,14 @@ export default class TermExpander {
     let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
     let red = new ApplyScopeInParamsReducer(scope, this.context);
     let params = reducer(red, term.params);
+    this.context.currentScope.push(scope);
     let expander = new Expander(this.context);
 
     let bodyTerm = new Term("FunctionBody", {
       directives: List(),
       statements: expander.expand(markedBody)
     });
+    this.context.currentScope.pop();
 
     return new Term(type, {
       name: term.name,

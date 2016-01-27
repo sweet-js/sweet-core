@@ -1,4 +1,3 @@
-/* @flow */
 import Tokenizer from "shift-parser/dist/tokenizer";
 import { TokenClass, TokenType } from "shift-parser/dist/tokenizer";
 import { List } from "immutable";
@@ -9,6 +8,10 @@ import { assert } from './errors';
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
 import Term from './terms';
+
+const LSYNTAX = { name: 'left-syntax' };
+const RSYNTAX = { name: 'right-syntax' };
+
 
 // TODO: also, need to handle contextual yield
 const literalKeywords = ['this', 'null', 'true', 'false'];
@@ -23,13 +26,25 @@ const isRightParen   = R.whereEq({ type: TokenType.RPAREN });
 
 const isEOS = R.whereEq({ type: TokenType.EOS });
 
-const isLeftDelimiter = R.anyPass([isLeftBracket, isLeftBrace, isLeftParen]);
-const isRightDelimiter = R.anyPass([isRightBracket, isRightBrace, isRightParen]);
+const isHash = R.whereEq({ type: TokenType.IDENTIFIER, value: '#'});
+const isLeftSyntax = R.whereEq({ type: LSYNTAX });
+const isRightSyntax = R.whereEq({ type: RSYNTAX });
+
+const isLeftDelimiter = R.anyPass([isLeftBracket,
+                                   isLeftBrace,
+                                   isLeftParen,
+                                   isLeftSyntax]);
+
+const isRightDelimiter = R.anyPass([isRightBracket,
+                                    isRightBrace,
+                                    isRightParen,
+                                    isRightSyntax]);
 
 const isMatchingDelimiters = R.cond([
   [isLeftBracket, (_, b) => isRightBracket(b)],
   [isLeftBrace, (_, b) => isRightBrace(b)],
   [isLeftParen, (_, b) => isRightParen(b)],
+  [isLeftSyntax, (_, b) => isRightSyntax(b)],
   [R.T, R.F]
 ]);
 
@@ -49,9 +64,9 @@ const isEmpty = R.whereEq({size: 0});
 const isPunctuator = s => s.isPunctuator();
 const isKeyword = s => s.isKeyword();
 const isDelimiter = s => s.isDelimiter();
-const isParenDelimiter = s => s.isParenDelimiter();
-const isCurlyDelimiter = s => s.isCurlyDelimiter();
-const isSquareDelimiter = s => s.isSquareDelimiter();
+const isParens = s => s.isParens();
+const isBraces = s => s.isBraces();
+const isBrackets = s => s.isBrackets();
 const isIdentifier = s => s.isIdentifier();
 
 // Syntax -> any
@@ -141,8 +156,8 @@ let isExprPrefix = R.curry((l, b) => R.cond([
 ]));
 
 // List a -> Maybe List a
-let curly = p => safeLast(p).map(isCurlyDelimiter).chain(stuffTrue(p));
-let paren = p => safeLast(p).map(isParenDelimiter).chain(stuffTrue(p));
+let curly = p => safeLast(p).map(isBraces).chain(stuffTrue(p));
+let paren = p => safeLast(p).map(isParens).chain(stuffTrue(p));
 let func = p => safeLast(p).map(isFunctionKeyword).chain(stuffTrue(p));
 let ident = p => safeLast(p).map(isIdentifier).chain(stuffTrue(p));
 let nonLiteralKeyword = p => safeLast(p).map(isNonLiteralKeyword).chain(stuffTrue(p));
@@ -215,7 +230,7 @@ const isRegexPrefix = b => R.anyPass([
   ),
   // P . {T}^l  where isExprPrefix(P, b, l) = false
   p => {
-    let isCurly = Maybe.isJust(safeLast(p).map(isCurlyDelimiter));
+    let isCurly = Maybe.isJust(safeLast(p).map(isBraces));
     let alreadyCheckedFunction = R.pipe(
       Maybe.of,
       functionPrefix,
@@ -242,11 +257,15 @@ const isRegexPrefix = b => R.anyPass([
 
 ]);
 
+function lastEl(l) {
+  return l[l.length - 1];
+}
+
 export default class Reader extends Tokenizer {
   constructor(strings, context, replacements) {
     super(Array.isArray(strings) ? strings.join('') : strings);
     this.delimStack = new Map();
-    this.insideTemplate = false;
+    this.insideSyntaxTemplate = [false];
     this.context = context;
 
     // setup splicing replacement array
@@ -290,9 +309,14 @@ export default class Reader extends Tokenizer {
       }
 
       if (isLeftDelimiter(tok)) {
+        if (isLeftSyntax(tok)) {
+          this.insideSyntaxTemplate.push(true);
+        }
         let line = tok.slice.startLocation.line;
         let innerB = isLeftBrace(tok) ? isExprPrefix(line, b)(prefix) : true;
-        let inner = this.read([new Syntax(tok)], innerB);
+        let inner = this.read([new Syntax(tok)],
+                              innerB,
+                              false);
         let stx = new Syntax(inner, this.context);
         prefix = prefix.concat(stx);
         stack.push(stx);
@@ -305,6 +329,9 @@ export default class Reader extends Tokenizer {
         }
         let stx = new Syntax(tok, this.context);
         stack.push(stx);
+        if (lastEl(this.insideSyntaxTemplate) && isRightSyntax(tok)) {
+          this.insideSyntaxTemplate.pop();
+        }
         break;
       } else {
         let stx = new Syntax(tok, this.context);
@@ -338,7 +365,18 @@ export default class Reader extends Tokenizer {
 
     if (charCode === 0x60) { // `
       let element, items = [];
+      let startLocation = this.getLocation();
+      let start = this.index;
       this.index++;
+      if (lastEl(this.insideSyntaxTemplate)) {
+
+        let slice = this.getSlice(start, startLocation);
+        return {
+          type: RSYNTAX,
+          value: '`',
+          slice: slice
+        };
+      }
       do {
         element = this.scanTemplateElement();
         items.push(element);
@@ -358,6 +396,15 @@ export default class Reader extends Tokenizer {
       let start = this.index;
       let slice = this.getSlice(start, startLocation);
       this.index++;
+      // TODO: handle ` inside of syntax template interpolations
+      if (this.source.charCodeAt(this.index) === 0x60) { // `
+        this.index++;
+        return {
+          type: LSYNTAX,
+          value: '#`',
+          slice: slice
+        };
+      }
       return {
         type: TokenType.IDENTIFIER,
         value: '#',

@@ -4,7 +4,7 @@ import { List } from 'immutable';
 import ParseReducer from './parse-reducer.js';
 import reducer, { MonoidalReducer } from "shift-reducer";
 import { makeDeserializer } from './serializer';
-import Syntax, {makeString, makeIdentifier} from "./syntax";
+import Syntax from "./syntax";
 import codegen, { FormattedCodeGen } from 'shift-codegen';
 import { transform } from "babel-core";
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
@@ -14,6 +14,8 @@ import Term, {
   isVariableDeclarationStatement, isImport, isExport
 } from "./terms";
 import Reader from './shift-reader';
+
+import { replaceTemplate }from './template-processor';
 
 // indirect eval so in the global scope
 let geval = eval;
@@ -26,6 +28,9 @@ function loadForCompiletime(expr, context) {
       let ctx = deserializer.read(_.last(values));
       let reader = new Reader(strings, ctx.context, _.take(values.length - 1, values));
       return reader.read();
+    },
+    syntaxTemplate: function(str, ...values) {
+      return replaceTemplate(deserializer.read(str), List(values));
     }
   };
 
@@ -41,7 +46,7 @@ function loadForCompiletime(expr, context) {
         params: new Term("FormalParameters", {
           items: sandboxKeys.map(param => {
             return new Term("BindingIdentifier", {
-              name: makeIdentifier(param)
+              name: Syntax.fromIdentifier(param)
             });
           }),
           rest: null

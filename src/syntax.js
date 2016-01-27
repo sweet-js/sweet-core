@@ -9,20 +9,6 @@ const Nothing = Maybe.Nothing;
 
 import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
 
-export function makeString(value, ctx) {
-  return new Syntax({
-    type: TokenType.STRING,
-    str: value
-  }, ctx);
-}
-
-export function makeIdentifier(value, ctx) {
-  return new Syntax({
-    type: TokenType.IDENTIFIER,
-    value: value
-  }, ctx);
-}
-
 function sizeDecending(a, b) {
   if (a.scopes.size > b.scopes.size) {
     return -1;
@@ -41,6 +27,69 @@ export default class Syntax {
       bindings: context.bindings,
       scopeset: context.scopeset
     };
+    Object.freeze(this.context);
+    Object.freeze(this);
+  }
+
+  static of(token, stx = {}) {
+    return new Syntax(token, stx.context);
+  }
+
+  static fromNumber(value, stx = {}) {
+    return new Syntax({
+      type: TokenType.NUMBER,
+      value: value
+    }, stx.context);
+  }
+
+  static fromString(value, stx = {}) {
+    return new Syntax({
+      type: TokenType.STRING,
+      str: value
+    }, stx.context);
+  }
+
+  static fromIdentifier(value, stx = {}) {
+    return new Syntax({
+      type: TokenType.IDENTIFIER,
+      value: value
+    }, stx.context);
+  }
+
+  static fromBraces(inner, stx = {}) {
+    let left = new Syntax({
+      type: TokenType.LBRACE,
+      value: "{"
+    });
+    let right = new Syntax({
+      type: TokenType.RBRACE,
+      value: "}"
+    });
+    return new Syntax(List.of(left).concat(inner).push(right), stx.context);
+  }
+
+  static fromBrackets(inner, stx = {}) {
+    let left = new Syntax({
+      type: TokenType.LBRACK,
+      value: "["
+    });
+    let right = new Syntax({
+      type: TokenType.RBRACK,
+      value: "]"
+    });
+    return new Syntax(List.of(left).concat(inner).push(right), stx.context);
+  }
+
+  static fromParens(inner, stx = {}) {
+    let left = new Syntax({
+      type: TokenType.LPAREN,
+      value: "("
+    });
+    let right = new Syntax({
+      type: TokenType.RPAREN,
+      value: ")"
+    });
+    return new Syntax(List.of(left).concat(inner).push(right), stx.context);
   }
 
   // () -> string
@@ -71,6 +120,7 @@ export default class Syntax {
         } else if (biggestBindingPair.size !== 0) {
           let bindingStr = biggestBindingPair.get(0).binding.toString();
           if (Maybe.isJust(biggestBindingPair.get(0).alias)) {
+            // null never happens because we just checked if it is a Just
             return biggestBindingPair.get(0).alias.getOrElse(null).resolve();
           }
           return bindingStr;
@@ -193,19 +243,23 @@ export default class Syntax {
     return List.isList(this.token);
   }
 
-  isParenDelimiter() {
+  isParens() {
     return this.isDelimiter() &&
            this.token.get(0).token.type === TokenType.LPAREN;
   }
 
-  isCurlyDelimiter() {
+  isBraces() {
     return this.isDelimiter() &&
            this.token.get(0).token.type === TokenType.LBRACE;
   }
 
-  isSquareDelimiter() {
+  isBrackets() {
     return this.isDelimiter() &&
            this.token.get(0).token.type === TokenType.LBRACK;
+  }
+
+  isSyntaxTemplate() {
+    return this.isDelimiter() && this.token.get(0).val() === '#`';
   }
 
   isEOF() {

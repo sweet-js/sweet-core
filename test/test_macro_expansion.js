@@ -7,7 +7,7 @@ describe("macro expansion", function () {
   it("should handle basic expansion at a statement expression position", function () {
     testParse(`
 syntaxrec m = function(ctx) {
-    return syntaxQuote\`200\`;
+    return #\`200\`;
 }
 m`, stmt, {
       "type": "ExpressionStatement",
@@ -23,7 +23,7 @@ m`, stmt, {
   it("should handle basic expansion at an expression position", function () {
     testParse(`
 syntaxrec m = function (ctx) {
-    return syntaxQuote\`200\`;
+    return #\`200\`;
 }
 let v = m`, stmt, {
       "type": "VariableDeclarationStatement",
@@ -55,7 +55,7 @@ let v = m`, stmt, {
     testParse(`
 syntaxrec m = function(ctx) {
     ctx.syntax().next();
-    return syntaxQuote\`200\`
+    return #\`200\`
 }
 m 42`, stmt, {
       "type": "ExpressionStatement",
@@ -73,7 +73,7 @@ m 42`, stmt, {
 syntaxrec m = function(ctx) {
     let iter = ctx.syntax()
     let term = ctx.getTerm(iter, 'expr');
-    return syntaxQuote\`200\`
+    return #\`200\`
 }
 m 100 + 200`, stmt, {
       "type": "ExpressionStatement",
@@ -90,7 +90,7 @@ m 100 + 200`, stmt, {
     testParse(`
       syntaxrec m = function(ctx) {
         var x = ctx.syntax().next().value;
-        return syntaxQuote\`40 + \${x}\`;
+        return #\`40 + \${x}\`;
       }
       m 2;
       `, stmt, {
@@ -120,7 +120,7 @@ m 100 + 200`, stmt, {
       syntaxrec m = function(ctx) {
         let iter = ctx.syntax();
         var x = ctx.getTerm(iter, 'expr');
-        return syntaxQuote\`40 + \${x}\`;
+        return #\`40 + \${x}\`;
       }
       m 2;
       `, stmt, {
@@ -164,7 +164,7 @@ m 100 + 200`, stmt, {
           b.push(s);
         }
 
-        return syntaxQuote\`function \${id} (\${paren_id}) {
+        return #\`function \${id} (\${paren_id}) {
           \${paren_id} = \${paren_id} || \${paren_init};
           \${b}
         }\`;

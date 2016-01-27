@@ -112,6 +112,33 @@ describe("shift reader basics", function () {
     expect(r.get(0).token.items.get(1).inner().get(0).isNumericLiteral()).to.be(true);
   });
 
+  it('should handle syntax templates', () => {
+    let reader = new Reader('#`foo`');
+    let r = reader.read();
+
+    expect(r.size).to.be(1);
+    expect(r.get(0).inner().size).to.be(1);
+    expect(r.get(0).inner().get(0).val()).to.be('foo');
+  });
+
+  it('should handle nested syntax templates', () => {
+    let reader = new Reader('#`#`bar``');
+    let r = reader.read();
+
+    expect(r.size).to.be(1);
+    expect(r.get(0).inner().size).to.be(1);
+    expect(r.get(0).inner().get(0).inner().get(0).val()).to.be('bar');
+  });
+
+  // it('should handle escaped string templates literals inside a syntax literal', () => {
+  //   let reader = new Reader('#`x = \`foo\``');
+  //   let r = reader.read();
+
+  //   expect(r.size).to.be(1);
+  //   expect(r.get(0).inner().size).to.be(3);
+  //   expect(r.get(0).inner().get(0).inner().get(0).val()).to.be('x');
+  //   expect(r.get(0).inner().get(0).inner().get(1).val()).to.be('=');
+  // });
 });
 
 describe('shift reader for regex', () => {

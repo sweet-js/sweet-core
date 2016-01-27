@@ -9,6 +9,7 @@ import ParseReducer from "./parse-reducer";
 import codegen from "shift-codegen";
 import moduleResolver from './node-module-resolver';
 import moduleLoader from './node-module-loader';
+import { Scope, freshScope } from "./scope";
 
 import BindingMap from "./binding-map.js";
 
@@ -19,16 +20,19 @@ import { Modules } from './modules';
 export function expand(source, options = {}) {
   let reader = new Reader(source);
   let stxl = reader.read();
+  let scope = freshScope('top');
+  let bindings = new BindingMap();
   let expander = new Expander({
     env: new Env(),
     store: new Env(),
-    bindings: new BindingMap(),
+    bindings: bindings,
     cwd: options.cwd,
     modules: new Modules(),
+    currentScope: [scope],
     moduleResolver: options.moduleResolver ? options.moduleResolver : moduleResolver,
     moduleLoader: options.moduleLoader ? options.moduleLoader : moduleLoader
   });
-  let exStxl = expander.expand(stxl);
+  let exStxl = expander.expand(stxl.map(s => s.addScope(scope, bindings)));
   return new Term("Module", {
     directives: List(),
     items: exStxl

@@ -1,4 +1,4 @@
-import Syntax, { makeIdentifier } from "../src/syntax";
+import Syntax from "../src/syntax";
 import expect from "expect.js";
 import { Scope, freshScope } from "../src/scope";
 import BindingMap from "../src/binding-map";
@@ -11,7 +11,7 @@ import { Symbol, gensym } from "../src/symbol";
 
 describe('syntax objects', () => {
   it('that have no bindings or scopes should resolve to their original name ', () => {
-    let foo = makeIdentifier('foo');
+    let foo = Syntax.fromIdentifier('foo');
     expect(foo.resolve()).to.be('foo');
   });
 
@@ -19,8 +19,8 @@ describe('syntax objects', () => {
       let bindings = new BindingMap();
       let scope1 = freshScope("1");
 
-      let foo = makeIdentifier('foo');
-      let foo_1 = makeIdentifier('foo');
+      let foo = Syntax.fromIdentifier('foo');
+      let foo_1 = Syntax.fromIdentifier('foo');
 
       foo_1 = foo_1.addScope(scope1, bindings);
 
@@ -34,8 +34,8 @@ describe('syntax objects', () => {
       let scope1 = freshScope("1");
       let scope2 = freshScope("2");
 
-      let foo_1 = makeIdentifier('foo');
-      let foo_2 = makeIdentifier('foo');
+      let foo_1 = Syntax.fromIdentifier('foo');
+      let foo_2 = Syntax.fromIdentifier('foo');
 
       foo_1 = foo_1.addScope(scope1, bindings);
       foo_2 = foo_2.addScope(scope2, bindings);
@@ -52,8 +52,8 @@ describe('syntax objects', () => {
       let scope2 = freshScope("2");
       let scope3 = freshScope("3");
 
-      let foo_1 = makeIdentifier('foo');
-      let foo_123 = makeIdentifier('foo');
+      let foo_1 = Syntax.fromIdentifier('foo');
+      let foo_123 = Syntax.fromIdentifier('foo');
 
       foo_1 = foo_1.addScope(scope1, bindings);
 
@@ -72,9 +72,9 @@ describe('syntax objects', () => {
     let scope2 = freshScope("2");
     let scope3 = freshScope("3");
 
-    let foo_13 = makeIdentifier('foo');
-    let foo_12 = makeIdentifier('foo');
-    let foo_123 = makeIdentifier('foo');
+    let foo_13 = Syntax.fromIdentifier('foo');
+    let foo_12 = Syntax.fromIdentifier('foo');
+    let foo_123 = Syntax.fromIdentifier('foo');
 
     foo_13 = foo_13.addScope(scope1, bindings)
       .addScope(scope3, bindings);
@@ -91,6 +91,33 @@ describe('syntax objects', () => {
 
     expect(() => foo_123.resolve()).to.throwError();
   });
+
+  it('should make a number syntax object', () => {
+    let s = Syntax.fromNumber(42);
+
+    expect(s.val()).to.be(42);
+  });
+
+  it('should make an identifier syntax object', () => {
+    let s = Syntax.fromIdentifier("foo");
+
+    expect(s.val()).to.be("foo");
+    expect(s.resolve()).to.be("foo");
+  });
+
+  it('should make an identifier syntax object with another identifier as the context', () => {
+    let bindings = new BindingMap();
+    let scope1 = freshScope("1");
+
+    let foo = Syntax.fromIdentifier('foo').addScope(scope1, bindings);
+    bindings.add(foo, { binding: gensym('foo') });
+
+    let foo_1 = Syntax.fromIdentifier('foo', foo);
+
+
+    expect(foo.resolve()).to.be(foo_1.resolve());
+  });
+
 });
 
 describe('serializing', () => {
@@ -118,7 +145,7 @@ describe('serializing', () => {
     let json = serializer.write(reader.read());
     let stxl = deserializer.read(json);
 
-    expect(stxl.get(0).isParenDelimiter()).to.be(true);
+    expect(stxl.get(0).isParens()).to.be(true);
     expect(stxl.get(0).inner().get(0).isNumericLiteral()).to.be(true);
     expect(stxl.get(0).inner().get(0).val()).to.be(42);
   });
@@ -145,7 +172,7 @@ describe('serializing', () => {
     let scope1 = freshScope("1");
     let deserializer = makeDeserializer(bindings);
 
-    let foo = makeIdentifier('foo');
+    let foo = Syntax.fromIdentifier('foo');
     foo = foo.addScope(scope1, bindings);
 
     bindings.add(foo, {binding: gensym('foo')});

@@ -51,7 +51,7 @@ gulp.task('build:test', function () {
 gulp.task('mocha', ['build:src', 'build:test'], function () {
   return gulp.src('build/test/**/*.js', { read: false })
     .pipe(mocha({
-      reporter: 'nyan'
+      reporter: 'dot'
     }));
 });
 

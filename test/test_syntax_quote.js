@@ -1,4 +1,4 @@
-import Syntax, { makeIdentifier } from "../src/syntax";
+import Syntax from "../src/syntax";
 import expect from "expect.js";
 import Scope from "../src/scope";
 import BindingMap from "../src/binding-map";

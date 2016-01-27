@@ -138,7 +138,7 @@ export class Enforester {
   enforestImportDeclaration() {
     let lookahead = this.peek();
 
-    if (this.isCurlyDelimiter(lookahead)) {
+    if (this.isBraces(lookahead)) {
       let imports = this.enforestNamedImports();
       let fromClause = this.enforestFromClause();
 
@@ -204,7 +204,7 @@ export class Enforester {
       return this.expandMacro();
     }
 
-    if (this.term === null && this.isCurlyDelimiter(lookahead)) {
+    if (this.term === null && this.isBraces(lookahead)) {
       return this.enforestBlockStatement();
     }
 
@@ -799,7 +799,7 @@ export class Enforester {
     }
 
     if (this.term === null &&
-      (this.isIdentifier(lookahead) || this.isParenDelimiter(lookahead)) &&
+      (this.isIdentifier(lookahead) || this.isParens(lookahead)) &&
        this.isPunctuator(this.peek(1), '=>') &&
        this.lineNumberEq(lookahead, this.peek(1))) {
       return this.enforestArrowExpression();
@@ -807,6 +807,9 @@ export class Enforester {
 
 
 
+    if (this.term === null && this.isSyntaxTemplate(lookahead)) {
+      return this.enforestSyntaxTemplate();
+    }
     // syntaxQuote ` ... `
     if (this.term === null && this.isSyntaxQuoteTransform(lookahead)) {
       return this.enforestSyntaxQuote();
@@ -865,7 +868,7 @@ export class Enforester {
       });
     }
     // ($x:expr)
-    if (this.term === null && this.isParenDelimiter(lookahead)) {
+    if (this.term === null && this.isParens(lookahead)) {
       return new Term("ParenthesizedExpression", {
         inner: this.advance().inner()
       });
@@ -876,12 +879,12 @@ export class Enforester {
     }
 
     // { $p:prop (,) ... }
-    if (this.term === null && this.isCurlyDelimiter(lookahead)) {
+    if (this.term === null && this.isBraces(lookahead)) {
       return this.enforestObjectExpression();
     }
 
     // [$x:expr (,) ...]
-    if (this.term === null && this.isSquareDelimiter(lookahead)) {
+    if (this.term === null && this.isBrackets(lookahead)) {
       return this.enforestArrayExpression();
     }
 
@@ -907,15 +910,15 @@ export class Enforester {
       return this.enforestStaticMemberExpression();
     }
     // $x:expr [ $b:expr ]
-    if (this.term && this.isSquareDelimiter(lookahead)) {
+    if (this.term && this.isBrackets(lookahead)) {
       return this.enforestComputedMemberExpression();
     }
     // $x:expr (...)
-    if (this.term && this.isParenDelimiter(lookahead)) {
+    if (this.term && this.isParens(lookahead)) {
       let paren = this.advance();
       return new Term("CallExpression", {
         callee: this.term,
-        arguments: paren
+        arguments: paren.inner()
       });
     }
     // $x:id `...`
@@ -952,7 +955,7 @@ export class Enforester {
       callee = new Term('IdentifierExpression', { name : this.enforestIdentifier() });
     }
     let args;
-    if (this.isParenDelimiter(this.peek())) {
+    if (this.isParens(this.peek())) {
       args = this.matchParens();
     } else {
       args = List();
@@ -1005,7 +1008,7 @@ export class Enforester {
     this.matchPunctuator('=>');
 
     let body;
-    if (this.isCurlyDelimiter(this.peek())) {
+    if (this.isBraces(this.peek())) {
       body = this.matchCurlies();
     } else {
       enf = new Enforester(this.rest, List(), this.context);
@@ -1030,6 +1033,12 @@ export class Enforester {
         expression: expr
       });
     }
+  }
+
+  enforestSyntaxTemplate() {
+    return new Term('SyntaxTemplate', {
+      template: this.advance()
+    });
   }
 
   enforestSyntaxQuote() {
@@ -1306,7 +1315,14 @@ export class Enforester {
     // enforesting result to handle precedence issues
     // (this surrounds macro results with implicit parens)
     let enf = new Enforester(result, List(), this.context);
-    let term = enf.enforest(enforestType);
+    let term;
+    try {
+      term = enf.enforest(enforestType);
+    } catch (e) {
+      // TODO: this might be a problem, can we really force this invariant on macro expansion?
+      // but how would we enforce the parenthesization problem otherwise?
+      throw this.createError(name, "macro must expand to valid syntax");
+    }
 
     this.rest = enf.rest.concat(this.rest);
 
@@ -1367,16 +1383,16 @@ export class Enforester {
     return term && (term instanceof Syntax) && term.isRegularExpression();
   }
 
-  isParenDelimiter(term) {
-    return term && (term instanceof Syntax) && term.isParenDelimiter();
+  isParens(term) {
+    return term && (term instanceof Syntax) && term.isParens();
   }
 
-  isCurlyDelimiter(term) {
-    return term && (term instanceof Syntax) && term.isCurlyDelimiter();
+  isBraces(term) {
+    return term && (term instanceof Syntax) && term.isBraces();
   }
 
-  isSquareDelimiter(term) {
-    return term && (term instanceof Syntax) && term.isSquareDelimiter();
+  isBrackets(term) {
+    return term && (term instanceof Syntax) && term.isBrackets();
   }
 
   isKeyword(term, val = null) {
@@ -1425,6 +1441,9 @@ export class Enforester {
   isSyntaxrecDeclTransform(term) {
     return term && (term instanceof Syntax) &&
            this.context.env.get(term.resolve()) === SyntaxrecDeclTransform;
+  }
+  isSyntaxTemplate(term) {
+    return term && (term instanceof Syntax) && term.isSyntaxTemplate();
   }
   isSyntaxQuoteTransform(term) {
     return term && (term instanceof Syntax) &&
@@ -1555,7 +1574,7 @@ export class Enforester {
 
   matchParens() {
     let lookahead = this.advance();
-    if (this.isParenDelimiter(lookahead)) {
+    if (this.isParens(lookahead)) {
       return lookahead.inner();
     }
     throw this.createError(lookahead, "expecting parens");
@@ -1563,14 +1582,14 @@ export class Enforester {
 
   matchCurlies() {
     let lookahead = this.advance();
-    if (this.isCurlyDelimiter(lookahead)) {
+    if (this.isBraces(lookahead)) {
       return lookahead.inner();
     }
     throw this.createError(lookahead, "expecting curly braces");
   }
   matchSquares() {
     let lookahead = this.advance();
-    if (this.isSquareDelimiter(lookahead)) {
+    if (this.isBrackets(lookahead)) {
       return lookahead.inner();
     }
     throw this.createError(lookahead, "expecting sqaure braces");
@@ -1617,5 +1636,6 @@ export class Enforester {
       }).join(" ");
     }
     return new Error("[error]: " + message + "\n" + ctx);
+
   }
 }

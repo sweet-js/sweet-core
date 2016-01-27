@@ -16,6 +16,7 @@ import { gensym } from './symbol';
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { expect, assert } from "./errors";
 import loadSyntax from './load-syntax';
+import { Scope, freshScope } from "./scope";
 
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
@@ -91,6 +92,7 @@ export default class TokenExpander {
     }
     let prev = List();
     let enf = new Enforester(stxl, prev, this.context);
+    let self = this;
     while (!enf.done) {
 
       let term = _.pipe(
@@ -100,7 +102,7 @@ export default class TokenExpander {
             // first, remove the use scope from each binding
             term.declaration.declarators = term.declaration.declarators.map(decl => {
               return new Term('VariableDeclarator', {
-                binding: removeScope(decl.binding, this.context.useScope),
+                binding: removeScope(decl.binding, self.context.useScope),
                 init: decl.init
               });
             });
@@ -111,35 +113,45 @@ export default class TokenExpander {
             // syntaxrec id^{a,b} = <init>^{a,b,c}
             if (isSyntaxDeclaration(term.declaration)) {
               // TODO: do stuff
+              let scope = freshScope('nonrec');
+              term.declaration.declarators.forEach(decl => {
+                let name = decl.binding.name;
+                let nameAdded = name.addScope(scope);
+                let nameRemoved = name.removeScope(self.context.currentScope[self.context.currentScope.length - 1]);
+                let newBinding = gensym(name.val());
+                self.context.bindings.addForward(nameAdded, nameRemoved, newBinding);
+                decl.init.body = decl.init.body.map(s => s.addScope(scope, self.context.bindings));
+              });
             }
 
             // for syntax declarations we need to load the compiletime value
             // into the environment
             if (isSyntaxDeclaration(term.declaration) || isSyntaxrecDeclaration(term.declaration)) {
-              term.declaration.declarators.forEach(
-                loadSyntax(_.__, this.context, this.context.env)
-              );
+              term.declaration.declarators.forEach(decl => {
+                registerBindings(decl.binding, self.context);
+                loadSyntax(decl, self.context, self.context.env);
+              });
               // do not add syntax declarations to the result
               return Nothing();
             } else {
               // add each binding to the environment
               term.declaration.declarators.forEach(decl =>
-                registerBindings(decl.binding, this.context)
+                registerBindings(decl.binding, self.context)
               );
             }
             return Just(term);
           }],
           [isFunctionWithName, term => {
-            term.name = removeScope(term.name, this.context.useScope);
-            registerBindings(term.name, this.context);
+            term.name = removeScope(term.name, self.context.useScope);
+            registerBindings(term.name, self.context);
             return Just(term);
           }],
           [isImport, term => {
-            let mod = this.context.modules.load(term.moduleSpecifier, this.context);
+            let mod = self.context.modules.load(term.moduleSpecifier, self.context);
             // mutates the store
-            mod.visit(this.context);
-            let boundNames = bindImports(term, mod, this.context);
-            // NOTE: this is a hack for MVP modules
+            mod.visit(self.context);
+            let boundNames = bindImports(term, mod, self.context);
+            // NOTE: self is a hack for MVP modules
             if (boundNames.size === 0) {
               return Just(term);
             }
