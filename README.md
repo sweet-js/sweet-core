@@ -23,7 +23,7 @@ Write your sweet code:
 import { # } from 'sweet.js';
 
 syntax inc = function (ctx) {
-  let x = ctx.syntax().next().value;
+  let x = ctx.next().value;
   return #`${x} + 1`;
 }
 inc 100
@@ -42,19 +42,19 @@ $ node_modules/.bin/sjs my_sweet_code.js
 import { # } from 'sweet.js';
 
 syntax def = function(ctx) {
-  let iter = ctx.syntax();
-  let id = iter.next().value;
-  let parens = iter.next().value;
-  let body = iter.next().value;
+  let id = ctx.next().value;
+  let parens = ctx.next().value;
+  let body = ctx.next().value;
 
-  let parenIter = ctx.of(parens).syntax();
-  let paren_id = parenIter.next().value;
-  parenIter.next() // =
-  let paren_init = ctx.getTerm(parenIter, 'expr')
+  let parenCtx = ctx.of(parens);
+  let paren_id = parenCtx.next().value;
+  parenCtx.next() // =
+  let paren_init = parenCtx.next('expr').value;
 
-  let bodyIter = ctx.of(body).syntax();
+  let bodyCtx = ctx.of(body);
   let b = [];
-  for (let s of bodyIter) {
+  // contexts are iterables!
+  for (let s of bodyCtx) {
     b.push(s);
   }
 

@@ -54,7 +54,7 @@ let v = m`, stmt, {
   it("should handle expansion where an argument is eaten", function () {
     testParse(`
 syntaxrec m = function(ctx) {
-    ctx.syntax().next();
+    ctx.next();
     return #\`200\`
 }
 m 42`, stmt, {
@@ -71,8 +71,7 @@ m 42`, stmt, {
   it("should handle expansion that eats an expression", function () {
     testParse(`
 syntaxrec m = function(ctx) {
-    let iter = ctx.syntax()
-    let term = ctx.getTerm(iter, 'expr');
+    let term = ctx.next('expr')
     return #\`200\`
 }
 m 100 + 200`, stmt, {
@@ -89,7 +88,7 @@ m 100 + 200`, stmt, {
   it('should handle expansion that takes an argument', () => {
     testParse(`
       syntaxrec m = function(ctx) {
-        var x = ctx.syntax().next().value;
+        var x = ctx.next().value;
         return #\`40 + \${x}\`;
       }
       m 2;
@@ -118,8 +117,7 @@ m 100 + 200`, stmt, {
   it('should handle expansion that matches an expression argument', () => {
     testParse(`
       syntaxrec m = function(ctx) {
-        let iter = ctx.syntax();
-        var x = ctx.getTerm(iter, 'expr');
+        let x = ctx.next('expr').value;
         return #\`40 + \${x}\`;
       }
       m 2;
@@ -148,19 +146,18 @@ m 100 + 200`, stmt, {
   it('should handle the full macro context api', () => {
     testEval(`
       syntaxrec def = function(ctx) {
-        let iter = ctx.syntax();
-        let id = iter.next().value;
-        let parens = iter.next().value;
-        let body = iter.next().value;
+        let id = ctx.next().value;
+        let parens = ctx.next().value;
+        let body = ctx.next().value;
 
-        let parenIter = ctx.of(parens).syntax();
-        let paren_id = parenIter.next().value;
-        parenIter.next() // =
-        let paren_init = ctx.getTerm(parenIter, 'expr')
+        let parenCtx = ctx.of(parens);
+        let paren_id = parenCtx.next().value;
+        parenCtx.next() // =
+        let paren_init = parenCtx.next('expr').value;
 
-        let bodyIter = ctx.of(body).syntax();
+        let bodyCtx = ctx.of(body);
         let b = [];
-        for (let s of bodyIter) {
+        for (let s of bodyCtx) {
           b.push(s);
         }
 
