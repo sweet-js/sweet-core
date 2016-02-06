@@ -17,7 +17,8 @@
     }
   ],
   "scripts": {
-    "test": "node_modules/.bin/gulp"
+    "test": "node_modules/.bin/gulp",
+    "docs": "node_modules/.bin/gitbook build doc/book/"
   },
   "directories": {
     "test": "test"
