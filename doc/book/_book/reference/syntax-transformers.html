@@ -53,7 +53,7 @@
         data-chapter-title="Syntax Transformers (aka Macros)"
         data-filepath="reference/syntax-transformers.md"
         data-basepath=".."
-        data-revision="Sat Feb 06 2016 12:19:54 GMT-0800 (PST)"
+        data-revision="Sat Feb 06 2016 12:28:09 GMT-0800 (PST)"
         data-innerlanguage="">
     
 
@@ -267,6 +267,13 @@ m (1, 2, 3)
 <p>Note in the above example that since a <code>TransformerContext</code> is an iterable, the <code>for-of</code> loop works as expected.</p>
 <h2 id="syntax-templates">Syntax Templates</h2>
 <p>Syntax templates construct a list of syntax objects from a literal representation using backtick (<code>#`foo bar baz` </code>). They are similar to ES2015 templates but with the special sweet.js specific <code>#</code> template tag.</p>
+<p>Syntax templates support interpolations just like normal templates via <code>${...}</code>:</p>
+<pre><code class="lang-js">syntax m = function (ctx) {
+  return #`${ctx.next().value} + 24`;
+}
+m 42
+</code></pre>
+<p>The expressions inside an interpolation must evaluate to a syntax object, a term, an array, or a list.</p>
 <blockquote id="fn_1">
 <sup>1</sup>. A Transformer Context is both iterator and iterable.<a href="#reffn_1" title="Jump back to footnote [1] in the text."> &#x21A9;</a>
 </blockquote>
