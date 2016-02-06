@@ -7,3 +7,4 @@
   * [Syntax Transformers (aka Macros)](reference/syntax-transformers.md)
   * [Syntax Objects](reference/syntax-objects.md)
   * [Terms](reference/terms.md)
+  * [Modules](reference/modules.md)

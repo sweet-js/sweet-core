@@ -5,7 +5,7 @@
         
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <title>Tutorial | Introduction</title>
+        <title>Modules | Introduction</title>
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="generator" content="GitBook 2.6.7">
@@ -37,10 +37,8 @@
         
     
     
-    <link rel="next" href="../reference/index.html" />
     
-    
-    <link rel="prev" href="../getting-started.html" />
+    <link rel="prev" href="../reference/terms.html" />
     
 
         
@@ -49,9 +47,9 @@
         
         
     <div class="book"
-        data-level="2"
-        data-chapter-title="Tutorial"
-        data-filepath="tutorial/README.md"
+        data-level="3.5"
+        data-chapter-title="Modules"
+        data-filepath="reference/modules.md"
         data-basepath=".."
         data-revision="Sat Feb 06 2016 12:59:54 GMT-0800 (PST)"
         data-innerlanguage="">
@@ -97,7 +95,7 @@
             
         </li>
     
-        <li class="chapter active" data-level="2" data-path="tutorial/index.html">
+        <li class="chapter " data-level="2" data-path="tutorial/index.html">
             
                 
                     <a href="../tutorial/index.html">
@@ -188,7 +186,7 @@
             
         </li>
     
-        <li class="chapter " data-level="3.5" data-path="reference/modules.html">
+        <li class="chapter active" data-level="3.5" data-path="reference/modules.html">
             
                 
                     <a href="../reference/modules.html">
@@ -241,9 +239,18 @@
                 
                     <section class="normal" id="section-">
                     
-                        <h1 id="tutorial">Tutorial</h1>
-<p>TODO</p>
-<p>A gradual introduction to the concepts of hygienic macros and sweet.js.</p>
+                        <h1 id="modules">Modules</h1>
+<p>Macros can exported and imported into modules via ES2015 module syntax. This allows you to define your macros in one file:</p>
+<pre><code class="lang-js">// id.js
+export syntax id = function (ctx) {
+  return #`${ctx.next().value}`;
+}
+</code></pre>
+<p>And import them in another:</p>
+<pre><code class="lang-js"><span class="hljs-comment">// main.js</span>
+<span class="hljs-keyword">import</span> { id } <span class="hljs-keyword">from</span> <span class="hljs-string">&apos;./id.js&apos;</span>;
+id <span class="hljs-number">42</span>
+</code></pre>
 
                     
                     </section>
@@ -254,10 +261,8 @@
         </div>
 
         
-        <a href="../getting-started.html" class="navigation navigation-prev " aria-label="Previous page: Getting Started"><i class="fa fa-angle-left"></i></a>
+        <a href="../reference/terms.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page: Terms"><i class="fa fa-angle-left"></i></a>
         
-        
-        <a href="../reference/index.html" class="navigation navigation-next " aria-label="Next page: Reference"><i class="fa fa-angle-right"></i></a>
         
     </div>
 </div>

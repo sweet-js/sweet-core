@@ -45,6 +45,7 @@
     "babel-plugin-syntax-flow": "^6.3.13",
     "babel-preset-es2015": "^6.3.13",
     "expect.js": "0.1.x",
+    "gitbook-cli": "^1.0.1",
     "gulp": "^3.9.0",
     "gulp-babel": "^6.1.1",
     "gulp-mocha": "^2.2.0",
