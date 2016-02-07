@@ -1,6 +1,6 @@
 # Modules
 
-Macros can exported and imported into modules via ES2015 module syntax. This allows you to define your macros in one file:
+Macros can be exported and imported into modules via ES2015 module syntax. This allows you to define your macros in one file:
 
 ```js
 // id.js
