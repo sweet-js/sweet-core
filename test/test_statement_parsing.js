@@ -33,6 +33,38 @@ describe("parsing function declarations", function () {
     });
   });
 
+  it("should handle a function declaration with rest parameters", function () {
+    testParse("function id(x, ...rest) { }", stmt, {
+      "type": "FunctionDeclaration",
+      "loc": null,
+      "name": {
+        "type": "BindingIdentifier",
+        "loc": null,
+        "name": "<<hygiene>>"
+      },
+      "isGenerator": false,
+      "params": {
+        "type": "FormalParameters",
+        "loc": null,
+        "rest": {
+          "type": "BindingIdentifier",
+          "name": "<<hygiene>>"
+        },
+        "items": [{
+          "type": "BindingIdentifier",
+          "loc": null,
+          "name": "<<hygiene>>"
+        }]
+      },
+      "body": {
+        "type": "FunctionBody",
+        "loc": null,
+        "directives": [],
+        "statements": []
+      }
+    });
+  });
+
   it("should handle a generator function declaration", function () {
     testParse("function * id(x) {}", stmt, {
       "type": "FunctionDeclaration",

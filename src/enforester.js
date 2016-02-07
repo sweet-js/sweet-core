@@ -1190,6 +1190,7 @@ export class Enforester {
 
   enforestFormalParameters() {
     let items = [];
+    let rest = null;
     while (this.rest.size !== 0) {
       let lookahead = this.peek();
 
@@ -1197,13 +1198,15 @@ export class Enforester {
         items.push(this.enforestBindingIdentifier());
       } else if (this.isPunctuator(lookahead, ",")) {
         this.advance();
+      } else if (this.isPunctuator(lookahead, '...')) {
+        this.matchPunctuator('...');
+        rest = this.enforestBindingIdentifier();
       } else {
         assert(false, "not implemented yet");
       }
     }
     return new Term("FormalParameters", {
-      items: List(items),
-      rest: null
+      items: List(items), rest
     });
   }
 
