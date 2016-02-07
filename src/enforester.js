@@ -1316,6 +1316,9 @@ export class Enforester {
       throw this.createError(name, "macro must return a list but got: " + result);
     }
     result = result.map(stx => {
+      if (!(stx && typeof stx.addScope === 'function')) {
+        throw this.createError(name, 'macro must return syntax objects or terms but got: ' + stx);
+      }
       return stx.addScope(introducedScope, this.context.bindings, { flip: true });
     });
 
