@@ -53,6 +53,17 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 // indirect eval so in the global scope
 var geval = eval;
 
+function sanitizeReplacementValues(values) {
+  if (Array.isArray(values)) {
+    return sanitizeReplacementValues((0, _immutable.List)(values));
+  } else if (_immutable.List.isList(values)) {
+    return values.map(sanitizeReplacementValues);
+  } else if (values == null) {
+    throw new Error("replacement values for syntax template must not but null or undefined");
+  }
+  return values;
+}
+
 // (Expression, Context) -> [function]
 function loadForCompiletime(expr, context) {
   var deserializer = (0, _serializer.makeDeserializer)(context.bindings);
@@ -71,7 +82,7 @@ function loadForCompiletime(expr, context) {
         values[_key2 - 1] = arguments[_key2];
       }
 
-      return (0, _templateProcessor.replaceTemplate)(deserializer.read(str), (0, _immutable.List)(values));
+      return (0, _templateProcessor.replaceTemplate)(deserializer.read(str), sanitizeReplacementValues(values));
     }
   };
 

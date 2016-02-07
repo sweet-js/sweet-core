@@ -1379,7 +1379,17 @@ var Enforester = exports.Enforester = function () {
 
       var ctx = new _macroContext2.default(this, name, this.context, useSiteScope, introducedScope);
 
-      var result = syntaxTransform.value(ctx).map(function (stx) {
+      var result = syntaxTransform.value.call(null, ctx);
+      if (Array.isArray(result)) {
+        result = (0, _immutable.List)(result);
+      }
+      if (!_immutable.List.isList(result)) {
+        throw this.createError(name, "macro must return a list but got: " + result);
+      }
+      result = result.map(function (stx) {
+        if (!(stx && typeof stx.addScope === 'function')) {
+          throw _this3.createError(name, 'macro must return syntax objects or terms but got: ' + stx);
+        }
         return stx.addScope(introducedScope, _this3.context.bindings, { flip: true });
       });
 
@@ -1745,8 +1755,10 @@ var Enforester = exports.Enforester = function () {
           }
           return s.val();
         }).join(" ");
+      } else {
+        ctx = offending.toString();
       }
-      return new Error("[error]: " + message + "\n" + ctx);
+      return new Error(message + "\n" + ctx);
     }
   }]);
 
