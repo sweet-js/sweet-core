@@ -1308,7 +1308,11 @@ export class Enforester {
 
     let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 
-    let result = syntaxTransform.value(ctx).map(stx => {
+    let result = syntaxTransform.value.call(null, ctx);
+    if (!List.isList(result)) {
+      throw this.createError(name, "macro must return a list but got: " + result);
+    }
+    result = result.map(stx => {
       return stx.addScope(introducedScope, this.context.bindings, { flip: true });
     });
 
@@ -1634,8 +1638,10 @@ export class Enforester {
         }
         return s.val();
       }).join(" ");
+    } else {
+      ctx = offending.toString();
     }
-    return new Error("[error]: " + message + "\n" + ctx);
+    return new Error(message + "\n" + ctx);
 
   }
 }
