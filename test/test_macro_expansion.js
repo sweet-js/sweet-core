@@ -143,6 +143,16 @@ m 100 + 200`, stmt, {
       });
   });
 
+  it('should handle the macro returning an array', () => {
+    testEval(`
+      syntax m = function (ctx) {
+        let x = ctx.next().value;
+        return [x];
+      }
+      output = m 42;
+      `, 42);
+  });
+
   it('should handle the full macro context api', () => {
     testEval(`
       syntaxrec def = function(ctx) {

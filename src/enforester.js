@@ -1309,6 +1309,9 @@ export class Enforester {
     let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 
     let result = syntaxTransform.value.call(null, ctx);
+    if (Array.isArray(result)) {
+      result = List(result);
+    }
     if (!List.isList(result)) {
       throw this.createError(name, "macro must return a list but got: " + result);
     }
