@@ -39,8 +39,6 @@ $ node_modules/.bin/sjs my_sweet_code.js
 # Tutorial
 
 ```js
-import { # } from 'sweet.js';
-
 syntax def = function(ctx) {
   let id = ctx.next().value;
   let parens = ctx.next().value;
