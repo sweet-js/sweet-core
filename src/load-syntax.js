@@ -20,6 +20,17 @@ import { replaceTemplate }from './template-processor';
 // indirect eval so in the global scope
 let geval = eval;
 
+function sanitizeReplacementValues(values) {
+  if (Array.isArray(values)) {
+    return sanitizeReplacementValues(List(values));
+  } else if (List.isList(values)) {
+    return values.map(sanitizeReplacementValues);
+  } else if (values == null) {
+    throw new Error("replacement values for syntax template must not but null or undefined");
+  }
+  return values;
+}
+
 // (Expression, Context) -> [function]
 function loadForCompiletime(expr, context) {
   let deserializer = makeDeserializer(context.bindings);
@@ -30,7 +41,7 @@ function loadForCompiletime(expr, context) {
       return reader.read();
     },
     syntaxTemplate: function(str, ...values) {
-      return replaceTemplate(deserializer.read(str), List(values));
+      return replaceTemplate(deserializer.read(str), sanitizeReplacementValues(values));
     }
   };
 
