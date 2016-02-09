@@ -944,6 +944,26 @@ export class Enforester {
     return EXPR_LOOP_NO_CHANGE;
   }
 
+  enforestArgumentList() {
+    let result = [];
+    while (this.rest.size > 0) {
+      let arg;
+      if (this.isPunctuator(this.peek(), '...')) {
+        this.advance();
+        arg = new Term('SpreadElement', {
+          expression: this.enforestExpressionLoop()
+        });
+      } else {
+        arg = this.enforestExpressionLoop();
+      }
+      if (this.rest.size > 0) {
+        this.matchPunctuator(',');
+      }
+      result.push(arg);
+    }
+    return List(result);
+  }
+
   enforestNewExpression() {
     this.matchKeyword('new');
     let callee;

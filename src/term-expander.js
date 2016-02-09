@@ -14,30 +14,6 @@ import { enforestExpr, Enforester } from "./enforester";
 import { assert } from './errors';
 import { processTemplate }from './template-processor.js';
 
-function expandExpressionList(stxl, context) {
-  let result = List();
-  let prev = List();
-  if (stxl.size === 0) {
-    return List();
-  }
-  let enf = new Enforester(stxl, prev, context);
-  let lastTerm = null;
-  while (!enf.done) {
-    let term = enf.enforest("expression");
-    if (term == null) {
-      throw enf.createError(null, "expecting an expression");
-    }
-    result = result.concat(term);
-
-    if (!enf.isPunctuator(enf.peek(), ",") && enf.rest.size !== 0) {
-      throw enf.createError(enf.peek(), "expecting a comma");
-    }
-    enf.advance();
-  }
-  let te = new TermExpander(context);
-  return result.map(t => te.expand(t));
-}
-
 export default class TermExpander {
   constructor(context) {
     this.context = context;
@@ -390,7 +366,8 @@ export default class TermExpander {
 
   expandNewExpression(term) {
     let callee = this.expand(term.callee);
-    let args = expandExpressionList(term.arguments, this.context);
+    let enf = new Enforester(term.arguments, List(), this.context);
+    let args = enf.enforestArgumentList().map(arg => this.expand(arg));
     return new Term('NewExpression', {
       callee,
       arguments: args.toArray()
@@ -398,10 +375,17 @@ export default class TermExpander {
   }
   expandCallExpression(term) {
     let callee = this.expand(term.callee);
-    let args = expandExpressionList(term.arguments, this.context);
+    let enf = new Enforester(term.arguments, List(), this.context);
+    let args = enf.enforestArgumentList().map(arg => this.expand(arg));
     return new Term("CallExpression", {
       callee: callee,
       arguments: args
+    });
+  }
+
+  expandSpreadElement(term) {
+    return new Term('SpreadElement', {
+      expression: this.expand(term.expression)
     });
   }
 
