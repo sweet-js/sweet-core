@@ -40,6 +40,7 @@ import MacroContext from "./macro-context";
 
 const EXPR_LOOP_OPERATOR = {};
 const EXPR_LOOP_NO_CHANGE = {};
+const EXPR_LOOP_EXPANSION = {};
 
 export class Enforester {
   constructor(stxl, prev, context) {
@@ -201,7 +202,8 @@ export class Enforester {
     let lookahead = this.peek();
 
     if (this.term === null && this.isCompiletimeTransform(lookahead)) {
-      return this.expandMacro();
+      this.rest = this.expandMacro().concat(this.rest);
+      lookahead = this.peek();
     }
 
     if (this.term === null && this.isBraces(lookahead)) {
@@ -766,8 +768,8 @@ export class Enforester {
         this.opCtx.stack = this.opCtx.stack.pop();
       } else if (term === EXPR_LOOP_NO_CHANGE) {
         break;
-      // operator means an opCtx was pushed on the stack
-      } else if (term === EXPR_LOOP_OPERATOR) {
+      } else if (term === EXPR_LOOP_OPERATOR || term === EXPR_LOOP_EXPANSION) {
+        // operator means an opCtx was pushed on the stack
         this.term = null;
       } else {
         this.term = term;
@@ -785,13 +787,9 @@ export class Enforester {
     }
 
     if (this.term === null && this.isCompiletimeTransform(lookahead)) {
-      let term = this.expandMacro("expression");
-      // TODO: need to figure out the right way of checking if terms are expressions
-      // if (!(term instanceof T.ExpressionTerm)) {
-      //     throw this.createError(term,
-      //                            "expecting macro to return an expression");
-      // }
-      return term;
+      let result = this.expandMacro();
+      this.rest = result.concat(this.rest);
+      return EXPR_LOOP_EXPANSION;
     }
 
     if (this.term === null && this.isKeyword(lookahead, 'yield')) {
@@ -1325,21 +1323,7 @@ export class Enforester {
       return stx.addScope(introducedScope, this.context.bindings, { flip: true });
     });
 
-    // enforesting result to handle precedence issues
-    // (this surrounds macro results with implicit parens)
-    let enf = new Enforester(result, List(), this.context);
-    let term;
-    try {
-      term = enf.enforest(enforestType);
-    } catch (e) {
-      // TODO: this might be a problem, can we really force this invariant on macro expansion?
-      // but how would we enforce the parenthesization problem otherwise?
-      throw this.createError(name, "macro must expand to valid syntax");
-    }
-
-    this.rest = enf.rest.concat(this.rest);
-
-    return term;
+    return result;
 
   }
 
