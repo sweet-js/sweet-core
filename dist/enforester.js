@@ -35,6 +35,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var EXPR_LOOP_OPERATOR = {};
 var EXPR_LOOP_NO_CHANGE = {};
+var EXPR_LOOP_EXPANSION = {};
 
 var Enforester = exports.Enforester = function () {
   function Enforester(stxl, prev, context) {
@@ -214,7 +215,8 @@ var Enforester = exports.Enforester = function () {
       var lookahead = this.peek();
 
       if (this.term === null && this.isCompiletimeTransform(lookahead)) {
-        return this.expandMacro();
+        this.rest = this.expandMacro().concat(this.rest);
+        lookahead = this.peek();
       }
 
       if (this.term === null && this.isBraces(lookahead)) {
@@ -806,12 +808,12 @@ var Enforester = exports.Enforester = function () {
           this.opCtx.stack = this.opCtx.stack.pop();
         } else if (term === EXPR_LOOP_NO_CHANGE) {
           break;
+        } else if (term === EXPR_LOOP_OPERATOR || term === EXPR_LOOP_EXPANSION) {
           // operator means an opCtx was pushed on the stack
-        } else if (term === EXPR_LOOP_OPERATOR) {
-            this.term = null;
-          } else {
-            this.term = term;
-          }
+          this.term = null;
+        } else {
+          this.term = term;
+        }
       } while (true); // get a fixpoint
       return this.term;
     }
@@ -826,13 +828,9 @@ var Enforester = exports.Enforester = function () {
       }
 
       if (this.term === null && this.isCompiletimeTransform(lookahead)) {
-        var term = this.expandMacro("expression");
-        // TODO: need to figure out the right way of checking if terms are expressions
-        // if (!(term instanceof T.ExpressionTerm)) {
-        //     throw this.createError(term,
-        //                            "expecting macro to return an expression");
-        // }
-        return term;
+        var result = this.expandMacro();
+        this.rest = result.concat(this.rest);
+        return EXPR_LOOP_EXPANSION;
       }
 
       if (this.term === null && this.isKeyword(lookahead, 'yield')) {
@@ -979,6 +977,27 @@ var Enforester = exports.Enforester = function () {
       }
 
       return EXPR_LOOP_NO_CHANGE;
+    }
+  }, {
+    key: "enforestArgumentList",
+    value: function enforestArgumentList() {
+      var result = [];
+      while (this.rest.size > 0) {
+        var arg = undefined;
+        if (this.isPunctuator(this.peek(), '...')) {
+          this.advance();
+          arg = new _terms2.default('SpreadElement', {
+            expression: this.enforestExpressionLoop()
+          });
+        } else {
+          arg = this.enforestExpressionLoop();
+        }
+        if (this.rest.size > 0) {
+          this.matchPunctuator(',');
+        }
+        result.push(arg);
+      }
+      return (0, _immutable.List)(result);
     }
   }, {
     key: "enforestNewExpression",
@@ -1244,6 +1263,7 @@ var Enforester = exports.Enforester = function () {
     key: "enforestFormalParameters",
     value: function enforestFormalParameters() {
       var items = [];
+      var rest = null;
       while (this.rest.size !== 0) {
         var lookahead = this.peek();
 
@@ -1251,13 +1271,15 @@ var Enforester = exports.Enforester = function () {
           items.push(this.enforestBindingIdentifier());
         } else if (this.isPunctuator(lookahead, ",")) {
           this.advance();
+        } else if (this.isPunctuator(lookahead, '...')) {
+          this.matchPunctuator('...');
+          rest = this.enforestBindingIdentifier();
         } else {
           (0, _errors.assert)(false, "not implemented yet");
         }
       }
       return new _terms2.default("FormalParameters", {
-        items: (0, _immutable.List)(items),
-        rest: null
+        items: (0, _immutable.List)(items), rest: rest
       });
     }
   }, {
@@ -1393,21 +1415,7 @@ var Enforester = exports.Enforester = function () {
         return stx.addScope(introducedScope, _this3.context.bindings, { flip: true });
       });
 
-      // enforesting result to handle precedence issues
-      // (this surrounds macro results with implicit parens)
-      var enf = new Enforester(result, (0, _immutable.List)(), this.context);
-      var term = undefined;
-      try {
-        term = enf.enforest(enforestType);
-      } catch (e) {
-        // TODO: this might be a problem, can we really force this invariant on macro expansion?
-        // but how would we enforce the parenthesization problem otherwise?
-        throw this.createError(name, "macro must expand to valid syntax");
-      }
-
-      this.rest = enf.rest.concat(this.rest);
-
-      return term;
+      return result;
     }
   }, {
     key: "consumeSemicolon",

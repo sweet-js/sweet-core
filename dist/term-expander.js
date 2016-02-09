@@ -42,32 +42,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-function expandExpressionList(stxl, context) {
-  var result = (0, _immutable.List)();
-  var prev = (0, _immutable.List)();
-  if (stxl.size === 0) {
-    return (0, _immutable.List)();
-  }
-  var enf = new _enforester.Enforester(stxl, prev, context);
-  var lastTerm = null;
-  while (!enf.done) {
-    var term = enf.enforest("expression");
-    if (term == null) {
-      throw enf.createError(null, "expecting an expression");
-    }
-    result = result.concat(term);
-
-    if (!enf.isPunctuator(enf.peek(), ",") && enf.rest.size !== 0) {
-      throw enf.createError(enf.peek(), "expecting a comma");
-    }
-    enf.advance();
-  }
-  var te = new TermExpander(context);
-  return result.map(function (t) {
-    return te.expand(t);
-  });
-}
-
 var TermExpander = function () {
   function TermExpander(context) {
     _classCallCheck(this, TermExpander);
@@ -517,8 +491,13 @@ var TermExpander = function () {
   }, {
     key: "expandNewExpression",
     value: function expandNewExpression(term) {
+      var _this12 = this;
+
       var callee = this.expand(term.callee);
-      var args = expandExpressionList(term.arguments, this.context);
+      var enf = new _enforester.Enforester(term.arguments, (0, _immutable.List)(), this.context);
+      var args = enf.enforestArgumentList().map(function (arg) {
+        return _this12.expand(arg);
+      });
       return new _terms2.default('NewExpression', {
         callee: callee,
         arguments: args.toArray()
@@ -527,11 +506,23 @@ var TermExpander = function () {
   }, {
     key: "expandCallExpression",
     value: function expandCallExpression(term) {
+      var _this13 = this;
+
       var callee = this.expand(term.callee);
-      var args = expandExpressionList(term.arguments, this.context);
+      var enf = new _enforester.Enforester(term.arguments, (0, _immutable.List)(), this.context);
+      var args = enf.enforestArgumentList().map(function (arg) {
+        return _this13.expand(arg);
+      });
       return new _terms2.default("CallExpression", {
         callee: callee,
         arguments: args
+      });
+    }
+  }, {
+    key: "expandSpreadElement",
+    value: function expandSpreadElement(term) {
+      return new _terms2.default('SpreadElement', {
+        expression: this.expand(term.expression)
       });
     }
   }, {
@@ -553,11 +544,11 @@ var TermExpander = function () {
   }, {
     key: "doFunctionExpansion",
     value: function doFunctionExpansion(term, type) {
-      var _this12 = this;
+      var _this14 = this;
 
       var scope = (0, _scope.freshScope)("fun");
       var markedBody = term.body.map(function (b) {
-        return b.addScope(scope, _this12.context.bindings);
+        return b.addScope(scope, _this14.context.bindings);
       });
       var red = new _applyScopeInParamsReducer2.default(scope, this.context);
       var params = (0, _shiftReducer2.default)(red, term.params);
