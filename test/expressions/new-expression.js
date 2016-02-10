@@ -65,59 +65,59 @@ describe("Parser", function () {
     );
 
 
-    // testParse("new f(...a)", expr,
-    //   {
-    //     type: "NewExpression",
-    //     callee: { type: "IdentifierExpression", name: "f" },
-    //     arguments: [{ type: "SpreadElement", expression: { type: "IdentifierExpression", name: "a" } }]
-    //   }
-    // );
-    // testParse("new f(...a = b)", expr,
-    //   {
-    //     type: "NewExpression",
-    //     callee: { type: "IdentifierExpression", name: "f" },
-    //     arguments: [{
-    //       type: "SpreadElement",
-    //       expression: {
-    //         type: "AssignmentExpression",
-    //         binding: { type: "BindingIdentifier", name: "a" },
-    //         expression: { type: "IdentifierExpression", name: "b" }
-    //       }
-    //     }]
-    //   }
-    // );
-    // testParse("new f(...a, ...b)", expr,
-    //   {
-    //     type: "NewExpression",
-    //     callee: { type: "IdentifierExpression", name: "f" },
-    //     arguments: [{
-    //       type: "SpreadElement",
-    //       expression: { type: "IdentifierExpression", name: "a" }
-    //     }, { type: "SpreadElement", expression: { type: "IdentifierExpression", name: "b" } }]
-    //   }
-    // );
-    // testParse("new f(a, ...b, c)", expr,
-    //   {
-    //     type: "NewExpression",
-    //     callee: { type: "IdentifierExpression", name: "f" },
-    //     arguments: [{ type: "IdentifierExpression", name: "a" }, {
-    //       type: "SpreadElement",
-    //       expression: { type: "IdentifierExpression", name: "b" }
-    //     }, { type: "IdentifierExpression", name: "c" }]
-    //   }
-    // );
-    // testParse("new f(...a, b, ...c)", expr,
-    //   {
-    //     type: "NewExpression",
-    //     callee: { type: "IdentifierExpression", name: "f" },
-    //     arguments: [{
-    //       type: "SpreadElement",
-    //       expression: { type: "IdentifierExpression", name: "a" }
-    //     }, { type: "IdentifierExpression", name: "b" }, {
-    //       type: "SpreadElement",
-    //       expression: { type: "IdentifierExpression", name: "c" }
-    //     }]
-    //   }
-    // );
+    testParse("new f(...a)", expr,
+      {
+        type: "NewExpression",
+        callee: { type: "IdentifierExpression", name: "f" },
+        arguments: [{ type: "SpreadElement", expression: { type: "IdentifierExpression", name: "a" } }]
+      }
+    );
+    testParse("new f(...a = b)", expr,
+      {
+        type: "NewExpression",
+        callee: { type: "IdentifierExpression", name: "f" },
+        arguments: [{
+          type: "SpreadElement",
+          expression: {
+            type: "AssignmentExpression",
+            binding: { type: "BindingIdentifier", name: "a" },
+            expression: { type: "IdentifierExpression", name: "b" }
+          }
+        }]
+      }
+    );
+    testParse("new f(...a, ...b)", expr,
+      {
+        type: "NewExpression",
+        callee: { type: "IdentifierExpression", name: "f" },
+        arguments: [{
+          type: "SpreadElement",
+          expression: { type: "IdentifierExpression", name: "a" }
+        }, { type: "SpreadElement", expression: { type: "IdentifierExpression", name: "b" } }]
+      }
+    );
+    testParse("new f(a, ...b, c)", expr,
+      {
+        type: "NewExpression",
+        callee: { type: "IdentifierExpression", name: "f" },
+        arguments: [{ type: "IdentifierExpression", name: "a" }, {
+          type: "SpreadElement",
+          expression: { type: "IdentifierExpression", name: "b" }
+        }, { type: "IdentifierExpression", name: "c" }]
+      }
+    );
+    testParse("new f(...a, b, ...c)", expr,
+      {
+        type: "NewExpression",
+        callee: { type: "IdentifierExpression", name: "f" },
+        arguments: [{
+          type: "SpreadElement",
+          expression: { type: "IdentifierExpression", name: "a" }
+        }, { type: "IdentifierExpression", name: "b" }, {
+          type: "SpreadElement",
+          expression: { type: "IdentifierExpression", name: "c" }
+        }]
+      }
+    );
   });
 });
