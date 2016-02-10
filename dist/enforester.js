@@ -1130,7 +1130,7 @@ var Enforester = exports.Enforester = function () {
     value: function enforestArrayExpression() {
       var arr = this.advance();
 
-      var elements = (0, _immutable.List)();
+      var elements = [];
 
       var enf = new Enforester(arr.inner(), (0, _immutable.List)(), this.context);
 
@@ -1138,16 +1138,26 @@ var Enforester = exports.Enforester = function () {
         var lookahead = enf.peek();
         if (enf.isPunctuator(lookahead, ",")) {
           enf.advance();
-          elements = elements.concat(null);
+          elements.push(null);
+        } else if (enf.isPunctuator(lookahead, '...')) {
+          enf.advance();
+          var expression = enf.enforestExpressionLoop();
+          if (expression == null) {
+            throw enf.createError(lookahead, 'expecting expression');
+          }
+          elements.push(new _terms2.default('SpreadElement', { expression: expression }));
         } else {
           var term = enf.enforestExpressionLoop();
-          elements = elements.concat(term);
+          if (term == null) {
+            throw enf.createError(lookahead, "expected expression");
+          }
+          elements.push(term);
           enf.consumeComma();
         }
       }
 
       return new _terms2.default("ArrayExpression", {
-        elements: elements
+        elements: (0, _immutable.List)(elements)
       });
     }
   }, {
@@ -1210,7 +1220,7 @@ var Enforester = exports.Enforester = function () {
         lookahead = this.peek();
       }
 
-      if (this.isIdentifier(lookahead)) {
+      if (!this.isParens(lookahead)) {
         name = this.enforestBindingIdentifier();
       }
 
