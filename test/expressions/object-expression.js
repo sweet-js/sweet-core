@@ -22,17 +22,17 @@ describe("Parser", function () {
 
     testParse("({})", expr, { type: "ObjectExpression", properties: [] });
 
-    // testParse("+{}", expr,
-    //   { type: "UnaryExpression",
-    //     operand: { type: "ObjectExpression", properties: [] },
-    //     operator: "+" }
-    // );
-    //
-    // testParse("+{ }", expr,
-    //   { type: "UnaryExpression",
-    //     operand: { type: "ObjectExpression", properties: [] },
-    //     operator: "+" }
-    // );
+    testParse("+{}", expr,
+      { type: "UnaryExpression",
+        operand: { type: "ObjectExpression", properties: [] },
+        operator: "+" }
+    );
+
+    testParse("+{ }", expr,
+      { type: "UnaryExpression",
+        operand: { type: "ObjectExpression", properties: [] },
+        operator: "+" }
+    );
 
     testParse("({ answer: 0 })", expr,
       {
