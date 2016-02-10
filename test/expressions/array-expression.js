@@ -63,15 +63,15 @@ describe("Parser", function () {
   });
 
   // // new test added
-  // testParse("[a, ...(b=c)]", expr, {
-  //   type: "ArrayExpression",
-  //   elements: [{type: "IdentifierExpression", name: "a"}, {
-  //     type: "SpreadElement",
-  //     expression: {
-  //       type: "AssignmentExpression",
-  //       binding: {type: "BindingIdentifier", name: "b"},
-  //       expression: {type: "IdentifierExpression", name: "c"}
-  //     }
-  //   }]
-  // })
+  testParse("[a, ...(b=c)]", expr, {
+    type: "ArrayExpression",
+    elements: [{type: "IdentifierExpression", name: "a"}, {
+      type: "SpreadElement",
+      expression: {
+        type: "AssignmentExpression",
+        binding: {type: "BindingIdentifier", name: "b"},
+        expression: {type: "IdentifierExpression", name: "c"}
+      }
+    }]
+  });
 });

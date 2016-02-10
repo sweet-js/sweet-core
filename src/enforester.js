@@ -1086,7 +1086,7 @@ export class Enforester {
   enforestArrayExpression() {
     let arr = this.advance();
 
-    let elements = List();
+    let elements = [];
 
     let enf = new Enforester(arr.inner(), List(), this.context);
 
@@ -1094,16 +1094,26 @@ export class Enforester {
       let lookahead = enf.peek();
       if (enf.isPunctuator(lookahead, ",")) {
         enf.advance();
-        elements = elements.concat(null);
+        elements.push(null);
+      } else if (enf.isPunctuator(lookahead, '...')) {
+        enf.advance();
+        let expression = enf.enforestExpressionLoop();
+        if (expression == null) {
+          throw enf.createError(lookahead, 'expecting expression');
+        }
+        elements.push(new Term('SpreadElement', { expression }));
       } else {
         let term = enf.enforestExpressionLoop();
-        elements = elements.concat(term);
+        if (term == null) {
+          throw enf.createError(lookahead, "expected expression");
+        }
+        elements.push(term);
         enf.consumeComma();
       }
     }
 
     return new Term("ArrayExpression", {
-      elements: elements
+      elements: List(elements)
     });
   }
 
