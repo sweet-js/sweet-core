@@ -1170,7 +1170,7 @@ export class Enforester {
       lookahead = this.peek();
     }
 
-    if (this.isIdentifier(lookahead)) {
+    if (!this.isParens(lookahead)) {
       name = this.enforestBindingIdentifier();
     }
 
