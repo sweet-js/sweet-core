@@ -34,16 +34,16 @@ describe("Parser", function () {
       }
     );
 
-    // testParse("(...a) => 0", expr,
-    //   { type: "ArrowExpression",
-    //     params:
-    //       { type: "FormalParameters",
-    //         items: [],
-    //         rest: { type: "BindingIdentifier", name: "a" }
-    //       },
-    //     body: { type: "LiteralNumericExpression", value: 0 }
-    //   }
-    // );
+    testParse("(...a) => 0", expr,
+      { type: "ArrowExpression",
+        params:
+          { type: "FormalParameters",
+            items: [],
+            rest: { type: "BindingIdentifier", name: "a" }
+          },
+        body: { type: "LiteralNumericExpression", value: 0 }
+      }
+    );
 
     testParse("() => {}", expr,
       { type: "ArrowExpression",
@@ -176,25 +176,25 @@ describe("Parser", function () {
       }
     );
 
-    // testParse("(a,b,...c) => 0 + 1", expr,
-    //   { type: "ArrowExpression",
-    //     params:
-    //       { type: "FormalParameters",
-    //         items:
-    //           [
-    //             { type: "BindingIdentifier", name: "a" },
-    //             { type: "BindingIdentifier", name: "b" }
-    //           ],
-    //         rest: { type: "BindingIdentifier", name: "c" }
-    //       },
-    //     body: {
-    //       type: "BinaryExpression",
-    //       operator: "+",
-    //       left: { type: "LiteralNumericExpression", value: 0 },
-    //       right: { type: "LiteralNumericExpression", value: 1 }
-    //     }
-    //   }
-    // );
+    testParse("(a,b,...c) => 0 + 1", expr,
+      { type: "ArrowExpression",
+        params:
+          { type: "FormalParameters",
+            items:
+              [
+                { type: "BindingIdentifier", name: "a" },
+                { type: "BindingIdentifier", name: "b" }
+              ],
+            rest: { type: "BindingIdentifier", name: "c" }
+          },
+        body: {
+          type: "BinaryExpression",
+          operator: "+",
+          left: { type: "LiteralNumericExpression", value: 0 },
+          right: { type: "LiteralNumericExpression", value: 1 }
+        }
+      }
+    );
 
     testParse("() => (a) = 0", expr,
       { type: "ArrowExpression",
