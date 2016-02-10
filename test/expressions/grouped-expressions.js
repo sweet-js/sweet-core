@@ -15,12 +15,11 @@
  */
 
 
-var testParse = require("../assertions").testParse;
-var expr = require("../helpers").expr;
-var testParseFailure = require("../assertions").testParseFailure;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("grouped expressiones", function () {
+describe("Parser", function () {
+  it("grouped expressiones", function () {
     // grouped expression that can be binding element and assignment target
     testParse("(a)", expr, { type: "IdentifierExpression", name: "a" });
 

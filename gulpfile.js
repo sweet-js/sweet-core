@@ -30,11 +30,11 @@ gulp.task('build:test', function () {
     'test/expressions/thi*',
     'test/expressions/un*',
     'test/expressions/up*',
+    'test/expressions/g*',
 
     '!test/expressions/new-tar*',
     '!test/expressions/cla*',
     '!test/expressions/f*',
-    '!test/expressions/g*',
     '!test/expressions/i*',
     '!test/expressions/y*',
 

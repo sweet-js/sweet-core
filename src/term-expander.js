@@ -331,10 +331,14 @@ export default class TermExpander {
   }
 
   expandParenthesizedExpression(term) {
+    if (term.inner.size === 0) {
+      throw new Error("unexpected end of input");
+    }
     let enf = new Enforester(term.inner, List(), this.context);
-    let t = enf.enforest("expression");
-    if (!enf.done || t == null) {
-      throw enf.createError(enf.peek(), "unexpected syntax");
+    let lookahead = enf.peek();
+    let t = enf.enforestExpression();
+    if (t == null || enf.rest.size > 0) {
+      throw enf.createError(lookahead, "unexpected syntax");
     }
     return this.expand(t);
   }
