@@ -17,7 +17,7 @@ gulp.task('build:test', function () {
     'test/declaration/*.js',
     'test/statements/*',
 
-    '!test/modules/export.js',
+    'test/modules/export.js',
     'test/modules/import.js',
 
     '!test/expressions/literals/*',

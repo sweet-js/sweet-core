@@ -302,6 +302,25 @@ export default class TermExpander {
     });
   }
 
+  expandExportDefault(term) {
+    return new Term('ExportDefault', {
+      body: this.expand(term.body)
+    });
+  }
+
+
+  expandExportFrom(term) {
+    return term;
+  }
+
+  expandExportAllFrom(term) {
+    return term;
+  }
+
+  expandExportSpecifier(term) {
+    return term;
+  }
+
   expandStaticPropertyName(term) {
     return term;
   }

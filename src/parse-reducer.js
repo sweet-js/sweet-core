@@ -33,6 +33,26 @@ export default class ParseReducer extends CloneReducer {
     });
   }
 
+  reduceExportAllFrom(node, state) {
+    let moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
+    return new Term('ExportAllFrom', { moduleSpecifier });
+  }
+
+  reduceExportFrom(node, state) {
+    let moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
+    return new Term('ExportFrom', {
+      moduleSpecifier,
+      namedExports: state.namedExports.toArray()
+    });
+  }
+
+  reduceExportSpecifier(node, state) {
+    return new Term('ExportSpecifier', {
+      name: state.name ? state.name.resolve() : null,
+      exportedName: state.exportedName ? state.exportedName.resolve() : null
+    });
+  }
+
   reduceImportSpecifier(node, state) {
     let name = state.name ? state.name.resolve() : null;
     return new Term('ImportSpecifier', {

@@ -47,7 +47,7 @@ let removeScope = _.cond([
 function findNameInExports(name, exp) {
   let foundNames = exp.reduce((acc, e) => {
     if (e.declaration) {
-      return acc.concat(e.declaration.declaration.declarators.reduce((acc, decl) => {
+      return acc.concat(e.declaration.declarators.reduce((acc, decl) => {
         if (decl.binding.name.val() === name.val()) {
           return acc.concat(decl.binding.name);
         }

@@ -122,18 +122,73 @@ export class Enforester {
 
   enforestExportDeclaration() {
     let lookahead = this.peek();
-    if (this.isVarDeclTransform(lookahead) ||
+    if (this.isPunctuator(lookahead, '*')) {
+      this.advance();
+      let moduleSpecifier = this.enforestFromClause();
+      return new Term('ExportAllFrom', { moduleSpecifier });
+    } else if (this.isBraces(lookahead)) {
+      let namedExports = this.enforestExportClause();
+      let moduleSpecifier = null;
+      if (this.isIdentifier(this.peek(), 'from')) {
+        moduleSpecifier = this.enforestFromClause();
+      }
+      return new Term('ExportFrom', { namedExports, moduleSpecifier });
+    } else if (this.isKeyword(lookahead, 'class')) {
+      return new Term('Export', {
+        declaration: this.enforestClass({ isExpr: false })
+      });
+    } else if (this.isFnDeclTransform(lookahead)) {
+      return new Term('Export', {
+        declaration: this.enforestFunction({isExpr: false, inDefault: false})
+      });
+    } else if (this.isKeyword(lookahead, 'default')) {
+      this.advance();
+      if (this.isFnDeclTransform(this.peek())) {
+        return new Term('ExportDefault', {
+          body: this.enforestFunction({isExpr: false, inDefault: true})
+        });
+      } else if (this.isKeyword(this.peek(), 'class')) {
+        return new Term('ExportDefault', {
+          body: this.enforestClass({isExpr: false, inDefault: true})
+        });
+      } else {
+        let body = this.enforestExpressionLoop();
+        this.consumeSemicolon();
+        return new Term('ExportDefault', { body });
+      }
+    } else if (this.isVarDeclTransform(lookahead) ||
         this.isLetDeclTransform(lookahead) ||
         this.isConstDeclTransform(lookahead) ||
         this.isSyntaxrecDeclTransform(lookahead) ||
         this.isSyntaxDeclTransform(lookahead)) {
       return new Term('Export', {
-        declaration: new Term('VariableDeclarationStatement', {
-          declaration: this.enforestVariableDeclaration()
-        })
+        declaration: this.enforestVariableDeclaration()
       });
     }
-    throw "not implemented yet";
+    throw this.createError(lookahead, 'unexpected syntax');
+  }
+
+  enforestExportClause() {
+    let enf = new Enforester(this.matchCurlies(), List(), this.context);
+    let result = [];
+    while (enf.rest.size !== 0) {
+      result.push(enf.enforestExportSpecifier());
+      enf.consumeComma();
+    }
+    return List(result);
+  }
+
+  enforestExportSpecifier() {
+    let name = this.enforestIdentifier();
+    if (this.isIdentifier(this.peek(), 'as')) {
+      this.advance();
+      let exportedName = this.enforestIdentifier();
+      return new Term('ExportSpecifier', { name, exportedName });
+    }
+    return new Term('ExportSpecifier', {
+      name: null,
+      exportedName: name
+    });
   }
 
   enforestImportDeclaration() {
@@ -641,9 +696,21 @@ export class Enforester {
     });
   }
 
-  enforestClass({ isExpr }) {
-    this.advance();
-    let name = this.enforestBindingIdentifier();
+  enforestClass({ isExpr, inDefault }) {
+    let kw = this.advance();
+    let name;
+
+    if (this.isBraces(this.peek())) {
+      if (inDefault) {
+        name = new Term('BindingIdentifier', {
+          name: Syntax.fromIdentifier('*default*', kw)
+        });
+      } else if (!isExpr) {
+        throw this.createError(this.peek(), 'unexpected syntax');
+      }
+    } else {
+      name = this.enforestBindingIdentifier();
+    }
     this.advance();
     return new Term("ClassDeclaration", {
       name: name,
@@ -1195,6 +1262,43 @@ export class Enforester {
     return new Term("DataProperty", {
       name: name,
       expression: value
+    });
+  }
+
+  enforestFunction({isExpr, inDefault, allowGenerator}) {
+    let name = null, params, body, rest;
+    let isGenerator = false;
+    // eat the function keyword
+    let fnKeyword = this.advance();
+    let lookahead = this.peek();
+    let type = isExpr ? 'FunctionExpression' : 'FunctionDeclaration';
+
+    if (this.isPunctuator(lookahead, "*")) {
+      isGenerator = true;
+      this.advance();
+      lookahead = this.peek();
+    }
+
+    if (!this.isParens(lookahead)) {
+      name = this.enforestBindingIdentifier();
+    } else if (inDefault) {
+      name = new Term('BindingIdentifier', {
+        name: Syntax.fromIdentifier('*default*', fnKeyword)
+      });
+    }
+
+
+    params = this.matchParens();
+    body = this.matchCurlies();
+
+    let enf = new Enforester(params, List(), this.context);
+    let formalParams = enf.enforestFormalParameters();
+
+    return new Term(type, {
+      name: name,
+      isGenerator: isGenerator,
+      params: formalParams,
+      body: body
     });
   }
 

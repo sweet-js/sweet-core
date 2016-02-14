@@ -23,8 +23,8 @@ class Module {
   visit(context) {
 
     this.exportEntries.forEach(ex => {
-      if (isSyntaxDeclaration(ex.declaration.declaration) || isSyntaxrecDeclaration(ex.declaration.declaration)) {
-        ex.declaration.declaration.declarators.forEach(
+      if (isSyntaxDeclaration(ex.declaration) || isSyntaxrecDeclaration(ex.declaration)) {
+        ex.declaration.declarators.forEach(
           loadSyntax(_.__, context, context.store)
         );
       }

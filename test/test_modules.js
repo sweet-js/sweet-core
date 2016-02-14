@@ -42,9 +42,6 @@ describe('module import/export', () => {
             "type": "Export",
             "loc": null,
             "declaration": {
-              "type": "VariableDeclarationStatement",
-              "loc": null,
-              "declaration": {
                 "type": "VariableDeclaration",
                 "loc": null,
                 "kind": "syntaxrec",
@@ -78,7 +75,6 @@ describe('module import/export', () => {
                   }
                 ]
               }
-            }
           }
         ]
       });
@@ -94,9 +90,6 @@ describe('module import/export', () => {
           "type": "Export",
           "loc": null,
           "declaration": {
-            "type": "VariableDeclarationStatement",
-            "loc": null,
-            "declaration": {
               "type": "VariableDeclaration",
               "loc": null,
               "kind": "var",
@@ -130,7 +123,6 @@ describe('module import/export', () => {
                 }
               ]
             }
-          }
         }
       ]
     });
