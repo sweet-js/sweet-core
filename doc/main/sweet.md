@@ -270,7 +270,7 @@ declaration in lieu of a `pattern`.
 
 ### Repeating variables in patterns
 
-In contrast to other macro systems, sweet.js allows variables to appear more than once in the pattern.  Similarily to repeated variables in the body of a rule macro, the syntax captured by a variable must be the same for all occurences of that variable, otherwise the macros will not match.
+In contrast to other macro systems, sweet.js allows variables to appear more than once in the pattern.  Similarily to repeated variables in the body of a rule macro, the syntax captured by a variable must be the same for all occurrences of that variable, otherwise the macros will not match.
 
 ```js
 macro m {
