@@ -1,11 +1,11 @@
 "use strict";
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.Modules = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _immutable = require("immutable");
 
@@ -55,13 +55,14 @@ var Module = function () {
 
   // put all compiltime transforms in the returned store
 
+
   _createClass(Module, [{
     key: "visit",
     value: function visit(context) {
 
       this.exportEntries.forEach(function (ex) {
-        if ((0, _terms.isSyntaxDeclaration)(ex.declaration.declaration) || (0, _terms.isSyntaxrecDeclaration)(ex.declaration.declaration)) {
-          ex.declaration.declaration.declarators.forEach((0, _loadSyntax2.default)(_.__, context, context.store));
+        if ((0, _terms.isSyntaxDeclaration)(ex.declaration) || (0, _terms.isSyntaxrecDeclaration)(ex.declaration)) {
+          ex.declaration.declarators.forEach((0, _loadSyntax2.default)(_.__, context, context.store));
         }
       });
 
@@ -80,6 +81,7 @@ var Modules = exports.Modules = function () {
   }
 
   // ... -> { body: [Term], importEntries: [Import], exportEntries: [Export] }
+
 
   _createClass(Modules, [{
     key: "load",

@@ -1,10 +1,10 @@
 "use strict";
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _terms = require("./terms");
 
@@ -40,10 +40,21 @@ var ParseReducer = function (_CloneReducer) {
   }, {
     key: "reduceImport",
     value: function reduceImport(node, state) {
+      var moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
       return new _terms2.default('Import', {
         defaultBinding: state.defaultBinding,
         namedImports: state.namedImports.toArray(),
-        moduleSpecifier: state.moduleSpecifier
+        moduleSpecifier: moduleSpecifier
+      });
+    }
+  }, {
+    key: "reduceImportNamespace",
+    value: function reduceImportNamespace(node, state) {
+      var moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
+      return new _terms2.default('ImportNamespace', {
+        defaultBinding: state.defaultBinding,
+        namespaceBinding: state.namespaceBinding,
+        moduleSpecifier: moduleSpecifier
       });
     }
   }, {
@@ -54,10 +65,34 @@ var ParseReducer = function (_CloneReducer) {
       });
     }
   }, {
+    key: "reduceExportAllFrom",
+    value: function reduceExportAllFrom(node, state) {
+      var moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
+      return new _terms2.default('ExportAllFrom', { moduleSpecifier: moduleSpecifier });
+    }
+  }, {
+    key: "reduceExportFrom",
+    value: function reduceExportFrom(node, state) {
+      var moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
+      return new _terms2.default('ExportFrom', {
+        moduleSpecifier: moduleSpecifier,
+        namedExports: state.namedExports.toArray()
+      });
+    }
+  }, {
+    key: "reduceExportSpecifier",
+    value: function reduceExportSpecifier(node, state) {
+      return new _terms2.default('ExportSpecifier', {
+        name: state.name ? state.name.resolve() : null,
+        exportedName: state.exportedName ? state.exportedName.resolve() : null
+      });
+    }
+  }, {
     key: "reduceImportSpecifier",
     value: function reduceImportSpecifier(node, state) {
+      var name = state.name ? state.name.resolve() : null;
       return new _terms2.default('ImportSpecifier', {
-        name: state.name,
+        name: name,
         binding: state.binding
       });
     }

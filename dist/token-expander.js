@@ -1,10 +1,10 @@
 "use strict";
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _immutable = require("immutable");
 
@@ -90,7 +90,7 @@ var removeScope = _.cond([[_terms.isBindingIdentifier, function (_ref2, scope) {
 function findNameInExports(name, exp) {
   var foundNames = exp.reduce(function (acc, e) {
     if (e.declaration) {
-      return acc.concat(e.declaration.declaration.declarators.reduce(function (acc, decl) {
+      return acc.concat(e.declaration.declarators.reduce(function (acc, decl) {
         if (decl.binding.name.val() === name.val()) {
           return acc.concat(decl.binding.name);
         }
@@ -191,7 +191,7 @@ var TokenExpander = function () {
           registerBindings(term.name, self.context);
           return Just(term);
         }], [_terms.isImport, function (term) {
-          var mod = self.context.modules.load(term.moduleSpecifier, self.context);
+          var mod = self.context.modules.load(term.moduleSpecifier.val(), self.context);
           // mutates the store
           mod.visit(self.context);
           var boundNames = bindImports(term, mod, self.context);

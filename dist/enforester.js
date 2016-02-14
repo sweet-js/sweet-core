@@ -1,11 +1,11 @@
 "use strict";
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.Enforester = undefined;
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _terms = require("./terms");
 
@@ -133,34 +133,124 @@ var Enforester = exports.Enforester = function () {
     key: "enforestExportDeclaration",
     value: function enforestExportDeclaration() {
       var lookahead = this.peek();
-      if (this.isVarDeclTransform(lookahead) || this.isLetDeclTransform(lookahead) || this.isConstDeclTransform(lookahead) || this.isSyntaxrecDeclTransform(lookahead) || this.isSyntaxDeclTransform(lookahead)) {
+      if (this.isPunctuator(lookahead, '*')) {
+        this.advance();
+        var moduleSpecifier = this.enforestFromClause();
+        return new _terms2.default('ExportAllFrom', { moduleSpecifier: moduleSpecifier });
+      } else if (this.isBraces(lookahead)) {
+        var namedExports = this.enforestExportClause();
+        var moduleSpecifier = null;
+        if (this.isIdentifier(this.peek(), 'from')) {
+          moduleSpecifier = this.enforestFromClause();
+        }
+        return new _terms2.default('ExportFrom', { namedExports: namedExports, moduleSpecifier: moduleSpecifier });
+      } else if (this.isKeyword(lookahead, 'class')) {
         return new _terms2.default('Export', {
-          declaration: new _terms2.default('VariableDeclarationStatement', {
-            declaration: this.enforestVariableDeclaration()
-          })
+          declaration: this.enforestClass({ isExpr: false })
+        });
+      } else if (this.isFnDeclTransform(lookahead)) {
+        return new _terms2.default('Export', {
+          declaration: this.enforestFunction({ isExpr: false, inDefault: false })
+        });
+      } else if (this.isKeyword(lookahead, 'default')) {
+        this.advance();
+        if (this.isFnDeclTransform(this.peek())) {
+          return new _terms2.default('ExportDefault', {
+            body: this.enforestFunction({ isExpr: false, inDefault: true })
+          });
+        } else if (this.isKeyword(this.peek(), 'class')) {
+          return new _terms2.default('ExportDefault', {
+            body: this.enforestClass({ isExpr: false, inDefault: true })
+          });
+        } else {
+          var body = this.enforestExpressionLoop();
+          this.consumeSemicolon();
+          return new _terms2.default('ExportDefault', { body: body });
+        }
+      } else if (this.isVarDeclTransform(lookahead) || this.isLetDeclTransform(lookahead) || this.isConstDeclTransform(lookahead) || this.isSyntaxrecDeclTransform(lookahead) || this.isSyntaxDeclTransform(lookahead)) {
+        return new _terms2.default('Export', {
+          declaration: this.enforestVariableDeclaration()
         });
       }
-      throw "not implemented yet";
+      throw this.createError(lookahead, 'unexpected syntax');
+    }
+  }, {
+    key: "enforestExportClause",
+    value: function enforestExportClause() {
+      var enf = new Enforester(this.matchCurlies(), (0, _immutable.List)(), this.context);
+      var result = [];
+      while (enf.rest.size !== 0) {
+        result.push(enf.enforestExportSpecifier());
+        enf.consumeComma();
+      }
+      return (0, _immutable.List)(result);
+    }
+  }, {
+    key: "enforestExportSpecifier",
+    value: function enforestExportSpecifier() {
+      var name = this.enforestIdentifier();
+      if (this.isIdentifier(this.peek(), 'as')) {
+        this.advance();
+        var exportedName = this.enforestIdentifier();
+        return new _terms2.default('ExportSpecifier', { name: name, exportedName: exportedName });
+      }
+      return new _terms2.default('ExportSpecifier', {
+        name: null,
+        exportedName: name
+      });
     }
   }, {
     key: "enforestImportDeclaration",
     value: function enforestImportDeclaration() {
       var lookahead = this.peek();
+      var defaultBinding = null;
+      var namedImports = (0, _immutable.List)();
 
+      if (this.isStringLiteral(lookahead)) {
+        var moduleSpecifier = this.advance();
+        this.consumeSemicolon();
+        return new _terms2.default('Import', {
+          defaultBinding: defaultBinding, namedImports: namedImports, moduleSpecifier: moduleSpecifier
+        });
+      }
+
+      if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
+        defaultBinding = this.enforestBindingIdentifier();
+        if (!this.isPunctuator(this.peek(), ',')) {
+          var moduleSpecifier = this.enforestFromClause();
+          return new _terms2.default('Import', {
+            defaultBinding: defaultBinding, moduleSpecifier: moduleSpecifier,
+            namedImports: (0, _immutable.List)()
+          });
+        }
+      }
+      this.consumeComma();
+      lookahead = this.peek();
       if (this.isBraces(lookahead)) {
         var imports = this.enforestNamedImports();
         var fromClause = this.enforestFromClause();
 
         return new _terms2.default("Import", {
-          defaultBinding: null,
-          // List(ImportSpecifier)
+          defaultBinding: defaultBinding,
           namedImports: imports,
-          // String
           moduleSpecifier: fromClause
 
         });
+      } else if (this.isPunctuator(lookahead, '*')) {
+        var namespaceBinding = this.enforestNamespaceBinding();
+        var moduleSpecifier = this.enforestFromClause();
+        return new _terms2.default('ImportNamespace', {
+          defaultBinding: defaultBinding, namespaceBinding: namespaceBinding, moduleSpecifier: moduleSpecifier
+        });
       }
-      throw "not implemented yet";
+      throw this.createError(lookahead, 'unexpected syntax');
+    }
+  }, {
+    key: "enforestNamespaceBinding",
+    value: function enforestNamespaceBinding() {
+      this.matchPunctuator('*');
+      this.matchIdentifier('as');
+      return this.enforestBindingIdentifier();
     }
   }, {
     key: "enforestNamedImports",
@@ -169,6 +259,7 @@ var Enforester = exports.Enforester = function () {
       var result = [];
       while (enf.rest.size !== 0) {
         result.push(enf.enforestImportSpecifiers());
+        enf.consumeComma();
       }
       return (0, _immutable.List)(result);
     }
@@ -176,17 +267,25 @@ var Enforester = exports.Enforester = function () {
     key: "enforestImportSpecifiers",
     value: function enforestImportSpecifiers() {
       var lookahead = this.peek();
-      if (this.isIdentifier(lookahead)) {
-        var name = this.advance();
-        this.consumeComma();
-        return new _terms2.default('ImportSpecifier', {
-          name: null,
-          binding: new _terms2.default('BindingIdentifier', {
-            name: name
-          })
-        });
+      var name = undefined;
+      if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
+        name = this.advance();
+        if (!this.isIdentifier(this.peek(), 'as')) {
+          return new _terms2.default('ImportSpecifier', {
+            name: null,
+            binding: new _terms2.default('BindingIdentifier', {
+              name: name
+            })
+          });
+        } else {
+          this.matchIdentifier('as');
+        }
+      } else {
+        throw this.createError(lookahead, 'unexpected token in import specifier');
       }
-      throw this.createError(lookahead, 'unexpected token in import specifier');
+      return new _terms2.default('ImportSpecifier', {
+        name: name, binding: this.enforestBindingIdentifier()
+      });
     }
   }, {
     key: "enforestFromClause",
@@ -194,7 +293,7 @@ var Enforester = exports.Enforester = function () {
       this.matchIdentifier('from');
       var lookahead = this.matchStringLiteral();
       this.consumeSemicolon();
-      return lookahead.val();
+      return lookahead;
     }
   }, {
     key: "enforestStatementListItem",
@@ -630,9 +729,22 @@ var Enforester = exports.Enforester = function () {
     key: "enforestClass",
     value: function enforestClass(_ref) {
       var isExpr = _ref.isExpr;
+      var inDefault = _ref.inDefault;
 
-      this.advance();
-      var name = this.enforestBindingIdentifier();
+      var kw = this.advance();
+      var name = undefined;
+
+      if (this.isBraces(this.peek())) {
+        if (inDefault) {
+          name = new _terms2.default('BindingIdentifier', {
+            name: _syntax2.default.fromIdentifier('*default*', kw)
+          });
+        } else if (!isExpr) {
+          throw this.createError(this.peek(), 'unexpected syntax');
+        }
+      } else {
+        name = this.enforestBindingIdentifier();
+      }
       this.advance();
       return new _terms2.default("ClassDeclaration", {
         name: name,
@@ -1200,6 +1312,50 @@ var Enforester = exports.Enforester = function () {
       return new _terms2.default("DataProperty", {
         name: name,
         expression: value
+      });
+    }
+  }, {
+    key: "enforestFunction",
+    value: function enforestFunction(_ref2) {
+      var isExpr = _ref2.isExpr;
+      var inDefault = _ref2.inDefault;
+      var allowGenerator = _ref2.allowGenerator;
+
+      var name = null,
+          params = undefined,
+          body = undefined,
+          rest = undefined;
+      var isGenerator = false;
+      // eat the function keyword
+      var fnKeyword = this.advance();
+      var lookahead = this.peek();
+      var type = isExpr ? 'FunctionExpression' : 'FunctionDeclaration';
+
+      if (this.isPunctuator(lookahead, "*")) {
+        isGenerator = true;
+        this.advance();
+        lookahead = this.peek();
+      }
+
+      if (!this.isParens(lookahead)) {
+        name = this.enforestBindingIdentifier();
+      } else if (inDefault) {
+        name = new _terms2.default('BindingIdentifier', {
+          name: _syntax2.default.fromIdentifier('*default*', fnKeyword)
+        });
+      }
+
+      params = this.matchParens();
+      body = this.matchCurlies();
+
+      var enf = new Enforester(params, (0, _immutable.List)(), this.context);
+      var formalParams = enf.enforestFormalParameters();
+
+      return new _terms2.default(type, {
+        name: name,
+        isGenerator: isGenerator,
+        params: formalParams,
+        body: body
       });
     }
   }, {

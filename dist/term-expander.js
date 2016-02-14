@@ -1,10 +1,10 @@
 "use strict";
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _immutable = require("immutable");
 
@@ -399,11 +399,38 @@ var TermExpander = function () {
       return term;
     }
   }, {
+    key: "expandImportNamespace",
+    value: function expandImportNamespace(term) {
+      return term;
+    }
+  }, {
     key: "expandExport",
     value: function expandExport(term) {
       return new _terms2.default('Export', {
         declaration: this.expand(term.declaration)
       });
+    }
+  }, {
+    key: "expandExportDefault",
+    value: function expandExportDefault(term) {
+      return new _terms2.default('ExportDefault', {
+        body: this.expand(term.body)
+      });
+    }
+  }, {
+    key: "expandExportFrom",
+    value: function expandExportFrom(term) {
+      return term;
+    }
+  }, {
+    key: "expandExportAllFrom",
+    value: function expandExportAllFrom(term) {
+      return term;
+    }
+  }, {
+    key: "expandExportSpecifier",
+    value: function expandExportSpecifier(term) {
+      return term;
     }
   }, {
     key: "expandStaticPropertyName",
