@@ -17,6 +17,9 @@ gulp.task('build:test', function () {
     'test/declaration/*.js',
     'test/statements/*',
 
+    '!test/modules/export.js',
+    'test/modules/import.js',
+
     '!test/expressions/literals/*',
 
     'test/expressions/b*',
@@ -40,7 +43,6 @@ gulp.task('build:test', function () {
 
     '!test/destructuring/*',
     '!test/miscellaneous/*',
-    '!test/modules/*',
     '!test/property-definition/*'])
     .pipe(sourcemaps.init())
     .pipe(babel())

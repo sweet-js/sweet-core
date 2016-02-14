@@ -147,7 +147,7 @@ export default class TokenExpander {
             return Just(term);
           }],
           [isImport, term => {
-            let mod = self.context.modules.load(term.moduleSpecifier, self.context);
+            let mod = self.context.modules.load(term.moduleSpecifier.val(), self.context);
             // mutates the store
             mod.visit(self.context);
             let boundNames = bindImports(term, mod, self.context);

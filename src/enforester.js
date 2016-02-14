@@ -138,21 +138,53 @@ export class Enforester {
 
   enforestImportDeclaration() {
     let lookahead = this.peek();
+    let defaultBinding = null;
+    let namedImports = List();
 
+    if (this.isStringLiteral(lookahead)) {
+      let moduleSpecifier = this.advance();
+      this.consumeSemicolon();
+      return new Term('Import', {
+        defaultBinding, namedImports, moduleSpecifier
+      });
+    }
+
+    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
+      defaultBinding = this.enforestBindingIdentifier();
+      if (!this.isPunctuator(this.peek(), ',')) {
+        let moduleSpecifier = this.enforestFromClause();
+        return new Term('Import', {
+          defaultBinding, moduleSpecifier,
+          namedImports: List()
+        });
+      }
+    }
+    this.consumeComma();
+    lookahead = this.peek();
     if (this.isBraces(lookahead)) {
       let imports = this.enforestNamedImports();
       let fromClause = this.enforestFromClause();
 
       return new Term("Import", {
-        defaultBinding: null,
-        // List(ImportSpecifier)
+        defaultBinding,
         namedImports: imports,
-        // String
         moduleSpecifier: fromClause
 
       });
+    } else if (this.isPunctuator(lookahead, '*')) {
+      let namespaceBinding = this.enforestNamespaceBinding();
+      let moduleSpecifier = this.enforestFromClause();
+      return new Term('ImportNamespace', {
+        defaultBinding, namespaceBinding, moduleSpecifier
+      });
     }
-    throw "not implemented yet";
+    throw this.createError(lookahead, 'unexpected syntax');
+  }
+
+  enforestNamespaceBinding() {
+    this.matchPunctuator('*');
+    this.matchIdentifier('as');
+    return this.enforestBindingIdentifier();
   }
 
   enforestNamedImports() {
@@ -160,30 +192,39 @@ export class Enforester {
     let result = [];
     while (enf.rest.size !== 0) {
       result.push(enf.enforestImportSpecifiers());
+      enf.consumeComma();
     }
     return List(result);
   }
 
   enforestImportSpecifiers() {
     let lookahead = this.peek();
-    if (this.isIdentifier(lookahead)) {
-      let name = this.advance();
-      this.consumeComma();
-      return new Term('ImportSpecifier', {
-        name: null,
-        binding: new Term('BindingIdentifier', {
-          name: name
-        })
-      });
+    let name;
+    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
+      name = this.advance();
+      if (!this.isIdentifier(this.peek(), 'as')) {
+        return new Term('ImportSpecifier', {
+          name: null,
+          binding: new Term('BindingIdentifier', {
+            name: name
+          })
+        });
+      } else {
+        this.matchIdentifier('as');
+      }
+    } else {
+      throw this.createError(lookahead, 'unexpected token in import specifier');
     }
-    throw this.createError(lookahead, 'unexpected token in import specifier');
+    return new Term('ImportSpecifier', {
+      name, binding: this.enforestBindingIdentifier()
+    });
   }
 
   enforestFromClause() {
     this.matchIdentifier('from');
     let lookahead = this.matchStringLiteral();
     this.consumeSemicolon();
-    return lookahead.val();
+    return lookahead;
   }
 
   enforestStatementListItem() {

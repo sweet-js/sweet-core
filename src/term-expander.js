@@ -292,6 +292,10 @@ export default class TermExpander {
     return term;
   }
 
+  expandImportNamespace(term) {
+    return term;
+  }
+
   expandExport(term) {
     return new Term('Export', {
       declaration: this.expand(term.declaration)

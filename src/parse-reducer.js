@@ -10,10 +10,20 @@ export default class ParseReducer extends CloneReducer {
   }
 
   reduceImport(node, state) {
+    let moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
     return new Term('Import', {
       defaultBinding: state.defaultBinding,
       namedImports: state.namedImports.toArray(),
-      moduleSpecifier: state.moduleSpecifier
+      moduleSpecifier
+    });
+  }
+
+  reduceImportNamespace(node, state) {
+    let moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
+    return new Term('ImportNamespace', {
+      defaultBinding: state.defaultBinding,
+      namespaceBinding: state.namespaceBinding,
+      moduleSpecifier,
     });
   }
 
@@ -24,8 +34,9 @@ export default class ParseReducer extends CloneReducer {
   }
 
   reduceImportSpecifier(node, state) {
+    let name = state.name ? state.name.resolve() : null;
     return new Term('ImportSpecifier', {
-      name: state.name,
+      name,
       binding: state.binding
     });
   }
