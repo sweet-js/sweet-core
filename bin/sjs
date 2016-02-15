@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 
-var argv = require('yargs').argv;
+var argv = require('yargs')
+  .usage('Usage: sjs [options] input')
+  .demand(1)
+  .alias('o', 'out')
+  .describe('o', 'write output to file')
+  .nargs('out', 1)
+  .help()
+  .argv;
 
 var path = require('path');
 var fs   = require('fs');
@@ -9,7 +16,11 @@ var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
 var fname = argv._[0];
 
 var infile = fs.readFileSync(fname, 'utf8');
-var fdir = path.dirname(fs.realpathSync(infile));
+var fdir = path.dirname(fs.realpathSync(fname));
 var output = require(dir + '/sweet.js').compile(infile, fdir);
 
-console.log(output.code);
+if (argv.out) {
+  fs.writeFileSync(argv.out, output.code, 'utf8');
+} else {
+  console.log(output.code);
+}
