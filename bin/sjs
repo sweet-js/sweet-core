@@ -6,7 +6,8 @@ var argv = require('yargs')
   .alias('o', 'out')
   .describe('o', 'write output to file')
   .nargs('out', 1)
-  .help()
+  .help('h')
+  .alias('h', 'help')
   .argv;
 
 var path = require('path');
