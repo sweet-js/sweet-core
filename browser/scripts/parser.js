@@ -3323,7 +3323,16 @@
         }
         argument = parseExpression();
         consumeSemicolon();
-        return markerApply(marker, delegate.createThrowStatement(argument));
+        var // HACK for github issue #464
+        result = markerApply(marker, delegate.createThrowStatement(argument));
+        if (argument.leadingComments != null) {
+            result.leadingComments = argument.leadingComments;
+            argument.leadingComments = undefined;
+        } else if (argument.callee != null && argument.callee.leadingComments != null) {
+            result.leadingComments = argument.callee.leadingComments;
+            argument.callee.leadingComments = undefined;
+        }
+        return result;
     }
     function parseCatchClause() {
         var param, body, marker = markerCreate();
