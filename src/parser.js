@@ -4057,7 +4057,16 @@ parseYieldExpression: true
 
         consumeSemicolon();
 
-        return markerApply(marker, delegate.createThrowStatement(argument));
+        // HACK for github issue #464
+        var result = markerApply(marker, delegate.createThrowStatement(argument));
+        if (argument.leadingComments != null) {
+          result.leadingComments = argument.leadingComments;
+          argument.leadingComments = undefined;
+        } else if (argument.callee != null && argument.callee.leadingComments != null) {
+          result.leadingComments = argument.callee.leadingComments;
+          argument.callee.leadingComments = undefined;
+        }
+        return result;
     }
 
     // 12.14 The try statement
