@@ -3917,7 +3917,16 @@ parseYieldExpression: true
         if (isIdentifierStart(String(lookahead.value).charCodeAt(0))) {
             argument = parseExpression();
             consumeSemicolon();
-            return markerApply(marker, delegate.createReturnStatement(argument));
+            var result = markerApply(marker, delegate.createReturnStatement(argument));
+            // HACK for github issue #464
+            if (argument.leadingComments != null) {
+              result.leadingComments = argument.leadingComments;
+              argument.leadingComments = undefined;
+            } else if (argument.callee != null && argument.callee.leadingComments != null) {
+              result.leadingComments = argument.callee.leadingComments;
+              argument.callee.leadingComments = undefined;
+            }
+            return result;
         }
 
         if (peekLineTerminator()) {
