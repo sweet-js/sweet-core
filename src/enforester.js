@@ -722,8 +722,47 @@ export class Enforester {
     let lookahead = this.peek();
     if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
       return this.enforestBindingIdentifier();
+    } else if (this.isBrackets(lookahead)) {
+      return this.enforestArrayBinding();
     }
     throw "not implemented yet";
+  }
+
+  enforestArrayBinding() {
+    let bracket = this.matchSquares();
+    let enf = new Enforester(bracket, List(), this.context);
+    let elements = [], restElement = null;
+    while (enf.rest.size !== 0) {
+      let el;
+      if (enf.isPunctuator(enf.peek(), ',')) {
+        enf.consumeComma();
+        el = null;
+      } else {
+        if (enf.isPunctuator(enf.peek(), '...')) {
+          enf.advance();
+          restElement = enf.enforestBindingTarget();
+          break;
+        } else {
+          el = enf.enforestBindingElement();
+        }
+        enf.consumeComma();
+      }
+      elements.push(el);
+    }
+    return new Term('ArrayBinding', {
+      elements: List(elements),
+      restElement
+    });
+  }
+
+  enforestBindingElement() {
+    let binding = this.enforestBindingTarget();
+
+    if (this.isAssign(this.peek())) {
+      let init = this.enforestExpressionLoop();
+      binding = new Term('BindingWithDefault', { binding, init });
+    }
+    return binding;
   }
 
   enforestBindingIdentifier() {
@@ -1035,7 +1074,7 @@ export class Enforester {
       });
     }
     // $x:expr = $init:expr
-    if (this.term && this.isPunctuator(lookahead, "=")) {
+    if (this.term && this.isAssign(lookahead)) {
       let binding = this.transformDestructuring(this.term);
       let op = this.advance();
 
@@ -1109,6 +1148,23 @@ export class Enforester {
         if (term.inner.size === 1 && this.isIdentifier(term.inner.get(0))) {
           return new Term('BindingIdentifier', { name: term.inner.get(0)});
         }
+      case 'ArrayExpression':
+        let last = term.elements.last();
+        if (last != null && last.type === 'SpreadElement') {
+          return new Term('ArrayBinding', {
+            elements: term.elements.slice(0, -1).map(t => t && this.transformDestructuringWithDefault(t)),
+            restElement: this.transformDestructuringWithDefault(last.expression)
+          });
+        } else {
+          return new Term('ArrayBinding', {
+            elements: term.elements.map(t => t && this.transformDestructuringWithDefault(t)),
+            restElement: null
+          });
+        }
+        return new Term('ArrayBinding', {
+          elements: term.elements.map(t => t && this.transformDestructuring(t)),
+          restElement: null
+        });
       case 'ComputedMemberExpression':
       case 'StaticMemberExpression':
       case 'ArrayBinding':
@@ -1120,6 +1176,17 @@ export class Enforester {
         return term;
     }
     assert(false, 'not implemented yet for ' + term.type);
+  }
+
+  transformDestructuringWithDefault(term) {
+    switch (term.type) {
+      case "AssignmentExpression":
+        return new Term('BindingWithDefault', {
+          binding: this.transformDestructuring(term.binding),
+          init: term.expression,
+        });
+    }
+    return this.transformDestructuring(term);
   }
 
   enforestArrowExpression() {
@@ -1565,6 +1632,10 @@ export class Enforester {
 
   isBrackets(term) {
     return term && (term instanceof Syntax) && term.isBrackets();
+  }
+
+  isAssign(term) {
+    return term && (term instanceof Syntax) && term.isAssign();
   }
 
   isKeyword(term, val = null) {

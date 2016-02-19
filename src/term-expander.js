@@ -177,6 +177,22 @@ export default class TermExpander {
     return term;
   }
 
+  expandArrayBinding(term) {
+    let restElement = term.restElement == null ? null : this.expand(term.restElement);
+    return new Term('ArrayBinding', {
+      elements: term.elements.map(t => t == null ? null : this.expand(t)).toArray(),
+      restElement
+    });
+  }
+
+  expandBindingWithDefault(term) {
+    return new Term('BindingWithDefault', {
+      binding: this.expand(term.binding),
+      init: this.expand(term.init)
+    });
+  }
+
+
   expandForStatement(term) {
     let init = term.init == null ? null : this.expand(term.init);
     let test = term.test == null ? null : this.expand(term.test);
@@ -462,7 +478,7 @@ export default class TermExpander {
 
   expandAssignmentExpression(term) {
     return new Term("AssignmentExpression", {
-      binding: term.binding,
+      binding: this.expand(term.binding),
       expression: this.expand(term.expression)
     });
   }

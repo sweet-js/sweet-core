@@ -206,6 +206,10 @@ export default class Syntax {
     return !this.isDelimiter() && this.token.type.klass === TokenClass.Ident;
   }
 
+  isAssign() {
+    return !this.isDelimiter() && this.token.type === TokenType.ASSIGN;
+  }
+
   isBooleanLiteral() {
     return !this.isDelimiter() && this.token.type === TokenType.TRUE ||
            this.token.type === TokenType.FALSE;

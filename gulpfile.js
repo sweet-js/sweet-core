@@ -35,13 +35,14 @@ gulp.task('build:test', function () {
     'test/expressions/up*',
     'test/expressions/g*',
     'test/expressions/f*',
+    'test/destructuring/assignment/a*',
+    // '!test/destructuring/*',
 
     '!test/expressions/new-tar*',
     '!test/expressions/cla*',
     '!test/expressions/i*',
     '!test/expressions/y*',
 
-    '!test/destructuring/*',
     '!test/miscellaneous/*',
     '!test/property-definition/*'])
     .pipe(sourcemaps.init())
