@@ -135,7 +135,7 @@ export default class ParseReducer extends CloneReducer {
 
   reduceStaticPropertyName(node, state) {
     return new Term("StaticPropertyName", {
-      value: node.value.val()
+      value: node.value.val().toString()
     });
   }
 

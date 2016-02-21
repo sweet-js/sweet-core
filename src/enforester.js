@@ -1301,7 +1301,8 @@ export class Enforester {
 
     let lastProp = null;
     while (enf.rest.size > 0) {
-      let prop = enf.enforestProperty();
+      let prop = enf.enforestPropertyDefinition();
+      enf.consumeComma();
       properties = properties.concat(prop);
 
       if (lastProp === prop) {
@@ -1315,21 +1316,99 @@ export class Enforester {
     });
   }
 
-  enforestProperty() {
-    let key = this.advance();
-    let colon = this.matchPunctuator(":");
+  enforestPropertyDefinition() {
 
-    let value = this.enforestExpressionLoop();
-    this.consumeComma();
+    let {methodOrKey, kind} = this.enforestMethodDefinition();
 
-    let name = new Term("StaticPropertyName", {
-      value: key
-    });
+    switch (kind) {
+      case 'method':
+        return methodOrKey;
+      case 'identifier':
+        if (!this.isPunctuator(this.peek(), ':')) {
+          return new Term('ShorthandProperty', {
+            name: methodOrKey.value
+          });
+        }
+    }
+
+    this.matchPunctuator(':');
+    let expr = this.enforestExpressionLoop();
 
     return new Term("DataProperty", {
-      name: name,
-      expression: value
+      name: methodOrKey,
+      expression: expr
     });
+  }
+
+  enforestMethodDefinition() {
+    let lookahead = this.peek();
+
+    if (this.isIdentifier(lookahead, 'get') && this.isPropertyName(this.peek(1))) {
+      this.advance();
+      let {name} = this.enforestPropertyName();
+      this.matchParens();
+      let body = this.matchCurlies();
+      return {
+        methodOrKey: new Term('Getter', { name, body }),
+        kind: 'method'
+      };
+    } else if (this.isIdentifier(lookahead, 'set') && this.isPropertyName(this.peek(1))) {
+      this.advance();
+      let {name} = this.enforestPropertyName();
+      let enf = new Enforester(this.matchParens(), List(), this.context);
+      let param = enf.enforestBindingElement();
+      let body = this.matchCurlies();
+      return {
+        methodOrKey: new Term('Setter', { name, param, body }),
+        kind: 'method'
+      };
+    }
+    let {name} = this.enforestPropertyName();
+    if (this.isParens(this.peek())) {
+      let params = this.matchParens();
+      let enf = new Enforester(params, List(), this.context);
+      let formalParams = enf.enforestFormalParameters();
+
+      let body = this.matchCurlies();
+      return {
+        methodOrKey: new Term('Method', {
+          isGenerator: false,
+          name, params: formalParams, body
+        }),
+        kind: 'method'
+      };
+    }
+    return {
+      methodOrKey: name,
+      kind: this.isIdentifier(lookahead) || this.isKeyword(lookahead) ? 'identifier' : 'property'
+    };
+  }
+
+  enforestPropertyName() {
+    let lookahead = this.peek();
+
+    if (this.isStringLiteral(lookahead) || this.isNumericLiteral(lookahead)) {
+      return {
+        name: new Term('StaticPropertyName', {
+          value: this.advance()
+        }),
+        binding: null
+      };
+    } else if (this.isBrackets(lookahead)) {
+      let enf = new Enforester(this.matchSquares(), List(), this.context);
+      let expr = enf.enforestExpressionLoop();
+      return {
+        name: new Term('ComputedPropertyName', {
+          expression: expr
+        }),
+        binding: null
+      };
+    }
+    let name = this.advance();
+    return {
+      name: new Term('StaticPropertyName', { value: name }),
+      binding: new Term('BindingIdentifier', { name })
+    };
   }
 
   enforestFunction({isExpr, inDefault, allowGenerator}) {
@@ -1356,6 +1435,8 @@ export class Enforester {
 
 
     params = this.matchParens();
+
+
     body = this.matchCurlies();
 
     let enf = new Enforester(params, List(), this.context);
@@ -1596,6 +1677,11 @@ export class Enforester {
   isIdentifier(term, val = null) {
     return term && (term instanceof Syntax) && term.isIdentifier() &&
             ((val === null) || (term.val() === val));
+  }
+
+  isPropertyName(term) {
+    return this.isIdentifier(term) || this.isKeyword(term) ||
+           this.isNumericLiteral(term) || this.isStringLiteral(term) || this.isBrackets(term);
   }
 
   isNumericLiteral(term) {

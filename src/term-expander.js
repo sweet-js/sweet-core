@@ -192,6 +192,12 @@ export default class TermExpander {
     });
   }
 
+  expandShorthandProperty(term) {
+    return new Term('ShorthandProperty', {
+      name: term.name.val()
+    });
+  }
+
 
   expandForStatement(term) {
     let init = term.init == null ? null : this.expand(term.init);
@@ -348,6 +354,7 @@ export default class TermExpander {
     });
   }
 
+
   expandObjectExpression(term) {
     return new Term("ObjectExpression", {
       properties: term.properties.map(t => this.expand(t))
@@ -450,7 +457,10 @@ export default class TermExpander {
     let scope = freshScope("fun");
     let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
     let red = new ApplyScopeInParamsReducer(scope, this.context);
-    let params = reducer(red, term.params);
+    let params;
+    if (type !== 'Getter' && type !== 'Setter') {
+      params = reducer(red, term.params);
+    }
     this.context.currentScope.push(scope);
     let expander = new Expander(this.context);
 
@@ -460,12 +470,36 @@ export default class TermExpander {
     });
     this.context.currentScope.pop();
 
+    if (type === 'Getter') {
+      return new Term(type, {
+        name: this.expand(term.name),
+        body: bodyTerm
+      });
+    } else if (type === 'Setter') {
+      return new Term(type, {
+        name: this.expand(term.name),
+        param: term.param,
+        body: bodyTerm
+      });
+    }
     return new Term(type, {
       name: term.name,
       isGenerator: term.isGenerator,
       params: params,
       body: bodyTerm
     });
+  }
+
+  expandMethod(term) {
+    return this.doFunctionExpansion(term, 'Method');
+  }
+
+  expandSetter(term) {
+    return this.doFunctionExpansion(term, 'Setter');
+  }
+
+  expandGetter(term) {
+    return this.doFunctionExpansion(term, 'Getter');
   }
 
   expandFunctionDeclaration(term) {
