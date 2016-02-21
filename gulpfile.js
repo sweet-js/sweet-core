@@ -35,7 +35,7 @@ gulp.task('build:test', function () {
     'test/expressions/up*',
     'test/expressions/g*',
     'test/expressions/f*',
-    'test/destructuring/assignment/a*',
+    'test/destructuring/assignment/*',
     // '!test/destructuring/*',
 
     '!test/expressions/new-tar*',

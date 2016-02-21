@@ -971,7 +971,7 @@ export class Enforester {
       });
     }
     // $x:ident
-    if (this.term === null && this.isIdentifier(lookahead)) {
+    if (this.term === null && (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'let') || this.isKeyword(lookahead, 'yield'))) {
       return new Term("IdentifierExpression", {
         name: this.advance()
       });
@@ -1148,6 +1148,20 @@ export class Enforester {
         if (term.inner.size === 1 && this.isIdentifier(term.inner.get(0))) {
           return new Term('BindingIdentifier', { name: term.inner.get(0)});
         }
+      case 'DataProperty':
+        return new Term('BindingPropertyProperty', {
+          name: term.name,
+          binding: this.transformDestructuringWithDefault(term.expression)
+        });
+      case 'ShorthandProperty':
+        return new Term('BindingPropertyIdentifier', {
+          binding: new Term('BindingIdentifier', { name: term.name }),
+          init: null
+        });
+      case 'ObjectExpression':
+        return new Term('ObjectBinding', {
+          properties: term.properties.map(t => this.transformDestructuring(t))
+        });
       case 'ArrayExpression':
         let last = term.elements.last();
         if (last != null && last.type === 'SpreadElement') {
@@ -1164,6 +1178,10 @@ export class Enforester {
         return new Term('ArrayBinding', {
           elements: term.elements.map(t => t && this.transformDestructuring(t)),
           restElement: null
+        });
+      case 'StaticPropertyName':
+        return new Term('BindingIdentifier', {
+          name: term.value
         });
       case 'ComputedMemberExpression':
       case 'StaticMemberExpression':
@@ -1324,7 +1342,13 @@ export class Enforester {
       case 'method':
         return methodOrKey;
       case 'identifier':
-        if (!this.isPunctuator(this.peek(), ':')) {
+        if (this.isAssign(this.peek())) {
+          this.advance();
+          let init = this.enforestExpressionLoop();
+          return new Term('BindingPropertyIdentifier', {
+            init, binding: this.transformDestructuring(methodOrKey)
+          });
+        } else if (!this.isPunctuator(this.peek(), ':')) {
           return new Term('ShorthandProperty', {
             name: methodOrKey.value
           });

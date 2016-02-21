@@ -177,6 +177,28 @@ export default class TermExpander {
     return term;
   }
 
+  expandBindingPropertyIdentifier(term) {
+    return term;
+  }
+  expandBindingPropertyProperty(term) {
+    return new Term('BindingPropertyProperty', {
+      name: this.expand(term.name),
+      binding: this.expand(term.binding)
+    });
+  }
+
+  expandComputedPropertyName(term) {
+    return new Term('ComputedPropertyName', {
+      expression: this.expand(term.expression)
+    });
+  }
+
+  expandObjectBinding(term) {
+    return new Term('ObjectBinding', {
+      properties: term.properties.map(t => this.expand(t)).toArray()
+    });
+  }
+
   expandArrayBinding(term) {
     let restElement = term.restElement == null ? null : this.expand(term.restElement);
     return new Term('ArrayBinding', {
