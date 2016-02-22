@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-var stmt = require("../../helpers").stmt;
-var testParse = require("../../assertions").testParse;
-var testParseFailure = require("../../assertions").testParseFailure;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("array binding", function () {
-    suite("variable declarator", function () {
+describe("Parser", function () {
+  it("array binding", function () {
       testParse("var [,a] = 0;", stmt,
         {
           type: "VariableDeclarationStatement",
@@ -31,7 +29,7 @@ suite("Parser", function () {
               type: "VariableDeclarator",
               binding: {
                 type: "ArrayBinding",
-                elements: [null, { type: "BindingIdentifier", name: "a" }],
+                elements: [null, { type: "BindingIdentifier", name: "<<hygiene>>" }],
                 restElement: null
               },
               init: { type: "LiteralNumericExpression", value: 0 }
@@ -50,7 +48,7 @@ suite("Parser", function () {
               type: "VariableDeclarator",
               binding: {
                 type: "ArrayBinding",
-                elements: [{ type: "BindingIdentifier", name: "a" }],
+                elements: [{ type: "BindingIdentifier", name: "<<hygiene>>" }],
                 restElement: null
               },
               init: { type: "ArrayExpression", elements: [{ type: "LiteralNumericExpression", value: 1 }] }
@@ -71,7 +69,7 @@ suite("Parser", function () {
                 type: "ArrayBinding",
                 elements: [{
                   type: "ArrayBinding",
-                  elements: [{ type: "BindingIdentifier", name: "a" }],
+                  elements: [{ type: "BindingIdentifier", name: "<<hygiene>>" }],
                   restElement: null
                 }],
                 restElement: null
@@ -90,13 +88,13 @@ suite("Parser", function () {
             kind: "var",
             declarators: [{
               type: "VariableDeclarator",
-              binding: { type: "BindingIdentifier", name: "a" },
+              binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
               init: null
             }, {
               type: "VariableDeclarator",
               binding: {
                 type: "ArrayBinding",
-                elements: [{ type: "BindingIdentifier", name: "a" }],
+                elements: [{ type: "BindingIdentifier", name: "<<hygiene>>" }],
                 restElement: null
               },
               init: { type: "LiteralNumericExpression", value: 0 }
@@ -104,6 +102,7 @@ suite("Parser", function () {
           }
         }
       );
+
 
       testParse("var [a, a] = 0;", stmt,
         {
@@ -115,7 +114,7 @@ suite("Parser", function () {
               type: "VariableDeclarator",
               binding: {
                 type: "ArrayBinding",
-                elements: [{ type: "BindingIdentifier", name: "a" }, { type: "BindingIdentifier", name: "a" }],
+                elements: [{ type: "BindingIdentifier", name: "<<hygiene>>" }, { type: "BindingIdentifier", name: "<<hygiene>>" }],
                 restElement: null
               },
               init: { type: "LiteralNumericExpression", value: 0 }
@@ -134,8 +133,8 @@ suite("Parser", function () {
               type: "VariableDeclarator",
               binding: {
                 type: "ArrayBinding",
-                elements: [{ type: "BindingIdentifier", name: "a" }],
-                restElement: { type: "BindingIdentifier", name: "a" }
+                elements: [{ type: "BindingIdentifier", name: "<<hygiene>>" }],
+                restElement: { type: "BindingIdentifier", name: "<<hygiene>>" }
               },
               init: { type: "LiteralNumericExpression", value: 0 }
             }]
@@ -143,52 +142,51 @@ suite("Parser", function () {
         }
       );
 
-      testParseFailure("var [a.b] = 0", "Unexpected token \".\"");
-      testParseFailure("var ([x]) = 0", "Unexpected token \"(\"");
+    //   testParseFailure("var [a.b] = 0", "Unexpected token \".\"");
+    //   testParseFailure("var ([x]) = 0", "Unexpected token \"(\"");
+    // });
+    //
+    // suite("formal parameter", function () {
+    //   // passing cases are tested in other function test cases.
+    //   testParseFailure("([a.b]) => 0", "Illegal arrow function parameter list");
+    //   testParseFailure("function a([a.b]) {}", "Unexpected token \".\"");
+    //   testParseFailure("function* a([a.b]) {}", "Unexpected token \".\"");
+    //   testParseFailure("(function ([a.b]) {})", "Unexpected token \".\"");
+    //   testParseFailure("(function* ([a.b]) {})", "Unexpected token \".\"");
+    //   testParseFailure("({a([a.b]){}})", "Unexpected token \".\"");
+    //   testParseFailure("({*a([a.b]){}})", "Unexpected token \".\"");
+    //   testParseFailure("({set a([a.b]){}})", "Unexpected token \".\"");
+    // });
+    //
+    // suite("catch clause", function () {
+    //   testParse("try {} catch ([e]) {}", stmt,
+    //     {
+    //       type: "TryCatchStatement",
+    //       body: { type: "Block", statements: [] },
+    //       catchClause: {
+    //         type: "CatchClause",
+    //         binding: { type: "ArrayBinding", elements: [{ type: "BindingIdentifier", name: "e" }], restElement: null },
+    //         body: { type: "Block", statements: [] }
+    //       }
+    //     }
+    //   );
+    //
+    //   testParse("try {} catch ([e, ...a]) {}", stmt,
+    //     {
+    //       type: "TryCatchStatement",
+    //       body: { type: "Block", statements: [] },
+    //       catchClause: {
+    //         type: "CatchClause",
+    //         binding: {
+    //           type: "ArrayBinding",
+    //           elements: [{ type: "BindingIdentifier", name: "e" }],
+    //           restElement: { type: "BindingIdentifier", name: "a" }
+    //         },
+    //         body: { type: "Block", statements: [] }
+    //       }
+    //     }
+    //   );
+    //
     });
 
-    suite("formal parameter", function () {
-      // passing cases are tested in other function test cases.
-      testParseFailure("([a.b]) => 0", "Illegal arrow function parameter list");
-      testParseFailure("function a([a.b]) {}", "Unexpected token \".\"");
-      testParseFailure("function* a([a.b]) {}", "Unexpected token \".\"");
-      testParseFailure("(function ([a.b]) {})", "Unexpected token \".\"");
-      testParseFailure("(function* ([a.b]) {})", "Unexpected token \".\"");
-      testParseFailure("({a([a.b]){}})", "Unexpected token \".\"");
-      testParseFailure("({*a([a.b]){}})", "Unexpected token \".\"");
-      testParseFailure("({set a([a.b]){}})", "Unexpected token \".\"");
-    });
-
-    suite("catch clause", function () {
-      testParse("try {} catch ([e]) {}", stmt,
-        {
-          type: "TryCatchStatement",
-          body: { type: "Block", statements: [] },
-          catchClause: {
-            type: "CatchClause",
-            binding: { type: "ArrayBinding", elements: [{ type: "BindingIdentifier", name: "e" }], restElement: null },
-            body: { type: "Block", statements: [] }
-          }
-        }
-      );
-
-      testParse("try {} catch ([e, ...a]) {}", stmt,
-        {
-          type: "TryCatchStatement",
-          body: { type: "Block", statements: [] },
-          catchClause: {
-            type: "CatchClause",
-            binding: {
-              type: "ArrayBinding",
-              elements: [{ type: "BindingIdentifier", name: "e" }],
-              restElement: { type: "BindingIdentifier", name: "a" }
-            },
-            body: { type: "Block", statements: [] }
-          }
-        }
-      );
-
-    });
-
-  });
 });

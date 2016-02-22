@@ -386,7 +386,7 @@ export default class TermExpander {
   expandVariableDeclarator(term) {
     let init = term.init == null ? null : this.expand(term.init);
     return new Term("VariableDeclarator", {
-      binding: term.binding,
+      binding: this.expand(term.binding),
       init: init
     });
   }

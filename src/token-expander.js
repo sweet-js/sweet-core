@@ -7,7 +7,7 @@ import resolve from 'resolve';
 import Reader from "./shift-reader";
 import * as _ from "ramda";
 import Term, {
-  isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
+  isEOF, isBindingIdentifier, isArrayBinding, isFunctionDeclaration, isFunctionExpression,
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
   isVariableDeclarationStatement, isImport, isExport
 } from "./terms";
@@ -34,14 +34,30 @@ let registerBindings = _.cond([
       skipDup: true
     });
   }],
-  [_.T, _ => assert(false, "not implemented yet")]
+  [isArrayBinding, ({elements, restElement}, context) => {
+    if (restElement != null) {
+      registerBindings(restElement, context);
+    }
+    elements.forEach(el => {
+      if (el != null) {
+        registerBindings(el, context);
+      }
+    });
+  }],
+  [_.T, binding => assert(false, "not implemented yet for: " + binding.type)]
 ]);
 
 let removeScope = _.cond([
   [isBindingIdentifier, ({name}, scope) => new Term('BindingIdentifier', {
     name: name.removeScope(scope)
   })],
-  [_.T, _ => assert(false, "not implemented yet")]
+  [isArrayBinding, ({elements, restElement}, context) => {
+    return new Term('ArrayBinding', {
+      elements: elements.map(el => el == null ? null : removeScope(el, context)),
+      restElement: restElement == null ? null : removeScope(restElement, context)
+    });
+  }],
+  [_.T, binding => assert(false, "not implemented yet for: " + binding.type)]
 ]);
 
 function findNameInExports(name, exp) {

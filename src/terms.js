@@ -30,5 +30,6 @@ export const isFunctionExpression = R.whereEq({ type: 'FunctionExpression' });
 export const isFunctionTerm = R.either(isFunctionDeclaration, isFunctionExpression);
 export const isFunctionWithName = R.and(isFunctionTerm, R.complement(R.where({ name: R.isNil })));
 export const isBindingIdentifier = R.where({ name: R.is(Syntax) });
+export const isArrayBinding = R.whereEq({ type: 'ArrayBinding' });
 export const isImport = R.whereEq({ type: 'Import' });
 export const isExport = R.whereEq({ type: 'Export' });
