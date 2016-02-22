@@ -724,8 +724,46 @@ export class Enforester {
       return this.enforestBindingIdentifier();
     } else if (this.isBrackets(lookahead)) {
       return this.enforestArrayBinding();
+    } else if (this.isBraces(lookahead)) {
+      return this.enforestObjectBinding();
     }
     throw "not implemented yet";
+  }
+
+  enforestObjectBinding() {
+    let enf = new Enforester(this.matchCurlies(), List(), this.context);
+    let properties = [];
+    while (enf.rest.size !== 0) {
+      properties.push(enf.enforestBindingProperty());
+      enf.consumeComma();
+    }
+
+    return new Term('ObjectBinding', {
+      properties: List(properties)
+    });
+  }
+
+  enforestBindingProperty() {
+    let lookahead = this.peek();
+    let {name, binding} = this.enforestPropertyName();
+    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'let') || this.isKeyword(lookahead, 'yield')) {
+      if (!this.isPunctuator(this.peek(), ':')) {
+        let defaultValue = null;
+        if (this.isAssign(this.peek())) {
+          this.advance();
+          let expr = this.enforestExpressionLoop();
+          defaultValue = expr;
+        }
+        return new Term('BindingPropertyIdentifier', {
+          binding, init: defaultValue
+        });
+      }
+    }
+    this.matchPunctuator(':');
+    binding = this.enforestBindingElement();
+    return new Term('BindingPropertyProperty', {
+      name, binding
+    });
   }
 
   enforestArrayBinding() {

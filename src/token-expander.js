@@ -7,7 +7,7 @@ import resolve from 'resolve';
 import Reader from "./shift-reader";
 import * as _ from "ramda";
 import Term, {
-  isEOF, isBindingIdentifier, isArrayBinding, isFunctionDeclaration, isFunctionExpression,
+  isEOF, isBindingIdentifier, isBindingPropertyProperty, isBindingPropertyIdentifier, isObjectBinding, isArrayBinding, isFunctionDeclaration, isFunctionExpression,
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
   isVariableDeclarationStatement, isImport, isExport
 } from "./terms";
@@ -21,18 +21,28 @@ import { Scope, freshScope } from "./scope";
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
 
+const registerSyntax = (stx, context) => {
+  let newBinding = gensym(stx.val());
+  context.env.set(newBinding.toString(), new VarBindingTransform(stx));
+  context.bindings.add(stx, {
+    binding: newBinding,
+    phase: 0,
+    // skip dup because js allows variable redeclarations
+    // (technically only for `var` but we can let later stages of the pipeline
+    // handle incorrect redeclarations of `const` and `let`)
+    skipDup: true
+  });
+};
+
 let registerBindings = _.cond([
   [isBindingIdentifier, ({name}, context) => {
-    let newBinding = gensym(name.val());
-    context.env.set(newBinding.toString(), new VarBindingTransform(name));
-    context.bindings.add(name, {
-      binding: newBinding,
-      phase: 0,
-      // skip dup because js allows variable redeclarations
-      // (technically only for `var` but we can let later stages of the pipeline
-      // handle incorrect redeclarations of `const` and `let`)
-      skipDup: true
-    });
+    registerSyntax(name, context);
+  }],
+  [isBindingPropertyIdentifier, ({binding}, context) => {
+    registerBindings(binding, context);
+  }],
+  [isBindingPropertyProperty, ({binding}, context) => {
+    registerBindings(binding, context);
   }],
   [isArrayBinding, ({elements, restElement}, context) => {
     if (restElement != null) {
@@ -43,6 +53,9 @@ let registerBindings = _.cond([
         registerBindings(el, context);
       }
     });
+  }],
+  [isObjectBinding, ({properties}, context) => {
+    properties.forEach(prop => registerBindings(prop, context));
   }],
   [_.T, binding => assert(false, "not implemented yet for: " + binding.type)]
 ]);
@@ -57,6 +70,16 @@ let removeScope = _.cond([
       restElement: restElement == null ? null : removeScope(restElement, context)
     });
   }],
+  [isBindingPropertyIdentifier, ({binding, init}, context) => new Term('BindingPropertyIdentifier', {
+    binding: removeScope(binding, context),
+    init
+  })],
+  [isBindingPropertyProperty, ({binding, name}, context) => new Term('BindingPropertyProperty', {
+    binding: removeScope(binding, context), name
+  })],
+  [isObjectBinding, ({properties}) => new Term('ObjectBinding', {
+    properties: properties.map(prop => removeScope(prop, context))
+  })],
   [_.T, binding => assert(false, "not implemented yet for: " + binding.type)]
 ]);
 

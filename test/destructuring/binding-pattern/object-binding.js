@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-var stmt = require("../../helpers").stmt;
-var expr = require("../../helpers").expr;
-var testParse = require("../../assertions").testParse;
-var testParseFailure = require("../../assertions").testParseFailure;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("object binding", function () {
-    suite("variable declarator", function () {
+describe("Parser", function () {
+  it("object binding", function () {
       testParse("var {a} = 0;", stmt,
         {
           type: "VariableDeclarationStatement",
@@ -34,7 +31,7 @@ suite("Parser", function () {
                 type: "ObjectBinding",
                 properties: [{
                   type: "BindingPropertyIdentifier",
-                  binding: { type: "BindingIdentifier", name: "a" },
+                  binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
                   init: null
                 }]
               },
@@ -58,7 +55,7 @@ suite("Parser", function () {
                   type: "ObjectBinding",
                   properties: [{
                     type: "BindingPropertyIdentifier",
-                    binding: { type: "BindingIdentifier", name: "a" },
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
                     init: { type: "LiteralNumericExpression", value: 0 }
                   }]
                 }],
@@ -85,11 +82,11 @@ suite("Parser", function () {
                   properties: [{
                     type: "BindingPropertyProperty",
                     name: { type: "StaticPropertyName", value: "__proto__" },
-                    binding: { type: "BindingIdentifier", name: "a" }
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
                   }, {
                     type: "BindingPropertyProperty",
                     name: { type: "StaticPropertyName", value: "__proto__" },
-                    binding: { type: "BindingIdentifier", name: "b" }
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
                   }]
                 }],
                 restElement: null
@@ -112,7 +109,7 @@ suite("Parser", function () {
                 type: "ObjectBinding",
                 properties: [{
                   type: "BindingPropertyIdentifier",
-                  binding: { type: "BindingIdentifier", name: "a" },
+                  binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
                   init: null
                 }, {
                   type: "BindingPropertyProperty",
@@ -122,7 +119,7 @@ suite("Parser", function () {
                     properties: [{
                       type: "BindingPropertyProperty",
                       name: { type: "StaticPropertyName", value: "y" },
-                      binding: { type: "BindingIdentifier", name: "a" }
+                      binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
                     }]
                   }
                 }]
@@ -141,7 +138,7 @@ suite("Parser", function () {
             kind: "var",
             declarators: [{
               type: "VariableDeclarator",
-              binding: { type: "BindingIdentifier", name: "a" },
+              binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
               init: null
             }, {
               type: "VariableDeclarator",
@@ -155,7 +152,7 @@ suite("Parser", function () {
                     properties: [{
                       type: "BindingPropertyProperty",
                       name: { type: "StaticPropertyName", value: "y" },
-                      binding: { type: "BindingIdentifier", name: "a" }
+                      binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
                     }]
                   }
                 }]
@@ -179,12 +176,12 @@ suite("Parser", function () {
                 properties: [
                   {
                     type: "BindingPropertyIdentifier",
-                    binding: { type: "BindingIdentifier", name: "let" },
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
                     init: null
                   },
                   {
                     type: "BindingPropertyIdentifier",
-                    binding: { type: "BindingIdentifier", name: "yield" },
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
                     init: null
                   }
                 ]
@@ -195,78 +192,76 @@ suite("Parser", function () {
         }
       );
 
-      testParseFailure("var {a: b.c} = 0;", "Unexpected token \".\"");
-    });
+      // testParseFailure("var {a: b.c} = 0;", "Unexpected token \".\"");
+    // });
 
-    suite("formal parameter", function () {
-      testParse("(a, b, [c]) => 0", expr, {
-        type: "ArrowExpression",
-        params: {
-          type: "FormalParameters",
-          items: [
-            { type: "BindingIdentifier", name: "a" },
-            { type: "BindingIdentifier", name: "b" },
-            { type: "ArrayBinding", elements: [{ type: "BindingIdentifier", name: "c" }], restElement: null }],
-          rest: null
-        },
-        body: {
-          type: "LiteralNumericExpression", value: 0
-        }
-      });
-
-      // other passing cases are tested in other function test cases.
-      testParseFailure("({e: a.b}) => 0", "Illegal arrow function parameter list");
-      testParseFailure("function a({e: a.b}) {}", "Unexpected token \".\"");
-      testParseFailure("function* a({e: a.b}) {}", "Unexpected token \".\"");
-      testParseFailure("(function ({e: a.b}) {})", "Unexpected token \".\"");
-      testParseFailure("(function* ({e: a.b}) {})", "Unexpected token \".\"");
-      testParseFailure("({a({e: a.b}){}})", "Unexpected token \".\"");
-      testParseFailure("({*a({e: a.b}){}})", "Unexpected token \".\"");
-      testParseFailure("({set a({e: a.b}){}})", "Unexpected token \".\"");
-
-    });
-
-    suite("catch clause", function () {
-      testParse("try {} catch ({e}) {}", stmt,
-        {
-          type: "TryCatchStatement",
-          body: { type: "Block", statements: [] },
-          catchClause: {
-            type: "CatchClause",
-            binding: {
-              type: "ObjectBinding",
-              properties: [{
-                type: "BindingPropertyIdentifier",
-                binding: { type: "BindingIdentifier", name: "e" },
-                init: null
-              }]
-            },
-            body: { type: "Block", statements: [] }
-          }
-        }
-      );
-
-      testParse("try {} catch ({e = 0}) {}", stmt,
-        {
-          type: "TryCatchStatement",
-          body: { type: "Block", statements: [] },
-          catchClause: {
-            type: "CatchClause",
-            binding: {
-              type: "ObjectBinding",
-              properties: [{
-                type: "BindingPropertyIdentifier",
-                binding: { type: "BindingIdentifier", name: "e" },
-                init: { type: "LiteralNumericExpression", value: 0 }
-              }]
-            },
-            body: { type: "Block", statements: [] }
-          }
-        }
-      );
-
-      testParseFailure("try {} catch ({e: x.a}) {}", "Unexpected token \".\"");
-    });
-
+    // suite("formal parameter", function () {
+    //   testParse("(a, b, [c]) => 0", expr, {
+    //     type: "ArrowExpression",
+    //     params: {
+    //       type: "FormalParameters",
+    //       items: [
+    //         { type: "BindingIdentifier", name: "a" },
+    //         { type: "BindingIdentifier", name: "b" },
+    //         { type: "ArrayBinding", elements: [{ type: "BindingIdentifier", name: "c" }], restElement: null }],
+    //       rest: null
+    //     },
+    //     body: {
+    //       type: "LiteralNumericExpression", value: 0
+    //     }
+    //   });
+    //
+    //   // other passing cases are tested in other function test cases.
+    //   testParseFailure("({e: a.b}) => 0", "Illegal arrow function parameter list");
+    //   testParseFailure("function a({e: a.b}) {}", "Unexpected token \".\"");
+    //   testParseFailure("function* a({e: a.b}) {}", "Unexpected token \".\"");
+    //   testParseFailure("(function ({e: a.b}) {})", "Unexpected token \".\"");
+    //   testParseFailure("(function* ({e: a.b}) {})", "Unexpected token \".\"");
+    //   testParseFailure("({a({e: a.b}){}})", "Unexpected token \".\"");
+    //   testParseFailure("({*a({e: a.b}){}})", "Unexpected token \".\"");
+    //   testParseFailure("({set a({e: a.b}){}})", "Unexpected token \".\"");
+    //
+    // });
+    //
+    // suite("catch clause", function () {
+    //   testParse("try {} catch ({e}) {}", stmt,
+    //     {
+    //       type: "TryCatchStatement",
+    //       body: { type: "Block", statements: [] },
+    //       catchClause: {
+    //         type: "CatchClause",
+    //         binding: {
+    //           type: "ObjectBinding",
+    //           properties: [{
+    //             type: "BindingPropertyIdentifier",
+    //             binding: { type: "BindingIdentifier", name: "e" },
+    //             init: null
+    //           }]
+    //         },
+    //         body: { type: "Block", statements: [] }
+    //       }
+    //     }
+    //   );
+    //
+    //   testParse("try {} catch ({e = 0}) {}", stmt,
+    //     {
+    //       type: "TryCatchStatement",
+    //       body: { type: "Block", statements: [] },
+    //       catchClause: {
+    //         type: "CatchClause",
+    //         binding: {
+    //           type: "ObjectBinding",
+    //           properties: [{
+    //             type: "BindingPropertyIdentifier",
+    //             binding: { type: "BindingIdentifier", name: "e" },
+    //             init: { type: "LiteralNumericExpression", value: 0 }
+    //           }]
+    //         },
+    //         body: { type: "Block", statements: [] }
+    //       }
+    //     }
+    //   );
+    //
+    //   testParseFailure("try {} catch ({e: x.a}) {}", "Unexpected token \".\"");
   });
 });
