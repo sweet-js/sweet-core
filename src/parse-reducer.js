@@ -152,12 +152,4 @@ export default class ParseReducer extends CloneReducer {
     });
   }
 
-  reduceClassDeclaration(node, state) {
-    return new Term("ClassDeclaration", {
-      name: state.name,
-      super: state.super,
-      elements: state.elements.toArray(),
-      loc: null
-    });
-  }
 }

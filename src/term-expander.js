@@ -280,7 +280,11 @@ export default class TermExpander {
   }
 
   expandClassDeclaration(term) {
-    return term;
+    return new Term('ClassDeclaration', {
+      name: term.name == null ? null : this.expand(term.name),
+      super: term.super == null ? null : this.expand(term.super),
+      elements: term.elements.map(el => this.expand(el)).toArray()
+    });
   }
 
   expandClassExpression(term) {
