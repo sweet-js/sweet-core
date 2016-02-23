@@ -259,6 +259,65 @@ var TermExpander = function () {
       return term;
     }
   }, {
+    key: "expandBindingPropertyIdentifier",
+    value: function expandBindingPropertyIdentifier(term) {
+      return term;
+    }
+  }, {
+    key: "expandBindingPropertyProperty",
+    value: function expandBindingPropertyProperty(term) {
+      return new _terms2.default('BindingPropertyProperty', {
+        name: this.expand(term.name),
+        binding: this.expand(term.binding)
+      });
+    }
+  }, {
+    key: "expandComputedPropertyName",
+    value: function expandComputedPropertyName(term) {
+      return new _terms2.default('ComputedPropertyName', {
+        expression: this.expand(term.expression)
+      });
+    }
+  }, {
+    key: "expandObjectBinding",
+    value: function expandObjectBinding(term) {
+      var _this7 = this;
+
+      return new _terms2.default('ObjectBinding', {
+        properties: term.properties.map(function (t) {
+          return _this7.expand(t);
+        }).toArray()
+      });
+    }
+  }, {
+    key: "expandArrayBinding",
+    value: function expandArrayBinding(term) {
+      var _this8 = this;
+
+      var restElement = term.restElement == null ? null : this.expand(term.restElement);
+      return new _terms2.default('ArrayBinding', {
+        elements: term.elements.map(function (t) {
+          return t == null ? null : _this8.expand(t);
+        }).toArray(),
+        restElement: restElement
+      });
+    }
+  }, {
+    key: "expandBindingWithDefault",
+    value: function expandBindingWithDefault(term) {
+      return new _terms2.default('BindingWithDefault', {
+        binding: this.expand(term.binding),
+        init: this.expand(term.init)
+      });
+    }
+  }, {
+    key: "expandShorthandProperty",
+    value: function expandShorthandProperty(term) {
+      return new _terms2.default('ShorthandProperty', {
+        name: term.name.val()
+      });
+    }
+  }, {
     key: "expandForStatement",
     value: function expandForStatement(term) {
       var init = term.init == null ? null : this.expand(term.init);
@@ -304,11 +363,11 @@ var TermExpander = function () {
   }, {
     key: "expandBlock",
     value: function expandBlock(term) {
-      var _this7 = this;
+      var _this9 = this;
 
       return new _terms2.default('Block', {
         statements: term.statements.map(function (s) {
-          return _this7.expand(s);
+          return _this9.expand(s);
         }).toArray()
       });
     }
@@ -335,6 +394,27 @@ var TermExpander = function () {
       return term;
     }
   }, {
+    key: "expandClassExpression",
+    value: function expandClassExpression(term) {
+      var _this10 = this;
+
+      return new _terms2.default('ClassExpression', {
+        name: term.name == null ? null : this.expand(term.name),
+        super: term.super == null ? null : this.expand(term.super),
+        elements: term.elements.map(function (el) {
+          return _this10.expand(el);
+        }).toArray()
+      });
+    }
+  }, {
+    key: "expandClassElement",
+    value: function expandClassElement(term) {
+      return new _terms2.default('ClassElement', {
+        isStatic: term.isStatic,
+        method: this.expand(term.method)
+      });
+    }
+  }, {
     key: "expandThisExpression",
     value: function expandThisExpression(term) {
       return term;
@@ -342,7 +422,7 @@ var TermExpander = function () {
   }, {
     key: "expandSyntaxTemplate",
     value: function expandSyntaxTemplate(term) {
-      var _this8 = this;
+      var _this11 = this;
 
       var expander = new _expander2.default(this.context);
       var r = (0, _templateProcessor.processTemplate)(term.template.inner());
@@ -350,8 +430,8 @@ var TermExpander = function () {
       var callee = new _terms2.default('IdentifierExpression', { name: _syntax2.default.fromIdentifier('syntaxTemplate') });
 
       var expandedInterps = r.interp.map(function (i) {
-        var enf = new _enforester.Enforester(i, (0, _immutable.List)(), _this8.context);
-        return _this8.expand(enf.enforest('expression'));
+        var enf = new _enforester.Enforester(i, (0, _immutable.List)(), _this11.context);
+        return _this11.expand(enf.enforest('expression'));
       });
 
       var args = _immutable.List.of(new _terms2.default('LiteralStringExpression', { value: str })).concat(expandedInterps);
@@ -385,11 +465,11 @@ var TermExpander = function () {
   }, {
     key: "expandArrayExpression",
     value: function expandArrayExpression(term) {
-      var _this9 = this;
+      var _this12 = this;
 
       return new _terms2.default("ArrayExpression", {
         elements: term.elements.map(function (t) {
-          return t == null ? t : _this9.expand(t);
+          return t == null ? t : _this12.expand(t);
         })
       });
     }
@@ -448,11 +528,11 @@ var TermExpander = function () {
   }, {
     key: "expandObjectExpression",
     value: function expandObjectExpression(term) {
-      var _this10 = this;
+      var _this13 = this;
 
       return new _terms2.default("ObjectExpression", {
         properties: term.properties.map(function (t) {
-          return _this10.expand(t);
+          return _this13.expand(t);
         })
       });
     }
@@ -461,19 +541,19 @@ var TermExpander = function () {
     value: function expandVariableDeclarator(term) {
       var init = term.init == null ? null : this.expand(term.init);
       return new _terms2.default("VariableDeclarator", {
-        binding: term.binding,
+        binding: this.expand(term.binding),
         init: init
       });
     }
   }, {
     key: "expandVariableDeclaration",
     value: function expandVariableDeclaration(term) {
-      var _this11 = this;
+      var _this14 = this;
 
       return new _terms2.default("VariableDeclaration", {
         kind: term.kind,
         declarators: term.declarators.map(function (d) {
-          return _this11.expand(d);
+          return _this14.expand(d);
         })
       });
     }
@@ -522,12 +602,12 @@ var TermExpander = function () {
   }, {
     key: "expandNewExpression",
     value: function expandNewExpression(term) {
-      var _this12 = this;
+      var _this15 = this;
 
       var callee = this.expand(term.callee);
       var enf = new _enforester.Enforester(term.arguments, (0, _immutable.List)(), this.context);
       var args = enf.enforestArgumentList().map(function (arg) {
-        return _this12.expand(arg);
+        return _this15.expand(arg);
       });
       return new _terms2.default('NewExpression', {
         callee: callee,
@@ -537,12 +617,12 @@ var TermExpander = function () {
   }, {
     key: "expandCallExpression",
     value: function expandCallExpression(term) {
-      var _this13 = this;
+      var _this16 = this;
 
       var callee = this.expand(term.callee);
       var enf = new _enforester.Enforester(term.arguments, (0, _immutable.List)(), this.context);
       var args = enf.enforestArgumentList().map(function (arg) {
-        return _this13.expand(arg);
+        return _this16.expand(arg);
       });
       return new _terms2.default("CallExpression", {
         callee: callee,
@@ -575,14 +655,17 @@ var TermExpander = function () {
   }, {
     key: "doFunctionExpansion",
     value: function doFunctionExpansion(term, type) {
-      var _this14 = this;
+      var _this17 = this;
 
       var scope = (0, _scope.freshScope)("fun");
       var markedBody = term.body.map(function (b) {
-        return b.addScope(scope, _this14.context.bindings);
+        return b.addScope(scope, _this17.context.bindings);
       });
       var red = new _applyScopeInParamsReducer2.default(scope, this.context);
-      var params = (0, _shiftReducer2.default)(red, term.params);
+      var params = undefined;
+      if (type !== 'Getter' && type !== 'Setter') {
+        params = (0, _shiftReducer2.default)(red, term.params);
+      }
       this.context.currentScope.push(scope);
       var expander = new _expander2.default(this.context);
 
@@ -592,12 +675,39 @@ var TermExpander = function () {
       });
       this.context.currentScope.pop();
 
+      if (type === 'Getter') {
+        return new _terms2.default(type, {
+          name: this.expand(term.name),
+          body: bodyTerm
+        });
+      } else if (type === 'Setter') {
+        return new _terms2.default(type, {
+          name: this.expand(term.name),
+          param: term.param,
+          body: bodyTerm
+        });
+      }
       return new _terms2.default(type, {
         name: term.name,
         isGenerator: term.isGenerator,
         params: params,
         body: bodyTerm
       });
+    }
+  }, {
+    key: "expandMethod",
+    value: function expandMethod(term) {
+      return this.doFunctionExpansion(term, 'Method');
+    }
+  }, {
+    key: "expandSetter",
+    value: function expandSetter(term) {
+      return this.doFunctionExpansion(term, 'Setter');
+    }
+  }, {
+    key: "expandGetter",
+    value: function expandGetter(term) {
+      return this.doFunctionExpansion(term, 'Getter');
     }
   }, {
     key: "expandFunctionDeclaration",
@@ -613,7 +723,7 @@ var TermExpander = function () {
     key: "expandAssignmentExpression",
     value: function expandAssignmentExpression(term) {
       return new _terms2.default("AssignmentExpression", {
-        binding: term.binding,
+        binding: this.expand(term.binding),
         expression: this.expand(term.expression)
       });
     }

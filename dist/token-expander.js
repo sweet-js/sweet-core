@@ -61,12 +61,10 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var Just = _ramdaFantasy.Maybe.Just;
 var Nothing = _ramdaFantasy.Maybe.Nothing;
 
-var registerBindings = _.cond([[_terms.isBindingIdentifier, function (_ref, context) {
-  var name = _ref.name;
-
-  var newBinding = (0, _symbol.gensym)(name.val());
-  context.env.set(newBinding.toString(), new _transforms.VarBindingTransform(name));
-  context.bindings.add(name, {
+var registerSyntax = function registerSyntax(stx, context) {
+  var newBinding = (0, _symbol.gensym)(stx.val());
+  context.env.set(newBinding.toString(), new _transforms.VarBindingTransform(stx));
+  context.bindings.add(stx, {
     binding: newBinding,
     phase: 0,
     // skip dup because js allows variable redeclarations
@@ -74,17 +72,79 @@ var registerBindings = _.cond([[_terms.isBindingIdentifier, function (_ref, cont
     // handle incorrect redeclarations of `const` and `let`)
     skipDup: true
   });
-}], [_.T, function (_) {
-  return (0, _errors.assert)(false, "not implemented yet");
+};
+
+var registerBindings = _.cond([[_terms.isBindingIdentifier, function (_ref, context) {
+  var name = _ref.name;
+
+  registerSyntax(name, context);
+}], [_terms.isBindingPropertyIdentifier, function (_ref2, context) {
+  var binding = _ref2.binding;
+
+  registerBindings(binding, context);
+}], [_terms.isBindingPropertyProperty, function (_ref3, context) {
+  var binding = _ref3.binding;
+
+  registerBindings(binding, context);
+}], [_terms.isArrayBinding, function (_ref4, context) {
+  var elements = _ref4.elements;
+  var restElement = _ref4.restElement;
+
+  if (restElement != null) {
+    registerBindings(restElement, context);
+  }
+  elements.forEach(function (el) {
+    if (el != null) {
+      registerBindings(el, context);
+    }
+  });
+}], [_terms.isObjectBinding, function (_ref5, context) {
+  var properties = _ref5.properties;
+
+  properties.forEach(function (prop) {
+    return registerBindings(prop, context);
+  });
+}], [_.T, function (binding) {
+  return (0, _errors.assert)(false, "not implemented yet for: " + binding.type);
 }]]);
 
-var removeScope = _.cond([[_terms.isBindingIdentifier, function (_ref2, scope) {
-  var name = _ref2.name;
+var removeScope = _.cond([[_terms.isBindingIdentifier, function (_ref6, scope) {
+  var name = _ref6.name;
   return new _terms2.default('BindingIdentifier', {
     name: name.removeScope(scope)
   });
-}], [_.T, function (_) {
-  return (0, _errors.assert)(false, "not implemented yet");
+}], [_terms.isArrayBinding, function (_ref7, context) {
+  var elements = _ref7.elements;
+  var restElement = _ref7.restElement;
+
+  return new _terms2.default('ArrayBinding', {
+    elements: elements.map(function (el) {
+      return el == null ? null : removeScope(el, context);
+    }),
+    restElement: restElement == null ? null : removeScope(restElement, context)
+  });
+}], [_terms.isBindingPropertyIdentifier, function (_ref8, context) {
+  var binding = _ref8.binding;
+  var init = _ref8.init;
+  return new _terms2.default('BindingPropertyIdentifier', {
+    binding: removeScope(binding, context),
+    init: init
+  });
+}], [_terms.isBindingPropertyProperty, function (_ref9, context) {
+  var binding = _ref9.binding;
+  var name = _ref9.name;
+  return new _terms2.default('BindingPropertyProperty', {
+    binding: removeScope(binding, context), name: name
+  });
+}], [_terms.isObjectBinding, function (_ref10) {
+  var properties = _ref10.properties;
+  return new _terms2.default('ObjectBinding', {
+    properties: properties.map(function (prop) {
+      return removeScope(prop, context);
+    })
+  });
+}], [_.T, function (binding) {
+  return (0, _errors.assert)(false, "not implemented yet for: " + binding.type);
 }]]);
 
 function findNameInExports(name, exp) {

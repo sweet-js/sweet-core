@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.isExport = exports.isImport = exports.isBindingIdentifier = exports.isFunctionWithName = exports.isFunctionTerm = exports.isFunctionExpression = exports.isFunctionDeclaration = exports.isSyntaxrecDeclaration = exports.isSyntaxDeclaration = exports.isVariableDeclarationStatement = exports.isVariableDeclaration = exports.isEOF = undefined;
+exports.isExport = exports.isImport = exports.isBindingPropertyProperty = exports.isBindingPropertyIdentifier = exports.isObjectBinding = exports.isArrayBinding = exports.isBindingIdentifier = exports.isFunctionWithName = exports.isFunctionTerm = exports.isFunctionExpression = exports.isFunctionDeclaration = exports.isSyntaxrecDeclaration = exports.isSyntaxDeclaration = exports.isVariableDeclarationStatement = exports.isVariableDeclaration = exports.isEOF = undefined;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -82,6 +82,10 @@ var isFunctionExpression = exports.isFunctionExpression = R.whereEq({ type: 'Fun
 var isFunctionTerm = exports.isFunctionTerm = R.either(isFunctionDeclaration, isFunctionExpression);
 var isFunctionWithName = exports.isFunctionWithName = R.and(isFunctionTerm, R.complement(R.where({ name: R.isNil })));
 var isBindingIdentifier = exports.isBindingIdentifier = R.where({ name: R.is(_syntax2.default) });
+var isArrayBinding = exports.isArrayBinding = R.whereEq({ type: 'ArrayBinding' });
+var isObjectBinding = exports.isObjectBinding = R.whereEq({ type: 'ObjectBinding' });
+var isBindingPropertyIdentifier = exports.isBindingPropertyIdentifier = R.whereEq({ type: 'BindingPropertyIdentifier' });
+var isBindingPropertyProperty = exports.isBindingPropertyProperty = R.whereEq({ type: 'BindingPropertyProperty' });
 var isImport = exports.isImport = R.whereEq({ type: 'Import' });
 var isExport = exports.isExport = R.whereEq({ type: 'Export' });
 //# sourceMappingURL=terms.js.map

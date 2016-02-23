@@ -732,23 +732,60 @@ var Enforester = exports.Enforester = function () {
       var inDefault = _ref.inDefault;
 
       var kw = this.advance();
-      var name = undefined;
+      var name = null,
+          supr = null;
+      var type = isExpr ? 'ClassExpression' : 'ClassDeclaration';
 
-      if (this.isBraces(this.peek())) {
+      if (this.isIdentifier(this.peek())) {
+        name = this.enforestBindingIdentifier();
+      } else if (!isExpr) {
         if (inDefault) {
           name = new _terms2.default('BindingIdentifier', {
             name: _syntax2.default.fromIdentifier('*default*', kw)
           });
-        } else if (!isExpr) {
+        } else {
           throw this.createError(this.peek(), 'unexpected syntax');
         }
-      } else {
-        name = this.enforestBindingIdentifier();
       }
-      this.advance();
-      return new _terms2.default("ClassDeclaration", {
-        name: name,
-        elements: (0, _immutable.List)()
+
+      if (this.isKeyword(this.peek(), 'extends')) {
+        this.advance();
+        supr = this.enforestExpressionLoop();
+      }
+
+      var elements = [];
+      var enf = new Enforester(this.matchCurlies(), (0, _immutable.List)(), this.context);
+      while (enf.rest.size !== 0) {
+        if (enf.isPunctuator(enf.peek(), ';')) {
+          enf.advance();
+          continue;
+        }
+
+        var isStatic = false;
+
+        var _enf$enforestMethodDe = enf.enforestMethodDefinition();
+
+        var methodOrKey = _enf$enforestMethodDe.methodOrKey;
+        var kind = _enf$enforestMethodDe.kind;
+
+        if (kind === 'identifier' && methodOrKey.value.val() === 'static') {
+          isStatic = true;
+
+          var _enf$enforestMethodDe2 = enf.enforestMethodDefinition();
+
+          methodOrKey = _enf$enforestMethodDe2.methodOrKey;
+          kind = _enf$enforestMethodDe2.kind;
+        }
+        if (kind === 'method') {
+          elements.push(new _terms2.default('ClassElement', { isStatic: isStatic, method: methodOrKey }));
+        } else {
+          throw this.createError(enf.peek(), "Only methods are allowed in classes");
+        }
+      }
+
+      return new _terms2.default(type, {
+        name: name, super: supr,
+        elements: (0, _immutable.List)(elements)
       });
     }
   }, {
@@ -757,8 +794,95 @@ var Enforester = exports.Enforester = function () {
       var lookahead = this.peek();
       if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
         return this.enforestBindingIdentifier();
+      } else if (this.isBrackets(lookahead)) {
+        return this.enforestArrayBinding();
+      } else if (this.isBraces(lookahead)) {
+        return this.enforestObjectBinding();
       }
       throw "not implemented yet";
+    }
+  }, {
+    key: "enforestObjectBinding",
+    value: function enforestObjectBinding() {
+      var enf = new Enforester(this.matchCurlies(), (0, _immutable.List)(), this.context);
+      var properties = [];
+      while (enf.rest.size !== 0) {
+        properties.push(enf.enforestBindingProperty());
+        enf.consumeComma();
+      }
+
+      return new _terms2.default('ObjectBinding', {
+        properties: (0, _immutable.List)(properties)
+      });
+    }
+  }, {
+    key: "enforestBindingProperty",
+    value: function enforestBindingProperty() {
+      var lookahead = this.peek();
+
+      var _enforestPropertyName = this.enforestPropertyName();
+
+      var name = _enforestPropertyName.name;
+      var binding = _enforestPropertyName.binding;
+
+      if (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'let') || this.isKeyword(lookahead, 'yield')) {
+        if (!this.isPunctuator(this.peek(), ':')) {
+          var defaultValue = null;
+          if (this.isAssign(this.peek())) {
+            this.advance();
+            var expr = this.enforestExpressionLoop();
+            defaultValue = expr;
+          }
+          return new _terms2.default('BindingPropertyIdentifier', {
+            binding: binding, init: defaultValue
+          });
+        }
+      }
+      this.matchPunctuator(':');
+      binding = this.enforestBindingElement();
+      return new _terms2.default('BindingPropertyProperty', {
+        name: name, binding: binding
+      });
+    }
+  }, {
+    key: "enforestArrayBinding",
+    value: function enforestArrayBinding() {
+      var bracket = this.matchSquares();
+      var enf = new Enforester(bracket, (0, _immutable.List)(), this.context);
+      var elements = [],
+          restElement = null;
+      while (enf.rest.size !== 0) {
+        var el = undefined;
+        if (enf.isPunctuator(enf.peek(), ',')) {
+          enf.consumeComma();
+          el = null;
+        } else {
+          if (enf.isPunctuator(enf.peek(), '...')) {
+            enf.advance();
+            restElement = enf.enforestBindingTarget();
+            break;
+          } else {
+            el = enf.enforestBindingElement();
+          }
+          enf.consumeComma();
+        }
+        elements.push(el);
+      }
+      return new _terms2.default('ArrayBinding', {
+        elements: (0, _immutable.List)(elements),
+        restElement: restElement
+      });
+    }
+  }, {
+    key: "enforestBindingElement",
+    value: function enforestBindingElement() {
+      var binding = this.enforestBindingTarget();
+
+      if (this.isAssign(this.peek())) {
+        var init = this.enforestExpressionLoop();
+        binding = new _terms2.default('BindingWithDefault', { binding: binding, init: init });
+      }
+      return binding;
     }
   }, {
     key: "enforestBindingIdentifier",
@@ -949,6 +1073,10 @@ var Enforester = exports.Enforester = function () {
         return this.enforestYieldExpression();
       }
 
+      if (this.term === null && this.isKeyword(lookahead, 'class')) {
+        return this.enforestClass({ isExpr: true });
+      }
+
       if (this.term === null && (this.isIdentifier(lookahead) || this.isParens(lookahead)) && this.isPunctuator(this.peek(1), '=>') && this.lineNumberEq(lookahead, this.peek(1))) {
         return this.enforestArrowExpression();
       }
@@ -972,7 +1100,7 @@ var Enforester = exports.Enforester = function () {
         });
       }
       // $x:ident
-      if (this.term === null && this.isIdentifier(lookahead)) {
+      if (this.term === null && (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'let') || this.isKeyword(lookahead, 'yield'))) {
         return new _terms2.default("IdentifierExpression", {
           name: this.advance()
         });
@@ -1074,7 +1202,7 @@ var Enforester = exports.Enforester = function () {
         });
       }
       // $x:expr = $init:expr
-      if (this.term && this.isPunctuator(lookahead, "=")) {
+      if (this.term && this.isAssign(lookahead)) {
         var binding = this.transformDestructuring(this.term);
         var op = this.advance();
 
@@ -1144,6 +1272,8 @@ var Enforester = exports.Enforester = function () {
   }, {
     key: "transformDestructuring",
     value: function transformDestructuring(term) {
+      var _this = this;
+
       switch (term.type) {
         case 'IdentifierExpression':
           return new _terms2.default('BindingIdentifier', { name: term.name });
@@ -1152,6 +1282,49 @@ var Enforester = exports.Enforester = function () {
           if (term.inner.size === 1 && this.isIdentifier(term.inner.get(0))) {
             return new _terms2.default('BindingIdentifier', { name: term.inner.get(0) });
           }
+        case 'DataProperty':
+          return new _terms2.default('BindingPropertyProperty', {
+            name: term.name,
+            binding: this.transformDestructuringWithDefault(term.expression)
+          });
+        case 'ShorthandProperty':
+          return new _terms2.default('BindingPropertyIdentifier', {
+            binding: new _terms2.default('BindingIdentifier', { name: term.name }),
+            init: null
+          });
+        case 'ObjectExpression':
+          return new _terms2.default('ObjectBinding', {
+            properties: term.properties.map(function (t) {
+              return _this.transformDestructuring(t);
+            })
+          });
+        case 'ArrayExpression':
+          var last = term.elements.last();
+          if (last != null && last.type === 'SpreadElement') {
+            return new _terms2.default('ArrayBinding', {
+              elements: term.elements.slice(0, -1).map(function (t) {
+                return t && _this.transformDestructuringWithDefault(t);
+              }),
+              restElement: this.transformDestructuringWithDefault(last.expression)
+            });
+          } else {
+            return new _terms2.default('ArrayBinding', {
+              elements: term.elements.map(function (t) {
+                return t && _this.transformDestructuringWithDefault(t);
+              }),
+              restElement: null
+            });
+          }
+          return new _terms2.default('ArrayBinding', {
+            elements: term.elements.map(function (t) {
+              return t && _this.transformDestructuring(t);
+            }),
+            restElement: null
+          });
+        case 'StaticPropertyName':
+          return new _terms2.default('BindingIdentifier', {
+            name: term.value
+          });
         case 'ComputedMemberExpression':
         case 'StaticMemberExpression':
         case 'ArrayBinding':
@@ -1163,6 +1336,18 @@ var Enforester = exports.Enforester = function () {
           return term;
       }
       (0, _errors.assert)(false, 'not implemented yet for ' + term.type);
+    }
+  }, {
+    key: "transformDestructuringWithDefault",
+    value: function transformDestructuringWithDefault(term) {
+      switch (term.type) {
+        case "AssignmentExpression":
+          return new _terms2.default('BindingWithDefault', {
+            binding: this.transformDestructuring(term.binding),
+            init: term.expression
+          });
+      }
+      return this.transformDestructuring(term);
     }
   }, {
     key: "enforestArrowExpression",
@@ -1283,7 +1468,8 @@ var Enforester = exports.Enforester = function () {
 
       var lastProp = null;
       while (enf.rest.size > 0) {
-        var prop = enf.enforestProperty();
+        var prop = enf.enforestPropertyDefinition();
+        enf.consumeComma();
         properties = properties.concat(prop);
 
         if (lastProp === prop) {
@@ -1297,22 +1483,123 @@ var Enforester = exports.Enforester = function () {
       });
     }
   }, {
-    key: "enforestProperty",
-    value: function enforestProperty() {
-      var key = this.advance();
-      var colon = this.matchPunctuator(":");
+    key: "enforestPropertyDefinition",
+    value: function enforestPropertyDefinition() {
+      var _enforestMethodDefini = this.enforestMethodDefinition();
 
-      var value = this.enforestExpressionLoop();
-      this.consumeComma();
+      var methodOrKey = _enforestMethodDefini.methodOrKey;
+      var kind = _enforestMethodDefini.kind;
 
-      var name = new _terms2.default("StaticPropertyName", {
-        value: key
-      });
+
+      switch (kind) {
+        case 'method':
+          return methodOrKey;
+        case 'identifier':
+          if (this.isAssign(this.peek())) {
+            this.advance();
+            var init = this.enforestExpressionLoop();
+            return new _terms2.default('BindingPropertyIdentifier', {
+              init: init, binding: this.transformDestructuring(methodOrKey)
+            });
+          } else if (!this.isPunctuator(this.peek(), ':')) {
+            return new _terms2.default('ShorthandProperty', {
+              name: methodOrKey.value
+            });
+          }
+      }
+
+      this.matchPunctuator(':');
+      var expr = this.enforestExpressionLoop();
 
       return new _terms2.default("DataProperty", {
-        name: name,
-        expression: value
+        name: methodOrKey,
+        expression: expr
       });
+    }
+  }, {
+    key: "enforestMethodDefinition",
+    value: function enforestMethodDefinition() {
+      var lookahead = this.peek();
+
+      if (this.isIdentifier(lookahead, 'get') && this.isPropertyName(this.peek(1))) {
+        this.advance();
+
+        var _enforestPropertyName2 = this.enforestPropertyName();
+
+        var _name = _enforestPropertyName2.name;
+
+        this.matchParens();
+        var body = this.matchCurlies();
+        return {
+          methodOrKey: new _terms2.default('Getter', { name: _name, body: body }),
+          kind: 'method'
+        };
+      } else if (this.isIdentifier(lookahead, 'set') && this.isPropertyName(this.peek(1))) {
+        this.advance();
+
+        var _enforestPropertyName3 = this.enforestPropertyName();
+
+        var _name2 = _enforestPropertyName3.name;
+
+        var enf = new Enforester(this.matchParens(), (0, _immutable.List)(), this.context);
+        var param = enf.enforestBindingElement();
+        var body = this.matchCurlies();
+        return {
+          methodOrKey: new _terms2.default('Setter', { name: _name2, param: param, body: body }),
+          kind: 'method'
+        };
+      }
+
+      var _enforestPropertyName4 = this.enforestPropertyName();
+
+      var name = _enforestPropertyName4.name;
+
+      if (this.isParens(this.peek())) {
+        var params = this.matchParens();
+        var enf = new Enforester(params, (0, _immutable.List)(), this.context);
+        var formalParams = enf.enforestFormalParameters();
+
+        var body = this.matchCurlies();
+        return {
+          methodOrKey: new _terms2.default('Method', {
+            isGenerator: false,
+            name: name, params: formalParams, body: body
+          }),
+          kind: 'method'
+        };
+      }
+      return {
+        methodOrKey: name,
+        kind: this.isIdentifier(lookahead) || this.isKeyword(lookahead) ? 'identifier' : 'property'
+      };
+    }
+  }, {
+    key: "enforestPropertyName",
+    value: function enforestPropertyName() {
+      var lookahead = this.peek();
+
+      if (this.isStringLiteral(lookahead) || this.isNumericLiteral(lookahead)) {
+        return {
+          name: new _terms2.default('StaticPropertyName', {
+            value: this.advance()
+          }),
+          binding: null
+        };
+      } else if (this.isBrackets(lookahead)) {
+        var enf = new Enforester(this.matchSquares(), (0, _immutable.List)(), this.context);
+        var expr = enf.enforestExpressionLoop();
+        return {
+          name: new _terms2.default('ComputedPropertyName', {
+            expression: expr
+          }),
+          binding: null
+        };
+      }
+      var name = this.advance();
+      return {
+        name: new _terms2.default('StaticPropertyName', { value: name }),
+        binding: new _terms2.default('BindingIdentifier', { name: name })
+      };
     }
   }, {
     key: "enforestFunction",
@@ -1346,6 +1633,7 @@ var Enforester = exports.Enforester = function () {
       }
 
       params = this.matchParens();
+
       body = this.matchCurlies();
 
       var enf = new Enforester(params, (0, _immutable.List)(), this.context);
@@ -1462,7 +1750,7 @@ var Enforester = exports.Enforester = function () {
   }, {
     key: "enforestUnaryExpression",
     value: function enforestUnaryExpression() {
-      var _this = this;
+      var _this2 = this;
 
       var operator = this.matchUnaryOperator();
       this.opCtx.stack = this.opCtx.stack.push({
@@ -1477,7 +1765,7 @@ var Enforester = exports.Enforester = function () {
             isPrefix = undefined;
         if (operator.val() === '++' || operator.val() === '--') {
           type = 'UpdateExpression';
-          term = _this.transformDestructuring(rightTerm);
+          term = _this2.transformDestructuring(rightTerm);
           isPrefix = true;
         } else {
           type = 'UnaryExpression';
@@ -1535,12 +1823,12 @@ var Enforester = exports.Enforester = function () {
   }, {
     key: "enforestTemplateElements",
     value: function enforestTemplateElements() {
-      var _this2 = this;
+      var _this3 = this;
 
       var lookahead = this.matchTemplate();
       var elements = lookahead.token.items.map(function (it) {
         if (it instanceof _syntax2.default && it.isDelimiter()) {
-          var enf = new Enforester(it.inner(), (0, _immutable.List)(), _this2.context);
+          var enf = new Enforester(it.inner(), (0, _immutable.List)(), _this3.context);
           return enf.enforest("expression");
         }
         return new _terms2.default('TemplateElement', {
@@ -1552,7 +1840,7 @@ var Enforester = exports.Enforester = function () {
   }, {
     key: "expandMacro",
     value: function expandMacro(enforestType) {
-      var _this3 = this;
+      var _this4 = this;
 
       var name = this.advance();
 
@@ -1576,9 +1864,9 @@ var Enforester = exports.Enforester = function () {
       }
       result = result.map(function (stx) {
         if (!(stx && typeof stx.addScope === 'function')) {
-          throw _this3.createError(name, 'macro must return syntax objects or terms but got: ' + stx);
+          throw _this4.createError(name, 'macro must return syntax objects or terms but got: ' + stx);
         }
-        return stx.addScope(introducedScope, _this3.context.bindings, { flip: true });
+        return stx.addScope(introducedScope, _this4.context.bindings, { flip: true });
       });
 
       return result;
@@ -1617,6 +1905,11 @@ var Enforester = exports.Enforester = function () {
       var val = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
 
       return term && term instanceof _syntax2.default && term.isIdentifier() && (val === null || term.val() === val);
+    }
+  }, {
+    key: "isPropertyName",
+    value: function isPropertyName(term) {
+      return this.isIdentifier(term) || this.isKeyword(term) || this.isNumericLiteral(term) || this.isStringLiteral(term) || this.isBrackets(term);
     }
   }, {
     key: "isNumericLiteral",
@@ -1662,6 +1955,11 @@ var Enforester = exports.Enforester = function () {
     key: "isBrackets",
     value: function isBrackets(term) {
       return term && term instanceof _syntax2.default && term.isBrackets();
+    }
+  }, {
+    key: "isAssign",
+    value: function isAssign(term) {
+      return term && term instanceof _syntax2.default && term.isAssign();
     }
   }, {
     key: "isKeyword",

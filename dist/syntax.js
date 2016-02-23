@@ -201,6 +201,11 @@ var Syntax = function () {
       return !this.isDelimiter() && this.token.type.klass === _tokenizer.TokenClass.Ident;
     }
   }, {
+    key: "isAssign",
+    value: function isAssign() {
+      return !this.isDelimiter() && this.token.type === _tokenizer.TokenType.ASSIGN;
+    }
+  }, {
     key: "isBooleanLiteral",
     value: function isBooleanLiteral() {
       return !this.isDelimiter() && this.token.type === _tokenizer.TokenType.TRUE || this.token.type === _tokenizer.TokenType.FALSE;

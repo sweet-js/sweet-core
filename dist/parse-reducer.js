@@ -183,7 +183,7 @@ var ParseReducer = function (_CloneReducer) {
     key: "reduceStaticPropertyName",
     value: function reduceStaticPropertyName(node, state) {
       return new _terms2.default("StaticPropertyName", {
-        value: node.value.val()
+        value: node.value.val().toString()
       });
     }
   }, {
