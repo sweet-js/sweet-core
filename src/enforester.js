@@ -698,23 +698,50 @@ export class Enforester {
 
   enforestClass({ isExpr, inDefault }) {
     let kw = this.advance();
-    let name;
+    let name = null, supr = null;
+    let type = isExpr ? 'ClassExpression' : 'ClassDeclaration';
 
-    if (this.isBraces(this.peek())) {
+    if (this.isIdentifier(this.peek())) {
+      name = this.enforestBindingIdentifier();
+    } else if (!isExpr) {
       if (inDefault) {
         name = new Term('BindingIdentifier', {
           name: Syntax.fromIdentifier('*default*', kw)
         });
-      } else if (!isExpr) {
+      } else {
         throw this.createError(this.peek(), 'unexpected syntax');
       }
-    } else {
-      name = this.enforestBindingIdentifier();
     }
-    this.advance();
-    return new Term("ClassDeclaration", {
-      name: name,
-      elements: List()
+
+    if (this.isKeyword(this.peek(), 'extends')) {
+      this.advance();
+      supr = this.enforestExpressionLoop();
+    }
+
+    let elements = [];
+    let enf = new Enforester(this.matchCurlies(), List(), this.context);
+    while (enf.rest.size !== 0) {
+      if (enf.isPunctuator(enf.peek(), ';')) {
+        enf.advance();
+        continue;
+      }
+
+      let isStatic = false;
+      let {methodOrKey, kind} = enf.enforestMethodDefinition();
+      if (kind === 'identifier' && methodOrKey.value.val() === 'static') {
+        isStatic = true;
+        ({methodOrKey, kind} = enf.enforestMethodDefinition());
+      }
+      if (kind === 'method') {
+        elements.push(new Term('ClassElement', {isStatic, method: methodOrKey}));
+      } else {
+        throw this.createError(enf.peek(), "Only methods are allowed in classes");
+      }
+    }
+
+    return new Term(type, {
+      name, super: supr,
+      elements: List(elements)
     });
   }
 
@@ -979,6 +1006,10 @@ export class Enforester {
 
     if (this.term === null && this.isKeyword(lookahead, 'yield')) {
       return this.enforestYieldExpression();
+    }
+
+    if (this.term === null && this.isKeyword(lookahead, 'class')) {
+      return this.enforestClass({isExpr: true});
     }
 
     if (this.term === null &&

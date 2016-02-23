@@ -283,6 +283,21 @@ export default class TermExpander {
     return term;
   }
 
+  expandClassExpression(term) {
+    return new Term('ClassExpression', {
+      name: term.name == null ? null : this.expand(term.name),
+      super: term.super == null ? null : this.expand(term.super),
+      elements: term.elements.map(el => this.expand(el)).toArray()
+    });
+  }
+
+  expandClassElement(term) {
+    return new Term('ClassElement', {
+      isStatic: term.isStatic,
+      method: this.expand(term.method)
+    });
+  }
+
   expandThisExpression(term) {
     return term;
   }

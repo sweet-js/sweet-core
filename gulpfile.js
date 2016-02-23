@@ -26,6 +26,7 @@ gulp.task('build:test', function () {
     'test/expressions/array*',
     'test/expressions/arrow*',
     'test/expressions/cal*',
+    'test/expressions/class*',
     'test/expressions/com*',
     'test/expressions/stat*',
     'test/expressions/new-ex*',
@@ -40,7 +41,6 @@ gulp.task('build:test', function () {
     'test/destructuring/binding-pattern/obj*',
 
     '!test/expressions/new-tar*',
-    '!test/expressions/cla*',
     '!test/expressions/i*',
     '!test/expressions/y*',
 
@@ -58,6 +58,14 @@ gulp.task('mocha', ['build:src', 'build:test'], function () {
       reporter: 'nyan'
     }));
 });
+
+gulp.task('mocha:single', ['build:src', 'build:test'], function () {
+  return gulp.src('build/test/**/class-expression.js', { read: false })
+    .pipe(mocha({
+      reporter: 'nyan'
+    }));
+});
+
 
 gulp.task('default', ['mocha']);
 

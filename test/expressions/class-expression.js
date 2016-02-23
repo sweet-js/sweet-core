@@ -132,43 +132,43 @@ describe("Parser", function () {
       }
     );
 
-    testParse("(class {set a(b) {'use strict';}})", expr,
-      {
-        type: "ClassExpression",
-        name: null,
-        super: null,
-        elements: [{
-          type: "ClassElement",
-          isStatic: false,
-          method: {
-            type: "Setter",
-            name: { type: "StaticPropertyName", value: "a" },
-            param: { type: "BindingIdentifier", name: "b" },
-            body: { type: "FunctionBody", directives: [{ type: "Directive", rawValue: "use strict" }], statements: [] }
-          }
-        }]
-      }
-    );
-
-    testParse("(class {a(b) {'use strict';}})", expr,
-      {
-        type: "ClassExpression",
-        name: null,
-        super: null,
-        elements: [{
-          type: "ClassElement",
-          isStatic: false,
-          method: {
-            type: "Method",
-            isGenerator: false,
-            name: { type: "StaticPropertyName", value: "a" },
-            params: { type: "FormalParameters", items: [{ type: "BindingIdentifier", name: "b" }], rest: null },
-            body: { type: "FunctionBody", directives: [{ type: "Directive", rawValue: "use strict" }], statements: [] }
-          }
-        }]
-      }
-    );
-
+    // testParse("(class {set a(b) {'use strict';}})", expr,
+    //   {
+    //     type: "ClassExpression",
+    //     name: null,
+    //     super: null,
+    //     elements: [{
+    //       type: "ClassElement",
+    //       isStatic: false,
+    //       method: {
+    //         type: "Setter",
+    //         name: { type: "StaticPropertyName", value: "a" },
+    //         param: { type: "BindingIdentifier", name: "b" },
+    //         body: { type: "FunctionBody", directives: [{ type: "Directive", rawValue: "use strict" }], statements: [] }
+    //       }
+    //     }]
+    //   }
+    // );
+    //
+    // testParse("(class {a(b) {'use strict';}})", expr,
+    //   {
+    //     type: "ClassExpression",
+    //     name: null,
+    //     super: null,
+    //     elements: [{
+    //       type: "ClassElement",
+    //       isStatic: false,
+    //       method: {
+    //         type: "Method",
+    //         isGenerator: false,
+    //         name: { type: "StaticPropertyName", value: "a" },
+    //         params: { type: "FormalParameters", items: [{ type: "BindingIdentifier", name: "b" }], rest: null },
+    //         body: { type: "FunctionBody", directives: [{ type: "Directive", rawValue: "use strict" }], statements: [] }
+    //       }
+    //     }]
+    //   }
+    // );
+    //
     testParse("(class {prototype() {}})", expr,
       {
         type: "ClassExpression",
@@ -316,29 +316,29 @@ describe("Parser", function () {
         }
       }]
     });
-
-    testParseFailure("(class {a:0})", "Only methods are allowed in classes");
-    testParseFailure("(class {a=0})", "Only methods are allowed in classes");
-    testParseFailure("(class {a})", "Only methods are allowed in classes");
-    testParseFailure("(class {3:0})", "Only methods are allowed in classes");
-    testParseFailure("(class {[3]:0})", "Only methods are allowed in classes");
-    testParseFailure("(class {)", "Unexpected token \")\"");
-    testParseFailure("(class extends a,b {})", "Unexpected token \",\"");
-    testParseFailure("(class extends !a {})", "Unexpected token \"!\"");
-    testParseFailure("(class [a] {})", "Unexpected token \"[\"");
-    testParseFailure("(class {[a,b](){}})", "Unexpected token \",\"");
-
-    locationSanityTest("(class {})");
-    locationSanityTest("(class A {})");
-    locationSanityTest("(class A extends A{})");
-    locationSanityTest("(class extends A{})");
-    locationSanityTest("(class {a(){}})");
-    locationSanityTest("(class {[a](){}})");
-    locationSanityTest("(class {[a+b](){}})");
-    locationSanityTest("(class {get [a+b](){}})");
-    locationSanityTest("(class {set [a+b]([a]){}})");
-    locationSanityTest("(class {[a](){};})");
-    locationSanityTest("(class {[a](){};;})");
-    locationSanityTest("(class {static [a](){};;})");
+    
+    // testParseFailure("(class {a:0})", "Only methods are allowed in classes");
+    // testParseFailure("(class {a=0})", "Only methods are allowed in classes");
+    // testParseFailure("(class {a})", "Only methods are allowed in classes");
+    // testParseFailure("(class {3:0})", "Only methods are allowed in classes");
+    // testParseFailure("(class {[3]:0})", "Only methods are allowed in classes");
+    // testParseFailure("(class {)", "Unexpected token \")\"");
+    // testParseFailure("(class extends a,b {})", "Unexpected token \",\"");
+    // testParseFailure("(class extends !a {})", "Unexpected token \"!\"");
+    // testParseFailure("(class [a] {})", "Unexpected token \"[\"");
+    // testParseFailure("(class {[a,b](){}})", "Unexpected token \",\"");
+    //
+    // locationSanityTest("(class {})");
+    // locationSanityTest("(class A {})");
+    // locationSanityTest("(class A extends A{})");
+    // locationSanityTest("(class extends A{})");
+    // locationSanityTest("(class {a(){}})");
+    // locationSanityTest("(class {[a](){}})");
+    // locationSanityTest("(class {[a+b](){}})");
+    // locationSanityTest("(class {get [a+b](){}})");
+    // locationSanityTest("(class {set [a+b]([a]){}})");
+    // locationSanityTest("(class {[a](){};})");
+    // locationSanityTest("(class {[a](){};;})");
+    // locationSanityTest("(class {static [a](){};;})");
   });
 });
