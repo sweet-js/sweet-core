@@ -754,7 +754,7 @@ export class Enforester {
     } else if (this.isBraces(lookahead)) {
       return this.enforestObjectBinding();
     }
-    throw "not implemented yet";
+    assert(false, 'not implemented yet');
   }
 
   enforestObjectBinding() {
@@ -824,6 +824,7 @@ export class Enforester {
     let binding = this.enforestBindingTarget();
 
     if (this.isAssign(this.peek())) {
+      this.advance();
       let init = this.enforestExpressionLoop();
       binding = new Term('BindingWithDefault', { binding, init });
     }
@@ -1607,21 +1608,21 @@ export class Enforester {
     let rest = null;
     while (this.rest.size !== 0) {
       let lookahead = this.peek();
-
-      if (this.isIdentifier(lookahead)) {
-        items.push(this.enforestBindingIdentifier());
-      } else if (this.isPunctuator(lookahead, ",")) {
-        this.advance();
-      } else if (this.isPunctuator(lookahead, '...')) {
+      if (this.isPunctuator(lookahead, '...')) {
         this.matchPunctuator('...');
         rest = this.enforestBindingIdentifier();
-      } else {
-        assert(false, "not implemented yet");
+        break;
       }
+      items.push(this.enforestParam());
+      this.consumeComma();
     }
     return new Term("FormalParameters", {
       items: List(items), rest
     });
+  }
+
+  enforestParam() {
+    return this.enforestBindingElement();
   }
 
   enforestUpdateExpression() {

@@ -83,25 +83,25 @@ describe("Parser", function () {
       }
     );
 
-    // testParse("(function(a = b){})", expr,
-    //   { type: "FunctionExpression",
-    //     isGenerator: false,
-    //     name: null,
-    //     params:
-    //       { type: "FormalParameters",
-    //         items:
-    //           [
-    //             {
-    //               type: "BindingWithDefault",
-    //               binding: { type: "BindingIdentifier", name: "a" },
-    //               init: { type: "IdentifierExpression", name: "b" }
-    //             }
-    //           ],
-    //         rest: null,
-    //       },
-    //     body: { type: "FunctionBody", directives: [], statements: [] }
-    //   }
-    // );
+     testParse("(function(a = b){})", expr,
+       { type: "FunctionExpression",
+         isGenerator: false,
+         name: null,
+         params:
+           { type: "FormalParameters",
+             items:
+               [
+                 {
+                   type: "BindingWithDefault",
+                   binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+                   init: { type: "IdentifierExpression", name: "b" }
+                 }
+               ],
+             rest: null,
+           },
+         body: { type: "FunctionBody", directives: [], statements: [] }
+       }
+     );
 
     testParse("(function(...a){})", expr,
       { type: "FunctionExpression",

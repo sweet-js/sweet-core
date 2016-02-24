@@ -52,6 +52,8 @@ gulp.task('build:test', function () {
     .pipe(gulp.dest("build/test/"));
 });
 
+gulp.task('build', ['build:src', 'build:test']);
+
 gulp.task('mocha', ['build:src', 'build:test'], function () {
   return gulp.src('build/test/**/*.js', { read: false })
     .pipe(mocha({
@@ -60,7 +62,7 @@ gulp.task('mocha', ['build:src', 'build:test'], function () {
 });
 
 gulp.task('mocha:single', ['build:src', 'build:test'], function () {
-  return gulp.src('build/test/**/class-expression.js', { read: false })
+  return gulp.src('build/test/**/function-expression.js', { read: false })
     .pipe(mocha({
       reporter: 'nyan'
     }));
