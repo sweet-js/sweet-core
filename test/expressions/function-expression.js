@@ -129,94 +129,94 @@ describe("Parser", function () {
       }
     );
 
-    // testParse("(function({a}){})", expr,
-    //   { type: "FunctionExpression",
-    //     isGenerator: false,
-    //     name: null,
-    //     params:
-    //       { type: "FormalParameters",
-    //         items:
-    //           [
-    //             {
-    //               type: "ObjectBinding",
-    //               properties: [{
-    //                 type: "BindingPropertyIdentifier",
-    //                 binding: { type: "BindingIdentifier", name: "a" },
-    //                 init: null
-    //               }]
-    //             }
-    //           ],
-    //         rest: null,
-    //       },
-    //     body: { type: "FunctionBody", directives: [], statements: [] }
-    //   }
-    // );
+    testParse("(function({a}){})", expr,
+      { type: "FunctionExpression",
+        isGenerator: false,
+        name: null,
+        params:
+          { type: "FormalParameters",
+            items:
+              [
+                {
+                  type: "ObjectBinding",
+                  properties: [{
+                    type: "BindingPropertyIdentifier",
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+                    init: null
+                  }]
+                }
+              ],
+            rest: null,
+          },
+        body: { type: "FunctionBody", directives: [], statements: [] }
+      }
+    );
 
-    // testParse("(function({a: x, a: y}){})", expr,
-    //   { type: "FunctionExpression",
-    //     isGenerator: false,
-    //     name: null,
-    //     params:
-    //       { type: "FormalParameters",
-    //         items:
-    //           [
-    //             {
-    //               type: "ObjectBinding",
-    //               properties: [{
-    //                 type: "BindingPropertyProperty",
-    //                 name: { type: "StaticPropertyName", value: "a" },
-    //                 binding: { type: "BindingIdentifier", name: "x" }
-    //               }, {
-    //                 type: "BindingPropertyProperty",
-    //                 name: { type: "StaticPropertyName", value: "a" },
-    //                 binding: { type: "BindingIdentifier", name: "y" }
-    //               }]
-    //             }
-    //           ],
-    //         rest: null
-    //       },
-    //     body: { type: "FunctionBody", directives: [], statements: [] }
-    //   }
-    // );
+    testParse("(function({a: x, a: y}){})", expr,
+      { type: "FunctionExpression",
+        isGenerator: false,
+        name: null,
+        params:
+          { type: "FormalParameters",
+            items:
+              [
+                {
+                  type: "ObjectBinding",
+                  properties: [{
+                    type: "BindingPropertyProperty",
+                    name: { type: "StaticPropertyName", value: "a" },
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
+                  }, {
+                    type: "BindingPropertyProperty",
+                    name: { type: "StaticPropertyName", value: "a" },
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
+                  }]
+                }
+              ],
+            rest: null
+          },
+        body: { type: "FunctionBody", directives: [], statements: [] }
+      }
+    );
 
-    // testParse("(function([a]){})", expr,
-    //   { type: "FunctionExpression",
-    //     isGenerator: false,
-    //     name: null,
-    //     params:
-    //       { type: "FormalParameters",
-    //         items:
-    //           [
-    //             { type: "ArrayBinding", elements: [{ type: "BindingIdentifier", name: "a" }], restElement: null }
-    //           ],
-    //         rest: null
-    //       },
-    //     body: { type: "FunctionBody", directives: [], statements: [] }
-    //   }
-    // );
+    testParse("(function([a]){})", expr,
+      { type: "FunctionExpression",
+        isGenerator: false,
+        name: null,
+        params:
+          { type: "FormalParameters",
+            items:
+              [
+                { type: "ArrayBinding", elements: [{ type: "BindingIdentifier", name: "<<hygiene>>" }], restElement: null }
+              ],
+            rest: null
+          },
+        body: { type: "FunctionBody", directives: [], statements: [] }
+      }
+    );
 
-    // testParse("(function({a = 0}){})", expr,
-    //   { type: "FunctionExpression",
-    //     isGenerator: false,
-    //     name: null,
-    //     params:
-    //       { type: "FormalParameters",
-    //         items:
-    //           [
-    //             {
-    //               type: "ObjectBinding",
-    //               properties: [{
-    //                 type: "BindingPropertyIdentifier",
-    //                 binding: { type: "BindingIdentifier", name: "a" },
-    //                 init: { type: "LiteralNumericExpression", value: 0 }
-    //               }]
-    //             }
-    //           ],
-    //         rest: null
-    //       },
-    //     body: { type: "FunctionBody", directives: [], statements: [] }
-    //   }
-    // );
+    testParse("(function({a = 0}){})", expr,
+      { type: "FunctionExpression",
+        isGenerator: false,
+        name: null,
+        params:
+          { type: "FormalParameters",
+            items:
+              [
+                {
+                  type: "ObjectBinding",
+                  properties: [{
+                    type: "BindingPropertyIdentifier",
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+                    init: { type: "LiteralNumericExpression", value: 0 }
+                  }]
+                }
+              ],
+            rest: null
+          },
+        body: { type: "FunctionBody", directives: [], statements: [] }
+      }
+    );
 
     testParse("label: !function(){ label:; };", stmt,
       {
@@ -243,19 +243,19 @@ describe("Parser", function () {
       }
     );
 
-    // testParse("(function([]){})", expr,
-    //   {
-    //     type: "FunctionExpression",
-    //     isGenerator: false,
-    //     name: null,
-    //     params: {
-    //       type: "FormalParameters",
-    //       items: [{ type: "ArrayBinding", elements: [], restElement: null }],
-    //       rest: null
-    //     },
-    //     body: { type: "FunctionBody", directives: [], statements: [] }
-    //   });
-    //
+    testParse("(function([]){})", expr,
+      {
+        type: "FunctionExpression",
+        isGenerator: false,
+        name: null,
+        params: {
+          type: "FormalParameters",
+          items: [{ type: "ArrayBinding", elements: [], restElement: null }],
+          rest: null
+        },
+        body: { type: "FunctionBody", directives: [], statements: [] }
+      });
+    
     testParse("function* g(){ (function yield(){}); }", stmt,
       {
         type: "FunctionDeclaration",

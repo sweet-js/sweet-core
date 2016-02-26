@@ -500,7 +500,7 @@ export default class TermExpander {
     let red = new ApplyScopeInParamsReducer(scope, this.context);
     let params;
     if (type !== 'Getter' && type !== 'Setter') {
-      params = reducer(red, term.params);
+      params = red.transform(term.params);
     }
     this.context.currentScope.push(scope);
     let expander = new Expander(this.context);
