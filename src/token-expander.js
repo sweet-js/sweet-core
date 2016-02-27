@@ -64,21 +64,21 @@ let removeScope = _.cond([
   [isBindingIdentifier, ({name}, scope) => new Term('BindingIdentifier', {
     name: name.removeScope(scope)
   })],
-  [isArrayBinding, ({elements, restElement}, context) => {
+  [isArrayBinding, ({elements, restElement}, scope) => {
     return new Term('ArrayBinding', {
-      elements: elements.map(el => el == null ? null : removeScope(el, context)),
-      restElement: restElement == null ? null : removeScope(restElement, context)
+      elements: elements.map(el => el == null ? null : removeScope(el, scope)),
+      restElement: restElement == null ? null : removeScope(restElement, scope)
     });
   }],
-  [isBindingPropertyIdentifier, ({binding, init}, context) => new Term('BindingPropertyIdentifier', {
-    binding: removeScope(binding, context),
+  [isBindingPropertyIdentifier, ({binding, init}, scope) => new Term('BindingPropertyIdentifier', {
+    binding: removeScope(binding, scope),
     init
   })],
-  [isBindingPropertyProperty, ({binding, name}, context) => new Term('BindingPropertyProperty', {
-    binding: removeScope(binding, context), name
+  [isBindingPropertyProperty, ({binding, name}, scope) => new Term('BindingPropertyProperty', {
+    binding: removeScope(binding, scope), name
   })],
-  [isObjectBinding, ({properties}) => new Term('ObjectBinding', {
-    properties: properties.map(prop => removeScope(prop, context))
+  [isObjectBinding, ({properties}, scope) => new Term('ObjectBinding', {
+    properties: properties.map(prop => removeScope(prop, scope))
   })],
   [_.T, binding => assert(false, "not implemented yet for: " + binding.type)]
 ]);
