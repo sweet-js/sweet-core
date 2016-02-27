@@ -455,6 +455,14 @@ export default class TermExpander {
     });
   }
 
+  expandConditionalExpression(term) {
+    return new Term('ConditionalExpression', {
+      test: this.expand(term.test),
+      consequent: this.expand(term.consequent),
+      alternate: this.expand(term.alternate)
+    });
+  }
+
   expandNewExpression(term) {
     let callee = this.expand(term.callee);
     let enf = new Enforester(term.arguments, List(), this.context);

@@ -28,6 +28,7 @@ gulp.task('build:test', function () {
     'test/expressions/cal*',
     'test/expressions/class*',
     'test/expressions/com*',
+    'test/expressions/con*',
     'test/expressions/stat*',
     'test/expressions/new-ex*',
     'test/expressions/ob*',
@@ -62,7 +63,7 @@ gulp.task('mocha', ['build:src', 'build:test'], function () {
 });
 
 gulp.task('mocha:single', ['build:src', 'build:test'], function () {
-  return gulp.src('build/test/**/function-expression.js', { read: false })
+  return gulp.src('build/test/**/conditional-expression.js', { read: false })
     .pipe(mocha({
       reporter: 'nyan'
     }));

@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-var expr = require("../helpers").expr;
-var testParse = require("../assertions").testParse;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "./assertions";
 
-suite("Parser", function () {
-  suite("conditional expression", function () {
+describe("Parser", function () {
+  it("conditional expression", function () {
 
     testParse("a?b:c", expr,
       { type: "ConditionalExpression",

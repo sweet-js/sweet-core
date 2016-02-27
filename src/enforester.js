@@ -1158,6 +1158,10 @@ export class Enforester {
       });
     }
 
+    if (this.term && this.isPunctuator(lookahead, '?')) {
+      return this.enforestConditionalExpression();
+    }
+
     return EXPR_LOOP_NO_CHANGE;
   }
 
@@ -1661,6 +1665,28 @@ export class Enforester {
       });
     };
     return EXPR_LOOP_OPERATOR;
+  }
+
+  enforestConditionalExpression() {
+    // first, pop the operator stack
+    let test = this.opCtx.combine(this.term);
+    if (this.opCtx.stack.size > 0) {
+      let { prec, combine } = this.opCtx.stack.last();
+      this.opCtx.stack = this.opCtx.stack.pop();
+      this.opCtx.prec = prec;
+      this.opCtx.combine = combine;
+    }
+
+    this.matchPunctuator('?');
+    let enf = new Enforester(this.rest, List(), this.context);
+    let consequent = enf.enforestExpressionLoop();
+    enf.matchPunctuator(':');
+    enf = new Enforester(enf.rest, List(), this.context);
+    let alternate = enf.enforestExpressionLoop();
+    this.rest = enf.rest;
+    return new Term('ConditionalExpression', {
+      test, consequent, alternate
+    });
   }
 
   enforestBinaryExpression() {
