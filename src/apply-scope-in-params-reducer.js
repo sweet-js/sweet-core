@@ -36,7 +36,7 @@ export default class ScopeApplyingReducer {
 
   transformObjectBinding(term) {
     return new Term('ObjectBinding', {
-      properties: term.properties.map(prop => this.transform(prop)).toArray()
+      properties: term.properties.map(prop => this.transform(prop))
     });
   }
 
@@ -56,7 +56,7 @@ export default class ScopeApplyingReducer {
 
   transformArrayBinding(term) {
     return new Term('ArrayBinding', {
-      elements: term.elements.map(el => this.transform(el)).toArray(),
+      elements: term.elements.map(el => this.transform(el)),
       restElement: term.restElement == null ? null : this.transform(term.restElement)
     });
   }

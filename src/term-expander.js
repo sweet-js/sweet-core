@@ -509,6 +509,7 @@ export default class TermExpander {
     let params;
     if (type !== 'Getter' && type !== 'Setter') {
       params = red.transform(term.params);
+      params = this.expand(params);
     }
     this.context.currentScope.push(scope);
     let expander = new Expander(this.context);
