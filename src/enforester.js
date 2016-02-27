@@ -1643,7 +1643,7 @@ export class Enforester {
     let operator = this.matchUnaryOperator();
     this.opCtx.stack = this.opCtx.stack.push({
       prec: this.opCtx.prec,
-      combind: this.opCtx.combine
+      combine: this.opCtx.combine
     });
     // TODO: all builtins are 14, custom operators will change this
     this.opCtx.prec = 14;
