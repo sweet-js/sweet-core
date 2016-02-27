@@ -26,3 +26,4 @@ _site
 
 .tern-port
 .projectile
+dist/
