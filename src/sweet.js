@@ -29,6 +29,7 @@ export function expand(source, options = {}) {
     cwd: options.cwd,
     modules: new Modules(),
     currentScope: [scope],
+    followImports: options.followImports,
     moduleResolver: options.moduleResolver ? options.moduleResolver : moduleResolver,
     moduleLoader: options.moduleLoader ? options.moduleLoader : moduleLoader
   });

@@ -40,6 +40,7 @@ function testParseWithOpts(code, acc, expectedAst, options) {
 export function testModule(code, loader, expectedAst) {
   return testParseWithOpts(code, x => x, expectedAst, {
     loc: false,
+    followImports: true,
     moduleResolver: x => x,
     moduleLoader: path => loader[path]
   });
