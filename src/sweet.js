@@ -3,7 +3,6 @@ import Expander from "./expander";
 import { List } from "immutable";
 import Syntax from "./syntax";
 import Env from "./env";
-import { transform } from "babel-core";
 import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
 import codegen from "shift-codegen";
@@ -29,6 +28,7 @@ export function expand(source, options = {}) {
     cwd: options.cwd,
     modules: new Modules(),
     currentScope: [scope],
+    transform: options.transform ? options.transform : function(x) { return {code: x}; },
     followImports: options.followImports,
     moduleResolver: options.moduleResolver ? options.moduleResolver : moduleResolver,
     moduleLoader: options.moduleLoader ? options.moduleLoader : moduleLoader
@@ -44,12 +44,11 @@ export function parse(source, options = {}) {
   return reduce(new ParseReducer(), expand(source, options));
 }
 
-export function compile(source, cwd) {
+export function compile(source, cwd, { transform }) {
   let ast = parse(source, {
-    cwd: cwd
+    cwd: cwd,
+    transform
   });
   let gen = codegen(ast);
-  // TODO use AST instead of shipping string to babel
-  // need to fix shift to estree converter first
-  return transform(gen);
+  return transform ? transform(gen) : gen;
 }

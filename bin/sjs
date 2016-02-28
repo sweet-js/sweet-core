@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+var transform = require('babel-core').transform;
+
 var argv = require('yargs')
   .usage('Usage: sjs [options] input')
   .demand(1)
@@ -18,7 +20,7 @@ var fname = argv._[0];
 
 var infile = fs.readFileSync(fname, 'utf8');
 var fdir = path.dirname(fs.realpathSync(fname));
-var output = require(dir + '/sweet.js').compile(infile, fdir);
+var output = require(dir + '/sweet.js').compile(infile, fdir, { transform: transform });
 
 if (argv.out) {
   fs.writeFileSync(argv.out, output.code, 'utf8');

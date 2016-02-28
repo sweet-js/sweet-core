@@ -6,7 +6,6 @@ import reducer, { MonoidalReducer } from "shift-reducer";
 import { makeDeserializer } from './serializer';
 import Syntax from "./syntax";
 import codegen, { FormattedCodeGen } from 'shift-codegen';
-import { transform } from "babel-core";
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import Term, {
   isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
@@ -81,7 +80,7 @@ function loadForCompiletime(expr, context) {
 
   // let result = babel.transform(wrapForCompiletime(estree, sandboxKeys));
   let gen = codegen(parsed, new FormattedCodeGen);
-  let result = transform(gen);
+  let result = context.transform(gen);
   return geval(result.code).apply(undefined, sandboxVals);
 }
 

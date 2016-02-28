@@ -1,6 +1,7 @@
 import { parse, compile } from "../src/sweet";
 import expect from "expect.js";
 import { zip, curry, equals, cond, identity, T, and, compose, type, mapObjIndexed, map, keys, has } from 'ramda';
+import { transform } from 'babel-core';
 
 function expr(program) {
   return stmt(program).expression;
@@ -56,7 +57,7 @@ function testParse(code, acc, expectedAst) {
 }
 
 function testEval(source, expectedOutput) {
-  let result = compile(source);
+  let result = compile(source, ".", { transform });
   var output;
   eval(result.code);
   expect(output).to.be(expectedOutput);
