@@ -3,8 +3,47 @@ var sourcemaps = require("gulp-sourcemaps");
 var babel = require("gulp-babel");
 var mocha = require('gulp-mocha');
 
+var srcFiles = 'src/**/*.js';
+
+var testFiles = [
+  'test/*.js',
+  'test/declaration/*.js',
+  'test/statements/*',
+
+  'test/modules/export.js',
+  'test/modules/import.js',
+
+  '!test/expressions/literals/*',
+
+  'test/expressions/b*',
+  'test/expressions/array*',
+  'test/expressions/arrow*',
+  'test/expressions/cal*',
+  'test/expressions/class*',
+  'test/expressions/com*',
+  'test/expressions/con*',
+  'test/expressions/stat*',
+  'test/expressions/new-ex*',
+  'test/expressions/ob*',
+  'test/expressions/thi*',
+  'test/expressions/un*',
+  'test/expressions/up*',
+  'test/expressions/g*',
+  'test/expressions/f*',
+  'test/destructuring/assignment/*',
+  'test/destructuring/binding-pattern/arr*',
+  'test/destructuring/binding-pattern/obj*',
+
+  '!test/expressions/new-tar*',
+  '!test/expressions/i*',
+  '!test/expressions/y*',
+
+  '!test/miscellaneous/*',
+  '!test/property-definition/*'
+];
+
 gulp.task('build:src', function () {
-  return gulp.src('src/**/*.js')
+  return gulp.src(srcFiles)
     .pipe(sourcemaps.init())
     .pipe(babel())
     .pipe(sourcemaps.write("."))
@@ -12,41 +51,7 @@ gulp.task('build:src', function () {
 });
 
 gulp.task('build:test', function () {
-  return gulp.src([
-    'test/*.js',
-    'test/declaration/*.js',
-    'test/statements/*',
-
-    'test/modules/export.js',
-    'test/modules/import.js',
-
-    '!test/expressions/literals/*',
-
-    'test/expressions/b*',
-    'test/expressions/array*',
-    'test/expressions/arrow*',
-    'test/expressions/cal*',
-    'test/expressions/class*',
-    'test/expressions/com*',
-    'test/expressions/con*',
-    'test/expressions/stat*',
-    'test/expressions/new-ex*',
-    'test/expressions/ob*',
-    'test/expressions/thi*',
-    'test/expressions/un*',
-    'test/expressions/up*',
-    'test/expressions/g*',
-    'test/expressions/f*',
-    'test/destructuring/assignment/*',
-    'test/destructuring/binding-pattern/arr*',
-    'test/destructuring/binding-pattern/obj*',
-
-    '!test/expressions/new-tar*',
-    '!test/expressions/i*',
-    '!test/expressions/y*',
-
-    '!test/miscellaneous/*',
-    '!test/property-definition/*'])
+  return gulp.src(testFiles)
     .pipe(sourcemaps.init())
     .pipe(babel())
     .pipe(sourcemaps.write("."))
@@ -73,7 +78,7 @@ gulp.task('mocha:single', ['build:src', 'build:test'], function () {
 gulp.task('default', ['mocha']);
 
 gulp.task("dist", function () {
-  return gulp.src("src/**/*.js")
+  return gulp.src(srcFiles)
     .pipe(sourcemaps.init())
     .pipe(babel())
     .pipe(sourcemaps.write("."))
