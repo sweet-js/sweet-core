@@ -14,7 +14,7 @@ requirejs.config({
     }
 });
 
-require(["./sweet", "./syntax", "./parser", "./source-map", './reverse', "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet, syn, parser, srcmap, reverse, Rx) {
+require(["./sweet", "./source-map", 'underscore', "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet,  srcmap, _, Rx) {
 
 srcmap = srcmap || sourceMap;
 /**
@@ -39,24 +39,24 @@ Rx.Observable.using = function (resourceFactory, observableFactory) {
 
 var documentReadyObs = $(window).readyAsObservable().take(1).publishLast(),
     windowResizeObs  = $(window).resizeAsObservable().startWith(true),
-    
+
     initEditorObs = documentReadyObs
         .map(_.partial($, "#editor", undefined))
         .map(_.partial(initEditor, getEditorOptions))
         .map(initEditorKeyMap),
-    
+
     initOutputObs = documentReadyObs
         .map(_.partial($, "#output", undefined))
         .map(_.partial(initEditor, getOutputOptions)),
-    
+
     // Initialize both CodeMirror instances on document
     // ready, then select them into a list together.
     mirrors = initEditorObs.zip(initOutputObs, concat.bind([])).publish(),
-    
+
     keyMapSelector = _.partial(selectKeyMapClicks, $('#btn-vim'), $('#btn-emacs'), $('#btn-default')),
     mirrorDragSelector = _.partial(selectMirrorDrags, $("#edit-box")),
     commitResizes = _.partial(commitMirrorResizes, $("#edit-box"), $("#error-box"), $("#output-box")),
-    
+
     errorRecoverySelector = _.partial(
         recoverFromError,
         $("#edit-box"),
@@ -306,7 +306,7 @@ function getEditorOptions($editor) {
             }
         }
     };
-    
+
     function nextCursorPos(dir, tabStop, cm, position) {
 
         // 0 if dir == -1, else 1
@@ -413,7 +413,7 @@ function selectCompileType(
         errorRecoverySelector,
         editor, output
     ) {
-    
+
     var compileButtonObs    = compileMacrosBtn
             .clickAsObservable()
             .doAction(stepper.val.bind(stepper, 0))
@@ -429,7 +429,7 @@ function selectCompileType(
                 .startWith(autoCompile.is(":checked"));
         })
         .multicast(compileChangeSubj).refCount(),
-        
+
         namesChangeObs      = Rx.Observable.defer(function() {
             return readableNames
                 .changeAsObservable()
@@ -443,7 +443,7 @@ function selectCompileType(
                 .scan(readableNames.is(":checked"), Rx.helpers.not)
                 .startWith(readableNames.is(":checked"));
         }),
-        
+
         highlightChangeObs  = Rx.Observable.defer(function() {
             return highlight
                 .changeAsObservable()
@@ -457,11 +457,11 @@ function selectCompileType(
                 .startWith(highlight.is(":checked"));
         })
         .publish().refCount(),
-        
+
         editorChangeObs   = Rx.Observable.defer(function() {
-            
+
             var changeEventObs = Rx.Observable.fromEvent(editor, "change");
-            
+
             if(initialCompile === true) {
                 initialCompile = false;
                 changeEventObs = changeEventObs
@@ -473,39 +473,39 @@ function selectCompileType(
                     .debounce(750)
                     .startWith(0)
                     .pausable(compileChangeObs);
-                
+
                 if(!startWithInitialValue("full")) {
                     changeEventObs = changeEventObs.merge(highlightChangeObs);
                 }
             }
-            
+
             return changeEventObs.map(_.bind(editor.getCursor, editor));
         }),
-        
+
         stepLabelClicks = Rx.Observable.defer(function() {
-            
+
             var clickEventObs = stepLabel.clickAsObservable();
-            
+
             if(startWithInitialValue("partial")) {
                 clickEventObs = clickEventObs.startWith(0);
             }
-            
+
             return clickEventObs.map(function(val) {
                 return stepper.
                     val(val = Math.max(parseInt(stepper.val()) || 0, 0) + 1) &&
                     val || val;
             });
         }),
-        
+
         stepperChanges = stepper
             .changeAsObservable()
             .map(function(val) {
                 return (val = Math.max(parseInt(stepper.val()) || 0, 1)) &&
                     stepper.val(val) && val || val;
             }),
-        
+
         compileFullBtnObs = compileButtonObs.map(getFullValues),
-        
+
         compileFullEvents = namesChangeObs
             .combineLatest(
                 highlightChangeObs,
@@ -516,14 +516,14 @@ function selectCompileType(
             .doAction(saveCompileType("full"))
             .map(concat.bind([editor, output]))
             .map(applyArgs(compileFull)),
-        
+
         compilePartialEvents = stepLabelClicks
             .merge(stepperChanges)
             .combineLatest(namesChangeObs, concat.bind([]))
             .doAction(saveCompileType("partial"))
             .map(concat.bind([editor, output]))
             .map(applyArgs(compilePartial));
-    
+
     return Rx.Observable.using(
         function() { return compileButtonObs.connect(); },
         function() {
@@ -540,19 +540,19 @@ function selectCompileType(
                     });
                 });
         });
-    
+
     function saveCompileType(type) {
         return function() {
             lastCompileType = type;
         };
     }
-    
+
     function startWithInitialValue(type) {
         return lastCompileType === type && (
             autoCompile.is(":checked") || (
             initialCompile && !(initialCompile = false)));
     }
-    
+
     function getFullValues() {
         return [
             readableNames.is(":checked"),
@@ -564,34 +564,34 @@ function selectCompileType(
 
 function compileFull(editor, output, readableNames, highlight, cursor) {
     return Rx.Observable.create(function(observer) {
-        
+
         var code = editor.getValue(), result;
-        
+
         window.location = "editor.html#" + encodeURI(code);
         localStorage[storage_code] = code;
-        
+
         observer.onNext([
             editor, output, highlight,
-            sweet.compile(code, {
+            sweet.compile(code, '.', {
                 sourceMap: highlight,
                 filename: highlight && "test.js" || undefined,
                 readableNames: readableNames,
                 log: highlight && [] || undefined
             })
-        ]);
+          ]);
         observer.onCompleted();
     });
 }
 
 function compilePartial(editor, output, currentStep, readableNames) {
     return Rx.Observable.create(function(observer) {
-        
+
         var code = editor.getValue(),
             unparsedStr = syn.prettyPrint(sweet.expand(
                 code, undefined,
                 { maxExpands: currentStep }
             ), !readableNames);
-        
+
         observer.onNext([
             editor, output, false,
             { code: unparsedStr }
@@ -604,11 +604,11 @@ function recoverFromError(
     editBox, errorsBox, errorsText, showErrorBtn,
     editor, stepLabel, stepper, compileMacrosObs,
     error) {
-    
+
     errorsBox.css("height", "65px");
     editBox.css("top", "130px");
     errorsText.text(error);
-    
+
     return showErrorBtn
         .clickAsObservable()
         .doAction(_.partial(highlightError, editor, error))
@@ -652,7 +652,7 @@ function commitEditorOutput(editBox, errorsBox, editor, output, result, cursor) 
 }
 
 function selectEditorHightlights(editor, output, result, cursor) {
-    
+
     var logs      = result.log || [],
         sourcemap = result.sourceMap || "",
         macro     = _(logs).find(function(log) {
@@ -661,7 +661,7 @@ function selectEditorHightlights(editor, output, result, cursor) {
                 && nameCol <= cursor.ch
                 && nameCol + log.name.value.length >= cursor.ch;
         });
-    
+
     // only show macro highlights if cursor on macro name
     if (!sourcemap || !macro || !logs.length) {
         return [
@@ -669,7 +669,7 @@ function selectEditorHightlights(editor, output, result, cursor) {
             [output, "macro", []]
         ];
     }
-    
+
     var consumer   = new srcmap.SourceMapConsumer(sourcemap),
         mappings   = [],
         outHighlights,
@@ -677,27 +677,27 @@ function selectEditorHightlights(editor, output, result, cursor) {
                 tokenToHighlight(macro.next, true),
                 tokenToHighlight(macro.name, false, true)
             ].concat(macro.matchedTokens.map(tokenToHighlight));
-    
+
     consumer.eachMapping(function(mapping) { mappings.push(mapping); });
-    
+
     outHighlights = mappings.reduce(reduceMappingsToOutHighlights, [undefined, []]).pop();
-    
+
     return [
         [editor, "macro", slice.call(srcHighlights, 1)],
         [output, "macro", outHighlights]
     ];
-    
+
     function reduceMappingsToOutHighlights(tuple, mapping) {
-        
+
         var prev = tuple[0], list = tuple[1], macro;
-        
+
         if(!!prev) {
             prev.end = {
                 line: mapping.generatedLine,
                 column: mapping.generatedColumn
             };
         }
-        
+
         macro = _.any(srcHighlights, function(x) {
             return (
                 mapping.originalLine > x.start.line || (
@@ -707,7 +707,7 @@ function selectEditorHightlights(editor, output, result, cursor) {
                     mapping.originalLine === x.end.line &&
                     mapping.originalColumn < x.end.column));
         });
-        
+
         if(!macro) {
             prev = undefined;
         } else if(!prev) {
@@ -722,10 +722,10 @@ function selectEditorHightlights(editor, output, result, cursor) {
                 }
             });
         }
-        
+
         tuple[0] = prev;
         tuple[1] = list;
-        
+
         return tuple;
     }
 }

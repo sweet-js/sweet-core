@@ -3,7 +3,6 @@ import { enforestExpr, Enforester } from "./enforester";
 import TermExpander from "./term-expander.js";
 import BindingMap from "./binding-map.js";
 import Env from "./env";
-import resolve from 'resolve';
 import Reader from "./shift-reader";
 import * as _ from "ramda";
 import Term, {

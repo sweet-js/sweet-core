@@ -20,7 +20,6 @@ Write your sweet code:
 
 ```js
 // my_sweet_code.js
-import { # } from 'sweet.js';
 
 syntax inc = function (ctx) {
   let x = ctx.next().value;

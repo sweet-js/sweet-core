@@ -6,8 +6,6 @@ import Env from "./env";
 import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
 import codegen from "shift-codegen";
-import moduleResolver from './node-module-resolver';
-import moduleLoader from './node-module-loader';
 import { Scope, freshScope } from "./scope";
 
 import BindingMap from "./binding-map.js";
@@ -30,8 +28,8 @@ export function expand(source, options = {}) {
     currentScope: [scope],
     transform: options.transform ? options.transform : function(x) { return {code: x}; },
     followImports: options.followImports,
-    moduleResolver: options.moduleResolver ? options.moduleResolver : moduleResolver,
-    moduleLoader: options.moduleLoader ? options.moduleLoader : moduleLoader
+    moduleResolver: options.moduleResolver,
+    moduleLoader: options.moduleLoader
   });
   let exStxl = expander.expand(stxl.map(s => s.addScope(scope, bindings)));
   return new Term("Module", {
@@ -50,5 +48,5 @@ export function compile(source, cwd, { transform }) {
     transform
   });
   let gen = codegen(ast);
-  return transform ? transform(gen) : gen;
+  return transform ? transform(gen) : { code: gen };
 }
