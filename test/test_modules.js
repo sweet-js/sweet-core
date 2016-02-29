@@ -130,7 +130,7 @@ describe('module import/export', () => {
 
   it('should load a simple syntax transformer', () => {
     let loader = {
-      "./m.js": `export syntaxrec m = function (ctx) {
+      "./m.js": `#lang "sweet.js";\nexport syntaxrec m = function (ctx) {
   return syntaxQuote\`42\`;
 }`
     };
@@ -155,7 +155,7 @@ describe('module import/export', () => {
   it('should load a simple syntax transformer but leave runtime imports', () => {
     let loader = {
       "./x.js": `export var x = 42;`,
-      "./m.js": `export syntaxrec m = function (ctx) {
+      "./m.js": `#lang "sweet.js";\nexport syntaxrec m = function (ctx) {
   return syntaxQuote\`42\`;
 }`
     };

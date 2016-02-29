@@ -185,18 +185,15 @@ export default class TokenExpander {
             return Just(term);
           }],
           [isImport, term => {
-            if (self.context.followImports) {
-              let mod = self.context.modules.load(term.moduleSpecifier.val(), self.context);
-              // mutates the store
-              mod.visit(self.context);
-              let boundNames = bindImports(term, mod, self.context);
-              // NOTE: self is a hack for MVP modules
-              if (boundNames.size === 0) {
-                return Just(term);
-              }
-              return Nothing();
+            let mod = self.context.modules.load(term.moduleSpecifier.val(), self.context);
+            // mutates the store
+            mod.visit(self.context);
+            let boundNames = bindImports(term, mod, self.context);
+            // NOTE: self is a hack for MVP modules
+            if (boundNames.size === 0) {
+              return Just(term);
             }
-            return Just(term);
+            return Nothing();
           }],
           [isEOF, Nothing],
           [_.T, Just]

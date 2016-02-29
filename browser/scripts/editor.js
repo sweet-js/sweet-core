@@ -572,7 +572,8 @@ function compileFull(editor, output, readableNames, highlight, cursor) {
 
         observer.onNext([
             editor, output, highlight,
-            sweet.compile(code, '.', {
+            sweet.compile(code, {
+                cwd: '.',
                 sourceMap: highlight,
                 filename: highlight && "test.js" || undefined,
                 readableNames: readableNames,

@@ -27,7 +27,6 @@ export function expand(source, options = {}) {
     modules: new Modules(),
     currentScope: [scope],
     transform: options.transform ? options.transform : function(x) { return {code: x}; },
-    followImports: options.followImports,
     moduleResolver: options.moduleResolver,
     moduleLoader: options.moduleLoader
   });
@@ -42,11 +41,8 @@ export function parse(source, options = {}) {
   return reduce(new ParseReducer(), expand(source, options));
 }
 
-export function compile(source, cwd, { transform }) {
-  let ast = parse(source, {
-    cwd: cwd,
-    transform
-  });
+export function compile(source, opt) {
+  let ast = parse(source, opt);
   let gen = codegen(ast);
-  return transform ? transform(gen) : { code: gen };
+  return opt.transform ? opt.transform(gen) : { code: gen };
 }

@@ -34,6 +34,8 @@ class Module {
   }
 }
 
+const pragmaRegep = /^\s*#\w*/;
+
 export class Modules {
   constructor() {
     this.loadedModules = new Map();
@@ -44,29 +46,34 @@ export class Modules {
     let path = context.moduleResolver(modulePath, context.cwd);
     if (!this.loadedModules.has(path)) {
       let modStr = context.moduleLoader(path);
-      let reader = new Reader(modStr);
-      let stxl = reader.read();
-      let tokenExpander = new TokenExpander(_.merge(context, {
-        // expand with a fresh environment
-        env: new Env(),
-        store: new Env(),
-        bindings: new BindingMap()
-      }));
-      let terms = tokenExpander.expand(stxl);
-      let importEntries = [];
-      let exportEntries = [];
-      terms.forEach(t => {
-        _.cond([
-          [isImport, t => importEntries.push(t)],
-          [isExport, t => exportEntries.push(t)]
-        ])(t);
-      });
-      this.loadedModules.set(path, new Module(
-        path,
-        List(importEntries),
-        List(exportEntries),
-        terms
-      ));
+      if (!pragmaRegep.test(modStr)) {
+        // modules with out a #lang pragma need to be ignored
+        this.loadedModules.set(path, new Module(path, List(), List(), List()));
+      } else {
+        let reader = new Reader(modStr);
+        let stxl = reader.read().slice(3);
+        let tokenExpander = new TokenExpander(_.merge(context, {
+          // expand with a fresh environment
+          env: new Env(),
+          store: new Env(),
+          bindings: new BindingMap()
+        }));
+        let terms = tokenExpander.expand(stxl);
+        let importEntries = [];
+        let exportEntries = [];
+        terms.forEach(t => {
+          _.cond([
+            [isImport, t => importEntries.push(t)],
+            [isExport, t => exportEntries.push(t)]
+          ])(t);
+        });
+        this.loadedModules.set(path, new Module(
+          path,
+          List(importEntries),
+          List(exportEntries),
+          terms
+        ));
+      }
     }
     return this.loadedModules.get(path);
   }
