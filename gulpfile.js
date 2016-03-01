@@ -14,7 +14,7 @@ var testFiles = [
   'test/modules/export.js',
   'test/modules/import.js',
 
-  '!test/expressions/literals/*',
+  'test/expressions/literals/*',
 
   'test/expressions/*',
   'test/destructuring/assignment/*',
@@ -69,7 +69,7 @@ gulp.task('mocha', ['build:src', 'build:test'], function () {
 });
 
 gulp.task('mocha:single', ['build:src', 'build:test'], function () {
-  return gulp.src('build/test/**/template-expression.js', { read: false })
+  return gulp.src('build/test/**/literal-regexp-expression.js', { read: false })
     .pipe(mocha({
       reporter: 'nyan'
     }));

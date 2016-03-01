@@ -1080,9 +1080,12 @@ export class Enforester {
     }
     if (this.term === null && this.isRegularExpression(lookahead)) {
       let reStx = this.advance();
+
+      let lastSlash = reStx.token.value.lastIndexOf("/");
+      let pattern = reStx.token.value.slice(1, lastSlash);
+      let flags = reStx.token.value.slice(lastSlash + 1);
       return new Term("LiteralRegExpExpression", {
-        pattern: reStx.token.regex.pattern,
-        flags: reStx.token.regex.flags
+        pattern, flags
       });
     }
     // ($x:expr)
