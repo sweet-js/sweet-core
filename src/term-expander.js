@@ -236,6 +236,13 @@ export default class TermExpander {
     });
   }
 
+  expandYieldGeneratorExpression(term) {
+    let expr = term.expression == null ? null : this.expand(term.expression);
+    return new Term('YieldGeneratorExpression', {
+      expression: expr
+    });
+  }
+
   expandWhileStatement(term) {
     return new Term('WhileStatement', {
       test: this.expand(term.test),
@@ -462,6 +469,8 @@ export default class TermExpander {
       alternate: this.expand(term.alternate)
     });
   }
+
+  expandNewTargetExpression(term) { return term; }
 
   expandNewExpression(term) {
     let callee = this.expand(term.callee);

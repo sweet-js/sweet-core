@@ -1206,6 +1206,10 @@ export class Enforester {
       callee = this.enforestNewExpression();
     } else if (this.isKeyword(this.peek(), 'super')) {
       callee = this.enforestExpressionLoop();
+    } else if (this.isPunctuator(this.peek(), '.') && this.isIdentifier(this.peek(1), 'target')) {
+      this.advance();
+      this.advance();
+      return new Term('NewTargetExpression', {});
     } else {
       callee = new Term('IdentifierExpression', { name : this.enforestIdentifier() });
     }
@@ -1329,8 +1333,14 @@ export class Enforester {
         expression: null
       });
     } else {
+      let isGenerator = false;
+      if (this.isPunctuator(this.peek(), '*')) {
+          isGenerator = true;
+          this.advance();
+      }
       let expr = this.enforestExpression();
-      return new Term('YieldExpression', {
+      let type = isGenerator ? 'YieldGeneratorExpression' : 'YieldExpression';
+      return new Term(type, {
         expression: expr
       });
     }

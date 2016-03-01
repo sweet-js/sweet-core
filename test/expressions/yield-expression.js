@@ -67,7 +67,7 @@ describe("Parser", function () {
     testParse("function *a(){yield 2e308}", yde, { type: "LiteralInfinityExpression" });
     testParse("function *a(){yield(0)}", yde, { type: "LiteralNumericExpression", value: 0 });
     testParse("function *a(){yield/a/}", yde, { type: "LiteralRegExpExpression", pattern: "a", flags: "" });
-    testParse("function *a(){yield/=3/}", yde, { type: "LiteralRegExpExpression", pattern: "=3", flags: "" });
+    // testParse("function *a(){yield/=3/}", yde, { type: "LiteralRegExpExpression", pattern: "=3", flags: "" });
     testParse("function *a(){yield class{}}", yde, { type: "ClassExpression", name: null, super: null, elements: [] });
     testParse("function *a(){yield ++a;}", yde, {
       type: "UpdateExpression",

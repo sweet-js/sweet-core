@@ -10,20 +10,15 @@ var testFiles = [
   'test/*.js',
   'test/declaration/*.js',
   'test/statements/*',
+  'test/expressions/literals/*',
+  'test/expressions/*',
 
   'test/modules/export.js',
   'test/modules/import.js',
 
-  'test/expressions/literals/*',
-
-  'test/expressions/*',
   'test/destructuring/assignment/*',
   'test/destructuring/binding-pattern/arr*',
   'test/destructuring/binding-pattern/obj*',
-
-  '!test/expressions/new-tar*',
-  '!test/expressions/i*',
-  '!test/expressions/y*',
 
   '!test/miscellaneous/*',
   '!test/property-definition/*'
@@ -69,7 +64,7 @@ gulp.task('mocha', ['build:src', 'build:test'], function () {
 });
 
 gulp.task('mocha:single', ['build:src', 'build:test'], function () {
-  return gulp.src('build/test/**/literal-regexp-expression.js', { read: false })
+  return gulp.src('build/test/**/identifier-expression.js', { read: false })
     .pipe(mocha({
       reporter: 'nyan'
     }));
