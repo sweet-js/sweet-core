@@ -16,21 +16,7 @@ var testFiles = [
 
   '!test/expressions/literals/*',
 
-  'test/expressions/b*',
-  'test/expressions/array*',
-  'test/expressions/arrow*',
-  'test/expressions/cal*',
-  'test/expressions/class*',
-  'test/expressions/com*',
-  'test/expressions/con*',
-  'test/expressions/stat*',
-  'test/expressions/new-ex*',
-  'test/expressions/ob*',
-  'test/expressions/thi*',
-  'test/expressions/un*',
-  'test/expressions/up*',
-  'test/expressions/g*',
-  'test/expressions/f*',
+  'test/expressions/*',
   'test/destructuring/assignment/*',
   'test/destructuring/binding-pattern/arr*',
   'test/destructuring/binding-pattern/obj*',
@@ -83,7 +69,7 @@ gulp.task('mocha', ['build:src', 'build:test'], function () {
 });
 
 gulp.task('mocha:single', ['build:src', 'build:test'], function () {
-  return gulp.src('build/test/**/conditional-expression.js', { read: false })
+  return gulp.src('build/test/**/template-expression.js', { read: false })
     .pipe(mocha({
       reporter: 'nyan'
     }));

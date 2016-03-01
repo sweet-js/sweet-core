@@ -1012,7 +1012,10 @@ export class Enforester {
     if (this.term === null && this.isKeyword(lookahead, 'class')) {
       return this.enforestClass({isExpr: true});
     }
-
+    if (this.term === null && this.isKeyword(lookahead, 'super')) {
+      this.advance();
+      return new Term('Super', {});
+    }
     if (this.term === null &&
       (this.isIdentifier(lookahead) || this.isParens(lookahead)) &&
        this.isPunctuator(this.peek(1), '=>') &&
@@ -1152,10 +1155,18 @@ export class Enforester {
       let init = enf.enforest("expression");
       this.rest = enf.rest;
 
-      return new Term("AssignmentExpression", {
-        binding,
-        expression: init
-      });
+      if (op.val() === '=') {
+        return new Term('AssignmentExpression', {
+          binding,
+          expression: init
+        });
+      } else {
+        return new Term('CompoundAssignmentExpression', {
+          binding,
+          operator: op.val(),
+          expression: init
+        });
+      }
     }
 
     if (this.term && this.isPunctuator(lookahead, '?')) {
@@ -1190,6 +1201,8 @@ export class Enforester {
     let callee;
     if (this.isKeyword(this.peek(), 'new')) {
       callee = this.enforestNewExpression();
+    } else if (this.isKeyword(this.peek(), 'super')) {
+      callee = this.enforestExpressionLoop();
     } else {
       callee = new Term('IdentifierExpression', { name : this.enforestIdentifier() });
     }
@@ -1440,6 +1453,11 @@ export class Enforester {
 
   enforestMethodDefinition() {
     let lookahead = this.peek();
+    let isGenerator = false;
+    if (this.isPunctuator(lookahead, '*')) {
+      isGenerator = true;
+      this.advance();
+    }
 
     if (this.isIdentifier(lookahead, 'get') && this.isPropertyName(this.peek(1))) {
       this.advance();
@@ -1470,7 +1488,7 @@ export class Enforester {
       let body = this.matchCurlies();
       return {
         methodOrKey: new Term('Method', {
-          isGenerator: false,
+          isGenerator,
           name, params: formalParams, body
         }),
         kind: 'method'
@@ -1841,7 +1859,26 @@ export class Enforester {
   }
 
   isAssign(term) {
-    return term && (term instanceof Syntax) && term.isAssign();
+    if (this.isPunctuator(term)) {
+      switch (term.val()) {
+        case "=":
+        case "|=":
+        case "^=":
+        case "&=":
+        case "<<=":
+        case ">>=":
+        case ">>>=":
+        case "+=":
+        case "-=":
+        case "*=":
+        case "/=":
+        case "%=":
+          return true;
+        default:
+          return false;
+      }
+    }
+    return false;
   }
 
   isKeyword(term, val = null) {

@@ -29,7 +29,7 @@ export default class TermExpander {
 
   expandTemplateExpression(term) {
     return new Term('TemplateExpression', {
-      tag: term.tag,
+      tag: term.tag == null ? null : this.expand(term.tag),
       elements: term.elements.toArray()
     });
   }
@@ -472,6 +472,9 @@ export default class TermExpander {
       arguments: args.toArray()
     });
   }
+
+  expandSuper(term) { return term; }
+
   expandCallExpression(term) {
     let callee = this.expand(term.callee);
     let enf = new Enforester(term.arguments, List(), this.context);
@@ -558,6 +561,14 @@ export default class TermExpander {
 
   expandFunctionExpression(term) {
     return this.doFunctionExpansion(term, "FunctionExpression");
+  }
+
+  expandCompoundAssignmentExpression(term) {
+    return new Term("CompoundAssignmentExpression", {
+      binding: this.expand(term.binding),
+      operator: term.operator,
+      expression: this.expand(term.expression)
+    });
   }
 
   expandAssignmentExpression(term) {
