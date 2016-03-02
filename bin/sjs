@@ -15,14 +15,15 @@ var argv = require('yargs')
 var path = require('path');
 var fs   = require('fs');
 var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
-var moduleResolver = require(dir + '/node-module-resolver');
-var moduleLoader = require(dir + '/node-module-loader');
+var moduleResolver = require(dir + '/node-module-resolver').default;
+var moduleLoader = require(dir + '/node-module-loader').default;
 
 var fname = argv._[0];
 
 var infile = fs.readFileSync(fname, 'utf8');
 var fdir = path.dirname(fs.realpathSync(fname));
-var output = require(dir + '/sweet.js').compile(infile, fdir, {
+var output = require(dir + '/sweet.js').compile(infile, {
+  cwd: fdir,
   transform: transform,
   moduleResolver: moduleResolver,
   moduleLoader: moduleLoader
