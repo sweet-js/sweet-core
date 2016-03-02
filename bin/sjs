@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
 var transform = require('babel-core').transform;
-var moduleResolver = require('./node-module-resolver');
-var moduleLoader = require('./node-module-loader');
 
 var argv = require('yargs')
   .usage('Usage: sjs [options] input')
@@ -17,6 +15,8 @@ var argv = require('yargs')
 var path = require('path');
 var fs   = require('fs');
 var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
+var moduleResolver = require(dir + '/node-module-resolver');
+var moduleLoader = require(dir + '/node-module-loader');
 
 var fname = argv._[0];
 
