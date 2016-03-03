@@ -195,6 +195,7 @@ export class Enforester {
     let lookahead = this.peek();
     let defaultBinding = null;
     let namedImports = List();
+    let forSyntax = false;
 
     if (this.isStringLiteral(lookahead)) {
       let moduleSpecifier = this.advance();
@@ -208,9 +209,16 @@ export class Enforester {
       defaultBinding = this.enforestBindingIdentifier();
       if (!this.isPunctuator(this.peek(), ',')) {
         let moduleSpecifier = this.enforestFromClause();
+        if (this.isKeyword(this.peek(), 'for') && this.isIdentifier(this.peek(1), 'syntax')) {
+          this.advance();
+          this.advance();
+          forSyntax = true;
+        }
+
         return new Term('Import', {
           defaultBinding, moduleSpecifier,
-          namedImports: List()
+          namedImports: List(),
+          forSyntax
         });
       }
     }
@@ -219,9 +227,15 @@ export class Enforester {
     if (this.isBraces(lookahead)) {
       let imports = this.enforestNamedImports();
       let fromClause = this.enforestFromClause();
+      if (this.isKeyword(this.peek(), 'for') && this.isIdentifier(this.peek(1), 'syntax')) {
+        this.advance();
+        this.advance();
+        forSyntax = true;
+      }
 
       return new Term("Import", {
         defaultBinding,
+        forSyntax,
         namedImports: imports,
         moduleSpecifier: fromClause
 
@@ -229,8 +243,13 @@ export class Enforester {
     } else if (this.isPunctuator(lookahead, '*')) {
       let namespaceBinding = this.enforestNamespaceBinding();
       let moduleSpecifier = this.enforestFromClause();
+      if (this.isKeyword(this.peek(), 'for') && this.isIdentifier(this.peek(1), 'syntax')) {
+        this.advance();
+        this.advance();
+        forSyntax = true;
+      }
       return new Term('ImportNamespace', {
-        defaultBinding, namespaceBinding, moduleSpecifier
+        defaultBinding, forSyntax, namespaceBinding, moduleSpecifier
       });
     }
     throw this.createError(lookahead, 'unexpected syntax');

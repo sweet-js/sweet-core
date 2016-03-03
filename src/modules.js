@@ -32,6 +32,10 @@ class Module {
 
     return context.store;
   }
+
+  // invoke(context) {
+  //   this.exportEntries
+  // }
 }
 
 const pragmaRegep = /^\s*#\w*/;

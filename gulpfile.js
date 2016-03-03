@@ -64,7 +64,7 @@ gulp.task('mocha', ['build:src', 'build:test'], function () {
 });
 
 gulp.task('mocha:single', ['build:src', 'build:test'], function () {
-  return gulp.src('build/test/**/identifier-expression.js', { read: false })
+  return gulp.src('build/test/**/test_modules.js', { read: false })
     .pipe(mocha({
       reporter: 'nyan'
     }));

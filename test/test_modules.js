@@ -32,6 +32,35 @@ describe('module import/export', () => {
     });
   });
 
+  it('should parse an import for macros', () => {
+    testParse('import { x } from "m" for syntax;', x => x, {
+        "type": "Module",
+        "loc": null,
+        "directives": [],
+        "items": [
+          {
+            "type": "Import",
+            "loc": null,
+            "defaultBinding": null,
+            "forSyntax": true,
+            "namedImports": [
+              {
+                "type": "ImportSpecifier",
+                "loc": null,
+                "name": null,
+                "binding": {
+                  "type": "BindingIdentifier",
+                  "loc": null,
+                  "name": "x"
+                }
+              }
+            ],
+            "moduleSpecifier": "m"
+          }
+        ]
+    });
+  });
+
   it('should parse an export of a syntax decl', () => {
     testParse('export syntaxrec m = function () {}', x => x, {
         "type": "Module",

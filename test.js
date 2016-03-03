@@ -1,1 +1,1 @@
-x, y
+function *a(){yield/=3/}

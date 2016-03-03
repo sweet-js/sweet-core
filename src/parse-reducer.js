@@ -14,7 +14,8 @@ export default class ParseReducer extends CloneReducer {
     return new Term('Import', {
       defaultBinding: state.defaultBinding,
       namedImports: state.namedImports.toArray(),
-      moduleSpecifier
+      moduleSpecifier,
+      forSyntax: node.forSyntax
     });
   }
 
@@ -24,6 +25,7 @@ export default class ParseReducer extends CloneReducer {
       defaultBinding: state.defaultBinding,
       namespaceBinding: state.namespaceBinding,
       moduleSpecifier,
+      forSyntax: node.forSyntax
     });
   }
 
