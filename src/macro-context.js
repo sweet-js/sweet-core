@@ -65,7 +65,7 @@ export default class MacroContext {
     } else if (syn && typeof syn.isDelimiter === 'function' && syn.isDelimiter()) {
       enf = new Enforester(syn.inner(), List(), this.context);
     } else {
-      throw new Error('Cannot create a subcontext for unknown syntax type: ' + stxl);
+      throw new Error('Cannot create a subcontext for unknown syntax type: ' + syn);
     }
     return new MacroContext(enf, this.name, this.context);
   }
