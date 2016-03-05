@@ -5441,10 +5441,10 @@ parseYieldExpression: true
             inner: inner,
             startLineNumber: firstTok.lineNumber,
             startLineStart: firstTok.lineStart,
-            startRange: firstTok.range,
+            startRange: firstTok.range || firstTok.startRange,
             endLineNumber: lastTok.lineNumber,
             endLineStart: lastTok.lineStart,
-            endRange: lastTok.range
+            endRange: lastTok.range || lastTok.endRange
         }
     }
 

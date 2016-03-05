@@ -90,4 +90,34 @@ describe("readtables", function() {
         expect(tokens[0].value).to.be('foo-good');
         expect(tokens[1].value).to.be('good');
     })
+
+    it("should allow nested readtable macros", function() {
+        parser.setReadtable(parser.currentReadtable().extend({
+            '<': function(ch, reader) {
+                reader.readPunctuator();
+                var token = reader.readToken();
+                
+                return [
+                    reader.makeIdentifier('m'),
+                    reader.makeDelimiter('()', [
+                        token
+                    ])
+                ];
+            }
+        }));
+
+        var tokens = read('<[ <[] ]');
+        expect(tokens[0].value).to.be('m');
+        expect(tokens[1].inner[0].inner[0].value).to.be('m');
+
+        expect(tokens[1].startRange).to.not.be([1, 2]);
+        expect(tokens[1].endRange).to.not.be([7, 8]);
+
+        expect(function() {
+            return parser.parse(parser.read('<[ <[] ]'));
+
+            // This doesn't work:
+            // return parser.parse(syn.tokensToSyntax(tokens));
+        }).to.not.throwException();
+    })
 })
