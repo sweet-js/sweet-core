@@ -15,66 +15,65 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("destructive unary expressions", function () {
+test("destructive unary expressions", function () {
 
-    testParse("++a", expr,
-      { type: "UpdateExpression",
-        isPrefix: true,
-        operand: { type: "BindingIdentifier", name: "a" },
-        operator: "++" }
-    );
+  testParse("++a", expr,
+    { type: "UpdateExpression",
+      isPrefix: true,
+      operand: { type: "BindingIdentifier", name: "a" },
+      operator: "++" }
+  );
 
-    testParse("--a", expr,
-      { type: "UpdateExpression",
-        isPrefix: true,
-        operand: { type: "BindingIdentifier", name: "a" },
-        operator: "--" }
-    );
+  testParse("--a", expr,
+    { type: "UpdateExpression",
+      isPrefix: true,
+      operand: { type: "BindingIdentifier", name: "a" },
+      operator: "--" }
+  );
 
-    testParse("x++", expr,
-      { type: "UpdateExpression",
-        isPrefix: false,
-        operand: { type: "BindingIdentifier", name: "x" },
-        operator: "++" }
-    );
+  testParse("x++", expr,
+    { type: "UpdateExpression",
+      isPrefix: false,
+      operand: { type: "BindingIdentifier", name: "x" },
+      operator: "++" }
+  );
 
-    testParse("x--", expr,
-      { type: "UpdateExpression",
-        isPrefix: false,
-        operand: { type: "BindingIdentifier", name: "x" },
-        operator: "--" }
-    );
+  testParse("x--", expr,
+    { type: "UpdateExpression",
+      isPrefix: false,
+      operand: { type: "BindingIdentifier", name: "x" },
+      operator: "--" }
+  );
 
-    testParse("eval++", expr,
-      { type: "UpdateExpression",
-        isPrefix: false,
-        operand: { type: "BindingIdentifier", name: "eval" },
-        operator: "++" }
-    );
+  testParse("eval++", expr,
+    { type: "UpdateExpression",
+      isPrefix: false,
+      operand: { type: "BindingIdentifier", name: "eval" },
+      operator: "++" }
+  );
 
-    testParse("eval--", expr,
-      { type: "UpdateExpression",
-        isPrefix: false,
-        operand: { type: "BindingIdentifier", name: "eval" },
-        operator: "--" }
-    );
+  testParse("eval--", expr,
+    { type: "UpdateExpression",
+      isPrefix: false,
+      operand: { type: "BindingIdentifier", name: "eval" },
+      operator: "--" }
+  );
 
-    testParse("arguments++", expr,
-      { type: "UpdateExpression",
-        isPrefix: false,
-        operand: { type: "BindingIdentifier", name: "arguments" },
-        operator: "++" }
-    );
+  testParse("arguments++", expr,
+    { type: "UpdateExpression",
+      isPrefix: false,
+      operand: { type: "BindingIdentifier", name: "arguments" },
+      operator: "++" }
+  );
 
-    testParse("arguments--", expr,
-      { type: "UpdateExpression",
-        isPrefix: false,
-        operand: { type: "BindingIdentifier", name: "arguments" },
-        operator: "--" }
-    );
+  testParse("arguments--", expr,
+    { type: "UpdateExpression",
+      isPrefix: false,
+      operand: { type: "BindingIdentifier", name: "arguments" },
+      operator: "--" }
+  );
 
-  });
 });

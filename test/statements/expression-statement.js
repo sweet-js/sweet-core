@@ -15,44 +15,43 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("expression statement", function () {
+test("expression statement", function () {
 
-    testParse("x", stmt,
-      { type: "ExpressionStatement",
-        expression: { type: "IdentifierExpression", name: "x" } }
-    );
+  testParse("x", stmt,
+    { type: "ExpressionStatement",
+      expression: { type: "IdentifierExpression", name: "x" } }
+  );
 
-    testParse("x, y", stmt,
-      { type: "ExpressionStatement",
-        expression:
-          { type: "BinaryExpression",
-            operator: ",",
-            left: { type: "IdentifierExpression", name: "x" },
-            right: { type: "IdentifierExpression", name: "y" } } }
-    );
+  testParse("x, y", stmt,
+    { type: "ExpressionStatement",
+      expression:
+        { type: "BinaryExpression",
+          operator: ",",
+          left: { type: "IdentifierExpression", name: "x" },
+          right: { type: "IdentifierExpression", name: "y" } } }
+  );
 
-    testParse("\\u0061", stmt,
-      { type: "ExpressionStatement",
-        expression: { type: "IdentifierExpression", name: "a" } }
-    );
+  testParse("\\u0061", stmt,
+    { type: "ExpressionStatement",
+      expression: { type: "IdentifierExpression", name: "a" } }
+  );
 
-    testParse("a\\u0061", stmt,
-      { type: "ExpressionStatement",
-        expression: { type: "IdentifierExpression", name: "aa" } }
-    );
+  testParse("a\\u0061", stmt,
+    { type: "ExpressionStatement",
+      expression: { type: "IdentifierExpression", name: "aa" } }
+  );
 
-    testParse("\\u0061a", stmt,
-      { type: "ExpressionStatement",
-        expression: { type: "IdentifierExpression", name: "aa" } }
-    );
+  testParse("\\u0061a", stmt,
+    { type: "ExpressionStatement",
+      expression: { type: "IdentifierExpression", name: "aa" } }
+  );
 
-    testParse("\\u0061a ", stmt,
-      { type: "ExpressionStatement",
-        expression: { type: "IdentifierExpression", name: "aa" } }
-    );
+  testParse("\\u0061a ", stmt,
+    { type: "ExpressionStatement",
+      expression: { type: "IdentifierExpression", name: "aa" } }
+  );
 
-  });
 });

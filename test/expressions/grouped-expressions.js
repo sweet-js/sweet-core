@@ -16,61 +16,60 @@
 
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("grouped expressiones", function () {
-    // grouped expression that can be binding element and assignment target
-    testParse("(a)", expr, { type: "IdentifierExpression", name: "a" });
+test("grouped expressiones", function () {
+  // grouped expression that can be binding element and assignment target
+  testParse("(a)", expr, { type: "IdentifierExpression", name: "a" });
 
-    // grouped expression than cannot be binding element or assignment target
-    testParse("(0)", expr, { type: "LiteralNumericExpression", value: 0 });
+  // grouped expression than cannot be binding element or assignment target
+  testParse("(0)", expr, { type: "LiteralNumericExpression", value: 0 });
 
-    // mixture
-    testParse("(0, a)", expr, {
-      type: "BinaryExpression",
-      left: { type: "LiteralNumericExpression", value: 0 },
-      operator: ",",
-      right: { type: "IdentifierExpression", name: "a" }
-    });
-
-    testParse("(a, 0)", expr, {
-      type: "BinaryExpression",
-      left: { type: "IdentifierExpression", name: "a" },
-      operator: ",",
-      right: { type: "LiteralNumericExpression", value: 0 }
-    });
-
-    testParse("(a,a)", expr, {
-      type: "BinaryExpression",
-      left: { type: "IdentifierExpression", name: "a" },
-      operator: ",",
-      right: { type: "IdentifierExpression", name: "a" }
-    });
-
-    testParse("((a,a),(a,a))", expr, {
-      type: "BinaryExpression",
-      left: {
-        type: "BinaryExpression",
-        left: { type: "IdentifierExpression", name: "a" },
-        operator: ",",
-        right: { type: "IdentifierExpression", name: "a" }
-      },
-      operator: ",",
-      right: {
-        type: "BinaryExpression",
-        left: { type: "IdentifierExpression", name: "a" },
-        operator: ",",
-        right: { type: "IdentifierExpression", name: "a" }
-      }
-    });
-
-    testParse("((((((((((((((((((((((((((((((((((((((((a))))))))))))))))))))))))))))))))))))))))", expr,
-      { type: "IdentifierExpression", name: "a" });
-
-    testParseFailure("(0, {a = 0}) = 0", "Invalid left-hand side in assignment");
-    testParseFailure("({a = 0})", "Illegal property initializer");
-    testParseFailure("(0, {a = 0}) => 0", "Illegal arrow function parameter list");
-    testParseFailure("({a = 0}, {a = 0}, 0) => 0", "Unexpected number");
+  // mixture
+  testParse("(0, a)", expr, {
+    type: "BinaryExpression",
+    left: { type: "LiteralNumericExpression", value: 0 },
+    operator: ",",
+    right: { type: "IdentifierExpression", name: "a" }
   });
+
+  testParse("(a, 0)", expr, {
+    type: "BinaryExpression",
+    left: { type: "IdentifierExpression", name: "a" },
+    operator: ",",
+    right: { type: "LiteralNumericExpression", value: 0 }
+  });
+
+  testParse("(a,a)", expr, {
+    type: "BinaryExpression",
+    left: { type: "IdentifierExpression", name: "a" },
+    operator: ",",
+    right: { type: "IdentifierExpression", name: "a" }
+  });
+
+  testParse("((a,a),(a,a))", expr, {
+    type: "BinaryExpression",
+    left: {
+      type: "BinaryExpression",
+      left: { type: "IdentifierExpression", name: "a" },
+      operator: ",",
+      right: { type: "IdentifierExpression", name: "a" }
+    },
+    operator: ",",
+    right: {
+      type: "BinaryExpression",
+      left: { type: "IdentifierExpression", name: "a" },
+      operator: ",",
+      right: { type: "IdentifierExpression", name: "a" }
+    }
+  });
+
+  testParse("((((((((((((((((((((((((((((((((((((((((a))))))))))))))))))))))))))))))))))))))))", expr,
+    { type: "IdentifierExpression", name: "a" });
+
+  testParseFailure("(0, {a = 0}) = 0", "Invalid left-hand side in assignment");
+  testParseFailure("({a = 0})", "Illegal property initializer");
+  testParseFailure("(0, {a = 0}) => 0", "Illegal arrow function parameter list");
+  testParseFailure("({a = 0}, {a = 0}, 0) => 0", "Unexpected number");
 });

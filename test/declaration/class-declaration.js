@@ -15,17 +15,16 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("class declaration", function () {
-    testParse("class A{}", stmt, {
-      type: "ClassDeclaration",
-      name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-      super: null,
-      elements: []
-    });
-    testParseFailure("class {}", "Unexpected token \"{\"");
-    testParseFailure("class extends A{}", "Unexpected token \"extends\"");
+test("class declaration", function () {
+  testParse("class A{}", stmt, {
+    type: "ClassDeclaration",
+    name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+    super: null,
+    elements: []
   });
+  testParseFailure("class {}", "Unexpected token \"{\"");
+  testParseFailure("class extends A{}", "Unexpected token \"extends\"");
 });

@@ -15,65 +15,64 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("break statement", function () {
+test("break statement", function () {
 
-    testParse("while (true) { break }", stmt,
-      { type: "WhileStatement",
-        body:
-          { type: "BlockStatement",
-            block:
-              { type: "Block",
-                statements: [ { type: "BreakStatement", label: null } ] } },
-        test: { type: "LiteralBooleanExpression", value: true } }
-    );
+  testParse("while (true) { break }", stmt,
+    { type: "WhileStatement",
+      body:
+        { type: "BlockStatement",
+          block:
+            { type: "Block",
+              statements: [ { type: "BreakStatement", label: null } ] } },
+      test: { type: "LiteralBooleanExpression", value: true } }
+  );
 
-    testParse("done: while (true) { break done }", stmt,
-      { type: "LabeledStatement",
-        label: "done",
-        body:
-          { type: "WhileStatement",
-            body:
-              { type: "BlockStatement",
-                block:
-                  { type: "Block",
-                    statements:
-                      [ { type: "BreakStatement",
-                          label: "done" } ] } },
-        test: { type: "LiteralBooleanExpression", value: true } } }
-    );
+  testParse("done: while (true) { break done }", stmt,
+    { type: "LabeledStatement",
+      label: "done",
+      body:
+        { type: "WhileStatement",
+          body:
+            { type: "BlockStatement",
+              block:
+                { type: "Block",
+                  statements:
+                    [ { type: "BreakStatement",
+                        label: "done" } ] } },
+      test: { type: "LiteralBooleanExpression", value: true } } }
+  );
 
-    testParse("done: while (true) { break done; }", stmt,
-      { type: "LabeledStatement",
-        label: "done",
-        body:
-          { type: "WhileStatement",
-            body:
-              { type: "BlockStatement",
-                block:
-                  { type: "Block",
-                    statements:
-                      [ { type: "BreakStatement",
-                          label: "done" } ] } },
-        test: { type: "LiteralBooleanExpression", value: true } } }
-    );
+  testParse("done: while (true) { break done; }", stmt,
+    { type: "LabeledStatement",
+      label: "done",
+      body:
+        { type: "WhileStatement",
+          body:
+            { type: "BlockStatement",
+              block:
+                { type: "Block",
+                  statements:
+                    [ { type: "BreakStatement",
+                        label: "done" } ] } },
+      test: { type: "LiteralBooleanExpression", value: true } } }
+  );
 
-    testParse("__proto__: while (true) { break __proto__; }", stmt,
-      { type: "LabeledStatement",
-        label: "__proto__",
-        body:
-          { type: "WhileStatement",
-            body:
-              { type: "BlockStatement",
-                block:
-                  { type: "Block",
-                    statements:
-                      [ { type: "BreakStatement",
-                          label: "__proto__" } ] } },
-        test: { type: "LiteralBooleanExpression", value: true } } }
-    );
+  testParse("__proto__: while (true) { break __proto__; }", stmt,
+    { type: "LabeledStatement",
+      label: "__proto__",
+      body:
+        { type: "WhileStatement",
+          body:
+            { type: "BlockStatement",
+              block:
+                { type: "Block",
+                  statements:
+                    [ { type: "BreakStatement",
+                        label: "__proto__" } ] } },
+      test: { type: "LiteralBooleanExpression", value: true } } }
+  );
 
-  });
 });

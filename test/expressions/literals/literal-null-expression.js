@@ -15,14 +15,13 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("literal null expression", function () {
+test("literal null expression", function () {
 
-    testParse("null", expr, { type: "LiteralNullExpression" });
-    testParse("null;", expr, { type: "LiteralNullExpression" });
-    testParse("null\n", expr, { type: "LiteralNullExpression" });
+  testParse("null", expr, { type: "LiteralNullExpression" });
+  testParse("null;", expr, { type: "LiteralNullExpression" });
+  testParse("null\n", expr, { type: "LiteralNullExpression" });
 
-  });
 });

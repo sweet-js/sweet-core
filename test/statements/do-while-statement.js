@@ -15,68 +15,67 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("do while statement", function () {
+test("do while statement", function () {
 
-    testParse("do keep(); while (true);", stmt,
-      { type: "DoWhileStatement",
-        body:
-          { type: "ExpressionStatement",
-            expression:
-              { type: "CallExpression",
-                callee: { type: "IdentifierExpression", name: "keep" },
-                arguments: [] } },
-        test: { type: "LiteralBooleanExpression", value: true } }
-    );
+  testParse("do keep(); while (true);", stmt,
+    { type: "DoWhileStatement",
+      body:
+        { type: "ExpressionStatement",
+          expression:
+            { type: "CallExpression",
+              callee: { type: "IdentifierExpression", name: "keep" },
+              arguments: [] } },
+      test: { type: "LiteralBooleanExpression", value: true } }
+  );
 
-    testParse("do continue; while(1);", stmt,
-      { type: "DoWhileStatement",
-        body: { type: "ContinueStatement", label: null },
-        test: { type: "LiteralNumericExpression", value: 1 } }
-    );
+  testParse("do continue; while(1);", stmt,
+    { type: "DoWhileStatement",
+      body: { type: "ContinueStatement", label: null },
+      test: { type: "LiteralNumericExpression", value: 1 } }
+  );
 
-    testParse("do ; while (true)", stmt,
-      { type: "DoWhileStatement",
-        body: { type: "EmptyStatement" },
-        test: { type: "LiteralBooleanExpression", value: true } }
-    );
+  testParse("do ; while (true)", stmt,
+    { type: "DoWhileStatement",
+      body: { type: "EmptyStatement" },
+      test: { type: "LiteralBooleanExpression", value: true } }
+  );
 
-    testParse("do {} while (true)", stmt,
-      { type: "DoWhileStatement",
-        body:
-          { type: "BlockStatement",
-            block: { type: "Block", statements: [] } },
-            test: { type: "LiteralBooleanExpression", value: true } }
-    );
+  testParse("do {} while (true)", stmt,
+    { type: "DoWhileStatement",
+      body:
+        { type: "BlockStatement",
+          block: { type: "Block", statements: [] } },
+          test: { type: "LiteralBooleanExpression", value: true } }
+  );
 
-    testParse("{do ; while(false); false}", stmt,
-      {
-        type: "BlockStatement",
-        block: {
-          type: "Block",
-          statements: [{
-            type: "DoWhileStatement",
-            body: { type: "EmptyStatement" },
-            test: { type: "LiteralBooleanExpression", value: false }
-          }, { type: "ExpressionStatement", expression: { type: "LiteralBooleanExpression", value: false } }]
-        }
+  testParse("{do ; while(false); false}", stmt,
+    {
+      type: "BlockStatement",
+      block: {
+        type: "Block",
+        statements: [{
+          type: "DoWhileStatement",
+          body: { type: "EmptyStatement" },
+          test: { type: "LiteralBooleanExpression", value: false }
+        }, { type: "ExpressionStatement", expression: { type: "LiteralBooleanExpression", value: false } }]
       }
-    );
+    }
+  );
 
-    testParse("{do ; while(false) false}", stmt,
-      {
-        type: "BlockStatement",
-        block: {
-          type: "Block",
-          statements: [{
-            type: "DoWhileStatement",
-            body: { type: "EmptyStatement" },
-            test: { type: "LiteralBooleanExpression", value: false }
-          }, { type: "ExpressionStatement", expression: { type: "LiteralBooleanExpression", value: false } }]
-        }
+  testParse("{do ; while(false) false}", stmt,
+    {
+      type: "BlockStatement",
+      block: {
+        type: "Block",
+        statements: [{
+          type: "DoWhileStatement",
+          body: { type: "EmptyStatement" },
+          test: { type: "LiteralBooleanExpression", value: false }
+        }, { type: "ExpressionStatement", expression: { type: "LiteralBooleanExpression", value: false } }]
       }
-    );
-  });
+    }
+  );
 });

@@ -15,12 +15,11 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../../assertions";
+import test from 'ava';
 
-describe("Parser", function() {
-  it("literal infinity expression", function () {
+test("literal infinity expression", function () {
 
-    testParse("2e308", expr, { type: "LiteralInfinityExpression" });
+  testParse("2e308", expr, { type: "LiteralInfinityExpression" });
 
-  });
 });

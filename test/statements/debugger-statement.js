@@ -15,13 +15,12 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("debugger statement", function () {
+test("debugger statement", function () {
 
-    testParse("debugger", stmt, { type: "DebuggerStatement" });
-    testParse("debugger;", stmt, { type: "DebuggerStatement" });
+  testParse("debugger", stmt, { type: "DebuggerStatement" });
+  testParse("debugger;", stmt, { type: "DebuggerStatement" });
 
-  });
 });

@@ -2,8 +2,9 @@
     "env": {
         "es6": true
     },
-    "ecmaFeatures": {
-        "modules": true
+    "ecmaVersion": 6,
+    "parserOptions": {
+      "sourceType": "module"
     },
     "rules": {
         "semi": 2

@@ -15,46 +15,45 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("static member expression", function () {
-    testParse("a.b", expr,
-      { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "b" }
-    );
-    testParse("a.b.c", expr,
-      {
-        type: "StaticMemberExpression",
-        object: { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "b" },
-        property: "c"
-      }
-    );
-    testParse("a.$._.B0", expr,
-      {
+test("static member expression", function () {
+  testParse("a.b", expr,
+    { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "b" }
+  );
+  testParse("a.b.c", expr,
+    {
+      type: "StaticMemberExpression",
+      object: { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "b" },
+      property: "c"
+    }
+  );
+  testParse("a.$._.B0", expr,
+    {
+      type: "StaticMemberExpression",
+      object: {
         type: "StaticMemberExpression",
         object: {
           type: "StaticMemberExpression",
-          object: {
-            type: "StaticMemberExpression",
-            object: { type: "IdentifierExpression", name: "a" },
-            property: "$"
-          },
-          property: "_"
+          object: { type: "IdentifierExpression", name: "a" },
+          property: "$"
         },
-        property: "B0"
-      }
-    );
-    testParse("a.if", expr,
-      { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "if" }
-    );
-    testParse("a.true", expr,
-      { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "true" }
-    );
-    testParse("a.false", expr,
-      { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "false" }
-    );
-    testParse("a.null", expr,
-      { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "null" }
-    );
-  });
+        property: "_"
+      },
+      property: "B0"
+    }
+  );
+  testParse("a.if", expr,
+    { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "if" }
+  );
+  testParse("a.true", expr,
+    { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "true" }
+  );
+  testParse("a.false", expr,
+    { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "false" }
+  );
+  testParse("a.null", expr,
+    { type: "StaticMemberExpression", object: { type: "IdentifierExpression", name: "a" }, property: "null" }
+  );
 });

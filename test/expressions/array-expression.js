@@ -15,63 +15,62 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("array expression", function () {
+test("array expression", function () {
 
-    testParse("[]", expr, { type: "ArrayExpression", elements: [] });
+  testParse("[]", expr, { type: "ArrayExpression", elements: [] });
 
-    testParse("[ ]", expr, { type: "ArrayExpression", elements: [] });
+  testParse("[ ]", expr, { type: "ArrayExpression", elements: [] });
 
-    testParse("[ 0 ]", expr, { type: "ArrayExpression", elements: [{ type: "LiteralNumericExpression", value: 0 }] });
+  testParse("[ 0 ]", expr, { type: "ArrayExpression", elements: [{ type: "LiteralNumericExpression", value: 0 }] });
 
-    testParse("[ 0, ]", expr, { type: "ArrayExpression", elements: [{ type: "LiteralNumericExpression", value: 0 }] });
+  testParse("[ 0, ]", expr, { type: "ArrayExpression", elements: [{ type: "LiteralNumericExpression", value: 0 }] });
 
-    testParse("[ ,, 0 ]", expr, {
-      type: "ArrayExpression",
-      elements: [null, null, { type: "LiteralNumericExpression", value: 0 }]
-    });
-
-    testParse("[ 1, 2, 3, ]", expr, {
-      type: "ArrayExpression",
-      elements: [{ type: "LiteralNumericExpression", value: 1 }, {
-        type: "LiteralNumericExpression",
-        value: 2
-      }, { type: "LiteralNumericExpression", value: 3 }]
-    });
-
-    testParse("[ 1, 2,, 3, ]", expr, {
-      type: "ArrayExpression",
-      elements: [{ type: "LiteralNumericExpression", value: 1 }, {
-        type: "LiteralNumericExpression",
-        value: 2
-      }, null, { type: "LiteralNumericExpression", value: 3 }]
-    });
-
-    testParse("[,,1,,,2,3,,]", expr, {
-      type: "ArrayExpression",
-      elements: [null, null, {
-        type: "LiteralNumericExpression",
-        value: 1
-      }, null, null, { type: "LiteralNumericExpression", value: 2 }, {
-        type: "LiteralNumericExpression",
-        value: 3
-      }, null]
-    });
-
-  });
-
-  // // new test added
-  testParse("[a, ...(b=c)]", expr, {
+  testParse("[ ,, 0 ]", expr, {
     type: "ArrayExpression",
-    elements: [{type: "IdentifierExpression", name: "a"}, {
-      type: "SpreadElement",
-      expression: {
-        type: "AssignmentExpression",
-        binding: {type: "BindingIdentifier", name: "b"},
-        expression: {type: "IdentifierExpression", name: "c"}
-      }
-    }]
+    elements: [null, null, { type: "LiteralNumericExpression", value: 0 }]
   });
+
+  testParse("[ 1, 2, 3, ]", expr, {
+    type: "ArrayExpression",
+    elements: [{ type: "LiteralNumericExpression", value: 1 }, {
+      type: "LiteralNumericExpression",
+      value: 2
+    }, { type: "LiteralNumericExpression", value: 3 }]
+  });
+
+  testParse("[ 1, 2,, 3, ]", expr, {
+    type: "ArrayExpression",
+    elements: [{ type: "LiteralNumericExpression", value: 1 }, {
+      type: "LiteralNumericExpression",
+      value: 2
+    }, null, { type: "LiteralNumericExpression", value: 3 }]
+  });
+
+  testParse("[,,1,,,2,3,,]", expr, {
+    type: "ArrayExpression",
+    elements: [null, null, {
+      type: "LiteralNumericExpression",
+      value: 1
+    }, null, null, { type: "LiteralNumericExpression", value: 2 }, {
+      type: "LiteralNumericExpression",
+      value: 3
+    }, null]
+  });
+
+});
+
+// // new test added
+testParse("[a, ...(b=c)]", expr, {
+  type: "ArrayExpression",
+  elements: [{type: "IdentifierExpression", name: "a"}, {
+    type: "SpreadElement",
+    expression: {
+      type: "AssignmentExpression",
+      binding: {type: "BindingIdentifier", name: "b"},
+      expression: {type: "IdentifierExpression", name: "c"}
+    }
+  }]
 });

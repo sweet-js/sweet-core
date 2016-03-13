@@ -16,61 +16,60 @@
 
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("yield", function () {
-    function yd(p) {
-      return stmt(p).body.statements.map(function (es) {
-        return es.expression;
-      });
-    }
+test("yield", function () {
+  function yd(p) {
+    return stmt(p).body.statements.map(function (es) {
+      return es.expression;
+    });
+  }
 
-    testParse("function*a(){yield*a}", stmt, {
-            "type": "FunctionDeclaration",
+  testParse("function*a(){yield*a}", stmt, {
+          "type": "FunctionDeclaration",
+          "loc": null,
+          "isGenerator": true,
+          "name": {
+            "type": "BindingIdentifier",
             "loc": null,
-            "isGenerator": true,
-            "name": {
-              "type": "BindingIdentifier",
-              "loc": null,
-              "name": "<<hygiene>>"
-            },
-            "params": {
-              "type": "FormalParameters",
-              "loc": null,
-              "items": [],
-              "rest": null
-            },
-            "body": {
-              "type": "FunctionBody",
-              "loc": null,
-              "directives": [],
-              "statements": [
-                {
-                  "type": "ExpressionStatement",
+            "name": "<<hygiene>>"
+          },
+          "params": {
+            "type": "FormalParameters",
+            "loc": null,
+            "items": [],
+            "rest": null
+          },
+          "body": {
+            "type": "FunctionBody",
+            "loc": null,
+            "directives": [],
+            "statements": [
+              {
+                "type": "ExpressionStatement",
+                "loc": null,
+                "expression": {
+                  "type": "YieldGeneratorExpression",
                   "loc": null,
                   "expression": {
-                    "type": "YieldGeneratorExpression",
+                    "type": "IdentifierExpression",
                     "loc": null,
-                    "expression": {
-                      "type": "IdentifierExpression",
-                      "loc": null,
-                      "name": "<<hygiene>>"
-                    }
+                    "name": "<<hygiene>>"
                   }
                 }
-              ]
-            }
-          });
+              }
+            ]
+          }
+        });
 
-    // testParse("function a(){yield*a}", yd, [{
-    //   type: "BinaryExpression",
-    //   operator: "*",
-    //   left: { type: "IdentifierExpression", name: "yield" },
-    //   right: { type: "IdentifierExpression", name: "<<hygiene>>" }
-    // }]);
+  // testParse("function a(){yield*a}", yd, [{
+  //   type: "BinaryExpression",
+  //   operator: "*",
+  //   left: { type: "IdentifierExpression", name: "yield" },
+  //   right: { type: "IdentifierExpression", name: "<<hygiene>>" }
+  // }]);
 
-    // testParseFailure("function *a(){yield\n*a}", "Unexpected token \"*\"");
-    // testParseFailure("function *a(){yield*}", "Unexpected token \"}\"");
-  });
+  // testParseFailure("function *a(){yield\n*a}", "Unexpected token \"*\"");
+  // testParseFailure("function *a(){yield*}", "Unexpected token \"}\"");
 });

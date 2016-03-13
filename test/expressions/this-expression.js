@@ -15,12 +15,11 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("this expression", function () {
+test("this expression", function () {
 
-    testParse("this\n", expr, { type: "ThisExpression" });
+  testParse("this\n", expr, { type: "ThisExpression" });
 
-  });
 });

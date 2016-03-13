@@ -15,63 +15,62 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("switch with default statement", function () {
+test("switch with default statement", function () {
 
-    testParse("switch(a){case 1:default:case 2:}", stmt,
-      { type: "SwitchStatementWithDefault",
-        discriminant: { type: "IdentifierExpression", name: "a" },
-        preDefaultCases:
-          [ { type: "SwitchCase",
-              test: { type: "LiteralNumericExpression", value: 1 },
-              consequent: [] } ],
-        defaultCase: { type: "SwitchDefault", consequent: [] },
-        postDefaultCases:
-          [ { type: "SwitchCase",
-              test: { type: "LiteralNumericExpression", value: 2 },
-              consequent: [] } ] }
-    );
+  testParse("switch(a){case 1:default:case 2:}", stmt,
+    { type: "SwitchStatementWithDefault",
+      discriminant: { type: "IdentifierExpression", name: "a" },
+      preDefaultCases:
+        [ { type: "SwitchCase",
+            test: { type: "LiteralNumericExpression", value: 1 },
+            consequent: [] } ],
+      defaultCase: { type: "SwitchDefault", consequent: [] },
+      postDefaultCases:
+        [ { type: "SwitchCase",
+            test: { type: "LiteralNumericExpression", value: 2 },
+            consequent: [] } ] }
+  );
 
-    testParse("switch(a){case 1:default:}", stmt,
-      { type: "SwitchStatementWithDefault",
-        discriminant: { type: "IdentifierExpression", name: "a" },
-        preDefaultCases:
-          [ { type: "SwitchCase",
-              test: { type: "LiteralNumericExpression", value: 1 },
-              consequent: [] } ],
-        defaultCase: { type: "SwitchDefault", consequent: [] },
-        postDefaultCases: [] }
-    );
+  testParse("switch(a){case 1:default:}", stmt,
+    { type: "SwitchStatementWithDefault",
+      discriminant: { type: "IdentifierExpression", name: "a" },
+      preDefaultCases:
+        [ { type: "SwitchCase",
+            test: { type: "LiteralNumericExpression", value: 1 },
+            consequent: [] } ],
+      defaultCase: { type: "SwitchDefault", consequent: [] },
+      postDefaultCases: [] }
+  );
 
-    testParse("switch(a){default:case 2:}", stmt,
-      { type: "SwitchStatementWithDefault",
-        discriminant: { type: "IdentifierExpression", name: "a" },
-        preDefaultCases: [],
-        defaultCase: { type: "SwitchDefault", consequent: [] },
-        postDefaultCases:
-          [ { type: "SwitchCase",
-              test: { type: "LiteralNumericExpression", value: 2 },
-              consequent: [] } ] }
-    );
+  testParse("switch(a){default:case 2:}", stmt,
+    { type: "SwitchStatementWithDefault",
+      discriminant: { type: "IdentifierExpression", name: "a" },
+      preDefaultCases: [],
+      defaultCase: { type: "SwitchDefault", consequent: [] },
+      postDefaultCases:
+        [ { type: "SwitchCase",
+            test: { type: "LiteralNumericExpression", value: 2 },
+            consequent: [] } ] }
+  );
 
-    testParse("switch (answer) { case 0: hi(); break; default: break }", stmt,
-      { type: "SwitchStatementWithDefault",
-        discriminant: { type: "IdentifierExpression", name: "answer" },
-        preDefaultCases:
-          [ { type: "SwitchCase",
-              test: { type: "LiteralNumericExpression", value: 0 },
-              consequent:
-                [ { type: "ExpressionStatement",
-                    expression:
-                      { type: "CallExpression",
-                        callee: { type: "IdentifierExpression", name: "hi" },
-                        arguments: [] } },
-                  { type: "BreakStatement", label: null } ] } ],
-        defaultCase: { type: "SwitchDefault", consequent: [ { type: "BreakStatement", label: null } ] },
-        postDefaultCases: [] }
-    );
-    
-  });
+  testParse("switch (answer) { case 0: hi(); break; default: break }", stmt,
+    { type: "SwitchStatementWithDefault",
+      discriminant: { type: "IdentifierExpression", name: "answer" },
+      preDefaultCases:
+        [ { type: "SwitchCase",
+            test: { type: "LiteralNumericExpression", value: 0 },
+            consequent:
+              [ { type: "ExpressionStatement",
+                  expression:
+                    { type: "CallExpression",
+                      callee: { type: "IdentifierExpression", name: "hi" },
+                      arguments: [] } },
+                { type: "BreakStatement", label: null } ] } ],
+      defaultCase: { type: "SwitchDefault", consequent: [ { type: "BreakStatement", label: null } ] },
+      postDefaultCases: [] }
+  );
+
 });

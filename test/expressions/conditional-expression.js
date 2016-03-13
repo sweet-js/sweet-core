@@ -15,47 +15,46 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("conditional expression", function () {
+test("conditional expression", function () {
 
-    testParse("a?b:c", expr,
-      { type: "ConditionalExpression",
-        test: { type: "IdentifierExpression", name: "a" },
-        consequent: { type: "IdentifierExpression", name: "b" },
-        alternate: { type: "IdentifierExpression", name: "c" } }
-    );
+  testParse("a?b:c", expr,
+    { type: "ConditionalExpression",
+      test: { type: "IdentifierExpression", name: "a" },
+      consequent: { type: "IdentifierExpression", name: "b" },
+      alternate: { type: "IdentifierExpression", name: "c" } }
+  );
 
-    testParse("y ? 1 : 2", expr,
-      { type: "ConditionalExpression",
-        test: { type: "IdentifierExpression", name: "y" },
+  testParse("y ? 1 : 2", expr,
+    { type: "ConditionalExpression",
+      test: { type: "IdentifierExpression", name: "y" },
+      consequent: { type: "LiteralNumericExpression", value: 1 },
+      alternate: { type: "LiteralNumericExpression", value: 2 } }
+  );
+
+  testParse("x && y ? 1 : 2", expr,
+    { type: "ConditionalExpression",
+      test:
+        { type: "BinaryExpression",
+          operator: "&&",
+          left: { type: "IdentifierExpression", name: "x" },
+          right: { type: "IdentifierExpression", name: "y" } },
+      consequent: { type: "LiteralNumericExpression", value: 1 },
+      alternate: { type: "LiteralNumericExpression", value: 2 } }
+  );
+
+  testParse("x = (0) ? 1 : 2", expr,
+    {
+      type: "AssignmentExpression",
+      binding: { type: "BindingIdentifier", name: "x" },
+      expression: {
+        type: "ConditionalExpression",
+        test: { type: "LiteralNumericExpression", value: 0 },
         consequent: { type: "LiteralNumericExpression", value: 1 },
-        alternate: { type: "LiteralNumericExpression", value: 2 } }
-    );
-
-    testParse("x && y ? 1 : 2", expr,
-      { type: "ConditionalExpression",
-        test:
-          { type: "BinaryExpression",
-            operator: "&&",
-            left: { type: "IdentifierExpression", name: "x" },
-            right: { type: "IdentifierExpression", name: "y" } },
-        consequent: { type: "LiteralNumericExpression", value: 1 },
-        alternate: { type: "LiteralNumericExpression", value: 2 } }
-    );
-
-    testParse("x = (0) ? 1 : 2", expr,
-      {
-        type: "AssignmentExpression",
-        binding: { type: "BindingIdentifier", name: "x" },
-        expression: {
-          type: "ConditionalExpression",
-          test: { type: "LiteralNumericExpression", value: 0 },
-          consequent: { type: "LiteralNumericExpression", value: 1 },
-          alternate: { type: "LiteralNumericExpression", value: 2 }
-        }
+        alternate: { type: "LiteralNumericExpression", value: 2 }
       }
-    );
-  });
+    }
+  );
 });

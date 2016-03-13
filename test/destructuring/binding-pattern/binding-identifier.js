@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-var stmt = require("../../helpers").stmt;
-var expr = require("../../helpers").expr;
-var testParse = require("../../assertions").testParse;
-var testParseFailure = require("../../assertions").testParseFailure;
+import expect from "expect.js";
+import { expr, stmt, testParse, testParseFailure } from "../../assertions";
+import test from 'ava';
 
-suite("Parser", function () {
-  suite("binding identifier", function () {
-    suite("let as binding identifier", function () {
-      testParse("for(let in 0);", stmt,
-        { type: "ForInStatement",
-          left: { type: "BindingIdentifier", name: "let" },
-          right: { type: "LiteralNumericExpression", value: 0},
-          body: { type: "EmptyStatement"}
-        }
-      );
-    });
-  });
+test.skip("let as binding identifier", function () {
+  testParse("for(let in 0);", stmt,
+    { type: "ForInStatement",
+      left: { type: "BindingIdentifier", name: "let" },
+      right: { type: "LiteralNumericExpression", value: 0},
+      body: { type: "EmptyStatement"}
+    }
+  );
 });

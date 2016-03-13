@@ -27,3 +27,5 @@ _site
 .tern-port
 .projectile
 dist/
+.nyc_output
+coverage

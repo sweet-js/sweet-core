@@ -1,184 +1,183 @@
 import { parse } from "../src/sweet";
 import expect from "expect.js";
+import test from 'ava';
 
 import { expr, stmt, testParse, testEval } from "./assertions";
 
-describe("macro expansion", function () {
-  it("should handle basic expansion at a statement expression position", function () {
-    testParse(`
+test("should handle basic expansion at a statement expression position", function () {
+  testParse(`
 syntaxrec m = function(ctx) {
-    return #\`200\`;
+  return #\`200\`;
 }
 m`, stmt, {
-      "type": "ExpressionStatement",
+    "type": "ExpressionStatement",
+    "loc": null,
+    "expression": {
+      "type": "LiteralNumericExpression",
       "loc": null,
-      "expression": {
-        "type": "LiteralNumericExpression",
-        "loc": null,
-        "value": 200
-      }
-    });
+      "value": 200
+    }
   });
+});
 
-  it("should handle basic expansion at an expression position", function () {
-    testParse(`
+test("should handle basic expansion at an expression position", function () {
+  testParse(`
 syntaxrec m = function (ctx) {
-    return #\`200\`;
+  return #\`200\`;
 }
 let v = m`, stmt, {
-      "type": "VariableDeclarationStatement",
-      "declaration": {
-        "type": "VariableDeclaration",
-        "loc": null,
-        "kind": "let",
-        "declarators": [
-          {
-            "type": "VariableDeclarator",
+    "type": "VariableDeclarationStatement",
+    "declaration": {
+      "type": "VariableDeclaration",
+      "loc": null,
+      "kind": "let",
+      "declarators": [
+        {
+          "type": "VariableDeclarator",
+          "loc": null,
+          "binding": {
+            "type": "BindingIdentifier",
             "loc": null,
-            "binding": {
-              "type": "BindingIdentifier",
-              "loc": null,
-              "name": "<<hygiene>>"
-            },
-            "init": {
-              "type": "LiteralNumericExpression",
-              "loc": null,
-              "value": 200
-            }
+            "name": "<<hygiene>>"
+          },
+          "init": {
+            "type": "LiteralNumericExpression",
+            "loc": null,
+            "value": 200
           }
-        ],
-      }
-    });
+        }
+      ],
+    }
   });
+});
 
-  it("should handle expansion where an argument is eaten", function () {
-    testParse(`
+test("should handle expansion where an argument is eaten", function () {
+  testParse(`
 syntaxrec m = function(ctx) {
-    ctx.next();
-    return #\`200\`
+  ctx.next();
+  return #\`200\`
 }
 m 42`, stmt, {
-      "type": "ExpressionStatement",
+    "type": "ExpressionStatement",
+    "loc": null,
+    "expression": {
+      "type": "LiteralNumericExpression",
       "loc": null,
-      "expression": {
-        "type": "LiteralNumericExpression",
-        "loc": null,
-        "value": 200
-      }
-    });
+      "value": 200
+    }
   });
+});
 
-  it("should handle expansion that eats an expression", function () {
-    testParse(`
+test("should handle expansion that eats an expression", function () {
+  testParse(`
 syntaxrec m = function(ctx) {
-    let term = ctx.next('expr')
-    return #\`200\`
+  let term = ctx.next('expr')
+  return #\`200\`
 }
 m 100 + 200`, stmt, {
-      "type": "ExpressionStatement",
+    "type": "ExpressionStatement",
+    "loc": null,
+    "expression": {
+      "type": "LiteralNumericExpression",
       "loc": null,
-      "expression": {
-        "type": "LiteralNumericExpression",
-        "loc": null,
-        "value": 200
+      "value": 200
+    }
+  });
+});
+
+test('should handle expansion that takes an argument', () => {
+  testParse(`
+    syntaxrec m = function(ctx) {
+      var x = ctx.next().value;
+      return #\`40 + \${x}\`;
+    }
+    m 2;
+    `, stmt, {
+      type: 'ExpressionStatement',
+      loc: null,
+      expression:
+      {
+        type: 'BinaryExpression',
+        loc: null,
+        left: {
+          type: 'LiteralNumericExpression',
+          loc: null,
+          value: 40
+        },
+        operator: '+',
+        right: {
+          type: 'LiteralNumericExpression',
+          loc: null,
+          value: 2
+        }
       }
     });
-  });
+});
 
-  it('should handle expansion that takes an argument', () => {
-    testParse(`
-      syntaxrec m = function(ctx) {
-        var x = ctx.next().value;
-        return #\`40 + \${x}\`;
-      }
-      m 2;
-      `, stmt, {
-        type: 'ExpressionStatement',
+test('should handle expansion that matches an expression argument', () => {
+  testParse(`
+    syntaxrec m = function(ctx) {
+      let x = ctx.next('expr').value;
+      return #\`40 + \${x}\`;
+    }
+    m 2;
+    `, stmt, {
+      type: 'ExpressionStatement',
+      loc: null,
+      expression:
+      {
+        type: 'BinaryExpression',
         loc: null,
-        expression:
-        {
-          type: 'BinaryExpression',
+        left: {
+          type: 'LiteralNumericExpression',
           loc: null,
-          left: {
-            type: 'LiteralNumericExpression',
-            loc: null,
-            value: 40
-          },
-          operator: '+',
-          right: {
-            type: 'LiteralNumericExpression',
-            loc: null,
-            value: 2
-          }
-        }
-      });
-  });
-
-  it('should handle expansion that matches an expression argument', () => {
-    testParse(`
-      syntaxrec m = function(ctx) {
-        let x = ctx.next('expr').value;
-        return #\`40 + \${x}\`;
-      }
-      m 2;
-      `, stmt, {
-        type: 'ExpressionStatement',
-        loc: null,
-        expression:
-        {
-          type: 'BinaryExpression',
+          value: 40
+        },
+        operator: '+',
+        right: {
+          type: 'LiteralNumericExpression',
           loc: null,
-          left: {
-            type: 'LiteralNumericExpression',
-            loc: null,
-            value: 40
-          },
-          operator: '+',
-          right: {
-            type: 'LiteralNumericExpression',
-            loc: null,
-            value: 2
-          }
+          value: 2
         }
-      });
-  });
-
-  it('should handle the macro returning an array', () => {
-    testEval(`
-      syntax m = function (ctx) {
-        let x = ctx.next().value;
-        return [x];
       }
-      output = m 42;
-      `, 42);
-  });
+    });
+});
 
-  it('should handle the full macro context api', () => {
-    testEval(`
-      syntaxrec def = function(ctx) {
-        let id = ctx.next().value;
-        let parens = ctx.next().value;
-        let body = ctx.next().value;
+test('should handle the macro returning an array', () => {
+  testEval(`
+    syntax m = function (ctx) {
+      let x = ctx.next().value;
+      return [x];
+    }
+    output = m 42;
+    `, 42);
+});
 
-        let parenCtx = ctx.of(parens);
-        let paren_id = parenCtx.next().value;
-        parenCtx.next() // =
-        let paren_init = parenCtx.next('expr').value;
+test('should handle the full macro context api', () => {
+  testEval(`
+    syntaxrec def = function(ctx) {
+      let id = ctx.next().value;
+      let parens = ctx.next().value;
+      let body = ctx.next().value;
 
-        let bodyCtx = ctx.of(body);
-        let b = [];
-        for (let s of bodyCtx) {
-          b.push(s);
-        }
+      let parenCtx = ctx.of(parens);
+      let paren_id = parenCtx.next().value;
+      parenCtx.next() // =
+      let paren_init = parenCtx.next('expr').value;
 
-        return #\`function \${id} (\${paren_id}) {
-          \${paren_id} = \${paren_id} || \${paren_init};
-          \${b}
-        }\`;
+      let bodyCtx = ctx.of(body);
+      let b = [];
+      for (let s of bodyCtx) {
+        b.push(s);
       }
 
-      def foo (x = 10 + 100) { return x; }
-      output = foo();
-      `, 110);
-  });
+      return #\`function \${id} (\${paren_id}) {
+        \${paren_id} = \${paren_id} || \${paren_init};
+        \${b}
+      }\`;
+    }
+
+    def foo (x = 10 + 100) { return x; }
+    output = foo();
+    `, 110);
 });

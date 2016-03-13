@@ -15,97 +15,96 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("if statement", function () {
+test("if statement", function () {
 
-    testParse("if (morning) goodMorning()", stmt,
-      { type: "IfStatement",
-        test: { type: "IdentifierExpression", name: "morning" },
-        consequent:
-          { type: "ExpressionStatement",
-            expression:
-              { type: "CallExpression",
-                callee: { type: "IdentifierExpression", name: "goodMorning" },
-                arguments: [] } },
-        alternate: null }
-    );
+  testParse("if (morning) goodMorning()", stmt,
+    { type: "IfStatement",
+      test: { type: "IdentifierExpression", name: "morning" },
+      consequent:
+        { type: "ExpressionStatement",
+          expression:
+            { type: "CallExpression",
+              callee: { type: "IdentifierExpression", name: "goodMorning" },
+              arguments: [] } },
+      alternate: null }
+  );
 
-    testParse("if (morning) (function(){})", stmt,
-      {
-        type: "IfStatement",
-        test: { type: "IdentifierExpression", name: "morning" },
-        consequent: {
-          type: "ExpressionStatement",
-          expression: {
-            type: "FunctionExpression",
-            isGenerator: false,
-            name: null,
-            params: { type: "FormalParameters", items: [], rest: null },
-            body: { type: "FunctionBody", directives: [], statements: [] }
-          }
-        },
-        alternate: null
-      }
-    );
+  testParse("if (morning) (function(){})", stmt,
+    {
+      type: "IfStatement",
+      test: { type: "IdentifierExpression", name: "morning" },
+      consequent: {
+        type: "ExpressionStatement",
+        expression: {
+          type: "FunctionExpression",
+          isGenerator: false,
+          name: null,
+          params: { type: "FormalParameters", items: [], rest: null },
+          body: { type: "FunctionBody", directives: [], statements: [] }
+        }
+      },
+      alternate: null
+    }
+  );
 
-    testParse("if (morning) var x = 0;", stmt,
-      {
-        type: "IfStatement",
-        test: { type: "IdentifierExpression", name: "morning" },
-        consequent: {
-          type: "VariableDeclarationStatement",
-          declaration: {
-            type: "VariableDeclaration",
-            kind: "var",
-            declarators: [{
-              type: "VariableDeclarator",
-              binding: { type: "BindingIdentifier", name: "x" },
-              init: { type: "LiteralNumericExpression", value: 0 }
-            }]
-          }
-        },
-        alternate: null
-      }
-    );
+  testParse("if (morning) var x = 0;", stmt,
+    {
+      type: "IfStatement",
+      test: { type: "IdentifierExpression", name: "morning" },
+      consequent: {
+        type: "VariableDeclarationStatement",
+        declaration: {
+          type: "VariableDeclaration",
+          kind: "var",
+          declarators: [{
+            type: "VariableDeclarator",
+            binding: { type: "BindingIdentifier", name: "x" },
+            init: { type: "LiteralNumericExpression", value: 0 }
+          }]
+        }
+      },
+      alternate: null
+    }
+  );
 
-    testParse("if (morning) goodMorning(); else goodDay()", stmt,
-      { type: "IfStatement",
-        test: { type: "IdentifierExpression", name: "morning" },
-        consequent:
-          { type: "ExpressionStatement",
-            expression:
-              { type: "CallExpression",
-                callee: { type: "IdentifierExpression", name: "goodMorning" },
-                arguments: [] } },
-        alternate:
-          { type: "ExpressionStatement",
-            expression:
-              { type: "CallExpression",
-                callee: { type: "IdentifierExpression", name: "goodDay" },
-                arguments: [] } } }
-    );
+  testParse("if (morning) goodMorning(); else goodDay()", stmt,
+    { type: "IfStatement",
+      test: { type: "IdentifierExpression", name: "morning" },
+      consequent:
+        { type: "ExpressionStatement",
+          expression:
+            { type: "CallExpression",
+              callee: { type: "IdentifierExpression", name: "goodMorning" },
+              arguments: [] } },
+      alternate:
+        { type: "ExpressionStatement",
+          expression:
+            { type: "CallExpression",
+              callee: { type: "IdentifierExpression", name: "goodDay" },
+              arguments: [] } } }
+  );
 
-    testParse("if(a)b;", stmt,
-      { type: "IfStatement",
-        test: { type: "IdentifierExpression", name: "a" },
-        consequent:
-          { type: "ExpressionStatement",
-            expression: { type: "IdentifierExpression", name: "b" } },
-        alternate: null }
-    );
+  testParse("if(a)b;", stmt,
+    { type: "IfStatement",
+      test: { type: "IdentifierExpression", name: "a" },
+      consequent:
+        { type: "ExpressionStatement",
+          expression: { type: "IdentifierExpression", name: "b" } },
+      alternate: null }
+  );
 
-    testParse("if(a)b;else c;", stmt,
-      { type: "IfStatement",
-        test: { type: "IdentifierExpression", name: "a" },
-        consequent:
-          { type: "ExpressionStatement",
-            expression: { type: "IdentifierExpression", name: "b" } },
-        alternate:
-          { type: "ExpressionStatement",
-            expression: { type: "IdentifierExpression", name: "c" } } }
-    );
+  testParse("if(a)b;else c;", stmt,
+    { type: "IfStatement",
+      test: { type: "IdentifierExpression", name: "a" },
+      consequent:
+        { type: "ExpressionStatement",
+          expression: { type: "IdentifierExpression", name: "b" } },
+      alternate:
+        { type: "ExpressionStatement",
+          expression: { type: "IdentifierExpression", name: "c" } } }
+  );
 
-  });
 });

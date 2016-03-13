@@ -188,7 +188,7 @@ export default class TokenExpander {
             let mod = self.context.modules.load(term.moduleSpecifier.val(), self.context);
             // NOTE: this is a hack for MVP modules
             if (term.forSyntax) {
-              mod.invoke(self.context);
+              // mod.invoke(self.context);
             } else {
               mod.visit(self.context);
             }

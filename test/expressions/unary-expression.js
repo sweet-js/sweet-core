@@ -15,64 +15,63 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("non-destructive unary expressions", function () {
+test("non-destructive unary expressions", function () {
 
-    testParse("!a", expr,
-      { type: "UnaryExpression",
-        operand: { type: "IdentifierExpression", name: "a" },
-        operator: "!" }
-    );
+  testParse("!a", expr,
+    { type: "UnaryExpression",
+      operand: { type: "IdentifierExpression", name: "a" },
+      operator: "!" }
+  );
 
-    testParse("!(a=b)", expr,
-      {
-        type: "UnaryExpression",
-        operand: {
-          type: "AssignmentExpression",
-          binding: { type: "BindingIdentifier", name: "a" },
-          expression: { type: "IdentifierExpression", name: "b" }
-        },
-        operator: "!"
-      }
-    );
+  testParse("!(a=b)", expr,
+    {
+      type: "UnaryExpression",
+      operand: {
+        type: "AssignmentExpression",
+        binding: { type: "BindingIdentifier", name: "a" },
+        expression: { type: "IdentifierExpression", name: "b" }
+      },
+      operator: "!"
+    }
+  );
 
-    testParse("typeof a", expr,
-      { type: "UnaryExpression",
-        operand: { type: "IdentifierExpression", name: "a" },
-        operator: "typeof" }
-    );
+  testParse("typeof a", expr,
+    { type: "UnaryExpression",
+      operand: { type: "IdentifierExpression", name: "a" },
+      operator: "typeof" }
+  );
 
-    testParse("void a", expr,
-      { type: "UnaryExpression",
-        operand: { type: "IdentifierExpression", name: "a" },
-        operator: "void" }
-    );
+  testParse("void a", expr,
+    { type: "UnaryExpression",
+      operand: { type: "IdentifierExpression", name: "a" },
+      operator: "void" }
+  );
 
-    testParse("delete a", expr,
-      { type: "UnaryExpression",
-        operand: { type: "IdentifierExpression", name: "a" },
-        operator: "delete" }
-    );
+  testParse("delete a", expr,
+    { type: "UnaryExpression",
+      operand: { type: "IdentifierExpression", name: "a" },
+      operator: "delete" }
+  );
 
-    testParse("+a", expr,
-      { type: "UnaryExpression",
-        operand: { type: "IdentifierExpression", name: "a" },
-        operator: "+" }
-    );
+  testParse("+a", expr,
+    { type: "UnaryExpression",
+      operand: { type: "IdentifierExpression", name: "a" },
+      operator: "+" }
+  );
 
-    testParse("~a", expr,
-      { type: "UnaryExpression",
-        operand: { type: "IdentifierExpression", name: "a" },
-        operator: "~" }
-    );
+  testParse("~a", expr,
+    { type: "UnaryExpression",
+      operand: { type: "IdentifierExpression", name: "a" },
+      operator: "~" }
+  );
 
-    testParse("-a", expr,
-      { type: "UnaryExpression",
-        operand: { type: "IdentifierExpression", name: "a" },
-        operator: "-" }
-    );
+  testParse("-a", expr,
+    { type: "UnaryExpression",
+      operand: { type: "IdentifierExpression", name: "a" },
+      operator: "-" }
+  );
 
-  });
 });

@@ -17,9 +17,12 @@
     }
   ],
   "scripts": {
-    "test": "node_modules/.bin/gulp",
-    "docs": "node_modules/.bin/gitbook build doc/book/",
-    "prepublish": "node_modules/.bin/gulp dist"
+    "test": "ava",
+    "smoke": "ava test/*.js !test/assertions.js",
+    "smoke:watch": "ava test/*.js !test/assertions.js --watch",
+    "report": "nyc ava && nyc report --reporter=html",
+    "docs": "gitbook build doc/book/",
+    "prepublish": "gulp dist"
   },
   "directories": {
     "test": "test"
@@ -39,6 +42,7 @@
     "transit-js": "^0.8.846"
   },
   "devDependencies": {
+    "ava": "^0.13.0",
     "babel": "^6.5.0",
     "babel-cli": "^6.5.0",
     "babel-plugin-syntax-flow": "^6.5.0",
@@ -51,6 +55,7 @@
     "gulp-sourcemaps": "^1.6.0",
     "gulp-webpack": "^1.5.0",
     "mocha": "^2.2.5",
+    "nyc": "^6.0.0",
     "source-map": "~0.1.31",
     "source-map-support": "^0.3.2"
   },
@@ -62,5 +67,19 @@
     "macros",
     "javascript"
   ],
-  "license": "BSD-2-Clause"
+  "license": "BSD-2-Clause",
+  "ava": {
+    "files": [
+      "test/*.js",
+      "test/declaration/*.js",
+      "test/destructuring/**/*.js",
+      "test/expressions/**/*.js",
+      "test/modules/**/*.js",
+      "test/statements/**/*.js",
+      "!test/assertions.js"
+    ],
+    "require": [
+      "babel-register"
+    ]
+  }
 }

@@ -15,28 +15,79 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("new.target expression", function () {
+test("new.target expression", function () {
 
-    testParse("function f() { new.target; }", stmt,
-      { type: "FunctionDeclaration",
-        isGenerator: false,
-        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-        params: { type: "FormalParameters", items: [], rest: null },
-        body: {
-          type: "FunctionBody",
-          directives: [],
-          statements: [{ type: "ExpressionStatement", expression: { type: "NewTargetExpression" } }]
-        }
+  testParse("function f() { new.target; }", stmt,
+    { type: "FunctionDeclaration",
+      isGenerator: false,
+      name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+      params: { type: "FormalParameters", items: [], rest: null },
+      body: {
+        type: "FunctionBody",
+        directives: [],
+        statements: [{ type: "ExpressionStatement", expression: { type: "NewTargetExpression" } }]
       }
-    );
+    }
+  );
 
-    testParse("function f(a = new.target){}", stmt,
-      { type: "FunctionDeclaration",
+  testParse("function f(a = new.target){}", stmt,
+    { type: "FunctionDeclaration",
+      isGenerator: false,
+      name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+      params: {
+        type: "FormalParameters",
+        items: [{
+          type: "BindingWithDefault",
+          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+          init: { type: "NewTargetExpression" }
+        }],
+        rest: null
+      },
+      body: { type: "FunctionBody", directives: [], statements: [] }
+    }
+  );
+
+  testParse("(function f(a = new.target){})", expr,
+    { type: "FunctionExpression",
+      isGenerator: false,
+      name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+      params: {
+        type: "FormalParameters",
+        items: [{
+          type: "BindingWithDefault",
+          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+          init: { type: "NewTargetExpression" }
+        }],
+        rest: null
+      },
+      body: { type: "FunctionBody", directives: [], statements: [] }
+    }
+  );
+
+  testParse("({ set m(a = new.target){} })", expr,
+    { type: "ObjectExpression",
+      properties: [{
+        type: "Setter",
+        name: { type: "StaticPropertyName", value: "m" },
+        param: {
+          type: "BindingWithDefault",
+          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+          init: { type: "NewTargetExpression" }
+        },
+        body: { type: "FunctionBody", directives: [], statements: [] }
+      }]
+    }
+  );
+
+  testParse("({ m(a = new.target){} })", expr,
+    { type: "ObjectExpression",
+      properties: [{
+        type: "Method",
         isGenerator: false,
-        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+        name: { type: "StaticPropertyName", value: "m" },
         params: {
           type: "FormalParameters",
           items: [{
@@ -47,140 +98,88 @@ describe("Parser", function () {
           rest: null
         },
         body: { type: "FunctionBody", directives: [], statements: [] }
-      }
-    );
+      }]
+    }
+  );
 
-    testParse("(function f(a = new.target){})", expr,
-      { type: "FunctionExpression",
-        isGenerator: false,
-        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-        params: {
-          type: "FormalParameters",
-          items: [{
-            type: "BindingWithDefault",
-            binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-            init: { type: "NewTargetExpression" }
-          }],
-          rest: null
-        },
-        body: { type: "FunctionBody", directives: [], statements: [] }
-      }
-    );
+  testParse("({ get m(){ new.target } })", expr,
+    { type: "ObjectExpression",
+      properties: [{
+        type: "Getter",
+        name: { type: "StaticPropertyName", value: "m" },
+        body: { type: "FunctionBody", directives: [], statements: [{
+          type: "ExpressionStatement", expression: { type: "NewTargetExpression" }
+        }] }
+      }]
+    }
+  );
 
-    testParse("({ set m(a = new.target){} })", expr,
-      { type: "ObjectExpression",
-        properties: [{
-          type: "Setter",
-          name: { type: "StaticPropertyName", value: "m" },
-          param: {
-            type: "BindingWithDefault",
-            binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-            init: { type: "NewTargetExpression" }
-          },
-          body: { type: "FunctionBody", directives: [], statements: [] }
+  // testParse("function f() { new.\\u0074arget; }", stmt,
+  //   { type: "FunctionDeclaration",
+  //     isGenerator: false,
+  //     name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //     params: { type: "FormalParameters", items: [], rest: null },
+  //     body: {
+  //       type: "FunctionBody",
+  //       directives: [],
+  //       statements: [{ type: "ExpressionStatement", expression: { type: "NewTargetExpression" } }]
+  //     }
+  //   }
+  // );
+
+  testParse("function f() { new new.target; }", stmt,
+    { type: "FunctionDeclaration",
+      isGenerator: false,
+      name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+      params: { type: "FormalParameters", items: [], rest: null },
+      body: {
+        type: "FunctionBody",
+        directives: [],
+        statements: [{
+          type: "ExpressionStatement",
+          expression: { type: "NewExpression", callee: { type: "NewTargetExpression" }, arguments: [] }
         }]
       }
-    );
+    }
+  );
 
-    testParse("({ m(a = new.target){} })", expr,
-      { type: "ObjectExpression",
-        properties: [{
-          type: "Method",
-          isGenerator: false,
-          name: { type: "StaticPropertyName", value: "m" },
-          params: {
-            type: "FormalParameters",
-            items: [{
-              type: "BindingWithDefault",
-              binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-              init: { type: "NewTargetExpression" }
-            }],
-            rest: null
-          },
-          body: { type: "FunctionBody", directives: [], statements: [] }
+  testParse("function f() { new.target(); }", stmt,
+    { type: "FunctionDeclaration",
+      isGenerator: false,
+      name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+      params: { type: "FormalParameters", items: [], rest: null },
+      body: {
+        type: "FunctionBody",
+        directives: [],
+        statements: [{
+          type: "ExpressionStatement",
+          expression: { type: "CallExpression", callee: { type: "NewTargetExpression" }, arguments: [] }
         }]
       }
-    );
+    }
+  );
 
-    testParse("({ get m(){ new.target } })", expr,
-      { type: "ObjectExpression",
-        properties: [{
-          type: "Getter",
-          name: { type: "StaticPropertyName", value: "m" },
-          body: { type: "FunctionBody", directives: [], statements: [{
-            type: "ExpressionStatement", expression: { type: "NewTargetExpression" }
-          }] }
-        }]
-      }
-    );
+  // testParse("function f() { new[\"target\"]; }", stmt,
+  //   { type: "FunctionDeclaration",
+  //     isGenerator: false,
+  //     name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //     params: { type: "FormalParameters", items: [], rest: null },
+  //     body: {
+  //       type: "FunctionBody",
+  //       directives: [],
+  //       statements: [{
+  //         type: "ExpressionStatement",
+  //         expression: {
+  //           type: "NewExpression",
+  //           callee: { type: "ArrayExpression", elements: [{ type: "LiteralStringExpression", value: "target" }] },
+  //           arguments: []
+  //         }
+  //       }]
+  //     }
+  //   }
+  // );
 
-    // testParse("function f() { new.\\u0074arget; }", stmt,
-    //   { type: "FunctionDeclaration",
-    //     isGenerator: false,
-    //     name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-    //     params: { type: "FormalParameters", items: [], rest: null },
-    //     body: {
-    //       type: "FunctionBody",
-    //       directives: [],
-    //       statements: [{ type: "ExpressionStatement", expression: { type: "NewTargetExpression" } }]
-    //     }
-    //   }
-    // );
+  // testParseFailure("function f() { new.anythingElse; }", "Unexpected identifier");
+  // testParseFailure("function f() { new..target; }", "Unexpected token \".\"");
 
-    testParse("function f() { new new.target; }", stmt,
-      { type: "FunctionDeclaration",
-        isGenerator: false,
-        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-        params: { type: "FormalParameters", items: [], rest: null },
-        body: {
-          type: "FunctionBody",
-          directives: [],
-          statements: [{
-            type: "ExpressionStatement",
-            expression: { type: "NewExpression", callee: { type: "NewTargetExpression" }, arguments: [] }
-          }]
-        }
-      }
-    );
-
-    testParse("function f() { new.target(); }", stmt,
-      { type: "FunctionDeclaration",
-        isGenerator: false,
-        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-        params: { type: "FormalParameters", items: [], rest: null },
-        body: {
-          type: "FunctionBody",
-          directives: [],
-          statements: [{
-            type: "ExpressionStatement",
-            expression: { type: "CallExpression", callee: { type: "NewTargetExpression" }, arguments: [] }
-          }]
-        }
-      }
-    );
-
-    // testParse("function f() { new[\"target\"]; }", stmt,
-    //   { type: "FunctionDeclaration",
-    //     isGenerator: false,
-    //     name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-    //     params: { type: "FormalParameters", items: [], rest: null },
-    //     body: {
-    //       type: "FunctionBody",
-    //       directives: [],
-    //       statements: [{
-    //         type: "ExpressionStatement",
-    //         expression: {
-    //           type: "NewExpression",
-    //           callee: { type: "ArrayExpression", elements: [{ type: "LiteralStringExpression", value: "target" }] },
-    //           arguments: []
-    //         }
-    //       }]
-    //     }
-    //   }
-    // );
-
-    // testParseFailure("function f() { new.anythingElse; }", "Unexpected identifier");
-    // testParseFailure("function f() { new..target; }", "Unexpected token \".\"");
-
-  });
 });

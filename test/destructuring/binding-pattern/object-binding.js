@@ -15,253 +15,252 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("object binding", function () {
-      testParse("var {a} = 0;", stmt,
-        {
-          type: "VariableDeclarationStatement",
-          declaration: {
-            type: "VariableDeclaration",
-            kind: "var",
-            declarators: [{
-              type: "VariableDeclarator",
-              binding: {
+test("object binding", function () {
+    testParse("var {a} = 0;", stmt,
+      {
+        type: "VariableDeclarationStatement",
+        declaration: {
+          type: "VariableDeclaration",
+          kind: "var",
+          declarators: [{
+            type: "VariableDeclarator",
+            binding: {
+              type: "ObjectBinding",
+              properties: [{
+                type: "BindingPropertyIdentifier",
+                binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+                init: null
+              }]
+            },
+            init: { type: "LiteralNumericExpression", value: 0 }
+          }]
+        }
+      }
+    );
+
+    testParse("var [{a = 0}] = 0;", stmt,
+      {
+        type: "VariableDeclarationStatement",
+        declaration: {
+          type: "VariableDeclaration",
+          kind: "var",
+          declarators: [{
+            type: "VariableDeclarator",
+            binding: {
+              type: "ArrayBinding",
+              elements: [{
                 type: "ObjectBinding",
                 properties: [{
                   type: "BindingPropertyIdentifier",
                   binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-                  init: null
+                  init: { type: "LiteralNumericExpression", value: 0 }
                 }]
-              },
-              init: { type: "LiteralNumericExpression", value: 0 }
-            }]
-          }
+              }],
+              restElement: null
+            },
+            init: { type: "LiteralNumericExpression", value: 0 }
+          }]
         }
-      );
+      }
+    );
 
-      testParse("var [{a = 0}] = 0;", stmt,
-        {
-          type: "VariableDeclarationStatement",
-          declaration: {
-            type: "VariableDeclaration",
-            kind: "var",
-            declarators: [{
-              type: "VariableDeclarator",
-              binding: {
-                type: "ArrayBinding",
-                elements: [{
-                  type: "ObjectBinding",
-                  properties: [{
-                    type: "BindingPropertyIdentifier",
-                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-                    init: { type: "LiteralNumericExpression", value: 0 }
-                  }]
-                }],
-                restElement: null
-              },
-              init: { type: "LiteralNumericExpression", value: 0 }
-            }]
-          }
-        }
-      );
-
-      testParse("var [{__proto__:a, __proto__:b}] = 0;", stmt,
-        {
-          type: "VariableDeclarationStatement",
-          declaration: {
-            type: "VariableDeclaration",
-            kind: "var",
-            declarators: [{
-              type: "VariableDeclarator",
-              binding: {
-                type: "ArrayBinding",
-                elements: [{
-                  type: "ObjectBinding",
-                  properties: [{
-                    type: "BindingPropertyProperty",
-                    name: { type: "StaticPropertyName", value: "__proto__" },
-                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
-                  }, {
-                    type: "BindingPropertyProperty",
-                    name: { type: "StaticPropertyName", value: "__proto__" },
-                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
-                  }]
-                }],
-                restElement: null
-              },
-              init: { type: "LiteralNumericExpression", value: 0 }
-            }]
-          }
-        }
-      );
-
-      testParse("var {a, x: {y: a}} = 0;", stmt,
-        {
-          type: "VariableDeclarationStatement",
-          declaration: {
-            type: "VariableDeclaration",
-            kind: "var",
-            declarators: [{
-              type: "VariableDeclarator",
-              binding: {
+    testParse("var [{__proto__:a, __proto__:b}] = 0;", stmt,
+      {
+        type: "VariableDeclarationStatement",
+        declaration: {
+          type: "VariableDeclaration",
+          kind: "var",
+          declarators: [{
+            type: "VariableDeclarator",
+            binding: {
+              type: "ArrayBinding",
+              elements: [{
                 type: "ObjectBinding",
                 properties: [{
-                  type: "BindingPropertyIdentifier",
-                  binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-                  init: null
+                  type: "BindingPropertyProperty",
+                  name: { type: "StaticPropertyName", value: "__proto__" },
+                  binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
                 }, {
                   type: "BindingPropertyProperty",
-                  name: { type: "StaticPropertyName", value: "x" },
-                  binding: {
-                    type: "ObjectBinding",
-                    properties: [{
-                      type: "BindingPropertyProperty",
-                      name: { type: "StaticPropertyName", value: "y" },
-                      binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
-                    }]
-                  }
+                  name: { type: "StaticPropertyName", value: "__proto__" },
+                  binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
                 }]
-              },
-              init: { type: "LiteralNumericExpression", value: 0 }
-            }]
-          }
+              }],
+              restElement: null
+            },
+            init: { type: "LiteralNumericExpression", value: 0 }
+          }]
         }
-      );
+      }
+    );
 
-      testParse("var a, {x: {y: a}} = 0;", stmt,
-        {
-          type: "VariableDeclarationStatement",
-          declaration: {
-            type: "VariableDeclaration",
-            kind: "var",
-            declarators: [{
-              type: "VariableDeclarator",
-              binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-              init: null
-            }, {
-              type: "VariableDeclarator",
-              binding: {
-                type: "ObjectBinding",
-                properties: [{
-                  type: "BindingPropertyProperty",
-                  name: { type: "StaticPropertyName", value: "x" },
-                  binding: {
-                    type: "ObjectBinding",
-                    properties: [{
-                      type: "BindingPropertyProperty",
-                      name: { type: "StaticPropertyName", value: "y" },
-                      binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
-                    }]
-                  }
-                }]
-              },
-              init: { type: "LiteralNumericExpression", value: 0 }
-            }]
-          }
+    testParse("var {a, x: {y: a}} = 0;", stmt,
+      {
+        type: "VariableDeclarationStatement",
+        declaration: {
+          type: "VariableDeclaration",
+          kind: "var",
+          declarators: [{
+            type: "VariableDeclarator",
+            binding: {
+              type: "ObjectBinding",
+              properties: [{
+                type: "BindingPropertyIdentifier",
+                binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+                init: null
+              }, {
+                type: "BindingPropertyProperty",
+                name: { type: "StaticPropertyName", value: "x" },
+                binding: {
+                  type: "ObjectBinding",
+                  properties: [{
+                    type: "BindingPropertyProperty",
+                    name: { type: "StaticPropertyName", value: "y" },
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
+                  }]
+                }
+              }]
+            },
+            init: { type: "LiteralNumericExpression", value: 0 }
+          }]
         }
-      );
+      }
+    );
 
-      testParse("var {let, yield} = 0;", stmt,
-        {
-          type: "VariableDeclarationStatement",
-          declaration: {
-            type: "VariableDeclaration",
-            kind: "var",
-            declarators: [{
-              type: "VariableDeclarator",
-              binding: {
-                type: "ObjectBinding",
-                properties: [
-                  {
-                    type: "BindingPropertyIdentifier",
-                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-                    init: null
-                  },
-                  {
-                    type: "BindingPropertyIdentifier",
-                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-                    init: null
-                  }
-                ]
-              },
-              init: { type: "LiteralNumericExpression", value: 0 }
-            }]
-          }
+    testParse("var a, {x: {y: a}} = 0;", stmt,
+      {
+        type: "VariableDeclarationStatement",
+        declaration: {
+          type: "VariableDeclaration",
+          kind: "var",
+          declarators: [{
+            type: "VariableDeclarator",
+            binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+            init: null
+          }, {
+            type: "VariableDeclarator",
+            binding: {
+              type: "ObjectBinding",
+              properties: [{
+                type: "BindingPropertyProperty",
+                name: { type: "StaticPropertyName", value: "x" },
+                binding: {
+                  type: "ObjectBinding",
+                  properties: [{
+                    type: "BindingPropertyProperty",
+                    name: { type: "StaticPropertyName", value: "y" },
+                    binding: { type: "BindingIdentifier", name: "<<hygiene>>" }
+                  }]
+                }
+              }]
+            },
+            init: { type: "LiteralNumericExpression", value: 0 }
+          }]
         }
-      );
+      }
+    );
 
-      // testParseFailure("var {a: b.c} = 0;", "Unexpected token \".\"");
-    // });
+    testParse("var {let, yield} = 0;", stmt,
+      {
+        type: "VariableDeclarationStatement",
+        declaration: {
+          type: "VariableDeclaration",
+          kind: "var",
+          declarators: [{
+            type: "VariableDeclarator",
+            binding: {
+              type: "ObjectBinding",
+              properties: [
+                {
+                  type: "BindingPropertyIdentifier",
+                  binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+                  init: null
+                },
+                {
+                  type: "BindingPropertyIdentifier",
+                  binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+                  init: null
+                }
+              ]
+            },
+            init: { type: "LiteralNumericExpression", value: 0 }
+          }]
+        }
+      }
+    );
 
-    // suite("formal parameter", function () {
-    //   testParse("(a, b, [c]) => 0", expr, {
-    //     type: "ArrowExpression",
-    //     params: {
-    //       type: "FormalParameters",
-    //       items: [
-    //         { type: "BindingIdentifier", name: "a" },
-    //         { type: "BindingIdentifier", name: "b" },
-    //         { type: "ArrayBinding", elements: [{ type: "BindingIdentifier", name: "c" }], restElement: null }],
-    //       rest: null
-    //     },
-    //     body: {
-    //       type: "LiteralNumericExpression", value: 0
-    //     }
-    //   });
-    //
-    //   // other passing cases are tested in other function test cases.
-    //   testParseFailure("({e: a.b}) => 0", "Illegal arrow function parameter list");
-    //   testParseFailure("function a({e: a.b}) {}", "Unexpected token \".\"");
-    //   testParseFailure("function* a({e: a.b}) {}", "Unexpected token \".\"");
-    //   testParseFailure("(function ({e: a.b}) {})", "Unexpected token \".\"");
-    //   testParseFailure("(function* ({e: a.b}) {})", "Unexpected token \".\"");
-    //   testParseFailure("({a({e: a.b}){}})", "Unexpected token \".\"");
-    //   testParseFailure("({*a({e: a.b}){}})", "Unexpected token \".\"");
-    //   testParseFailure("({set a({e: a.b}){}})", "Unexpected token \".\"");
-    //
-    // });
-    //
-    // suite("catch clause", function () {
-    //   testParse("try {} catch ({e}) {}", stmt,
-    //     {
-    //       type: "TryCatchStatement",
-    //       body: { type: "Block", statements: [] },
-    //       catchClause: {
-    //         type: "CatchClause",
-    //         binding: {
-    //           type: "ObjectBinding",
-    //           properties: [{
-    //             type: "BindingPropertyIdentifier",
-    //             binding: { type: "BindingIdentifier", name: "e" },
-    //             init: null
-    //           }]
-    //         },
-    //         body: { type: "Block", statements: [] }
-    //       }
-    //     }
-    //   );
-    //
-    //   testParse("try {} catch ({e = 0}) {}", stmt,
-    //     {
-    //       type: "TryCatchStatement",
-    //       body: { type: "Block", statements: [] },
-    //       catchClause: {
-    //         type: "CatchClause",
-    //         binding: {
-    //           type: "ObjectBinding",
-    //           properties: [{
-    //             type: "BindingPropertyIdentifier",
-    //             binding: { type: "BindingIdentifier", name: "e" },
-    //             init: { type: "LiteralNumericExpression", value: 0 }
-    //           }]
-    //         },
-    //         body: { type: "Block", statements: [] }
-    //       }
-    //     }
-    //   );
-    //
-    //   testParseFailure("try {} catch ({e: x.a}) {}", "Unexpected token \".\"");
-  });
+    // testParseFailure("var {a: b.c} = 0;", "Unexpected token \".\"");
+  // });
+
+  // suite("formal parameter", function () {
+  //   testParse("(a, b, [c]) => 0", expr, {
+  //     type: "ArrowExpression",
+  //     params: {
+  //       type: "FormalParameters",
+  //       items: [
+  //         { type: "BindingIdentifier", name: "a" },
+  //         { type: "BindingIdentifier", name: "b" },
+  //         { type: "ArrayBinding", elements: [{ type: "BindingIdentifier", name: "c" }], restElement: null }],
+  //       rest: null
+  //     },
+  //     body: {
+  //       type: "LiteralNumericExpression", value: 0
+  //     }
+  //   });
+  //
+  //   // other passing cases are tested in other function test cases.
+  //   testParseFailure("({e: a.b}) => 0", "Illegal arrow function parameter list");
+  //   testParseFailure("function a({e: a.b}) {}", "Unexpected token \".\"");
+  //   testParseFailure("function* a({e: a.b}) {}", "Unexpected token \".\"");
+  //   testParseFailure("(function ({e: a.b}) {})", "Unexpected token \".\"");
+  //   testParseFailure("(function* ({e: a.b}) {})", "Unexpected token \".\"");
+  //   testParseFailure("({a({e: a.b}){}})", "Unexpected token \".\"");
+  //   testParseFailure("({*a({e: a.b}){}})", "Unexpected token \".\"");
+  //   testParseFailure("({set a({e: a.b}){}})", "Unexpected token \".\"");
+  //
+  // });
+  //
+  // suite("catch clause", function () {
+  //   testParse("try {} catch ({e}) {}", stmt,
+  //     {
+  //       type: "TryCatchStatement",
+  //       body: { type: "Block", statements: [] },
+  //       catchClause: {
+  //         type: "CatchClause",
+  //         binding: {
+  //           type: "ObjectBinding",
+  //           properties: [{
+  //             type: "BindingPropertyIdentifier",
+  //             binding: { type: "BindingIdentifier", name: "e" },
+  //             init: null
+  //           }]
+  //         },
+  //         body: { type: "Block", statements: [] }
+  //       }
+  //     }
+  //   );
+  //
+  //   testParse("try {} catch ({e = 0}) {}", stmt,
+  //     {
+  //       type: "TryCatchStatement",
+  //       body: { type: "Block", statements: [] },
+  //       catchClause: {
+  //         type: "CatchClause",
+  //         binding: {
+  //           type: "ObjectBinding",
+  //           properties: [{
+  //             type: "BindingPropertyIdentifier",
+  //             binding: { type: "BindingIdentifier", name: "e" },
+  //             init: { type: "LiteralNumericExpression", value: 0 }
+  //           }]
+  //         },
+  //         body: { type: "Block", statements: [] }
+  //       }
+  //     }
+  //   );
+  //
+  //   testParseFailure("try {} catch ({e: x.a}) {}", "Unexpected token \".\"");
 });

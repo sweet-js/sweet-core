@@ -15,113 +15,112 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("for of statement", function () {
-    testParse("for (var x of list) process(x);", stmt,
-      {
-        type: "ForOfStatement",
-        left: {
-          type: "VariableDeclaration",
-          kind: "var",
-          declarators: [{ type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "x" }, init: null }]
-        },
-        right: { type: "IdentifierExpression", name: "list" },
-        body: {
-          type: "ExpressionStatement",
-          expression: {
-            type: "CallExpression",
-            callee: { type: "IdentifierExpression", name: "process" },
-            arguments: [{ type: "IdentifierExpression", name: "x" }]
-          }
+test("for of statement", function () {
+  testParse("for (var x of list) process(x);", stmt,
+    {
+      type: "ForOfStatement",
+      left: {
+        type: "VariableDeclaration",
+        kind: "var",
+        declarators: [{ type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "x" }, init: null }]
+      },
+      right: { type: "IdentifierExpression", name: "list" },
+      body: {
+        type: "ExpressionStatement",
+        expression: {
+          type: "CallExpression",
+          callee: { type: "IdentifierExpression", name: "process" },
+          arguments: [{ type: "IdentifierExpression", name: "x" }]
         }
       }
-    );
+    }
+  );
 
-    testParse("for(var a of b);", stmt,
-      {
-        type: "ForOfStatement",
-        left: {
-          type: "VariableDeclaration",
-          kind: "var",
-          declarators: [{ type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "a" }, init: null }]
-        },
-        right: { type: "IdentifierExpression", name: "b" },
-        body: { type: "EmptyStatement" }
-      }
-    );
+  testParse("for(var a of b);", stmt,
+    {
+      type: "ForOfStatement",
+      left: {
+        type: "VariableDeclaration",
+        kind: "var",
+        declarators: [{ type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "a" }, init: null }]
+      },
+      right: { type: "IdentifierExpression", name: "b" },
+      body: { type: "EmptyStatement" }
+    }
+  );
 
-    testParse("for(a of b);", stmt,
-      {
-        type: "ForOfStatement",
-        left: { type: "BindingIdentifier", name: "a" },
-        right: { type: "IdentifierExpression", name: "b" },
-        body: { type: "EmptyStatement" }
-      }
-    );
+  testParse("for(a of b);", stmt,
+    {
+      type: "ForOfStatement",
+      left: { type: "BindingIdentifier", name: "a" },
+      right: { type: "IdentifierExpression", name: "b" },
+      body: { type: "EmptyStatement" }
+    }
+  );
 
-    // testParse("for(let [a] of b);", stmt,
-    //   {
-    //     type: "ForOfStatement",
-    //     left: {
-    //       type: "VariableDeclaration",
-    //       kind: "let",
-    //       declarators: [{
-    //         type: "VariableDeclarator",
-    //         binding: {
-    //           type: "ArrayBinding",
-    //           elements: [{ type: "BindingIdentifier", name: "a" }],
-    //           restElement: null
-    //         },
-    //         init: null
-    //       }]
-    //     },
-    //     right: { type: "IdentifierExpression", name: "b" },
-    //     body: { type: "EmptyStatement" }
-    //   }
-    // );
+  // testParse("for(let [a] of b);", stmt,
+  //   {
+  //     type: "ForOfStatement",
+  //     left: {
+  //       type: "VariableDeclaration",
+  //       kind: "let",
+  //       declarators: [{
+  //         type: "VariableDeclarator",
+  //         binding: {
+  //           type: "ArrayBinding",
+  //           elements: [{ type: "BindingIdentifier", name: "a" }],
+  //           restElement: null
+  //         },
+  //         init: null
+  //       }]
+  //     },
+  //     right: { type: "IdentifierExpression", name: "b" },
+  //     body: { type: "EmptyStatement" }
+  //   }
+  // );
 
-    testParse("for(let of of b);", stmt,
-      {
-        type: "ForOfStatement",
-        left: {
-          type: "VariableDeclaration",
-          kind: "let",
-          declarators: [{
-            type: "VariableDeclarator",
-            binding: { type: "BindingIdentifier", name: "of" },
-            init: null
-          }]
-        },
-        right: { type: "IdentifierExpression", name: "b" },
-        body: { type: "EmptyStatement" }
-      }
-    );
+  testParse("for(let of of b);", stmt,
+    {
+      type: "ForOfStatement",
+      left: {
+        type: "VariableDeclaration",
+        kind: "let",
+        declarators: [{
+          type: "VariableDeclarator",
+          binding: { type: "BindingIdentifier", name: "of" },
+          init: null
+        }]
+      },
+      right: { type: "IdentifierExpression", name: "b" },
+      body: { type: "EmptyStatement" }
+    }
+  );
 
-    testParse("for(const a of b);", stmt,
-      {
-        type: "ForOfStatement",
-        left: {
-          type: "VariableDeclaration",
-          kind: "const",
-          declarators: [{
-            type: "VariableDeclarator",
-            binding: { type: "BindingIdentifier", name: "a" },
-            init: null
-          }]
-        },
-        right: { type: "IdentifierExpression", name: "b" },
-        body: { type: "EmptyStatement" }
-      }
-    );
+  testParse("for(const a of b);", stmt,
+    {
+      type: "ForOfStatement",
+      left: {
+        type: "VariableDeclaration",
+        kind: "const",
+        declarators: [{
+          type: "VariableDeclarator",
+          binding: { type: "BindingIdentifier", name: "a" },
+          init: null
+        }]
+      },
+      right: { type: "IdentifierExpression", name: "b" },
+      body: { type: "EmptyStatement" }
+    }
+  );
 
-    testParseFailure("for(let of 0);", "Unexpected number");
-    testParseFailure("for(this of 0);", "Invalid left-hand side in for-of");
+  testParseFailure("for(let of 0);", "Unexpected number");
+  testParseFailure("for(this of 0);", "Invalid left-hand side in for-of");
 
-    testParseFailure("for(var a = 0 of b);", "Invalid variable declaration in for-of statement");
-    testParseFailure("for(let a = 0 of b);", "Invalid variable declaration in for-of statement");
-    testParseFailure("for(const a = 0 of b);", "Invalid variable declaration in for-of statement");
+  testParseFailure("for(var a = 0 of b);", "Invalid variable declaration in for-of statement");
+  testParseFailure("for(let a = 0 of b);", "Invalid variable declaration in for-of statement");
+  testParseFailure("for(const a = 0 of b);", "Invalid variable declaration in for-of statement");
 
-  });
 });

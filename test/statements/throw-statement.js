@@ -15,28 +15,28 @@
  */
 
 import expect from "expect.js";
-import { expr, stmt, testParse, testParseFailure } from "./assertions";
+import { expr, stmt, testParse, testParseFailure } from "../assertions";
+import test from 'ava';
 
-describe("Parser", function () {
-  it("throw statement", function () {
 
-    testParse("throw this", stmt, { type: "ThrowStatement", expression: { type: "ThisExpression" } });
+test("throw statement", function () {
 
-    testParse( "throw x;", stmt,
-      { type: "ThrowStatement",
-        expression: { type: "IdentifierExpression", name: "x" } }
-    );
+  testParse("throw this", stmt, { type: "ThrowStatement", expression: { type: "ThisExpression" } });
 
-    testParse("throw x * y", stmt,
-      { type: "ThrowStatement",
-        expression:
-          { type: "BinaryExpression",
-            operator: "*",
-            left: { type: "IdentifierExpression", name: "x" },
-            right: { type: "IdentifierExpression", name: "y" } } }
-    );
+  testParse( "throw x;", stmt,
+    { type: "ThrowStatement",
+      expression: { type: "IdentifierExpression", name: "x" } }
+  );
 
-    testParse("throw {}", stmt, { type: "ThrowStatement", expression: { type: "ObjectExpression", properties: [] } });
+  testParse("throw x * y", stmt,
+    { type: "ThrowStatement",
+      expression:
+        { type: "BinaryExpression",
+          operator: "*",
+          left: { type: "IdentifierExpression", name: "x" },
+          right: { type: "IdentifierExpression", name: "y" } } }
+  );
 
-  });
+  testParse("throw {}", stmt, { type: "ThrowStatement", expression: { type: "ObjectExpression", properties: [] } });
+
 });
