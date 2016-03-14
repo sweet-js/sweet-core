@@ -8,8 +8,11 @@ A syntax transformer is a function bound to a compile-time name. A syntax transf
 
 ```js
 syntax inc = function (ctx) {
-  let x = ctx.next().value;
-  return #`${x} + 1`;
+  let x = ctx.next();
+  if (!x.done) {
+    return #`${x.value} + 1`;
+  }
+  throw new Error('Must provide a syntax argument to inc');
 }
 inc 100
 ```
@@ -28,30 +31,26 @@ class TransformerContext {
     done: boolean,
     value: Term
   }
-
-  of: (Syntax) -> TransformerContext
 }
 ```
 
 Each call to `next` returns the syntax object following the transformer call. If `next` is called with a string, the specified grammar production is matched and a corresponding [`Term`](terms.md) is returned instead of a syntax object.
 
-The `of` method constructs a new `TransformerContext` using the provided syntax object as the context. This used to handle matching syntax inside delimiter syntax objects:
+For delimiter syntax objects, the `inner` method provides an iterator into the syntax inside of the delimiter:
 
 ```js
 syntax m = function (ctx) {
   let paren = ctx.next().value;
-  let parenCtx = ctx.of(paren);
-  let items = [];
+  let parenCtx = paren.inner();
 
-  for (let i of parenCtx) {
+  let items = [];
+  for (let k of parenCtx) {
     items.push(k)
   }
   return #`[${items}]`;
 }
 m (1, 2, 3)
 ```
-
-Note in the above example that since a `TransformerContext` is an iterable, the `for-of` loop works as expected.
 
 ## Syntax Templates
 
