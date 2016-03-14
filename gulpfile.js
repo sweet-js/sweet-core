@@ -32,14 +32,14 @@ gulp.task('build:src', function () {
     .pipe(gulp.dest("build/src/"));
 });
 
-gulp.task('build:test', function () {
-  return gulp.src(testFiles)
-    .pipe(sourcemaps.init())
-    .pipe(babel())
-    .pipe(sourcemaps.write("."))
-    .pipe(gulp.dest("build/test/"));
-});
-
+// gulp.task('build:test', function () {
+//   return gulp.src(testFiles)
+//     .pipe(sourcemaps.init())
+//     .pipe(babel())
+//     .pipe(sourcemaps.write("."))
+//     .pipe(gulp.dest("build/test/"));
+// });
+//
 gulp.task('build:browser', ['dist'], function () {
   return gulp.src('dist/sweet.js')
     .pipe(sourcemaps.init())
@@ -54,24 +54,24 @@ gulp.task('build:browser', ['dist'], function () {
     .pipe(gulp.dest("browser/scripts/"));
 });
 
-gulp.task('build', ['build:src', 'build:test']);
+gulp.task('build', ['build:src']);
 
-gulp.task('mocha', ['build:src', 'build:test'], function () {
-  return gulp.src('build/test/**/*.js', { read: false })
-    .pipe(mocha({
-      reporter: 'nyan'
-    }));
-});
+// gulp.task('mocha', ['build:src', 'build:test'], function () {
+//   return gulp.src('build/test/**/*.js', { read: false })
+//     .pipe(mocha({
+//       reporter: 'nyan'
+//     }));
+// });
+//
+// gulp.task('mocha:single', ['build:src', 'build:test'], function () {
+//   return gulp.src('build/test/**/test_modules.js', { read: false })
+//     .pipe(mocha({
+//       reporter: 'nyan'
+//     }));
+// });
 
-gulp.task('mocha:single', ['build:src', 'build:test'], function () {
-  return gulp.src('build/test/**/test_modules.js', { read: false })
-    .pipe(mocha({
-      reporter: 'nyan'
-    }));
-});
 
-
-gulp.task('default', ['mocha']);
+gulp.task('default', ['build']);
 
 gulp.task("dist", function () {
   return gulp.src(srcFiles)

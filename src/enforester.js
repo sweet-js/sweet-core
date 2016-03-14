@@ -35,6 +35,7 @@ import {
 import Syntax from "./syntax";
 
 import { freshScope } from "./scope";
+import { sanitizeReplacementValues } from './load-syntax';
 
 import MacroContext from "./macro-context";
 
@@ -1802,10 +1803,7 @@ export class Enforester {
 
     let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 
-    let result = syntaxTransform.value.call(null, ctx);
-    if (Array.isArray(result)) {
-      result = List(result);
-    }
+    let result = sanitizeReplacementValues(syntaxTransform.value.call(null, ctx));
     if (!List.isList(result)) {
       throw this.createError(name, "macro must return a list but got: " + result);
     }

@@ -160,12 +160,12 @@ test('should handle the full macro context api', () => {
       let parens = ctx.next().value;
       let body = ctx.next().value;
 
-      let parenCtx = ctx.of(parens);
+      let parenCtx = parens.inner();
       let paren_id = parenCtx.next().value;
       parenCtx.next() // =
       let paren_init = parenCtx.next('expr').value;
 
-      let bodyCtx = ctx.of(body);
+      let bodyCtx = body.inner();
       let b = [];
       for (let s of bodyCtx) {
         b.push(s);
@@ -180,4 +180,21 @@ test('should handle the full macro context api', () => {
     def foo (x = 10 + 100) { return x; }
     output = foo();
     `, 110);
+});
+
+test('should handle iterators inside a syntax template', t => {
+  testEval(`
+    syntax let = function (ctx) {
+      let ident = ctx.next().value;
+      ctx.next();
+      let init = ctx.next('expr').value;
+      return #\`
+        (function (\${ident}) {
+          \${ctx}
+        }(\${init}))
+      \`
+    }
+    let x = 42;
+    output = x;
+  `, 42);
 });

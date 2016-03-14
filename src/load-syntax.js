@@ -14,20 +14,24 @@ import Term, {
 } from "./terms";
 import Reader from './shift-reader';
 
-import { replaceTemplate }from './template-processor';
+import { unwrap } from './macro-context';
+
+import { replaceTemplate } from './template-processor';
 
 // indirect eval so in the global scope
 let geval = eval;
 
-function sanitizeReplacementValues(values) {
+export function sanitizeReplacementValues(values) {
   if (Array.isArray(values)) {
     return sanitizeReplacementValues(List(values));
   } else if (List.isList(values)) {
     return values.map(sanitizeReplacementValues);
   } else if (values == null) {
     throw new Error("replacement values for syntax template must not but null or undefined");
+  } else if (typeof values.next === 'function') {
+    return sanitizeReplacementValues(List(values));
   }
-  return values;
+  return unwrap(values);
 }
 
 // (Expression, Context) -> [function]

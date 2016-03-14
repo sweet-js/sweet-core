@@ -2,6 +2,124 @@ import MapSyntaxReducer from "./map-syntax-reducer";
 import reducer from "shift-reducer";
 import { List } from 'immutable';
 import { Enforester } from './enforester';
+import Syntax from './syntax';
+import * as _ from 'ramda';
+import { Maybe } from 'ramda-fantasy';
+const Just = Maybe.Just;
+const Nothing = Maybe.Nothing;
+
+const symWrap = Symbol('wrapper');
+
+const isKind = _.curry((kind, t, v) => {
+  if (t instanceof Syntax) {
+    return t[kind]() && (v == null || t.val() == v);
+  }
+});
+
+const isKeyword = isKind('isKeyword');
+const isIdentifier = isKind('isIdentifier');
+const isNumericLiteral = isKind('isNumericLiteral');
+const isStringLiteral = isKind('isStringLiteral');
+const isNullLiteral = isKind('isNullLiteral');
+const isPunctuator = isKind('isPunctuator');
+const isRegularExpression = isKind('isRegularExpression');
+const isBraces = isKind('isBraces');
+const isBrackets = isKind('isBrackets');
+const isParens = isKind('isParens');
+const isDelimiter = isKind('isDelimiter');
+
+const getLineNumber = t => {
+  if (t instanceof Syntax) {
+    return t.lineNumber();
+  }
+  throw new Error('Line numbers on terms not implemented yet');
+};
+
+const getVal = t => {
+  if (isDelimiter(t)) {
+    return Nothing();
+  }
+  if (t instanceof Syntax) {
+    return Just(t.val());
+  }
+  return Nothing();
+};
+
+export class SyntaxOrTermWrapper {
+  constructor(s, context = {}) {
+    this[symWrap] = s;
+    this.context = context;
+  }
+
+  isKeyword(value) {
+    return isKeyword(this[symWrap], value);
+  }
+
+  isIdentifier(value) {
+    return isIdentifier(this[symWrap], value);
+  }
+
+  isNumericLiteral(value) {
+    return isNumericLiteral(this[symWrap], value);
+  }
+
+  isStringLiteral(value) {
+    return isStringLiteral(this[symWrap], value);
+  }
+
+  isNullLiteral(value) {
+    return isNullLiteral(this[symWrap], value);
+  }
+
+  isPunctuator(value) {
+    return isPunctuator(this[symWrap], value);
+  }
+
+  isRegularExpression(value) {
+    return isRegularExpression(this[symWrap], value);
+  }
+
+  isBraces(value) {
+    return isBraces(this[symWrap], value);
+  }
+
+  isBrackets(value) {
+    return isBrackets(this[symWrap], value);
+  }
+
+  isParens(value) {
+    return isParens(this[symWrap], value);
+  }
+
+  isDelimiter(value) {
+    return isDelimiter(this[symWrap], value);
+  }
+
+  lineNumber() {
+    return getLineNumber(this[symWrap]);
+  }
+
+  val() {
+    return getVal(this[symWrap]);
+  }
+
+  inner() {
+    let stx = this[symWrap];
+    if (!isDelimiter(stx)) {
+      throw new Error('Can only get inner syntax on a delimiter');
+    }
+
+    let enf = new Enforester(stx.inner(), List(), this.context);
+    return new MacroContext(enf, 'inner', this.context);
+  }
+}
+
+export function unwrap(x) {
+  if (x instanceof SyntaxOrTermWrapper) {
+    return x[symWrap];
+  }
+  return x;
+}
 
 /*
 ctx :: {
@@ -54,19 +172,7 @@ export default class MacroContext {
     }
     return {
       done: false,
-      value: value,
+      value: new SyntaxOrTermWrapper(value, this.context),
     };
-  }
-
-  of(syn) {
-    let enf;
-    if (List.isList(syn)) {
-      enf = new Enforester(syn, List(), this.context);
-    } else if (syn && typeof syn.isDelimiter === 'function' && syn.isDelimiter()) {
-      enf = new Enforester(syn.inner(), List(), this.context);
-    } else {
-      throw new Error('Cannot create a subcontext for unknown syntax type: ' + syn);
-    }
-    return new MacroContext(enf, this.name, this.context);
   }
 }

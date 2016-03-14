@@ -1,4 +1,3 @@
 {
-    "presets": ["es2015"],
-    "sourceMaps": "inline"
+    "presets": ["es2015"]
 }

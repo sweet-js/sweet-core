@@ -18,6 +18,7 @@
   ],
   "scripts": {
     "test": "ava",
+    "curr": "ava test/test_macro_expansion.js",
     "smoke": "ava test/*.js !test/assertions.js",
     "smoke:watch": "ava test/*.js !test/assertions.js --watch",
     "report": "nyc ava && nyc report --reporter=html",

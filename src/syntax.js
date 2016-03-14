@@ -35,6 +35,13 @@ export default class Syntax {
     return new Syntax(token, stx.context);
   }
 
+  static fromNull(stx = {}) {
+    return new Syntax({
+      type: TokenType.NULL,
+      value: null
+    }, stx.context);
+  }
+
   static fromNumber(value, stx = {}) {
     return new Syntax({
       type: TokenType.NUMBER,
@@ -49,9 +56,36 @@ export default class Syntax {
     }, stx.context);
   }
 
+  static fromPunctuator(value, stx = {}) {
+    return new Syntax({
+      type: {
+        klass: TokenClass.Punctuator,
+        name: value
+      },
+      value: value
+    }, stx.context);
+  }
+
+  static fromKeyword(value, stx = {}) {
+    return new Syntax({
+      type: {
+        klass: TokenClass.Keyword,
+        name: value
+      },
+      value: value
+    }, stx.context);
+  }
+
   static fromIdentifier(value, stx = {}) {
     return new Syntax({
       type: TokenType.IDENTIFIER,
+      value: value
+    }, stx.context);
+  }
+
+  static fromRegularExpression(value, stx = {}) {
+    return new Syntax({
+      type: TokenType.REGEXP,
       value: value
     }, stx.context);
   }
@@ -91,6 +125,7 @@ export default class Syntax {
     });
     return new Syntax(List.of(left).concat(inner).push(right), stx.context);
   }
+
 
   // () -> string
   resolve() {
