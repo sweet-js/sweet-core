@@ -29,3 +29,4 @@ _site
 dist/
 .nyc_output
 coverage
+browser/scripts/sweet.js
