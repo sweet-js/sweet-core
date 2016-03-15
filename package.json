@@ -17,12 +17,12 @@
     }
   ],
   "scripts": {
-    "test": "ava",
-    "curr": "ava test/test_macro_expansion.js",
-    "smoke": "ava test/*.js !test/assertions.js",
-    "smoke:watch": "ava test/*.js !test/assertions.js --watch",
-    "report": "nyc ava && nyc report --reporter=html",
-    "docs": "gitbook build doc/book/",
+    "test": "node_modules/.bin/ava",
+    "curr": "node_modules/.bind/ava test/test_macro_expansion.js",
+    "smoke": "node_modules/.bin/ava test/*.js !test/assertions.js",
+    "smoke:watch": "node_modules/.bin/ava test/*.js !test/assertions.js --watch",
+    "report": "node_modules/.bin/nyc node_modules/.bin/ava && node_modules/.bin/nyc report --reporter=html",
+    "docs": "node_modules/.bin/gitbook build doc/book/",
     "prepublish": "gulp dist"
   },
   "directories": {
