@@ -53,7 +53,7 @@
         data-chapter-title="Syntax Objects"
         data-filepath="reference/syntax-objects.md"
         data-basepath=".."
-        data-revision="Sat Feb 06 2016 12:59:54 GMT-0800 (PST)"
+        data-revision="Tue Mar 15 2016 21:57:15 GMT-0700 (PDT)"
         data-innerlanguage="">
     
 
@@ -244,23 +244,12 @@
                         <h1 id="syntax-objects">Syntax Objects</h1>
 <p>Syntax objects represent the syntax from the source program.</p>
 <pre><code class="lang-js"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Syntax</span> </span>{
-  <span class="hljs-comment">// make a syntax object from the given shift token</span>
-  static <span class="hljs-keyword">of</span>: (Token, Syntax?) -&gt; Syntax
 
-  <span class="hljs-comment">// make a syntax object from the given value</span>
-  static fromNumber: (<span class="hljs-built_in">Number</span>, Syntax?) -&gt; Syntax
-  static fromString: (<span class="hljs-built_in">String</span>, Syntax?) -&gt; Syntax
-  static fromIdentifier: (<span class="hljs-built_in">String</span>, Syntax?) -&gt; Syntax
-  static fromBraces: (List&lt;Syntax&gt;, Syntax?) -&gt; Syntax
-  static fromParens: (List&lt;Syntax&gt;, Syntax?) -&gt; Syntax
-  static fromBrackets: (List&lt;Syntax&gt;, Syntax?) -&gt; Syntax
-
-  val: () -&gt; <span class="hljs-built_in">String</span>
-  resolve: () -&gt; <span class="hljs-built_in">String</span>
+  val: () -&gt; Maybe(<span class="hljs-built_in">String</span>)
   lineNumber: () -&gt; <span class="hljs-built_in">Number</span>
 
-  <span class="hljs-comment">// throws if not a delimiter syntax object</span>
-  inner: () -&gt; List&lt;Syntax&gt;
+  <span class="hljs-comment">// throws if isDelimiter is false</span>
+  inner: () -&gt; Iterator(Syntax)
 
   isIdentifier: () -&gt; <span class="hljs-built_in">Boolean</span>
   isBooleanLiteral: () -&gt; <span class="hljs-built_in">Boolean</span>
@@ -276,8 +265,6 @@
   isBrackets: () -&gt; <span class="hljs-built_in">Boolean</span>
   isBraces: () -&gt; <span class="hljs-built_in">Boolean</span>
   isSyntaxTemplate: () -&gt; <span class="hljs-built_in">Boolean</span>
-
-  toString: () -&gt; <span class="hljs-built_in">String</span>
 </code></pre>
 
                     

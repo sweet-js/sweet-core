@@ -53,7 +53,7 @@
         data-chapter-title="Syntax Transformers (aka Macros)"
         data-filepath="reference/syntax-transformers.md"
         data-basepath=".."
-        data-revision="Sat Feb 06 2016 12:59:54 GMT-0800 (PST)"
+        data-revision="Tue Mar 15 2016 21:57:15 GMT-0700 (PDT)"
         data-innerlanguage="">
     
 
@@ -245,8 +245,11 @@
 <pre><code>transformer : (TransformerContext) -&gt; List&lt;Syntax&gt;
 </code></pre><p>A syntax transformer is a function bound to a compile-time name. A syntax transformer is invoked with a <em>transformer context</em> that provides access to the syntax at the call-site and returns a list of syntax.</p>
 <pre><code class="lang-js">syntax inc = function (ctx) {
-  let x = ctx.next().value;
-  return #`${x} + 1`;
+  let x = ctx.next();
+  if (!x.done) {
+    return #`${x.value} + 1`;
+  }
+  throw new Error(&apos;Must provide a syntax argument to inc&apos;);
 }
 inc 100
 </code></pre>
@@ -261,25 +264,22 @@ inc 100
     done: boolean,
     value: Term
   }
-
-  <span class="hljs-keyword">of</span>: (Syntax) -&gt; TransformerContext
 }
 </code></pre>
 <p>Each call to <code>next</code> returns the syntax object following the transformer call. If <code>next</code> is called with a string, the specified grammar production is matched and a corresponding <a href="terms.html"><code>Term</code></a> is returned instead of a syntax object.</p>
-<p>The <code>of</code> method constructs a new <code>TransformerContext</code> using the provided syntax object as the context. This used to handle matching syntax inside delimiter syntax objects:</p>
+<p>For delimiter syntax objects, the <code>inner</code> method provides an iterator into the syntax inside of the delimiter:</p>
 <pre><code class="lang-js">syntax m = function (ctx) {
   let paren = ctx.next().value;
-  let parenCtx = ctx.of(paren);
-  let items = [];
+  let parenCtx = paren.inner();
 
-  for (let i of parenCtx) {
+  let items = [];
+  for (let k of parenCtx) {
     items.push(k)
   }
   return #`[${items}]`;
 }
 m (1, 2, 3)
 </code></pre>
-<p>Note in the above example that since a <code>TransformerContext</code> is an iterable, the <code>for-of</code> loop works as expected.</p>
 <h2 id="syntax-templates">Syntax Templates</h2>
 <p>Syntax templates construct a list of syntax objects from a literal representation using backtick (<code>#`foo bar baz` </code>). They are similar to ES2015 templates but with the special sweet.js specific <code>#</code> template tag.</p>
 <p>Syntax templates support interpolations just like normal templates via <code>${...}</code>:</p>
