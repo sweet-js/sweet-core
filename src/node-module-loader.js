@@ -1,5 +1,9 @@
-import { readFileSync } from 'fs';
+import { readFileSync, statSync } from 'fs';
 
 export default function moduleLoader(path) {
-  return readFileSync(path, 'utf8');
+  try {
+    return readFileSync(path, 'utf8');
+  } catch (e) {
+    return "";
+  }
 }
