@@ -726,7 +726,7 @@ export class Enforester {
     } else if (!isExpr) {
       if (inDefault) {
         name = new Term('BindingIdentifier', {
-          name: Syntax.fromIdentifier('*default*', kw)
+          name: Syntax.fromIdentifier('_default', kw)
         });
       } else {
         throw this.createError(this.peek(), 'unexpected syntax');
