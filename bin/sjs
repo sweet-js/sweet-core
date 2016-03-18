@@ -3,11 +3,14 @@
 var transform = require('babel-core').transform;
 
 var argv = require('yargs')
-  .usage('Usage: sjs [options] input')
+  .usage('Usage: sjs [options] files ...')
   .demand(1)
-  .alias('o', 'out')
+  .alias('o', 'out-file')
+  .alias('d', 'out-dir')
   .describe('o', 'write output to file')
-  .nargs('out', 1)
+  .describe('d', 'write output to directory')
+  .nargs('out-file', 1)
+  .nargs('out-dir', 1)
   .help('h')
   .alias('h', 'help')
   .argv;
@@ -15,22 +18,25 @@ var argv = require('yargs')
 var path = require('path');
 var fs   = require('fs');
 var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
+var sweetjs = require(dir + '/sweet.js');
 var moduleResolver = require(dir + '/node-module-resolver').default;
 var moduleLoader = require(dir + '/node-module-loader').default;
 
-var fname = argv._[0];
+argv._.forEach(function (file) {
+  var infile = fs.readFileSync(file, 'utf8');
+  var fdir = path.dirname(fs.realpathSync(file));
+  var output = sweetjs.compile(infile, {
+    cwd: fdir,
+    transform: transform,
+    moduleResolver: moduleResolver,
+    moduleLoader: moduleLoader
+  });
 
-var infile = fs.readFileSync(fname, 'utf8');
-var fdir = path.dirname(fs.realpathSync(fname));
-var output = require(dir + '/sweet.js').compile(infile, {
-  cwd: fdir,
-  transform: transform,
-  moduleResolver: moduleResolver,
-  moduleLoader: moduleLoader
+  if (argv.outFile) {
+    fs.writeFileSync(argv.out, output.code, 'utf8');
+  } else if (argv.outDir) {
+    fs.writeFileSync(path.join(argv.outDir, path.basename(file)), output.code, 'utf8');
+  } else {
+    console.log(output.code);
+  }
 });
-
-if (argv.out) {
-  fs.writeFileSync(argv.out, output.code, 'utf8');
-} else {
-  console.log(output.code);
-}
