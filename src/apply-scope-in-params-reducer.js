@@ -35,9 +35,11 @@ export default class ScopeApplyingReducer {
   }
 
   transformObjectBinding(term) {
-    return new Term('ObjectBinding', {
-      properties: term.properties.map(prop => this.transform(prop))
-    });
+    // TODO: much more complicated logic here
+    return term;
+    // return new Term('ObjectBinding', {
+    //   properties: term.properties.map(prop => this.transform(prop))
+    // });
   }
 
   transformBindingPropertyIdentifier(term) {

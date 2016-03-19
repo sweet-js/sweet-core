@@ -54,7 +54,7 @@ let registerBindings = _.cond([
     });
   }],
   [isObjectBinding, ({properties}, context) => {
-    properties.forEach(prop => registerBindings(prop, context));
+    // properties.forEach(prop => registerBindings(prop, context));
   }],
   [_.T, binding => assert(false, "not implemented yet for: " + binding.type)]
 ]);

@@ -11,6 +11,7 @@ var applySourceMap = require('vinyl-sourcemaps-apply');
 var es = require('event-stream');
 var merge = require('merge');
 var mergeStream = require('merge-stream');
+var transform = require('babel-core').transform;
 
 var srcFiles = 'src/**/*.js';
 
@@ -23,6 +24,7 @@ var sweetjs = function(opts) {
     readtables: [],
     moduleResolver: moduleResolver,
     moduleLoader: moduleLoader,
+    transform: transform,
     readableNames: false
   }, opts);
 
@@ -81,7 +83,14 @@ var sweetjs = function(opts) {
 gulp.task('build:src', function () {
   return gulp.src(srcFiles)
     .pipe(sourcemaps.init())
-    // .pipe(sweetjs())
+    .pipe(sweetjs())
+    .pipe(sourcemaps.write("."))
+    .pipe(gulp.dest("build/src/"));
+});
+
+gulp.task('build:bsrc', function () {
+  return gulp.src(srcFiles)
+    .pipe(sourcemaps.init())
     .pipe(babel())
     .pipe(sourcemaps.write("."))
     .pipe(gulp.dest("build/src/"));
@@ -98,8 +107,8 @@ gulp.task('build:test', function () {
   return mergeStream(tests, helpers);
 });
 
-gulp.task('build:browser', ['dist'], function () {
-  return gulp.src('dist/sweet.js')
+gulp.task('build:browser', ['build:src'], function () {
+  return gulp.src('build/src/sweet.js')
     .pipe(sourcemaps.init())
     .pipe(webpack({
       output: {
@@ -112,13 +121,10 @@ gulp.task('build:browser', ['dist'], function () {
     .pipe(gulp.dest("browser/scripts/"));
 });
 
-gulp.task('build', ['build:src', 'build:browser']);
+gulp.task('build', ['build:src', 'build:test']);
 
-gulp.task("dist", function () {
-  return gulp.src(srcFiles)
-    .pipe(sourcemaps.init())
-    .pipe(babel())
-    .pipe(sourcemaps.write("."))
+gulp.task("dist", ['build:src', 'build:browser'], function () {
+  return gulp.src('build/src/*.js')
     .pipe(gulp.dest("dist"));
 });
 

@@ -37,21 +37,21 @@ test("export declaration", function () {
 
   testExportDecl("export {a} from \"a\"", {
     type: "ExportFrom",
-    namedExports: [{ type: "ExportSpecifier", name: null, exportedName: "a" }],
+    namedExports: [{ type: "ExportSpecifier", name: "a", exportedName: "a" }],
     moduleSpecifier: "a"
   });
 
   testExportDecl("export {a,} from \"a\"", {
     type: "ExportFrom",
-    namedExports: [{ type: "ExportSpecifier", name: null, exportedName: "a" }],
+    namedExports: [{ type: "ExportSpecifier", name: "a", exportedName: "a" }],
     moduleSpecifier: "a"
   });
 
   testExportDecl("export {a,b} from \"a\"", {
     type: "ExportFrom",
-    namedExports: [{ type: "ExportSpecifier", name: null, exportedName: "a" }, {
+    namedExports: [{ type: "ExportSpecifier", name: "a", exportedName: "a" }, {
       type: "ExportSpecifier",
-      name: null,
+      name: "b",
       exportedName: "b"
     }],
     moduleSpecifier: "a"
@@ -77,7 +77,7 @@ test("export declaration", function () {
 
   testExportDecl("export {a} from \"m\"", {
     type: "ExportFrom",
-    namedExports: [ { type: "ExportSpecifier", name: null, exportedName: "a" } ],
+    namedExports: [ { type: "ExportSpecifier", name: "a", exportedName: "a" } ],
     moduleSpecifier: "m"
   });
 
@@ -89,21 +89,21 @@ test("export declaration", function () {
 
   testExportDecl("export {a}\n var a;", {
     type: "ExportFrom",
-    namedExports: [{ type: "ExportSpecifier", name: null, exportedName: "<<hygiene>>" }],
+    namedExports: [{ type: "ExportSpecifier", name: "<<hygiene>>", exportedName: "<<hygiene>>" }],
     moduleSpecifier: null
   });
 
   testExportDecl("export {a,}\n var a;", {
     type: "ExportFrom",
-    namedExports: [{ type: "ExportSpecifier", name: null, exportedName: "<<hygiene>>" }],
+    namedExports: [{ type: "ExportSpecifier", name: "<<hygiene>>", exportedName: "<<hygiene>>" }],
     moduleSpecifier: null
   });
 
   testExportDecl("export {a,b,}\n var a,b;", {
     type: "ExportFrom",
-    namedExports: [{ type: "ExportSpecifier", name: null, exportedName: "<<hygiene>>" }, {
+    namedExports: [{ type: "ExportSpecifier", name: "<<hygiene>>", exportedName: "<<hygiene>>" }, {
       type: "ExportSpecifier",
-      name: null,
+      name: "<<hygiene>>",
       exportedName: "<<hygiene>>"
     }],
     moduleSpecifier: null

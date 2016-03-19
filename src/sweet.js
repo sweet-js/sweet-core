@@ -11,7 +11,6 @@ import { Scope, freshScope } from "./scope";
 import BindingMap from "./binding-map.js";
 
 import Term from "./terms";
-import { Symbol } from "./symbol";
 import { Modules } from './modules';
 
 export function expand(source, options = {}) {
@@ -44,5 +43,7 @@ export function parse(source, options = {}) {
 export function compile(source, opt) {
   let ast = parse(source, opt);
   let gen = codegen(ast);
-  return opt.transform ? opt.transform(gen) : { code: gen };
+  return opt.transform ? opt.transform(gen, {
+    presets: ['es2015']
+  }) : { code: gen };
 }

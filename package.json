@@ -17,8 +17,8 @@
     }
   ],
   "scripts": {
-    "test": "node_modules/.bin/ava",
-    "curr": "node_modules/.bin/ava build/test/test_macro_expansion.js",
+    "test": "node_modules/.bin/gulp build && node_modules/.bin/ava",
+    "curr": "node_modules/.bin/ava build/test/modules/export.js",
     "smoke": "node_modules/.bin/ava build/test/*.js !build/test/assertions.js",
     "smoke:watch": "node_modules/.bin/ava build/test/*.js !build/test/assertions.js --watch",
     "report": "node_modules/.bin/nyc node_modules/.bin/ava && node_modules/.bin/nyc report --reporter=html",

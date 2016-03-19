@@ -398,32 +398,103 @@ test("object expression", function () {
   );
 
   testParse("({a})", expr,
-    { type: "ObjectExpression", properties: [{ type: "ShorthandProperty", name: "a" }] }
+    { type: "ObjectExpression", properties: [{
+      type: "DataProperty",
+      name: {
+        type: "StaticPropertyName",
+        value: "a"
+      },
+      expression: {
+        type: "IdentifierExpression",
+        name: "a"
+      }
+    }] }
+
   );
 
   testParse("({let})", expr,
-    { type: "ObjectExpression", properties: [{ type: "ShorthandProperty", name: "let" }] }
+    { type: "ObjectExpression", properties: [{
+      type: "DataProperty",
+      name: {
+        type: "StaticPropertyName",
+        value: "let"
+      },
+      expression: {
+        type: "IdentifierExpression",
+        name: "let"
+      }
+   }] }
   );
 
   testParse("({yield})", expr,
-    { type: "ObjectExpression", properties: [{ type: "ShorthandProperty", name: "yield" }] }
+    { type: "ObjectExpression", properties: [{
+      type: "DataProperty",
+      name: {
+        type: "StaticPropertyName",
+        value: "yield"
+      },
+      expression: {
+        type: "IdentifierExpression",
+        name: "yield"
+      }
+    }] }
   );
 
   testParse("({a, b: 0, c})", expr,
     {
       type: "ObjectExpression",
-      properties: [{ type: "ShorthandProperty", name: "a" }, {
+      properties: [{
+        type: "DataProperty",
+        name: {
+          type: "StaticPropertyName",
+          value: "a"
+        },
+        expression: {
+          type: "IdentifierExpression",
+          name: "a"
+        }
+      }, {
         type: "DataProperty",
         name: { type: "StaticPropertyName", value: "b" },
         expression: { type: "LiteralNumericExpression", value: 0 }
-      }, { type: "ShorthandProperty", name: "c" }]
+      }, {
+        type: "DataProperty",
+        name: {
+          type: "StaticPropertyName",
+          value: "c"
+        },
+        expression: {
+          type: "IdentifierExpression",
+          name: "c"
+        }
+      }]
     }
   );
 
   testParse("({a, b})", expr,
     {
       type: "ObjectExpression",
-      properties: [{ type: "ShorthandProperty", name: "a" }, { type: "ShorthandProperty", name: "b" }]
+      properties: [{
+        type: "DataProperty",
+        name: {
+          type: "StaticPropertyName",
+          value: "a"
+        },
+        expression: {
+          type: "IdentifierExpression",
+          name: "a"
+        }
+      }, {
+        type: "DataProperty",
+        name: {
+          type: "StaticPropertyName",
+          value: "b"
+        },
+        expression: {
+          type: "IdentifierExpression",
+          name: "b"
+        }
+      }]
     }
   );
 

@@ -49,9 +49,16 @@ export default class ParseReducer extends CloneReducer {
   }
 
   reduceExportSpecifier(node, state) {
+    let name = state.name, exportedName = state.exportedName;
+    if (name == null) {
+      name = exportedName.resolve();
+      exportedName = exportedName.val();
+    } else {
+      name = name.resolve();
+      exportedName = exportedName.val();
+    }
     return new Term('ExportSpecifier', {
-      name: state.name ? state.name.resolve() : null,
-      exportedName: state.exportedName ? state.exportedName.resolve() : null
+      name, exportedName
     });
   }
 

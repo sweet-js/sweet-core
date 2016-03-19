@@ -215,8 +215,14 @@ export default class TermExpander {
   }
 
   expandShorthandProperty(term) {
-    return new Term('ShorthandProperty', {
-      name: term.name.val()
+    // because hygiene, shorthand properties must turn into DataProperties
+    return new Term('DataProperty', {
+      name: new Term('StaticPropertyName', {
+        value: term.name
+      }),
+      expression: new Term('IdentifierExpression', {
+        name: term.name
+      })
     });
   }
 
