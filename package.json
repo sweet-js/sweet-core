@@ -18,9 +18,9 @@
   ],
   "scripts": {
     "test": "node_modules/.bin/ava",
-    "curr": "node_modules/.bind/ava test/test_macro_expansion.js",
-    "smoke": "node_modules/.bin/ava test/*.js !test/assertions.js",
-    "smoke:watch": "node_modules/.bin/ava test/*.js !test/assertions.js --watch",
+    "curr": "node_modules/.bin/ava build/test/test_macro_expansion.js",
+    "smoke": "node_modules/.bin/ava build/test/*.js !build/test/assertions.js",
+    "smoke:watch": "node_modules/.bin/ava build/test/*.js !build/test/assertions.js --watch",
     "report": "node_modules/.bin/nyc node_modules/.bin/ava && node_modules/.bin/nyc report --reporter=html",
     "docs": "node_modules/.bin/gitbook build doc/book/",
     "prepublish": "gulp dist"
@@ -48,15 +48,20 @@
     "babel-cli": "^6.5.0",
     "babel-plugin-syntax-flow": "^6.5.0",
     "babel-preset-es2015": "^6.5.0",
+    "event-stream": "^3.3.2",
     "expect.js": "0.1.x",
     "gitbook-cli": "^1.0.1",
     "gulp": "^3.9.0",
     "gulp-babel": "^6.1.1",
     "gulp-sourcemaps": "^1.6.0",
+    "gulp-util": "^3.0.7",
     "gulp-webpack": "^1.5.0",
+    "merge": "^1.2.0",
+    "merge-stream": "^1.0.0",
     "nyc": "^6.0.0",
     "source-map": "~0.1.31",
-    "source-map-support": "^0.3.2"
+    "source-map-support": "^0.3.2",
+    "vinyl-sourcemaps-apply": "^0.2.1"
   },
   "repository": {
     "type": "git",
@@ -69,16 +74,13 @@
   "license": "BSD-2-Clause",
   "ava": {
     "files": [
-      "test/*.js",
-      "test/declaration/*.js",
-      "test/destructuring/**/*.js",
-      "test/expressions/**/*.js",
-      "test/modules/**/*.js",
-      "test/statements/**/*.js",
-      "!test/assertions.js"
-    ],
-    "require": [
-      "babel-register"
+      "build/test/*.js",
+      "build/test/declaration/*.js",
+      "build/test/destructuring/**/*.js",
+      "build/test/expressions/**/*.js",
+      "build/test/modules/**/*.js",
+      "build/test/statements/**/*.js",
+      "!build/test/assertions.js"
     ]
   }
 }

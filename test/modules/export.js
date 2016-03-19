@@ -210,7 +210,7 @@ test("export declaration", function () {
       body: {
         type: "FunctionDeclaration",
         isGenerator: false,
-        name: { type: "BindingIdentifier", name: "*default*" },
+        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
         params: { type: "FormalParameters", items: [], rest: null },
         body: { type: "FunctionBody", directives: [], statements: [] }
       }
@@ -223,7 +223,7 @@ test("export declaration", function () {
       type: "ExportDefault",
       body: {
         type: "ClassDeclaration",
-        name: { type: "BindingIdentifier", name: "*default*" },
+        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
         super: null,
         elements: []
       }
