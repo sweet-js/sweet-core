@@ -40,10 +40,10 @@ export function parse(source, options = {}) {
   return reduce(new ParseReducer(), expand(source, options));
 }
 
-export function compile(source, opt) {
-  let ast = parse(source, opt);
+export function compile(source, options = {}) {
+  let ast = parse(source, options);
   let gen = codegen(ast);
-  return opt.transform ? opt.transform(gen, {
+  return options.transform ? options.transform(gen, {
     presets: ['es2015']
   }) : { code: gen };
 }
