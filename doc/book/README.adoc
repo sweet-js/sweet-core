@@ -1,4 +1,4 @@
-# Introduction
+= Introduction
 
 Sweet.js brings the hygienic macros of languages like Scheme and Rust to JavaScript. Macros allow you to sweeten the syntax of JavaScript and craft the language you’ve always wanted.
 

@@ -51,9 +51,9 @@
     <div class="book"
         data-level="3.1"
         data-chapter-title="Syntax Binding Forms"
-        data-filepath="reference/syntax-binding.md"
+        data-filepath="reference/syntax-binding.adoc"
         data-basepath=".."
-        data-revision="Tue Mar 15 2016 21:57:15 GMT-0700 (PDT)"
+        data-revision="Sat Mar 19 2016 20:22:49 GMT-0700 (PDT)"
         data-innerlanguage="">
     
 
@@ -242,30 +242,59 @@
                     <section class="normal" id="section-">
                     
                         <h1 id="syntax-binding-forms">Syntax Binding Forms</h1>
-<h2 id="syntax"><code>syntax</code></h2>
-<pre><code class="lang-js">syntax $($name:id = $init:expr) (,) ...
-</code></pre>
-<p>Similar to how the keywords <code>var</code>, <code>let</code>, and <code>const</code> bind <em>run-time</em> values in JavaScript, sweet.js provides a way to bind <em>compile-time</em> values via the keyword <code>syntax</code>. The binding created by <code>syntax</code> is analogous to <code>let</code> and applies to the code following the binding.</p>
-<p>Any JavaScript value<sup><a href="#fn_1" id="reffn_1">1</a></sup> can be bound via <code>syntax</code>:</p>
-<pre><code class="lang-js">syntax compiletimeNumber = <span class="hljs-number">42</span>
-syntax compiletimeString = <span class="hljs-string">&quot;foobar&quot;</span>
-</code></pre>
-<p>A function bound by <code>syntax</code> is called a <a href="syntax-transformers.html"><em>syntax transformer</em></a>. When a binding to a syntax transformer appears in the source text, the syntax transformer is invoked.</p>
-<pre><code class="lang-js">syntax inc = function (ctx) {
+<div class="sect1">
+<h2 id="__code_syntax_code"><code>syntax</code></h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-js" data-lang="js">syntax $($name:id = $init:expr) (,) ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Similar to how the keywords <code>var</code>, <code>let</code>, and <code>const</code> bind <strong>run-time</strong> values in JavaScript, sweet.js provides a way to bind <strong>compile-time</strong> values via the keyword <code>syntax</code>. The binding created by <code>syntax</code> is analogous to <code>let</code> and applies to the code following the binding.</p>
+</div>
+<div class="paragraph">
+<p>Any JavaScript value<span class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span> can be bound via <code>syntax</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-js" data-lang="js">syntax compiletimeNumber = <span class="hljs-number">42</span>
+syntax compiletimeString = <span class="hljs-string">&quot;foobar&quot;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A function bound by <code>syntax</code> is called a <a href="syntax-transformers.html"><strong>syntax transformer</strong></a>. When a binding to a syntax transformer appears in the source text, the syntax transformer is invoked.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-js" data-lang="js">syntax inc = function (ctx) {
   let x = ctx.next().value;
   return #`${x} + 1`;
 }
-inc 100
-</code></pre>
-<h2 id="syntaxrec"><code>syntaxrec</code></h2>
-<pre><code class="lang-js">syntaxrec $($name:id = $init:expr) (,) ...
-</code></pre>
+inc 100</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="__code_syntaxrec_code"><code>syntaxrec</code></h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-js" data-lang="js">syntaxrec $($name:id = $init:expr) (,) ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
 <p>The <code>syntaxrec</code> form is identical to the <code>syntax</code> form except the name bound by <code>syntaxrec</code> is also bound in the initializer. This enables recursive definitions.</p>
+</div>
+</div>
+</div>
+<div id="footnotes">
 <hr>
-<blockquote id="fn_1">
-<sup>1</sup>. Currently, sweet.js does not provide a means of retrieving non-function values from a compile-time binding so this point is somewhat academic. Making use of non-function compile-time values will come eventually.<a href="#reffn_1" title="Jump back to footnote [1] in the text."> &#x21A9;</a>
-</blockquote>
-
+<div class="footnote" id="_footnote_1">
+<a href="#_footnoteref_1">1</a> Currently, sweet.js does not provide a means of retrieving non-function values from a compile-time binding so this point is somewhat academic. Making use of non-function compile-time values will come eventually.
+</div>
+</div>
                     
                     </section>
                 

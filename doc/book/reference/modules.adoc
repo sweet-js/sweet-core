@@ -1,18 +1,23 @@
-# Modules
+= Modules
 
 Macros can be exported and imported into modules via ES2015 module syntax. This allows you to define your macros in one file:
 
-```js
+[source, js]
+----
+#lang 'sweet.js' // <1>
+
 // id.js
 export syntax id = function (ctx) {
   return #`${ctx.next().value}`;
 }
-```
+----
+<1> The `#lang` directive is required to tell sweet.js to look for `syntax` definitions when importing this file.
 
 And import them in another:
 
-```js
+[source, js]
+----
 // main.js
 import { id } from './id.js';
 id 42
-```
+----

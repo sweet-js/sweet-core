@@ -1,8 +1,9 @@
-# Syntax Objects
+= Syntax Objects
 
 Syntax objects represent the syntax from the source program.
 
-```js
+[source, js]
+----
 class Syntax {
 
   val: () -> Maybe(String)
@@ -25,4 +26,4 @@ class Syntax {
   isBrackets: () -> Boolean
   isBraces: () -> Boolean
   isSyntaxTemplate: () -> Boolean
-```
+----

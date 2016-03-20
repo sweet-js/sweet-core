@@ -1,12 +1,13 @@
-# Syntax Transformers (aka Macros)
+= Syntax Transformers (aka Macros)
 
-```
+----
 transformer : (TransformerContext) -> List<Syntax>
-```
+----
 
 A syntax transformer is a function bound to a compile-time name. A syntax transformer is invoked with a *transformer context* that provides access to the syntax at the call-site and returns a list of syntax.
 
-```js
+[source, js]
+----
 syntax inc = function (ctx) {
   let x = ctx.next();
   if (!x.done) {
@@ -15,13 +16,14 @@ syntax inc = function (ctx) {
   throw new Error('Must provide a syntax argument to inc');
 }
 inc 100
-```
+----
 
-## Transformer Context
+== Transformer Context
 
-A transformer context is an iterable[^1] object that provides access to syntax at the call-site of a syntax transformer.
+A transformer context is an iterablefootnote:[A Transformer Context is both iterator and iterable.] object that provides access to syntax at the call-site of a syntax transformer.
 
-```js
+[source, js]
+----
 class TransformerContext {
   next: () -> {
     done: boolean,
@@ -32,13 +34,14 @@ class TransformerContext {
     value: Term
   }
 }
-```
+----
 
-Each call to `next` returns the syntax object following the transformer call. If `next` is called with a string, the specified grammar production is matched and a corresponding [`Term`](terms.md) is returned instead of a syntax object.
+Each call to `next` returns the syntax object following the transformer call. If `next` is called with a string, the specified grammar production is matched and a corresponding link:terms.adoc[`Term`] is returned instead of a syntax object.
 
 For delimiter syntax objects, the `inner` method provides an iterator into the syntax inside of the delimiter:
 
-```js
+[source, js]
+----
 syntax m = function (ctx) {
   let paren = ctx.next().value;
   let parenCtx = paren.inner();
@@ -50,21 +53,20 @@ syntax m = function (ctx) {
   return #`[${items}]`;
 }
 m (1, 2, 3)
-```
+----
 
-## Syntax Templates
+== Syntax Templates
 
-Syntax templates construct a list of syntax objects from a literal representation using backtick (``#`foo bar baz` ``). They are similar to ES2015 templates but with the special sweet.js specific `#` template tag.
+Syntax templates construct a list of syntax objects from a literal representation using backtick (`\#`foo bar baz``). They are similar to ES2015 templates but with the special sweet.js specific `#` template tag.
 
 Syntax templates support interpolations just like normal templates via `${...}`:
 
-```js
+[source, js]
+----
 syntax m = function (ctx) {
   return #`${ctx.next().value} + 24`;
 }
 m 42
-```
+----
 
 The expressions inside an interpolation must evaluate to a syntax object, a term, an array, or a list.
-
-[^1]: A Transformer Context is both iterator and iterable.

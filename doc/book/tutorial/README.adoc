@@ -1,5 +1,5 @@
-# Tutorial
+= Tutorial
 
-TODO
+TODO: Fill out at some point.
 
 A gradual introduction to the concepts of hygienic macros and sweet.js.
