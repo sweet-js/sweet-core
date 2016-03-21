@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.2">
+<title>Sweet.js Tutorial</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400">
+<link rel="stylesheet" href="./stylesheets/asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.2.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/tomorrow.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</head>
+<body class="article toc2 toc-left">
+<div id="header">
+<h1>Sweet.js Tutorial</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_introduction">1. Introduction</a></li>
+<li><a href="#_installation_and_getting_started">2. Installation and Getting Started</a></li>
+<li><a href="#_sweet_beginnings">3. Sweet Beginnings</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="_introduction">1. Introduction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Sweet.js brings the hygienic macros of languages like Scheme and Rust to JavaScript.
+Macros allow you to sweeten the syntax of JavaScript and craft the language you’ve always wanted.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This documents version 1.0 of sweet.js and is currently a work in progress. Contributions are welcome!
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_installation_and_getting_started">2. Installation and Getting Started</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Install sweet.js with npm:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh" data-lang="sh">$ npm install sweet.js</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This installs the <code>sjs</code> binary into your <code>node_modules</code> folder.</p>
+</div>
+<div class="admonitionblock tip">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-tip" title="Tip"></i>
+</td>
+<td class="content">
+You can also install <code>sjs</code> globally with the <code>-g</code> flag if you&#8217;d like.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>For example, say you&#8217;d like to sweeten JavaScript with a simple hello world macro.
+You can write it down as the following:</p>
+</div>
+<div class="listingblock">
+<div class="title">sweet_code.js</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax hi = function (ctx) {
+  return #`console.log('hello, world!')`;
+}
+hi</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then, you can use the <code>sjs</code> command to compile the sweetened code into plain JavaScript:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-sh" data-lang="sh">$ node_modules/.bin/sjs sweet_code.js
+console.log('hello, world!')</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_sweet_beginnings">3. Sweet Beginnings</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>So how do macros work?
+Well, in a sense macros are a bit like compiletime functions; just like functions, macros have definitions and invocations.</p>
+</div>
+<div class="paragraph">
+<p>Consider the hello world example again:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax hi = function (ctx) {    <i class="conum" data-value="1"></i><b>(1)</b>
+  return #`console.log('hello, world!')`;  <i class="conum" data-value="2"></i><b>(2)</b>
+}
+hi  <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Macro definition</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Syntax Template</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Macro invocation</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The first three lines make up the macro definition. The <code>syntax</code> keyword is a bit like <code>var</code> or <code>let</code> in that it creates a new variable. However, rather than create a variable for a value at runtime, <code>syntax</code> creates a new variable for a <em>compiletime value</em>. In this case, <code>hi</code> is the variable bound to the compiletime function.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+In this example <code>syntax</code> is setting a variable to a compiletime function, but the variable can be set to any JavaScript value. Currently, this point is rather academic since sweet.js does not provide a way to use anything other than a compiletime function. However, eventually this feature will be added.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

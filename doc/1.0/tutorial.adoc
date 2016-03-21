@@ -1,0 +1,76 @@
+= Sweet.js Tutorial
+:toc: left
+:nofooter:
+:stylesdir: ./stylesheets
+:source-highlighter: highlight.js
+:highlightjs-theme: tomorrow
+:icons: font
+
+== Introduction
+
+Sweet.js brings the hygienic macros of languages like Scheme and Rust to JavaScript.
+Macros allow you to sweeten the syntax of JavaScript and craft the language you’ve always wanted.
+
+NOTE: This documents version 1.0 of sweet.js and is currently a work in progress. Contributions are welcome!
+
+== Installation and Getting Started
+
+Install sweet.js with npm:
+
+[source, sh]
+----
+$ npm install sweet.js
+----
+
+This installs the `sjs` binary into your `node_modules` folder.
+
+TIP: You can also install `sjs` globally with the `-g` flag if you'd like.
+
+For example, say you'd like to sweeten JavaScript with a simple hello world macro.
+You can write it down as the following:
+
+.sweet_code.js
+[source, javascript]
+----
+syntax hi = function (ctx) {
+  return #`console.log('hello, world!')`;
+}
+hi
+----
+
+Then, you can use the `sjs` command to compile the sweetened code into plain JavaScript:
+
+[source, sh]
+----
+$ node_modules/.bin/sjs sweet_code.js
+console.log('hello, world!')
+----
+
+== Sweet Beginnings
+
+So how do macros work?
+Well, in a sense macros are a bit like compiletime functions; just like functions, macros have definitions and invocations which work together to abstract code into a single location so you don't keep repeating yourself.
+
+Consider the hello world example again:
+
+[source,javascript]
+----
+syntax hi = function (ctx) {    // <1>
+  return #`console.log('hello, world!')`;  // <2>
+}
+hi  // <3>
+----
+<1> Macro definition
+<2> Syntax Template
+<3> Macro invocation
+
+The first three lines make up the macro definition. The `syntax` keyword is a bit like `var` or `let` in that it creates a new variable. However, rather than create a variable for a runtime value, `syntax` creates a new variable for a _compiletime value_. In this case, `hi` is the variable bound to the compiletime function defined on the first three lines.
+
+NOTE: In this example, `syntax` sets the variable to a function, but the variable can be set to any JavaScript value. Currently, this point is rather academic since sweet.js does not provide a way to use anything other than a compiletime function. However, eventually this feature will be added.
+
+Once a macro has been defined, it can be invoked. On line three above the macro is invoked simply by writing `hi`.
+
+When the sweet.js compiler sees the `hi` identifier bound to the compiletime function, the function is invoked and its return value is used to replace the invoking occurrence of `hi`. In this case, that means that `hi` is replaced with `console.log('hello, world!')`.
+
+Compiletime functions defined by `syntax` must return an array of syntax objects. You can easily create these with a _syntax template_. Syntax templates are template literals with a `#` tag that create an arrayfootnote:[Technically, syntax templates return an link:https://facebook.github.io/immutable-js/docs/#/List[immutable.js List] but sweet.js converts between arrays and Lists for you]
+of syntax objects.

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.2">
+<title>Sweet.js Reference Documentation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400">
+<link rel="stylesheet" href="./stylesheets/asciidoctor.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/tomorrow.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</head>
+<body class="article toc2 toc-left">
+<div id="header">
+<h1>Sweet.js Reference Documentation</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_introduction">1. Introduction</a></li>
+<li><a href="#_binding_forms">2. Binding Forms</a>
+<ul class="sectlevel2">
+<li><a href="#__code_syntax_code">2.1. <code>syntax</code></a></li>
+<li><a href="#__code_syntaxrec_code">2.2. <code>syntaxrec</code></a></li>
+</ul>
+</li>
+<li><a href="#_syntax_transformers_aka_macros">3. Syntax Transformers (aka Macros)</a>
+<ul class="sectlevel2">
+<li><a href="#_transformer_context">3.1. Transformer Context</a></li>
+<li><a href="#_syntax_templates">3.2. Syntax Templates</a></li>
+</ul>
+</li>
+<li><a href="#_syntax_objects">4. Syntax Objects</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div class="sect1">
+<h2 id="_introduction">1. Introduction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>TODO</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_binding_forms">2. Binding Forms</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="__code_syntax_code">2.1. <code>syntax</code></h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax $($name:id = $init:expr) (,) ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Similar to how the keywords <code>var</code>, <code>let</code>, and <code>const</code> bind <strong>run-time</strong> values in JavaScript, sweet.js provides a way to bind <strong>compile-time</strong> values via the keyword <code>syntax</code>. The binding created by <code>syntax</code> is analogous to <code>let</code> and applies to the code following the binding.</p>
+</div>
+<div class="paragraph">
+<p>Any JavaScript value<span class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span> can be bound via <code>syntax</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax compiletimeNumber = 42
+syntax compiletimeString = "foobar"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A function bound by <code>syntax</code> is called a <a href="syntax-transformers.adoc"><strong>syntax transformer</strong></a>. When a binding to a syntax transformer appears in the source text, the syntax transformer is invoked.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax inc = function (ctx) {
+  let x = ctx.next().value;
+  return #`${x} + 1`;
+}
+inc 100</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="__code_syntaxrec_code">2.2. <code>syntaxrec</code></h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntaxrec $($name:id = $init:expr) (,) ...</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>syntaxrec</code> form is identical to the <code>syntax</code> form except the name bound by <code>syntaxrec</code> is also bound in the initializer. This enables recursive definitions.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_syntax_transformers_aka_macros">3. Syntax Transformers (aka Macros)</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre>transformer : (TransformerContext) -&gt; List&lt;Syntax&gt;</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A syntax transformer is a function bound to a compile-time name. A syntax transformer is invoked with a <strong>transformer context</strong> that provides access to the syntax at the call-site and returns a list of syntax.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax inc = function (ctx) {
+  let x = ctx.next();
+  if (x.done) {
+    throw new Error('Must provide a syntax argument to inc');
+  }
+  return #`${x.value} + 1`;
+}
+inc 100</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_transformer_context">3.1. Transformer Context</h3>
+<div class="paragraph">
+<p>A transformer context is an iterable<span class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</span> object that provides access to syntax at the call-site of a syntax transformer.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">class TransformerContext {
+  next: () -&gt; {
+    done: boolean,
+    value: Syntax
+  }
+  next: (String) -&gt; {
+    done: boolean,
+    value: Term
+  }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Each call to <code>next</code> returns the syntax object following the transformer call. If <code>next</code> is called with a string, the specified grammar production is matched and a corresponding <a href="terms.adoc"><code>Term</code></a> is returned instead of a syntax object.</p>
+</div>
+<div class="paragraph">
+<p>For delimiter syntax objects, the <code>inner</code> method provides an iterator into the syntax inside of the delimiter:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = function (ctx) {
+  let paren = ctx.next().value;
+  let parenCtx = paren.inner();
+
+  let items = [];
+  for (let k of parenCtx) {
+    items.push(k)
+  }
+  return #`[${items}]`;
+}
+m (1, 2, 3)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_syntax_templates">3.2. Syntax Templates</h3>
+<div class="paragraph">
+<p>Syntax templates construct a list of syntax objects from a literal representation using backtick (<code>#`foo bar baz`</code>). They are similar to ES2015 templates but with the special sweet.js specific <code>#</code> template tag.</p>
+</div>
+<div class="paragraph">
+<p>Syntax templates support interpolations just like normal templates via <code>${&#8230;&#8203;}</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = function (ctx) {
+  return #`${ctx.next().value} + 24`;
+}
+m 42</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The expressions inside an interpolation must evaluate to a syntax object, a term, an array, or a list.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_syntax_objects">4. Syntax Objects</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Syntax objects represent the syntax from the source program.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">class syntax {
+
+  val: () -&gt; maybe(string)
+  linenumber: () -&gt; number
+
+  // throws if isdelimiter is false
+  inner: () -&gt; iterator(syntax)
+
+  isidentifier: () -&gt; boolean
+  isbooleanliteral: () -&gt; boolean
+  isnullliteral: () -&gt; boolean
+  isnumericliteral: () -&gt; boolean
+  isstringliteral: () -&gt; boolean
+  iskeyword: () -&gt; boolean
+  ispunctuator: () -&gt; boolean
+  isregularexpression: () -&gt; boolean
+  istemplate: () -&gt; boolean
+  isdelimiter: () -&gt; boolean
+  isparens: () -&gt; boolean
+  isbrackets: () -&gt; boolean
+  isbraces: () -&gt; boolean
+  issyntaxtemplate: () -&gt; boolean</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnote_1">
+<a href="#_footnoteref_1">1</a>. Currently, sweet.js does not provide a means of retrieving non-function values from a compile-time binding so this point is somewhat academic. Making use of non-function compile-time values will come eventually.
+</div>
+<div class="footnote" id="_footnote_2">
+<a href="#_footnoteref_2">2</a>. A Transformer Context is both iterator and iterable.
+</div>
+</div>
+</body>
+</html>

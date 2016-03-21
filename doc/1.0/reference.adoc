@@ -1,0 +1,162 @@
+= Sweet.js Reference Documentation
+:toc: left
+:nofooter:
+:stylesdir: ./stylesheets
+:source-highlighter: highlight.js
+:highlightjs-theme: tomorrow
+
+== Introduction
+
+TODO
+
+== Binding Forms
+
+=== `syntax`
+
+[source, javascript]
+----
+syntax $($name:id = $init:expr) (,) ...
+----
+
+Similar to how the keywords `var`, `let`, and `const` bind *run-time* values in JavaScript, sweet.js provides a way to bind *compile-time* values via the keyword `syntax`. The binding created by `syntax` is analogous to `let` and applies to the code following the binding.
+
+Any JavaScript valuefootnote:[Currently, sweet.js does not provide a means of retrieving non-function values from a compile-time binding so this point is somewhat academic. Making use of non-function compile-time values will come eventually.] can be bound via `syntax`:
+
+[source, javascript]
+----
+syntax compiletimeNumber = 42
+syntax compiletimeString = "foobar"
+----
+
+A function bound by `syntax` is called a link:syntax-transformers.adoc[*syntax transformer*]. When a binding to a syntax transformer appears in the source text, the syntax transformer is invoked.
+
+[source, javascript]
+----
+syntax inc = function (ctx) {
+  let x = ctx.next().value;
+  return #`${x} + 1`;
+}
+inc 100
+----
+
+////
+waiting on PR being accepted https://github.com/GitbookIO/plugin-tonic/pull/2
+{% tonic nodeVersion="^5.0.0" %}
+let x = 42;
+{% endtonic %}
+////
+
+=== `syntaxrec`
+
+[source, javascript]
+----
+syntaxrec $($name:id = $init:expr) (,) ...
+----
+
+The `syntaxrec` form is identical to the `syntax` form except the name bound by `syntaxrec` is also bound in the initializer. This enables recursive definitions.
+
+
+
+== Syntax Transformers (aka Macros)
+
+----
+transformer : (TransformerContext) -> List<Syntax>
+----
+
+A syntax transformer is a function bound to a compile-time name. A syntax transformer is invoked with a *transformer context* that provides access to the syntax at the call-site and returns a list of syntax.
+
+[source, javascript]
+----
+syntax inc = function (ctx) {
+  let x = ctx.next();
+  if (x.done) {
+    throw new Error('Must provide a syntax argument to inc');
+  }
+  return #`${x.value} + 1`;
+}
+inc 100
+----
+
+=== Transformer Context
+
+A transformer context is an iterablefootnote:[A Transformer Context is both iterator and iterable.] object that provides access to syntax at the call-site of a syntax transformer.
+
+[source, javascript]
+----
+class TransformerContext {
+  next: () -> {
+    done: boolean,
+    value: Syntax
+  }
+  next: (String) -> {
+    done: boolean,
+    value: Term
+  }
+}
+----
+
+Each call to `next` returns the syntax object following the transformer call. If `next` is called with a string, the specified grammar production is matched and a corresponding link:terms.adoc[`Term`] is returned instead of a syntax object.
+
+For delimiter syntax objects, the `inner` method provides an iterator into the syntax inside of the delimiter:
+
+[source, javascript]
+----
+syntax m = function (ctx) {
+  let paren = ctx.next().value;
+  let parenCtx = paren.inner();
+
+  let items = [];
+  for (let k of parenCtx) {
+    items.push(k)
+  }
+  return #`[${items}]`;
+}
+m (1, 2, 3)
+----
+
+=== Syntax Templates
+
+Syntax templates construct a list of syntax objects from a literal representation using backtick (`\#`foo bar baz``). They are similar to ES2015 templates but with the special sweet.js specific `#` template tag.
+
+Syntax templates support interpolations just like normal templates via `${...}`:
+
+[source, javascript]
+----
+syntax m = function (ctx) {
+  return #`${ctx.next().value} + 24`;
+}
+m 42
+----
+
+The expressions inside an interpolation must evaluate to a syntax object, a term, an array, or a list.
+
+
+== Syntax Objects
+
+Syntax objects represent the syntax from the source program.
+
+[source, javascript]
+----
+class syntax {
+
+  val: () -> maybe(string)
+  linenumber: () -> number
+
+  // throws if isdelimiter is false
+  inner: () -> iterator(syntax)
+
+  isidentifier: () -> boolean
+  isbooleanliteral: () -> boolean
+  isnullliteral: () -> boolean
+  isnumericliteral: () -> boolean
+  isstringliteral: () -> boolean
+  iskeyword: () -> boolean
+  ispunctuator: () -> boolean
+  isregularexpression: () -> boolean
+  istemplate: () -> boolean
+  isdelimiter: () -> boolean
+  isparens: () -> boolean
+  isbrackets: () -> boolean
+  isbraces: () -> boolean
+  issyntaxtemplate: () -> boolean
+----

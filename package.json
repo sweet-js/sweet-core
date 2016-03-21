@@ -22,7 +22,7 @@
     "smoke": "node_modules/.bin/ava build/test/*.js !build/test/assertions.js",
     "smoke:watch": "node_modules/.bin/ava build/test/*.js !build/test/assertions.js --watch",
     "report": "node_modules/.bin/nyc node_modules/.bin/ava && node_modules/.bin/nyc report --reporter=html",
-    "docs": "node_modules/.bin/gitbook build doc/book/",
+    "docs": "node_modules/.bin/asciidoctorjs doc/1.0/tutorial.adoc && node_modules/.bin/asciidoctorjs doc/1.0/reference.adoc",
     "prepublish": "gulp dist"
   },
   "directories": {
@@ -43,13 +43,14 @@
     "yargs": "^4.3.2"
   },
   "devDependencies": {
+    "asciidoctor-cli": "^1.5.2-alpha.3",
+    "asciidoctor.js": "^1.5.4",
     "ava": "^0.13.0",
     "babel": "^6.5.0",
     "babel-cli": "^6.5.0",
     "babel-preset-es2015": "^6.5.0",
     "event-stream": "^3.3.2",
     "expect.js": "0.3.x",
-    "gitbook-cli": "^2.1.2",
     "gulp": "^3.9.0",
     "gulp-babel": "^6.1.1",
     "gulp-sourcemaps": "^1.6.0",
