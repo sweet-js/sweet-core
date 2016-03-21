@@ -61,7 +61,8 @@ function expand(source_521) {
 }function parse(source_530) {
   var options_531 = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
   return (0, _shiftReducer2.default)(new _parseReducer2.default(), expand(source_530, options_531));
-}function compile(source_532, opt_533) {
-  var ast_534 = parse(source_532, opt_533);var gen_535 = (0, _shiftCodegen2.default)(ast_534);return opt_533.transform ? opt_533.transform(gen_535, { presets: ["es2015"] }) : { code: gen_535 };
+}function compile(source_532) {
+  var options_533 = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+  var ast_534 = parse(source_532, options_533);var gen_535 = (0, _shiftCodegen2.default)(ast_534);return options_533.transform ? options_533.transform(gen_535, { presets: ["es2015"] }) : { code: gen_535 };
 }
 //# sourceMappingURL=sweet.js.map
