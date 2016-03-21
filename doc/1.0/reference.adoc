@@ -1,4 +1,4 @@
-= Sweet.js Reference Documentation
+= Sweet Reference Documentation
 :toc: left
 :nofooter:
 :stylesdir: ./stylesheets
