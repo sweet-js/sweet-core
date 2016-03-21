@@ -63,7 +63,7 @@ function testEval(source, expectedOutput) {
 }
 
 export function testThrow(source) {
-  expect(() => compile(source)).to.throwError();
+  expect(() => compile(source, { cwd: '.', transform})).to.throwError();
 }
 
 export {
