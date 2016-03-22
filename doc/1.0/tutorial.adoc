@@ -46,7 +46,7 @@ $ node_modules/.bin/sjs sweet_code.js
 console.log('hello, world!')
 ----
 
-== Sweet Beginnings
+== Sweet Hello
 
 So how do macros work?
 Well, in a sense macros are a bit like compiletime functions; just like functions, macros have definitions and invocations which work together to abstract code into a single location so you don't keep repeating yourself.
@@ -55,10 +55,10 @@ Consider the hello world example again:
 
 [source,javascript]
 ----
-syntax hi = function (ctx) {    // <1>
-  return #`console.log('hello, world!')`;  // <2>
+syntax hi = function (ctx) { // <1>
+  return #`console.log('hello, world!')`; // <2>
 }
-hi  // <3>
+hi // <3>
 ----
 <1> Macro definition
 <2> Syntax Template
@@ -77,3 +77,84 @@ of syntax objects.
 
 Syntax Object::
 Sweet's internal representation of syntax. Syntax objects are somewhat like tokens from traditional compilers except that delimiters cause syntax objects to nest. This nesting gives Sweet more structure to work with during compilation. If you are coming from Lisp or Scheme, you can think of them a bit like s-expressions.
+
+
+== Sweet New
+
+Let's move on to a slightly more interesting example.
+Pretend you are using an OO framwork for JavaScript where instead of using `new` we want to call a `.create` method that has been monkey patched onto `Function.prototype` (don't worry, I won't judge...much). Rather than manually rewrite all usages of `new` to the `create` method you could define a macro that does it for you.
+
+.New Macro
+[source, javascript]
+----
+syntax new = function (ctx) {
+  let ident = ctx.next().value;
+  let params = ctx.next().value;
+  return #`${ident}.create ${params}`;
+}
+
+new Droid('BB-8', 'orange');
+----
+
+.(Expansion)
+[source, javascript]
+----
+Droid.create('BB-8', 'orange');
+----
+
+Here you can see the `ctx` parameter to the macro provides access to syntax at the macro call-site. This parameter is an iterator called the _macro context_.
+
+Macro Context::
+An iterator over the syntax where the macro was called. It has the type:
++
+----
+{
+  next: (string?) -> {
+    done: boolean,
+    value: Syntax
+  }
+}
+----
++
+Each call to `next` returns the successive syntax object in `value` until there is nothing left in which case `done` is set to true. Note that the context is also an iterable so you can use `for-of` and related goodies.
+
+Note that in this example we only call `next` twice even though it looks like there is more than two bits of syntax we want to match. What gives? Well, remember that delimiters cause syntax objects to nest. So, as far as the macro context is concerned there are two syntax objects: `Droid` and a single paren delimiter syntax object containing the three syntax objects `'BB-8'`, `,`, and `'orange'`.
+
+After grabbing both syntax objects with the macro context iterator we can stuff them into a syntax template. Syntax templates allow syntax objects to be used in interpolations so it is straightforward to get our desired result.
+
+== Sweet Let
+
+Ok, time to make some ES2015. Let's say we want to implement `let`.footnote:[Note that we don't have to do this since Sweet already parses `let` statements just fine and uses babel as a backend to provide support in non-ES2015 environments.]
+We only need one new feature you haven't seen yet:
+
+
+.Let Macro
+[source, javascript]
+----
+syntax let = function (ctx) {
+  let ident = ctx.next().value;
+  // eat `=`
+  ctx.next();
+  let init = ctx.next('expr').value; // <1>
+  return #`
+    (function (${ident}) {
+      ${ctx} // <2>
+    }(${init}))
+  `
+}
+
+let bb8 = new Droid('BB-8', 'orange');
+console.log(bb8.beep());
+----
+<1> Match an expression
+<2> A macro context in the template will consume the iterator
+
+.(Expansion)
+[source, javascript]
+----
+(function(bb8) {
+  console.log(bb8.beep());
+})(Droid.create("BB-8", "orange"));
+----
+
+Calling `next` with a string argument allows us to specify the grammar production we want to match; in this case we are matching an expression. You can think matching against a grammar production a little like matching an implicitly-delimited syntax object; these matches group multiple syntax object together.

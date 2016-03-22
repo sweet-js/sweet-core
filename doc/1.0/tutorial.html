@@ -21,7 +21,9 @@
 <ul class="sectlevel1">
 <li><a href="#_introduction">1. Introduction</a></li>
 <li><a href="#_installation_and_getting_started">2. Installation and Getting Started</a></li>
-<li><a href="#_sweet_beginnings">3. Sweet Beginnings</a></li>
+<li><a href="#_sweet_hello">3. Sweet Hello</a></li>
+<li><a href="#_sweet_new">4. Sweet New</a></li>
+<li><a href="#_sweet_let">5. Sweet Let</a></li>
 </ul>
 </div>
 </div>
@@ -98,7 +100,7 @@ console.log('hello, world!')</code></pre>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_sweet_beginnings">3. Sweet Beginnings</h2>
+<h2 id="_sweet_hello">3. Sweet Hello</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>So how do macros work?
@@ -109,10 +111,10 @@ Well, in a sense macros are a bit like compiletime functions; just like function
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax hi = function (ctx) {    <i class="conum" data-value="1"></i><b>(1)</b>
-  return #`console.log('hello, world!')`;  <i class="conum" data-value="2"></i><b>(2)</b>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax hi = function (ctx) { <i class="conum" data-value="1"></i><b>(1)</b>
+  return #`console.log('hello, world!')`; <i class="conum" data-value="2"></i><b>(2)</b>
 }
-hi  <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
+hi <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
 </div>
 </div>
 <div class="colist arabic">
@@ -166,11 +168,122 @@ of syntax objects.</p>
 </div>
 </div>
 </div>
+<div class="sect1">
+<h2 id="_sweet_new">4. Sweet New</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Let&#8217;s move on to a slightly more interesting example.
+Pretend you are using an OO framwork for JavaScript where instead of using <code>new</code> we want to call a <code>.create</code> method that has been monkey patched onto <code>Function.prototype</code> (don&#8217;t worry, I won&#8217;t judge&#8230;&#8203;much). Rather than manually rewrite all usages of <code>new</code> to the <code>create</code> method you could define a macro that does it for you.</p>
+</div>
+<div class="listingblock">
+<div class="title">New Macro</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax new = function (ctx) {
+  let ident = ctx.next().value;
+  let params = ctx.next().value;
+  return #`${ident}.create ${params}`;
+}
+
+new Droid('BB-8', 'orange');</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(Expansion)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Droid.create('BB-8', 'orange');</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here you can see the <code>ctx</code> parameter to the macro provides access to syntax at the macro call-site. This parameter is an iterator called the <em>macro context</em>.</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Macro Context</dt>
+<dd>
+<p>An iterator over the syntax where the macro was called. It has the type:</p>
+<div class="listingblock">
+<div class="content">
+<pre>{
+  next: (string?) -&gt; {
+    done: boolean,
+    value: Syntax
+  }
+}</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Each call to <code>next</code> returns the successive syntax object in <code>value</code> until there is nothing left in which case <code>done</code> is set to true. Note that the context is also an iterable so you can use <code>for-of</code> and related goodies.</p>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Note that in this example we only call <code>next</code> twice even though it looks like there is more than two bits of syntax we want to match. What gives? Well, remember that delimiters cause syntax objects to nest. So, as far as the macro context is concerned there are two syntax objects: <code>Droid</code> and a single paren delimiter syntax object containing the three syntax objects <code>'BB-8'</code>, <code>,</code>, and <code>'orange'</code>.</p>
+</div>
+<div class="paragraph">
+<p>After grabbing both syntax objects with the macro context iterator we can stuff them into a syntax template. Syntax templates allow syntax objects to be used in interpolations so it is straightforward to get our desired result.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_sweet_let">5. Sweet Let</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Ok, time to make some ES2015. Let&#8217;s say we want to implement <code>let</code>.<span class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</span>
+We only need one new feature you haven&#8217;t seen yet:</p>
+</div>
+<div class="listingblock">
+<div class="title">Let Macro</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax let = function (ctx) {
+  let ident = ctx.next().value;
+  // eat `=`
+  ctx.next();
+  let init = ctx.next('expr').value; <i class="conum" data-value="1"></i><b>(1)</b>
+  return #`
+    (function (${ident}) {
+      ${ctx} <i class="conum" data-value="2"></i><b>(2)</b>
+    }(${init}))
+  `
+}
+
+let bb8 = new Droid('BB-8', 'orange');
+console.log(bb8.beep());</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Match an expression</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>A macro context in the template will consume the iterator</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">(Expansion)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">(function(bb8) {
+  console.log(bb8.beep());
+})(Droid.create("BB-8", "orange"));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Calling <code>next</code> with a string argument allows us to specify the grammar production we want to match; in this case we are matching an expression. You can think matching against a grammar production a little like matching an implicitly-delimited syntax object; these matches group multiple syntax object together.</p>
+</div>
+</div>
+</div>
 </div>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
 <a href="#_footnoteref_1">1</a>. Technically, syntax templates return an <a href="https://facebook.github.io/immutable-js/docs/#/List">immutable.js List</a> but Sweet converts between arrays and Lists for you
+</div>
+<div class="footnote" id="_footnote_2">
+<a href="#_footnoteref_2">2</a>. Note that we don&#8217;t have to do this since Sweet already parses <code>let</code> statements just fine and uses babel as a backend to provide support in non-ES2015 environments.
 </div>
 </div>
 </body>
