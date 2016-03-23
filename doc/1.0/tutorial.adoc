@@ -133,8 +133,7 @@ We only need one new feature you haven't seen yet:
 ----
 syntax let = function (ctx) {
   let ident = ctx.next().value;
-  // eat `=`
-  ctx.next();
+  ctx.next(); // eat `=`
   let init = ctx.next('expr').value; // <1>
   return #`
     (function (${ident}) {
@@ -158,3 +157,56 @@ console.log(bb8.beep());
 ----
 
 Calling `next` with a string argument allows us to specify the grammar production we want to match; in this case we are matching an expression. You can think matching against a grammar production a little like matching an implicitly-delimited syntax object; these matches group multiple syntax object together.
+
+
+== Sweet cond
+
+One task we often need to perform in a macro is looping over syntax. Sweet helps out with that by supporting ES2015 features like `for-of`. To illustrate, here's a `cond` macro that makes the ternary operator a bit more readable:
+
+.cond Macro
+[source, javascript]
+----
+syntax cond = function (ctx) {
+  let bodyCtx = ctx.next().value.inner(); // <1>
+
+  let result = #``;
+  for (let stx of bodyCtx) { // <2>
+    if (stx.isKeyword('case')) { // <3>
+      let test = bodyCtx.next('expr').value;
+      // eat `:`
+      bodyCtx.next();
+      let r = bodyCtx.next('expr').value;
+      result = result.concat(#`${test} ? ${r} :`);
+    } else if (stx.isKeyword('default')) {
+      // eat `:`
+      bodyCtx.next();
+      let r = bodyCtx.next('expr').value;
+      result = result.concat(#`${r}`);
+    } else {
+      throw new Error('unknown syntax: ' + stx);
+    }
+  }
+  return result;
+}
+
+let x = null;
+
+let realTypeof = cond {
+  case x === null: 'null'
+  case Array.isArray(x): 'array'
+  case typeof x === 'object': 'object'
+  default: typeof x
+}
+----
+<1> The `.inner` method on delimiter syntax objects gives us an iterator into the syntax inside the delimiter. In this case, that is everything inside of `{ ... }`.
+<2> A macro context is iterable so you can `for-of` over it.
+<3> Syntax objects have helpful methods on them that allow you to find out more about them.
+
+.(expansion)
+[source, javascript]
+----
+var x = null;
+var realTypeof = x === null ? "null" :
+                 Array.isArray(x) ? "array" :
+                 typeof x === "undefined" ? "undefined" : typeof x);
+----
