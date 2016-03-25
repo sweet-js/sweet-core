@@ -7,6 +7,8 @@ var argv = require('yargs')
   .demand(1)
   .alias('o', 'out-file')
   .alias('d', 'out-dir')
+  .alias('b', 'no-babel')
+  .describe('b', 'do not use babel backend')
   .describe('o', 'write output to file')
   .describe('d', 'write output to directory')
   .nargs('out-file', 1)
@@ -27,6 +29,7 @@ argv._.forEach(function (file) {
   var fdir = path.dirname(fs.realpathSync(file));
   var output = sweetjs.compile(infile, {
     cwd: fdir,
+    noBabel: argv.noBabel,
     transform: transform,
     moduleResolver: moduleResolver,
     moduleLoader: moduleLoader
