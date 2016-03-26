@@ -46,11 +46,11 @@ var Just_312 = _ramdaFantasy.Maybe.Just;var Nothing_313 = _ramdaFantasy.Maybe.No
     return t.lineNumber();
   }throw new Error("Line numbers on terms not implemented yet");
 };var getVal_328 = function getVal_328(t) {
-  if (isDelimiter_326(t)) {
-    return Nothing_313();
+  if (isDelimiter_326(t, null)) {
+    return null;
   }if (t instanceof _syntax2.default) {
-    return Just_312(t.val());
-  }return Nothing_313();
+    return t.val();
+  }return null;
 };
 var SyntaxOrTermWrapper = exports.SyntaxOrTermWrapper = function () {
   function SyntaxOrTermWrapper(s_329) {
@@ -129,7 +129,7 @@ var SyntaxOrTermWrapper = exports.SyntaxOrTermWrapper = function () {
   }, {
     key: "inner",
     value: function inner() {
-      var stx_342 = this[symWrap_314];if (!isDelimiter_326(stx_342)) {
+      var stx_342 = this[symWrap_314];if (!isDelimiter_326(stx_342, null)) {
         throw new Error("Can only get inner syntax on a delimiter");
       }var enf_343 = new _enforester.Enforester(stx_342.inner(), (0, _immutable.List)(), this.context);return new MacroContext(enf_343, "inner", this.context);
     }
