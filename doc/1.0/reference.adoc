@@ -139,7 +139,7 @@ Syntax objects represent the syntax from the source program.
 ----
 class syntax {
 
-  val: () -> maybe(string)
+  val: () -> a
   linenumber: () -> number
 
   // throws if isdelimiter is false

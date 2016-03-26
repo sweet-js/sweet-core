@@ -188,11 +188,11 @@ m 42</code></pre>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">class syntax {
 
-  val: () -&gt; maybe(string)
+  val: () -&gt; a
   linenumber: () -&gt; number
 
   // throws if isdelimiter is false
-  inner: () -&gt; iterator(syntax)
+  inner: () -&gt; MacroContext
 
   isidentifier: () -&gt; boolean
   isbooleanliteral: () -&gt; boolean
