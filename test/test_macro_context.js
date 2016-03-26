@@ -66,7 +66,7 @@ test('a wrapper should work with braces', t => {
   let wrap = new SyntaxOrTermWrapper(val);
   t.true(wrap.isBraces());
   t.true(wrap.isDelimiter());
-  t.true(wrap.val().isNothing());
+  t.true(null === wrap.val());
 });
 
 test('a wrapper should work with brackets', t => {
@@ -74,7 +74,7 @@ test('a wrapper should work with brackets', t => {
   let wrap = new SyntaxOrTermWrapper(val);
   t.true(wrap.isBrackets());
   t.true(wrap.isDelimiter());
-  t.true(wrap.val().isNothing());
+  t.true(null === wrap.val());
 });
 
 test('a wrapper should work with parens', t => {
@@ -82,7 +82,7 @@ test('a wrapper should work with parens', t => {
   let wrap = new SyntaxOrTermWrapper(val);
   t.true(wrap.isParens());
   t.true(wrap.isDelimiter());
-  t.true(wrap.val().isNothing());
+  t.true(null === wrap.val());
 });
 
 test('a wrapper should work with an inner iterator', t => {
