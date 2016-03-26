@@ -39,7 +39,7 @@ test("arrow expression", function () {
       params:
         { type: "FormalParameters",
           items: [],
-          rest: { type: "BindingIdentifier", name: "a" }
+          rest: { type: "BindingIdentifier", name: "<<hygiene>>" }
         },
       body: { type: "LiteralNumericExpression", value: 0 }
     }
@@ -56,7 +56,7 @@ test("arrow expression", function () {
     { type: "ArrowExpression",
       params:
         { type: "FormalParameters",
-          items: [{ type: "BindingIdentifier", name: "a" }],
+          items: [{ type: "BindingIdentifier", name: "<<hygiene>>" }],
           rest: null
         },
       body: { type: "LiteralNumericExpression", value: 0 }
@@ -81,7 +81,7 @@ test("arrow expression", function () {
     { type: "ArrowExpression",
       params:
         { type: "FormalParameters",
-          items: [{ type: "BindingIdentifier", name: "a" }],
+          items: [{ type: "BindingIdentifier", name: "<<hygiene>>" }],
           rest: null
         },
       body: { type: "LiteralNumericExpression", value: 0 }
@@ -162,8 +162,8 @@ test("arrow expression", function () {
         { type: "FormalParameters",
           items:
             [
-              { type: "BindingIdentifier", name: "a" },
-              { type: "BindingIdentifier", name: "b" }
+              { type: "BindingIdentifier", name: "<<hygiene>>" },
+              { type: "BindingIdentifier", name: "<<hygiene>>" }
             ],
           rest: null
         },
@@ -182,10 +182,10 @@ test("arrow expression", function () {
         { type: "FormalParameters",
           items:
             [
-              { type: "BindingIdentifier", name: "a" },
-              { type: "BindingIdentifier", name: "b" }
+              { type: "BindingIdentifier", name: "<<hygiene>>" },
+              { type: "BindingIdentifier", name: "<<hygiene>>" }
             ],
-          rest: { type: "BindingIdentifier", name: "c" }
+          rest: { type: "BindingIdentifier", name: "<<hygiene>>" }
         },
       body: {
         type: "BinaryExpression",
@@ -209,13 +209,13 @@ test("arrow expression", function () {
 
   testParse("a => b => c => 0", expr,
     { type: "ArrowExpression",
-      params: { type: "FormalParameters", items: [{ type: "BindingIdentifier", name: "a" }], rest: null },
+      params: { type: "FormalParameters", items: [{ type: "BindingIdentifier", name: "<<hygiene>>" }], rest: null },
       body:
         { type: "ArrowExpression",
-          params: { type: "FormalParameters", items: [{ type: "BindingIdentifier", name: "b" }], rest: null },
+          params: { type: "FormalParameters", items: [{ type: "BindingIdentifier", name: "<<hygiene>>" }], rest: null },
           body:
             { type: "ArrowExpression",
-              params: { type: "FormalParameters", items: [{ type: "BindingIdentifier", name: "c" }], rest: null },
+              params: { type: "FormalParameters", items: [{ type: "BindingIdentifier", name: "<<hygiene>>" }], rest: null },
               body: { type: "LiteralNumericExpression", value: 0 }
             }
         }
@@ -231,7 +231,7 @@ test("arrow expression", function () {
 
   testParse("eval => 'use strict'", expr,
     { type: "ArrowExpression",
-      params: { type: "FormalParameters", items: [{ type: "BindingIdentifier", name: "eval" }], rest: null },
+      params: { type: "FormalParameters", items: [{ type: "BindingIdentifier", name: "<<hygiene>>" }], rest: null },
       body: { type: "LiteralStringExpression", value: "use strict" }
     }
   );

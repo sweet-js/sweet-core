@@ -94,25 +94,7 @@ export default class TermExpander {
   }
 
   expandArrowExpression(term) {
-    let body;
-    if (List.isList(term.body)) {
-      let scope = freshScope('fun');
-      this.context.currentScope.push(scope);
-      let expander = new Expander(this.context);
-
-      body = new Term("FunctionBody", {
-        directives: List(),
-        statements: expander.expand(term.body.map(s => s.addScope(scope, this.context.bindings)))
-      });
-      this.context.currentScope.pop();
-    } else {
-      body = this.expand(term.body);
-    }
-    return new Term('ArrowExpression', {
-      // TODO: hygiene
-      params: this.expand(term.params),
-      body
-    });
+    return this.doFunctionExpansion(term, 'ArrowExpression');
   }
 
   expandSwitchDefault(term) {
@@ -522,7 +504,6 @@ export default class TermExpander {
 
   doFunctionExpansion(term, type) {
     let scope = freshScope("fun");
-    let markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
     let red = new ApplyScopeInParamsReducer(scope, this.context);
     let params;
     if (type !== 'Getter' && type !== 'Setter') {
@@ -532,10 +513,17 @@ export default class TermExpander {
     this.context.currentScope.push(scope);
     let expander = new Expander(this.context);
 
-    let bodyTerm = new Term("FunctionBody", {
-      directives: List(),
-      statements: expander.expand(markedBody)
-    });
+    let markedBody, bodyTerm;
+    if (term.body instanceof Term) {
+      // Arrow functions have a single term as their body
+      bodyTerm = this.expand(term.body.addScope(scope, this.context.bindings));
+    } else {
+      markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
+      bodyTerm = new Term("FunctionBody", {
+        directives: List(),
+        statements: expander.expand(markedBody)
+      });
+    }
     this.context.currentScope.pop();
 
     if (type === 'Getter') {
