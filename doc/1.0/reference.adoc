@@ -7,114 +7,127 @@
 
 == Introduction
 
-TODO
+This is the reference document for Sweet.js. For a gentle explaination of Sweet's concepts see the link:tutorial.html[tutorial].
+
+== Command Line API
+
+- `--out-file <file>`: write result to file
+- `--out-dir <dir>`: write result to directory
+- `--no-babel`: do not use babel backend
 
 == Binding Forms
 
 === `syntax`
 
-[source, javascript]
 ----
-syntax $($name:id = $init:expr) (,) ...
-----
-
-Similar to how the keywords `var`, `let`, and `const` bind *run-time* values in JavaScript, sweet.js provides a way to bind *compile-time* values via the keyword `syntax`. The binding created by `syntax` is analogous to `let` and applies to the code following the binding.
-
-Any JavaScript valuefootnote:[Currently, sweet.js does not provide a means of retrieving non-function values from a compile-time binding so this point is somewhat academic. Making use of non-function compile-time values will come eventually.] can be bound via `syntax`:
-
-[source, javascript]
-----
-syntax compiletimeNumber = 42
-syntax compiletimeString = "foobar"
+syntax <name> = <init>
 ----
 
-A function bound by `syntax` is called a link:syntax-transformers.adoc[*syntax transformer*]. When a binding to a syntax transformer appears in the source text, the syntax transformer is invoked.
+Bind `<name>` to the result of evaluating `<init>` in the compiletime environment. Scoping follows `let` (i.e. block scoped with a temporal dead zone).
 
-[source, javascript]
-----
-syntax inc = function (ctx) {
-  let x = ctx.next().value;
-  return #`${x} + 1`;
-}
-inc 100
-----
-
-////
-waiting on PR being accepted https://github.com/GitbookIO/plugin-tonic/pull/2
-{% tonic nodeVersion="^5.0.0" %}
-let x = 42;
-{% endtonic %}
-////
+If the result of evaluating `<init>` is a function, then the result is a <<syntax, _syntax transformer_>>.
 
 === `syntaxrec`
 
-[source, javascript]
 ----
-syntaxrec $($name:id = $init:expr) (,) ...
-----
-
-The `syntaxrec` form is identical to the `syntax` form except the name bound by `syntaxrec` is also bound in the initializer. This enables recursive definitions.
-
-
-
-== Syntax Transformers (aka Macros)
-
-----
-transformer : (TransformerContext) -> List<Syntax>
+syntaxrec <name> = <init>
 ----
 
-A syntax transformer is a function bound to a compile-time name. A syntax transformer is invoked with a *transformer context* that provides access to the syntax at the call-site and returns a list of syntax.
+Identical to the `syntax` form except that `<name>` is also bound inside of `<init>`. This enables recursive macro definitions.
 
-[source, javascript]
+anchor:syntax[]
+
+== Syntax Transformer
+
 ----
-syntax inc = function (ctx) {
-  let x = ctx.next();
-  if (x.done) {
-    throw new Error('Must provide a syntax argument to inc');
-  }
-  return #`${x.value} + 1`;
-}
-inc 100
+transformer : (TransformerContext) -> List(Syntax)
 ----
+
+A syntax transformer is a function bound to a compile-time name. A syntax transformer is invoked with a <<context, *transformer context*>> that provides access to the syntax at the call-site and returns a list of <<synobj, syntax objects>>.
+
+
+
+anchor:context[]
 
 === Transformer Context
 
-A transformer context is an iterablefootnote:[A Transformer Context is both iterator and iterable.] object that provides access to syntax at the call-site of a syntax transformer.
+A transformer context is an iterable object that provides access to syntax at the call-site of a syntax transformer.
 
-[source, javascript]
 ----
-class TransformerContext {
-  next: () -> {
+TransformerContext = {
+  next: (string?) -> {
     done: boolean,
     value: Syntax
   }
-  next: (String) -> {
-    done: boolean,
-    value: Term
-  }
 }
 ----
 
-Each call to `next` returns the syntax object following the transformer call. If `next` is called with a string, the specified grammar production is matched and a corresponding link:terms.adoc[`Term`] is returned instead of a syntax object.
+Each call to `next` returns the <<synobj, syntax object>> following the transformer call. If `next` is called with a string, the specified grammar production is matched.
 
-For delimiter syntax objects, the `inner` method provides an iterator into the syntax inside of the delimiter:
+anchor:synobj[]
 
-[source, javascript]
-----
-syntax m = function (ctx) {
-  let paren = ctx.next().value;
-  let parenCtx = paren.inner();
+== Syntax Objects
 
-  let items = [];
-  for (let k of parenCtx) {
-    items.push(k)
-  }
-  return #`[${items}]`;
-}
-m (1, 2, 3)
-----
+Syntax objects represent the syntax from the source program. Syntax objects have a number of methods to inspect their contents.
 
-=== Syntax Templates
+=== `.val()`
+
+Returns a nullable value representing the textual value of the syntax. For example, the `.val()` of the identifier `foo` is the string `"foo"`. Some syntax objects (in particular delimiters) do not have a reasonable representation of their syntax and so `.val()` returns `null` in these cases.
+
+=== `.lineNumber()`
+
+Returns the original line number for this syntax object.
+
+=== `.inner()`
+
+If the syntax object is a delimiter, returns a <<context, transformer context>> iterator into the delimiter. Otherwise, throw an exception.
+
+=== `.isIdentifier()`
+
+Returns true if the syntax object is an identifier.
+
+=== `.isBooleanLiteral()`
+Returns true if the syntax object is a boolean literal.
+
+=== `.isNullliteral()`
+Returns true if the syntax object is a null literal.
+
+=== `.isNumericLiteral()`
+Returns true if the syntax object is a numeric literal.
+
+=== `.isStringLiteral()`
+Returns true if the syntax object is a string literal.
+
+=== `.isKeyword()`
+Returns true if the syntax object is a keyword.
+
+=== `.isPunctuator()`
+Returns true if the syntax object is a puncuator.
+
+=== `.isRegularExpression()`
+Returns true if the syntax object is a regular expression literal.
+
+=== `.isTemplate()`
+Returns true if the syntax object is a template literal.
+
+=== `.isDelimiter()`
+Returns true if the syntax object is a delimiter.
+
+=== `.isParens()`
+Returns true if the syntax object is a parenthesis delimiter (e.g. `( ... )`).
+
+=== `.isBrackets()`
+Returns true if the syntax object is a bracket delimiter (e.g. `[ ... ]`).
+
+=== `.isBraces()`
+Returns true if the syntax object is a braces delimiter (e.g. `{ ... }`).
+
+=== `.isSyntaxTemplate()`
+
+Returns true if the syntax object is a syntax template.
+
+
+== Syntax Templates
 
 Syntax templates construct a list of syntax objects from a literal representation using backtick (`\#`foo bar baz``). They are similar to ES2015 templates but with the special sweet.js specific `#` template tag.
 
@@ -128,35 +141,4 @@ syntax m = function (ctx) {
 m 42
 ----
 
-The expressions inside an interpolation must evaluate to a syntax object, a term, an array, or a list.
-
-
-== Syntax Objects
-
-Syntax objects represent the syntax from the source program.
-
-[source, javascript]
-----
-class syntax {
-
-  val: () -> a
-  linenumber: () -> number
-
-  // throws if isdelimiter is false
-  inner: () -> MacroContext
-
-  isidentifier: () -> boolean
-  isbooleanliteral: () -> boolean
-  isnullliteral: () -> boolean
-  isnumericliteral: () -> boolean
-  isstringliteral: () -> boolean
-  iskeyword: () -> boolean
-  ispunctuator: () -> boolean
-  isregularexpression: () -> boolean
-  istemplate: () -> boolean
-  isdelimiter: () -> boolean
-  isparens: () -> boolean
-  isbrackets: () -> boolean
-  isbraces: () -> boolean
-  issyntaxtemplate: () -> boolean
-----
+The expressions inside an interpolation must evaluate to a <<synobj, syntax object>>, an array, a list, or an <<context, transformer context>>.
