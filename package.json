@@ -5,7 +5,7 @@
   "bin": {
     "sjs": "bin/sjs"
   },
-  "version": "1.0.0-pre.5",
+  "version": "1.0.0",
   "engines": {
     "node": ">4.0.0"
   },
