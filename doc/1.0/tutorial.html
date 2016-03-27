@@ -24,6 +24,7 @@
 <li><a href="#_sweet_hello">3. Sweet Hello</a></li>
 <li><a href="#_sweet_new">4. Sweet New</a></li>
 <li><a href="#_sweet_let">5. Sweet Let</a></li>
+<li><a href="#_sweet_cond">6. Sweet cond</a></li>
 </ul>
 </div>
 </div>
@@ -237,8 +238,7 @@ We only need one new feature you haven&#8217;t seen yet:</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax let = function (ctx) {
   let ident = ctx.next().value;
-  // eat `=`
-  ctx.next();
+  ctx.next(); // eat `=`
   let init = ctx.next('expr').value; <i class="conum" data-value="1"></i><b>(1)</b>
   return #`
     (function (${ident}) {
@@ -273,6 +273,75 @@ console.log(bb8.beep());</code></pre>
 </div>
 <div class="paragraph">
 <p>Calling <code>next</code> with a string argument allows us to specify the grammar production we want to match; in this case we are matching an expression. You can think matching against a grammar production a little like matching an implicitly-delimited syntax object; these matches group multiple syntax object together.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_sweet_cond">6. Sweet cond</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>One task we often need to perform in a macro is looping over syntax. Sweet helps out with that by supporting ES2015 features like <code>for-of</code>. To illustrate, here&#8217;s a <code>cond</code> macro that makes the ternary operator a bit more readable:</p>
+</div>
+<div class="listingblock">
+<div class="title">cond Macro</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax cond = function (ctx) {
+  let bodyCtx = ctx.next().value.inner(); <i class="conum" data-value="1"></i><b>(1)</b>
+
+  let result = #``;
+  for (let stx of bodyCtx) { <i class="conum" data-value="2"></i><b>(2)</b>
+    if (stx.isKeyword('case')) { <i class="conum" data-value="3"></i><b>(3)</b>
+      let test = bodyCtx.next('expr').value;
+      // eat `:`
+      bodyCtx.next();
+      let r = bodyCtx.next('expr').value;
+      result = result.concat(#`${test} ? ${r} :`);
+    } else if (stx.isKeyword('default')) {
+      // eat `:`
+      bodyCtx.next();
+      let r = bodyCtx.next('expr').value;
+      result = result.concat(#`${r}`);
+    } else {
+      throw new Error('unknown syntax: ' + stx);
+    }
+  }
+  return result;
+}
+
+let x = null;
+
+let realTypeof = cond {
+  case x === null: 'null'
+  case Array.isArray(x): 'array'
+  case typeof x === 'object': 'object'
+  default: typeof x
+}</code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>.inner</code> method on delimiter syntax objects gives us an iterator into the syntax inside the delimiter. In this case, that is everything inside of <code>{ &#8230;&#8203; }</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>A macro context is iterable so you can <code>for-of</code> over it.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Syntax objects have helpful methods on them that allow you to find out more about them.</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">var x = null;
+var realTypeof = x === null ? "null" :
+                 Array.isArray(x) ? "array" :
+                 typeof x === "undefined" ? "undefined" : typeof x);</code></pre>
+</div>
 </div>
 </div>
 </div>
