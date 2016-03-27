@@ -24,7 +24,9 @@
 <li><a href="#_sweet_hello">3. Sweet Hello</a></li>
 <li><a href="#_sweet_new">4. Sweet New</a></li>
 <li><a href="#_sweet_let">5. Sweet Let</a></li>
-<li><a href="#_sweet_cond">6. Sweet cond</a></li>
+<li><a href="#_sweet_cond">6. Sweet Cond</a></li>
+<li><a href="#_sweet_class">7. Sweet Class</a></li>
+<li><a href="#_sweet_modules">8. Sweet Modules</a></li>
 </ul>
 </div>
 </div>
@@ -43,7 +45,7 @@ Macros allow you to sweeten the syntax of JavaScript and craft the language youâ
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-This documents version 1.0 of Sweet and is currently a work in progress. Contributions are welcome!
+This documents version 1.0 of Sweet and is still a work in progress. Contributions are welcome!
 </td>
 </tr>
 </table>
@@ -135,7 +137,7 @@ hi <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
 </table>
 </div>
 <div class="paragraph">
-<p>The first three lines make up the macro definition. The <code>syntax</code> keyword is a bit like <code>var</code> or <code>let</code> in that it creates a new variable. However, rather than create a variable for a runtime value, <code>syntax</code> creates a new variable for a <em>compiletime value</em>. In this case, <code>hi</code> is the variable bound to the compiletime function defined on the first three lines.</p>
+<p>The first three lines make up the macro definition. The <code>syntax</code> keyword is a bit like <code>let</code> in that it creates a new variable in the current block scope. However, rather than create a variable for a runtime value, <code>syntax</code> creates a new variable for a <em>compiletime value</em>. In this case, <code>hi</code> is the variable bound to the compiletime function defined on the first three lines.</p>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -156,7 +158,7 @@ In this example, <code>syntax</code> sets the variable to a function, but the va
 <p>When the Sweet compiler sees the <code>hi</code> identifier bound to the compiletime function, the function is invoked and its return value is used to replace the invoking occurrence of <code>hi</code>. In this case, that means that <code>hi</code> is replaced with <code>console.log('hello, world!')</code>.</p>
 </div>
 <div class="paragraph">
-<p>Compiletime functions defined by <code>syntax</code> must return an array of syntax objects. You can easily create these with a <em>syntax template</em>. Syntax templates are template literals with a <code>#</code> tag, which create an array<span class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span>
+<p>Compiletime functions defined by <code>syntax</code> must return an array of syntax objects. You can easily create these with a <em>syntax template</em>. Syntax templates are template literals with a <code>#</code> tag, which create a List<span class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span>
 of syntax objects.</p>
 </div>
 <div class="dlist">
@@ -277,7 +279,7 @@ console.log(bb8.beep());</code></pre>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_sweet_cond">6. Sweet cond</h2>
+<h2 id="_sweet_cond">6. Sweet Cond</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>One task we often need to perform in a macro is looping over syntax. Sweet helps out with that by supporting ES2015 features like <code>for-of</code>. To illustrate, here&#8217;s a <code>cond</code> macro that makes the ternary operator a bit more readable:</p>
@@ -343,13 +345,112 @@ var realTypeof = x === null ? "null" :
                  typeof x === "undefined" ? "undefined" : typeof x);</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Since delimiters nest syntax in Sweet, we need a way to get at what is inside them. Syntax objects have a <code>inner</code> method to do just that; calling <code>inner</code> on a delimiter will return an iterator into the syntax inside the delimiter.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_sweet_class">7. Sweet Class</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>So putting together what we&#8217;ve learned so far, let&#8217;s make the sweetest of ES2015&#8217;s features: <code>class</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">class Macro</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax class = function (ctx) {
+  let name = ctx.next().value;
+  let bodyCtx = ctx.next().value.inner();
+
+  // default constructor if none specified
+  let construct = #`function ${name} () {}`;
+  let result = #``;
+  for (let item of bodyCtx) {
+    if (item.isIdentifier('constructor')) {
+      construct = #`
+        function ${name} ${bodyCtx.next().value}
+        ${bodyCtx.next().value}
+      `;
+    } else {
+      result = result.concat(#`
+        ${name}.prototype.${item} = function
+            ${bodyCtx.next().value}
+            ${bodyCtx.next().value};
+      `);
+    }
+  }
+  return construct.concat(result);
+}
+class Droid {
+  constructor(name, color) {
+    this.name = name;
+    this.color = color;
+  }
+
+  rollWithIt(it) {
+    return this.name + " is rolling with " + it;
+  }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">function Droid(name, color) {
+  this.name = name;kj
+  this.color = color;
+}
+
+Droid.prototype.rollWithIt = function(it) {
+  return this.name + " is rolling with " + it;
+};</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_sweet_modules">8. Sweet Modules</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Now that you&#8217;ve created your sweet macros you probably want to share them! Sweet supports this via ES2015 modules:</p>
+</div>
+<div class="listingblock">
+<div class="title">es2015-macros.js</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">#lang "sweet.js"
+export syntax class = function (ctx) {
+  // ...
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">main.js</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { class } from './es2015-macros';
+
+class Droid {
+  constructor(name, color) {
+    this.name = name;
+    this.color = color;
+  }
+
+  rollWithIt(it) {
+    return this.name + " is rolling with " + it;
+  }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>#lang "sweet.js"</code> directive lets Sweet know that a module exports macros, so you need it in any module that has an <code>export syntax</code> in it. This directive allows Sweet to not bother doing a lot of unnecessary expansion work in modules that do not export syntax bindings. Eventually, this directive will be used for other things such as defining a base language.</p>
+</div>
 </div>
 </div>
 </div>
 <div id="footnotes">
 <hr>
 <div class="footnote" id="_footnote_1">
-<a href="#_footnoteref_1">1</a>. Technically, syntax templates return an <a href="https://facebook.github.io/immutable-js/docs/#/List">immutable.js List</a> but Sweet converts between arrays and Lists for you
+<a href="#_footnoteref_1">1</a>. See the <a href="https://facebook.github.io/immutable-js/docs/#/List">immutable.js docs</a> for its API
 </div>
 <div class="footnote" id="_footnote_2">
 <a href="#_footnoteref_2">2</a>. Note that we don&#8217;t have to do this since Sweet already parses <code>let</code> statements just fine and uses babel as a backend to provide support in non-ES2015 environments.
