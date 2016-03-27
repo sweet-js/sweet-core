@@ -158,7 +158,7 @@ export default class TokenExpander {
                 let nameRemoved = name.removeScope(self.context.currentScope[self.context.currentScope.length - 1]);
                 let newBinding = gensym(name.val());
                 self.context.bindings.addForward(nameAdded, nameRemoved, newBinding);
-                decl.init.body = decl.init.body.map(s => s.addScope(scope, self.context.bindings));
+                decl.init = decl.init.addScope(scope, self.context.bindings);
               });
             }
 

@@ -20,6 +20,20 @@ m`, stmt, {
   });
 });
 
+test("should handle basic expansion with an arrow transformer", function () {
+  testParse(`
+syntaxrec m = ctx => #\`200\`
+m`, stmt, {
+    "type": "ExpressionStatement",
+    "loc": null,
+    "expression": {
+      "type": "LiteralNumericExpression",
+      "loc": null,
+      "value": 200
+    }
+  });
+});
+
 test("should handle basic expansion at an expression position", function () {
   testParse(`
 syntaxrec m = function (ctx) {

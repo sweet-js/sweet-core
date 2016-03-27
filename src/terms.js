@@ -128,6 +128,7 @@ export const isSuper = R.whereEq({ type: "Super" });
 export const isSwitchCase = R.whereEq({ type: "SwitchCase" });
 export const isSwitchDefault = R.whereEq({ type: "SwitchDefault" });
 export const isTemplateElement = R.whereEq({ type: "TemplateElement" });
+export const isSyntaxTemplate = R.whereEq({ type: "SyntaxTemplate" });
 export const isVariableDeclaration = R.whereEq({ type: "VariableDeclaration" });
 export const isVariableDeclarator = R.whereEq({ type: "VariableDeclarator" });
 export const isEOF = R.whereEq({ type: 'EOF' });
@@ -225,6 +226,7 @@ const fieldsIn = R.cond([
   [isSwitchCase, R.always(List.of('test', 'consequent'))],
   [isSwitchDefault, R.always(List.of('consequent'))],
   [isTemplateElement, R.always(List.of('rawValue'))],
+  [isSyntaxTemplate, R.always(List.of('template'))],
   [isVariableDeclaration, R.always(List.of('kind', 'declarators'))],
   [isVariableDeclarator, R.always(List.of('binding', 'init'))],
   [isParenthesizedExpression, R.always(List.of('inner'))],
