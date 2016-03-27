@@ -23,6 +23,7 @@ export function expand(source, options = {}) {
     store: new Env(),
     bindings: bindings,
     cwd: options.cwd,
+    filename: options.filename,
     modules: new Modules(),
     currentScope: [scope],
     transform: options.transform ? options.transform : function(x) { return {code: x}; },
@@ -44,6 +45,7 @@ export function compile(source, options = {}) {
   let ast = parse(source, options);
   let gen = codegen(ast, new FormattedCodeGen());
   return options.transform && (!options.noBabel) ? options.transform(gen, {
-    presets: ['es2015']
+    babelrc: true,
+    filename: options.filename
   }) : { code: gen };
 }

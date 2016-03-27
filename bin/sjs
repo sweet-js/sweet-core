@@ -31,6 +31,7 @@ argv._.forEach(function (file) {
     cwd: fdir,
     noBabel: argv.noBabel,
     transform: transform,
+    filename: file,
     moduleResolver: moduleResolver,
     moduleLoader: moduleLoader
   });

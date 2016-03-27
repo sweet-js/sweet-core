@@ -20,6 +20,7 @@ debugger;
 var result = compile(source, {
 	cwd: __dirname,
 	transform: transform,
+	filename: './test.js',
   moduleResolver: moduleResolver,
   moduleLoader: moduleLoader
 });
