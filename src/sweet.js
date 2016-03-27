@@ -5,7 +5,7 @@ import Syntax from "./syntax";
 import Env from "./env";
 import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
-import codegen from "shift-codegen";
+import codegen, { FormattedCodeGen } from "shift-codegen";
 import { Scope, freshScope } from "./scope";
 
 import BindingMap from "./binding-map.js";
@@ -42,7 +42,7 @@ export function parse(source, options = {}) {
 
 export function compile(source, options = {}) {
   let ast = parse(source, options);
-  let gen = codegen(ast);
+  let gen = codegen(ast, new FormattedCodeGen());
   return options.transform && (!options.noBabel) ? options.transform(gen, {
     presets: ['es2015']
   }) : { code: gen };

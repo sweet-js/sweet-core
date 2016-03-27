@@ -16,6 +16,7 @@ var fs = require("fs");
 
 var source = fs.readFileSync("./test.js", "utf8");
 
+debugger;
 var result = compile(source, {
 	cwd: __dirname,
 	transform: transform,
