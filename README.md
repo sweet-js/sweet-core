@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/mozilla/sweet.js.png)](https://travis-ci.org/mozilla/sweet.js)
 
+[![Join the chat at https://gitter.im/mozilla/sweet.js](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mozilla/sweet.js?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Hygienic Macros for JavaScript!
 
 Macros allow *you* to build the language of your dreams. Sweeten JavaScript by defining new syntax for your code.
@@ -15,25 +17,22 @@ $ npm install sweet.js
 Write your sweet code:
 
 ```js
-// my_sweet_code.js
-
-syntax inc = function (ctx) {
-  let x = ctx.next().value;
-  return #`${x} + 1`;
+syntax hi = function (ctx) {
+  return #`console.log('hello, world!')`;
 }
-inc 100
+hi
 ```
 
 And compile:
 
 ```sh
 $ node_modules/.bin/sjs my_sweet_code.js
-100 + 1;
+console.log('hello, world!')
 ```
 
 # Learning More
 
-* Read the [documentation](http://sweetjs.org/doc/book).
+* Read the [tutorial](http://sweetjs.org/doc/1.0/tutorial.html).
+* Read the [reference documentation](http://sweetjs.org/doc/1.0/reference.html).
 * Play with the [editor](http://sweetjs.org/browser/editor.html).
-* Hang out on IRC #sweet.js at irc.mozilla.org.
-* Try out other [macros](https://npmjs.org/browse/keyword/sweet-macros).
+* Hang out on IRC: #sweet.js at irc.mozilla.org.

@@ -28,4 +28,3 @@ _site
 .projectile
 .nyc_output
 coverage
-browser/scripts/sweet.js
