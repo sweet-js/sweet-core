@@ -30,7 +30,8 @@
     "test": "ava",
     "report": "nyc ava && nyc report --reporter=html",
     "docs": "asciidoctorjs doc/1.0/tutorial.adoc & asciidoctorjs doc/1.0/reference.adoc",
-    "prepublish": "npm run build && && npm run docs && cp build/src/*.js dist"
+    "dist": "npm run build && npm run docs && cp build/src/*.js dist",
+    "prepublish": "npm run dist"
   },
   "directories": {
     "test": "test"
