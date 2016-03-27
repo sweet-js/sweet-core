@@ -4,7 +4,7 @@ layout: default
 
 # Sweeten Your JavaScript
 
-Hygienic Macros for JavaScript!
+Sweet brings the hygienic macros of languages like Scheme and Rust to JavaScript. Macros allow you to sweeten the syntax of JavaScript and craft the language you've always wanted.
 
 Macros allow *you* to build the language of your dreams. Sweeten JavaScript by defining new syntax for your code.
 
