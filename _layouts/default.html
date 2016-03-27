@@ -22,6 +22,13 @@ body {
   position: relative;
   top: 75px;
 }
+#nav {
+  margin-top: 30px;
+  float: right;
+}
+#nav ul {
+  list-style-type: none;
+}
 
 #logo {
   float: left;
@@ -120,9 +127,16 @@ a.mozilla {
   <a href="http://github.com/mozilla/sweet.js">
     <img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" />
   </a>
-
   <div id="body">
     <div id="logo"><img src="sweetjs.png"></div>
+    <div id="nav">
+    <ul>
+      <li> <a href="doc/1.0/tutorial.html">tutorial documentation</a> </li>
+      <li> <a href="doc/1.0/reference.html">reference documentation</a> </li>
+      <li> <a href="browser/editor.html">online editor</a> </li>
+      <li> <a href="https://github.com/mozilla/sweet.js">github project</a></li>
+    </ul>
+    </div>
     <div id="content">
 
       {{content}}
