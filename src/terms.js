@@ -22,7 +22,7 @@ export default class Term {
       } else if (List.isList(this[field])) {
         next[field] = this[field].map(f => f.addScope(scope, bindings, options));
       } else {
-        throw new Error('Unknown kind of term field [' + field + ']: ' + this[field]);
+        next[field] = this[field];
       }
     }
     return new Term(this.type, next);
@@ -135,6 +135,7 @@ export const isSyntaxDeclaration = R.both(isVariableDeclaration, R.whereEq({ kin
 export const isSyntaxrecDeclaration = R.both(isVariableDeclaration, R.whereEq({ kind: 'syntaxrec' }));
 export const isFunctionTerm = R.either(isFunctionDeclaration, isFunctionExpression);
 export const isFunctionWithName = R.and(isFunctionTerm, R.complement(R.where({ name: R.isNil })));
+export const isParenthesizedExpression = R.whereEq({ type: 'ParenthesizedExpression'});
 
 const fieldsIn = R.cond([
   // bindings
@@ -226,6 +227,7 @@ const fieldsIn = R.cond([
   [isTemplateElement, R.always(List.of('rawValue'))],
   [isVariableDeclaration, R.always(List.of('kind', 'declarators'))],
   [isVariableDeclarator, R.always(List.of('binding', 'init'))],
+  [isParenthesizedExpression, R.always(List.of('inner'))],
 
   [R.T, type => assert(false, 'Missing case in fields: ' + type.type)]
 ]);
