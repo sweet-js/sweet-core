@@ -84,7 +84,10 @@ function loadForCompiletime(expr, context) {
 
   // let result = babel.transform(wrapForCompiletime(estree, sandboxKeys));
   let gen = codegen(parsed, new FormattedCodeGen);
-  let result = context.transform(gen);
+  let result = context.transform(gen, {
+    babelrc: true,
+    filename: context.filename
+  });
   return geval(result.code).apply(undefined, sandboxVals);
 }
 

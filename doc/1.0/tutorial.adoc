@@ -46,6 +46,28 @@ $ node_modules/.bin/sjs sweet_code.js
 console.log('hello, world!')
 ----
 
+
+=== Babel Backend
+
+Note that Sweet uses link:https://babeljs.io/[Babel] as a backend. After Sweet has done its work of finding and expanding macros, the resulting code is run through Babel.
+
+By default Babel preforms no transformations so you will need to configure it according to your needs. The easiest way to do this is via a link:https://babeljs.io/docs/usage/babelrc/[`.babelrc`] file. A minimal configuration looks something like:
+
+[source, javascript]
+----
+{
+    "presets": ["es2015"]
+}
+----
+
+Where you've installed the es2015 preset via npm:
+
+----
+npm install babel-preset-es2015
+----
+
+If you do not want to use Babel at all, simply pass the `--no-babel` flag to `sjs`.
+
 == Sweet Hello
 
 So how do macros work?
