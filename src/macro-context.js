@@ -191,7 +191,7 @@ export default class MacroContext {
     
     if (next.done) {
       // reappropiating native error types to keep type checking easy
-      let error = new RangeError(`Expected ${type || "a syntax object"}, reached end of context`)
+      let error = new ReferenceError(`Expected ${type || "a syntax object"}, reached end of context`)
       errorHandler(error)
     }
     else if (type && !isGrammarProd) {
