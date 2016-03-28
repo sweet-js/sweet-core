@@ -175,4 +175,39 @@ export default class MacroContext {
       value: new SyntaxOrTermWrapper(value, this.context),
     };
   }
+  read(type, value, errorHandler) {
+    let isGrammarProd = type == "expr",
+      next = this.next(isGrammarProd ? type : void 0)
+    
+    if (typeof type == "function") {
+      errorHandler = type
+      type = void 0
+    }
+    else if (typeof value == "function") {
+      errorHandler = value
+      value = void 0
+    }
+    errorHandler = errorHandler || err => {throw err}
+    
+    if (next.done) {
+      // reappropiating native error types to keep type checking easy
+      let error = new RangeError(`Expected ${type || "a syntax object"}, reached end of context`)
+      errorHandler(error)
+    }
+    else if (type && !isGrammarProd) {
+      type = type.charAt(0).toUpperCase() + type.slice(1)
+      
+      if (!next.value["is"+type]) {
+        errorHandler(TypeError(type + " is not a valid type"))
+      }
+      else if (!next.value["is"+type](value)) {
+        let error = "Expected " + type
+        if (value) {
+          error += ": " + value
+        }
+        errorHandler(SyntaxError(error))
+      }
+    }
+    return next.value
+  }
 }
