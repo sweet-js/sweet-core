@@ -68,7 +68,7 @@ function testEval(source, expectedOutput) {
   let result = compile(source, { cwd: '.', transform });
   var output;
   eval(result.code);
-  expect(output).to.be(expectedOutput);
+  expect(output).to.eql(expectedOutput);
 }
 
 export function testThrow(source) {
