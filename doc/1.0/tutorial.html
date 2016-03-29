@@ -20,7 +20,11 @@
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
 <li><a href="#_introduction">1. Introduction</a></li>
-<li><a href="#_installation_and_getting_started">2. Installation and Getting Started</a></li>
+<li><a href="#_installation_and_getting_started">2. Installation and Getting Started</a>
+<ul class="sectlevel2">
+<li><a href="#_babel_backend">2.1. Babel Backend</a></li>
+</ul>
+</li>
 <li><a href="#_sweet_hello">3. Sweet Hello</a></li>
 <li><a href="#_sweet_new">4. Sweet New</a></li>
 <li><a href="#_sweet_let">5. Sweet Let</a></li>
@@ -98,6 +102,33 @@ hi</code></pre>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-sh" data-lang="sh">$ node_modules/.bin/sjs sweet_code.js
 console.log('hello, world!')</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_babel_backend">2.1. Babel Backend</h3>
+<div class="paragraph">
+<p>Note that Sweet uses <a href="https://babeljs.io/">Babel</a> as a backend. After Sweet has done its work of finding and expanding macros, the resulting code is run through Babel.</p>
+</div>
+<div class="paragraph">
+<p>By default Babel preforms no transformations so you will need to configure it according to your needs. The easiest way to do this is via a <a href="https://babeljs.io/docs/usage/babelrc/"><code>.babelrc</code></a> file. A minimal configuration looks something like:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">{
+    "presets": ["es2015"]
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Where you&#8217;ve installed the es2015 preset via npm:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>npm install babel-preset-es2015</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you do not want to use Babel at all, simply pass the <code>--no-babel</code> flag to <code>sjs</code>.</p>
 </div>
 </div>
 </div>
