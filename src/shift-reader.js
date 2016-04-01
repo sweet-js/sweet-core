@@ -11,6 +11,7 @@ import Term from './terms';
 
 const LSYNTAX = { name: 'left-syntax' };
 const RSYNTAX = { name: 'right-syntax' };
+const AT = { klass: TokenClass.Punctuator, name: "@" };
 
 
 // TODO: also, need to handle contextual yield
@@ -409,6 +410,16 @@ export default class Reader extends Tokenizer {
         type: TokenType.IDENTIFIER,
         value: '#',
         slice: slice
+      };
+    } else if (charCode === 64) { // @
+      let startLocation = this.getLocation();
+      let start = this.index;
+      let slice = this.getSlice(start, startLocation);
+      this.index++;
+      return {
+        type: AT,
+        value: '@',
+        slice
       };
     }
 
