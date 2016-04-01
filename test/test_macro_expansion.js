@@ -212,3 +212,26 @@ test('should handle iterators inside a syntax template', t => {
     output = x;
   `, 42);
 });
+
+test('should allow macros to be defined with punctuators', t => {
+  testEval(`
+    syntax @ = function (ctx) {
+      return #\`42\`;
+    }
+    output = @
+  `, 42);
+
+  testEval(`
+    syntax # = function (ctx) {
+      return #\`42\`;
+    }
+    output = #
+  `, 42);
+
+  testEval(`
+    syntax * = function (ctx) {
+      return #\`42\`;
+    }
+    output = *
+  `, 42);
+});

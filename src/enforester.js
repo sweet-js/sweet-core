@@ -765,10 +765,10 @@ export class Enforester {
     });
   }
 
-  enforestBindingTarget() {
+  enforestBindingTarget({ allowPunctuator } = {}) {
     let lookahead = this.peek();
-    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
-      return this.enforestBindingIdentifier();
+    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead) || (allowPunctuator && this.isPunctuator(lookahead))) {
+      return this.enforestBindingIdentifier({ allowPunctuator });
     } else if (this.isBrackets(lookahead)) {
       return this.enforestArrayBinding();
     } else if (this.isBraces(lookahead)) {
@@ -851,10 +851,22 @@ export class Enforester {
     return binding;
   }
 
-  enforestBindingIdentifier() {
-    return new Term("BindingIdentifier", {
-      name: this.enforestIdentifier()
-    });
+  enforestBindingIdentifier({ allowPunctuator } = {}) {
+    let name;
+    if (allowPunctuator && this.isPunctuator(this.peek())) {
+      name = this.enforestPunctuator();
+    } else {
+      name = this.enforestIdentifier();
+    }
+    return new Term("BindingIdentifier", { name });
+  }
+
+  enforestPunctuator() {
+    let lookahead = this.peek();
+    if (this.isPunctuator(lookahead)) {
+      return this.advance();
+    }
+    throw this.createError(lookahead, "expecting a punctuator");
   }
 
   enforestIdentifier() {
@@ -915,7 +927,7 @@ export class Enforester {
     let decls = List();
 
     while (true) {
-      let term = this.enforestVariableDeclarator();
+      let term = this.enforestVariableDeclarator({ isSyntax: kind === "syntax" || kind === 'syntaxrec' });
       let lookahead = this.peek();
       decls = decls.concat(term);
 
@@ -932,8 +944,8 @@ export class Enforester {
     });
   }
 
-  enforestVariableDeclarator() {
-    let id = this.enforestBindingTarget();
+  enforestVariableDeclarator({ isSyntax }) {
+    let id = this.enforestBindingTarget({ allowPunctuator: isSyntax });
     let lookahead = this.peek();
 
     let init, rest;
