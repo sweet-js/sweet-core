@@ -37,7 +37,7 @@ argv._.forEach(function (file) {
   });
 
   if (argv.outFile) {
-    fs.writeFileSync(argv.out, output.code, 'utf8');
+    fs.writeFileSync(argv.outFile, output.code, 'utf8');
   } else if (argv.outDir) {
     fs.writeFileSync(path.join(argv.outDir, path.basename(file)), output.code, 'utf8');
   } else {
