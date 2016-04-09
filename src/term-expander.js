@@ -7,7 +7,7 @@ import Term, {
 import { Scope, freshScope } from "./scope";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
 import reducer, { MonoidalReducer } from "shift-reducer";
-import Expander from './expander';
+import Compiler from './compiler';
 import Syntax from "./syntax";
 import { serializer, makeDeserializer } from "./serializer";
 import { enforestExpr, Enforester } from "./enforester";
@@ -302,7 +302,6 @@ export default class TermExpander {
   }
 
   expandSyntaxTemplate(term) {
-    let expander = new Expander(this.context);
     let r = processTemplate(term.template.inner());
     let str = Syntax.from("string", serializer.write(r.template));
     let callee = new Term('IdentifierExpression', { name: Syntax.from("identifier", 'syntaxTemplate') });
@@ -511,7 +510,7 @@ export default class TermExpander {
       params = this.expand(params);
     }
     this.context.currentScope.push(scope);
-    let expander = new Expander(this.context);
+    let compiler = new Compiler(this.context.phase, this.context.env, this.context.store, this.context);
 
     let markedBody, bodyTerm;
     if (term.body instanceof Term) {
@@ -521,7 +520,7 @@ export default class TermExpander {
       markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
       bodyTerm = new Term("FunctionBody", {
         directives: List(),
-        statements: expander.expand(markedBody)
+        statements: compiler.compile(markedBody)
       });
     }
     this.context.currentScope.pop();

@@ -14,7 +14,7 @@ import { Maybe } from 'ramda-fantasy';
 import { gensym } from './symbol';
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { expect, assert } from "./errors";
-import loadSyntax from './load-syntax';
+import { evalCompiletimeValue } from './load-syntax';
 import { Scope, freshScope } from "./scope";
 
 const Just = Maybe.Just;
@@ -131,6 +131,9 @@ export default class TokenExpander {
     let prev = List();
     let enf = new Enforester(stxl, prev, this.context);
     let self = this;
+    let phase = self.context.phase;
+    let env = self.context.env;
+    let store = self.context.store;
     while (!enf.done) {
 
       let term = _.pipe(
@@ -150,7 +153,6 @@ export default class TokenExpander {
             // syntaxrec id^{a,b,c} = function() { return <<id^{a}>> }
             // syntaxrec id^{a,b} = <init>^{a,b,c}
             if (isSyntaxDeclaration(term.declaration)) {
-              // TODO: do stuff
               let scope = freshScope('nonrec');
               term.declaration.declarators.forEach(decl => {
                 let name = decl.binding.name;
@@ -166,44 +168,44 @@ export default class TokenExpander {
             // into the environment
             if (isSyntaxDeclaration(term.declaration) || isSyntaxrecDeclaration(term.declaration)) {
               term.declaration.declarators.forEach(decl => {
+                // each compiletime value needs to be expanded with a fresh
+                // environment and in the next higher phase
+                let syntaxExpander = new TermExpander(_.merge(self.context, {
+                  phase: self.context.phase + 1,
+                  env: new Env(),
+                  store: self.context.store
+                }));
                 registerBindings(decl.binding, self.context);
-                loadSyntax(decl, self.context, self.context.env);
+                let init = syntaxExpander.expand(decl.init);
+                let val = evalCompiletimeValue(init.gen(), self.context);
+
+                self.context.env.set(decl.binding.name.resolve(),
+                                     new CompiletimeTransform(val));
               });
-              // do not add syntax declarations to the result
-              return Nothing();
             } else {
               // add each binding to the environment
               term.declaration.declarators.forEach(decl =>
                 registerBindings(decl.binding, self.context)
               );
             }
-            return Just(term);
+            return term;
           }],
           [isFunctionWithName, term => {
             term.name = removeScope(term.name, self.context.useScope);
             registerBindings(term.name, self.context);
-            return Just(term);
+            return term;
           }],
           [isImport, term => {
-            let mod = self.context.modules.load(term.moduleSpecifier.val(), self.context);
-            // NOTE: this is a hack for MVP modules
+            let path = term.moduleSpecifier.val();
+            store = self.context.modules.visit(path, phase, store);
             if (term.forSyntax) {
-              console.log('import for syntax is not implemented yet');
-              // todo
-              // mod.invoke(self.context);
-            } else {
-              mod.visit(self.context);
+              store = self.context.modules.invoke(path, phase, store);
             }
-            let boundNames = bindImports(term, mod, self.context);
-            if (boundNames.size === 0) {
-              return Just(term);
-            }
-            return Nothing();
+            throw new Error("bindImports or something like it needs to be invoked here");
+            return term;
           }],
-          [isEOF, Nothing],
-          [_.T, Just]
-        ]),
-        Maybe.maybe(List(), _.identity)
+          [_.T, term => term]
+        ])
       )();
 
       result = result.concat(term);

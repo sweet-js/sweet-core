@@ -1,5 +1,4 @@
 import Reader from "./shift-reader";
-import Expander from "./expander";
 import { List } from "immutable";
 import Syntax from "./syntax";
 import Env from "./env";
@@ -14,27 +13,21 @@ import Term from "./terms";
 import { Modules } from './modules';
 
 export function expand(source, options = {}) {
-  let reader = new Reader(source);
-  let stxl = reader.read();
-  let scope = freshScope('top');
   let bindings = new BindingMap();
-  let expander = new Expander({
-    env: new Env(),
-    store: new Env(),
-    bindings: bindings,
+  let reader = new Reader(source);
+  let modules = new Modules({
     cwd: options.cwd,
     filename: options.filename,
-    modules: new Modules(),
-    currentScope: [scope],
     transform: options.transform ? options.transform : function(x) { return {code: x}; },
     moduleResolver: options.moduleResolver,
-    moduleLoader: options.moduleLoader
+    moduleLoader: options.moduleLoader,
+    bindings
   });
-  let exStxl = expander.expand(stxl.map(s => s.addScope(scope, bindings)));
+  let compiledMod = modules.compile(reader.read(), options.filename);
   return new Term("Module", {
     directives: List(),
-    items: exStxl
-  });
+    items: compiledMod.body
+  }).gen();
 }
 
 export function parse(source, options = {}) {

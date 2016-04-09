@@ -1,5 +1,6 @@
 import { List } from 'immutable';
 import Env from "./env";
+import Store from "./store";
 import Reader from "./shift-reader";
 import * as _ from "ramda";
 import TokenExpander from './token-expander.js';
@@ -10,76 +11,71 @@ import Term, {
   isVariableDeclarationStatement, isImport, isExport
 } from "./terms";
 import loadSyntax from './load-syntax';
+import Compiler from "./compiler";
+import { Scope, freshScope } from "./scope";
 
-class Module {
+export class Module {
   constructor(moduleSpecifier, importEntries, exportEntries, body) {
     this.moduleSpecifier = moduleSpecifier;
     this.importEntries = importEntries;
     this.exportEntries = exportEntries;
     this.body = body;
   }
-
-  // put all compiltime transforms in the returned store
-  visit(context) {
-
-    this.exportEntries.forEach(ex => {
-      if (isSyntaxDeclaration(ex.declaration) || isSyntaxrecDeclaration(ex.declaration)) {
-        ex.declaration.declarators.forEach(
-          loadSyntax(_.__, context, context.store)
-        );
-      }
-    });
-
-    return context.store;
-  }
-
-  // invoke(context) {
-  //   // todo
-  //   this.exportEntries
-  // }
 }
 
 const pragmaRegep = /^\s*#\w*/;
 
 export class Modules {
-  constructor() {
-    this.loadedModules = new Map();
+  constructor(context) {
+    this.compiledModules = new Map();
+    this.context = context;
+    this.context.modules = this;
   }
 
-  // ... -> { body: [Term], importEntries: [Import], exportEntries: [Export] }
-  load(modulePath, context) {
-    let path = context.moduleResolver(modulePath, context.cwd);
-    if (!this.loadedModules.has(path)) {
-      let modStr = context.moduleLoader(path);
-      if (!pragmaRegep.test(modStr)) {
-        // modules with out a #lang pragma need to be ignored
-        this.loadedModules.set(path, new Module(path, List(), List(), List()));
-      } else {
-        let reader = new Reader(modStr);
-        let stxl = reader.read().slice(3);
-        let tokenExpander = new TokenExpander(_.merge(context, {
-          // expand with a fresh environment
-          env: new Env(),
-          store: new Env(),
-          bindings: new BindingMap()
-        }));
-        let terms = tokenExpander.expand(stxl);
-        let importEntries = [];
-        let exportEntries = [];
-        terms.forEach(t => {
-          _.cond([
-            [isImport, t => importEntries.push(t)],
-            [isExport, t => exportEntries.push(t)]
-          ])(t);
-        });
-        this.loadedModules.set(path, new Module(
-          path,
-          List(importEntries),
-          List(exportEntries),
-          terms
-        ));
-      }
+  load(path) {
+    // TODO resolve and we need to carry the cwd through correctly
+    let mod = this.context.moduleLoader(path);
+    if (!pragmaRegep.test(mod)) {
+      return List();
     }
-    return this.loadedModules.get(path);
+    let reader = new Reader(mod);
+    return reader.read().slice(3); // slice out the #lang pragma
+  }
+
+  compile(stxl, path) {
+    // TODO: recognize language pragmas in the enforester
+    if (stxl.get(0) && stxl.get(0).isIdentifier() && stxl.get(0).val() === '#') {
+      stxl = stxl.slice(3);
+    }
+
+    // the expander starts at phase 0, with an empty environment and store
+    let scope = freshScope('top');
+    let compiler = new Compiler(0, new Env(), new Store(), _.merge(this.context, {
+      currentScope: [scope]
+    }));
+    let terms = compiler.compile(stxl.map(s => s.addScope(scope, this.context.bindings)));
+
+    let importEntries = [];
+    let exportEntries = [];
+    terms.forEach(t => {
+      _.cond([
+        [isImport, t => importEntries.push(t)],
+        [isExport, t => exportEntries.push(t)]
+      ])(t);
+    });
+    return new Module(
+      path,
+      List(importEntries),
+      List(exportEntries),
+      terms
+    );
+  }
+
+  visit(path, phase, store) {
+    return store;
+  }
+
+  invoke(path, phase, store) {
+    return store;
   }
 }

@@ -12,6 +12,24 @@ export default class Term {
       this[prop] = props[prop];
     }
   }
+
+  gen() {
+    let next = {};
+    for (let field of fieldsIn(this)) {
+      if (this[field] == null) {
+        next[field] = null;
+      } else if (this[field] instanceof Term) {
+        next[field] = this[field].gen();
+      } else if (List.isList(this[field])) {
+        next[field] = this[field].filter(R.complement(isCompiletimeStatement))
+                                 .map(term => term instanceof Term ? term.gen() : term);
+      } else {
+        next[field] = this[field];
+      }
+    }
+    return new Term(this.type, next);
+  }
+
   addScope(scope, bindings, options) {
     let next = {};
     for (let field of fieldsIn(this)) {
@@ -53,6 +71,7 @@ export default class Term {
     return new Term(this.type, next);
   }
 }
+
 
 // bindings
 export const isBindingWithDefault = R.whereEq({ type: "BindingWithDefault" });
@@ -162,6 +181,12 @@ export const isSyntaxrecDeclaration = R.both(isVariableDeclaration, R.whereEq({ 
 export const isFunctionTerm = R.either(isFunctionDeclaration, isFunctionExpression);
 export const isFunctionWithName = R.and(isFunctionTerm, R.complement(R.where({ name: R.isNil })));
 export const isParenthesizedExpression = R.whereEq({ type: 'ParenthesizedExpression'});
+
+
+const isCompiletimeDeclaration = R.either(isSyntaxDeclaration, isSyntaxrecDeclaration);
+const isCompiletimeStatement = term => {
+  return (term instanceof Term) && isVariableDeclarationStatement(term) && isCompiletimeDeclaration(term.declaration);
+};
 
 const fieldsIn = R.cond([
   // bindings
