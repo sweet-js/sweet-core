@@ -1081,7 +1081,7 @@ export class Enforester {
         name: this.advance()
       });
     }
-    if (this.term === null && this.match(lookahead, "numeric")) {
+    if (this.term === null && this.match(lookahead, "number")) {
       let num = this.advance();
       if (num.val() === 1 / 0) {
         return new Term('LiteralInfinityExpression', {});
@@ -1548,7 +1548,7 @@ export class Enforester {
   enforestPropertyName() {
     let lookahead = this.peek();
 
-    if (this.match(lookahead, "string") || this.match(lookahead, "numeric")) {
+    if (this.match(lookahead, "string") || this.match(lookahead, "number")) {
       return {
         name: new Term('StaticPropertyName', {
           value: this.advance()
@@ -1852,7 +1852,7 @@ export class Enforester {
 
   isPropertyName(term) {
     return this.match(term, "identifier") || this.match(term, "keyword") ||
-           this.match(term, "numeric") || this.match(term, "string") || this.match(term, "brackets");
+           this.match(term, "number") || this.match(term, "string") || this.match(term, "brackets");
   }
   match(term, type, value) {
     return term && (term instanceof Syntax) && type == "assign" ? this.isAssign(term) : term.match(value, "type");
@@ -2018,7 +2018,7 @@ export class Enforester {
 
   matchLiteral() {
     let lookahead = this.advance();
-    if (this.match(lookahead, "numeric") ||
+    if (this.match(lookahead, "number") ||
         this.match(lookahead, "string") ||
         this.match(lookahead, "boolean") ||
         this.match(lookahead, "null") ||
