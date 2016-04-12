@@ -19,11 +19,11 @@ positions.
 Requires either lookahead/lookbehind of one (to see the $).
 */
 
-const isDolar     = s => s && s instanceof Syntax && s.isIdentifier() && s.val() === '$';
-const isDelimiter = s => s && typeof s.isDelimiter === 'function' && s.isDelimiter();
-const isBraces    = s => s && typeof s.isBraces === 'function' && s.isBraces();
-const isParens    = s => s && typeof s.isParens === 'function' && s.isParens();
-const isBrackets  = s => s && typeof s.isBrackets === 'function' && s.isBrackets();
+const isDolar     = s => s && s instanceof Syntax && s.match("identifier") && s.val() === '$';
+const isDelimiter = s => s && typeof s.match === 'function' && s.match("delimiter");
+const isBraces    = s => s && typeof s.match === 'function' && s.match("braces");
+const isParens    = s => s && typeof s.match === 'function' && s.match("parens");
+const isBrackets  = s => s && typeof s.match === 'function' && s.match("brackets");
 
 const insertIntoDelimiter = _.cond([
   [isBraces, (s, r) => Syntax.from("braces", r, s)],

@@ -62,13 +62,13 @@ const unaryOps = ["++", "--", "~", "!", "delete", "void", "typeof", "yield", "th
 const isEmpty = R.whereEq({size: 0});
 
 // Syntax -> Boolean
-const isPunctuator = s => s.isPunctuator();
-const isKeyword = s => s.isKeyword();
-const isDelimiter = s => s.isDelimiter();
-const isParens = s => s.isParens();
-const isBraces = s => s.isBraces();
-const isBrackets = s => s.isBrackets();
-const isIdentifier = s => s.isIdentifier();
+const isPunctuator = s => s.match("punctuator");
+const isKeyword = s => s.match("keyword");
+const isDelimiter = s => s.match("delimiter");
+const isParens = s => s.match("parens");
+const isBraces = s => s.match("braces");
+const isBrackets = s => s.match("brackets");
+const isIdentifier = s => s.match("identifier");
 
 // Syntax -> any
 const val = s => s.val();

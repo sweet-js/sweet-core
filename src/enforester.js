@@ -1050,7 +1050,7 @@ export class Enforester {
     }
     if (this.term === null &&
       (this.isKind(lookahead, "identifier") || this.isKind(lookahead, "parens")) &&
-       this.isKind(this.peek(1, "punctuator"), '=>') &&
+       this.isKind(this.peek(1), "punctuator", '=>') &&
        this.lineNumberEq(lookahead, this.peek(1))) {
       return this.enforestArrowExpression();
     }
@@ -1238,7 +1238,7 @@ export class Enforester {
       callee = this.enforestNewExpression();
     } else if (this.isKind(this.peek(), "keyword", 'super')) {
       callee = this.enforestExpressionLoop();
-    } else if (this.isKind(this.peek(), "punctuator", '.') && this.isKind(this.peek(1, "identifier"), 'target')) {
+    } else if (this.isKind(this.peek(), "punctuator", '.') && this.isKind(this.peek(1), "identifier", 'target')) {
       this.advance();
       this.advance();
       return new Term('NewTargetExpression', {});
@@ -1271,7 +1271,7 @@ export class Enforester {
         return new Term('BindingIdentifier', {name: term.name});
 
       case 'ParenthesizedExpression':
-        if (term.inner.size === 1 && this.isKind(term.inner.get(0, "identifier"))) {
+        if (term.inner.size === 1 && this.isKind(term.inner.get(0), "identifier")) {
           return new Term('BindingIdentifier', { name: term.inner.get(0)});
         }
       case 'DataProperty':
@@ -1855,7 +1855,7 @@ export class Enforester {
            this.isKind(term, "number") || this.isKind(term, "string") || this.isKind(term, "brackets");
   }
   isKind(term, type, value) {
-    return term && (term instanceof Syntax) && type == "assign" ? this.isAssign(term) : term.isKind(value, "type");
+    return term && (term instanceof Syntax) && type == "assign" ? this.isAssign(term) : term.match(type, value);
   }
 
   isAssign(term) {

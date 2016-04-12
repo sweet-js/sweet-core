@@ -164,7 +164,7 @@ export default class Syntax {
   
   static from(type, value, stx = {}) {
     if (!Types[type]) {
-      throw new Error(type + "is not a valid type")
+      throw new Error(type + " is not a valid type")
     }
     else if (!Types[type].create) {
       throw new Error("Cannot create a syntax from type " + type)
@@ -284,7 +284,7 @@ export default class Syntax {
 
   match(type, value) {
     if (!Types[type]) {
-      throw new Error(type + "is an invalid type")
+      throw new Error(type + " is an invalid type")
     }
     return Types[type].match(this.token) && (value == null ||
       value instanceof RegExp ? value.test(stx.val()) : stx.val() == v)
