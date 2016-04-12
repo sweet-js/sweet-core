@@ -169,7 +169,7 @@ export default class Syntax {
     else if (!Types[type].create) {
       throw new Error("Cannot create a syntax from type " + type)
     }
-    Types[type].create(value, stx)
+    return Types[type].create(value, stx)
   }
 
   // () -> string
