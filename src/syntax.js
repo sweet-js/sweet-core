@@ -19,6 +19,7 @@ function sizeDecending(a, b) {
 }
 
 let Types = {
+  // types
   null: {
 		match: token => !Types.delimiter.match(token) && token.type === TokenType.NULL,
     create: (value, stx) => new Syntax({
@@ -287,7 +288,7 @@ export default class Syntax {
       throw new Error(type + " is an invalid type")
     }
     return Types[type].match(this.token) && (value == null ||
-      value instanceof RegExp ? value.test(stx.val()) : stx.val() == v)
+      value instanceof RegExp ? value.test(this.val()) : this.val() == value)
   }
 
   toString() {

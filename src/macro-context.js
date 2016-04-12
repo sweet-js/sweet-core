@@ -18,7 +18,7 @@ const getLineNumber = t => {
 };
 
 const getVal = t => {
-  if (match("delimiter", t, null)) {
+  if (t.match("delimiter")) {
     return null;
   }
   if (t instanceof Syntax) {
@@ -50,7 +50,7 @@ export class SyntaxOrTermWrapper {
 
   inner() {
     let stx = this[symWrap];
-    if (!match("delimiter", stx, null)) {
+    if (!stx.match("delimiter")) {
       throw new Error('Can only get inner syntax on a delimiter');
     }
 

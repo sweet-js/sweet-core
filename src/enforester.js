@@ -210,7 +210,7 @@ export class Enforester {
       defaultBinding = this.enforestBindingIdentifier();
       if (!this.isKind(this.peek(), "punctuator", ',')) {
         let moduleSpecifier = this.enforestFromClause();
-        if (this.isKind(this.peek(), "keyword", 'for') && this.isKind(this.peek(1, "identifier"), 'syntax')) {
+        if (this.isKind(this.peek(), "keyword", 'for') && this.isKind(this.peek(1), "identifier", 'syntax')) {
           this.advance();
           this.advance();
           forSyntax = true;
@@ -228,7 +228,7 @@ export class Enforester {
     if (this.isKind(lookahead, "braces")) {
       let imports = this.enforestNamedImports();
       let fromClause = this.enforestFromClause();
-      if (this.isKind(this.peek(), "keyword", 'for') && this.isKind(this.peek(1, "identifier"), 'syntax')) {
+      if (this.isKind(this.peek(), "keyword", 'for') && this.isKind(this.peek(1), "identifier", 'syntax')) {
         this.advance();
         this.advance();
         forSyntax = true;
@@ -244,7 +244,7 @@ export class Enforester {
     } else if (this.isKind(lookahead, "punctuator", '*')) {
       let namespaceBinding = this.enforestNamespaceBinding();
       let moduleSpecifier = this.enforestFromClause();
-      if (this.isKind(this.peek(), "keyword", 'for') && this.isKind(this.peek(1, "identifier"), 'syntax')) {
+      if (this.isKind(this.peek(), "keyword", 'for') && this.isKind(this.peek(1), "identifier", 'syntax')) {
         this.advance();
         this.advance();
         forSyntax = true;
@@ -371,7 +371,7 @@ export class Enforester {
     }
 
     if (this.term === null && this.isKind(lookahead, "identifier") &&
-        this.isKind(this.peek(1, "punctuator"), ':')) {
+        this.isKind(this.peek(1), "punctuator", ':')) {
       return this.enforestLabeledStatement();
     }
 
@@ -631,7 +631,7 @@ export class Enforester {
         }
         update = enf.enforestExpression();
       } else {
-        if (this.isKind(enf.peek(1, "keyword"), 'in') || this.isKind(enf.peek(1, "identifier"), 'of')) {
+        if (this.isKind(enf.peek(1), "keyword", 'in') || this.isKind(enf.peek(1), "identifier", 'of')) {
           left = enf.enforestBindingIdentifier();
           let kind = enf.advance();
           if (this.isKind(kind, "keyword", 'in')) {
@@ -1159,7 +1159,7 @@ export class Enforester {
     }
     // $x:expr . $prop:ident
     if (this.term && this.isKind(lookahead, "punctuator", ".") &&
-        (this.isKind(this.peek(1, "identifier")) || this.isKind(this.peek(1, "keyword")))) {
+        (this.isKind(this.peek(1), "identifier") || this.isKind(this.peek(1), "keyword"))) {
       return this.enforestStaticMemberExpression();
     }
     // $x:expr [ $b:expr ]
@@ -1504,7 +1504,7 @@ export class Enforester {
       this.advance();
     }
 
-    if (this.isIdentifier(lookahead, 'get') && this.isPropertyName(this.peek(1))) {
+    if (this.isKind(lookahead, "identifier", 'get') && this.isPropertyName(this.peek(1))) {
       this.advance();
       let {name} = this.enforestPropertyName();
       this.matchParens();
@@ -1513,7 +1513,7 @@ export class Enforester {
         methodOrKey: new Term('Getter', { name, body }),
         kind: 'method'
       };
-    } else if (this.isIdentifier(lookahead, 'set') && this.isPropertyName(this.peek(1))) {
+    } else if (this.isKind(lookahead, "identifier", 'set') && this.isPropertyName(this.peek(1))) {
       this.advance();
       let {name} = this.enforestPropertyName();
       let enf = new Enforester(this.matchParens(), List(), this.context);
@@ -1789,7 +1789,7 @@ export class Enforester {
   enforestTemplateElements() {
     let lookahead = this.matchTemplate();
     let elements = lookahead.token.items.map(it => {
-      if (it instanceof Syntax && it.isKind("delimiter")) {
+      if (it instanceof Syntax && it.match("delimiter")) {
         let enf = new Enforester(it.inner(), List(), this.context);
         return enf.enforest("expression");
       }
@@ -1885,7 +1885,7 @@ export class Enforester {
     return term && (term instanceof Syntax) && isOperator(term);
   }
   isUpdateOperator(term) {
-    return term && (term instanceof Syntax) && term.isKind("punctuator") &&
+    return term && (term instanceof Syntax) && term.match("punctuator") &&
       (term.val() === '++' || term.val() === '--');
   }
 
@@ -2097,7 +2097,7 @@ export class Enforester {
     let offending = stx;
     if (this.rest.size > 0) {
       ctx = this.rest.slice(0, 20).map(term => {
-        if (term.isKind("delimiter")) {
+        if (term.match("delimiter")) {
           return term.inner();
         }
         return List.of(term);
