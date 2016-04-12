@@ -177,8 +177,8 @@ export default class MacroContext {
         value = this._enf.advance();
         if (!this.noScopes) {
           value = value
-            .addScope(this.useScope)
-            .addScope(this.introducedScope, this.context.bindings, { flip: true });
+            .addScope(this.useScope, this.context.bindings, this.context.phase)
+            .addScope(this.introducedScope, this.context.bindings, this.context.phase, { flip: true });
         }
         break;
       default:

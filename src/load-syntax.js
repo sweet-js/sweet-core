@@ -42,7 +42,7 @@ export function evalCompiletimeValue(expr, context) {
   let sandbox = {
     syntaxQuote: function (strings, ...values) {
       let ctx = deserializer.read(_.last(values));
-      let reader = new Reader(strings, ctx.context, _.take(values.length - 1, values));
+      let reader = new Reader(strings, ctx, _.take(values.length - 1, values));
       return reader.read();
     },
     syntaxTemplate: function(str, ...values) {
@@ -53,7 +53,7 @@ export function evalCompiletimeValue(expr, context) {
   let sandboxKeys = List(Object.keys(sandbox));
   let sandboxVals = sandboxKeys.map(k => sandbox[k]).toArray();
 
-  let parsed = reducer(new ParseReducer(), new Term("Module", {
+  let parsed = reducer(new ParseReducer(context), new Term("Module", {
     directives: List(),
     items: List.of(new Term("ExpressionStatement", {
       expression: new Term("FunctionExpression", {

@@ -4,10 +4,9 @@ import { VarBindingTransform } from "./transforms";
 import {assert} from './errors';
 
 export default class ScopeApplyingReducer {
-  constructor(scope, context, phase = 0) {
+  constructor(scope, context) {
     this.context = context;
     this.scope = scope;
-    this.phase = phase;
   }
 
   transform(term) {
@@ -64,13 +63,13 @@ export default class ScopeApplyingReducer {
   }
 
   transformBindingIdentifier(term) {
-    let name = term.name.addScope(this.scope, this.context.bindings);
+    let name = term.name.addScope(this.scope, this.context.bindings, this.context.phase);
     let newBinding = gensym(name.val());
 
     this.context.env.set(newBinding.toString(), new VarBindingTransform(name));
     this.context.bindings.add(name, {
       binding: newBinding,
-      phase: this.phase,
+      phase: this.context.phase,
       skipDup: true
     });
 

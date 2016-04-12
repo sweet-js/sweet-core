@@ -515,9 +515,9 @@ export default class TermExpander {
     let markedBody, bodyTerm;
     if (term.body instanceof Term) {
       // Arrow functions have a single term as their body
-      bodyTerm = this.expand(term.body.addScope(scope, this.context.bindings));
+      bodyTerm = this.expand(term.body.addScope(scope, this.context.bindings, this.context.phase));
     } else {
-      markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
+      markedBody = term.body.map(b => b.addScope(scope, this.context.bindings, this.context.phase));
       bodyTerm = new Term("FunctionBody", {
         directives: List(),
         statements: compiler.compile(markedBody)
@@ -596,7 +596,7 @@ export default class TermExpander {
   }
 
   expandIdentifierExpression(term) {
-    let trans = this.context.env.get(term.name.resolve());
+    let trans = this.context.env.get(term.name.resolve(this.context.phase));
     if (trans) {
       return new Term("IdentifierExpression", {
         name: trans.id

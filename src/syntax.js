@@ -1,4 +1,4 @@
-import { List } from "immutable";
+import { List, Map } from "immutable";
 import { assert } from "./errors";
 import BindingMap from "./binding-map";
 import { Maybe } from "ramda-fantasy";
@@ -119,7 +119,7 @@ export let Types = {
       return new Syntax(List.of(left).concat(inner).push(right), stx.context);
     }
   },
-  
+
   assign: {
     match: token => {
       if (Types.punctuator.match(token)) {
@@ -144,12 +144,12 @@ export let Types = {
       return false;
     }
   },
-  
+
   boolean: {
     match: token => !Types.delimiter.match(token) && token.type === TokenType.TRUE ||
            token.type === TokenType.FALSE
   },
-  
+
   template: {
     match: token => !Types.delimiter.match(token) && token.type === TokenType.TEMPLATE
   },
@@ -168,21 +168,17 @@ export let Types = {
 };
 
 export default class Syntax {
-  // (Token or List<Syntax>, List<Scope>) -> Syntax
-  constructor(token, context = {bindings: new BindingMap(), scopeset: List()}) {
+  constructor(token, oldstx = {}) {
     this.token = token;
-    this.context = {
-      bindings: context.bindings,
-      scopeset: context.scopeset
-    };
-    Object.freeze(this.context);
+    this.bindings = oldstx.bindings != null ? oldstx.bindings : new BindingMap();
+    this.scopesetMap = oldstx.scopesetMap != null ? oldstx.scopesetMap : Map();
     Object.freeze(this);
   }
 
   static of(token, stx = {}) {
-    return new Syntax(token, stx.context);
+    return new Syntax(token, stx);
   }
-  
+
   static from(type, value, stx = {}) {
     if (!Types[type]) {
       throw new Error(type + " is not a valid type");
@@ -192,7 +188,7 @@ export default class Syntax {
     }
     return Types[type].create(value, stx);
   }
-  
+
   static fromNull(stx = {}) {
     return Syntax.from("null", null, stx);
   }
@@ -234,13 +230,14 @@ export default class Syntax {
   }
 
   // () -> string
-  resolve() {
-    if (this.context.scopeset.size === 0 || !(this.match("identifier") || this.match("keyword"))) {
+  resolve(phase) {
+    assert(phase != null, "must provide a phase to resolve");
+    let stxScopes = this.scopesetMap.has(phase) ? this.scopesetMap.get(phase) : List();
+    if (stxScopes.size === 0 || !(this.match('identifier') || this.match('keyword'))) {
       return this.token.value;
     }
-    let scope = this.context.scopeset.last();
-    let stxScopes = this.context.scopeset;
-    let bindings = this.context.bindings;
+    let scope = stxScopes.last();
+    let bindings = this.bindings;
     if (scope) {
       // List<{ scopes: List<Scope>, binding: Symbol }>
       let scopesetBindingList = bindings.get(this);
@@ -262,13 +259,9 @@ export default class Syntax {
           let bindingStr = biggestBindingPair.get(0).binding.toString();
           if (Maybe.isJust(biggestBindingPair.get(0).alias)) {
             // null never happens because we just checked if it is a Just
-            return biggestBindingPair.get(0).alias.getOrElse(null).resolve();
+            return biggestBindingPair.get(0).alias.getOrElse(null).resolve(phase);
           }
           return bindingStr;
-          // if (Maybe.isJust(biggestBindingPair.get(0).alias)) {
-          //   return biggestBindingPair.get(0).alias.just().resolve();
-          // }
-          // return ;
         }
       }
     }
@@ -319,41 +312,49 @@ export default class Syntax {
     return this.token.slice(1, this.token.size - 1);
   }
 
-  addScope(scope, bindings, options = { flip: false }) {
-    let token = this.match("delimiter") ? this.token.map(s => s.addScope(scope, bindings, options)) : this.token;
-    if (this.match("template")) {
+  addScope(scope, bindings, phase, options = { flip: false }) {
+    let token = this.match('delimiter') ? this.token.map(s => s.addScope(scope, bindings, phase, options)) : this.token;
+    if (this.match('template')) {
       token = {
         type: this.token.type,
         items: token.items.map(it => {
-          if (it instanceof Syntax && it.match("delimiter")) {
-            return it.addScope(scope, bindings, options);
+          if (it instanceof Syntax && it.match('delimiter')) {
+            return it.addScope(scope, bindings, phase, options);
           }
           return it;
         })
       };
     }
+    let oldScopeset = this.scopesetMap.has(phase) ? this.scopesetMap.get(phase) : List();
     let newScopeset;
-    // TODO: clean this logic up
     if (options.flip) {
-      let index = this.context.scopeset.indexOf(scope);
+      let index = oldScopeset.indexOf(scope);
       if (index !== -1) {
-        newScopeset = this.context.scopeset.remove(index);
+        newScopeset = oldScopeset.remove(index);
       } else {
-        newScopeset = this.context.scopeset.push(scope);
+        newScopeset = oldScopeset.push(scope);
       }
     } else {
-      newScopeset = this.context.scopeset.push(scope);
+      newScopeset = oldScopeset.push(scope);
     }
-    return new Syntax(token, {bindings: bindings, scopeset: newScopeset});
+    let newstx = {
+      scopesetMap: this.scopesetMap.set(phase, newScopeset), bindings
+    };
+    return new Syntax(token, newstx);
   }
-  removeScope(scope) {
-    let token = this.match("delimiter") ? this.token.map(s => s.removeScope(scope)) : this.token;
-    let newScopeset = this.context.scopeset;
-    let index = this.context.scopeset.indexOf(scope);
+
+  removeScope(scope, phase) {
+    let token = this.match('delimiter') ? this.token.map(s => s.removeScope(scope, phase)) : this.token;
+    let newScopeset = this.scopesetMap.has(phase) ? this.scopesetMap.get(phase) : List();
+    let index = newScopeset.indexOf(scope);
     if (index !== -1) {
-      newScopeset = this.context.scopeset.remove(index);
+      newScopeset = newScopeset.remove(index);
     }
-    return new Syntax(token, { bindings: this.context.bindings, scopeset: newScopeset} );
+    let newstx = {
+      bindings: this.bindings,
+      scopesetMap: this.scopesetMap.set(phase, newScopeset)
+    };
+    return new Syntax(token, newstx);
   }
 
   match(type, value) {
@@ -363,7 +364,7 @@ export default class Syntax {
     return Types[type].match(this.token) && (value == null ||
       value instanceof RegExp ? value.test(this.val()) : this.val() == value);
   }
-  
+
   isIdentifier(value) {
     return this.match("identifier", value);
   }

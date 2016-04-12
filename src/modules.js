@@ -53,7 +53,8 @@ export class Modules {
     let compiler = new Compiler(0, new Env(), new Store(), _.merge(this.context, {
       currentScope: [scope]
     }));
-    let terms = compiler.compile(stxl.map(s => s.addScope(scope, this.context.bindings)));
+    // TODO: toplevel scope at all phases?
+    let terms = compiler.compile(stxl.map(s => s.addScope(scope, this.context.bindings, 0)));
 
     let importEntries = [];
     let exportEntries = [];

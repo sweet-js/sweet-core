@@ -2,6 +2,10 @@ import Term from "./terms";
 import { CloneReducer } from "shift-reducer";
 
 export default class ParseReducer extends CloneReducer {
+  constructor(context) {
+    super();
+    this.context = context;
+  }
   reduceModule(node, state) {
     return new Term("Module", {
       directives: state.directives.toArray(),
@@ -51,10 +55,10 @@ export default class ParseReducer extends CloneReducer {
   reduceExportSpecifier(node, state) {
     let name = state.name, exportedName = state.exportedName;
     if (name == null) {
-      name = exportedName.resolve();
+      name = exportedName.resolve(this.context.phase);
       exportedName = exportedName.val();
     } else {
-      name = name.resolve();
+      name = name.resolve(this.context.phase);
       exportedName = exportedName.val();
     }
     return new Term('ExportSpecifier', {
@@ -63,7 +67,7 @@ export default class ParseReducer extends CloneReducer {
   }
 
   reduceImportSpecifier(node, state) {
-    let name = state.name ? state.name.resolve() : null;
+    let name = state.name ? state.name.resolve(this.context.phase) : null;
     return new Term('ImportSpecifier', {
       name,
       binding: state.binding
@@ -72,7 +76,7 @@ export default class ParseReducer extends CloneReducer {
 
   reduceIdentifierExpression(node, state) {
     return new Term("IdentifierExpression", {
-      name: node.name.resolve()
+      name: node.name.resolve(this.context.phase)
     });
   }
 
@@ -117,7 +121,7 @@ export default class ParseReducer extends CloneReducer {
 
   reduceBindingIdentifier(node, state) {
     return new Term("BindingIdentifier", {
-      name: node.name.resolve()
+      name: node.name.resolve(this.context.phase)
     });
   }
 

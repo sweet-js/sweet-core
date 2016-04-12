@@ -31,7 +31,7 @@ export function expand(source, options = {}) {
 }
 
 export function parse(source, options = {}) {
-  return reduce(new ParseReducer(), expand(source, options));
+  return reduce(new ParseReducer({phase: 0}), expand(source, options));
 }
 
 export function compile(source, options = {}) {

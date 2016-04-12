@@ -315,7 +315,7 @@ export default class Reader extends Tokenizer {
         }
         let line = tok.slice.startLocation.line;
         let innerB = isLeftBrace(tok) ? isExprPrefix(line, b)(prefix) : true;
-        let inner = this.read([new Syntax(tok)],
+        let inner = this.read([new Syntax(tok, this.context)],
                               innerB,
                               false);
         let stx = new Syntax(inner, this.context);

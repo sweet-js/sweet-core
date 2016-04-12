@@ -30,15 +30,15 @@ export default class Term {
     return new Term(this.type, next);
   }
 
-  addScope(scope, bindings, options) {
+  addScope(scope, bindings, phase, options) {
     let next = {};
     for (let field of fieldsIn(this)) {
       if (this[field] == null) {
         next[field] = null;
       } else if (typeof this[field].addScope === 'function') {
-        next[field] = this[field].addScope(scope, bindings, options);
+        next[field] = this[field].addScope(scope, bindings, phase, options);
       } else if (List.isList(this[field])) {
-        next[field] = this[field].map(f => f.addScope(scope, bindings, options));
+        next[field] = this[field].map(f => f.addScope(scope, bindings, phase, options));
       } else {
         next[field] = this[field];
       }

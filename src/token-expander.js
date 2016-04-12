@@ -25,7 +25,7 @@ const registerSyntax = (stx, context) => {
   context.env.set(newBinding.toString(), new VarBindingTransform(stx));
   context.bindings.add(stx, {
     binding: newBinding,
-    phase: 0,
+    phase: context.phase,
     // skip dup because js allows variable redeclarations
     // (technically only for `var` but we can let later stages of the pipeline
     // handle incorrect redeclarations of `const` and `let`)
@@ -60,24 +60,24 @@ let registerBindings = _.cond([
 ]);
 
 let removeScope = _.cond([
-  [isBindingIdentifier, ({name}, scope) => new Term('BindingIdentifier', {
-    name: name.removeScope(scope)
+  [isBindingIdentifier, ({name}, scope, phase) => new Term('BindingIdentifier', {
+    name: name.removeScope(scope, phase)
   })],
-  [isArrayBinding, ({elements, restElement}, scope) => {
+  [isArrayBinding, ({elements, restElement}, scope, phase) => {
     return new Term('ArrayBinding', {
-      elements: elements.map(el => el == null ? null : removeScope(el, scope)),
-      restElement: restElement == null ? null : removeScope(restElement, scope)
+      elements: elements.map(el => el == null ? null : removeScope(el, scope, phase)),
+      restElement: restElement == null ? null : removeScope(restElement, scope, phase)
     });
   }],
-  [isBindingPropertyIdentifier, ({binding, init}, scope) => new Term('BindingPropertyIdentifier', {
-    binding: removeScope(binding, scope),
+  [isBindingPropertyIdentifier, ({binding, init}, scope, phase) => new Term('BindingPropertyIdentifier', {
+    binding: removeScope(binding, scope, phase),
     init
   })],
-  [isBindingPropertyProperty, ({binding, name}, scope) => new Term('BindingPropertyProperty', {
-    binding: removeScope(binding, scope), name
+  [isBindingPropertyProperty, ({binding, name}, scope, phase) => new Term('BindingPropertyProperty', {
+    binding: removeScope(binding, scope, phase), name
   })],
-  [isObjectBinding, ({properties}, scope) => new Term('ObjectBinding', {
-    properties: properties.map(prop => removeScope(prop, scope))
+  [isObjectBinding, ({properties}, scope, phase) => new Term('ObjectBinding', {
+    properties: properties.map(prop => removeScope(prop, scope, phase))
   })],
   [_.T, binding => assert(false, "not implemented yet for: " + binding.type)]
 ]);
@@ -106,8 +106,8 @@ function bindImports(impTerm, exModule, context) {
     let exportName = findNameInExports(name, exModule.exportEntries);
     if (exportName != null) {
       let newBinding = gensym(name.val());
-      context.bindings.addForward(name, exportName, newBinding);
-      if (context.store.has(exportName.resolve())) {
+      context.bindings.addForward(name, exportName, newBinding, context.phase);
+      if (context.store.has(exportName.resolve(context.phase))) {
         names.push(name);
       }
     }
@@ -143,7 +143,7 @@ export default class TokenExpander {
             // first, remove the use scope from each binding
             term.declaration.declarators = term.declaration.declarators.map(decl => {
               return new Term('VariableDeclarator', {
-                binding: removeScope(decl.binding, self.context.useScope),
+                binding: removeScope(decl.binding, self.context.useScope, self.context.phase),
                 init: decl.init
               });
             });
@@ -156,11 +156,11 @@ export default class TokenExpander {
               let scope = freshScope('nonrec');
               term.declaration.declarators.forEach(decl => {
                 let name = decl.binding.name;
-                let nameAdded = name.addScope(scope);
-                let nameRemoved = name.removeScope(self.context.currentScope[self.context.currentScope.length - 1]);
+                let nameAdded = name.addScope(scope, self.context.bindings, self.context.phase);
+                let nameRemoved = name.removeScope(self.context.currentScope[self.context.currentScope.length - 1], self.context.phase);
                 let newBinding = gensym(name.val());
-                self.context.bindings.addForward(nameAdded, nameRemoved, newBinding);
-                decl.init = decl.init.addScope(scope, self.context.bindings);
+                self.context.bindings.addForward(nameAdded, nameRemoved, newBinding, self.context.phase);
+                decl.init = decl.init.addScope(scope, self.context.bindings, self.context.phase);
               });
             }
 
@@ -179,7 +179,7 @@ export default class TokenExpander {
                 let init = syntaxExpander.expand(decl.init);
                 let val = evalCompiletimeValue(init.gen(), self.context);
 
-                self.context.env.set(decl.binding.name.resolve(),
+                self.context.env.set(decl.binding.name.resolve(self.context.phase),
                                      new CompiletimeTransform(val));
               });
             } else {
@@ -191,7 +191,7 @@ export default class TokenExpander {
             return term;
           }],
           [isFunctionWithName, term => {
-            term.name = removeScope(term.name, self.context.useScope);
+            term.name = removeScope(term.name, self.context.useScope, self.context.phase);
             registerBindings(term.name, self.context);
             return term;
           }],

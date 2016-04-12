@@ -1,5 +1,5 @@
 import transit from "transit-js";
-import { List } from "immutable";
+import { List, Map } from "immutable";
 import Syntax from "./syntax";
 import { Symbol, gensym, SymbolClass } from "./symbol";
 import { TokenClass, TokenType } from "shift-parser/dist/tokenizer";
@@ -36,15 +36,21 @@ let ListHandler = transit.makeWriteHandler({
   rep: (v) => v
 });
 
+let MapHandler = transit.makeWriteHandler({
+  tag: function(v) { return "map"; },
+  rep: function(v) { return v; },
+  stringRep: function(v) { return null; }
+});
+
 let SyntaxHandler = transit.makeWriteHandler({
   tag: () => "stx",
   rep: (v) => {
     if (List.isList(v.token)) {
-      return [v.token, v.context.scopeset];
+      return [v.token, v.scopesetMap];
     } else {
       let t = transit.objectToMap(v.token);
       t.set("type", typeMap.indexOf(v.token.type));
-      return [t, v.context.scopeset];
+      return [t, v.scopesetMap];
     }
   }
 });
@@ -56,6 +62,7 @@ let SymbolHandler = transit.makeWriteHandler({
 let writer = transit.writer("json", {
   handlers: transit.map([
     List, ListHandler,
+    Map, MapHandler,
     Syntax, SyntaxHandler,
     SymbolClass, SymbolHandler
   ])
@@ -69,11 +76,16 @@ function makeReader(bindings) {
       finalize: (ret, node) => ret.asImmutable(),
       fromArray: (arr, node) => List(arr)
     },
+    mapBuilder: {
+      init: function(node) { return Map().asMutable(); },
+      add: function(ret, key, val, node) { return ret.set(key, val); },
+      finalize: function(ret, node) { return ret.asImmutable(); }
+    },
     handlers: {
       "stx": (rep) => {
         if (List.isList(rep[0])) {
           let token = rep[0];
-          return new Syntax(token, {bindings: bindings, scopeset: rep[1]});
+          return new Syntax(token, {bindings, scopesetMap: rep[1]});
         } else {
           let token = transit.mapToObject(rep[0]);
           token.type = typeMap[rep[0].get("type")];
@@ -81,7 +93,7 @@ function makeReader(bindings) {
           if (token.slice) {
             token.slice.startLocation = transit.mapToObject(token.slice.startLocation);
           }
-          return new Syntax(token, {bindings: bindings, scopeset: rep[1]});
+          return new Syntax(token, {bindings, scopesetMap: rep[1]});
         }
       },
       "symb": (rep) => {
