@@ -304,8 +304,8 @@ export default class TermExpander {
   expandSyntaxTemplate(term) {
     let expander = new Expander(this.context);
     let r = processTemplate(term.template.inner());
-    let str = Syntax.fromString(serializer.write(r.template));
-    let callee = new Term('IdentifierExpression', { name: Syntax.fromIdentifier('syntaxTemplate') });
+    let str = Syntax.from("string", serializer.write(r.template));
+    let callee = new Term('IdentifierExpression', { name: Syntax.from("identifier", 'syntaxTemplate') });
 
     let expandedInterps = r.interp.map(i => {
       let enf = new Enforester(i, List(), this.context);
@@ -322,7 +322,7 @@ export default class TermExpander {
 
   expandSyntaxQuote(term) {
     let str = new Term("LiteralStringExpression", {
-      value: Syntax.fromString(serializer.write(term.name))
+      value: Syntax.from("string", serializer.write(term.name))
     });
 
     return new Term("TemplateExpression", {

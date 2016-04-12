@@ -26,15 +26,15 @@ const isParens    = s => s && typeof s.isParens === 'function' && s.isParens();
 const isBrackets  = s => s && typeof s.isBrackets === 'function' && s.isBrackets();
 
 const insertIntoDelimiter = _.cond([
-  [isBraces, (s, r) => Syntax.fromBraces(r, s)],
-  [isParens, (s, r) => Syntax.fromParens(r, s)],
-  [isBrackets, (s, r) => Syntax.fromBrackets(r, s)]
+  [isBraces, (s, r) => Syntax.from("braces", r, s)],
+  [isParens, (s, r) => Syntax.from("parens", r, s)],
+  [isBrackets, (s, r) => Syntax.from("brackets", r, s)]
 ]);
 
 const process = (acc, s) => {
   if (isBraces(s) && isDolar(acc.template.last())) {
     return {
-      template: acc.template.push(Syntax.fromBraces(List.of(Syntax.fromNumber(acc.interp.size)), s)),
+      template: acc.template.push(Syntax.from("braces", List.of(Syntax.from("number", acc.interp.size)), s)),
       interp: acc.interp.push(s.inner())
     };
   } else if (isDelimiter(s)) {

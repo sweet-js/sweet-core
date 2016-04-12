@@ -10,24 +10,6 @@ const Nothing = Maybe.Nothing;
 
 const symWrap = Symbol('wrapper');
 
-const isKind = _.curry((kind, t, v) => {
-  if (t instanceof Syntax) {
-    return t[kind]() && (v == null || t.val() == v);
-  }
-});
-
-const isKeyword = isKind('isKeyword');
-const isIdentifier = isKind('isIdentifier');
-const isNumericLiteral = isKind('isNumericLiteral');
-const isStringLiteral = isKind('isStringLiteral');
-const isNullLiteral = isKind('isNullLiteral');
-const isPunctuator = isKind('isPunctuator');
-const isRegularExpression = isKind('isRegularExpression');
-const isBraces = isKind('isBraces');
-const isBrackets = isKind('isBrackets');
-const isParens = isKind('isParens');
-const isDelimiter = isKind('isDelimiter');
-
 const getLineNumber = t => {
   if (t instanceof Syntax) {
     return t.lineNumber();
@@ -36,7 +18,7 @@ const getLineNumber = t => {
 };
 
 const getVal = t => {
-  if (isDelimiter(t, null)) {
+  if (match("delimiter", t, null)) {
     return null;
   }
   if (t instanceof Syntax) {
@@ -51,48 +33,11 @@ export class SyntaxOrTermWrapper {
     this.context = context;
   }
 
-  isKeyword(value) {
-    return isKeyword(this[symWrap], value);
-  }
-
-  isIdentifier(value) {
-    return isIdentifier(this[symWrap], value);
-  }
-
-  isNumericLiteral(value) {
-    return isNumericLiteral(this[symWrap], value);
-  }
-
-  isStringLiteral(value) {
-    return isStringLiteral(this[symWrap], value);
-  }
-
-  isNullLiteral(value) {
-    return isNullLiteral(this[symWrap], value);
-  }
-
-  isPunctuator(value) {
-    return isPunctuator(this[symWrap], value);
-  }
-
-  isRegularExpression(value) {
-    return isRegularExpression(this[symWrap], value);
-  }
-
-  isBraces(value) {
-    return isBraces(this[symWrap], value);
-  }
-
-  isBrackets(value) {
-    return isBrackets(this[symWrap], value);
-  }
-
-  isParens(value) {
-    return isParens(this[symWrap], value);
-  }
-
-  isDelimiter(value) {
-    return isDelimiter(this[symWrap], value);
+  match(type, value) {
+    let stx = this[symWrap]
+    if (stx instanceof Syntax) {
+      return stx.match(type, value)
+    }
   }
 
   lineNumber() {
@@ -105,7 +50,7 @@ export class SyntaxOrTermWrapper {
 
   inner() {
     let stx = this[symWrap];
-    if (!isDelimiter(stx, null)) {
+    if (!match("delimiter", stx, null)) {
       throw new Error('Can only get inner syntax on a delimiter');
     }
 

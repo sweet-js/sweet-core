@@ -18,6 +18,134 @@ function sizeDecending(a, b) {
   }
 }
 
+let Types = {
+  null: {
+		match: token => !Types.delimiter.match(token) && token.type === TokenType.NULL,
+    create: (value, stx) => new Syntax({
+      type: TokenType.NULL,
+      value: null
+    }, stx.context)
+  },
+  number: {
+    match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.NumericLiteral,
+    create: (value, stx) => new Syntax({
+      type: TokenType.NUMBER,
+      value
+    }, stx.context)
+  }
+  string: {
+		match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.StringLiteral,
+    create: (value, stx) => new Syntax({
+      type: TokenType.STRING,
+      str: value
+    }, stx.context)
+  },
+  punctuator: {
+		match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.Punctuator,
+    create: (value, stx) => new Syntax({
+      type: {
+        klass: TokenClass.Punctuator,
+        name: value
+      },
+      value
+    }, stx.context)
+  },
+  keyword: {
+		match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.Keyword,
+    create: (value, stx) => new Syntax({
+      type: {
+        klass: TokenClass.Keyword,
+        name: value
+      },
+      value
+    }, stx.context)
+  },
+  identifier: {
+		match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.Ident,
+    create: (value, stx) => new Syntax({
+      type: TokenType.IDENTIFIER,
+      value
+    }, stx.context)
+  },
+  regularExpression: {
+		match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.RegularExpression,
+    create: (value, stx) => new Syntax({
+      type: TokenType.REGEXP,
+      value
+    }, stx.context)
+  },
+  braces: {
+		match: token => Types.delimiter.match(token) &&
+           token.get(0).token.type === TokenType.LBRACE,
+    create: (inner, stx) => {
+      let left = new Syntax({
+        type: TokenType.LBRACE,
+        value: "{"
+      })
+      let right = new Syntax({
+        type: TokenType.RBRACE,
+        value: "}"
+      })
+      return new Syntax(List.of(left).concat(inner).push(right), stx.context)
+    }
+  },
+  brackets: {
+		match: token => Types.delimiter.match(token) &&
+           token.get(0).token.type === TokenType.LBRACK,
+    create: (inner, stx) => {
+      let left = new Syntax({
+        type: TokenType.LBRACK,
+        value: "["
+      })
+      let right = new Syntax({
+        type: TokenType.RBRACK,
+        value: "]"
+      })
+      return new Syntax(List.of(left).concat(inner).push(right), stx.context)
+    }
+  },
+  parens: {
+		match: token => Types.delimiter.match(token) &&
+           token.get(0).token.type === TokenType.LPAREN,
+    create: (inner, stx) => {
+      let left = new Syntax({
+        type: TokenType.LPAREN,
+        value: "("
+      })
+      let right = new Syntax({
+        type: TokenType.RPAREN,
+        value: ")"
+      })
+      return new Syntax(List.of(left).concat(inner).push(right), stx.context)
+    }
+  },
+  
+  assign: {
+    match: token => !Types.delimiter.match(token) && token.type === TokenType.ASSIGN
+  },
+  
+  boolean: {
+    match: token => !Types.delimiter.match(token) && token.type === TokenType.TRUE ||
+           token.type === TokenType.FALSE
+  },
+  
+  template: {
+    match: token => !Types.delimiter.match(token) && token.type === TokenType.TEMPLATE
+  },
+
+  delimiter: {
+    match: token => List.isList(token)
+  },
+
+  syntaxTemplate: {
+    match: token => Types.delimiter.match(token) && token.get(0).val() === '#`'
+  },
+
+  eof: {
+    match: token => !Types.delimiter.match(token) && token.type === TokenType.EOS
+  },
+}
+
 export default class Syntax {
   // (Token or List<Syntax>, List<Scope>) -> Syntax
   constructor(token, context = {bindings: new BindingMap(), scopeset: List()}) {
@@ -33,102 +161,20 @@ export default class Syntax {
   static of(token, stx = {}) {
     return new Syntax(token, stx.context);
   }
-
-  static fromNull(stx = {}) {
-    return new Syntax({
-      type: TokenType.NULL,
-      value: null
-    }, stx.context);
+  
+  static from(type, value, stx = {}) {
+    if (!Types[type]) {
+      throw new Error(type + "is not a valid type")
+    }
+    else if (!Types[type].create) {
+      throw new Error("Cannot create a syntax from type " + type)
+    }
+    Types[type].create(value, stx)
   }
-
-  static fromNumber(value, stx = {}) {
-    return new Syntax({
-      type: TokenType.NUMBER,
-      value: value
-    }, stx.context);
-  }
-
-  static fromString(value, stx = {}) {
-    return new Syntax({
-      type: TokenType.STRING,
-      str: value
-    }, stx.context);
-  }
-
-  static fromPunctuator(value, stx = {}) {
-    return new Syntax({
-      type: {
-        klass: TokenClass.Punctuator,
-        name: value
-      },
-      value: value
-    }, stx.context);
-  }
-
-  static fromKeyword(value, stx = {}) {
-    return new Syntax({
-      type: {
-        klass: TokenClass.Keyword,
-        name: value
-      },
-      value: value
-    }, stx.context);
-  }
-
-  static fromIdentifier(value, stx = {}) {
-    return new Syntax({
-      type: TokenType.IDENTIFIER,
-      value: value
-    }, stx.context);
-  }
-
-  static fromRegularExpression(value, stx = {}) {
-    return new Syntax({
-      type: TokenType.REGEXP,
-      value: value
-    }, stx.context);
-  }
-
-  static fromBraces(inner, stx = {}) {
-    let left = new Syntax({
-      type: TokenType.LBRACE,
-      value: "{"
-    });
-    let right = new Syntax({
-      type: TokenType.RBRACE,
-      value: "}"
-    });
-    return new Syntax(List.of(left).concat(inner).push(right), stx.context);
-  }
-
-  static fromBrackets(inner, stx = {}) {
-    let left = new Syntax({
-      type: TokenType.LBRACK,
-      value: "["
-    });
-    let right = new Syntax({
-      type: TokenType.RBRACK,
-      value: "]"
-    });
-    return new Syntax(List.of(left).concat(inner).push(right), stx.context);
-  }
-
-  static fromParens(inner, stx = {}) {
-    let left = new Syntax({
-      type: TokenType.LPAREN,
-      value: "("
-    });
-    let right = new Syntax({
-      type: TokenType.RPAREN,
-      value: ")"
-    });
-    return new Syntax(List.of(left).concat(inner).push(right), stx.context);
-  }
-
 
   // () -> string
   resolve() {
-    if (this.context.scopeset.size === 0 || !(this.isIdentifier() || this.isKeyword())) {
+    if (this.context.scopeset.size === 0 || !(this.match("identifier") || this.match("keyword"))) {
       return this.token.value;
     }
     let scope = this.context.scopeset.last();
@@ -169,13 +215,13 @@ export default class Syntax {
   }
 
   val() {
-    assert(!this.isDelimiter(), "cannot get the val of a delimiter");
-    if (this.isStringLiteral()) {
+    assert(!this.match("delimiter"), "cannot get the val of a delimiter");
+    if (this.match("string")) {
       return this.token.str;
     }
-    if (this.isTemplate()) {
+    if (this.match("template")) {
       return this.token.items.map(el => {
-        if (el instanceof Syntax && el.isDelimiter()) {
+        if (el instanceof Syntax && el.match("delimiter")) {
           return '${...}';
         }
         return el.slice.text;
@@ -185,7 +231,7 @@ export default class Syntax {
   }
 
   lineNumber() {
-    if (!this.isDelimiter()) {
+    if (!this.match("delimiter")) {
       return this.token.slice.startLocation.line;
     } else {
       // TODO: this is the start of the delimiter...correct?
@@ -195,17 +241,17 @@ export default class Syntax {
 
   // () -> List<Syntax>
   inner() {
-    assert(this.isDelimiter(), "can only get the inner of a delimiter");
+    assert(this.match("delimiter"), "can only get the inner of a delimiter");
     return this.token.slice(1, this.token.size - 1);
   }
 
   addScope(scope, bindings, options = { flip: false }) {
-    let token = this.isDelimiter() ? this.token.map(s => s.addScope(scope, bindings, options)) : this.token;
-    if (this.isTemplate()) {
+    let token = this.match("delimiter") ? this.token.map(s => s.addScope(scope, bindings, options)) : this.token;
+    if (this.match("template")) {
       token = {
         type: this.token.type,
         items: token.items.map(it => {
-          if (it instanceof Syntax && it.isDelimiter()) {
+          if (it instanceof Syntax && it.match("delimiter")) {
             return it.addScope(scope, bindings, options);
           }
           return it;
@@ -227,7 +273,7 @@ export default class Syntax {
     return new Syntax(token, {bindings: bindings, scopeset: newScopeset});
   }
   removeScope(scope) {
-    let token = this.isDelimiter() ? this.token.map(s => s.removeScope(scope)) : this.token;
+    let token = this.match("delimiter") ? this.token.map(s => s.removeScope(scope)) : this.token;
     let newScopeset = this.context.scopeset;
     let index = this.context.scopeset.indexOf(scope);
     if (index !== -1) {
@@ -236,82 +282,22 @@ export default class Syntax {
     return new Syntax(token, { bindings: this.context.bindings, scopeset: newScopeset} );
   }
 
-  isIdentifier() {
-    return !this.isDelimiter() && this.token.type.klass === TokenClass.Ident;
-  }
-
-  isAssign() {
-    return !this.isDelimiter() && this.token.type === TokenType.ASSIGN;
-  }
-
-  isBooleanLiteral() {
-    return !this.isDelimiter() && this.token.type === TokenType.TRUE ||
-           this.token.type === TokenType.FALSE;
-  }
-
-  isKeyword() {
-    return !this.isDelimiter() && this.token.type.klass === TokenClass.Keyword;
-  }
-
-  isNullLiteral() {
-    return !this.isDelimiter() && this.token.type === TokenType.NULL;
-  }
-
-  isNumericLiteral() {
-    return !this.isDelimiter() && this.token.type.klass === TokenClass.NumericLiteral;
-  }
-
-  isPunctuator() {
-    return !this.isDelimiter() && this.token.type.klass === TokenClass.Punctuator;
-  }
-
-  isStringLiteral() {
-    return !this.isDelimiter() && this.token.type.klass === TokenClass.StringLiteral;
-  }
-
-  isRegularExpression() {
-    return !this.isDelimiter() && this.token.type.klass === TokenClass.RegularExpression;
-  }
-
-  isTemplate() {
-    return !this.isDelimiter() && this.token.type === TokenType.TEMPLATE;
-  }
-
-  isDelimiter() {
-    return List.isList(this.token);
-  }
-
-  isParens() {
-    return this.isDelimiter() &&
-           this.token.get(0).token.type === TokenType.LPAREN;
-  }
-
-  isBraces() {
-    return this.isDelimiter() &&
-           this.token.get(0).token.type === TokenType.LBRACE;
-  }
-
-  isBrackets() {
-    return this.isDelimiter() &&
-           this.token.get(0).token.type === TokenType.LBRACK;
-  }
-
-  isSyntaxTemplate() {
-    return this.isDelimiter() && this.token.get(0).val() === '#`';
-  }
-
-  isEOF() {
-    return !this.isDelimiter() && this.token.type === TokenType.EOS;
+  match(type, value) {
+    if (!Types[type]) {
+      throw new Error(type + "is an invalid type")
+    }
+    return Types[type].match(this.token) && (value == null ||
+      value instanceof RegExp ? value.test(stx.val()) : stx.val() == v)
   }
 
   toString() {
-    if (this.isDelimiter()) {
+    if (this.match("delimiter")) {
       return this.token.map(s => s.toString()).join(" ");
     }
-    if (this.isStringLiteral()) {
+    if (this.match("string")) {
       return "'" + this.token.str;
     }
-    if (this.isTemplate()) {
+    if (this.match("template")) {
       return this.val();
     }
     return this.token.value;
