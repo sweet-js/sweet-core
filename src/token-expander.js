@@ -197,11 +197,12 @@ export default class TokenExpander {
           }],
           [isImport, term => {
             let path = term.moduleSpecifier.val();
-            store = self.context.modules.visit(path, phase, store);
+            let mod = self.context.modules.loadAndCompile(path);
+            store = self.context.modules.visit(mod, phase, store);
             if (term.forSyntax) {
-              store = self.context.modules.invoke(path, phase, store);
+              store = self.context.modules.invoke(mod, phase, store);
             }
-            throw new Error("bindImports or something like it needs to be invoked here");
+            bindImports(term, mod, self.context);
             return term;
           }],
           [_.T, term => term]

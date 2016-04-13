@@ -10,8 +10,9 @@ import Term, {
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
   isVariableDeclarationStatement, isImport, isExport
 } from "./terms";
-import loadSyntax from './load-syntax';
+import { evalCompiletimeValue } from './load-syntax';
 import Compiler from "./compiler";
+import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { Scope, freshScope } from "./scope";
 
 export class Module {
@@ -72,11 +73,29 @@ export class Modules {
     );
   }
 
-  visit(path, phase, store) {
+  loadAndCompile(rawPath) {
+    let path = this.context.moduleResolver(rawPath, this.context.cwd);
+    if (!this.compiledModules.has(path)) {
+      this.compiledModules.set(path, this.compile(this.load(path), path));
+    }
+    return this.compiledModules.get(path);
+  }
+
+  visit(mod, phase, store) {
+    mod.exportEntries.forEach(ex => {
+      if (isSyntaxDeclaration(ex.declaration) || isSyntaxrecDeclaration(ex.declaration)) {
+        ex.declaration.declarators.forEach(({binding, init}) => {
+          let val = evalCompiletimeValue(init.gen(), _.merge(this.context, {
+            store, phase
+          }));
+          store.set(binding.name.resolve(phase), new CompiletimeTransform(val));
+        });
+      }
+    });
     return store;
   }
 
-  invoke(path, phase, store) {
+  invoke(mod, phase, store) {
     return store;
   }
 }
