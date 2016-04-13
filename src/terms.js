@@ -202,7 +202,7 @@ const fieldsIn = R.cond([
   [isClassElement, R.always(List.of('isStatic', 'method'))],
   // modules
   [isModule, R.always(List.of('directives', 'items'))],
-  [isImport, R.always(List.of('moduleSpecifier', 'defaultBinding', 'namedImports'))],
+  [isImport, R.always(List.of('moduleSpecifier', 'defaultBinding', 'namedImports', 'forSyntax'))],
   [isImportNamespace, R.always(List.of('moduleSpecifier', 'defaultBinding', 'namespaceBinding'))],
   [isImportSpecifier, R.always(List.of('name', 'binding'))],
   [isExportAllFrom, R.always(List.of('moduleSpecifier'))],
