@@ -168,6 +168,25 @@ return syntaxQuote\`42\`;
     "loc": null,
     "directives": [],
     "items": [
+        {
+        "type": "Import",
+        "loc": null,
+        "defaultBinding": null,
+        "namedImports": [
+          {
+            "type": "ImportSpecifier",
+            "loc": null,
+            "name": null,
+            "binding": {
+              "type": "BindingIdentifier",
+              "loc": null,
+              "name": "m"
+            }
+          }
+        ],
+        "moduleSpecifier": "./m.js",
+        "forSyntax": false
+      },
       {
         "type": "ExpressionStatement",
         "loc": null,
@@ -193,6 +212,24 @@ return syntaxQuote\`42\`;
     "loc": null,
     "directives": [],
     "items": [
+      {
+        "type": "Import",
+        "loc": null,
+        "defaultBinding": null,
+        "namedImports": [
+          {
+            "type": "ImportSpecifier",
+            "loc": null,
+            "name": null,
+            "binding": {
+              "type": "BindingIdentifier",
+              "loc": null,
+              "name": "m"
+            }
+          }
+        ],
+        "moduleSpecifier": "./m.js"
+      },
       {
         "type": "Import",
         "loc": null,
