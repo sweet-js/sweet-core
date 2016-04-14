@@ -140,6 +140,7 @@ export const isYieldGeneratorExpression = R.whereEq({ type: "YieldGeneratorExpre
 export const isBlockStatement = R.whereEq({ type: "BlockStatement" });
 export const isBreakStatement = R.whereEq({ type: "BreakStatement" });
 export const isContinueStatement = R.whereEq({ type: "ContinueStatement" });
+export const isCompoundAssignmentExpression = R.whereEq({ type: "CompoundAssignmentExpression" });
 export const isDebuggerStatement = R.whereEq({ type: "DebuggerStatement" });
 export const isDoWhileStatement = R.whereEq({ type: "DoWhileStatement" });
 export const isEmptyStatement = R.whereEq({ type: "EmptyStatement" });
@@ -211,9 +212,9 @@ const fieldsIn = R.cond([
   [isExportDefault, R.always(List.of('body'))],
   [isExportSpecifier, R.always(List.of('name', 'exportedName'))],
   // property definition
-  [isMethod, R.always(List.of('body', 'isGenerator', 'params'))],
-  [isGetter, R.always(List.of('body'))],
-  [isSetter, R.always(List.of('body', 'param'))],
+  [isMethod, R.always(List.of('name', 'body', 'isGenerator', 'params'))],
+  [isGetter, R.always(List.of('name', 'body'))],
+  [isSetter, R.always(List.of('name', 'body', 'param'))],
   [isDataProperty, R.always(List.of('name', 'expression'))],
   [isShorthandProperty, R.always(List.of('expression'))],
   [isStaticPropertyName, R.always(List.of('value'))],
@@ -242,12 +243,14 @@ const fieldsIn = R.cond([
   [isStaticMemberExpression, R.always(List.of('object', 'property'))],
   [isTemplateExpression, R.always(List.of('tag', 'elements'))],
   [isThisExpression, R.always(List())],
+  [isUpdateExpression, R.always(List.of('isPrefix', 'operator', 'operand'))],
   [isYieldExpression, R.always(List.of('expression'))],
   [isYieldGeneratorExpression, R.always(List.of('expression'))],
   // statements
   [isBlockStatement, R.always(List.of('block'))],
   [isBreakStatement, R.always(List.of('label'))],
   [isContinueStatement, R.always(List.of('label'))],
+  [isCompoundAssignmentExpression, R.always(List.of('binding', 'operator', 'expression'))],
   [isDebuggerStatement, R.always(List())],
   [isDoWhileStatement, R.always(List.of('test', 'body'))],
   [isEmptyStatement, R.always(List())],
@@ -255,14 +258,17 @@ const fieldsIn = R.cond([
   [isForInStatement, R.always(List.of('left', 'right', 'body'))],
   [isForOfStatement, R.always(List.of('left', 'right', 'body'))],
   [isForStatement, R.always(List.of('init', 'test', 'update', 'body'))],
+  [isIfStatement, R.always(List.of('test', 'consequent', 'alternate'))],
   [isLabeledStatement, R.always(List.of('label', 'body'))],
   [isReturnStatement, R.always(List.of('expression'))],
+  [isSwitchStatement, R.always(List.of('discriminant', 'cases'))],
   [isSwitchStatementWithDefault, R.always(List.of('discriminant', 'preDefaultCases', 'defaultCase', 'postDefaultCases'))],
   [isThrowStatement, R.always(List.of('expression'))],
   [isTryCatchStatement, R.always(List.of('body', 'catchClause'))],
   [isTryFinallyStatement, R.always(List.of('body', 'catchClause', 'finalizer'))],
   [isVariableDeclarationStatement, R.always(List.of('declaration'))],
   [isWithStatement, R.always(List.of('object', 'body'))],
+  [isWhileStatement, R.always(List.of('test', 'body'))],
   // other
   [isBlock, R.always(List.of('statements'))],
   [isCatchClause, R.always(List.of('binding', 'body'))],
