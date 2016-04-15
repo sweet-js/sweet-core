@@ -8,7 +8,7 @@ import BindingMap from "./binding-map.js";
 import Term, {
   isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
-  isVariableDeclarationStatement, isImport, isExport
+  isVariableDeclarationStatement, isImport, isExport, isExportSyntax, isSyntaxDeclarationStatement
 } from "./terms";
 import { evalCompiletimeValue } from './load-syntax';
 import Compiler from "./compiler";
@@ -82,12 +82,15 @@ export class Modules {
   }
 
   visit(mod, phase, store) {
-    mod.exportEntries.forEach(ex => {
-      if (isSyntaxDeclaration(ex.declaration) || isSyntaxrecDeclaration(ex.declaration)) {
-        ex.declaration.declarators.forEach(({binding, init}) => {
+    mod.body.forEach(term => {
+      if (isSyntaxDeclarationStatement(term) || isExportSyntax(term)) {
+        term.declaration.declarators.forEach(({binding, init}) => {
           let val = evalCompiletimeValue(init.gen(), _.merge(this.context, {
-            store, phase
+            store, phase: phase + 1
           }));
+          // binding for imports
+          store.set(mod.moduleSpecifier + ":" + binding.name.val() + ":" + phase, new CompiletimeTransform(val));
+          // module local binding
           store.set(binding.name.resolve(phase), new CompiletimeTransform(val));
         });
       }

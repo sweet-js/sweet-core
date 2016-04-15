@@ -182,10 +182,12 @@ export const isSyntaxrecDeclaration = R.both(isVariableDeclaration, R.whereEq({ 
 export const isFunctionTerm = R.either(isFunctionDeclaration, isFunctionExpression);
 export const isFunctionWithName = R.and(isFunctionTerm, R.complement(R.where({ name: R.isNil })));
 export const isParenthesizedExpression = R.whereEq({ type: 'ParenthesizedExpression'});
+export const isExportSyntax = R.both(isExport, exp => R.or(isSyntaxDeclaration(exp.declaration), isSyntaxrecDeclaration(exp.declaration)));
+export const isSyntaxDeclarationStatement = R.both(isVariableDeclarationStatement, decl => isCompiletimeDeclaration(decl.declaration));
 
 
-const isCompiletimeDeclaration = R.either(isSyntaxDeclaration, isSyntaxrecDeclaration);
-const isCompiletimeStatement = term => {
+export const isCompiletimeDeclaration = R.either(isSyntaxDeclaration, isSyntaxrecDeclaration);
+export const isCompiletimeStatement = term => {
   return (term instanceof Term) && isVariableDeclarationStatement(term) && isCompiletimeDeclaration(term.declaration);
 };
 

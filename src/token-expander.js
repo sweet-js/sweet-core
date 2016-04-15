@@ -16,6 +16,7 @@ import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { expect, assert } from "./errors";
 import { evalCompiletimeValue } from './load-syntax';
 import { Scope, freshScope } from "./scope";
+import Syntax from './syntax';
 
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
@@ -98,6 +99,14 @@ function findNameInExports(name, exp) {
   return foundNames.get(0);
 }
 
+function removeNames(impTerm, names) {
+  return new Term(impTerm.type, {
+    moduleSpecifier: impTerm.moduleSpecifier,
+    defaultBinding: impTerm.defaultBinding,
+    forSyntax: impTerm.forSyntax,
+    namedImports: impTerm.namedImports.filter(specifier => !names.contains(specifier.binding.name))
+  });
+}
 
 function bindImports(impTerm, exModule, context) {
   let names = [];
@@ -106,13 +115,13 @@ function bindImports(impTerm, exModule, context) {
     let exportName = findNameInExports(name, exModule.exportEntries);
     if (exportName != null) {
       let newBinding = gensym(name.val());
-      context.bindings.addForward(name, exportName, newBinding, context.phase);
-      if (context.store.has(exportName.resolve(context.phase))) {
+      let storeName = exModule.moduleSpecifier + ":" + exportName.val() + ":" + context.phase;
+      if (context.store.has(storeName)) {
+        let storeStx = Syntax.fromIdentifier(storeName);
+        context.bindings.addForward(name, storeStx, newBinding, context.phase);
         names.push(name);
       }
     }
-    // // TODO: better error
-    // throw 'imported binding ' + name.val() + ' not found in exports of module' + exModule.moduleSpecifier;
   });
   return List(names);
 }
@@ -177,7 +186,9 @@ export default class TokenExpander {
                 }));
                 registerBindings(decl.binding, self.context);
                 let init = syntaxExpander.expand(decl.init);
-                let val = evalCompiletimeValue(init.gen(), self.context);
+                let val = evalCompiletimeValue(init.gen(), _.merge(self.context, {
+                  phase: self.context.phase + 1
+                }));
 
                 self.context.env.set(decl.binding.name.resolve(self.context.phase),
                                      new CompiletimeTransform(val));
@@ -202,8 +213,8 @@ export default class TokenExpander {
             if (term.forSyntax) {
               store = self.context.modules.invoke(mod, phase, store);
             }
-            bindImports(term, mod, self.context);
-            return term;
+            let boundNames = bindImports(term, mod, self.context);
+            return removeNames(term, boundNames);
           }],
           [_.T, term => term]
         ])
