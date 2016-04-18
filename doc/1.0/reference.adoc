@@ -89,7 +89,7 @@ Returns true if the syntax object is an identifier.
 === `.isBooleanLiteral()`
 Returns true if the syntax object is a boolean literal.
 
-=== `.isNullliteral()`
+=== `.isNullLiteral()`
 Returns true if the syntax object is a null literal.
 
 === `.isNumericLiteral()`
