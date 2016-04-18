@@ -16,7 +16,7 @@ import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { expect, assert } from "./errors";
 import { evalCompiletimeValue } from './load-syntax';
 import { Scope, freshScope } from "./scope";
-import Syntax from './syntax';
+import Syntax, { ALL_PHASES } from './syntax';
 
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
@@ -165,11 +165,11 @@ export default class TokenExpander {
               let scope = freshScope('nonrec');
               term.declaration.declarators.forEach(decl => {
                 let name = decl.binding.name;
-                let nameAdded = name.addScope(scope, self.context.bindings, self.context.phase);
+                let nameAdded = name.addScope(scope, self.context.bindings, ALL_PHASES);
                 let nameRemoved = name.removeScope(self.context.currentScope[self.context.currentScope.length - 1], self.context.phase);
                 let newBinding = gensym(name.val());
                 self.context.bindings.addForward(nameAdded, nameRemoved, newBinding, self.context.phase);
-                decl.init = decl.init.addScope(scope, self.context.bindings, self.context.phase);
+                decl.init = decl.init.addScope(scope, self.context.bindings, ALL_PHASES);
               });
             }
 
@@ -211,7 +211,7 @@ export default class TokenExpander {
             let mod = self.context.modules.loadAndCompile(path);
             store = self.context.modules.visit(mod, phase, store);
             if (term.forSyntax) {
-              store = self.context.modules.invoke(mod, phase, store);
+              store = self.context.modules.invoke(mod, phase + 1, store);
             }
             let boundNames = bindImports(term, mod, self.context);
             return removeNames(term, boundNames);

@@ -46,11 +46,11 @@ let SyntaxHandler = transit.makeWriteHandler({
   tag: () => "stx",
   rep: (v) => {
     if (List.isList(v.token)) {
-      return [v.token, v.scopesetMap];
+      return [v.token, v.scopesets];
     } else {
       let t = transit.objectToMap(v.token);
       t.set("type", typeMap.indexOf(v.token.type));
-      return [t, v.scopesetMap];
+      return [t, v.scopesets];
     }
   }
 });
@@ -83,9 +83,10 @@ function makeReader(bindings) {
     },
     handlers: {
       "stx": (rep) => {
+        let scopesets = transit.mapToObject(rep[1]);
         if (List.isList(rep[0])) {
           let token = rep[0];
-          return new Syntax(token, {bindings, scopesetMap: rep[1]});
+          return new Syntax(token, {bindings, scopesets: scopesets});
         } else {
           let token = transit.mapToObject(rep[0]);
           token.type = typeMap[rep[0].get("type")];
@@ -93,7 +94,7 @@ function makeReader(bindings) {
           if (token.slice) {
             token.slice.startLocation = transit.mapToObject(token.slice.startLocation);
           }
-          return new Syntax(token, {bindings, scopesetMap: rep[1]});
+          return new Syntax(token, {bindings, scopesets: scopesets});
         }
       },
       "symb": (rep) => {

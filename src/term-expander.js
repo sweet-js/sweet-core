@@ -8,7 +8,7 @@ import { Scope, freshScope } from "./scope";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
 import reducer, { MonoidalReducer } from "shift-reducer";
 import Compiler from './compiler';
-import Syntax from "./syntax";
+import Syntax, { ALL_PHASES } from "./syntax";
 import { serializer, makeDeserializer } from "./serializer";
 import { enforestExpr, Enforester } from "./enforester";
 import { assert } from './errors';
@@ -515,9 +515,9 @@ export default class TermExpander {
     let markedBody, bodyTerm;
     if (term.body instanceof Term) {
       // Arrow functions have a single term as their body
-      bodyTerm = this.expand(term.body.addScope(scope, this.context.bindings, this.context.phase));
+      bodyTerm = this.expand(term.body.addScope(scope, this.context.bindings, ALL_PHASES));
     } else {
-      markedBody = term.body.map(b => b.addScope(scope, this.context.bindings, this.context.phase));
+      markedBody = term.body.map(b => b.addScope(scope, this.context.bindings, ALL_PHASES));
       bodyTerm = new Term("FunctionBody", {
         directives: List(),
         statements: compiler.compile(markedBody)

@@ -10,7 +10,7 @@ import Term, {
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
   isVariableDeclarationStatement, isImport, isExport, isExportSyntax, isSyntaxDeclarationStatement
 } from "./terms";
-import { evalCompiletimeValue } from './load-syntax';
+import { evalCompiletimeValue, evalRuntimeValues } from './load-syntax';
 import Compiler from "./compiler";
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { Scope, freshScope } from "./scope";
@@ -54,7 +54,6 @@ export class Modules {
     let compiler = new Compiler(0, new Env(), new Store(), _.merge(this.context, {
       currentScope: [scope]
     }));
-    // TODO: toplevel scope at all phases?
     let terms = compiler.compile(stxl.map(s => s.addScope(scope, this.context.bindings, 0)));
 
     let importEntries = [];
@@ -99,6 +98,13 @@ export class Modules {
   }
 
   invoke(mod, phase, store) {
+    let body = mod.body.map(term => term.gen());
+    let exportsObj = evalRuntimeValues(body, _.merge(this.context, {
+      store, phase
+    }));
+    for (let key of Object.keys(exportsObj)) {
+      store.set(mod.moduleSpecifier + ":" + key + ":" + phase, new CompiletimeTransform(exportsObj[key]));
+    }
     return store;
   }
 }

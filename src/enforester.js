@@ -32,7 +32,7 @@ import {
   getOperatorPrec,
   operatorLt
 } from "./operators";
-import Syntax from "./syntax";
+import Syntax, { ALL_PHASES } from "./syntax";
 
 import { freshScope } from "./scope";
 import { sanitizeReplacementValues } from './load-syntax';
@@ -1825,7 +1825,7 @@ export class Enforester {
       if (!(stx && typeof stx.addScope === 'function')) {
         throw this.createError(name, 'macro must return syntax objects or terms but got: ' + stx);
       }
-      return stx.addScope(introducedScope, this.context.bindings, this.context.phase, { flip: true });
+      return stx.addScope(introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
     });
 
     return result;

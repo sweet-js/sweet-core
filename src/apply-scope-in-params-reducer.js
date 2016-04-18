@@ -2,6 +2,7 @@ import Term from "./terms";
 import { gensym } from "./symbol";
 import { VarBindingTransform } from "./transforms";
 import {assert} from './errors';
+import { ALL_PHASES } from './syntax';
 
 export default class ScopeApplyingReducer {
   constructor(scope, context) {
@@ -63,7 +64,7 @@ export default class ScopeApplyingReducer {
   }
 
   transformBindingIdentifier(term) {
-    let name = term.name.addScope(this.scope, this.context.bindings, this.context.phase);
+    let name = term.name.addScope(this.scope, this.context.bindings, ALL_PHASES);
     let newBinding = gensym(name.val());
 
     this.context.env.set(newBinding.toString(), new VarBindingTransform(name));

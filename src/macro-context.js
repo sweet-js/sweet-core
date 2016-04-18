@@ -2,7 +2,7 @@ import MapSyntaxReducer from "./map-syntax-reducer";
 import reducer from "shift-reducer";
 import { List } from 'immutable';
 import { Enforester } from './enforester';
-import Syntax from './syntax';
+import Syntax, { ALL_PHASES } from './syntax';
 import * as _ from 'ramda';
 import { Maybe } from 'ramda-fantasy';
 const Just = Maybe.Just;
@@ -177,8 +177,8 @@ export default class MacroContext {
         value = this._enf.advance();
         if (!this.noScopes) {
           value = value
-            .addScope(this.useScope, this.context.bindings, this.context.phase)
-            .addScope(this.introducedScope, this.context.bindings, this.context.phase, { flip: true });
+            .addScope(this.useScope, this.context.bindings, ALL_PHASES)
+            .addScope(this.introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
         }
         break;
       default:

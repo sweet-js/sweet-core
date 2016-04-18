@@ -36,6 +36,25 @@ export function sanitizeReplacementValues(values) {
   return unwrap(values);
 }
 
+export function evalRuntimeValues(terms, context) {
+  let parsed = reducer(new ParseReducer(context), new Term('Module', {
+    directives: List(),
+    items: terms
+  }));
+
+  let gen = codegen(parsed, new FormattedCodeGen);
+  let result = context.transform(gen, {
+    babelrc: true,
+    filename: context.filename
+  });
+
+  let exportsObj = {};
+  context.store.set('exports', exportsObj);
+
+  let val = vm.runInContext(result.code, context.store.getNodeContext());
+  return exportsObj;
+}
+
 // (Expression, Context) -> [function]
 export function evalCompiletimeValue(expr, context) {
   let deserializer = makeDeserializer(context.bindings);

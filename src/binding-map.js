@@ -1,6 +1,7 @@
 import { List } from "immutable";
 import { expect, assert } from "./errors";
 import { Maybe } from 'ramda-fantasy';
+import { ALL_PHASES } from './syntax';
 
 export default class BindingMap {
   constructor() {
@@ -12,7 +13,9 @@ export default class BindingMap {
   // scope set
   add(stx, { binding, phase, skipDup = false }) {
     let stxName = stx.val();
-    let scopeset = stx.scopesetMap.has(phase) ? stx.scopesetMap.get(phase) : List();
+    let allScopeset = stx.scopesets.all;
+    let scopeset = stx.scopesets.phase.has(phase) ? stx.scopesets.phase.get(phase) : List();
+    scopeset = allScopeset.concat(scopeset);
     assert(phase != null, "must provide a phase for binding add");
 
     if (this._map.has(stxName)) {
@@ -36,7 +39,9 @@ export default class BindingMap {
 
   addForward(stx, forwardStx, binding, phase) {
     let stxName = stx.token.value;
-    let scopeset = stx.scopesetMap.has(phase) ? stx.scopesetMap.get(phase) : List();
+    let allScopeset = stx.scopesets.all;
+    let scopeset = stx.scopesets.phase.has(phase) ? stx.scopesets.phase.get(phase) : List();
+    scopeset = allScopeset.concat(scopeset);
     assert(phase != null, "must provide a phase for binding add");
 
     if (this._map.has(stxName)) {

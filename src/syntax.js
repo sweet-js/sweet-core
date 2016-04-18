@@ -166,12 +166,16 @@ export let Types = {
     match: token => !Types.delimiter.match(token) && token.type === TokenType.EOS
   },
 };
+export const ALL_PHASES = {};
 
 export default class Syntax {
   constructor(token, oldstx = {}) {
     this.token = token;
     this.bindings = oldstx.bindings != null ? oldstx.bindings : new BindingMap();
-    this.scopesetMap = oldstx.scopesetMap != null ? oldstx.scopesetMap : Map();
+    this.scopesets = oldstx.scopesets != null ? oldstx.scopesets : {
+      all: List(),
+      phase: Map()
+    };
     Object.freeze(this);
   }
 
@@ -232,7 +236,9 @@ export default class Syntax {
   // () -> string
   resolve(phase) {
     assert(phase != null, "must provide a phase to resolve");
-    let stxScopes = this.scopesetMap.has(phase) ? this.scopesetMap.get(phase) : List();
+    let allScopes = this.scopesets.all;
+    let stxScopes = this.scopesets.phase.has(phase) ? this.scopesets.phase.get(phase) : List();
+    stxScopes = allScopes.concat(stxScopes);
     if (stxScopes.size === 0 || !(this.match('identifier') || this.match('keyword'))) {
       return this.token.value;
     }
@@ -325,7 +331,12 @@ export default class Syntax {
         })
       };
     }
-    let oldScopeset = this.scopesetMap.has(phase) ? this.scopesetMap.get(phase) : List();
+    let oldScopeset;
+    if (phase === ALL_PHASES) {
+      oldScopeset = this.scopesets.all;
+    } else {
+      oldScopeset = this.scopesets.phase.has(phase) ? this.scopesets.phase.get(phase) : List();
+    }
     let newScopeset;
     if (options.flip) {
       let index = oldScopeset.indexOf(scope);
@@ -338,22 +349,40 @@ export default class Syntax {
       newScopeset = oldScopeset.push(scope);
     }
     let newstx = {
-      scopesetMap: this.scopesetMap.set(phase, newScopeset), bindings
+      bindings,
+      scopesets: {
+        all: this.scopesets.all,
+        phase: this.scopesets.phase
+      }
     };
+
+    if (phase === ALL_PHASES) {
+      newstx.scopesets.all = newScopeset;
+    } else {
+      newstx.scopesets.phase = newstx.scopesets.phase.set(phase, newScopeset);
+    }
     return new Syntax(token, newstx);
   }
 
   removeScope(scope, phase) {
     let token = this.match('delimiter') ? this.token.map(s => s.removeScope(scope, phase)) : this.token;
-    let newScopeset = this.scopesetMap.has(phase) ? this.scopesetMap.get(phase) : List();
-    let index = newScopeset.indexOf(scope);
-    if (index !== -1) {
-      newScopeset = newScopeset.remove(index);
-    }
+    let phaseScopeset = this.scopesets.phase.has(phase) ? this.scopesets.phase.get(phase) : List();
+    let allScopeset = this.scopesets.all;
     let newstx = {
       bindings: this.bindings,
-      scopesetMap: this.scopesetMap.set(phase, newScopeset)
+      scopesets: {
+        all: this.scopesets.all,
+        phase: this.scopesets.phase
+      }
     };
+
+    let phaseIndex = phaseScopeset.indexOf(scope);
+    let allIndex = allScopeset.indexOf(scope);
+    if (phaseIndex !== -1) {
+      newstx.scopesets.phase = this.scopesets.phase.set(phase, phaseScopeset.remove(phaseIndex));
+    } else if (allIndex !== -1) {
+      newstx.scopesets.all = allScopeset.remove(allIndex);
+    }
     return new Syntax(token, newstx);
   }
 
