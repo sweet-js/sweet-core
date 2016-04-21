@@ -110,15 +110,16 @@ function removeNames(impTerm, names) {
 
 function bindImports(impTerm, exModule, context) {
   let names = [];
+  let phase = impTerm.forSyntax ? context.phase + 1 : context.phase
   impTerm.namedImports.forEach(specifier => {
     let name = specifier.binding.name;
     let exportName = findNameInExports(name, exModule.exportEntries);
     if (exportName != null) {
       let newBinding = gensym(name.val());
-      let storeName = exModule.moduleSpecifier + ":" + exportName.val() + ":" + context.phase;
+      let storeName = exModule.moduleSpecifier + ":" + exportName.val() + ":" + phase;
       if (context.store.has(storeName)) {
         let storeStx = Syntax.fromIdentifier(storeName);
-        context.bindings.addForward(name, storeStx, newBinding, context.phase);
+        context.bindings.addForward(name, storeStx, newBinding, phase);
         names.push(name);
       }
     }
