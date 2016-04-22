@@ -13,22 +13,27 @@ import BindingMap from "./binding-map.js";
 import Term from "./terms";
 import { Modules } from './modules';
 
+import { transform as babelTransform } from "babel-core"
+import nodeResolver from "./node-module-resolver"
+import nodeLoader from "./node-module-loader"
+
 export function expand(source, options = {}) {
   let reader = new Reader(source);
   let stxl = reader.read();
   let scope = freshScope('top');
   let bindings = new BindingMap();
+  
   let expander = new Expander({
     env: new Env(),
     store: new Env(),
-    bindings: bindings,
-    cwd: options.cwd,
+    bindings,
+    cwd: options.cwd || process.cwd(),
     filename: options.filename,
     modules: new Modules(),
     currentScope: [scope],
-    transform: options.transform ? options.transform : function(x) { return {code: x}; },
-    moduleResolver: options.moduleResolver,
-    moduleLoader: options.moduleLoader
+    transform: options.transform || babelTransform,
+    moduleResolver: options.moduleResolver || nodeResolver,
+    moduleLoader: options.moduleLoader || nodeLoader
   });
   let exStxl = expander.expand(stxl.map(s => s.addScope(scope, bindings)));
   return new Term("Module", {
