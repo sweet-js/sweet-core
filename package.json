@@ -16,13 +16,18 @@
       "url": "http://github.com/mozilla/sweet.js/master/LICENSE.BSD"
     }
   ],
+  "browser": {
+    "babel-core": false,
+    "./build/src/node-module-loader.js": false,
+    "./build/src/node-module-resolver.js": false
+  },
   "scripts": {
     "clean": "rm -rf build",
     "prebuild": "mkdir -p build/sweet dist/",
     "build:sweet": "bin/sjs -d build/sweet src/*.js -b",
     "build:src": "babel --out-dir build/src build/sweet",
     "build:test": "rsync -R test/**/*.js build & cp test/*.js build/test && babel --out-file build/test/assertions.js test/assertions.js ",
-    "build:browser": "webpack build/src/sweet.js browser/scripts/sweet.js --output-library-target amd --output-library sweet",
+    "build:browser": "webpack",
     "build": "npm run build:sweet && npm run build:src && npm run build:test",
     "pretest": "npm run build",
     "test:curr": "ava build/test/modules/export.js",

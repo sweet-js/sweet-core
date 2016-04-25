@@ -31,7 +31,7 @@ export function expand(source, options = {}) {
     filename: options.filename,
     modules: new Modules(),
     currentScope: [scope],
-    transform: options.transform || babelTransform,
+    transform: options.transform || babelTransform || a => ({code: a}),
     moduleResolver: options.moduleResolver || nodeResolver,
     moduleLoader: options.moduleLoader || nodeLoader
   });
