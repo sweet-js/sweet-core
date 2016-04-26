@@ -18,7 +18,7 @@ function sizeDecending(a, b) {
   }
 }
 
-let Types = {
+export let Types = {
   // types
   null: {
 		match: token => !Types.delimiter.match(token) && token.type === TokenType.NULL,
@@ -122,7 +122,28 @@ let Types = {
   },
   
   assign: {
-    match: token => !Types.delimiter.match(token) && token.type === TokenType.ASSIGN
+    match: token => {
+      if (Types.punctuator.match(token)) {
+        switch (token.value) {
+          case "=":
+          case "|=":
+          case "^=":
+          case "&=":
+          case "<<=":
+          case ">>=":
+          case ">>>=":
+          case "+=":
+          case "-=":
+          case "*=":
+          case "/=":
+          case "%=":
+            return true;
+          default:
+            return false;
+        }
+      }
+      return false;
+    }
   },
   
   boolean: {
