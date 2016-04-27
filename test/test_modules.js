@@ -1,15 +1,11 @@
 import { parse, expand } from "../src/sweet";
 import expect from "expect.js";
-import { expr, stmt, testParse, testModule } from "./assertions";
+import { expr, stmt, items, testParse } from "./assertions";
 import test from 'ava';
 
 
 test('should parse an import with a single named import', () => {
-  testParse('import { map } from "ramda";', x => x, {
-      "type": "Module",
-      "loc": null,
-      "directives": [],
-      "items": [
+  testParse('import { map } from "ramda";', items, [
         {
           "type": "Import",
           "loc": null,
@@ -28,16 +24,11 @@ test('should parse an import with a single named import', () => {
           ],
           "moduleSpecifier": "ramda"
         }
-      ]
-  });
+      ]);
 });
 
 test('should parse an import for macros', () => {
-  testParse('import { x } from "m" for syntax;', x => x, {
-      "type": "Module",
-      "loc": null,
-      "directives": [],
-      "items": [
+  testParse('import { x } from "m" for syntax;', items, [
         {
           "type": "Import",
           "loc": null,
@@ -57,16 +48,11 @@ test('should parse an import for macros', () => {
           ],
           "moduleSpecifier": "m"
         }
-      ]
-  });
+      ]);
 });
 
 test('should parse an export of a syntax decl', () => {
-  testParse('export syntaxrec m = function () {}', x => x, {
-      "type": "Module",
-      "loc": null,
-      "directives": [],
-      "items": [
+  testParse('export syntaxrec m = function () {}', items, [
         {
           "type": "Export",
           "loc": null,
@@ -105,16 +91,11 @@ test('should parse an export of a syntax decl', () => {
               ]
             }
         }
-      ]
-    });
+      ]);
 });
 
 test('should parse an export of a var decl', () => {
-  testParse('export var x = function () {}', x => x, {
-    "type": "Module",
-    "loc": null,
-    "directives": [],
-    "items": [
+  testParse('export var x = function () {}', items, [
       {
         "type": "Export",
         "loc": null,
@@ -153,8 +134,7 @@ test('should parse an export of a var decl', () => {
             ]
           }
       }
-    ]
-  });
+    ]);
 });
 
 test('should load a simple syntax transformer', () => {
@@ -163,11 +143,7 @@ test('should load a simple syntax transformer', () => {
 return syntaxQuote\`42\`;
 }`
   };
-  testModule('import { m } from "./m.js"; m', loader, {
-    "type": "Module",
-    "loc": null,
-    "directives": [],
-    "items": [
+  testParse('import { m } from "./m.js"; m', items, [
         {
         "type": "Import",
         "loc": null,
@@ -196,8 +172,7 @@ return syntaxQuote\`42\`;
           "value": 42
         }
       }
-    ]
-  });
+    ], loader);
 });
 
 test('should load a simple syntax transformer but leave runtime imports', () => {
@@ -207,12 +182,10 @@ test('should load a simple syntax transformer but leave runtime imports', () => 
 return syntaxQuote\`42\`;
 }`
   };
-  testModule('import { m } from "./m.js"; import { x } from "./x.js"; m', loader, {
-    "type": "Module",
-    "loc": null,
-    "directives": [],
-    "items": [
-      {
+
+  testParse(`
+    import { m } from "./m.js";
+    import { x } from "./x.js"; m`, items,  [{
         "type": "Import",
         "loc": null,
         "defaultBinding": null,
@@ -257,6 +230,5 @@ return syntaxQuote\`42\`;
           "value": 42
         }
       }
-    ]
-  });
+    ], loader);
 });

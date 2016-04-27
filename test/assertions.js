@@ -6,15 +6,11 @@ import Reader from "../src/shift-reader";
 import { Enforester } from "../src/enforester";
 import { List } from "immutable";
 
-function expr(program) {
-  return stmt(program).expression;
-}
+export const stmt = x => x.items[0];
+export const expr = x => stmt(x).expression;
+export const items = x => x.items;
 
-function stmt(program) {
-  return program.items[0];
-}
-
-function makeEnforester(code) {
+export function makeEnforester(code) {
   let reader = new Reader(code);
   let stxl = reader.read();
   return new Enforester(stxl, List(), {});
@@ -47,34 +43,28 @@ function testParseWithOpts(code, acc, expectedAst, options) {
   checkObjects(expectedAst, acc(parsedAst));
 }
 
-export function testModule(code, loader, expectedAst) {
-  return testParseWithOpts(code, x => x, expectedAst, {
+
+export function testParse(code, acc, expectedAst, loader = {}) {
+  return testParseWithOpts(code, acc, expectedAst, {
     loc: false,
+    moduleResolver: x => x,
+    moduleLoader: path => loader[path],
+  });
+}
+
+export function testEval(source, expectedOutput, loader) {
+  let result = compile(source, {
+    cwd: '.',
+    transform,
     moduleResolver: x => x,
     moduleLoader: path => loader[path]
   });
-}
-
-// if a property has the string <<hygiene> it is ignored
-function testParse(code, acc, expectedAst) {
-  return testParseWithOpts(code, acc, expectedAst, {
-    loc: false,
-    moduleResolver: () => "",
-    moduleLoader: () => "",
-  });
-}
-
-function testEval(source, expectedOutput) {
-  let result = compile(source, { cwd: '.', transform });
   var output;
   eval(result.code);
   expect(output).to.eql(expectedOutput);
 }
 
+
 export function testThrow(source) {
   expect(() => compile(source, { cwd: '.', transform})).to.throwError();
 }
-
-export {
-  makeEnforester, expr, stmt, testParse, testEval
-};
