@@ -27,15 +27,15 @@ export function expand(source, options = {}) {
   return new Term("Module", {
     directives: List(),
     items: compiledMod.body
-  }).gen();
+  });
 }
 
-export function parse(source, options = {}) {
-  return reduce(new ParseReducer({phase: 0}), expand(source, options));
+export function parse(source, options, includeImports = true) {
+  return reduce(new ParseReducer({phase: 0}), expand(source, options).gen({includeImports}));
 }
 
 export function compile(source, options = {}) {
-  let ast = parse(source, options);
+  let ast = parse(source, options, false);
   let gen = codegen(ast, new FormattedCodeGen());
   return options.transform && (!options.noBabel) ? options.transform(gen, {
     babelrc: true,

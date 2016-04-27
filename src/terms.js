@@ -13,16 +13,17 @@ export default class Term {
     }
   }
 
-  gen() {
+  gen({ includeImports } = { includeImports: true }) {
     let next = {};
     for (let field of fieldsIn(this)) {
       if (this[field] == null) {
         next[field] = null;
       } else if (this[field] instanceof Term) {
-        next[field] = this[field].gen();
+        next[field] = this[field].gen(includeImports);
       } else if (List.isList(this[field])) {
-        next[field] = this[field].filter(R.complement(isCompiletimeStatement))
-                                 .map(term => term instanceof Term ? term.gen() : term);
+        let pred = includeImports ? R.complement(isCompiletimeStatement) : R.both(R.complement(isImportDeclaration), R.complement(isCompiletimeStatement));
+        next[field] = this[field].filter(pred)
+                                 .map(term => term instanceof Term ? term.gen(includeImports) : term);
       } else {
         next[field] = this[field];
       }
@@ -190,6 +191,7 @@ export const isCompiletimeDeclaration = R.either(isSyntaxDeclaration, isSyntaxre
 export const isCompiletimeStatement = term => {
   return (term instanceof Term) && isVariableDeclarationStatement(term) && isCompiletimeDeclaration(term.declaration);
 };
+export const isImportDeclaration = R.either(isImport, isImportNamespace);
 
 const fieldsIn = R.cond([
   // bindings
