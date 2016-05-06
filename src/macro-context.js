@@ -9,6 +9,7 @@ const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
 
 const symWrap = Symbol('wrapper');
+const symName = Symbol('name');
 
 const isKind = _.curry((kind, t, v) => {
   if (t instanceof Syntax) {
@@ -131,7 +132,7 @@ export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
     // todo: perhaps replace with a symbol to keep mostly private?
     this._enf = enf;
-    this.name = name;
+    this[symName] = name;
     this.context = context;
     if (useScope && introducedScope) {
       this.noScopes = false;
@@ -141,6 +142,10 @@ export default class MacroContext {
       this.noScopes = true;
     }
     this[Symbol.iterator] = () => this;
+  }
+
+  name() {
+    return new SyntaxOrTermWrapper(this[symName], this.context);
   }
 
   next(type = 'Syntax') {
