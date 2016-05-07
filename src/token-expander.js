@@ -8,7 +8,7 @@ import * as _ from "ramda";
 import Term, {
   isEOF, isBindingIdentifier, isBindingPropertyProperty, isBindingPropertyIdentifier, isObjectBinding, isArrayBinding, isFunctionDeclaration, isFunctionExpression,
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
-  isVariableDeclarationStatement, isImport, isExport
+  isVariableDeclarationStatement, isImport, isExport, isPragma, isExportSyntax
 } from "./terms";
 import { Maybe } from 'ramda-fantasy';
 import { gensym } from './symbol';
@@ -108,9 +108,25 @@ function removeNames(impTerm, names) {
   });
 }
 
+function bindAllSyntaxExports(exModule, toSynth, context) {
+  let phase = context.phase;
+  exModule.exportEntries.forEach(ex => {
+    if (isExportSyntax(ex)) {
+      ex.declaration.declarators.forEach(decl => {
+        let name = decl.binding.name;
+        let newBinding = gensym(name.val());
+        let storeName = exModule.moduleSpecifier + ":" + name.val() + ":" + phase;
+        let synthStx = Syntax.fromIdentifier(name.val(), toSynth);
+        let storeStx = Syntax.fromIdentifier(storeName, toSynth);
+        context.bindings.addForward(synthStx, storeStx, newBinding, phase);
+      });
+    }
+  });
+}
+
 function bindImports(impTerm, exModule, context) {
   let names = [];
-  let phase = impTerm.forSyntax ? context.phase + 1 : context.phase
+  let phase = impTerm.forSyntax ? context.phase + 1 : context.phase;
   impTerm.namedImports.forEach(specifier => {
     let name = specifier.binding.name;
     let exportName = findNameInExports(name, exModule.exportEntries);
@@ -216,6 +232,16 @@ export default class TokenExpander {
             }
             let boundNames = bindImports(term, mod, self.context);
             return removeNames(term, boundNames);
+          }],
+          [isPragma, term => {
+            let pathStx = term.items.get(0);
+            if (pathStx.val() === 'base') {
+              return term;
+            }
+            let mod = self.context.modules.loadAndCompile(pathStx.val());
+            store = self.context.modules.visit(mod, phase, store);
+            bindAllSyntaxExports(mod, pathStx, self.context);
+            return term;
           }],
           [_.T, term => term]
         ])

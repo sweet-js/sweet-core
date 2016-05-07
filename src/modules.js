@@ -8,7 +8,8 @@ import BindingMap from "./binding-map.js";
 import Term, {
   isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
-  isVariableDeclarationStatement, isImport, isExport, isExportSyntax, isSyntaxDeclarationStatement
+  isVariableDeclarationStatement, isImport, isExport, isExportSyntax, isSyntaxDeclarationStatement,
+  isPragma
 } from "./terms";
 import { evalCompiletimeValue, evalRuntimeValues } from './load-syntax';
 import Compiler from "./compiler";
@@ -16,10 +17,11 @@ import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { Scope, freshScope } from "./scope";
 
 export class Module {
-  constructor(moduleSpecifier, importEntries, exportEntries, body) {
+  constructor(moduleSpecifier, importEntries, exportEntries, pragmas, body) {
     this.moduleSpecifier = moduleSpecifier;
     this.importEntries = importEntries;
     this.exportEntries = exportEntries;
+    this.pragmas = pragmas;
     this.body = body;
   }
 }
@@ -39,16 +41,10 @@ export class Modules {
     if (!pragmaRegep.test(mod)) {
       return List();
     }
-    let reader = new Reader(mod);
-    return reader.read().slice(3); // slice out the #lang pragma
+    return new Reader(mod).read();
   }
 
   compile(stxl, path) {
-    // TODO: recognize language pragmas in the enforester
-    if (stxl.get(0) && stxl.get(0).isIdentifier() && stxl.get(0).val() === '#') {
-      stxl = stxl.slice(3);
-    }
-
     // the expander starts at phase 0, with an empty environment and store
     let scope = freshScope('top');
     let compiler = new Compiler(0, new Env(), new Store(), _.merge(this.context, {
@@ -58,17 +54,21 @@ export class Modules {
 
     let importEntries = [];
     let exportEntries = [];
-    terms.forEach(t => {
-      _.cond([
-        [isImport, t => importEntries.push(t)],
-        [isExport, t => exportEntries.push(t)]
+    let pragmas = [];
+    let filteredTerms = terms.reduce((acc, t) => {
+      return _.cond([
+        [isImport, t => { importEntries.push(t); return acc.concat(t); } ],
+        [isExport, t => { exportEntries.push(t); return acc.concat(t); } ],
+        [isPragma, t => { pragmas.push(t); return acc; } ],
+        [_.T, t => acc.concat(t) ]
       ])(t);
-    });
+    }, List());
     return new Module(
       path,
       List(importEntries),
       List(exportEntries),
-      terms
+      List(pragmas),
+      filteredTerms
     );
   }
 

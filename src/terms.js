@@ -162,6 +162,7 @@ export const isWhileStatement = R.whereEq({ type: "WhileStatement" });
 export const isWithStatement = R.whereEq({ type: "WithStatement" });
 
 // other
+export const isPragma = R.whereEq({ type: 'Pragma' });
 export const isBlock = R.whereEq({ type: "Block" });
 export const isCatchClause = R.whereEq({ type: "CatchClause" });
 export const isDirective = R.whereEq({ type: "Directive" });
@@ -274,6 +275,7 @@ const fieldsIn = R.cond([
   [isWithStatement, R.always(List.of('object', 'body'))],
   [isWhileStatement, R.always(List.of('test', 'body'))],
   // other
+  [isPragma, R.always(List.of('kind', 'items'))],
   [isBlock, R.always(List.of('statements'))],
   [isCatchClause, R.always(List.of('binding', 'body'))],
   [isDirective, R.always(List.of('rawValue'))],

@@ -27,6 +27,10 @@ export default class TermExpander {
     assert(false, "expand not implemented yet for: " + term.type);
   }
 
+  expandPragma(term) {
+    return term;
+  }
+
   expandTemplateExpression(term) {
     return new Term('TemplateExpression', {
       tag: term.tag == null ? null : this.expand(term.tag),

@@ -117,8 +117,21 @@ export class Enforester {
     } else if (this.isKeyword(lookahead, 'export')) {
       this.advance();
       return this.enforestExportDeclaration();
+    } else if (this.isIdentifier(lookahead, '#')) {
+      return this.enforestLanguagePragma();
     }
     return this.enforestStatement();
+  }
+
+  enforestLanguagePragma() {
+    this.matchIdentifier('#');
+    this.matchIdentifier('lang');
+    let path = this.matchStringLiteral();
+    this.consumeSemicolon();
+    return new Term('Pragma', {
+      kind: 'lang',
+      items: List.of(path)
+    });
   }
 
   enforestExportDeclaration() {
