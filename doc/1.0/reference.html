@@ -138,6 +138,7 @@
 <div class="listingblock">
 <div class="content">
 <pre>TransformerContext = {
+  name: () -&gt; Syntax
   next: (string?) -&gt; {
     done: boolean,
     value: Syntax
@@ -147,6 +148,9 @@
 </div>
 <div class="paragraph">
 <p>Each call to <code>next</code> returns the <a href="#synobj">syntax object</a> following the transformer call. If <code>next</code> is called with a string, the specified grammar production is matched.</p>
+</div>
+<div class="paragraph">
+<p>The <code>name()</code> method returns the syntax object of the macro name at the macro invocation site. This is useful<span class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span> because it allows a macro transformer to get access to the lexical context at the invocation site.</p>
 </div>
 <div class="paragraph">
 <p><a id="synobj"></a></p>
@@ -285,6 +289,12 @@ m 42</code></pre>
 <p>The expressions inside an interpolation must evaluate to a <a href="#synobj">syntax object</a>, an array, a list, or an <a href="#context">transformer context</a>.</p>
 </div>
 </div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnote_1">
+<a href="#_footnoteref_1">1</a>. or will become useful as more features are implemented in Sweet
 </div>
 </div>
 </body>
