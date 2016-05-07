@@ -1,8 +1,3 @@
-import { id } from './mod.js' for syntax;
+#lang "./lang/sweet.js";
 
-syntax n = function (ctx) {
-  id(42);
-  return #`100`;
-}
-
-n;
+testing
