@@ -203,7 +203,7 @@ export default class Syntax {
       assert(newTok.slice && newTok.slice.startLocation, 'all tokens must have line info');
       newTok.slice.startLocation.line = line;
     }
-    return new Syntax(newTok, this);
+    return new Syntax(newTok, this.context);
   }
 
   // () -> List<Syntax>
