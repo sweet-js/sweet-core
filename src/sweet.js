@@ -35,7 +35,7 @@ export function parse(source, options, includeImports = true) {
 }
 
 export function compile(source, options = {}) {
-  let ast = parse(source, options, true);
+  let ast = parse(source, options, options.includeImports);
   let gen = codegen(ast, new FormattedCodeGen());
   return options.transform && (!options.noBabel) ? options.transform(gen, {
     babelrc: true,

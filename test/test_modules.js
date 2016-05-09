@@ -232,23 +232,23 @@ return syntaxQuote\`42\`;
       }
     ], loader);
 });
-//
-//
-// test('importing for syntax works', () => {
-//   let loader = {
-//     './id.js': `#lang 'sweet.js';
-//       export var id = function (x) {
-//         return x;
-//       }
-//     `
-//   };
-//   testEval(`
-//     import { id } from './id.js' for syntax;
-//
-//     syntax m = ctx => {
-//       id(42);
-//       return #\`42\`;
-//     }
-//     output = m;
-//   `, 42, loader);
-// });
+
+
+test('importing for syntax works', () => {
+  let loader = {
+    './id.js': `#lang 'base';
+      export var id = function (x) {
+        return x;
+      }
+    `
+  };
+  testEval(`
+    import { id } from './id.js' for syntax;
+
+    syntax m = ctx => {
+      id(42);
+      return #\`1\`;
+    }
+    output = m;
+  `, 1, loader);
+});

@@ -309,7 +309,7 @@ export default class Syntax {
       assert(newTok.slice && newTok.slice.startLocation, 'all tokens must have line info');
       newTok.slice.startLocation.line = line;
     }
-    return new Syntax(newTok, this.context);
+    return new Syntax(newTok, this);
   }
 
   // () -> List<Syntax>

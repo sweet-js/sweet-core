@@ -37,10 +37,37 @@ export function sanitizeReplacementValues(values) {
 }
 
 export function evalRuntimeValues(terms, context) {
-  let parsed = reducer(new ParseReducer(context), new Term('Module', {
+  let prepped = terms.reduce((acc, term) => {
+    let result = List();
+    if (isExport(term)) {
+      if (isVariableDeclaration(term.declaration)) {
+        return acc.concat(new Term('VariableDeclarationStatement', {
+          declaration: term.declaration
+        })).concat(term.declaration.declarators.map(decl => {
+          return new Term('ExpressionStatement', {
+            expression: new Term('AssignmentExpression', {
+              binding: new Term('StaticMemberExpression', {
+                object: new Term('IdentifierExpression', {
+                  name: Syntax.fromIdentifier('exports')
+                }),
+                property: decl.binding.name
+              }),
+              expression: new Term('IdentifierExpression', {
+                name: decl.binding.name
+              })
+            })
+          });
+        }));
+      }
+    } else if (isImport(term)) {
+      return acc;
+    }
+    return acc.concat(term);
+  }, List());
+  let parsed = reducer(new ParseReducer(context, false), new Term('Module', {
     directives: List(),
-    items: terms
-  }));
+    items: prepped
+  }).gen({ includeImports: false }));
 
   let gen = codegen(parsed, new FormattedCodeGen);
   let result = context.transform(gen, {

@@ -21,7 +21,7 @@ export function testParseFailure() {
 }
 
 function testParseWithOpts(code, acc, expectedAst, options) {
-  let parsedAst = parse(code, options);
+  let parsedAst = parse(code, options, options.includeImports);
   let isString = (x) => type(x) === 'String';
   let isObject = (x) => type(x) === 'Object';
   let isArray = (x) => type(x) === 'Array';
@@ -49,6 +49,7 @@ export function testParse(code, acc, expectedAst, loader = {}) {
     loc: false,
     moduleResolver: x => x,
     moduleLoader: path => loader[path],
+    includeImports: true
   });
 }
 
@@ -57,7 +58,8 @@ export function testEval(source, expectedOutput, loader) {
     cwd: '.',
     transform,
     moduleResolver: x => x,
-    moduleLoader: path => loader[path]
+    moduleLoader: path => loader[path],
+    includeImports: false
   });
   var output;
   eval(result.code);
