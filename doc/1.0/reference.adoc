@@ -55,6 +55,7 @@ A transformer context is an iterable object that provides access to syntax at th
 
 ----
 TransformerContext = {
+  name: () -> Syntax
   next: (string?) -> {
     done: boolean,
     value: Syntax
@@ -63,6 +64,8 @@ TransformerContext = {
 ----
 
 Each call to `next` returns the <<synobj, syntax object>> following the transformer call. If `next` is called with a string, the specified grammar production is matched.
+
+The `name()` method returns the syntax object of the macro name at the macro invocation site. This is usefulfootnote:[or will become useful as more features are implemented in Sweet] because it allows a macro transformer to get access to the lexical context at the invocation site.
 
 anchor:synobj[]
 

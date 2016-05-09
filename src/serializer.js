@@ -78,6 +78,9 @@ function makeReader(bindings) {
           let token = transit.mapToObject(rep[0]);
           token.type = typeMap[rep[0].get("type")];
           token.slice = rep[0].has("slice") ? transit.mapToObject(rep[0].get("slice")) : undefined;
+          if (token.slice) {
+            token.slice.startLocation = transit.mapToObject(token.slice.startLocation);
+          }
           return new Syntax(token, {bindings: bindings, scopeset: rep[1]});
         }
       },

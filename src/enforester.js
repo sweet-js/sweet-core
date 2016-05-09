@@ -320,6 +320,7 @@ export class Enforester {
     if (this.term === null && this.isCompiletimeTransform(lookahead)) {
       this.rest = this.expandMacro().concat(this.rest);
       lookahead = this.peek();
+      this.term = null;
     }
 
     if (this.term === null && this.isBraces(lookahead)) {
@@ -2050,8 +2051,6 @@ export class Enforester {
     if (!(a && b)) {
       return false;
     }
-    assert(a instanceof Syntax, "expecting a syntax object");
-    assert(b instanceof Syntax, "expecting a syntax object");
     return a.lineNumber() === b.lineNumber();
   }
 
