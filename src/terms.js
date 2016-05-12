@@ -27,6 +27,31 @@ export default class Term {
     }
     return new Term(this.type, next);
   }
+
+  // TODO: this is very wrong
+  lineNumber() {
+    for (let field of fieldsIn(this)) {
+      if (typeof this[field] && this[field].lineNumber === 'function') {
+        return this[field].lineNumber();
+      }
+    }
+  }
+
+  setLineNumber(line) {
+    let next = {};
+    for (let field of fieldsIn(this)) {
+      if (this[field] == null) {
+        next[field] = null;
+      } else if (typeof this[field].setLineNumber === 'function') {
+        next[field] = this[field].setLineNumber(line);
+      } else if (List.isList(this[field])) {
+        next[field] = this[field].map(f => f.setLineNumber(line));
+      } else {
+        next[field] = this[field];
+      }
+    }
+    return new Term(this.type, next);
+  }
 }
 
 // bindings

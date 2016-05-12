@@ -1,6 +1,7 @@
 import test from 'ava';
-import { SyntaxOrTermWrapper } from '../src/macro-context';
+import MacroContext, { SyntaxOrTermWrapper } from '../src/macro-context';
 import Syntax from '../src/syntax';
+import { makeEnforester } from './assertions';
 import { List } from 'immutable';
 import { Maybe } from 'ramda-fantasy';
 const Just = Maybe.Just;
@@ -95,4 +96,10 @@ test('a wrapper should work with an inner iterator', t => {
   t.true(foo.value.match("identifier",  'foo'));
   t.true(bar.value.match("identifier",  'bar'));
   t.true(ctx.next().done);
+});
+
+test('a macro context should have a name', t => {
+  let enf = makeEnforester('a');
+  let ctx = new MacroContext(enf, Syntax.fromIdentifier('foo'), {});
+  t.true(ctx.name().val() === 'foo');
 });

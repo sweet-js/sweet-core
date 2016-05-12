@@ -256,9 +256,22 @@ export default class Syntax {
     if (!this.match("delimiter")) {
       return this.token.slice.startLocation.line;
     } else {
-      // TODO: this is the start of the delimiter...correct?
       return this.token.get(0).lineNumber();
     }
+  }
+
+  setLineNumber(line) {
+    let newTok = {};
+    if (this.isDelimiter()) {
+      newTok = this.token.map(s => s.setLineNumber(line));
+    } else {
+      for (let key of Object.keys(this.token)) {
+        newTok[key] = this.token[key];
+      }
+      assert(newTok.slice && newTok.slice.startLocation, 'all tokens must have line info');
+      newTok.slice.startLocation.line = line;
+    }
+    return new Syntax(newTok, this.context);
   }
 
   // () -> List<Syntax>
