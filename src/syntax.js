@@ -193,6 +193,46 @@ export default class Syntax {
     }
     return Types[type].create(value, stx)
   }
+  
+  static fromNull(stx = {}) {
+    return Syntax.from("null", null, stx)
+  }
+
+  static fromNumber(value, stx = {}) {
+    return Syntax.from("number", value, stx)
+  }
+
+  static fromString(value, stx = {}) {
+    return Syntax.from("string", value, stx)
+  }
+
+  static fromPunctuator(value, stx = {}) {
+    return Syntax.from("punctuator", value, stx)
+  }
+
+  static fromKeyword(value, stx = {}) {
+    return Syntax.from("keyword", value, stx)
+  }
+
+  static fromIdentifier(value, stx = {}) {
+    return Syntax.from("identifier", value, stx)
+  }
+
+  static fromRegularExpression(value, stx = {}) {
+    return Syntax.from("regularExpression", value, stx)
+  }
+
+  static fromBraces(inner, stx = {}) {
+    return Syntax.from("braces", inner, stx)
+  }
+
+  static fromBrackets(inner, stx = {}) {
+    return Syntax.from("brackets", inner, stx)
+  }
+
+  static fromParens(inner, stx = {}) {
+    return Syntax.from("parens", inner, stx)
+  }
 
   // () -> string
   resolve() {
@@ -323,6 +363,70 @@ export default class Syntax {
     }
     return Types[type].match(this.token) && (value == null ||
       value instanceof RegExp ? value.test(this.val()) : this.val() == value)
+  }
+  
+  isIdentifier(value) {
+    return this.match("identifier", value)
+  }
+
+  isAssign(value) {
+    return this.match("assign", value)
+  }
+
+  isBooleanLiteral(value) {
+    return this.match("boolean", value)
+  }
+
+  isKeyword(value) {
+    return this.match("keyword", value)
+  }
+
+  isNullLiteral(value) {
+    return this.match("null", value)
+  }
+
+  isNumericLiteral(value) {
+    return this.match("number", value)
+  }
+
+  isPunctuator(value) {
+    return this.match("punctuator", value)
+  }
+
+  isStringLiteral(value) {
+    return this.match("string", value)
+  }
+
+  isRegularExpression(value) {
+    return this.match("regularExpression", value)
+  }
+
+  isTemplate(value) {
+    return this.match("template", value)
+  }
+
+  isDelimiter(value) {
+    return this.match("delimiter", value)
+  }
+
+  isParens(value) {
+    return this.match("parens", value)
+  }
+
+  isBraces(value) {
+    return this.match("braces", value)
+  }
+
+  isBrackets(value) {
+    return this.match("brackets", value)
+  }
+
+  isSyntaxTemplate(value) {
+    return this.match("syntaxTemplate", value)
+  }
+
+  isEOF(value) {
+    return this.match("eof", value)
   }
 
   toString() {

@@ -2,9 +2,6 @@ import { parse, compile } from "../src/sweet";
 import expect from "expect.js";
 import { zip, curry, equals, cond, identity, T, and, compose, type, mapObjIndexed, map, keys, has } from 'ramda';
 import { transform } from 'babel-core';
-import Reader from "../src/shift-reader";
-import { Enforester } from "../src/enforester";
-import { List } from "immutable";
 
 function expr(program) {
   return stmt(program).expression;
@@ -12,12 +9,6 @@ function expr(program) {
 
 function stmt(program) {
   return program.items[0];
-}
-
-function makeEnforester(code) {
-  let reader = new Reader(code);
-  let stxl = reader.read();
-  return new Enforester(stxl, List(), {});
 }
 
 export function testParseFailure() {
@@ -68,7 +59,7 @@ function testEval(source, expectedOutput) {
   let result = compile(source, { cwd: '.', transform });
   var output;
   eval(result.code);
-  expect(output).to.eql(expectedOutput);
+  expect(output).to.be(expectedOutput);
 }
 
 export function testThrow(source) {
@@ -76,5 +67,5 @@ export function testThrow(source) {
 }
 
 export {
-  makeEnforester, expr, stmt, testParse, testEval
+  expr, stmt, testParse, testEval
 };

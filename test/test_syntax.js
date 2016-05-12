@@ -11,7 +11,7 @@ import test from 'ava';
 
 
 test('that have no bindings or scopes should resolve to their original name ', () => {
-  let foo = Syntax.from("identifier", 'foo');
+  let foo = Syntax.fromIdentifier('foo');
   expect(foo.resolve()).to.be('foo');
 });
 
@@ -19,8 +19,8 @@ test('where one identifier has a scope and associated binding and the other does
     let bindings = new BindingMap();
     let scope1 = freshScope("1");
 
-    let foo = Syntax.from("identifier", 'foo');
-    let foo_1 = Syntax.from("identifier", 'foo');
+    let foo = Syntax.fromIdentifier('foo');
+    let foo_1 = Syntax.fromIdentifier('foo');
 
     foo_1 = foo_1.addScope(scope1, bindings);
 
@@ -34,8 +34,8 @@ test('resolve to different bindings when both identifiers have a binding on a di
     let scope1 = freshScope("1");
     let scope2 = freshScope("2");
 
-    let foo_1 = Syntax.from("identifier", 'foo');
-    let foo_2 = Syntax.from("identifier", 'foo');
+    let foo_1 = Syntax.fromIdentifier('foo');
+    let foo_2 = Syntax.fromIdentifier('foo');
 
     foo_1 = foo_1.addScope(scope1, bindings);
     foo_2 = foo_2.addScope(scope2, bindings);
@@ -52,8 +52,8 @@ test('should resolve when syntax object has a scopeset that is a superset of the
     let scope2 = freshScope("2");
     let scope3 = freshScope("3");
 
-    let foo_1 = Syntax.from("identifier", 'foo');
-    let foo_123 = Syntax.from("identifier", 'foo');
+    let foo_1 = Syntax.fromIdentifier('foo');
+    let foo_123 = Syntax.fromIdentifier('foo');
 
     foo_1 = foo_1.addScope(scope1, bindings);
 
@@ -72,9 +72,9 @@ test('should throw an error for ambiguous scops sets', () => {
   let scope2 = freshScope("2");
   let scope3 = freshScope("3");
 
-  let foo_13 = Syntax.from("identifier", 'foo');
-  let foo_12 = Syntax.from("identifier", 'foo');
-  let foo_123 = Syntax.from("identifier", 'foo');
+  let foo_13 = Syntax.fromIdentifier('foo');
+  let foo_12 = Syntax.fromIdentifier('foo');
+  let foo_123 = Syntax.fromIdentifier('foo');
 
   foo_13 = foo_13.addScope(scope1, bindings)
     .addScope(scope3, bindings);
@@ -93,13 +93,13 @@ test('should throw an error for ambiguous scops sets', () => {
 });
 
 test('should make a number syntax object', () => {
-  let s = Syntax.from("number", 42);
+  let s = Syntax.fromNumber(42);
 
   expect(s.val()).to.be(42);
 });
 
 test('should make an identifier syntax object', () => {
-  let s = Syntax.from("identifier", "foo");
+  let s = Syntax.fromIdentifier("foo");
 
   expect(s.val()).to.be("foo");
   expect(s.resolve()).to.be("foo");
@@ -109,10 +109,10 @@ test('should make an identifier syntax object with another identifier as the con
   let bindings = new BindingMap();
   let scope1 = freshScope("1");
 
-  let foo = Syntax.from("identifier", 'foo').addScope(scope1, bindings);
+  let foo = Syntax.fromIdentifier('foo').addScope(scope1, bindings);
   bindings.add(foo, { binding: gensym('foo') });
 
-  let foo_1 = Syntax.from("identifier", 'foo', foo);
+  let foo_1 = Syntax.fromIdentifier('foo', foo);
 
 
   expect(foo.resolve()).to.be(foo_1.resolve());
@@ -125,7 +125,7 @@ test('should work for a numeric literal', () => {
   let json = serializer.write(reader.read());
   let stxl = deserializer.read(json);
 
-  expect(stxl.get(0).match("number") ).to.be(true);
+  expect(stxl.get(0).isNumericLiteral()).to.be(true);
   expect(stxl.get(0).val()).to.be(42);
 });
 
@@ -134,7 +134,7 @@ test('should work for a string literal', () => {
   let json = serializer.write(reader.read());
   let stxl = deserializer.read(json);
 
-  expect(stxl.get(0).match("string") ).to.be(true);
+  expect(stxl.get(0).isStringLiteral()).to.be(true);
   expect(stxl.get(0).val()).to.be('foo');
 });
 
@@ -143,8 +143,8 @@ test('should work for a paren delimiter', () => {
   let json = serializer.write(reader.read());
   let stxl = deserializer.read(json);
 
-  expect(stxl.get(0).match("parens") ).to.be(true);
-  expect(stxl.get(0).inner().get(0).match("number") ).to.be(true);
+  expect(stxl.get(0).isParens()).to.be(true);
+  expect(stxl.get(0).inner().get(0).isNumericLiteral()).to.be(true);
   expect(stxl.get(0).inner().get(0).val()).to.be(42);
 });
 
@@ -153,7 +153,7 @@ test('should work for an identifier', () => {
   let json = serializer.write(reader.read());
   let stxl = deserializer.read(json);
 
-  expect(stxl.get(0).match("identifier") ).to.be(true);
+  expect(stxl.get(0).isIdentifier()).to.be(true);
   expect(stxl.get(0).val()).to.be('foo');
 });
 
@@ -170,7 +170,7 @@ test('should work for an identifier with a scope', () => {
   let scope1 = freshScope("1");
   let deserializer = makeDeserializer(bindings);
 
-  let foo = Syntax.from("identifier", 'foo');
+  let foo = Syntax.fromIdentifier('foo');
   foo = foo.addScope(scope1, bindings);
 
   bindings.add(foo, {binding: gensym('foo')});

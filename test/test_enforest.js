@@ -1,7 +1,17 @@
+import { Enforester } from "../src/enforester";
+import { List } from "immutable";
 import { readAsTerms as read } from "../src/sweet";
-import { makeEnforester as mkEnf, expr, stmt, testParse } from "./assertions";
+import { expr, stmt, testParse } from "./assertions";
+import Reader from "../src/shift-reader";
 import expect from "expect.js";
 import test from 'ava';
+
+function mkEnf(code) {
+  let reader = new Reader(code);
+  let stxl = reader.read();
+  return new Enforester(stxl, List(), {});
+}
+
 
 test("should handle zero formal parameters", t => {
   let enf = mkEnf("");
