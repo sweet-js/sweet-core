@@ -67,7 +67,7 @@ test('should parse an export of a syntax decl', () => {
                   "binding": {
                     "type": "BindingIdentifier",
                     "loc": null,
-                    "name": "m"
+                    "name": "<<hygiene>>"
                   },
                   "init": {
                     "type": "FunctionExpression",
@@ -110,7 +110,7 @@ test('should parse an export of a var decl', () => {
                 "binding": {
                   "type": "BindingIdentifier",
                   "loc": null,
-                  "name": "x"
+                  "name": "<<hygiene>>"
                 },
                 "init": {
                   "type": "FunctionExpression",
@@ -134,6 +134,37 @@ test('should parse an export of a var decl', () => {
             ]
           }
       }
+    ]);
+});
+
+test('should parse an export of a function decl', () => {
+  testParse('export function f() {}', items, [
+    {
+      "type": "Export",
+      "loc": null,
+      "declaration": {
+        "type": "FunctionDeclaration",
+        "loc": null,
+        "isGenerator": false,
+        "name": {
+          "type": "BindingIdentifier",
+          "loc": null,
+          "name": "<<hygiene>>"
+        },
+        "params": {
+          "type": "FormalParameters",
+          "loc": null,
+          "items": [],
+          "rest": null
+        },
+        "body": {
+          "type": "FunctionBody",
+          "loc": null,
+          "directives": [],
+          "statements": []
+        }
+      }
+    }
     ]);
 });
 

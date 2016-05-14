@@ -160,18 +160,44 @@ export default class TokenExpander {
     let phase = self.context.phase;
     let env = self.context.env;
     let store = self.context.store;
+
+    let bindFunctionDeclaration = decl => {
+      let newName = removeScope(decl.name, self.context.useScope, self.context.phase);
+      registerBindings(newName, self.context);
+
+      return new Term('FunctionDeclaration', {
+        isGenerator: decl.isGenerator,
+        name: newName,
+        params: decl.params,
+        body: decl.body
+      });
+    };
+
+    let bindVariableDeclaration = declaration => {
+      let declarators = declaration.declarators.map(decl => {
+        let newDecl = new Term('VariableDeclarator', {
+          // first, remove the use scope from each binding
+          binding: removeScope(decl.binding, self.context.useScope, self.context.phase),
+          init: decl.init
+        });
+        // mutate the binding map
+        // TODO: make this functional
+        registerBindings(newDecl.binding, self.context);
+        return newDecl;
+      });
+      return new Term('VariableDeclaration', {
+        kind: declaration.kind, declarators
+      });
+    };
+
     while (!enf.done) {
 
       let term = _.pipe(
         _.bind(enf.enforest, enf),
         _.cond([
           [isVariableDeclarationStatement, term => {
-            // first, remove the use scope from each binding
-            term.declaration.declarators = term.declaration.declarators.map(decl => {
-              return new Term('VariableDeclarator', {
-                binding: removeScope(decl.binding, self.context.useScope, self.context.phase),
-                init: decl.init
-              });
+            term = new Term('VariableDeclarationStatement', {
+              declaration: bindVariableDeclaration(term.declaration)
             });
 
             // syntax id^{a, b} = <init>^{a, b}
@@ -192,7 +218,8 @@ export default class TokenExpander {
 
             // for syntax declarations we need to load the compiletime value
             // into the environment
-            if (isSyntaxDeclaration(term.declaration) || isSyntaxrecDeclaration(term.declaration)) {
+            if (isSyntaxDeclaration(term.declaration) ||
+                isSyntaxrecDeclaration(term.declaration)) {
               term.declaration.declarators.forEach(decl => {
                 // each compiletime value needs to be expanded with a fresh
                 // environment and in the next higher phase
@@ -201,7 +228,6 @@ export default class TokenExpander {
                   env: new Env(),
                   store: self.context.store
                 }));
-                registerBindings(decl.binding, self.context);
                 let init = syntaxExpander.expand(decl.init);
                 let val = evalCompiletimeValue(init.gen(), _.merge(self.context, {
                   phase: self.context.phase + 1
@@ -210,11 +236,6 @@ export default class TokenExpander {
                 self.context.env.set(decl.binding.name.resolve(self.context.phase),
                                      new CompiletimeTransform(val));
               });
-            } else {
-              // add each binding to the environment
-              term.declaration.declarators.forEach(decl =>
-                registerBindings(decl.binding, self.context)
-              );
             }
             return term;
           }],
