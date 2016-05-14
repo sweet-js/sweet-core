@@ -1,7 +1,7 @@
 import { parse, compile } from "../src/sweet";
 import expect from "expect.js";
 import { zip, curry, equals, cond, identity, T, and, compose, type, mapObjIndexed, map, keys, has } from 'ramda';
-import { transform } from 'babel-core';
+import { transformFromAst as transform } from 'babel-core';
 import Reader from "../src/shift-reader";
 import { Enforester } from "../src/enforester";
 import { List } from "immutable";
@@ -49,6 +49,7 @@ function testParseWithOpts(code, acc, expectedAst, options) {
 
 export function testModule(code, loader, expectedAst) {
   return testParseWithOpts(code, x => x, expectedAst, {
+    transform,
     loc: false,
     moduleResolver: x => x,
     moduleLoader: path => loader[path]
@@ -58,6 +59,7 @@ export function testModule(code, loader, expectedAst) {
 // if a property has the string <<hygiene> it is ignored
 function testParse(code, acc, expectedAst) {
   return testParseWithOpts(code, acc, expectedAst, {
+    transform,
     loc: false,
     moduleResolver: () => "",
     moduleLoader: () => "",
