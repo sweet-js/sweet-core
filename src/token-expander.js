@@ -34,6 +34,22 @@ const registerSyntax = (stx, context) => {
   });
 };
 
+function bindImports(impTerm, exModule, context) {
+  let names = [];
+  let phase = impTerm.forSyntax ? context.phase + 1 : context.phase;
+  impTerm.namedImports.forEach(specifier => {
+    let name = specifier.binding.name;
+    let exportName = findNameInExports(name, exModule.exportEntries);
+    if (exportName != null) {
+      let newBinding = gensym(name.val());
+      context.store.set(newBinding.toString(), new VarBindingTransform(name));
+      context.bindings.addForward(name, exportName, newBinding, phase);
+      names.push(name);
+    }
+  });
+  return List(names);
+}
+
 let registerBindings = _.cond([
   [isBindingIdentifier, ({name}, context) => {
     registerSyntax(name, context);
@@ -124,24 +140,6 @@ function bindAllSyntaxExports(exModule, toSynth, context) {
   });
 }
 
-function bindImports(impTerm, exModule, context) {
-  let names = [];
-  let phase = impTerm.forSyntax ? context.phase + 1 : context.phase;
-  impTerm.namedImports.forEach(specifier => {
-    let name = specifier.binding.name;
-    let exportName = findNameInExports(name, exModule.exportEntries);
-    if (exportName != null) {
-      let newBinding = gensym(name.val());
-      let storeName = exModule.moduleSpecifier + ":" + exportName.val() + ":" + phase;
-      if (context.store.has(storeName)) {
-        let storeStx = Syntax.fromIdentifier(storeName);
-        context.bindings.addForward(name, storeStx, newBinding, phase);
-        names.push(name);
-      }
-    }
-  });
-  return List(names);
-}
 
 
 export default class TokenExpander {
@@ -247,12 +245,26 @@ export default class TokenExpander {
           [isImport, term => {
             let path = term.moduleSpecifier.val();
             let mod = self.context.modules.loadAndCompile(path);
-            store = self.context.modules.visit(mod, phase, store);
             if (term.forSyntax) {
+              store = self.context.modules.visit(mod, phase + 1, store);
               store = self.context.modules.invoke(mod, phase + 1, store);
+            } else {
+              store = self.context.modules.visit(mod, phase, store);
             }
             let boundNames = bindImports(term, mod, self.context);
             return removeNames(term, boundNames);
+          }],
+          [isExport, term => {
+            if (isVariableDeclaration(term.declaration)) {
+              return new Term('Export', {
+                declaration: bindVariableDeclaration(term.declaration)
+              });
+            } else if (isFunctionDeclaration(term.declaration)) {
+              return new Term('Export', {
+                declaration: bindFunctionDeclaration(term.declaration)
+              });
+            }
+            return term;
           }],
           [isPragma, term => {
             let pathStx = term.items.get(0);

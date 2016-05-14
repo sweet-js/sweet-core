@@ -87,8 +87,6 @@ export class Modules {
           let val = evalCompiletimeValue(init.gen(), _.merge(this.context, {
             store, phase: phase + 1
           }));
-          // binding for imports
-          store.set(mod.moduleSpecifier + ":" + binding.name.val() + ":" + phase, new CompiletimeTransform(val));
           // module local binding
           store.set(binding.name.resolve(phase), new CompiletimeTransform(val));
         });
@@ -98,13 +96,10 @@ export class Modules {
   }
 
   invoke(mod, phase, store) {
-    let body = mod.body.map(term => term.gen());
+    let body = mod.body.map(term => term.gen()).filter(term => !isExportSyntax(term));
     let exportsObj = evalRuntimeValues(body, _.merge(this.context, {
       store, phase
     }));
-    for (let key of Object.keys(exportsObj)) {
-      store.set(mod.moduleSpecifier + ":" + key + ":" + phase, new CompiletimeTransform(exportsObj[key]));
-    }
     return store;
   }
 }

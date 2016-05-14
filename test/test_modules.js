@@ -264,10 +264,31 @@ return syntaxQuote\`42\`;
     ], loader);
 });
 
-
-test('importing for syntax works', () => {
+test('importing for syntax with a single number exported', () => {
   let loader = {
-    './id.js': `#lang 'base';
+    './num.js': `
+      #lang 'base';
+      export var n = 1;
+    `
+  };
+
+  testEval(`
+    import { n } from './num.js' for syntax;
+
+    syntax m = function (ctx) {
+      if (n === 1) {
+        return #\`true\`;
+      }
+      return #\`false\`;
+    }
+    output = m;
+  `, true, loader);
+});
+
+test('importing for syntax with single function exported', () => {
+  let loader = {
+    './id.js': `
+      #lang 'base';
       export var id = function (x) {
         return x;
       }
@@ -277,7 +298,27 @@ test('importing for syntax works', () => {
     import { id } from './id.js' for syntax;
 
     syntax m = ctx => {
-      id(42);
+      return id(#\`1\`);
+    }
+    output = m;
+  `, 1, loader);
+});
+
+
+test('importing a macro for syntax', () => {
+  let loader = {
+    './id.js': `
+      #lang 'base';
+      export syntax m = function (ctx) {
+        return #\`1\`;
+      }
+    `
+  };
+  testEval(`
+    import { m } from './id.js' for syntax;
+
+    syntax m = ctx => {
+      let x = m;
       return #\`1\`;
     }
     output = m;
