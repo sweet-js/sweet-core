@@ -13,6 +13,18 @@ export default class Term {
     }
   }
 
+  extend(props) {
+    let newProps = {};
+    for (let field of fieldsIn(this)) {
+      if (props.hasOwnProperty(field)) {
+        newProps[field] = props[field];
+      } else {
+        newProps[field] = this[field];
+      }
+    }
+    return new Term(this.type, newProps);
+  }
+
   gen({ includeImports } = { includeImports: true }) {
     let next = {};
     for (let field of fieldsIn(this)) {

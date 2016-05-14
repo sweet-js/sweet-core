@@ -116,12 +116,8 @@ function findNameInExports(name, exp) {
 }
 
 function removeNames(impTerm, names) {
-  return new Term(impTerm.type, {
-    moduleSpecifier: impTerm.moduleSpecifier,
-    defaultBinding: impTerm.defaultBinding,
-    forSyntax: impTerm.forSyntax,
-    namedImports: impTerm.namedImports.filter(specifier => !names.contains(specifier.binding.name))
-  });
+  let namedImports = impTerm.namedImports.filter(specifier => !names.contains(specifier.binding.name));
+  return impTerm.extend({ namedImports });
 }
 
 function bindAllSyntaxExports(exModule, toSynth, context) {
@@ -139,8 +135,6 @@ function bindAllSyntaxExports(exModule, toSynth, context) {
     }
   });
 }
-
-
 
 export default class TokenExpander {
   constructor(context) {
@@ -170,36 +164,27 @@ export default class TokenExpander {
   }
 
   bindFunctionDeclaration(decl) {
-    let newName = removeScope(decl.name, this.context.useScope, this.context.phase);
-    registerBindings(newName, this.context);
-
-    return new Term('FunctionDeclaration', {
-      isGenerator: decl.isGenerator,
-      name: newName,
-      params: decl.params,
-      body: decl.body
-    });
+    let name = removeScope(decl.name, this.context.useScope, this.context.phase);
+    registerBindings(name, this.context);
+    return decl.extend({ name });
   }
 
   bindVariableDeclaration (declaration) {
     let declarators = declaration.declarators.map(decl => {
-      let newDecl = new Term('VariableDeclarator', {
+      let newDecl = decl.extend({
         // first, remove the use scope from each binding
-        binding: removeScope(decl.binding, this.context.useScope, this.context.phase),
-        init: decl.init
+        binding: removeScope(decl.binding, this.context.useScope, this.context.phase)
       });
       // mutate the binding map
       // TODO: make this functional
       registerBindings(newDecl.binding, this.context);
       return newDecl;
     });
-    return new Term('VariableDeclaration', {
-      kind: declaration.kind, declarators
-    });
+    return declaration.extend({ declarators });
   }
 
   expandVariableDeclarationStatement(term) {
-    term = new Term('VariableDeclarationStatement', {
+    term = term.extend({
       declaration: this.bindVariableDeclaration(term.declaration)
     });
 
@@ -245,7 +230,9 @@ export default class TokenExpander {
 
   expandFunctionDeclaration(term) {
     if (isFunctionWithName(term)) {
-      term.name = removeScope(term.name, this.context.useScope, this.context.phase);
+      term = term.extend({
+        name: removeScope(term.name, this.context.useScope, this.context.phase)
+      });
       registerBindings(term.name, this.context);
     }
     return term;
@@ -266,11 +253,11 @@ export default class TokenExpander {
 
   expandExport(term) {
     if (isVariableDeclaration(term.declaration)) {
-      return new Term('Export', {
+      return term.extend({
         declaration: this.bindVariableDeclaration(term.declaration)
       });
     } else if (isFunctionDeclaration(term.declaration)) {
-      return new Term('Export', {
+      return term.extend({
         declaration: this.bindFunctionDeclaration(term.declaration)
       });
     }
