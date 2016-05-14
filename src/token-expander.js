@@ -152,31 +152,10 @@ export default class TokenExpander extends ASTDispatcher {
     let enf = new Enforester(stxl, prev, this.context);
 
     while(!enf.done) {
-      let term = enf.enforest();
-      result.push(this.dispatch(term));
+      result.push(this.dispatch(enf.enforest()));
     }
 
     return List(result);
-  }
-
-  bindFunctionDeclaration(decl) {
-    let name = removeScope(decl.name, this.context.useScope, this.context.phase);
-    registerBindings(name, this.context);
-    return decl.extend({ name });
-  }
-
-  bindVariableDeclaration (declaration) {
-    let declarators = declaration.declarators.map(decl => {
-      let newDecl = decl.extend({
-        // first, remove the use scope from each binding
-        binding: removeScope(decl.binding, this.context.useScope, this.context.phase)
-      });
-      // mutate the binding map
-      // TODO: make this functional
-      registerBindings(newDecl.binding, this.context);
-      return newDecl;
-    });
-    return declaration.extend({ declarators });
   }
 
   expandVariableDeclarationStatement(term) {
@@ -270,4 +249,26 @@ export default class TokenExpander extends ASTDispatcher {
   //   bindAllSyntaxExports(mod, pathStx, this.context);
   //   return term;
   // }],
+
+
+  bindFunctionDeclaration(decl) {
+    let name = removeScope(decl.name, this.context.useScope, this.context.phase);
+    registerBindings(name, this.context);
+    return decl.extend({ name });
+  }
+
+  bindVariableDeclaration (declaration) {
+    let declarators = declaration.declarators.map(decl => {
+      let newDecl = decl.extend({
+        // first, remove the use scope from each binding
+        binding: removeScope(decl.binding, this.context.useScope, this.context.phase)
+      });
+      // mutate the binding map
+      // TODO: make this functional
+      registerBindings(newDecl.binding, this.context);
+      return newDecl;
+    });
+    return declaration.extend({ declarators });
+  }
+
 }
