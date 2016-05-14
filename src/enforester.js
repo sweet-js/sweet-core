@@ -21,7 +21,8 @@ import {
   WithTransform,
   TryTransform,
   ThrowTransform,
-  CompiletimeTransform
+  CompiletimeTransform,
+  VarBindingTransform
 } from "./transforms";
 import { List } from "immutable";
 import { expect, assert } from "./errors";
@@ -1052,6 +1053,15 @@ export class Enforester {
       return EXPR_LOOP_EXPANSION;
     }
 
+    if (this.term === null && this.isVarBindingTransform(lookahead)) {
+      let id = this.getFromCompiletimeEnvironment(lookahead).id;
+      if (id !== lookahead) {
+        this.advance();
+        this.rest = List.of(id).concat(this.rest);
+        return EXPR_LOOP_EXPANSION;
+      }
+    }
+
     if (this.term === null && this.isKeyword(lookahead, 'yield')) {
       return this.enforestYieldExpression();
     }
@@ -1818,7 +1828,7 @@ export class Enforester {
   expandMacro(enforestType) {
     let name = this.advance();
 
-    let syntaxTransform = this.getCompiletimeTransform(name);
+    let syntaxTransform = this.getFromCompiletimeEnvironment(name);
     if (syntaxTransform == null || typeof syntaxTransform.value !== "function") {
       throw this.createError(name,
         "the macro name was not bound to a value that could be invoked");
@@ -2054,7 +2064,13 @@ export class Enforester {
             this.context.store.get(term.resolve(this.context.phase)) instanceof CompiletimeTransform);
   }
 
-  getCompiletimeTransform(term) {
+  isVarBindingTransform(term) {
+    return term && (term instanceof Syntax) &&
+           (this.context.env.get(term.resolve(this.context.phase)) instanceof VarBindingTransform ||
+            this.context.store.get(term.resolve(this.context.phase)) instanceof VarBindingTransform);
+  }
+
+  getFromCompiletimeEnvironment(term) {
     if (this.context.env.has(term.resolve(this.context.phase))) {
       return this.context.env.get(term.resolve(this.context.phase));
     }
