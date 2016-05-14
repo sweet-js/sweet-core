@@ -266,16 +266,16 @@ export default class TokenExpander {
             }
             return term;
           }],
-          [isPragma, term => {
-            let pathStx = term.items.get(0);
-            if (pathStx.val() === 'base') {
-              return term;
-            }
-            let mod = self.context.modules.loadAndCompile(pathStx.val());
-            store = self.context.modules.visit(mod, phase, store);
-            bindAllSyntaxExports(mod, pathStx, self.context);
-            return term;
-          }],
+          // [isPragma, term => {
+          //   let pathStx = term.items.get(0);
+          //   if (pathStx.val() === 'base') {
+          //     return term;
+          //   }
+          //   let mod = self.context.modules.loadAndCompile(pathStx.val());
+          //   store = self.context.modules.visit(mod, phase, store);
+          //   bindAllSyntaxExports(mod, pathStx, self.context);
+          //   return term;
+          // }],
           [_.T, term => term]
         ])
       )();
