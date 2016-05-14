@@ -118,9 +118,9 @@ test("export declaration", function () {
         kind: "var",
         declarators: [{
           type: "VariableDeclarator",
-          binding: { type: "BindingIdentifier", name: "a" },
+          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
           init: { type: "LiteralNumericExpression", value: 0 }
-        }, { type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "b" }, init: null }]
+        }, { type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "<<hygiene>>" }, init: null }]
       }
     });
 
@@ -133,11 +133,11 @@ test("export declaration", function () {
         kind: "const",
         declarators: [{
           type: "VariableDeclarator",
-          binding: { type: "BindingIdentifier", name: "a" },
+          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
           init: { type: "LiteralNumericExpression", value: 0 }
         }, {
           type: "VariableDeclarator",
-          binding: { type: "BindingIdentifier", name: "b" },
+          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
           init: { type: "LiteralNumericExpression", value: 0 }
         }]
       }
@@ -152,11 +152,11 @@ test("export declaration", function () {
         kind: "let",
         declarators: [{
           type: "VariableDeclarator",
-          binding: { type: "BindingIdentifier", name: "a" },
+          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
           init: { type: "LiteralNumericExpression", value: 0 }
         }, {
           type: "VariableDeclarator",
-          binding: { type: "BindingIdentifier", name: "b" },
+          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
           init: { type: "LiteralNumericExpression", value: 0 }
         }]
       }
@@ -183,7 +183,7 @@ test("export declaration", function () {
       type: "Export",
       declaration: {
         type: "ClassDeclaration",
-        name: { type: "BindingIdentifier", name: "A" },
+        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
         super: null,
         elements: []
       }
@@ -196,7 +196,7 @@ test("export declaration", function () {
       declaration: {
         type: "FunctionDeclaration",
         isGenerator: false,
-        name: { type: "BindingIdentifier", name: "A" },
+        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
         params: { type: "FormalParameters", items: [], rest: null },
         body: { type: "FunctionBody", directives: [], statements: [] }
       }
