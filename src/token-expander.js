@@ -148,140 +148,143 @@ export default class TokenExpander {
   }
 
   expand(stxl) {
-    let result = List();
+    let result = [];
     if (stxl.size === 0) {
-      return result;
+      return List(result);
     }
     let prev = List();
     let enf = new Enforester(stxl, prev, this.context);
-    let self = this;
-    let phase = self.context.phase;
-    let env = self.context.env;
-    let store = self.context.store;
 
-    let bindFunctionDeclaration = decl => {
-      let newName = removeScope(decl.name, self.context.useScope, self.context.phase);
-      registerBindings(newName, self.context);
+    while(!enf.done) {
+      let term = enf.enforest();
 
-      return new Term('FunctionDeclaration', {
-        isGenerator: decl.isGenerator,
-        name: newName,
-        params: decl.params,
-        body: decl.body
-      });
-    };
-
-    let bindVariableDeclaration = declaration => {
-      let declarators = declaration.declarators.map(decl => {
-        let newDecl = new Term('VariableDeclarator', {
-          // first, remove the use scope from each binding
-          binding: removeScope(decl.binding, self.context.useScope, self.context.phase),
-          init: decl.init
-        });
-        // mutate the binding map
-        // TODO: make this functional
-        registerBindings(newDecl.binding, self.context);
-        return newDecl;
-      });
-      return new Term('VariableDeclaration', {
-        kind: declaration.kind, declarators
-      });
-    };
-
-    while (!enf.done) {
-
-      let term = _.pipe(
-        _.bind(enf.enforest, enf),
-        _.cond([
-          [isVariableDeclarationStatement, term => {
-            term = new Term('VariableDeclarationStatement', {
-              declaration: bindVariableDeclaration(term.declaration)
-            });
-
-            // syntax id^{a, b} = <init>^{a, b}
-            // ->
-            // syntaxrec id^{a,b,c} = function() { return <<id^{a}>> }
-            // syntaxrec id^{a,b} = <init>^{a,b,c}
-            if (isSyntaxDeclaration(term.declaration)) {
-              let scope = freshScope('nonrec');
-              term.declaration.declarators.forEach(decl => {
-                let name = decl.binding.name;
-                let nameAdded = name.addScope(scope, self.context.bindings, ALL_PHASES);
-                let nameRemoved = name.removeScope(self.context.currentScope[self.context.currentScope.length - 1], self.context.phase);
-                let newBinding = gensym(name.val());
-                self.context.bindings.addForward(nameAdded, nameRemoved, newBinding, self.context.phase);
-                decl.init = decl.init.addScope(scope, self.context.bindings, ALL_PHASES);
-              });
-            }
-
-            // for syntax declarations we need to load the compiletime value
-            // into the environment
-            if (isSyntaxDeclaration(term.declaration) ||
-                isSyntaxrecDeclaration(term.declaration)) {
-              term.declaration.declarators.forEach(decl => {
-                // each compiletime value needs to be expanded with a fresh
-                // environment and in the next higher phase
-                let syntaxExpander = new TermExpander(_.merge(self.context, {
-                  phase: self.context.phase + 1,
-                  env: new Env(),
-                  store: self.context.store
-                }));
-                let init = syntaxExpander.expand(decl.init);
-                let val = evalCompiletimeValue(init.gen(), _.merge(self.context, {
-                  phase: self.context.phase + 1
-                }));
-
-                self.context.env.set(decl.binding.name.resolve(self.context.phase),
-                                     new CompiletimeTransform(val));
-              });
-            }
-            return term;
-          }],
-          [isFunctionWithName, term => {
-            term.name = removeScope(term.name, self.context.useScope, self.context.phase);
-            registerBindings(term.name, self.context);
-            return term;
-          }],
-          [isImport, term => {
-            let path = term.moduleSpecifier.val();
-            let mod = self.context.modules.loadAndCompile(path);
-            if (term.forSyntax) {
-              store = self.context.modules.visit(mod, phase + 1, store);
-              store = self.context.modules.invoke(mod, phase + 1, store);
-            } else {
-              store = self.context.modules.visit(mod, phase, store);
-            }
-            let boundNames = bindImports(term, mod, self.context);
-            return removeNames(term, boundNames);
-          }],
-          [isExport, term => {
-            if (isVariableDeclaration(term.declaration)) {
-              return new Term('Export', {
-                declaration: bindVariableDeclaration(term.declaration)
-              });
-            } else if (isFunctionDeclaration(term.declaration)) {
-              return new Term('Export', {
-                declaration: bindFunctionDeclaration(term.declaration)
-              });
-            }
-            return term;
-          }],
-          // [isPragma, term => {
-          //   let pathStx = term.items.get(0);
-          //   if (pathStx.val() === 'base') {
-          //     return term;
-          //   }
-          //   let mod = self.context.modules.loadAndCompile(pathStx.val());
-          //   store = self.context.modules.visit(mod, phase, store);
-          //   bindAllSyntaxExports(mod, pathStx, self.context);
-          //   return term;
-          // }],
-          [_.T, term => term]
-        ])
-      )();
-
-      result = result.concat(term);
+      let field = "expand" + term.type;
+      if (typeof this[field] === 'function') {
+        result.push(this[field](term));
+      } else {
+        result.push(term);
+      }
     }
-    return result;
+
+    return List(result);
   }
+
+  bindFunctionDeclaration(decl) {
+    let newName = removeScope(decl.name, this.context.useScope, this.context.phase);
+    registerBindings(newName, this.context);
+
+    return new Term('FunctionDeclaration', {
+      isGenerator: decl.isGenerator,
+      name: newName,
+      params: decl.params,
+      body: decl.body
+    });
+  }
+
+  bindVariableDeclaration (declaration) {
+    let declarators = declaration.declarators.map(decl => {
+      let newDecl = new Term('VariableDeclarator', {
+        // first, remove the use scope from each binding
+        binding: removeScope(decl.binding, this.context.useScope, this.context.phase),
+        init: decl.init
+      });
+      // mutate the binding map
+      // TODO: make this functional
+      registerBindings(newDecl.binding, this.context);
+      return newDecl;
+    });
+    return new Term('VariableDeclaration', {
+      kind: declaration.kind, declarators
+    });
+  }
+
+  expandVariableDeclarationStatement(term) {
+    term = new Term('VariableDeclarationStatement', {
+      declaration: this.bindVariableDeclaration(term.declaration)
+    });
+
+    // syntax id^{a, b} = <init>^{a, b}
+    // ->
+    // syntaxrec id^{a,b,c} = function() { return <<id^{a}>> }
+    // syntaxrec id^{a,b} = <init>^{a,b,c}
+    if (isSyntaxDeclaration(term.declaration)) {
+      let scope = freshScope('nonrec');
+      term.declaration.declarators.forEach(decl => {
+        let name = decl.binding.name;
+        let nameAdded = name.addScope(scope, this.context.bindings, ALL_PHASES);
+        let nameRemoved = name.removeScope(this.context.currentScope[this.context.currentScope.length - 1], this.context.phase);
+        let newBinding = gensym(name.val());
+        this.context.bindings.addForward(nameAdded, nameRemoved, newBinding, this.context.phase);
+        decl.init = decl.init.addScope(scope, this.context.bindings, ALL_PHASES);
+      });
+    }
+
+    // for syntax declarations we need to load the compiletime value
+    // into the environment
+    if (isSyntaxDeclaration(term.declaration) ||
+    isSyntaxrecDeclaration(term.declaration)) {
+      term.declaration.declarators.forEach(decl => {
+        // each compiletime value needs to be expanded with a fresh
+        // environment and in the next higher phase
+        let syntaxExpander = new TermExpander(_.merge(this.context, {
+          phase: this.context.phase + 1,
+          env: new Env(),
+          store: this.context.store
+        }));
+        let init = syntaxExpander.expand(decl.init);
+        let val = evalCompiletimeValue(init.gen(), _.merge(this.context, {
+          phase: this.context.phase + 1
+        }));
+
+        this.context.env.set(decl.binding.name.resolve(this.context.phase),
+        new CompiletimeTransform(val));
+      });
+    }
+    return term;
+  }
+
+  expandFunctionDeclaration(term) {
+    if (isFunctionWithName(term)) {
+      term.name = removeScope(term.name, this.context.useScope, this.context.phase);
+      registerBindings(term.name, this.context);
+    }
+    return term;
+  }
+
+  expandImport(term) {
+    let path = term.moduleSpecifier.val();
+    let mod = this.context.modules.loadAndCompile(path);
+    if (term.forSyntax) {
+      this.context.store = this.context.modules.visit(mod, this.context.phase + 1, this.context.store);
+      this.context.store = this.context.modules.invoke(mod, this.context.phase + 1, this.context.store);
+    } else {
+      this.context.store = this.context.modules.visit(mod, this.context.phase, this.context.store);
+    }
+    let boundNames = bindImports(term, mod, this.context);
+    return removeNames(term, boundNames);
+  }
+
+  expandExport(term) {
+    if (isVariableDeclaration(term.declaration)) {
+      return new Term('Export', {
+        declaration: this.bindVariableDeclaration(term.declaration)
+      });
+    } else if (isFunctionDeclaration(term.declaration)) {
+      return new Term('Export', {
+        declaration: this.bindFunctionDeclaration(term.declaration)
+      });
+    }
+    return term;
+  }
+
+  // [isPragma, term => {
+  //   let pathStx = term.items.get(0);
+  //   if (pathStx.val() === 'base') {
+  //     return term;
+  //   }
+  //   let mod = this.context.modules.loadAndCompile(pathStx.val());
+  //   store = this.context.modules.visit(mod, phase, store);
+  //   bindAllSyntaxExports(mod, pathStx, this.context);
+  //   return term;
+  // }],
 }
