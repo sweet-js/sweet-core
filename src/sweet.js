@@ -10,6 +10,8 @@ import { Scope, freshScope } from "./scope";
 
 import BindingMap from "./binding-map.js";
 
+import { toSpiderMonkey as toBabel } from 'shift-spidermonkey-converter';
+
 import Term from "./terms";
 import { Modules } from './modules';
 
@@ -43,9 +45,8 @@ export function parse(source, options = {}) {
 
 export function compile(source, options = {}) {
   let ast = parse(source, options);
-  let gen = codegen(ast, new FormattedCodeGen());
-  return options.transform && (!options.noBabel) ? options.transform(gen, {
+  return options.transform && (!options.noBabel) ? options.transform(toBabel(ast), {
     babelrc: true,
     filename: options.filename
-  }) : { code: gen };
+  }) : { code: codegen(ast, new FormattedCodeGen()) };
 }

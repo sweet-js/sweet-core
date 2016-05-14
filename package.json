@@ -46,7 +46,7 @@
     "shift-js": "^0.2.1",
     "shift-parser": "^4.1.0",
     "shift-reducer": "^3.0.2",
-    "shift-spidermonkey-converter": "^1.0.0",
+    "shift-spidermonkey-converter": "gabejohnson/shift-spidermonkey-converter-js#babel",
     "transit-js": "^0.8.846",
     "yargs": "^4.3.2"
   },
