@@ -13,18 +13,16 @@ import { serializer, makeDeserializer } from "./serializer";
 import { enforestExpr, Enforester } from "./enforester";
 import { assert } from './errors';
 import { processTemplate }from './template-processor.js';
+import ASTDispatcher from './ast-dispatcher';
 
-export default class TermExpander {
+export default class TermExpander extends ASTDispatcher {
   constructor(context) {
+    super(true);
     this.context = context;
   }
 
   expand(term) {
-    let field = "expand" + term.type;
-    if (typeof this[field] === 'function') {
-      return this[field](term);
-    }
-    assert(false, "expand not implemented yet for: " + term.type);
+    return this.dispatch(term);
   }
 
   expandPragma(term) {

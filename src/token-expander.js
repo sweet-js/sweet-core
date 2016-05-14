@@ -17,6 +17,7 @@ import { expect, assert } from "./errors";
 import { evalCompiletimeValue } from './load-syntax';
 import { Scope, freshScope } from "./scope";
 import Syntax, { ALL_PHASES } from './syntax';
+import ASTDispatcher from './ast-dispatcher';
 
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
@@ -136,8 +137,9 @@ function bindAllSyntaxExports(exModule, toSynth, context) {
   });
 }
 
-export default class TokenExpander {
+export default class TokenExpander extends ASTDispatcher {
   constructor(context) {
+    super(false);
     this.context = context;
   }
 
@@ -151,13 +153,7 @@ export default class TokenExpander {
 
     while(!enf.done) {
       let term = enf.enforest();
-
-      let field = "expand" + term.type;
-      if (typeof this[field] === 'function') {
-        result.push(this[field](term));
-      } else {
-        result.push(term);
-      }
+      result.push(this.dispatch(term));
     }
 
     return List(result);
