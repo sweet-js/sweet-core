@@ -8,13 +8,14 @@ import BindingMap from "./binding-map.js";
 import Term, {
   isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
-  isVariableDeclarationStatement, isImport, isExport, isExportSyntax, isSyntaxDeclarationStatement,
-  isPragma
+  isVariableDeclarationStatement, isImport, isExport, isExportFrom, isExportAllFrom, isExportDefault,
+  isExportSyntax, isSyntaxDeclarationStatement, isPragma
 } from "./terms";
 import { evalCompiletimeValue, evalRuntimeValues } from './load-syntax';
 import Compiler from "./compiler";
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { Scope, freshScope } from "./scope";
+import { assert } from './errors';
 
 export class Module {
   constructor(moduleSpecifier, importEntries, exportEntries, pragmas, body) {
@@ -25,6 +26,30 @@ export class Module {
     this.body = body;
   }
 }
+
+const findBindingIdentifierName = term => {
+  // TODO: handle destructuring
+  assert(term.name, `not implemented yet for type ${term.type}`);
+  return term.name;
+};
+
+const convertExport = term => {
+  let declaration = term.declaration;
+  let bindings = [];
+  if (isVariableDeclaration(declaration)) {
+    bindings = declaration.declarators.map(decl =>  findBindingIdentifierName(decl.binding));
+  }
+
+  let namedExports = bindings.map(binding => {
+    return new Term('ExportSpecifier', {
+      name: null,
+      exportedName: binding
+    });
+  });
+  return new Term('ExportFrom', {
+    moduleSpecifier: null, namedExports
+  });
+};
 
 const pragmaRegep = /^\s*#\w*/;
 
@@ -57,8 +82,16 @@ export class Modules {
     let pragmas = [];
     let filteredTerms = terms.reduce((acc, t) => {
       return _.cond([
-        [isImport, t => { importEntries.push(t); return acc.concat(t); } ],
-        [isExport, t => { exportEntries.push(t); return acc.concat(t); } ],
+        [isImport, t => {
+          importEntries.push(t);
+          return acc.concat(t);
+        }],
+        [isExport, t => {
+          exportEntries.push(t);
+          // exportEntries.push(convertExport(t));
+          // return acc.concat(t.declaration);
+          return acc.concat(t);
+        }],
         [isPragma, t => { pragmas.push(t); return acc; } ],
         [_.T, t => acc.concat(t) ]
       ])(t);
@@ -96,6 +129,9 @@ export class Modules {
   }
 
   invoke(mod, phase, store) {
+    // throw new Error(`BC:
+    //   Need to register every binding in the current phase.
+    // `);
     let body = mod.body.map(term => term.gen()).filter(term => !isExportSyntax(term));
     let exportsObj = evalRuntimeValues(body, _.merge(this.context, {
       store, phase

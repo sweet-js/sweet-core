@@ -1,10 +1,11 @@
 export default class ASTDispatcher {
-  constructor(errorIfMissing) {
+  constructor(prefix, errorIfMissing) {
     this.errorIfMissing = errorIfMissing;
+    this.prefix = prefix;
   }
 
   dispatch(term) {
-    let field = `expand${term.type}`;
+    let field = this.prefix + term.type;
     if (typeof this[field] === 'function') {
       return this[field](term);
     } else if (!this.errorIfMissing) {

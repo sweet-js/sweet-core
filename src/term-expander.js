@@ -17,7 +17,7 @@ import ASTDispatcher from './ast-dispatcher';
 
 export default class TermExpander extends ASTDispatcher {
   constructor(context) {
-    super(true);
+    super('expand', true);
     this.context = context;
   }
 

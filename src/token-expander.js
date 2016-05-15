@@ -10,7 +10,6 @@ import Term, {
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
   isVariableDeclarationStatement, isImport, isExport, isPragma, isExportSyntax
 } from "./terms";
-import { Maybe } from 'ramda-fantasy';
 import { gensym } from './symbol';
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { expect, assert } from "./errors";
@@ -18,22 +17,7 @@ import { evalCompiletimeValue } from './load-syntax';
 import { Scope, freshScope } from "./scope";
 import Syntax, { ALL_PHASES } from './syntax';
 import ASTDispatcher from './ast-dispatcher';
-
-const Just = Maybe.Just;
-const Nothing = Maybe.Nothing;
-
-const registerSyntax = (stx, context) => {
-  let newBinding = gensym(stx.val());
-  context.env.set(newBinding.toString(), new VarBindingTransform(stx));
-  context.bindings.add(stx, {
-    binding: newBinding,
-    phase: context.phase,
-    // skip dup because js allows variable redeclarations
-    // (technically only for `var` but we can let later stages of the pipeline
-    // handle incorrect redeclarations of `const` and `let`)
-    skipDup: true
-  });
-};
+import { registerBindings } from './hygiene-utils';
 
 function bindImports(impTerm, exModule, context) {
   let names = [];
@@ -51,54 +35,6 @@ function bindImports(impTerm, exModule, context) {
   return List(names);
 }
 
-let registerBindings = _.cond([
-  [isBindingIdentifier, ({name}, context) => {
-    registerSyntax(name, context);
-  }],
-  [isBindingPropertyIdentifier, ({binding}, context) => {
-    registerBindings(binding, context);
-  }],
-  [isBindingPropertyProperty, ({binding}, context) => {
-    registerBindings(binding, context);
-  }],
-  [isArrayBinding, ({elements, restElement}, context) => {
-    if (restElement != null) {
-      registerBindings(restElement, context);
-    }
-    elements.forEach(el => {
-      if (el != null) {
-        registerBindings(el, context);
-      }
-    });
-  }],
-  [isObjectBinding, ({properties}, context) => {
-    // properties.forEach(prop => registerBindings(prop, context));
-  }],
-  [_.T, binding => assert(false, "not implemented yet for: " + binding.type)]
-]);
-
-let removeScope = _.cond([
-  [isBindingIdentifier, ({name}, scope, phase) => new Term('BindingIdentifier', {
-    name: name.removeScope(scope, phase)
-  })],
-  [isArrayBinding, ({elements, restElement}, scope, phase) => {
-    return new Term('ArrayBinding', {
-      elements: elements.map(el => el == null ? null : removeScope(el, scope, phase)),
-      restElement: restElement == null ? null : removeScope(restElement, scope, phase)
-    });
-  }],
-  [isBindingPropertyIdentifier, ({binding, init}, scope, phase) => new Term('BindingPropertyIdentifier', {
-    binding: removeScope(binding, scope, phase),
-    init
-  })],
-  [isBindingPropertyProperty, ({binding, name}, scope, phase) => new Term('BindingPropertyProperty', {
-    binding: removeScope(binding, scope, phase), name
-  })],
-  [isObjectBinding, ({properties}, scope, phase) => new Term('ObjectBinding', {
-    properties: properties.map(prop => removeScope(prop, scope, phase))
-  })],
-  [_.T, binding => assert(false, "not implemented yet for: " + binding.type)]
-]);
 
 function findNameInExports(name, exp) {
   let foundNames = exp.reduce((acc, e) => {
@@ -121,25 +57,25 @@ function removeNames(impTerm, names) {
   return impTerm.extend({ namedImports });
 }
 
-function bindAllSyntaxExports(exModule, toSynth, context) {
-  let phase = context.phase;
-  exModule.exportEntries.forEach(ex => {
-    if (isExportSyntax(ex)) {
-      ex.declaration.declarators.forEach(decl => {
-        let name = decl.binding.name;
-        let newBinding = gensym(name.val());
-        let storeName = exModule.moduleSpecifier + ":" + name.val() + ":" + phase;
-        let synthStx = Syntax.fromIdentifier(name.val(), toSynth);
-        let storeStx = Syntax.fromIdentifier(storeName, toSynth);
-        context.bindings.addForward(synthStx, storeStx, newBinding, phase);
-      });
-    }
-  });
-}
+// function bindAllSyntaxExports(exModule, toSynth, context) {
+//   let phase = context.phase;
+//   exModule.exportEntries.forEach(ex => {
+//     if (isExportSyntax(ex)) {
+//       ex.declaration.declarators.forEach(decl => {
+//         let name = decl.binding.name;
+//         let newBinding = gensym(name.val());
+//         let storeName = exModule.moduleSpecifier + ":" + name.val() + ":" + phase;
+//         let synthStx = Syntax.fromIdentifier(name.val(), toSynth);
+//         let storeStx = Syntax.fromIdentifier(storeName, toSynth);
+//         context.bindings.addForward(synthStx, storeStx, newBinding, phase);
+//       });
+//     }
+//   });
+// }
 
 export default class TokenExpander extends ASTDispatcher {
   constructor(context) {
-    super(false);
+    super('expand', false);
     this.context = context;
   }
 
@@ -160,7 +96,7 @@ export default class TokenExpander extends ASTDispatcher {
 
   expandVariableDeclarationStatement(term) {
     term = term.extend({
-      declaration: this.bindVariableDeclaration(term.declaration)
+      declaration: registerBindings(term.declaration, this.context)
     });
 
     // syntax id^{a, b} = <init>^{a, b}
@@ -206,7 +142,7 @@ export default class TokenExpander extends ASTDispatcher {
   expandFunctionDeclaration(term) {
     if (isFunctionWithName(term)) {
       term = term.extend({
-        name: removeScope(term.name, this.context.useScope, this.context.phase)
+        name: term.name.removeScope(this.context.useScope, this.context.phase)
       });
       registerBindings(term.name, this.context);
     }
@@ -227,16 +163,7 @@ export default class TokenExpander extends ASTDispatcher {
   }
 
   expandExport(term) {
-    if (isVariableDeclaration(term.declaration)) {
-      return term.extend({
-        declaration: this.bindVariableDeclaration(term.declaration)
-      });
-    } else if (isFunctionDeclaration(term.declaration)) {
-      return term.extend({
-        declaration: this.bindFunctionDeclaration(term.declaration)
-      });
-    }
-    return term;
+    return registerBindings(term, this.context);
   }
 
   // [isPragma, term => {
@@ -250,25 +177,5 @@ export default class TokenExpander extends ASTDispatcher {
   //   return term;
   // }],
 
-
-  bindFunctionDeclaration(decl) {
-    let name = removeScope(decl.name, this.context.useScope, this.context.phase);
-    registerBindings(name, this.context);
-    return decl.extend({ name });
-  }
-
-  bindVariableDeclaration (declaration) {
-    let declarators = declaration.declarators.map(decl => {
-      let newDecl = decl.extend({
-        // first, remove the use scope from each binding
-        binding: removeScope(decl.binding, this.context.useScope, this.context.phase)
-      });
-      // mutate the binding map
-      // TODO: make this functional
-      registerBindings(newDecl.binding, this.context);
-      return newDecl;
-    });
-    return declaration.extend({ declarators });
-  }
 
 }

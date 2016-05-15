@@ -27,6 +27,7 @@ export function expand(source, options = {}) {
   return new Term("Module", {
     directives: List(),
     items: compiledMod.body
+    // items: compiledMod.body.concat(compiledMod.exportEntries)
   });
 }
 

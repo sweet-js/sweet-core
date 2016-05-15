@@ -43,20 +43,36 @@ export default class Term {
     return new Term(this.type, next);
   }
 
-  addScope(scope, bindings, phase, options) {
+  visit(f) {
     let next = {};
     for (let field of fieldsIn(this)) {
       if (this[field] == null) {
         next[field] = null;
-      } else if (typeof this[field].addScope === 'function') {
-        next[field] = this[field].addScope(scope, bindings, phase, options);
       } else if (List.isList(this[field])) {
-        next[field] = this[field].map(f => f.addScope(scope, bindings, phase, options));
+        next[field] = this[field].map(field => field != null ? f(field) : null);
       } else {
-        next[field] = this[field];
+        next[field] = f(this[field]);
       }
     }
-    return new Term(this.type, next);
+    return this.extend(next);
+  }
+
+  addScope(scope, bindings, phase, options) {
+    return this.visit(term => {
+      if (typeof term.addScope === 'function') {
+        return term.addScope(scope, bindings, phase, options);
+      }
+      return term;
+    });
+  }
+
+  removeScope(scope, phase) {
+    return this.visit(term => {
+      if (typeof term.removeScope === 'function') {
+        return term.removeScope(scope, phase);
+      }
+      return term;
+    });
   }
 
   // TODO: this is very wrong
