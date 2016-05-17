@@ -40,7 +40,11 @@ function testParseWithOpts(code, acc, expectedAst, options) {
       checker(actual[key]);
     }, expected);
   }
-  checkObjects(expectedAst, acc(parsedAst));
+  try {
+    checkObjects(expectedAst, acc(parsedAst));
+  } catch (e) {
+    throw new Error(e.message);
+  }
 }
 
 

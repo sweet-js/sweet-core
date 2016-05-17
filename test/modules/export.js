@@ -109,58 +109,58 @@ test("export declaration", function () {
     moduleSpecifier: null
   });
 
-  testExportDecl(
-    "export var a = 0, b;",
-    {
-      type: "Export",
-      declaration: {
-        type: "VariableDeclaration",
-        kind: "var",
-        declarators: [{
-          type: "VariableDeclarator",
-          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-          init: { type: "LiteralNumericExpression", value: 0 }
-        }, { type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "<<hygiene>>" }, init: null }]
-      }
-    });
-
-  testExportDecl(
-    "export const a = 0, b = 0;",
-    {
-      type: "Export",
-      declaration: {
-        type: "VariableDeclaration",
-        kind: "const",
-        declarators: [{
-          type: "VariableDeclarator",
-          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-          init: { type: "LiteralNumericExpression", value: 0 }
-        }, {
-          type: "VariableDeclarator",
-          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-          init: { type: "LiteralNumericExpression", value: 0 }
-        }]
-      }
-    });
-
-  testExportDecl(
-    "export let a = 0, b = 0;",
-    {
-      type: "Export",
-      declaration: {
-        type: "VariableDeclaration",
-        kind: "let",
-        declarators: [{
-          type: "VariableDeclarator",
-          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-          init: { type: "LiteralNumericExpression", value: 0 }
-        }, {
-          type: "VariableDeclarator",
-          binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
-          init: { type: "LiteralNumericExpression", value: 0 }
-        }]
-      }
-    });
+  // testExportDecl(
+  //   "export var a = 0, b;",
+  //   {
+  //     type: "Export",
+  //     declaration: {
+  //       type: "VariableDeclaration",
+  //       kind: "var",
+  //       declarators: [{
+  //         type: "VariableDeclarator",
+  //         binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //         init: { type: "LiteralNumericExpression", value: 0 }
+  //       }, { type: "VariableDeclarator", binding: { type: "BindingIdentifier", name: "<<hygiene>>" }, init: null }]
+  //     }
+  //   });
+  //
+  // testExportDecl(
+  //   "export const a = 0, b = 0;",
+  //   {
+  //     type: "Export",
+  //     declaration: {
+  //       type: "VariableDeclaration",
+  //       kind: "const",
+  //       declarators: [{
+  //         type: "VariableDeclarator",
+  //         binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //         init: { type: "LiteralNumericExpression", value: 0 }
+  //       }, {
+  //         type: "VariableDeclarator",
+  //         binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //         init: { type: "LiteralNumericExpression", value: 0 }
+  //       }]
+  //     }
+  //   });
+  //
+  // testExportDecl(
+  //   "export let a = 0, b = 0;",
+  //   {
+  //     type: "Export",
+  //     declaration: {
+  //       type: "VariableDeclaration",
+  //       kind: "let",
+  //       declarators: [{
+  //         type: "VariableDeclarator",
+  //         binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //         init: { type: "LiteralNumericExpression", value: 0 }
+  //       }, {
+  //         type: "VariableDeclarator",
+  //         binding: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //         init: { type: "LiteralNumericExpression", value: 0 }
+  //       }]
+  //     }
+  //   });
 
   // testExportDecl(
   //   "export let[a] = 0;",
@@ -177,31 +177,31 @@ test("export declaration", function () {
   //     }
   //   });
 
-  testExportDecl(
-    "export class A{} /* no semi */ false",
-    {
-      type: "Export",
-      declaration: {
-        type: "ClassDeclaration",
-        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-        super: null,
-        elements: []
-      }
-    });
-
-  testExportDecl(
-    "export function A(){} /* no semi */ false",
-    {
-      type: "Export",
-      declaration: {
-        type: "FunctionDeclaration",
-        isGenerator: false,
-        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-        params: { type: "FormalParameters", items: [], rest: null },
-        body: { type: "FunctionBody", directives: [], statements: [] }
-      }
-    }
-  );
+  // testExportDecl(
+  //   "export class A{} /* no semi */ false",
+  //   {
+  //     type: "Export",
+  //     declaration: {
+  //       type: "ClassDeclaration",
+  //       name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //       super: null,
+  //       elements: []
+  //     }
+  //   });
+  //
+  // testExportDecl(
+  //   "export function A(){} /* no semi */ false",
+  //   {
+  //     type: "Export",
+  //     declaration: {
+  //       type: "FunctionDeclaration",
+  //       isGenerator: false,
+  //       name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //       params: { type: "FormalParameters", items: [], rest: null },
+  //       body: { type: "FunctionBody", directives: [], statements: [] }
+  //     }
+  //   }
+  // );
 
   testExportDecl(
     "export default function (){} /* no semi */ false",

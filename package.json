@@ -22,7 +22,7 @@
     "prebuild": "mkdir -p build/sweet dist/",
     "build:sweet": "bin/sjs -d build/sweet src/*.js -b",
     "build:src": "babel --out-dir build/src build/sweet",
-    "build:test": "rsync -R test/**/*.js build & cp test/*.js build/test && babel --out-file build/test/assertions.js test/assertions.js ",
+    "build:test": "rsync -R test/**/*.js build & cp test/*.js build/test && babel --out-file build/test/assertions.js test/assertions.js",
     "build:browser": "webpack build/src/sweet.js browser/scripts/sweet.js --output-library-target amd --output-library sweet",
     "build": "npm run build:sweet && npm run build:src && npm run build:test",
     "pretest": "npm run lint && npm run build",

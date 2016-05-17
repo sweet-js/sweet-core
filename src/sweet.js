@@ -14,7 +14,6 @@ import { Modules } from './modules';
 
 export function expand(source, options = {}) {
   let bindings = new BindingMap();
-  let reader = new Reader(source);
   let modules = new Modules({
     cwd: options.cwd,
     filename: options.filename,
@@ -23,11 +22,11 @@ export function expand(source, options = {}) {
     moduleLoader: options.moduleLoader,
     bindings
   });
-  let compiledMod = modules.compile(reader.read(), options.filename);
+  let compiledMod = modules.compileEntrypoint(source, options.filename);
+  let nativeImports = compiledMod.importEntries.filter(imp => !modules.has(imp.moduleSpecifier.val()));
   return new Term("Module", {
     directives: List(),
-    items: compiledMod.body
-    // items: compiledMod.body.concat(compiledMod.exportEntries)
+    items: nativeImports.concat(compiledMod.body)
   });
 }
 

@@ -407,6 +407,9 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandVariableDeclaration(term) {
+    if (term.kind === 'syntax' || term.kind === 'syntaxrec') {
+      return term;
+    }
     return new Term("VariableDeclaration", {
       kind: term.kind,
       declarators: term.declarators.map(d => this.expand(d))
