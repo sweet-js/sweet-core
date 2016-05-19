@@ -19,7 +19,7 @@
   "scripts": {
     "clean": "rm -rf build",
     "lint": "eslint src",
-    "prebuild": "mkdir -p build/sweet dist/",
+    "prebuild": "mkdir -p build/test build/sweet dist/",
     "build:sweet": "bin/sjs -d build/sweet src/*.js -b",
     "build:src": "babel --out-dir build/src build/sweet",
     "build:test": "rsync -R test/**/*.js build & cp test/*.js build/test && babel --out-file build/test/assertions.js test/assertions.js",
