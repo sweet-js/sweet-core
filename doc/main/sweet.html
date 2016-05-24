@@ -44,25 +44,25 @@ code > span.er { color: #ff0000; font-weight: bold; }
     margin: 0;
     padding: 0;
   }
-  
+
   body {
     width: 600px;
     margin: 0 auto;
     position: relative;
     top: 75px;
   }
-  
+
   #logo {
     float: left;
     width: 275px;
   }
-  
+
   #content {
     float: left;
     width: 650px;
     padding-bottom:50px;
   }
-  
+
   h1,h2,h3 {
     font-family: Helvetica Neue;
     font-weight: 100;
@@ -83,30 +83,30 @@ code > span.er { color: #ff0000; font-weight: bold; }
   h3 {
     font-size: 120%;
   }
-  
+
   p, li {
     font-family: 'Source Sans Pro', sans-serif;
     /*font-weight: 400;*/
     font-size: large;
   }
-  
-  
+
+
   p code {
     font-size: 14px;
   }
   li code {
     font-size: 14px;
   }
-  
+
   a {
   	text-decoration: none;
   }
   a:hover, a:focus {
       text-decoration: underline;
   }
-  
+
   .editor { display : none }
-  
+
   /* to display output of macro expansions */
   .console {
     -moz-border-radius: 6px;
@@ -123,12 +123,14 @@ code > span.er { color: #ff0000; font-weight: bold; }
     text-shadow:0 1px white;
     display:none;
   }
-  
+
   </style>
 </head>
 <body>
 <header>
 <h1 class="title">Sweet.js Documentation</h1>
+<strong>Note: this documents the old 0.7 version of Sweet.js.
+  Documentation for the current version is available <a href="http://sweetjs.org/doc/1.0/tutorial.html">here</a>.</strong>
 </header>
 <nav id="TOC">
 <ul>
@@ -207,7 +209,7 @@ code > span.er { color: #ff0000; font-weight: bold; }
 <pre class="js"><code>macro id {
   rule {
     // after the macro name, match:
-    // (1) a open paren 
+    // (1) a open paren
     // (2) a single token and bind it to `$x`
     // (3) a close paren
     ($x)
@@ -308,7 +310,7 @@ macroclass cond_clause {
 
 macro cond {
   rule { $first:cond_clause $rest:cond_clause ... } =&gt; {
-    // sub-pattern variables in the custom class are 
+    // sub-pattern variables in the custom class are
     // referenced by concatenation
     if ($first$check) {
       $first$body
@@ -335,12 +337,12 @@ cond
   pattern {
     rule { $from:ident as $to:ident }
   }
-  pattern { 
+  pattern {
     rule { $from:ident }
     with $to = #{ $from };
   }
 }
- 
+
 macro import {
   rule { { $import:alias_pair (,) ... } from $mod:lit ;... } =&gt; {
     var __module = require($mod);
@@ -350,7 +352,7 @@ macro import {
     var $default = require($mod).default;
   }
 }
- 
+
 import { a, b as c, d } from &#39;foo&#39;
 // expands to:
 // var __module = require(&#39;foo&#39;);
@@ -650,11 +652,11 @@ bar(42) m foo; // This is a match error</code></pre>
 <p>Custom operators let you define your own operators or override the builtin operators. They are similar to infix macros except rather than matching arbitrary syntax before and after the identifier name, both the left and right operands must be valid JavaScript expressions. You can think of them as infix macros with a pattern of <code>{ $left:expr | $right:expr }</code>. This limitation however means that you can define precedence and associativity for your custom operator.</p>
 <p>There are two definition forms. One for binary operators and one for unary operators:</p>
 <pre class="js"><code>// binary operators
-operator &lt;name&gt; &lt;precedence&gt; &lt;associativity&gt; 
+operator &lt;name&gt; &lt;precedence&gt; &lt;associativity&gt;
     { &lt;left operand&gt;, &lt;right operand&gt; } =&gt; #{ &lt;template&gt; }
 
 // unary operators
-operator &lt;name&gt; &lt;precedence&gt; 
+operator &lt;name&gt; &lt;precedence&gt;
     { &lt;operand&gt; } =&gt; #{ &lt;template&gt; }</code></pre>
 <ul>
 <li><code>&lt;name&gt;</code> can be any valid macro name (ie. identifiers and punctuation but not delimiters, multi token names must be wrapped in parentheses)</li>
@@ -664,7 +666,7 @@ operator &lt;name&gt; &lt;precedence&gt;
 <li><code>&lt;template&gt;</code> is what the operator will expand into</li>
 </ul>
 <p>For example, the following defines <code>^^</code> to be the power operator:</p>
-<pre class="js"><code>operator (^^) 14 right 
+<pre class="js"><code>operator (^^) 14 right
     { $base, $exp } =&gt; #{ Math.pow($base, $exp) }
 
 y + x ^^ 10 ^^ 100 - z
@@ -698,7 +700,7 @@ operator (&gt;&gt;=) 12 left { $l, $r } =&gt; #{$l.then($r) }
 
 getPromise(&#39;test.json&#39;)  &gt;&gt;= JSON.parse &gt;&gt;= (response) =&gt; {
   console.log(&quot;JSON Response!&quot;, response);
-} 
+}
 // expands to:
 // getPromise(&#39;test.json&#39;).then(JSON.parse).then(function (response) {
 //     console.log(&#39;JSON Response!&#39;, response);
@@ -713,17 +715,17 @@ function add(x, y) {
 // expands to
 // function add(x, y) {
 //     // custom addition
-// }    
+// }
 // add(add(100, x) - y * 5, 30);</code></pre>
 <p>You can even fix <code>==</code>!</p>
 <pre class="js"><code>operator == 9 left { $l, $r } =&gt; #{ $l === $r }
 
 if (&quot;42&quot; == 42) {
-    // never runs! 
+    // never runs!
 }
 // expands to:
 // if (&#39;42&#39; === 42) {
-//    // never runs! 
+//    // never runs!
 // }    </code></pre>
 <p>Keep in mind that redefining the builtin operators needs to be done with care. While it's tempting to fix some of the <em>wat</em> implicit conversions of <code>==</code>/<code>+</code>/<code>-</code> and company, this could lead to hard to understand code. It should be used sparingly if at all. With great power...</p>
 <h2 id="operator-precedence"><span class="header-section-number">8.2</span> Operator Precedence</h2>
@@ -1122,19 +1124,19 @@ aif (long.obj.path) {
 <pre class="js"><code>macro aif {
   case {
     // bind the macro name to `$aif_name`
-    $aif_name 
+    $aif_name
     ($cond ...) {$body ...}
   } =&gt; {
     // make a new `it` identifier using the lexical context
     // from `$aif_name`
     var it = makeIdent(&quot;it&quot;, #{$aif_name});
     letstx $it = [it];
-  return #{ 
+  return #{
       // create an IIFE that binds `$cond` to `$it`
       (function ($it) {
           if ($cond ...) {
           // all `it` identifiers in `$body` will now
-          // be bound to `$it` 
+          // be bound to `$it`
           $body ...
         }
       })($cond ...);
