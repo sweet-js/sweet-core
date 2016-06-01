@@ -1053,14 +1053,6 @@ export class Enforester {
       return EXPR_LOOP_EXPANSION;
     }
 
-    if (this.term === null && this.isVarBindingTransform(lookahead)) {
-      let id = this.getFromCompiletimeEnvironment(lookahead).id;
-      if (id !== lookahead) {
-        this.advance();
-        this.rest = List.of(id).concat(this.rest);
-        return EXPR_LOOP_EXPANSION;
-      }
-    }
 
     if (this.term === null && this.isKeyword(lookahead, 'yield')) {
       return this.enforestYieldExpression();
@@ -1169,6 +1161,15 @@ export class Enforester {
     // prefix unary
     if (this.term === null && this.isOperator(lookahead)) {
       return this.enforestUnaryExpression();
+    }
+
+    if (this.term === null && this.isVarBindingTransform(lookahead)) {
+      let id = this.getFromCompiletimeEnvironment(lookahead).id;
+      if (id !== lookahead) {
+        this.advance();
+        this.rest = List.of(id).concat(this.rest);
+        return EXPR_LOOP_EXPANSION;
+      }
     }
 
     // and then check the cases where the term part of p is something...
