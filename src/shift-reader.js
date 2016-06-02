@@ -58,6 +58,9 @@ const binaryOps = ["+", "-", "*", "/", "%","<<", ">>", ">>>", "&", "|", "^",
 
 const unaryOps = ["++", "--", "~", "!", "delete", "void", "typeof", "yield", "throw", "new"];
 
+// Any -> Boolean
+const isNotFalse = R.compose(R.not, R.curry(R.equals)(false));
+
 // List -> Boolean
 const isEmpty = R.whereEq({size: 0});
 
@@ -262,11 +265,27 @@ function lastEl(l) {
   return l[l.length - 1];
 }
 
+// NOTE: Does not mutate reader
+function countSlashes(reader) {
+  // 0x5c === '\'
+  let index = reader.index;
+  let onSlash = () => reader.source.charCodeAt(index) === 0x5c;
+  let length = reader.source.length;
+  let count = onSlash() ? 1 : 0;
+  while((++index < length) && onSlash()) {
+    ++count;
+  }
+  return count;
+}
+
+// Number of '\' characters -> Nesting Depth
+const calcDepth = R.compose(Math.log2, R.inc);
+
 export default class Reader extends Tokenizer {
   constructor(strings, context, replacements) {
     super(Array.isArray(strings) ? strings.join('') : strings);
     this.delimStack = new Map();
-    this.insideSyntaxTemplate = [false];
+    this.syntaxNestingDepth = 0;
     this.context = context;
 
     // setup splicing replacement array
@@ -311,7 +330,7 @@ export default class Reader extends Tokenizer {
 
       if (isLeftDelimiter(tok)) {
         if (isLeftSyntax(tok)) {
-          this.insideSyntaxTemplate.push(true);
+          this.syntaxNestingDepth++;
         }
         let line = tok.slice.startLocation.line;
         let innerB = isLeftBrace(tok) ? isExprPrefix(line, b)(prefix) : true;
@@ -330,8 +349,8 @@ export default class Reader extends Tokenizer {
         }
         let stx = new Syntax(tok, this.context);
         stack.push(stx);
-        if (lastEl(this.insideSyntaxTemplate) && isRightSyntax(tok)) {
-          this.insideSyntaxTemplate.pop();
+        if (this.syntaxNestingDepth && isRightSyntax(tok)) {
+          this.syntaxNestingDepth--;
         }
         break;
       } else {
@@ -369,7 +388,7 @@ export default class Reader extends Tokenizer {
       let startLocation = this.getLocation();
       let start = this.index;
       this.index++;
-      if (lastEl(this.insideSyntaxTemplate)) {
+      if (this.syntaxNestingDepth === 1) {
 
         let slice = this.getSlice(start, startLocation);
         return {
@@ -392,6 +411,28 @@ export default class Reader extends Tokenizer {
         type: TokenType.TEMPLATE,
         items: List(items)
       };
+    } else if (this.syntaxNestingDepth && (charCode === 0x5c)) { // \
+      let numSlashes = countSlashes(this);
+      let depth = calcDepth(numSlashes);
+      if (this.source.charCodeAt(this.index + numSlashes) === 0x60) { // `
+        if (depth > this.syntaxNestingDepth) {
+          this.index += Math.pow(2, this.syntaxNestingDepth) - 1;
+          throw this.createILLEGAL();
+        } else if (depth < this.syntaxNestingDepth - 1) {
+          this.index += numSlashes;
+          throw this.createILLEGAL();
+        }
+        let isClosing = depth === this.syntaxNestingDepth - 1;
+        let startLocation = this.getLocation();
+        let start = this.index;
+        let slice = this.getSlice(start, startLocation);
+        this.index += numSlashes + 1;
+        return {
+          type: isClosing ? RSYNTAX : LSYNTAX,
+          value: '\\'.repeat(numSlashes).concat('\''),
+          slice: slice
+        };
+      }
     } else if (charCode === 35) { // #
       let startLocation = this.getLocation();
       let start = this.index;
