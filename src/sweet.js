@@ -26,7 +26,7 @@ export function expand(source, options = {}) {
   let nativeImports = compiledMod.importEntries.filter(imp => !modules.has(imp.moduleSpecifier.val()));
   return new Term("Module", {
     directives: List(),
-    items: nativeImports.concat(compiledMod.body)
+    items: nativeImports.concat(compiledMod.body).concat(compiledMod.exportEntries)
   });
 }
 

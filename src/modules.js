@@ -11,7 +11,8 @@ import Term, {
   isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
   isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
   isVariableDeclarationStatement, isImport, isExport, isExportFrom, isExportAllFrom, isExportDefault,
-  isExportSyntax, isSyntaxDeclarationStatement, isPragma, isCompiletimeDeclaration, isCompiletimeStatement
+  isExportSyntax, isSyntaxDeclarationStatement, isPragma, isCompiletimeDeclaration, isCompiletimeStatement,
+  isClassDeclaration
 } from "./terms";
 import { evalCompiletimeValue, evalRuntimeValues } from './load-syntax';
 import Compiler from "./compiler";
@@ -44,6 +45,8 @@ const convertExport = term => {
   let bindings = [];
   if (isVariableDeclaration(declaration)) {
     bindings = declaration.declarators.map(decl =>  findBindingIdentifierName(decl.binding));
+  } else if (isFunctionDeclaration(declaration) || isClassDeclaration(declaration)) {
+    bindings.push(findBindingIdentifierName(declaration.name));
   }
 
   let namedExports = bindings.map(binding => {
@@ -53,7 +56,8 @@ const convertExport = term => {
     });
   });
   return new Term('ExportFrom', {
-    moduleSpecifier: null, namedExports
+    moduleSpecifier: null,
+    namedExports: List(namedExports)
   });
 };
 
