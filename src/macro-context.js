@@ -35,74 +35,74 @@ export class SyntaxOrTermWrapper {
   }
 
   match(type, value) {
-    let stx = this[symWrap]
+    let stx = this[symWrap];
     if (stx instanceof Syntax) {
-      return stx.match(type, value)
+      return stx.match(type, value);
     }
   }
   
   isIdentifier(value) {
-    return this.match("identifier", value)
+    return this.match("identifier", value);
   }
 
   isAssign(value) {
-    return this.match("assign", value)
+    return this.match("assign", value);
   }
 
   isBooleanLiteral(value) {
-    return this.match("boolean", value)
+    return this.match("boolean", value);
   }
 
   isKeyword(value) {
-    return this.match("keyword", value)
+    return this.match("keyword", value);
   }
 
   isNullLiteral(value) {
-    return this.match("null", value)
+    return this.match("null", value);
   }
 
   isNumericLiteral(value) {
-    return this.match("number", value)
+    return this.match("number", value);
   }
 
   isPunctuator(value) {
-    return this.match("punctuator", value)
+    return this.match("punctuator", value);
   }
 
   isStringLiteral(value) {
-    return this.match("string", value)
+    return this.match("string", value);
   }
 
   isRegularExpression(value) {
-    return this.match("regularExpression", value)
+    return this.match("regularExpression", value);
   }
 
   isTemplate(value) {
-    return this.match("template", value)
+    return this.match("template", value);
   }
 
   isDelimiter(value) {
-    return this.match("delimiter", value)
+    return this.match("delimiter", value);
   }
 
   isParens(value) {
-    return this.match("parens", value)
+    return this.match("parens", value);
   }
 
   isBraces(value) {
-    return this.match("braces", value)
+    return this.match("braces", value);
   }
 
   isBrackets(value) {
-    return this.match("brackets", value)
+    return this.match("brackets", value);
   }
 
   isSyntaxTemplate(value) {
-    return this.match("syntaxTemplate", value)
+    return this.match("syntaxTemplate", value);
   }
 
   isEOF(value) {
-    return this.match("eof", value)
+    return this.match("eof", value);
   }
 
   lineNumber() {
