@@ -15,9 +15,9 @@ import { Modules } from './modules';
 
 // not available in browser
 
-import { transform as babelTransform } from "babel-core"
-import nodeResolver from "./node-module-resolver"
-import nodeLoader from "./node-module-loader"
+import { transform as babelTransform } from "babel-core";
+import nodeResolver from "./node-module-resolver";
+import nodeLoader from "./node-module-loader";
 
 export function expand(source, options = {}) {
   let reader = new Reader(source);
