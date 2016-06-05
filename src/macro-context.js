@@ -10,6 +10,7 @@ const Nothing = Maybe.Nothing;
 
 const symWrap = Symbol('wrapper');
 const symName = Symbol('name');
+const symEnf = Symbol('enforester');
 const symResetValues = Symbol('resetValues');
 
 const getLineNumber = t => {
@@ -140,9 +141,7 @@ ctx :: {
 */
 export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
-    // todo: perhaps replace with a symbol to keep mostly private?
-    this._enf = enf;
-    const { term, rest, prev, done} = enf;
+    const { term, rest, prev, done} = this[symEnf] = enf;
     this[symResetValues] = { term, rest, prev, done };
     this[symName] = name;
     this.context = context;
@@ -161,11 +160,11 @@ export default class MacroContext {
   }
 
   reset() {
-    Object.assign(this._enf, this[symResetValues]);
+    Object.assign(this[symEnf], this[symResetValues]);
   }
 
   next(type = 'Syntax') {
-    if (this._enf.rest.size === 0) {
+    if (this[symEnf].rest.size === 0) {
       return {
         done: true,
         value: null,
@@ -175,13 +174,13 @@ export default class MacroContext {
     switch(type) {
       case 'AssignmentExpression':
       case 'expr':
-        value = this._enf.enforestExpressionLoop();
+        value = this[symEnf].enforestExpressionLoop();
         break;
       case 'Expression':
-        value = this._enf.enforestExpression();
+        value = this[symEnf].enforestExpression();
         break;
       case 'Syntax':
-        value = this._enf.advance();
+        value = this[symEnf].advance();
         if (!this.noScopes) {
           value = value
             .addScope(this.useScope, this.context.bindings, ALL_PHASES)
