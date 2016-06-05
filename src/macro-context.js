@@ -10,6 +10,7 @@ const Nothing = Maybe.Nothing;
 
 const symWrap = Symbol('wrapper');
 const symName = Symbol('name');
+const symResetValues = Symbol('resetValues');
 
 const getLineNumber = t => {
   if (t instanceof Syntax) {
@@ -141,6 +142,8 @@ export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
     // todo: perhaps replace with a symbol to keep mostly private?
     this._enf = enf;
+    const { term, rest, prev, done} = enf;
+    this[symResetValues] = { term, rest, prev, done };
     this[symName] = name;
     this.context = context;
     if (useScope && introducedScope) {
@@ -155,6 +158,10 @@ export default class MacroContext {
 
   name() {
     return new SyntaxOrTermWrapper(this[symName], this.context);
+  }
+
+  reset() {
+    Object.assign(this._enf, this[symResetValues]);
   }
 
   next(type = 'Syntax') {
