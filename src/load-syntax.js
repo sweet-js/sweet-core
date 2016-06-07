@@ -60,7 +60,7 @@ function loadForCompiletime(expr, context) {
         params: new Term("FormalParameters", {
           items: sandboxKeys.map(param => {
             return new Term("BindingIdentifier", {
-              name: Syntax.fromIdentifier(param)
+              name: Syntax.from("identifier", param)
             });
           }),
           rest: null

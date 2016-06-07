@@ -62,13 +62,13 @@ const unaryOps = ["++", "--", "~", "!", "delete", "void", "typeof", "yield", "th
 const isEmpty = R.whereEq({size: 0});
 
 // Syntax -> Boolean
-const isPunctuator = s => s.isPunctuator();
-const isKeyword = s => s.isKeyword();
-const isDelimiter = s => s.isDelimiter();
-const isParens = s => s.isParens();
-const isBraces = s => s.isBraces();
-const isBrackets = s => s.isBrackets();
-const isIdentifier = s => s.isIdentifier();
+const isPunctuator = s => s.match("punctuator");
+const isKeyword = s => s.match("keyword");
+const isDelimiter = s => s.match("delimiter");
+const isParens = s => s.match("parens");
+const isBraces = s => s.match("braces");
+const isBrackets = s => s.match("brackets");
+const isIdentifier = s => s.match("identifier");
 
 // Syntax -> any
 const val = s => s.val();
@@ -79,7 +79,7 @@ const isVal = R.curry((v, s) => s.val() === v);
 const isDot = R.allPass([isPunctuator, isVal('.')]);
 const isColon = R.allPass([isPunctuator, isVal(':')]);
 const isFunctionKeyword = R.allPass([isKeyword, isVal('function')]);
-const isOperator = s => (s.isPunctuator() || s.isKeyword()) &&
+const isOperator = s => (s.match("punctuator") || s.match("keyword")) &&
                           R.any(R.equals(s.val()),
                                 assignOps.concat(binaryOps).concat(unaryOps));
 const isNonLiteralKeyword = R.allPass([isKeyword,
@@ -122,7 +122,7 @@ let isExprReturn = R.curry((l, p) => {
     return true;
   }
   return retKwd.map(s => {
-    return s.isKeyword() && s.val() === 'return' && s.lineNumber() === l;
+    return s.match("keyword") && s.val() === 'return' && s.lineNumber() === l;
   }).getOrElse(false);
 });
 
@@ -171,7 +171,7 @@ let opt = R.curry((a, b, p) => {
 let notDot = R.ifElse(
   R.whereEq({size: 0}),
   Just,
-  p => safeLast(p).map(s => !(s.isPunctuator() && s.val() === '.')).chain(stuffTrue(p))
+  p => safeLast(p).map(s => !(s.match("punctuator") && s.val() === '.')).chain(stuffTrue(p))
 );
 
 // List a -> Maybe List a
