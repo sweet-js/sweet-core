@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var transform = require('babel-core').transform;
+var transform = require('babel-core').transformFromAst;
 
 var argv = require('yargs')
   .usage('Usage: sjs [options] files ...')

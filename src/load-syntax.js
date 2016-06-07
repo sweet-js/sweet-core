@@ -18,6 +18,8 @@ import { unwrap } from './macro-context';
 
 import { replaceTemplate } from './template-processor';
 
+import { toSpiderMonkey as toBabel } from 'shift-spidermonkey-converter';
+
 // indirect eval so in the global scope
 let geval = eval;
 
@@ -77,14 +79,7 @@ function loadForCompiletime(expr, context) {
     }))
   }));
 
-  // TODO: should just pass an AST to babel but the estree converter still
-  // needs some work so until then just gen a string
-  // let estree = convert.toSpiderMonkey(parsed);
-  // let result = transform.fromAst(wrapForCompiletime(estree, sandboxKeys));
-
-  // let result = babel.transform(wrapForCompiletime(estree, sandboxKeys));
-  let gen = codegen(parsed, new FormattedCodeGen);
-  let result = context.transform(gen, {
+  let result = context.transform(toBabel(parsed), {
     babelrc: true,
     filename: context.filename
   });
