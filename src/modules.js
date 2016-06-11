@@ -114,13 +114,17 @@ export class Modules {
         [isExport, t => {
           // exportEntries.push(t);
           // return acc.concat(t);
-          exportEntries.push(convertExport(t));
-          if (isVariableDeclaration(t.declaration)) {
-            return acc.concat(new Term('VariableDeclarationStatement', {
-              declaration: t.declaration
-            }));
+          if (t.declaration) {
+            exportEntries.push(convertExport(t));
+            if (isVariableDeclaration(t.declaration)) {
+              return acc.concat(new Term('VariableDeclarationStatement', {
+                declaration: t.declaration
+              }));
+            }
+            return acc.concat(t.declaration);
           }
-          return acc.concat(t.declaration);
+          exportEntries.push(t);
+          return acc;
         }],
         [isPragma, t => { pragmas.push(t); return acc; } ],
         [_.T, t => acc.concat(t) ]
