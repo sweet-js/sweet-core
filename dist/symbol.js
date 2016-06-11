@@ -4,29 +4,28 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.gensym = gensym;
-var internedMap_636 = new Map();
-var counter_637 = 0;
-function gensym(name_640) {
-  var prefix_641 = name_640 == null ? "s_" : name_640 + "_";
-  var sym_642 = new Symbol_638(prefix_641 + counter_637);
-  counter_637++;
-  return sym_642;
+let internedMap_746 = new Map();
+let counter_747 = 0;
+function gensym(name_750) {
+  let prefix_751 = name_750 == null ? "s_" : name_750 + "_";
+  let sym_752 = new Symbol_748(prefix_751 + counter_747);
+  counter_747++;
+  return sym_752;
 }
-function Symbol_638(name_643) {
-  this.name = name_643;
+function Symbol_748(name_753) {
+  this.name = name_753;
 }
-Symbol_638.prototype.toString = function () {
+Symbol_748.prototype.toString = function () {
   return this.name;
 };
-function makeSymbol_639(name_644) {
-  if (internedMap_636.has(name_644)) {
-    return internedMap_636.get(name_644);
+function makeSymbol_749(name_754) {
+  if (internedMap_746.has(name_754)) {
+    return internedMap_746.get(name_754);
   } else {
-    var sym = new Symbol_638(name_644);
-    internedMap_636.set(name_644, sym);
+    let sym = new Symbol_748(name_754);
+    internedMap_746.set(name_754, sym);
     return sym;
   }
 }
-exports.Symbol = makeSymbol_639;
-exports.SymbolClass = Symbol_638;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3N3ZWV0L3N5bWJvbC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7OztRQUVnQixNLEdBQUEsTTtBQUZoQixJQUFJLGtCQUFrQixJQUFJLEdBQUosRUFBdEI7QUFDQSxJQUFJLGNBQWMsQ0FBbEI7QUFDTyxTQUFTLE1BQVQsQ0FBZ0IsUUFBaEIsRUFBMEI7QUFDL0IsTUFBSSxhQUFhLFlBQVksSUFBWixHQUFtQixJQUFuQixHQUEwQixXQUFXLEdBQXREO0FBQ0EsTUFBSSxVQUFVLElBQUksVUFBSixDQUFlLGFBQWEsV0FBNUIsQ0FBZDtBQUNBO0FBQ0EsU0FBTyxPQUFQO0FBQ0Q7QUFDRCxTQUFTLFVBQVQsQ0FBb0IsUUFBcEIsRUFBOEI7QUFDNUIsT0FBSyxJQUFMLEdBQVksUUFBWjtBQUNEO0FBQ0QsV0FBVyxTQUFYLENBQXFCLFFBQXJCLEdBQWdDLFlBQVk7QUFDMUMsU0FBTyxLQUFLLElBQVo7QUFDRCxDQUZEO0FBR0EsU0FBUyxjQUFULENBQXdCLFFBQXhCLEVBQWtDO0FBQ2hDLE1BQUksZ0JBQWdCLEdBQWhCLENBQW9CLFFBQXBCLENBQUosRUFBbUM7QUFDakMsV0FBTyxnQkFBZ0IsR0FBaEIsQ0FBb0IsUUFBcEIsQ0FBUDtBQUNELEdBRkQsTUFFTztBQUNMLFFBQUksTUFBTSxJQUFJLFVBQUosQ0FBZSxRQUFmLENBQVY7QUFDQSxvQkFBZ0IsR0FBaEIsQ0FBb0IsUUFBcEIsRUFBOEIsR0FBOUI7QUFDQSxXQUFPLEdBQVA7QUFDRDtBQUNGO1FBQ3lCLE0sR0FBbEIsYztRQUF3QyxXLEdBQWQsVSIsImZpbGUiOiJzeW1ib2wuanMiLCJzb3VyY2VzQ29udGVudCI6WyJsZXQgaW50ZXJuZWRNYXBfNjM2ID0gbmV3IE1hcDtcbmxldCBjb3VudGVyXzYzNyA9IDA7XG5leHBvcnQgZnVuY3Rpb24gZ2Vuc3ltKG5hbWVfNjQwKSB7XG4gIGxldCBwcmVmaXhfNjQxID0gbmFtZV82NDAgPT0gbnVsbCA/IFwic19cIiA6IG5hbWVfNjQwICsgXCJfXCI7XG4gIGxldCBzeW1fNjQyID0gbmV3IFN5bWJvbF82MzgocHJlZml4XzY0MSArIGNvdW50ZXJfNjM3KTtcbiAgY291bnRlcl82MzcrKztcbiAgcmV0dXJuIHN5bV82NDI7XG59XG5mdW5jdGlvbiBTeW1ib2xfNjM4KG5hbWVfNjQzKSB7XG4gIHRoaXMubmFtZSA9IG5hbWVfNjQzO1xufVxuU3ltYm9sXzYzOC5wcm90b3R5cGUudG9TdHJpbmcgPSBmdW5jdGlvbiAoKSB7XG4gIHJldHVybiB0aGlzLm5hbWU7XG59O1xuZnVuY3Rpb24gbWFrZVN5bWJvbF82MzkobmFtZV82NDQpIHtcbiAgaWYgKGludGVybmVkTWFwXzYzNi5oYXMobmFtZV82NDQpKSB7XG4gICAgcmV0dXJuIGludGVybmVkTWFwXzYzNi5nZXQobmFtZV82NDQpO1xuICB9IGVsc2Uge1xuICAgIGxldCBzeW0gPSBuZXcgU3ltYm9sXzYzOChuYW1lXzY0NCk7XG4gICAgaW50ZXJuZWRNYXBfNjM2LnNldChuYW1lXzY0NCwgc3ltKTtcbiAgICByZXR1cm4gc3ltO1xuICB9XG59XG5leHBvcnQge21ha2VTeW1ib2xfNjM5IGFzIFN5bWJvbCwgU3ltYm9sXzYzOCBhcyBTeW1ib2xDbGFzc307XG4iXX0=
+exports.Symbol = makeSymbol_749;
+exports.SymbolClass = Symbol_748;

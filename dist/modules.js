@@ -3,15 +3,17 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Modules = undefined;
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+exports.Modules = exports.Module = undefined;
 
 var _immutable = require("immutable");
 
 var _env = require("./env");
 
 var _env2 = _interopRequireDefault(_env);
+
+var _store = require("./store");
+
+var _store2 = _interopRequireDefault(_store);
 
 var _shiftReader = require("./shift-reader");
 
@@ -25,9 +27,15 @@ var _tokenExpander = require("./token-expander.js");
 
 var _tokenExpander2 = _interopRequireDefault(_tokenExpander);
 
+var _termExpander = require("./term-expander.js");
+
+var _termExpander2 = _interopRequireDefault(_termExpander);
+
 var _bindingMap = require("./binding-map.js");
 
 var _bindingMap2 = _interopRequireDefault(_bindingMap);
+
+var _symbol = require("./symbol");
 
 var _terms = require("./terms");
 
@@ -35,81 +43,189 @@ var _terms2 = _interopRequireDefault(_terms);
 
 var _loadSyntax = require("./load-syntax");
 
-var _loadSyntax2 = _interopRequireDefault(_loadSyntax);
+var _compiler = require("./compiler");
+
+var _compiler2 = _interopRequireDefault(_compiler);
+
+var _transforms = require("./transforms");
+
+var _scope = require("./scope");
+
+var _errors = require("./errors");
+
+var _hygieneUtils = require("./hygiene-utils");
+
+var _syntax = require("./syntax");
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Module_388 = function () {
-  function Module_388(moduleSpecifier_390, importEntries_391, exportEntries_392, body_393) {
-    _classCallCheck(this, Module_388);
-
-    this.moduleSpecifier = moduleSpecifier_390;
-    this.importEntries = importEntries_391;
-    this.exportEntries = exportEntries_392;
-    this.body = body_393;
+class Module {
+  constructor(moduleSpecifier_416, isNative_417, importEntries_418, exportEntries_419, pragmas_420, body_421) {
+    this.moduleSpecifier = moduleSpecifier_416;
+    this.isNative = isNative_417;
+    this.importEntries = importEntries_418;
+    this.exportEntries = exportEntries_419;
+    this.pragmas = pragmas_420;
+    this.body = body_421;
   }
+}
+exports.Module = Module;
+const findBindingIdentifierName_413 = term_422 => {
+  (0, _errors.assert)(term_422.name, `not implemented yet for type ${ term_422.type }`);
+  return term_422.name;
+};
+const convertExport_414 = term_423 => {
+  let declaration_424 = term_423.declaration;
+  let bindings_425 = [];
+  if ((0, _terms.isVariableDeclaration)(declaration_424)) {
+    bindings_425 = declaration_424.declarators.map(decl_427 => findBindingIdentifierName_413(decl_427.binding));
+  } else if ((0, _terms.isFunctionDeclaration)(declaration_424) || (0, _terms.isClassDeclaration)(declaration_424)) {
+    bindings_425.push(findBindingIdentifierName_413(declaration_424.name));
+  }
+  let namedExports_426 = bindings_425.map(binding_428 => {
+    return new _terms2.default("ExportSpecifier", { name: null, exportedName: binding_428 });
+  });
+  return new _terms2.default("ExportFrom", { moduleSpecifier: null, namedExports: (0, _immutable.List)(namedExports_426) });
+};
+const pragmaRegep_415 = /^\s*#\w*/;
+class Modules {
+  constructor(context_429) {
+    this.compiledModules = new Map();
+    this.context = context_429;
+    this.context.modules = this;
+  }
+  loadString(str_430) {
+    let checkPragma_431 = arguments.length <= 1 || arguments[1] === undefined ? true : arguments[1];
 
-  _createClass(Module_388, [{
-    key: "visit",
-    value: function visit(context_394) {
-      this.exportEntries.forEach(function (ex_395) {
-        if ((0, _terms.isSyntaxDeclaration)(ex_395.declaration) || (0, _terms.isSyntaxrecDeclaration)(ex_395.declaration)) {
-          ex_395.declaration.declarators.forEach((0, _loadSyntax2.default)(_.__, context_394, context_394.store));
-        }
-      });
-      return context_394.store;
+    let hasPragma_432 = pragmaRegep_415.test(str_430);
+    if (checkPragma_431 && !hasPragma_432) {
+      return { isNative: true, body: (0, _immutable.List)() };
     }
-  }]);
-
-  return Module_388;
-}();
-
-var pragmaRegep_389 = /^\s*#\w*/;
-
-var Modules = exports.Modules = function () {
-  function Modules() {
-    _classCallCheck(this, Modules);
-
-    this.loadedModules = new Map();
+    return { isNative: !hasPragma_432, body: new _shiftReader2.default(str_430).read() };
   }
-
-  _createClass(Modules, [{
-    key: "load",
-    value: function load(modulePath_396, context_397) {
-      var _this = this;
-
-      var path_398 = context_397.moduleResolver(modulePath_396, context_397.cwd);
-      if (!this.loadedModules.has(path_398)) {
-        var modStr = context_397.moduleLoader(path_398);
-        if (!pragmaRegep_389.test(modStr)) {
-          this.loadedModules.set(path_398, new Module_388(path_398, (0, _immutable.List)(), (0, _immutable.List)(), (0, _immutable.List)()));
-        } else {
-          (function () {
-            var reader = new _shiftReader2.default(modStr);
-            var stxl = reader.read().slice(3);
-            var tokenExpander = new _tokenExpander2.default(_.merge(context_397, { env: new _env2.default(), store: new _env2.default(), bindings: new _bindingMap2.default() }));
-            var terms = tokenExpander.expand(stxl);
-            var importEntries = [];
-            var exportEntries = [];
-            terms.forEach(function (t_399) {
-              _.cond([[_terms.isImport, function (t_400) {
-                return importEntries.push(t_400);
-              }], [_terms.isExport, function (t_401) {
-                return exportEntries.push(t_401);
-              }]])(t_399);
-            });
-            _this.loadedModules.set(path_398, new Module_388(path_398, (0, _immutable.List)(importEntries), (0, _immutable.List)(exportEntries), terms));
-          })();
+  load(path_433) {
+    return this.loadString(this.context.moduleLoader(path_433));
+  }
+  compile(mod_434, path_435) {
+    let stxl_436 = mod_434.body;
+    let outScope_437 = (0, _scope.freshScope)("outsideEdge");
+    let inScope_438 = (0, _scope.freshScope)(`insideEdge0`);
+    let compiler_439 = new _compiler2.default(0, new _env2.default(), new _store2.default(), _.merge(this.context, { currentScope: [outScope_437, inScope_438] }));
+    let terms_440 = compiler_439.compile(stxl_436.map(s_445 => s_445.addScope(outScope_437, this.context.bindings, _syntax.ALL_PHASES).addScope(inScope_438, this.context.bindings, 0)));
+    let importEntries_441 = [];
+    let exportEntries_442 = [];
+    let pragmas_443 = [];
+    let filteredTerms_444 = terms_440.reduce((acc_446, t_447) => {
+      return _.cond([[_terms.isImport, t_448 => {
+        importEntries_441.push(t_448);
+        return acc_446;
+      }], [_terms.isExport, t_449 => {
+        if (t_449.declaration) {
+          exportEntries_442.push(convertExport_414(t_449));
+          if ((0, _terms.isVariableDeclaration)(t_449.declaration)) {
+            return acc_446.concat(new _terms2.default("VariableDeclarationStatement", { declaration: t_449.declaration }));
+          }
+          return acc_446.concat(t_449.declaration);
         }
+        exportEntries_442.push(t_449);
+        return acc_446;
+      }], [_terms.isPragma, t_450 => {
+        pragmas_443.push(t_450);
+        return acc_446;
+      }], [_.T, t_451 => acc_446.concat(t_451)]])(t_447);
+    }, (0, _immutable.List)());
+    return new Module(path_435, mod_434.isNative, (0, _immutable.List)(importEntries_441), (0, _immutable.List)(exportEntries_442), (0, _immutable.List)(pragmas_443), filteredTerms_444);
+  }
+  compileEntrypoint(source_452, filename_453) {
+    let enforcePragma_454 = arguments.length <= 2 || arguments[2] === undefined ? false : arguments[2];
+
+    let stxl_455 = this.loadString(source_452, false);
+    if (enforcePragma_454 && stxl_455.isNative) {
+      throw new Error(`Entrypoint ${ filename_453 } must begin with #lang pragma`);
+    }
+    return this.getAtPhase("<<entrypoint>>", 0, stxl_455);
+  }
+  getAtPhase(rawPath_456, phase_457) {
+    let rawStxl_458 = arguments.length <= 2 || arguments[2] === undefined ? null : arguments[2];
+
+    let path_459 = rawPath_456 === "<<entrypoint>>" ? rawPath_456 : this.context.moduleResolver(rawPath_456, this.context.cwd);
+    let mapKey_460 = `${ path_459 }:${ phase_457 }`;
+    if (!this.compiledModules.has(mapKey_460)) {
+      if (phase_457 === 0) {
+        let stxl = rawStxl_458 != null ? rawStxl_458 : this.load(path_459);
+        this.compiledModules.set(mapKey_460, this.compile(stxl, path_459));
+      } else {
+        let rawMod = this.getAtPhase(rawPath_456, 0, rawStxl_458);
+        let scope = (0, _scope.freshScope)(`insideEdge${ phase_457 }`);
+        this.compiledModules.set(mapKey_460, new Module(rawMod.moduleSpecifier, false, rawMod.importEntries.map(term_461 => term_461.addScope(scope, this.context.bindings, phase_457)), rawMod.exportEntries.map(term_462 => term_462.addScope(scope, this.context.bindings, phase_457)), rawMod.pragmas, rawMod.body.map(term_463 => term_463.addScope(scope, this.context.bindings, phase_457))));
       }
-      return this.loadedModules.get(path_398);
     }
-  }]);
+    return this.compiledModules.get(mapKey_460);
+  }
+  has(rawPath_464) {
+    let phase_465 = arguments.length <= 1 || arguments[1] === undefined ? 0 : arguments[1];
 
-  return Modules;
-}();
-//# sourceMappingURL=data:application/json;base64,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LCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQge0xpc3R9IGZyb20gXCJpbW11dGFibGVcIjtcbmltcG9ydCBFbnYgZnJvbSBcIi4vZW52XCI7XG5pbXBvcnQgUmVhZGVyIGZyb20gXCIuL3NoaWZ0LXJlYWRlclwiO1xuaW1wb3J0ICAqIGFzIF8gZnJvbSBcInJhbWRhXCI7XG5pbXBvcnQgVG9rZW5FeHBhbmRlciBmcm9tIFwiLi90b2tlbi1leHBhbmRlci5qc1wiO1xuaW1wb3J0IEJpbmRpbmdNYXAgZnJvbSBcIi4vYmluZGluZy1tYXAuanNcIjtcbmltcG9ydCBUZXJtLCB7aXNFT0YsIGlzQmluZGluZ0lkZW50aWZpZXIsIGlzRnVuY3Rpb25EZWNsYXJhdGlvbiwgaXNGdW5jdGlvbkV4cHJlc3Npb24sIGlzRnVuY3Rpb25UZXJtLCBpc0Z1bmN0aW9uV2l0aE5hbWUsIGlzU3ludGF4RGVjbGFyYXRpb24sIGlzU3ludGF4cmVjRGVjbGFyYXRpb24sIGlzVmFyaWFibGVEZWNsYXJhdGlvbiwgaXNWYXJpYWJsZURlY2xhcmF0aW9uU3RhdGVtZW50LCBpc0ltcG9ydCwgaXNFeHBvcnR9IGZyb20gXCIuL3Rlcm1zXCI7XG5pbXBvcnQgbG9hZFN5bnRheCBmcm9tIFwiLi9sb2FkLXN5bnRheFwiO1xuY2xhc3MgTW9kdWxlXzM4OCB7XG4gIGNvbnN0cnVjdG9yKG1vZHVsZVNwZWNpZmllcl8zOTAsIGltcG9ydEVudHJpZXNfMzkxLCBleHBvcnRFbnRyaWVzXzM5MiwgYm9keV8zOTMpIHtcbiAgICB0aGlzLm1vZHVsZVNwZWNpZmllciA9IG1vZHVsZVNwZWNpZmllcl8zOTA7XG4gICAgdGhpcy5pbXBvcnRFbnRyaWVzID0gaW1wb3J0RW50cmllc18zOTE7XG4gICAgdGhpcy5leHBvcnRFbnRyaWVzID0gZXhwb3J0RW50cmllc18zOTI7XG4gICAgdGhpcy5ib2R5ID0gYm9keV8zOTM7XG4gIH1cbiAgdmlzaXQoY29udGV4dF8zOTQpIHtcbiAgICB0aGlzLmV4cG9ydEVudHJpZXMuZm9yRWFjaChleF8zOTUgPT4ge1xuICAgICAgaWYgKGlzU3ludGF4RGVjbGFyYXRpb24oZXhfMzk1LmRlY2xhcmF0aW9uKSB8fCBpc1N5bnRheHJlY0RlY2xhcmF0aW9uKGV4XzM5NS5kZWNsYXJhdGlvbikpIHtcbiAgICAgICAgZXhfMzk1LmRlY2xhcmF0aW9uLmRlY2xhcmF0b3JzLmZvckVhY2gobG9hZFN5bnRheChfLl9fLCBjb250ZXh0XzM5NCwgY29udGV4dF8zOTQuc3RvcmUpKTtcbiAgICAgIH1cbiAgICB9KTtcbiAgICByZXR1cm4gY29udGV4dF8zOTQuc3RvcmU7XG4gIH1cbn1cbmNvbnN0IHByYWdtYVJlZ2VwXzM4OSA9IC9eXFxzKiNcXHcqLztcbmV4cG9ydCBjbGFzcyBNb2R1bGVzIHtcbiAgY29uc3RydWN0b3IoKSB7XG4gICAgdGhpcy5sb2FkZWRNb2R1bGVzID0gbmV3IE1hcDtcbiAgfVxuICBsb2FkKG1vZHVsZVBhdGhfMzk2LCBjb250ZXh0XzM5Nykge1xuICAgIGxldCBwYXRoXzM5OCA9IGNvbnRleHRfMzk3Lm1vZHVsZVJlc29sdmVyKG1vZHVsZVBhdGhfMzk2LCBjb250ZXh0XzM5Ny5jd2QpO1xuICAgIGlmICghdGhpcy5sb2FkZWRNb2R1bGVzLmhhcyhwYXRoXzM5OCkpIHtcbiAgICAgIGxldCBtb2RTdHIgPSBjb250ZXh0XzM5Ny5tb2R1bGVMb2FkZXIocGF0aF8zOTgpO1xuICAgICAgaWYgKCFwcmFnbWFSZWdlcF8zODkudGVzdChtb2RTdHIpKSB7XG4gICAgICAgIHRoaXMubG9hZGVkTW9kdWxlcy5zZXQocGF0aF8zOTgsIG5ldyBNb2R1bGVfMzg4KHBhdGhfMzk4LCBMaXN0KCksIExpc3QoKSwgTGlzdCgpKSk7XG4gICAgICB9IGVsc2Uge1xuICAgICAgICBsZXQgcmVhZGVyID0gbmV3IFJlYWRlcihtb2RTdHIpO1xuICAgICAgICBsZXQgc3R4bCA9IHJlYWRlci5yZWFkKCkuc2xpY2UoMyk7XG4gICAgICAgIGxldCB0b2tlbkV4cGFuZGVyID0gbmV3IFRva2VuRXhwYW5kZXIoXy5tZXJnZShjb250ZXh0XzM5Nywge2VudjogbmV3IEVudiwgc3RvcmU6IG5ldyBFbnYsIGJpbmRpbmdzOiBuZXcgQmluZGluZ01hcH0pKTtcbiAgICAgICAgbGV0IHRlcm1zID0gdG9rZW5FeHBhbmRlci5leHBhbmQoc3R4bCk7XG4gICAgICAgIGxldCBpbXBvcnRFbnRyaWVzID0gW107XG4gICAgICAgIGxldCBleHBvcnRFbnRyaWVzID0gW107XG4gICAgICAgIHRlcm1zLmZvckVhY2godF8zOTkgPT4ge1xuICAgICAgICAgIF8uY29uZChbW2lzSW1wb3J0LCB0XzQwMCA9PiBpbXBvcnRFbnRyaWVzLnB1c2godF80MDApXSwgW2lzRXhwb3J0LCB0XzQwMSA9PiBleHBvcnRFbnRyaWVzLnB1c2godF80MDEpXV0pKHRfMzk5KTtcbiAgICAgICAgfSk7XG4gICAgICAgIHRoaXMubG9hZGVkTW9kdWxlcy5zZXQocGF0aF8zOTgsIG5ldyBNb2R1bGVfMzg4KHBhdGhfMzk4LCBMaXN0KGltcG9ydEVudHJpZXMpLCBMaXN0KGV4cG9ydEVudHJpZXMpLCB0ZXJtcykpO1xuICAgICAgfVxuICAgIH1cbiAgICByZXR1cm4gdGhpcy5sb2FkZWRNb2R1bGVzLmdldChwYXRoXzM5OCk7XG4gIH1cbn1cbiJdfQ==
+    let path_466 = rawPath_464 === "<<entrypoint>>" ? rawPath_464 : this.context.moduleResolver(rawPath_464, this.context.cwd);
+    let key_467 = `${ path_466 }:${ phase_465 }`;
+    return this.compiledModules.has(key_467) && !this.compiledModules.get(key_467).isNative;
+  }
+  registerSyntaxDeclaration(term_468, phase_469, store_470) {
+    term_468.declarators.forEach(decl_471 => {
+      let val_472 = (0, _loadSyntax.evalCompiletimeValue)(decl_471.init.gen(), _.merge(this.context, { phase: phase_469 + 1, store: store_470 }));
+      (0, _hygieneUtils.collectBindings)(decl_471.binding).forEach(stx_473 => {
+        if (phase_469 !== 0) {
+          let newBinding = (0, _symbol.gensym)(stx_473.val());
+          this.context.bindings.add(stx_473, { binding: newBinding, phase: phase_469, skipDup: false });
+        }
+        let resolvedName_474 = stx_473.resolve(phase_469);
+        store_470.set(resolvedName_474, new _transforms.CompiletimeTransform(val_472));
+      });
+    });
+  }
+  registerVariableDeclaration(term_475, phase_476, store_477) {
+    term_475.declarators.forEach(decl_478 => {
+      (0, _hygieneUtils.collectBindings)(decl_478.binding).forEach(stx_479 => {
+        if (phase_476 !== 0) {
+          let newBinding = (0, _symbol.gensym)(stx_479.val());
+          this.context.bindings.add(stx_479, { binding: newBinding, phase: phase_476, skipDup: term_475.kind === "var" });
+        }
+        let resolvedName_480 = stx_479.resolve(phase_476);
+        store_477.set(resolvedName_480, new _transforms.VarBindingTransform(stx_479));
+      });
+    });
+  }
+  registerFunctionOrClass(term_481, phase_482, store_483) {
+    (0, _hygieneUtils.collectBindings)(term_481.name).forEach(stx_484 => {
+      if (phase_482 !== 0) {
+        let newBinding = (0, _symbol.gensym)(stx_484.val());
+        this.context.bindings.add(stx_484, { binding: newBinding, phase: phase_482, skipDup: false });
+      }
+      let resolvedName_485 = stx_484.resolve(phase_482);
+      store_483.set(resolvedName_485, new _transforms.VarBindingTransform(stx_484));
+    });
+  }
+  visit(mod_486, phase_487, store_488) {
+    mod_486.body.forEach(term_489 => {
+      if ((0, _terms.isSyntaxDeclarationStatement)(term_489)) {
+        this.registerSyntaxDeclaration(term_489.declaration, phase_487, store_488);
+      }
+    });
+    return store_488;
+  }
+  invoke(mod_490, phase_491, store_492) {
+    let body_493 = mod_490.body.filter(_.complement(_terms.isCompiletimeStatement)).map(term_495 => {
+      term_495 = term_495.gen();
+      if ((0, _terms.isVariableDeclarationStatement)(term_495)) {
+        this.registerVariableDeclaration(term_495.declaration, phase_491, store_492);
+      } else if ((0, _terms.isFunctionDeclaration)(term_495)) {
+        this.registerFunctionOrClass(term_495, phase_491, store_492);
+      }
+      return term_495;
+    });
+    let exportsObj_494 = (0, _loadSyntax.evalRuntimeValues)(body_493, _.merge(this.context, { store: store_492, phase: phase_491 }));
+    return store_492;
+  }
+}
+exports.Modules = Modules;
