@@ -33,7 +33,8 @@ argv._.forEach(function (file) {
     transform: transform,
     filename: file,
     moduleResolver: moduleResolver,
-    moduleLoader: moduleLoader
+    moduleLoader: moduleLoader,
+    enforcePragma: true
   });
 
   if (argv.outFile) {

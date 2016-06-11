@@ -22,6 +22,7 @@ var result = compile(source, {
 	// transform: transform,
 	filename: './test.js',
   moduleResolver: moduleResolver,
-  moduleLoader: moduleLoader
+  moduleLoader: moduleLoader,
+	enforcePragma: true
 });
 console.log(result.code);

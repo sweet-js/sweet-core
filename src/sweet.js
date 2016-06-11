@@ -22,7 +22,7 @@ export function expand(source, options = {}) {
     moduleLoader: options.moduleLoader,
     bindings
   });
-  let compiledMod = modules.compileEntrypoint(source, options.filename);
+  let compiledMod = modules.compileEntrypoint(source, options.filename, options.enforcePragma);
   let nativeImports = compiledMod.importEntries.filter(imp => !modules.has(imp.moduleSpecifier.val()));
   return new Term("Module", {
     directives: List(),

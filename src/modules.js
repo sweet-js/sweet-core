@@ -71,14 +71,15 @@ export class Modules {
   }
 
   loadString(str, checkPragma = true) {
-    if (checkPragma && !pragmaRegep.test(str)) {
+    let hasPragma = pragmaRegep.test(str);
+    if (checkPragma && !hasPragma) {
       return {
         isNative: true,
         body: List()
       };
     }
     return {
-      isNative: false,
+      isNative: !hasPragma,
       body: new Reader(str).read()
     };
   }
@@ -135,8 +136,11 @@ export class Modules {
     );
   }
 
-  compileEntrypoint(source, filename) {
+  compileEntrypoint(source, filename, enforcePragma = false) {
     let stxl = this.loadString(source, false);
+    if (enforcePragma && stxl.isNative) {
+      throw new Error(`Entrypoint ${filename} must begin with #lang pragma`);
+    }
     return this.getAtPhase('<<entrypoint>>', 0, stxl);
   }
 
