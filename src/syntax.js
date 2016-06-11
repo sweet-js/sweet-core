@@ -24,21 +24,21 @@ export let Types = {
     create: (value, stx) => new Syntax({
       type: TokenType.NULL,
       value: null
-    }, stx.context)
+    }, stx)
   },
   number: {
     match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.NumericLiteral,
     create: (value, stx) => new Syntax({
       type: TokenType.NUMBER,
       value
-    }, stx.context)
+    }, stx)
   },
   string: {
 		match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.StringLiteral,
     create: (value, stx) => new Syntax({
       type: TokenType.STRING,
       str: value
-    }, stx.context)
+    }, stx)
   },
   punctuator: {
 		match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.Punctuator,
@@ -48,7 +48,7 @@ export let Types = {
         name: value
       },
       value
-    }, stx.context)
+    }, stx)
   },
   keyword: {
 		match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.Keyword,
@@ -58,21 +58,21 @@ export let Types = {
         name: value
       },
       value
-    }, stx.context)
+    }, stx)
   },
   identifier: {
 		match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.Ident,
     create: (value, stx) => new Syntax({
       type: TokenType.IDENTIFIER,
       value
-    }, stx.context)
+    }, stx)
   },
   regularExpression: {
 		match: token => !Types.delimiter.match(token) && token.type.klass === TokenClass.RegularExpression,
     create: (value, stx) => new Syntax({
       type: TokenType.REGEXP,
       value
-    }, stx.context)
+    }, stx)
   },
   braces: {
 		match: token => Types.delimiter.match(token) &&
@@ -86,7 +86,7 @@ export let Types = {
         type: TokenType.RBRACE,
         value: "}"
       });
-      return new Syntax(List.of(left).concat(inner).push(right), stx.context);
+      return new Syntax(List.of(left).concat(inner).push(right), stx);
     }
   },
   brackets: {
@@ -101,7 +101,7 @@ export let Types = {
         type: TokenType.RBRACK,
         value: "]"
       });
-      return new Syntax(List.of(left).concat(inner).push(right), stx.context);
+      return new Syntax(List.of(left).concat(inner).push(right), stx);
     }
   },
   parens: {
@@ -116,7 +116,7 @@ export let Types = {
         type: TokenType.RPAREN,
         value: ")"
       });
-      return new Syntax(List.of(left).concat(inner).push(right), stx.context);
+      return new Syntax(List.of(left).concat(inner).push(right), stx);
     }
   },
 
