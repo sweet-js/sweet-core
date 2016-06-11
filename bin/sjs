@@ -34,7 +34,7 @@ argv._.forEach(function (file) {
     filename: file,
     moduleResolver: moduleResolver,
     moduleLoader: moduleLoader,
-    enforcePragma: true
+    enforcePragma: false
   });
 
   if (argv.outFile) {
