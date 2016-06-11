@@ -58,7 +58,8 @@ export class CollectBindingSyntax extends ASTDispatcher {
   }
 
   collectObjectBinding (term) {
-    return term.properties.flatMap(prop => this.collect(prop));
+    // return term.properties.flatMap(prop => this.collect(prop));
+    return List();
   }
 
   // registerVariableDeclaration(term) {
