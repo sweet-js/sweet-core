@@ -3,14 +3,15 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.mixin = mixin;
-function mixin(target_1141, source_1142) {
-  class F_1143 extends target_1141 {}
-  Object.getOwnPropertyNames(source_1142.prototype).forEach(name_1144 => {
-    if (name_1144 !== "constructor") {
-      let newProp = Object.getOwnPropertyDescriptor(source_1142.prototype, name_1144);
-      Object.defineProperty(F_1143.prototype, name_1144, newProp);
+function mixin_1290(target_1291, source_1292) {
+  class F extends target_1291 {}
+  Object.getOwnPropertyNames(source_1292.prototype).forEach(name_1293 => {
+    if (name_1293 !== "constructor") {
+      let newProp = Object.getOwnPropertyDescriptor(source_1292.prototype, name_1293);
+      Object.defineProperty(F.prototype, name_1293, newProp);
     }
   });
-  return F_1143;
+  return F;
 }
+exports.mixin = mixin_1290;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3N3ZWV0L3V0aWxzLmpzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7O0FBQUEsU0FBUyxVQUFULENBQW9CLFdBQXBCLEVBQWlDLFdBQWpDLEVBQThDO0FBQzVDLFFBQU0sQ0FBTixTQUFnQixXQUFoQixDQUE0QjtBQUM1QixTQUFPLG1CQUFQLENBQTJCLFlBQVksU0FBdkMsRUFBa0QsT0FBbEQsQ0FBMEQsYUFBYTtBQUNyRSxRQUFJLGNBQWMsYUFBbEIsRUFBaUM7QUFDL0IsVUFBSSxVQUFVLE9BQU8sd0JBQVAsQ0FBZ0MsWUFBWSxTQUE1QyxFQUF1RCxTQUF2RCxDQUFkO0FBQ0EsYUFBTyxjQUFQLENBQXNCLEVBQUUsU0FBeEIsRUFBbUMsU0FBbkMsRUFBOEMsT0FBOUM7QUFDRDtBQUNGLEdBTEQ7QUFNQSxTQUFPLENBQVA7QUFDRDtRQUNxQixLLEdBQWQsVSIsImZpbGUiOiJ1dGlscy5qcyIsInNvdXJjZXNDb250ZW50IjpbImZ1bmN0aW9uIG1peGluXzEyOTAodGFyZ2V0XzEyOTEsIHNvdXJjZV8xMjkyKSB7XG4gIGNsYXNzIEYgZXh0ZW5kcyB0YXJnZXRfMTI5MSB7fVxuICBPYmplY3QuZ2V0T3duUHJvcGVydHlOYW1lcyhzb3VyY2VfMTI5Mi5wcm90b3R5cGUpLmZvckVhY2gobmFtZV8xMjkzID0+IHtcbiAgICBpZiAobmFtZV8xMjkzICE9PSBcImNvbnN0cnVjdG9yXCIpIHtcbiAgICAgIGxldCBuZXdQcm9wID0gT2JqZWN0LmdldE93blByb3BlcnR5RGVzY3JpcHRvcihzb3VyY2VfMTI5Mi5wcm90b3R5cGUsIG5hbWVfMTI5Myk7XG4gICAgICBPYmplY3QuZGVmaW5lUHJvcGVydHkoRi5wcm90b3R5cGUsIG5hbWVfMTI5MywgbmV3UHJvcCk7XG4gICAgfVxuICB9KTtcbiAgcmV0dXJuIEY7XG59XG5leHBvcnQge21peGluXzEyOTAgYXMgbWl4aW59Il19

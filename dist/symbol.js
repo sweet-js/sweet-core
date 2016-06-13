@@ -3,29 +3,30 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.gensym = gensym;
-let internedMap_746 = new Map();
-let counter_747 = 0;
-function gensym(name_750) {
-  let prefix_751 = name_750 == null ? "s_" : name_750 + "_";
-  let sym_752 = new Symbol_748(prefix_751 + counter_747);
-  counter_747++;
-  return sym_752;
+let internedMap_768 = new Map();
+let counter_769 = 0;
+function gensym_770(name_773) {
+  let prefix_774 = name_773 == null ? "s_" : name_773 + "_";
+  let sym_775 = new Symbol_771(prefix_774 + counter_769);
+  counter_769++;
+  return sym_775;
 }
-function Symbol_748(name_753) {
-  this.name = name_753;
+function Symbol_771(name_776) {
+  this.name = name_776;
 }
-Symbol_748.prototype.toString = function () {
+Symbol_771.prototype.toString = function () {
   return this.name;
 };
-function makeSymbol_749(name_754) {
-  if (internedMap_746.has(name_754)) {
-    return internedMap_746.get(name_754);
+function makeSymbol_772(name_777) {
+  if (internedMap_768.has(name_777)) {
+    return internedMap_768.get(name_777);
   } else {
-    let sym = new Symbol_748(name_754);
-    internedMap_746.set(name_754, sym);
+    let sym = new Symbol_771(name_777);
+    internedMap_768.set(name_777, sym);
     return sym;
   }
 }
-exports.Symbol = makeSymbol_749;
-exports.SymbolClass = Symbol_748;
+exports.Symbol = makeSymbol_772;
+exports.SymbolClass = Symbol_771;
+exports.gensym = gensym_770;
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3N3ZWV0L3N5bWJvbC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7OztBQUFBLElBQUksa0JBQWtCLElBQUksR0FBSixFQUF0QjtBQUNBLElBQUksY0FBYyxDQUFsQjtBQUNBLFNBQVMsVUFBVCxDQUFvQixRQUFwQixFQUE4QjtBQUM1QixNQUFJLGFBQWEsWUFBWSxJQUFaLEdBQW1CLElBQW5CLEdBQTBCLFdBQVcsR0FBdEQ7QUFDQSxNQUFJLFVBQVUsSUFBSSxVQUFKLENBQWUsYUFBYSxXQUE1QixDQUFkO0FBQ0E7QUFDQSxTQUFPLE9BQVA7QUFDRDtBQUNELFNBQVMsVUFBVCxDQUFvQixRQUFwQixFQUE4QjtBQUM1QixPQUFLLElBQUwsR0FBWSxRQUFaO0FBQ0Q7QUFDRCxXQUFXLFNBQVgsQ0FBcUIsUUFBckIsR0FBZ0MsWUFBWTtBQUMxQyxTQUFPLEtBQUssSUFBWjtBQUNELENBRkQ7QUFHQSxTQUFTLGNBQVQsQ0FBd0IsUUFBeEIsRUFBa0M7QUFDaEMsTUFBSSxnQkFBZ0IsR0FBaEIsQ0FBb0IsUUFBcEIsQ0FBSixFQUFtQztBQUNqQyxXQUFPLGdCQUFnQixHQUFoQixDQUFvQixRQUFwQixDQUFQO0FBQ0QsR0FGRCxNQUVPO0FBQ0wsUUFBSSxNQUFNLElBQUksVUFBSixDQUFlLFFBQWYsQ0FBVjtBQUNBLG9CQUFnQixHQUFoQixDQUFvQixRQUFwQixFQUE4QixHQUE5QjtBQUNBLFdBQU8sR0FBUDtBQUNEO0FBQ0Y7UUFDeUIsTSxHQUFsQixjO1FBQXdDLFcsR0FBZCxVO1FBQ1osTSxHQUFkLFUiLCJmaWxlIjoic3ltYm9sLmpzIiwic291cmNlc0NvbnRlbnQiOlsibGV0IGludGVybmVkTWFwXzc2OCA9IG5ldyBNYXA7XG5sZXQgY291bnRlcl83NjkgPSAwO1xuZnVuY3Rpb24gZ2Vuc3ltXzc3MChuYW1lXzc3Mykge1xuICBsZXQgcHJlZml4Xzc3NCA9IG5hbWVfNzczID09IG51bGwgPyBcInNfXCIgOiBuYW1lXzc3MyArIFwiX1wiO1xuICBsZXQgc3ltXzc3NSA9IG5ldyBTeW1ib2xfNzcxKHByZWZpeF83NzQgKyBjb3VudGVyXzc2OSk7XG4gIGNvdW50ZXJfNzY5Kys7XG4gIHJldHVybiBzeW1fNzc1O1xufVxuZnVuY3Rpb24gU3ltYm9sXzc3MShuYW1lXzc3Nikge1xuICB0aGlzLm5hbWUgPSBuYW1lXzc3Njtcbn1cblN5bWJvbF83NzEucHJvdG90eXBlLnRvU3RyaW5nID0gZnVuY3Rpb24gKCkge1xuICByZXR1cm4gdGhpcy5uYW1lO1xufTtcbmZ1bmN0aW9uIG1ha2VTeW1ib2xfNzcyKG5hbWVfNzc3KSB7XG4gIGlmIChpbnRlcm5lZE1hcF83NjguaGFzKG5hbWVfNzc3KSkge1xuICAgIHJldHVybiBpbnRlcm5lZE1hcF83NjguZ2V0KG5hbWVfNzc3KTtcbiAgfSBlbHNlIHtcbiAgICBsZXQgc3ltID0gbmV3IFN5bWJvbF83NzEobmFtZV83NzcpO1xuICAgIGludGVybmVkTWFwXzc2OC5zZXQobmFtZV83NzcsIHN5bSk7XG4gICAgcmV0dXJuIHN5bTtcbiAgfVxufVxuZXhwb3J0IHttYWtlU3ltYm9sXzc3MiBhcyBTeW1ib2wsIFN5bWJvbF83NzEgYXMgU3ltYm9sQ2xhc3N9O1xuZXhwb3J0IHtnZW5zeW1fNzcwIGFzIGdlbnN5bX0iXX0=
