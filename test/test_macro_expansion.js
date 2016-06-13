@@ -243,3 +243,51 @@ test('should allow macros to be defined with punctuators', t => {
     output = *
   `, 42);
 });
+
+test('should not provide expanded syntax with prev', t => {
+  testEval(`
+    syntax eat = ctx => {
+      ctx.next();
+      return #\`1\`;
+    }
+    syntax m = ctx => {
+      ctx.next('expr'); // 'eat 42' is expanded to '1' and then consumed
+      ctx.next();       // consumes ';'
+      let val = ctx.prev().value;
+      return #\`\${val}\`;
+    }
+
+    output = m eat 42; 100
+  `, 42);
+});
+
+test('should not allow recession beyond the entrance to the transform', t => {
+  testEval(`
+    syntax m = ctx => {
+      ctx.next(); // consumes '1'
+      ctx.next(); // consumes ';'
+      let value = ctx.prev().value; // returns '1'
+      if(ctx.prev().value === null) {
+        return #\`-\${value}\`;
+      }
+      return #\`\${value}\`;
+    }
+
+    output = 2 + m 1;
+  `, 1);
+});
+
+test('should not allow recession after reset', t => {
+  testEval(`
+    syntax m = ctx => {
+      ctx.next('expr'); // consume 1 + 2
+      ctx.reset();
+      if(ctx.prev().done) {
+        return #\`"pass"\`;
+      }
+      return #\`"fail"\`;
+    }
+
+    output = m 1 + 2;
+  `, "pass");
+});

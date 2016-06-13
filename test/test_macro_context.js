@@ -104,6 +104,31 @@ test('a macro context should have a name', t => {
   t.true(ctx.name().val() === 'foo');
 });
 
+test('a macro context should provide the next term', t => {
+  let enf = makeEnforester('a');
+  let ctx = new MacroContext(enf, 'foo', enf.context);
+  t.true(ctx.next().value.val() === 'a');
+});
+
+test('a macro context should provide the previous term', t => {
+  let enf = makeEnforester('a b');
+  let ctx = new MacroContext(enf, 'foo');
+  ctx.next(); ctx.next();
+  t.true(ctx.prev().value.val() === 'a');
+});
+
+test('a macro context should not allow recession beyond the transform\'s call site', t => {
+  let enf = makeEnforester('a b');
+  let ctx = new MacroContext(enf, 'foo', enf.context);
+  ctx.next(); ctx.next();
+  t.true(ctx.prev().value.val() === 'a');
+
+  let { value, done } = ctx.prev();
+  t.true(value === null && done);
+  ({ value, done } = ctx.prev());
+   t.true(value === null && done);
+});
+
 test('a macro context should be resettable', t => {
   let enf = makeEnforester('a b c');
   let ctx = new MacroContext(enf, 'foo', enf.context);
