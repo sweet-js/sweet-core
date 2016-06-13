@@ -358,7 +358,7 @@ export function log(msg) {
 import { log } from './log.js' for syntax;
 
 syntax m = ctx => {
-  console.log('doing some Sweet things');
+  log('doing some Sweet things');
   // ...
 }
 ----
