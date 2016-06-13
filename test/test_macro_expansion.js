@@ -172,12 +172,20 @@ test('should handle the full macro context api', () => {
     syntaxrec def = function(ctx) {
       let id = ctx.next().value;
       let parens = ctx.next().value;
+      ctx.reset();
+      ctx.next(); ctx.next();
       let body = ctx.next().value;
+
 
       let parenCtx = parens.inner();
       let paren_id = parenCtx.next().value;
       parenCtx.next() // =
-      let paren_init = parenCtx.next('expr').value;
+      parenCtx.next('expr'); // 1 + 10 + 100
+      parenCtx.prev(); // +
+      parenCtx.prev(); // 10
+      parenCtx.prev(); // +
+      parenCtx.prev(); // 1
+      let paren_init = parenCtx.next('expr').value; // + 10 + 100
 
       let bodyCtx = body.inner();
       let b = [];
@@ -191,7 +199,7 @@ test('should handle the full macro context api', () => {
       }\`;
     }
 
-    def foo (x = 10 + 100) { return x; }
+    def foo (x = 1 + 10 + 100) { return x; }
     output = foo();
     `, 110);
 });

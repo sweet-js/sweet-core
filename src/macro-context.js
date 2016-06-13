@@ -11,7 +11,8 @@ const Nothing = Maybe.Nothing;
 const symWrap = Symbol('wrapper');
 const symName = Symbol('name');
 const symEnf = Symbol('enforester');
-const symResetValues = Symbol('resetValues');
+const symResetVals = Symbol('resetVals');
+const symShadow = Symbol('shadow');
 
 const getLineNumber = t => {
   if (t instanceof Syntax) {
@@ -142,7 +143,8 @@ ctx :: {
 export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
     const { term, rest, prev, done} = this[symEnf] = enf;
-    this[symResetValues] = { term, rest, prev, done };
+    this[symResetVals] = { term, rest, prev, done };
+    this[symShadow] = { term, rest, prev };
     this[symName] = name;
     this.context = context;
     if (useScope && introducedScope) {
@@ -160,11 +162,15 @@ export default class MacroContext {
   }
 
   reset() {
-    Object.assign(this[symEnf], this[symResetValues]);
+    let reset = this[symResetVals],
+        { term, prev, rest } = reset;
+    Object.assign(this[symShadow], { term, prev, rest });
+    Object.assign(this[symEnf], reset);
   }
 
   next(type = 'Syntax') {
-    if (this[symEnf].rest.size === 0) {
+    let enf = this[symEnf];
+    if (enf.rest.size === 0) {
       return {
         done: true,
         value: null,
@@ -174,13 +180,13 @@ export default class MacroContext {
     switch(type) {
       case 'AssignmentExpression':
       case 'expr':
-        value = this[symEnf].enforestExpressionLoop();
+        value = enf.enforestExpressionLoop();
         break;
       case 'Expression':
-        value = this[symEnf].enforestExpression();
+        value = enf.enforestExpression();
         break;
       case 'Syntax':
-        value = this[symEnf].advance();
+        value = enf.advance();
         if (!this.noScopes) {
           value = value
             .addScope(this.useScope, this.context.bindings, ALL_PHASES)
@@ -190,9 +196,49 @@ export default class MacroContext {
       default:
         throw new Error('Unknown term type: ' + type);
     }
+
+    Object.assign(this[symShadow], advance(enf, this[symShadow]));
     return {
       done: false,
       value: new SyntaxOrTermWrapper(value, this.context),
     };
   }
+
+  prev() {
+    let shadow = this[symShadow];
+    let resetRestCount = this[symResetVals].rest.size;
+    if(resetRestCount > shadow.rest.size) {
+      let enf = this[symEnf];
+      Object.assign(shadow, recede(shadow));
+      Object.assign(this[symEnf], { term: null, rest: shadow.rest });
+      if(resetRestCount > shadow.rest.size) {
+        return {
+          done: false,
+          value: new SyntaxOrTermWrapper(shadow.term, this.context)
+        };
+      }
+    }
+    return {
+      done: true,
+      value: null
+    };
+  }
 }
+
+const advance = (enf, { term, prev, rest }) => {
+  //TODO: optimize for type === 'Syntax'?
+  let numConsumed = rest.size - enf.rest.size;
+  return {
+    term: rest.get(numConsumed-1),
+    prev: prev.push(term).concat(rest.slice(0, numConsumed-1)),
+    rest: enf.rest
+  };
+};
+
+const recede = ({ term, prev, rest }) => {
+  return {
+    term: prev.last(),
+    prev: prev.butLast(),
+    rest: rest.unshift(term)
+  };
+};
