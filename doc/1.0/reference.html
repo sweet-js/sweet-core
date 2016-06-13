@@ -143,11 +143,22 @@
     done: boolean,
     value: Syntax
   }
+  prev: () -&gt; {
+    done: boolean,
+    value: Syntax
+  }
+  reset: () -&gt; undefined
 }</pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Each call to <code>next</code> returns the <a href="#synobj">syntax object</a> following the transformer call. If <code>next</code> is called with a string, the specified grammar production is matched.</p>
+</div>
+<div class="paragraph">
+<p>A call to <code>prev</code> returns the <a href="#synobj">syntax object</a> preceding that returned by the last call to <code>next</code>. If the previous term resulted from a transformation, the object returned from a call to <code>prev</code> will be the that of the original, unaltered syntax. Calls to <code>prev</code> will not continue before the transformer call.</p>
+</div>
+<div class="paragraph">
+<p>The <code>reset()</code> method returns the context to its original state (before any calls to <code>next</code>).</p>
 </div>
 <div class="paragraph">
 <p>The <code>name()</code> method returns the syntax object of the macro name at the macro invocation site. This is useful<span class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span> because it allows a macro transformer to get access to the lexical context at the invocation site.</p>
