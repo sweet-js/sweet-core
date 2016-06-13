@@ -48,6 +48,7 @@
     "shift-reducer": "^3.0.2",
     "shift-spidermonkey-converter": "^1.0.0",
     "transit-js": "^0.8.846",
+    "utils-dirname": "^1.0.0",
     "yargs": "^4.3.2"
   },
   "devDependencies": {

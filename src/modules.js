@@ -23,6 +23,9 @@ import { collectBindings } from './hygiene-utils';
 
 import { ALL_PHASES } from './syntax';
 
+import dirname from 'utils-dirname';
+
+
 export class Module {
   constructor(moduleSpecifier, isNative, importEntries, exportEntries, pragmas, body) {
     this.moduleSpecifier = moduleSpecifier;
@@ -95,7 +98,8 @@ export class Modules {
     let inScope = freshScope(`insideEdge0`);
     // the compiler starts at phase 0, with an empty environment and store
     let compiler = new Compiler(0, new Env(), new Store(), _.merge(this.context, {
-      currentScope: [outScope, inScope]
+      currentScope: [outScope, inScope],
+      cwd: path === '<<entrypoint>>' ? this.context.cwd : dirname(path)
     }));
     let terms = compiler.compile(stxl.map(s =>
       s.addScope(outScope, this.context.bindings, ALL_PHASES)
@@ -145,7 +149,7 @@ export class Modules {
     if (enforcePragma && stxl.isNative) {
       throw new Error(`Entrypoint ${filename} must begin with #lang pragma`);
     }
-    return this.getAtPhase('<<entrypoint>>', 0, stxl);
+    return this.getAtPhase('<<entrypoint>>', 0, this.context.cwd, stxl);
   }
 
   // Modules have a unique scope per-phase. We compile each module once at
@@ -153,15 +157,15 @@ export class Modules {
   // the module in a particular phase, we add that new phase-specific scope
   // to the compiled module and update the map with the module at that specific
   // phase.
-  getAtPhase(rawPath, phase, rawStxl = null) {
-    let path = rawPath === '<<entrypoint>>' ? rawPath : this.context.moduleResolver(rawPath, this.context.cwd);
+  getAtPhase(rawPath, phase, cwd, rawStxl = null) {
+    let path = rawPath === '<<entrypoint>>' ? rawPath : this.context.moduleResolver(rawPath, cwd);
     let mapKey = `${path}:${phase}`;
     if (!this.compiledModules.has(mapKey)) {
       if (phase === 0) {
         let stxl = rawStxl != null ? rawStxl : this.load(path);
         this.compiledModules.set(mapKey, this.compile(stxl, path));
       } else {
-        let rawMod = this.getAtPhase(rawPath, 0, rawStxl);
+        let rawMod = this.getAtPhase(rawPath, 0, cwd, rawStxl);
         let scope = freshScope(`insideEdge${phase}`);
         this.compiledModules.set(mapKey, new Module(
           rawMod.moduleSpecifier,

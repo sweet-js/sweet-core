@@ -122,11 +122,11 @@ export default class TokenExpander extends ASTDispatcher {
     let path = term.moduleSpecifier.val();
     let mod;
     if (term.forSyntax) {
-      mod = this.context.modules.getAtPhase(path, this.context.phase + 1);
+      mod = this.context.modules.getAtPhase(path, this.context.phase + 1, this.context.cwd);
       this.context.store = this.context.modules.visit(mod, this.context.phase + 1, this.context.store);
       this.context.store = this.context.modules.invoke(mod, this.context.phase + 1, this.context.store);
     } else {
-      mod = this.context.modules.getAtPhase(path, this.context.phase);
+      mod = this.context.modules.getAtPhase(path, this.context.phase, this.context.cwd);
       this.context.store = this.context.modules.visit(mod, this.context.phase, this.context.store);
     }
     let boundNames = bindImports(term, mod, this.context);
