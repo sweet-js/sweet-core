@@ -10,7 +10,7 @@ const Nothing = Maybe.Nothing;
 
 const symWrap = Symbol('wrapper');
 const symName = Symbol('name');
-const symEnf = Symbol('enforester');
+const symEnf = Symbol.for('enforester');
 const symResetVals = Symbol('resetVals');
 const symShadow = Symbol('shadow');
 
@@ -43,7 +43,7 @@ export class SyntaxOrTermWrapper {
       return stx.match(type, value);
     }
   }
-  
+
   isIdentifier(value) {
     return this.match("identifier", value);
   }
@@ -142,8 +142,11 @@ ctx :: {
 */
 export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
-    const { term, rest, prev, done} = this[symEnf] = enf;
+    const { term, rest, prev, done } = this[symEnf] = enf;
+
     this[symResetVals] = { term, rest, prev, done };
+
+    // a shadow of the enforester stores previous terms to be used when calling prev()
     this[symShadow] = { term, rest, prev };
     this[symName] = name;
     this.context = context;
@@ -162,10 +165,9 @@ export default class MacroContext {
   }
 
   reset() {
-    let reset = this[symResetVals],
-        { term, prev, rest } = reset;
+    let { term, prev, rest } = this[symResetVals];
     Object.assign(this[symShadow], { term, prev, rest });
-    Object.assign(this[symEnf], reset);
+    this[symEnf] = new Enforester(rest, prev, this[symEnf].context);
   }
 
   next(type = 'Syntax') {
@@ -208,9 +210,8 @@ export default class MacroContext {
     let shadow = this[symShadow];
     let resetRestCount = this[symResetVals].rest.size;
     if(resetRestCount > shadow.rest.size) {
-      let enf = this[symEnf];
       Object.assign(shadow, recede(shadow));
-      Object.assign(this[symEnf], { term: null, rest: shadow.rest });
+      this[symEnf] = new Enforester(shadow.rest, this[symEnf].prev, this[symEnf].context);
       if(resetRestCount > shadow.rest.size) {
         return {
           done: false,
@@ -218,6 +219,7 @@ export default class MacroContext {
         };
       }
     }
+    // if rest is back to its original size we're at the beginning
     return {
       done: true,
       value: null
