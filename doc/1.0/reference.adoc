@@ -60,10 +60,19 @@ TransformerContext = {
     done: boolean,
     value: Syntax
   }
+  prev: () -> {
+    done: boolean,
+    value: Syntax
+  }
+  reset: () -> undefined
 }
 ----
 
 Each call to `next` returns the <<synobj, syntax object>> following the transformer call. If `next` is called with a string, the specified grammar production is matched.
+
+A call to `prev` returns the <<synobj, syntax object>> preceding that returned by the last call to `next`. If the previous term resulted from a transformation, the object returned from a call to `prev` will be the that of the original, unaltered syntax. Calls to `prev` will not continue before the transformer call.
+
+The `reset()` method returns the context to its original state (before any calls to `next`).
 
 The `name()` method returns the syntax object of the macro name at the macro invocation site. This is usefulfootnote:[or will become useful as more features are implemented in Sweet] because it allows a macro transformer to get access to the lexical context at the invocation site.
 

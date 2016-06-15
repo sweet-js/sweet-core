@@ -10,6 +10,9 @@ const Nothing = Maybe.Nothing;
 
 const symWrap = Symbol('wrapper');
 const symName = Symbol('name');
+const symEnf = Symbol.for('enforester');
+const symResetVals = Symbol('resetVals');
+const symShadow = Symbol('shadow');
 
 const getLineNumber = t => {
   if (t instanceof Syntax) {
@@ -40,7 +43,7 @@ export class SyntaxOrTermWrapper {
       return stx.match(type, value);
     }
   }
-  
+
   isIdentifier(value) {
     return this.match("identifier", value);
   }
@@ -139,8 +142,12 @@ ctx :: {
 */
 export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
-    // todo: perhaps replace with a symbol to keep mostly private?
-    this._enf = enf;
+    const { term, rest, prev, done } = this[symEnf] = enf;
+
+    this[symResetVals] = { term, rest, prev, done };
+
+    // a shadow of the enforester stores previous terms to be used when calling prev()
+    this[symShadow] = { term, rest, prev };
     this[symName] = name;
     this.context = context;
     if (useScope && introducedScope) {
@@ -157,8 +164,15 @@ export default class MacroContext {
     return new SyntaxOrTermWrapper(this[symName], this.context);
   }
 
+  reset() {
+    let { term, prev, rest } = this[symResetVals];
+    Object.assign(this[symShadow], { term, prev, rest });
+    this[symEnf] = new Enforester(rest, prev, this[symEnf].context);
+  }
+
   next(type = 'Syntax') {
-    if (this._enf.rest.size === 0) {
+    let enf = this[symEnf];
+    if (enf.rest.size === 0) {
       return {
         done: true,
         value: null,
@@ -168,13 +182,13 @@ export default class MacroContext {
     switch(type) {
       case 'AssignmentExpression':
       case 'expr':
-        value = this._enf.enforestExpressionLoop();
+        value = enf.enforestExpressionLoop();
         break;
       case 'Expression':
-        value = this._enf.enforestExpression();
+        value = enf.enforestExpression();
         break;
       case 'Syntax':
-        value = this._enf.advance();
+        value = enf.advance();
         if (!this.noScopes) {
           value = value
             .addScope(this.useScope, this.context.bindings, ALL_PHASES)
@@ -184,9 +198,49 @@ export default class MacroContext {
       default:
         throw new Error('Unknown term type: ' + type);
     }
+
+    Object.assign(this[symShadow], advance(enf, this[symShadow]));
     return {
       done: false,
       value: new SyntaxOrTermWrapper(value, this.context),
     };
   }
+
+  prev() {
+    let shadow = this[symShadow];
+    let resetRestCount = this[symResetVals].rest.size;
+    if(resetRestCount > shadow.rest.size) {
+      Object.assign(shadow, recede(shadow));
+      this[symEnf] = new Enforester(shadow.rest, this[symEnf].prev, this[symEnf].context);
+      if(resetRestCount > shadow.rest.size) {
+        return {
+          done: false,
+          value: new SyntaxOrTermWrapper(shadow.term, this.context)
+        };
+      }
+    }
+    // if rest is back to its original size we're at the beginning
+    return {
+      done: true,
+      value: null
+    };
+  }
 }
+
+const advance = (enf, { term, prev, rest }) => {
+  //TODO: optimize for type === 'Syntax'?
+  let numConsumed = rest.size - enf.rest.size;
+  return {
+    term: rest.get(numConsumed-1),
+    prev: prev.push(term).concat(rest.slice(0, numConsumed-1)),
+    rest: enf.rest
+  };
+};
+
+const recede = ({ term, prev, rest }) => {
+  return {
+    term: prev.last(),
+    prev: prev.butLast(),
+    rest: rest.unshift(term)
+  };
+};
