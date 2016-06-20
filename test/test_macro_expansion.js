@@ -237,3 +237,19 @@ test('should allow macros to be defined with punctuators', t => {
     output = *
   `, 42);
 });
+
+test('should allow the macro context to be reset', t => {
+  testEval(`
+    syntax m = ctx => {
+      ctx.expand('expr'); // 42 + 66
+      // oops, just wanted one token
+      ctx.reset();
+      let value = ctx.next().value; // 42
+      ctx.next();
+      ctx.next();
+      return #\`\${value}\`;
+    }
+
+    output = m 42 + 66
+  `, 42);
+});

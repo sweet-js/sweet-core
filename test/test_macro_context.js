@@ -103,3 +103,15 @@ test('a macro context should have a name', t => {
   let ctx = new MacroContext(enf, Syntax.fromIdentifier('foo'), {});
   t.true(ctx.name().val() === 'foo');
 });
+
+test('a macro context should have a reset method.', t => {
+  let enf = makeEnforester('a');
+  let ctx = new MacroContext(enf, Syntax.fromIdentifier('foo'), {});
+  t.true(ctx != null);
+});
+
+test('an enforester should be able to access a macro context\'s syntax list', t => {
+  let enf = makeEnforester('a');
+  let ctx = new MacroContext(enf, Syntax.fromIdentifier('foo'), {});
+  t.true(ctx._rest(enf) instanceof List);
+});
