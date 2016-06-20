@@ -171,6 +171,8 @@ test('should handle the full macro context api', () => {
   testEval(`
     syntaxrec def = function(ctx) {
       let id = ctx.next().value;
+      ctx.reset();
+      id = ctx.next().value;
       let parens = ctx.next().value;
       let body = ctx.next().value;
 

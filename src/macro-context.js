@@ -10,6 +10,7 @@ const Nothing = Maybe.Nothing;
 
 const symWrap = Symbol('wrapper');
 const symName = Symbol('name');
+const privateData = new WeakMap();
 
 const getLineNumber = t => {
   if (t instanceof Syntax) {
@@ -139,8 +140,10 @@ ctx :: {
 */
 export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
-    // todo: perhaps replace with a symbol to keep mostly private?
-    this._enf = enf;
+    privateData.set(this, { backup: enf });
+    this.reset(); // instantiate enforester
+
+    //TODO: add more fields to privateData?
     this[symName] = name;
     this.context = context;
     if (useScope && introducedScope) {
@@ -158,20 +161,18 @@ export default class MacroContext {
   }
 
   expand(type) {
-    if (this._enf.rest.size === 0) {
-      return {
-        done: true,
-        value: null
-      };
+    const enf = privateData.get(this).enf;
+    if (enf.rest.size === 0) {
+      return null;
     }
     let value;
     switch(type) {
       case 'AssignmentExpression':
       case 'expr':
-        value = this._enf.enforestExpressionLoop();
+        value = enf.enforestExpressionLoop();
         break;
       case 'Expression':
-        value = this._enf.enforestExpression();
+        value = enf.enforestExpression();
         break;
       default:
         throw new Error('Unknown term type: ' + type);
@@ -179,14 +180,28 @@ export default class MacroContext {
     return new SyntaxOrTermWrapper(value, this.context);
   }
 
+  _rest(enf) {
+    if(privateData.get(this).backup === enf) {
+      return privateData.get(this).enf.rest;
+    }
+    throw Error("Unauthorized access!");
+  }
+
+  reset() {
+    const priv = privateData.get(this);
+    const { rest, prev, context } = priv.backup;
+    priv.enf = new Enforester(rest, prev, context);
+  }
+
   next() {
-    if (this._enf.rest.size === 0) {
+    const enf = privateData.get(this).enf;
+    if (enf.rest.size === 0) {
       return {
         done: true,
         value: null
       };
     }
-    let value = this._enf.advance();
+    let value = enf.advance();
     if (!this.noScopes) {
       value = value
         .addScope(this.useScope, this.context.bindings, ALL_PHASES)
