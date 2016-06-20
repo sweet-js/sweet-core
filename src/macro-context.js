@@ -163,7 +163,10 @@ export default class MacroContext {
   expand(type) {
     const enf = privateData.get(this).enf;
     if (enf.rest.size === 0) {
-      return null;
+      return {
+        done: true,
+        value: null
+      };
     }
     let value;
     switch(type) {
@@ -177,7 +180,10 @@ export default class MacroContext {
       default:
         throw new Error('Unknown term type: ' + type);
     }
-    return new SyntaxOrTermWrapper(value, this.context);
+    return {
+      done: false,
+      value: new SyntaxOrTermWrapper(value, this.context)
+    };
   }
 
   _rest(enf) {

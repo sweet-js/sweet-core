@@ -131,7 +131,7 @@ test('should handle expansion that takes an argument', () => {
 test('should handle expansion that matches an expression argument', () => {
   testParse(`
     syntaxrec m = function(ctx) {
-      let x = ctx.expand('expr');
+      let x = ctx.expand('expr').value;
       return #\`40 + \${x}\`;
     }
     m 2;
@@ -179,7 +179,7 @@ test('should handle the full macro context api', () => {
       let parenCtx = parens.inner();
       let paren_id = parenCtx.next().value;
       parenCtx.next() // =
-      let paren_init = parenCtx.expand('expr');
+      let paren_init = parenCtx.expand('expr').value;
 
       let bodyCtx = body.inner();
       let b = [];
@@ -203,7 +203,7 @@ test('should handle iterators inside a syntax template', t => {
     syntax let = function (ctx) {
       let ident = ctx.next().value;
       ctx.next();
-      let init = ctx.expand('expr');
+      let init = ctx.expand('expr').value;
       return #\`
         (function (\${ident}) {
           \${ctx}
