@@ -157,11 +157,11 @@ export default class MacroContext {
     return new SyntaxOrTermWrapper(this[symName], this.context);
   }
 
-  next(type = 'Syntax') {
+  expand(type) {
     if (this._enf.rest.size === 0) {
       return {
         done: true,
-        value: null,
+        value: null
       };
     }
     let value;
@@ -173,20 +173,28 @@ export default class MacroContext {
       case 'Expression':
         value = this._enf.enforestExpression();
         break;
-      case 'Syntax':
-        value = this._enf.advance();
-        if (!this.noScopes) {
-          value = value
-            .addScope(this.useScope, this.context.bindings, ALL_PHASES)
-            .addScope(this.introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
-        }
-        break;
       default:
         throw new Error('Unknown term type: ' + type);
     }
+    return new SyntaxOrTermWrapper(value, this.context);
+  }
+
+  next() {
+    if (this._enf.rest.size === 0) {
+      return {
+        done: true,
+        value: null
+      };
+    }
+    let value = this._enf.advance();
+    if (!this.noScopes) {
+      value = value
+        .addScope(this.useScope, this.context.bindings, ALL_PHASES)
+        .addScope(this.introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
+    }
     return {
       done: false,
-      value: new SyntaxOrTermWrapper(value, this.context),
+      value: new SyntaxOrTermWrapper(value, this.context)
     };
   }
 }
