@@ -9,7 +9,6 @@ const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
 
 const symWrap = Symbol('wrapper');
-const symName = Symbol('name');
 const privateData = new WeakMap();
 
 const getLineNumber = t => {
@@ -140,28 +139,32 @@ ctx :: {
 */
 export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
-    privateData.set(this, { backup: enf });
+    const priv = {
+      backup: enf,
+      name,
+      context
+    };
+
+    if (useScope && introducedScope) {
+      priv.noScopes = false;
+      priv.useScope = useScope;
+      priv.introducedScope = introducedScope;
+    } else {
+      priv.noScopes = true;
+    }
+    privateData.set(this, priv);
     this.reset(); // instantiate enforester
 
-    //TODO: add more fields to privateData?
-    this[symName] = name;
-    this.context = context;
-    if (useScope && introducedScope) {
-      this.noScopes = false;
-      this.useScope = useScope;
-      this.introducedScope = introducedScope;
-    } else {
-      this.noScopes = true;
-    }
     this[Symbol.iterator] = () => this;
   }
 
   name() {
-    return new SyntaxOrTermWrapper(this[symName], this.context);
+    const { name, context } = privateData.get(this);
+    return new SyntaxOrTermWrapper(name, context);
   }
 
   expand(type) {
-    const enf = privateData.get(this).enf;
+    const { enf, context } = privateData.get(this);
     if (enf.rest.size === 0) {
       return {
         done: true,
@@ -182,13 +185,14 @@ export default class MacroContext {
     }
     return {
       done: false,
-      value: new SyntaxOrTermWrapper(value, this.context)
+      value: new SyntaxOrTermWrapper(value, context)
     };
   }
 
   _rest(enf) {
-    if(privateData.get(this).backup === enf) {
-      return privateData.get(this).enf.rest;
+    const priv = privateData.get(this);
+    if(priv.backup === enf) {
+      return priv.enf.rest;
     }
     throw Error("Unauthorized access!");
   }
@@ -200,7 +204,7 @@ export default class MacroContext {
   }
 
   next() {
-    const enf = privateData.get(this).enf;
+    const { enf, noScopes, useScope, introducedScope, context } = privateData.get(this);
     if (enf.rest.size === 0) {
       return {
         done: true,
@@ -208,14 +212,14 @@ export default class MacroContext {
       };
     }
     let value = enf.advance();
-    if (!this.noScopes) {
+    if (!noScopes) {
       value = value
-        .addScope(this.useScope, this.context.bindings, ALL_PHASES)
-        .addScope(this.introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
+        .addScope(useScope, context.bindings, ALL_PHASES)
+        .addScope(introducedScope, context.bindings, ALL_PHASES, { flip: true });
     }
     return {
       done: false,
-      value: new SyntaxOrTermWrapper(value, this.context)
+      value: new SyntaxOrTermWrapper(value, context)
     };
   }
 }
