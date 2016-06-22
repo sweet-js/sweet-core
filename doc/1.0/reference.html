@@ -139,18 +139,39 @@
 <div class="content">
 <pre>TransformerContext = {
   name: () -&gt; Syntax
-  next: (string?) -&gt; {
+  next: () -&gt; {
     done: boolean,
     value: Syntax
   }
+  expand: (string) -&gt; {
+    done: boolean,
+    value: Syntax
+  }
+  reset: () -&gt; undefined
 }</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Each call to <code>next</code> returns the <a href="#synobj">syntax object</a> following the transformer call. If <code>next</code> is called with a string, the specified grammar production is matched.</p>
+<p>Each call to <code>next</code> returns the <a href="#synobj">syntax object</a> following the transformer call.</p>
+</div>
+<div class="paragraph">
+<p>A call to <code>expand</code> matches the specified grammar production.</p>
 </div>
 <div class="paragraph">
 <p>The <code>name()</code> method returns the syntax object of the macro name at the macro invocation site. This is useful<span class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span> because it allows a macro transformer to get access to the lexical context at the invocation site.</p>
+</div>
+<div class="paragraph">
+<p>Calling <code>reset</code> returns the context to its initial state.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = function (ctx) {
+  ctx.expand('expr');
+  ctx.reset();
+  return #`${ctx.next().value} + 24`; // 42 + 24
+}
+m 42 + 66</code></pre>
+</div>
 </div>
 <div class="paragraph">
 <p><a id="synobj"></a></p>

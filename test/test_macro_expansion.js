@@ -85,7 +85,7 @@ m 42`, stmt, {
 test("should handle expansion that eats an expression", function () {
   testParse(`
 syntaxrec m = function(ctx) {
-  let term = ctx.next('expr')
+  let term = ctx.expand('expr')
   return #\`200\`
 }
 m 100 + 200`, stmt, {
@@ -131,7 +131,7 @@ test('should handle expansion that takes an argument', () => {
 test('should handle expansion that matches an expression argument', () => {
   testParse(`
     syntaxrec m = function(ctx) {
-      let x = ctx.next('expr').value;
+      let x = ctx.expand('expr').value;
       return #\`40 + \${x}\`;
     }
     m 2;
@@ -171,13 +171,15 @@ test('should handle the full macro context api', () => {
   testEval(`
     syntaxrec def = function(ctx) {
       let id = ctx.next().value;
+      ctx.reset();
+      id = ctx.next().value;
       let parens = ctx.next().value;
       let body = ctx.next().value;
 
       let parenCtx = parens.inner();
       let paren_id = parenCtx.next().value;
       parenCtx.next() // =
-      let paren_init = parenCtx.next('expr').value;
+      let paren_init = parenCtx.expand('expr').value;
 
       let bodyCtx = body.inner();
       let b = [];
@@ -201,7 +203,7 @@ test('should handle iterators inside a syntax template', t => {
     syntax let = function (ctx) {
       let ident = ctx.next().value;
       ctx.next();
-      let init = ctx.next('expr').value;
+      let init = ctx.expand('expr').value;
       return #\`
         (function (\${ident}) {
           \${ctx}
@@ -233,5 +235,21 @@ test('should allow macros to be defined with punctuators', t => {
       return #\`42\`;
     }
     output = *
+  `, 42);
+});
+
+test('should allow the macro context to be reset', t => {
+  testEval(`
+    syntax m = ctx => {
+      ctx.expand('expr'); // 42 + 66
+      // oops, just wanted one token
+      ctx.reset();
+      let value = ctx.next().value; // 42
+      ctx.next();
+      ctx.next();
+      return #\`\${value}\`;
+    }
+
+    output = m 42 + 66
   `, 42);
 });

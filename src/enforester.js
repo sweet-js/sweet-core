@@ -332,7 +332,7 @@ export class Enforester {
     let lookahead = this.peek();
 
     if (this.term === null && this.isCompiletimeTransform(lookahead)) {
-      this.rest = this.expandMacro().concat(this.rest);
+      this.rest = this.expandMacro();
       lookahead = this.peek();
       this.term = null;
     }
@@ -1048,8 +1048,7 @@ export class Enforester {
     }
 
     if (this.term === null && this.isCompiletimeTransform(lookahead)) {
-      let result = this.expandMacro();
-      this.rest = result.concat(this.rest);
+      this.rest = this.expandMacro();
       return EXPR_LOOP_EXPANSION;
     }
 
@@ -1852,7 +1851,7 @@ export class Enforester {
       return stx.addScope(introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
     });
 
-    return result;
+    return result.concat(ctx._rest(this));
 
   }
 
