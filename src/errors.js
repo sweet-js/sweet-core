@@ -3,10 +3,11 @@ export function expect(cond, message, offendingSyntax, rest) {
     let ctx = "";
     if (rest) {
       let ctx = rest.slice(0, 20).map(s => {
+        let val = s.isDelimiter() ? "( ... )" : s.val();
         if (s === offendingSyntax) {
-          return "__" + s.val() + "__";
+          return "__" + val + "__";
         }
-        return s.val();
+        return val;
       }).join(" ");
     }
     throw new Error("[error]: " + message + "\n" + ctx);

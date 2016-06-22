@@ -1,5 +1,6 @@
 import MapSyntaxReducer from "./map-syntax-reducer";
 import reducer from "shift-reducer";
+import { expect } from './errors';
 import { List } from 'immutable';
 import { Enforester } from './enforester';
 import Syntax, { ALL_PHASES } from './syntax';
@@ -7,6 +8,7 @@ import * as _ from 'ramda';
 import { Maybe } from 'ramda-fantasy';
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
+
 
 const symWrap = Symbol('wrapper');
 const privateData = new WeakMap();
@@ -40,7 +42,7 @@ export class SyntaxOrTermWrapper {
       return stx.match(type, value);
     }
   }
-  
+
   isIdentifier(value) {
     return this.match("identifier", value);
   }
@@ -171,6 +173,7 @@ export default class MacroContext {
         value: null
       };
     }
+    let originalRest = enf.rest;
     let value;
     switch(type) {
       case 'AssignmentExpression':
@@ -179,6 +182,87 @@ export default class MacroContext {
         break;
       case 'Expression':
         value = enf.enforestExpression();
+        break;
+      case 'Statement':
+      case 'stmt':
+        value = enf.enforestStatement();
+        break;
+      case 'BlockStatement':
+      case 'WhileStatement':
+      case 'IfStatement':
+      case 'ForStatement':
+      case 'SwitchStatement':
+      case 'BreakStatement':
+      case 'ContinueStatement':
+      case 'DebuggerStatement':
+      case 'WithStatement':
+      case 'TryStatement':
+      case 'ThrowStatement':
+      case 'ClassDeclaration':
+      case 'FunctionDeclaration':
+      case 'LabeledStatement':
+      case 'VariableDeclarationStatement':
+      case 'ReturnStatement':
+      case 'ExpressionStatement':
+        value = enf.enforestStatement();
+        expect(_.whereEq({type}, value), `Expecting a ${type}`, value, originalRest);
+        break;
+      case 'YieldExpression':
+        value = enf.enforestYieldExpression();
+        break;
+      case 'ClassExpression':
+        value = enf.enforestClass({isExpr: true});
+        break;
+      case 'ArrowExpression':
+        value = enf.enforestArrowExpression();
+        break;
+      case 'NewExpression':
+        value = enf.enforestNewExpression();
+        break;
+      case 'ThisExpression':
+        value = enf.enforestThisExpression();
+        break;
+      case 'FunctionExpression':
+        value = enf.enforestFunctionExpression();
+        break;
+      case 'IdentifierExpression':
+        value = enf.enforestIdentifierExpression();
+        break;
+      case 'LiteralNumericExpression':
+      case 'LiteralInfinityExpression':
+        value = enf.enforestNumericLiteral();
+        break;
+      case 'LiteralStringExpression':
+        value = enf.enforestStringLiteral();
+        break;
+      case 'TemplateExpression':
+        value = enf.enforestTemplateLiteral();
+        break;
+      case 'LiteralBooleanExpression':
+        value = enf.enforestBooleanLiteral();
+        break;
+      case 'LiteralNullExpression':
+        value = enf.enforestNullLiteral();
+        break;
+      case 'LiteralRegExpExpression':
+        value = enf.enforestRegularExpressionLiteral();
+        break;
+      case 'ObjectExpression':
+        value = enf.enforestObjectExpression();
+        break;
+      case 'ArrayExpression':
+        value = enf.enforestArrayExpression();
+        break;
+      case 'UnaryExpression':
+      case 'UpdateExpression':
+      case 'BinaryExpression':
+      case 'StaticMemberExpression':
+      case 'ComputedMemberExpression':
+      case 'AssignmentExpression':
+      case 'CompoundAssignmentExpression':
+      case 'ConditionalExpression':
+        value = enf.enforestExpressionLoop();
+        expect(_.whereEq({type}, value), `Expecting a ${type}`, value, originalRest);
         break;
       default:
         throw new Error('Unknown term type: ' + type);

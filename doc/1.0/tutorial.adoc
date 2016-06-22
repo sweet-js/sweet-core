@@ -131,7 +131,7 @@ An iterator over the syntax where the macro was called. It has the type:
 +
 ----
 {
-  next: (string?) -> {
+  next: () -> {
     done: boolean,
     value: Syntax
   }
@@ -156,7 +156,7 @@ We only need one new feature you haven't seen yet:
 syntax let = function (ctx) {
   let ident = ctx.next().value;
   ctx.next(); // eat `=`
-  let init = ctx.next('expr').value; // <1>
+  let init = ctx.expand('expr').value; // <1>
   return #`
     (function (${ident}) {
       ${ctx} // <2>
@@ -167,7 +167,7 @@ syntax let = function (ctx) {
 let bb8 = new Droid('BB-8', 'orange');
 console.log(bb8.beep());
 ----
-<1> Match an expression
+<1> Expand the syntax until an expression is matched
 <2> A macro context in the template will consume the iterator
 
 .(Expansion)
@@ -178,7 +178,7 @@ console.log(bb8.beep());
 })(Droid.create("BB-8", "orange"));
 ----
 
-Calling `next` with a string argument allows us to specify the grammar production we want to match; in this case we are matching an expression. You can think matching against a grammar production a little like matching an implicitly-delimited syntax object; these matches group multiple syntax object together.
+Calling `expand` allows us to specify the grammar production we want to match; in this case we are matching an expression. You can think matching against a grammar production a little like matching an implicitly-delimited syntax object; these matches group multiple syntax object together.
 
 
 == Sweet Cond
@@ -194,15 +194,15 @@ syntax cond = function (ctx) {
   let result = #``;
   for (let stx of bodyCtx) { // <2>
     if (stx.isKeyword('case')) { // <3>
-      let test = bodyCtx.next('expr').value;
+      let test = bodyCtx.expand('expr').value;
       // eat `:`
       bodyCtx.next();
-      let r = bodyCtx.next('expr').value;
+      let r = bodyCtx.expand('expr').value;
       result = result.concat(#`${test} ? ${r} :`);
     } else if (stx.isKeyword('default')) {
       // eat `:`
       bodyCtx.next();
-      let r = bodyCtx.next('expr').value;
+      let r = bodyCtx.expand('expr').value;
       result = result.concat(#`${r}`);
     } else {
       throw new Error('unknown syntax: ' + stx);

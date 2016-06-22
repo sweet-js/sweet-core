@@ -70,7 +70,52 @@ TransformerContext = {
 
 Each call to `next` returns the <<synobj, syntax object>> following the transformer call.
 
-A call to `expand` matches the specified grammar production.
+A call to `expand` initiates expansion at the current state of the iterator and matches the specified grammar production. Matching is "greedy" so `expand('expr')` with the syntax `1 + 2` matches the entire binary expression rather than just `1`. The following productions are accepted by `expand`:
+
+- `Statement` with alias `stmt`
+- `AssignmentExpression` with alias `expr`
+- `Expression`
+- `BlockStatement`
+- `WhileStatement`
+- `IfStatement`
+- `ForStatement`
+- `SwitchStatement`
+- `BreakStatement`
+- `ContinueStatement`
+- `DebuggerStatement`
+- `WithStatement`
+- `TryStatement`
+- `ThrowStatement`
+- `ClassDeclaration`
+- `FunctionDeclaration`
+- `LabeledStatement`
+- `VariableDeclarationStatement`
+- `ReturnStatement`
+- `ExpressionStatement`
+- `YieldExpression`
+- `ClassExpression`
+- `ArrowExpression`
+- `NewExpression`
+- `ThisExpression`
+- `FunctionExpression`
+- `IdentifierExpression`
+- `LiteralNumericExpression`
+- `LiteralInfinityExpression`
+- `LiteralStringExpression`
+- `TemplateExpression`
+- `LiteralBooleanExpression`
+- `LiteralNullExpression`
+- `LiteralRegExpExpression`
+- `ObjectExpression`
+- `ArrayExpression`
+- `UnaryExpression`
+- `UpdateExpression`
+- `BinaryExpression`
+- `StaticMemberExpression`
+- `ComputedMemberExpression`
+- `AssignmentExpression`
+- `CompoundAssignmentExpression`
+- `ConditionalExpression`
 
 The `name()` method returns the syntax object of the macro name at the macro invocation site. This is usefulfootnote:[or will become useful as more features are implemented in Sweet] because it allows a macro transformer to get access to the lexical context at the invocation site.
 

@@ -253,3 +253,45 @@ test('should allow the macro context to be reset', t => {
     output = m 42 + 66
   `, 42);
 });
+
+test('should allow the macro context to match on a identifier expression', t => {
+  testEval(`
+    syntax m = ctx => {
+      let expr = ctx.expand('IdentifierExpression').value;
+      return #\`\${expr}\`;
+    }
+    var foo = 1;
+    output = m foo
+  `, 1);
+
+  testEval(`
+    syntax m = ctx => {
+      let expr = ctx.expand('IdentifierExpression').value;
+      return #\`1\`;
+    }
+    var foo = 1;
+    output = m foo + 1
+  `, 2);
+});
+
+test('should allow the macro context to match on a binary expression', t => {
+  testEval(`
+    syntax m = ctx => {
+      let expr = ctx.expand('BinaryExpression').value;
+      return #\`\${expr}\`;
+    }
+    output = m 1 + 1 - 1
+  `, 1);
+});
+
+test('should throw an error if the match fails for MacroContext::expand', t => {
+  t.throws(() => {
+    testEval(`
+      syntax m = ctx => {
+        let expr = ctx.expand('BinaryExpression').value;
+        return #\`\${expr}\`;
+      }
+      output = m foo
+    `, 1);
+  });
+});
