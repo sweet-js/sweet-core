@@ -119,4 +119,105 @@ test("new expression", function () {
       }]
     }
   );
+  testParse("new(a, b)", expr,
+    {
+      type: "NewExpression",
+      callee: {
+        type: "BinaryExpression",
+        left: { type: "IdentifierExpression", name: "a"},
+        operator: ",",
+        right: { type: "IdentifierExpression", name: "b"}
+      },
+      arguments: []
+    }
+  );
+  testParse("new(a in b)", expr,
+    {
+      type: "NewExpression",
+      callee: {
+        type: "BinaryExpression",
+        left: { type: "IdentifierExpression", name: "a"},
+        operator: "in",
+        right: { type: "IdentifierExpression", name: "b"}
+      },
+      arguments: []
+    }
+  );
+  testParse("new (Date(1))", expr,
+    {
+      type: "NewExpression",
+      callee: {
+        type: "CallExpression",
+        callee: {
+          type: "IdentifierExpression",
+          name: "Date"
+        },
+        arguments: [{
+          type: "LiteralNumericExpression",
+          value: 1
+        }]
+      }
+    }
+  );
+  testParse("new [1, 2, 3]", expr,
+    {
+      type: "NewExpression",
+      callee: {
+        type: "ArrayExpression",
+        elements: [{
+          type: "LiteralNumericExpression",
+          value: 1
+        }, {
+          type: "LiteralNumericExpression",
+          value: 2
+        }, {
+          type: "LiteralNumericExpression",
+          value: 3
+        }]
+      }
+    }
+  );
+  testParse("new { a: 1 }", expr,
+    {
+      type: "NewExpression",
+      callee: {
+        type: "ObjectExpression",
+        properties: [{
+          type: "DataProperty",
+          name: {
+            type: "StaticPropertyName",
+            value: "a"
+          },
+          expression: {
+            type: "LiteralNumericExpression",
+            value: 1
+          }
+        }]
+      }
+    }
+           );
+  testParse("new ``", expr, {
+    type: "NewExpression",
+    callee: {
+      type: "TemplateExpression",
+      tag: null,
+      elements: [{ type: "TemplateElement", rawValue: "" }]
+    },
+    arguments: []
+  });
+
+  testParse("new a``", expr, {
+    type: "NewExpression",
+    callee: {
+      type: "TemplateExpression",
+      tag: { type: "IdentifierExpression", name: "a" },
+      elements: [{ type: "TemplateElement", rawValue: "" }]
+    },
+    arguments: []
+  });
+  testParse("new a()``", expr, {
+    type: "TemplateExpression",
+    tag: { type: "NewExpression", callee: { type: "IdentifierExpression", name: "a" }, arguments: [] },
+    elements: [{ type: "TemplateElement", rawValue: "" }]
+  });
 });

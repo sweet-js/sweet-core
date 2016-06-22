@@ -1,4 +1,4 @@
-import Term from "./terms";
+import Term, { isIdentifierExpression } from "./terms";
 
 import {
   FunctionDeclTransform,
@@ -1063,10 +1063,6 @@ export class Enforester {
     if (this.term === null && this.isKeyword(lookahead, 'class')) {
       return this.enforestClass({isExpr: true});
     }
-    if (this.term === null && this.isKeyword(lookahead, 'super')) {
-      this.advance();
-      return new Term('Super', {});
-    }
     if (this.term === null &&
       (this.isIdentifier(lookahead) || this.isParens(lookahead)) &&
        this.isPunctuator(this.peek(1), '=>') &&
@@ -1082,10 +1078,6 @@ export class Enforester {
     // syntaxQuote ` ... `
     if (this.term === null && this.isSyntaxQuoteTransform(lookahead)) {
       return this.enforestSyntaxQuote();
-    }
-
-    if (this.term === null && this.isNewTransform(lookahead)) {
-      return this.enforestNewExpression();
     }
 
     // ($x:expr)
@@ -1126,7 +1118,26 @@ export class Enforester {
       }
     }
 
-    // and then check the cases where the term part of p is something...
+    if ((this.term === null && (
+      this.isNewTransform(lookahead) ||
+        this.isKeyword(lookahead, 'super'))) ||
+        // and then check the cases where the term part of p is something...
+        (this.term && (
+          // $x:expr . $prop:ident
+          (this.isPunctuator(lookahead, '.') && (
+            this.isIdentifier(this.peek(1)) || this.isKeyword(this.peek(1)))) ||
+            // $x:expr [ $b:expr ]
+            this.isBrackets(lookahead) ||
+            // $x:expr (...)
+            this.isParens(lookahead)
+        ))) {
+      return this.enforestLeftHandSideExpression({ allowCall: true });
+    }
+
+    // $x:id `...`
+    if(this.term && this.isTemplate(lookahead)) {
+      return this.enforestTemplateLiteral();
+    }
 
     // postfix unary
     if (this.term && this.isUpdateOperator(lookahead)) {
@@ -1137,30 +1148,7 @@ export class Enforester {
     if (this.term && this.isOperator(lookahead)) {
       return this.enforestBinaryExpression();
     }
-    // $x:expr . $prop:ident
-    if (this.term && this.isPunctuator(lookahead, ".") &&
-        (this.isIdentifier(this.peek(1)) || this.isKeyword(this.peek(1)))) {
-      return this.enforestStaticMemberExpression();
-    }
-    // $x:expr [ $b:expr ]
-    if (this.term && this.isBrackets(lookahead)) {
-      return this.enforestComputedMemberExpression();
-    }
-    // $x:expr (...)
-    if (this.term && this.isParens(lookahead)) {
-      let paren = this.advance();
-      return new Term("CallExpression", {
-        callee: this.term,
-        arguments: paren.inner()
-      });
-    }
-    // $x:id `...`
-    if (this.term && this.isTemplate(lookahead)) {
-      return new Term('TemplateExpression', {
-        tag: this.term,
-        elements: this.enforestTemplateElements()
-      });
-    }
+
     // $x:expr = $init:expr
     if (this.term && this.isAssign(lookahead)) {
       let binding = this.transformDestructuring(this.term);
@@ -1234,6 +1222,45 @@ export class Enforester {
     assert(false, 'Not a primary expression');
   }
 
+  enforestLeftHandSideExpression({ allowCall }) {
+    let lookahead = this.peek();
+
+    if (this.isKeyword(lookahead, 'super')) {
+      this.advance();
+      this.term = new Term('Super', {});
+    } else if (this.isNewTransform(lookahead)) {
+      this.term = this.enforestNewExpression();
+    }
+
+    while(true) {
+      lookahead = this.peek();
+      if (this.isParens(lookahead)) {
+        if (!allowCall) {
+          if (this.term && isIdentifierExpression(this.term)) {
+            return this.term;
+          }
+          this.term = this.enforestExpressionLoop();
+        } else {
+          this.term = this.enforestCallExpression();
+        }
+      } else if (this.isBrackets(lookahead)) {
+        this.term = allowCall ? this.enforestComputedMemberExpression() : this.enforestExpressionLoop();
+      } else if (this.isPunctuator(lookahead, '.') && (
+        this.isIdentifier(this.peek(1)) || this.isKeyword(this.peek(1)))) {
+        this.term = this.enforestStaticMemberExpression();
+      } else if (this.isTemplate(lookahead)) {
+        this.term = this.enforestTemplateLiteral();
+      } else if (this.isBraces(lookahead)) {
+        this.term = this.enforestPrimaryExpression();
+      } else if (this.isIdentifier(lookahead)) {
+        this.term = new Term('IdentifierExpression', { name: this.enforestIdentifier() });
+      } else {
+        break;
+      }
+    }
+    return this.term;
+  }
+
   enforestBooleanLiteral() {
     return new Term("LiteralBooleanExpression", {
       value: this.advance()
@@ -1242,7 +1269,7 @@ export class Enforester {
 
   enforestTemplateLiteral() {
     return new Term('TemplateExpression', {
-      tag: null,
+      tag: this.term,
       elements: this.enforestTemplateElements()
     });
   }
@@ -1313,18 +1340,13 @@ export class Enforester {
 
   enforestNewExpression() {
     this.matchKeyword('new');
-    let callee;
-    if (this.isKeyword(this.peek(), 'new')) {
-      callee = this.enforestNewExpression();
-    } else if (this.isKeyword(this.peek(), 'super')) {
-      callee = this.enforestExpressionLoop();
-    } else if (this.isPunctuator(this.peek(), '.') && this.isIdentifier(this.peek(1), 'target')) {
+    if (this.isPunctuator(this.peek(), '.') && this.isIdentifier(this.peek(1), 'target')) {
       this.advance();
       this.advance();
       return new Term('NewTargetExpression', {});
-    } else {
-      callee = new Term('IdentifierExpression', { name : this.enforestIdentifier() });
     }
+
+    let callee = this.enforestLeftHandSideExpression({ allowCall: false });
     let args;
     if (this.isParens(this.peek())) {
       args = this.matchParens();
@@ -1411,6 +1433,14 @@ export class Enforester {
         });
     }
     return this.transformDestructuring(term);
+  }
+
+  enforestCallExpression() {
+    let paren = this.advance();
+    return new Term("CallExpression", {
+      callee: this.term,
+      arguments: paren.inner()
+    });
   }
 
   enforestArrowExpression() {
