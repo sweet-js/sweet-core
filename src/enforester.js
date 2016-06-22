@@ -332,9 +332,13 @@ export class Enforester {
     let lookahead = this.peek();
 
     if (this.term === null && this.isCompiletimeTransform(lookahead)) {
-      this.rest = this.expandMacro();
+      this.expandMacro();
       lookahead = this.peek();
-      this.term = null;
+    }
+
+    if (this.term === null && this.isTerm(lookahead)) {
+      // TODO: check that this is actually an statement
+      return this.advance();
     }
 
     if (this.term === null && this.isBraces(lookahead)) {
@@ -1042,16 +1046,15 @@ export class Enforester {
   enforestAssignmentExpression() {
     let lookahead = this.peek();
 
+    if (this.term === null && this.isCompiletimeTransform(lookahead)) {
+      this.expandMacro();
+      lookahead = this.peek();
+    }
+
     if (this.term === null && this.isTerm(lookahead)) {
       // TODO: check that this is actually an expression
       return this.advance();
     }
-
-    if (this.term === null && this.isCompiletimeTransform(lookahead)) {
-      this.rest = this.expandMacro();
-      return EXPR_LOOP_EXPANSION;
-    }
-
 
     if (this.term === null && this.isKeyword(lookahead, 'yield')) {
       return this.enforestYieldExpression();
@@ -1877,34 +1880,37 @@ export class Enforester {
     return elements;
   }
 
-  expandMacro(enforestType) {
-    let name = this.advance();
+  expandMacro() {
+    let lookahead = this.peek();
+    while (this.isCompiletimeTransform(lookahead)) {
+      let name = this.advance();
 
-    let syntaxTransform = this.getFromCompiletimeEnvironment(name);
-    if (syntaxTransform == null || typeof syntaxTransform.value !== "function") {
-      throw this.createError(name,
-        "the macro name was not bound to a value that could be invoked");
-    }
-    let useSiteScope = freshScope("u");
-    let introducedScope = freshScope("i");
-    // TODO: needs to be a list of scopes I think
-    this.context.useScope = useSiteScope;
-
-    let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
-
-    let result = sanitizeReplacementValues(syntaxTransform.value.call(null, ctx));
-    if (!List.isList(result)) {
-      throw this.createError(name, "macro must return a list but got: " + result);
-    }
-    result = result.map(stx => {
-      if (!(stx && typeof stx.addScope === 'function')) {
-        throw this.createError(name, 'macro must return syntax objects or terms but got: ' + stx);
+      let syntaxTransform = this.getFromCompiletimeEnvironment(name);
+      if (syntaxTransform == null || typeof syntaxTransform.value !== "function") {
+        throw this.createError(name,
+          "the macro name was not bound to a value that could be invoked");
       }
-      return stx.addScope(introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
-    });
+      let useSiteScope = freshScope("u");
+      let introducedScope = freshScope("i");
+      // TODO: needs to be a list of scopes I think
+      this.context.useScope = useSiteScope;
 
-    return result.concat(ctx._rest(this));
+      let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 
+      let result = sanitizeReplacementValues(syntaxTransform.value.call(null, ctx));
+      if (!List.isList(result)) {
+        throw this.createError(name, "macro must return a list but got: " + result);
+      }
+      result = result.map(stx => {
+        if (!(stx && typeof stx.addScope === 'function')) {
+          throw this.createError(name, 'macro must return syntax objects or terms but got: ' + stx);
+        }
+        return stx.addScope(introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
+      });
+
+      this.rest = result.concat(ctx._rest(this));
+      lookahead = this.peek();
+    }
   }
 
   consumeSemicolon() {

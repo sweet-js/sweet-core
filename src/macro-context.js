@@ -173,6 +173,7 @@ export default class MacroContext {
         value: null
       };
     }
+    enf.expandMacro();
     let originalRest = enf.rest;
     let value;
     switch(type) {
@@ -220,38 +221,18 @@ export default class MacroContext {
         value = enf.enforestNewExpression();
         break;
       case 'ThisExpression':
-        value = enf.enforestThisExpression();
-        break;
       case 'FunctionExpression':
-        value = enf.enforestFunctionExpression();
-        break;
       case 'IdentifierExpression':
-        value = enf.enforestIdentifierExpression();
-        break;
       case 'LiteralNumericExpression':
       case 'LiteralInfinityExpression':
-        value = enf.enforestNumericLiteral();
-        break;
       case 'LiteralStringExpression':
-        value = enf.enforestStringLiteral();
-        break;
       case 'TemplateExpression':
-        value = enf.enforestTemplateLiteral();
-        break;
       case 'LiteralBooleanExpression':
-        value = enf.enforestBooleanLiteral();
-        break;
       case 'LiteralNullExpression':
-        value = enf.enforestNullLiteral();
-        break;
       case 'LiteralRegExpExpression':
-        value = enf.enforestRegularExpressionLiteral();
-        break;
       case 'ObjectExpression':
-        value = enf.enforestObjectExpression();
-        break;
       case 'ArrayExpression':
-        value = enf.enforestArrayExpression();
+        value = enf.enforestPrimaryExpression();
         break;
       case 'UnaryExpression':
       case 'UpdateExpression':
