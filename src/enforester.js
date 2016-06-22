@@ -1316,7 +1316,7 @@ export class Enforester {
     let callee;
     if (this.isKeyword(this.peek(), 'new')) {
       callee = this.enforestNewExpression();
-    } else if (this.isKeyword(this.peek(), 'super')) {
+    } else if (this.isKeyword(this.peek(), 'super') || this.isParens(this.peek())) {
       callee = this.enforestExpressionLoop();
     } else if (this.isPunctuator(this.peek(), '.') && this.isIdentifier(this.peek(1), 'target')) {
       this.advance();

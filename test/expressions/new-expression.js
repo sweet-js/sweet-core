@@ -119,4 +119,20 @@ test("new expression", function () {
       }]
     }
   );
+  testParse("new (Date(1))", expr,
+    {
+      type: "NewExpression",
+      callee: {
+        type: "CallExpression",
+        callee: {
+          type: "IdentifierExpression",
+          name: "Date"
+        },
+        arguments: [{
+          type: "LiteralNumericExpression",
+          value: 1
+        }]
+      }
+    }
+  );
 });
