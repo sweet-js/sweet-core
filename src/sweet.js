@@ -20,7 +20,7 @@ import nodeLoader from "./node-module-loader";
 
 export function expand(source, options = {}) {
   let bindings = new BindingMap();
-  let expander = new Expander({
+  let modules = new Modules({
     bindings,
     cwd: options.cwd || process.cwd(),
     filename: options.filename,
