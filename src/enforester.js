@@ -332,9 +332,13 @@ export class Enforester {
     let lookahead = this.peek();
 
     if (this.term === null && this.isCompiletimeTransform(lookahead)) {
-      this.rest = this.expandMacro().concat(this.rest);
+      this.expandMacro();
       lookahead = this.peek();
-      this.term = null;
+    }
+
+    if (this.term === null && this.isTerm(lookahead)) {
+      // TODO: check that this is actually an statement
+      return this.advance();
     }
 
     if (this.term === null && this.isBraces(lookahead)) {
@@ -1042,17 +1046,15 @@ export class Enforester {
   enforestAssignmentExpression() {
     let lookahead = this.peek();
 
+    if (this.term === null && this.isCompiletimeTransform(lookahead)) {
+      this.expandMacro();
+      lookahead = this.peek();
+    }
+
     if (this.term === null && this.isTerm(lookahead)) {
       // TODO: check that this is actually an expression
       return this.advance();
     }
-
-    if (this.term === null && this.isCompiletimeTransform(lookahead)) {
-      let result = this.expandMacro();
-      this.rest = result.concat(this.rest);
-      return EXPR_LOOP_EXPANSION;
-    }
-
 
     if (this.term === null && this.isKeyword(lookahead, 'yield')) {
       return this.enforestYieldExpression();
@@ -1086,76 +1088,28 @@ export class Enforester {
       return this.enforestNewExpression();
     }
 
-    // $x:ThisExpression
-    if (this.term === null && this.isKeyword(lookahead, "this")) {
-      return new Term("ThisExpression", {
-        stx: this.advance()
-      });
-    }
-    // $x:ident
-    if (this.term === null && (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'let') || this.isKeyword(lookahead, 'yield'))) {
-      return new Term("IdentifierExpression", {
-        name: this.advance()
-      });
-    }
-    if (this.term === null && this.isNumericLiteral(lookahead)) {
-      let num = this.advance();
-      if (num.val() === 1 / 0) {
-        return new Term('LiteralInfinityExpression', {});
-      }
-      return new Term("LiteralNumericExpression", {
-        value: num
-      });
-    }
-    if (this.term === null && this.isStringLiteral(lookahead)) {
-      return new Term("LiteralStringExpression", {
-        value: this.advance()
-      });
-    }
-    if (this.term === null && this.isTemplate(lookahead)) {
-      return new Term('TemplateExpression', {
-        tag: null,
-        elements: this.enforestTemplateElements()
-      });
-    }
-    if (this.term === null && this.isBooleanLiteral(lookahead)) {
-      return new Term("LiteralBooleanExpression", {
-        value: this.advance()
-      });
-    }
-    if (this.term === null && this.isNullLiteral(lookahead)) {
-      this.advance();
-      return new Term("LiteralNullExpression", {});
-    }
-    if (this.term === null && this.isRegularExpression(lookahead)) {
-      let reStx = this.advance();
-
-      let lastSlash = reStx.token.value.lastIndexOf("/");
-      let pattern = reStx.token.value.slice(1, lastSlash);
-      let flags = reStx.token.value.slice(lastSlash + 1);
-      return new Term("LiteralRegExpExpression", {
-        pattern, flags
-      });
-    }
     // ($x:expr)
     if (this.term === null && this.isParens(lookahead)) {
       return new Term("ParenthesizedExpression", {
         inner: this.advance().inner()
       });
     }
-    // $x:FunctionExpression
-    if (this.term === null && this.isFnDeclTransform(lookahead)) {
-      return this.enforestFunctionExpression();
-    }
 
-    // { $p:prop (,) ... }
-    if (this.term === null && this.isBraces(lookahead)) {
-      return this.enforestObjectExpression();
-    }
-
-    // [$x:expr (,) ...]
-    if (this.term === null && this.isBrackets(lookahead)) {
-      return this.enforestArrayExpression();
+    if (this.term === null && (
+      this.isKeyword(lookahead, "this") ||
+      this.isIdentifier(lookahead) ||
+      this.isKeyword(lookahead, 'let') ||
+      this.isKeyword(lookahead, 'yield') ||
+      this.isNumericLiteral(lookahead) ||
+      this.isStringLiteral(lookahead) ||
+      this.isTemplate(lookahead) ||
+      this.isBooleanLiteral(lookahead) ||
+      this.isNullLiteral(lookahead) ||
+      this.isRegularExpression(lookahead) ||
+      this.isFnDeclTransform(lookahead) ||
+      this.isBraces(lookahead) ||
+      this.isBrackets(lookahead))) {
+      return this.enforestPrimaryExpression();
     }
 
     // prefix unary
@@ -1235,6 +1189,106 @@ export class Enforester {
     }
 
     return EXPR_LOOP_NO_CHANGE;
+  }
+
+  enforestPrimaryExpression() {
+    let lookahead = this.peek();
+    // $x:ThisExpression
+    if (this.term === null && this.isKeyword(lookahead, "this")) {
+      return this.enforestThisExpression();
+    }
+    // $x:ident
+    if (this.term === null && (this.isIdentifier(lookahead) || this.isKeyword(lookahead, 'let') || this.isKeyword(lookahead, 'yield'))) {
+      return this.enforestIdentifierExpression();
+    }
+    if (this.term === null && this.isNumericLiteral(lookahead)) {
+      return this.enforestNumericLiteral();
+    }
+    if (this.term === null && this.isStringLiteral(lookahead)) {
+      return this.enforestStringLiteral();
+    }
+    if (this.term === null && this.isTemplate(lookahead)) {
+      return this.enforestTemplateLiteral();
+    }
+    if (this.term === null && this.isBooleanLiteral(lookahead)) {
+      return this.enforestBooleanLiteral();
+    }
+    if (this.term === null && this.isNullLiteral(lookahead)) {
+      return this.enforestNullLiteral();
+    }
+    if (this.term === null && this.isRegularExpression(lookahead)) {
+      return this.enforestRegularExpressionLiteral();
+    }
+    // $x:FunctionExpression
+    if (this.term === null && this.isFnDeclTransform(lookahead)) {
+      return this.enforestFunctionExpression();
+    }
+    // { $p:prop (,) ... }
+    if (this.term === null && this.isBraces(lookahead)) {
+      return this.enforestObjectExpression();
+    }
+    // [$x:expr (,) ...]
+    if (this.term === null && this.isBrackets(lookahead)) {
+      return this.enforestArrayExpression();
+    }
+    assert(false, 'Not a primary expression');
+  }
+
+  enforestBooleanLiteral() {
+    return new Term("LiteralBooleanExpression", {
+      value: this.advance()
+    });
+  }
+
+  enforestTemplateLiteral() {
+    return new Term('TemplateExpression', {
+      tag: null,
+      elements: this.enforestTemplateElements()
+    });
+  }
+
+  enforestStringLiteral() {
+    return new Term("LiteralStringExpression", {
+      value: this.advance()
+    });
+  }
+
+  enforestNumericLiteral() {
+    let num = this.advance();
+    if (num.val() === 1 / 0) {
+      return new Term('LiteralInfinityExpression', {});
+    }
+    return new Term("LiteralNumericExpression", {
+      value: num
+    });
+  }
+
+  enforestIdentifierExpression() {
+    return new Term("IdentifierExpression", {
+      name: this.advance()
+    });
+  }
+
+  enforestRegularExpressionLiteral() {
+    let reStx = this.advance();
+
+    let lastSlash = reStx.token.value.lastIndexOf("/");
+    let pattern = reStx.token.value.slice(1, lastSlash);
+    let flags = reStx.token.value.slice(lastSlash + 1);
+    return new Term("LiteralRegExpExpression", {
+      pattern, flags
+    });
+  }
+
+  enforestNullLiteral() {
+    this.advance();
+    return new Term("LiteralNullExpression", {});
+  }
+
+  enforestThisExpression() {
+    return new Term("ThisExpression", {
+      stx: this.advance()
+    });
   }
 
   enforestArgumentList() {
@@ -1826,34 +1880,37 @@ export class Enforester {
     return elements;
   }
 
-  expandMacro(enforestType) {
-    let name = this.advance();
+  expandMacro() {
+    let lookahead = this.peek();
+    while (this.isCompiletimeTransform(lookahead)) {
+      let name = this.advance();
 
-    let syntaxTransform = this.getFromCompiletimeEnvironment(name);
-    if (syntaxTransform == null || typeof syntaxTransform.value !== "function") {
-      throw this.createError(name,
-        "the macro name was not bound to a value that could be invoked");
-    }
-    let useSiteScope = freshScope("u");
-    let introducedScope = freshScope("i");
-    // TODO: needs to be a list of scopes I think
-    this.context.useScope = useSiteScope;
-
-    let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
-
-    let result = sanitizeReplacementValues(syntaxTransform.value.call(null, ctx));
-    if (!List.isList(result)) {
-      throw this.createError(name, "macro must return a list but got: " + result);
-    }
-    result = result.map(stx => {
-      if (!(stx && typeof stx.addScope === 'function')) {
-        throw this.createError(name, 'macro must return syntax objects or terms but got: ' + stx);
+      let syntaxTransform = this.getFromCompiletimeEnvironment(name);
+      if (syntaxTransform == null || typeof syntaxTransform.value !== "function") {
+        throw this.createError(name,
+          "the macro name was not bound to a value that could be invoked");
       }
-      return stx.addScope(introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
-    });
+      let useSiteScope = freshScope("u");
+      let introducedScope = freshScope("i");
+      // TODO: needs to be a list of scopes I think
+      this.context.useScope = useSiteScope;
 
-    return result;
+      let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 
+      let result = sanitizeReplacementValues(syntaxTransform.value.call(null, ctx));
+      if (!List.isList(result)) {
+        throw this.createError(name, "macro must return a list but got: " + result);
+      }
+      result = result.map(stx => {
+        if (!(stx && typeof stx.addScope === 'function')) {
+          throw this.createError(name, 'macro must return syntax objects or terms but got: ' + stx);
+        }
+        return stx.addScope(introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
+      });
+
+      this.rest = result.concat(ctx._rest(this));
+      lookahead = this.peek();
+    }
   }
 
   consumeSemicolon() {

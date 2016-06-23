@@ -1,5 +1,6 @@
 import MapSyntaxReducer from "./map-syntax-reducer";
 import reducer from "shift-reducer";
+import { expect } from './errors';
 import { List } from 'immutable';
 import { Enforester } from './enforester';
 import Syntax, { ALL_PHASES } from './syntax';
@@ -8,8 +9,9 @@ import { Maybe } from 'ramda-fantasy';
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
 
+
 const symWrap = Symbol('wrapper');
-const symName = Symbol('name');
+const privateData = new WeakMap();
 
 const getLineNumber = t => {
   if (t instanceof Syntax) {
@@ -40,7 +42,7 @@ export class SyntaxOrTermWrapper {
       return stx.match(type, value);
     }
   }
-  
+
   isIdentifier(value) {
     return this.match("identifier", value);
   }
@@ -139,54 +141,150 @@ ctx :: {
 */
 export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
-    // todo: perhaps replace with a symbol to keep mostly private?
-    this._enf = enf;
-    this[symName] = name;
-    this.context = context;
+    const priv = {
+      backup: enf,
+      name,
+      context
+    };
+
     if (useScope && introducedScope) {
-      this.noScopes = false;
-      this.useScope = useScope;
-      this.introducedScope = introducedScope;
+      priv.noScopes = false;
+      priv.useScope = useScope;
+      priv.introducedScope = introducedScope;
     } else {
-      this.noScopes = true;
+      priv.noScopes = true;
     }
+    privateData.set(this, priv);
+    this.reset(); // instantiate enforester
+
     this[Symbol.iterator] = () => this;
   }
 
   name() {
-    return new SyntaxOrTermWrapper(this[symName], this.context);
+    const { name, context } = privateData.get(this);
+    return new SyntaxOrTermWrapper(name, context);
   }
 
-  next(type = 'Syntax') {
-    if (this._enf.rest.size === 0) {
+  expand(type) {
+    const { enf, context } = privateData.get(this);
+    if (enf.rest.size === 0) {
       return {
         done: true,
-        value: null,
+        value: null
       };
     }
+    enf.expandMacro();
+    let originalRest = enf.rest;
     let value;
     switch(type) {
       case 'AssignmentExpression':
       case 'expr':
-        value = this._enf.enforestExpressionLoop();
+        value = enf.enforestExpressionLoop();
         break;
       case 'Expression':
-        value = this._enf.enforestExpression();
+        value = enf.enforestExpression();
         break;
-      case 'Syntax':
-        value = this._enf.advance();
-        if (!this.noScopes) {
-          value = value
-            .addScope(this.useScope, this.context.bindings, ALL_PHASES)
-            .addScope(this.introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
-        }
+      case 'Statement':
+      case 'stmt':
+        value = enf.enforestStatement();
+        break;
+      case 'BlockStatement':
+      case 'WhileStatement':
+      case 'IfStatement':
+      case 'ForStatement':
+      case 'SwitchStatement':
+      case 'BreakStatement':
+      case 'ContinueStatement':
+      case 'DebuggerStatement':
+      case 'WithStatement':
+      case 'TryStatement':
+      case 'ThrowStatement':
+      case 'ClassDeclaration':
+      case 'FunctionDeclaration':
+      case 'LabeledStatement':
+      case 'VariableDeclarationStatement':
+      case 'ReturnStatement':
+      case 'ExpressionStatement':
+        value = enf.enforestStatement();
+        expect(_.whereEq({type}, value), `Expecting a ${type}`, value, originalRest);
+        break;
+      case 'YieldExpression':
+        value = enf.enforestYieldExpression();
+        break;
+      case 'ClassExpression':
+        value = enf.enforestClass({isExpr: true});
+        break;
+      case 'ArrowExpression':
+        value = enf.enforestArrowExpression();
+        break;
+      case 'NewExpression':
+        value = enf.enforestNewExpression();
+        break;
+      case 'ThisExpression':
+      case 'FunctionExpression':
+      case 'IdentifierExpression':
+      case 'LiteralNumericExpression':
+      case 'LiteralInfinityExpression':
+      case 'LiteralStringExpression':
+      case 'TemplateExpression':
+      case 'LiteralBooleanExpression':
+      case 'LiteralNullExpression':
+      case 'LiteralRegExpExpression':
+      case 'ObjectExpression':
+      case 'ArrayExpression':
+        value = enf.enforestPrimaryExpression();
+        break;
+      case 'UnaryExpression':
+      case 'UpdateExpression':
+      case 'BinaryExpression':
+      case 'StaticMemberExpression':
+      case 'ComputedMemberExpression':
+      case 'AssignmentExpression':
+      case 'CompoundAssignmentExpression':
+      case 'ConditionalExpression':
+        value = enf.enforestExpressionLoop();
+        expect(_.whereEq({type}, value), `Expecting a ${type}`, value, originalRest);
         break;
       default:
         throw new Error('Unknown term type: ' + type);
     }
     return {
       done: false,
-      value: new SyntaxOrTermWrapper(value, this.context),
+      value: new SyntaxOrTermWrapper(value, context)
+    };
+  }
+
+  _rest(enf) {
+    const priv = privateData.get(this);
+    if(priv.backup === enf) {
+      return priv.enf.rest;
+    }
+    throw Error("Unauthorized access!");
+  }
+
+  reset() {
+    const priv = privateData.get(this);
+    const { rest, prev, context } = priv.backup;
+    priv.enf = new Enforester(rest, prev, context);
+  }
+
+  next() {
+    const { enf, noScopes, useScope, introducedScope, context } = privateData.get(this);
+    if (enf.rest.size === 0) {
+      return {
+        done: true,
+        value: null
+      };
+    }
+    let value = enf.advance();
+    if (!noScopes) {
+      value = value
+        .addScope(useScope, context.bindings, ALL_PHASES)
+        .addScope(introducedScope, context.bindings, ALL_PHASES, { flip: true });
+    }
+    return {
+      done: false,
+      value: new SyntaxOrTermWrapper(value, context)
     };
   }
 }

@@ -85,7 +85,7 @@ m 42`, stmt, {
 test("should handle expansion that eats an expression", function () {
   testParse(`
 syntaxrec m = function(ctx) {
-  let term = ctx.next('expr')
+  let term = ctx.expand('expr')
   return #\`200\`
 }
 m 100 + 200`, stmt, {
@@ -131,7 +131,7 @@ test('should handle expansion that takes an argument', () => {
 test('should handle expansion that matches an expression argument', () => {
   testParse(`
     syntaxrec m = function(ctx) {
-      let x = ctx.next('expr').value;
+      let x = ctx.expand('expr').value;
       return #\`40 + \${x}\`;
     }
     m 2;
@@ -171,13 +171,15 @@ test('should handle the full macro context api', () => {
   testEval(`
     syntaxrec def = function(ctx) {
       let id = ctx.next().value;
+      ctx.reset();
+      id = ctx.next().value;
       let parens = ctx.next().value;
       let body = ctx.next().value;
 
       let parenCtx = parens.inner();
       let paren_id = parenCtx.next().value;
       parenCtx.next() // =
-      let paren_init = parenCtx.next('expr').value;
+      let paren_init = parenCtx.expand('expr').value;
 
       let bodyCtx = body.inner();
       let b = [];
@@ -201,7 +203,7 @@ test('should handle iterators inside a syntax template', t => {
     syntax let = function (ctx) {
       let ident = ctx.next().value;
       ctx.next();
-      let init = ctx.next('expr').value;
+      let init = ctx.expand('expr').value;
       return #\`
         (function (\${ident}) {
           \${ctx}
@@ -234,4 +236,62 @@ test('should allow macros to be defined with punctuators', t => {
     }
     output = *
   `, 42);
+});
+
+test('should allow the macro context to be reset', t => {
+  testEval(`
+    syntax m = ctx => {
+      ctx.expand('expr'); // 42 + 66
+      // oops, just wanted one token
+      ctx.reset();
+      let value = ctx.next().value; // 42
+      ctx.next();
+      ctx.next();
+      return #\`\${value}\`;
+    }
+
+    output = m 42 + 66
+  `, 42);
+});
+
+test('should allow the macro context to match on a identifier expression', t => {
+  testEval(`
+    syntax m = ctx => {
+      let expr = ctx.expand('IdentifierExpression').value;
+      return #\`\${expr}\`;
+    }
+    var foo = 1;
+    output = m foo
+  `, 1);
+
+  testEval(`
+    syntax m = ctx => {
+      let expr = ctx.expand('IdentifierExpression').value;
+      return #\`1\`;
+    }
+    var foo = 1;
+    output = m foo + 1
+  `, 2);
+});
+
+test('should allow the macro context to match on a binary expression', t => {
+  testEval(`
+    syntax m = ctx => {
+      let expr = ctx.expand('BinaryExpression').value;
+      return #\`\${expr}\`;
+    }
+    output = m 1 + 1 - 1
+  `, 1);
+});
+
+test('should throw an error if the match fails for MacroContext::expand', t => {
+  t.throws(() => {
+    testEval(`
+      syntax m = ctx => {
+        let expr = ctx.expand('BinaryExpression').value;
+        return #\`\${expr}\`;
+      }
+      output = m foo
+    `, 1);
+  });
 });
