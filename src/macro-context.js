@@ -2,7 +2,7 @@ import MapSyntaxReducer from "./map-syntax-reducer";
 import reducer from "shift-reducer";
 import { List } from 'immutable';
 import { Enforester } from './enforester';
-import Syntax from './syntax';
+import Syntax, { ALL_PHASES } from './syntax';
 import * as _ from 'ramda';
 import { Maybe } from 'ramda-fantasy';
 const Just = Maybe.Just;
@@ -10,24 +10,6 @@ const Nothing = Maybe.Nothing;
 
 const symWrap = Symbol('wrapper');
 const symName = Symbol('name');
-
-const isKind = _.curry((kind, t, v) => {
-  if (t instanceof Syntax) {
-    return t[kind]() && (v == null || t.val() == v);
-  }
-});
-
-const isKeyword = isKind('isKeyword');
-const isIdentifier = isKind('isIdentifier');
-const isNumericLiteral = isKind('isNumericLiteral');
-const isStringLiteral = isKind('isStringLiteral');
-const isNullLiteral = isKind('isNullLiteral');
-const isPunctuator = isKind('isPunctuator');
-const isRegularExpression = isKind('isRegularExpression');
-const isBraces = isKind('isBraces');
-const isBrackets = isKind('isBrackets');
-const isParens = isKind('isParens');
-const isDelimiter = isKind('isDelimiter');
 
 const getLineNumber = t => {
   if (t instanceof Syntax) {
@@ -37,7 +19,7 @@ const getLineNumber = t => {
 };
 
 const getVal = t => {
-  if (isDelimiter(t, null)) {
+  if (t.match("delimiter")) {
     return null;
   }
   if (t instanceof Syntax) {
@@ -52,48 +34,75 @@ export class SyntaxOrTermWrapper {
     this.context = context;
   }
 
-  isKeyword(value) {
-    return isKeyword(this[symWrap], value);
+  match(type, value) {
+    let stx = this[symWrap];
+    if (stx instanceof Syntax) {
+      return stx.match(type, value);
+    }
   }
-
+  
   isIdentifier(value) {
-    return isIdentifier(this[symWrap], value);
+    return this.match("identifier", value);
   }
 
-  isNumericLiteral(value) {
-    return isNumericLiteral(this[symWrap], value);
+  isAssign(value) {
+    return this.match("assign", value);
   }
 
-  isStringLiteral(value) {
-    return isStringLiteral(this[symWrap], value);
+  isBooleanLiteral(value) {
+    return this.match("boolean", value);
+  }
+
+  isKeyword(value) {
+    return this.match("keyword", value);
   }
 
   isNullLiteral(value) {
-    return isNullLiteral(this[symWrap], value);
+    return this.match("null", value);
+  }
+
+  isNumericLiteral(value) {
+    return this.match("number", value);
   }
 
   isPunctuator(value) {
-    return isPunctuator(this[symWrap], value);
+    return this.match("punctuator", value);
+  }
+
+  isStringLiteral(value) {
+    return this.match("string", value);
   }
 
   isRegularExpression(value) {
-    return isRegularExpression(this[symWrap], value);
+    return this.match("regularExpression", value);
   }
 
-  isBraces(value) {
-    return isBraces(this[symWrap], value);
-  }
-
-  isBrackets(value) {
-    return isBrackets(this[symWrap], value);
-  }
-
-  isParens(value) {
-    return isParens(this[symWrap], value);
+  isTemplate(value) {
+    return this.match("template", value);
   }
 
   isDelimiter(value) {
-    return isDelimiter(this[symWrap], value);
+    return this.match("delimiter", value);
+  }
+
+  isParens(value) {
+    return this.match("parens", value);
+  }
+
+  isBraces(value) {
+    return this.match("braces", value);
+  }
+
+  isBrackets(value) {
+    return this.match("brackets", value);
+  }
+
+  isSyntaxTemplate(value) {
+    return this.match("syntaxTemplate", value);
+  }
+
+  isEOF(value) {
+    return this.match("eof", value);
   }
 
   lineNumber() {
@@ -106,7 +115,7 @@ export class SyntaxOrTermWrapper {
 
   inner() {
     let stx = this[symWrap];
-    if (!isDelimiter(stx, null)) {
+    if (!stx.match("delimiter")) {
       throw new Error('Can only get inner syntax on a delimiter');
     }
 
@@ -168,8 +177,8 @@ export default class MacroContext {
         value = this._enf.advance();
         if (!this.noScopes) {
           value = value
-            .addScope(this.useScope)
-            .addScope(this.introducedScope, this.context.bindings, { flip: true });
+            .addScope(this.useScope, this.context.bindings, ALL_PHASES)
+            .addScope(this.introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
         }
         break;
       default:

@@ -19,9 +19,10 @@ var source = fs.readFileSync("./test.js", "utf8");
 debugger;
 var result = compile(source, {
 	cwd: __dirname,
-	transform: transform,
+	// transform: transform,
 	filename: './test.js',
   moduleResolver: moduleResolver,
-  moduleLoader: moduleLoader
+  moduleLoader: moduleLoader,
+	enforcePragma: true
 });
 console.log(result.code);

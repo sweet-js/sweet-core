@@ -1,5 +1,4 @@
 import Reader from "./shift-reader";
-import Expander from "./expander";
 import { List } from "immutable";
 import Syntax from "./syntax";
 import Env from "./env";
@@ -20,36 +19,31 @@ import nodeResolver from "./node-module-resolver";
 import nodeLoader from "./node-module-loader";
 
 export function expand(source, options = {}) {
-  let reader = new Reader(source);
-  let stxl = reader.read();
-  let scope = freshScope('top');
   let bindings = new BindingMap();
-  
   let expander = new Expander({
-    env: new Env(),
-    store: new Env(),
     bindings,
     cwd: options.cwd || process.cwd(),
     filename: options.filename,
-    modules: new Modules(),
-    currentScope: [scope],
-    transform: options.transform || babelTransform || a => ({code: a}),
+    transform: options.transform || babelTransform || function(c) {
+      return {code: c};
+    },
     moduleResolver: options.moduleResolver || nodeResolver,
     moduleLoader: options.moduleLoader || nodeLoader
   });
-  let exStxl = expander.expand(stxl.map(s => s.addScope(scope, bindings)));
+  let compiledMod = modules.compileEntrypoint(source, options.filename, options.enforcePragma);
+  let nativeImports = compiledMod.importEntries.filter(imp => !modules.has(imp.moduleSpecifier.val()));
   return new Term("Module", {
     directives: List(),
-    items: exStxl
+    items: nativeImports.concat(compiledMod.body).concat(compiledMod.exportEntries.interpose(new Term('EmptyStatement', {})))
   });
 }
 
-export function parse(source, options = {}) {
-  return reduce(new ParseReducer(), expand(source, options));
+export function parse(source, options, includeImports = true) {
+  return reduce(new ParseReducer({phase: 0}), expand(source, options).gen({includeImports}));
 }
 
 export function compile(source, options = {}) {
-  let ast = parse(source, options);
+  let ast = parse(source, options, options.includeImports);
   let gen = codegen(ast, new FormattedCodeGen());
   return options.transform && (!options.noBabel) ? options.transform(gen, {
     babelrc: true,

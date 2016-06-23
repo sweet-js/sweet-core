@@ -1,4 +1,4 @@
 {
-    "presets": ["es2015"],
-    "sourceMaps": "inline"
+  "presets": ["es2015-node5"],
+  "sourceMaps": "inline"
 }

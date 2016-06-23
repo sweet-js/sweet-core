@@ -21,7 +21,8 @@ import {
   WithTransform,
   TryTransform,
   ThrowTransform,
-  CompiletimeTransform
+  CompiletimeTransform,
+  VarBindingTransform
 } from "./transforms";
 import { List } from "immutable";
 import { expect, assert } from "./errors";
@@ -32,7 +33,7 @@ import {
   getOperatorPrec,
   operatorLt
 } from "./operators";
-import Syntax from "./syntax";
+import Syntax, { ALL_PHASES } from "./syntax";
 
 import { freshScope } from "./scope";
 import { sanitizeReplacementValues } from './load-syntax';
@@ -117,8 +118,21 @@ export class Enforester {
     } else if (this.isKeyword(lookahead, 'export')) {
       this.advance();
       return this.enforestExportDeclaration();
+    } else if (this.isIdentifier(lookahead, '#')) {
+      return this.enforestLanguagePragma();
     }
     return this.enforestStatement();
+  }
+
+  enforestLanguagePragma() {
+    this.matchIdentifier('#');
+    this.matchIdentifier('lang');
+    let path = this.matchStringLiteral();
+    this.consumeSemicolon();
+    return new Term('Pragma', {
+      kind: 'lang',
+      items: List.of(path)
+    });
   }
 
   enforestExportDeclaration() {
@@ -907,21 +921,22 @@ export class Enforester {
     let kind;
     let lookahead = this.advance();
     let kindSyn = lookahead;
+    let phase = this.context.phase;
 
     if (kindSyn &&
-        this.context.env.get(kindSyn.resolve()) === VariableDeclTransform) {
+        this.context.env.get(kindSyn.resolve(phase)) === VariableDeclTransform) {
       kind = "var";
     } else if (kindSyn &&
-               this.context.env.get(kindSyn.resolve()) === LetDeclTransform) {
+               this.context.env.get(kindSyn.resolve(phase)) === LetDeclTransform) {
       kind = "let";
     } else if (kindSyn &&
-               this.context.env.get(kindSyn.resolve()) === ConstDeclTransform) {
+               this.context.env.get(kindSyn.resolve(phase)) === ConstDeclTransform) {
       kind = "const";
     } else if (kindSyn &&
-               this.context.env.get(kindSyn.resolve()) === SyntaxDeclTransform) {
+               this.context.env.get(kindSyn.resolve(phase)) === SyntaxDeclTransform) {
       kind = "syntax";
     } else if (kindSyn &&
-               this.context.env.get(kindSyn.resolve()) === SyntaxrecDeclTransform) {
+               this.context.env.get(kindSyn.resolve(phase)) === SyntaxrecDeclTransform) {
       kind = "syntaxrec";
     }
 
@@ -1038,6 +1053,7 @@ export class Enforester {
       return EXPR_LOOP_EXPANSION;
     }
 
+
     if (this.term === null && this.isKeyword(lookahead, 'yield')) {
       return this.enforestYieldExpression();
     }
@@ -1145,6 +1161,15 @@ export class Enforester {
     // prefix unary
     if (this.term === null && this.isOperator(lookahead)) {
       return this.enforestUnaryExpression();
+    }
+
+    if (this.term === null && this.isVarBindingTransform(lookahead)) {
+      let id = this.getFromCompiletimeEnvironment(lookahead).id;
+      if (id !== lookahead) {
+        this.advance();
+        this.rest = List.of(id).concat(this.rest);
+        return EXPR_LOOP_EXPANSION;
+      }
     }
 
     // and then check the cases where the term part of p is something...
@@ -1804,7 +1829,7 @@ export class Enforester {
   expandMacro(enforestType) {
     let name = this.advance();
 
-    let syntaxTransform = this.getCompiletimeTransform(name);
+    let syntaxTransform = this.getFromCompiletimeEnvironment(name);
     if (syntaxTransform == null || typeof syntaxTransform.value !== "function") {
       throw this.createError(name,
         "the macro name was not bound to a value that could be invoked");
@@ -1824,7 +1849,7 @@ export class Enforester {
       if (!(stx && typeof stx.addScope === 'function')) {
         throw this.createError(name, 'macro must return syntax objects or terms but got: ' + stx);
       }
-      return stx.addScope(introducedScope, this.context.bindings, { flip: true });
+      return stx.addScope(introducedScope, this.context.bindings, ALL_PHASES, { flip: true });
     });
 
     return result;
@@ -1944,107 +1969,113 @@ export class Enforester {
 
   isFnDeclTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === FunctionDeclTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === FunctionDeclTransform;
   }
 
   isVarDeclTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === VariableDeclTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === VariableDeclTransform;
   }
 
   isLetDeclTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === LetDeclTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === LetDeclTransform;
   }
 
   isConstDeclTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === ConstDeclTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === ConstDeclTransform;
   }
 
   isSyntaxDeclTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === SyntaxDeclTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === SyntaxDeclTransform;
   }
 
   isSyntaxrecDeclTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === SyntaxrecDeclTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === SyntaxrecDeclTransform;
   }
   isSyntaxTemplate(term) {
     return term && (term instanceof Syntax) && term.isSyntaxTemplate();
   }
   isSyntaxQuoteTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === SyntaxQuoteTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === SyntaxQuoteTransform;
   }
 
   isReturnStmtTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === ReturnStatementTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === ReturnStatementTransform;
   }
 
   isWhileTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === WhileTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === WhileTransform;
   }
 
   isForTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === ForTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === ForTransform;
   }
   isSwitchTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === SwitchTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === SwitchTransform;
   }
   isBreakTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === BreakTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === BreakTransform;
   }
   isContinueTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === ContinueTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === ContinueTransform;
   }
   isDoTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === DoTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === DoTransform;
   }
   isDebuggerTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === DebuggerTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === DebuggerTransform;
   }
   isWithTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === WithTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === WithTransform;
   }
   isTryTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === TryTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === TryTransform;
   }
   isThrowTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === ThrowTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === ThrowTransform;
   }
   isIfTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === IfTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === IfTransform;
   }
   isNewTransform(term) {
     return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve()) === NewTransform;
+           this.context.env.get(term.resolve(this.context.phase)) === NewTransform;
   }
 
   isCompiletimeTransform(term) {
     return term && (term instanceof Syntax) &&
-           (this.context.env.get(term.resolve()) instanceof CompiletimeTransform ||
-            this.context.store.get(term.resolve()) instanceof CompiletimeTransform);
+           (this.context.env.get(term.resolve(this.context.phase)) instanceof CompiletimeTransform ||
+            this.context.store.get(term.resolve(this.context.phase)) instanceof CompiletimeTransform);
   }
 
-  getCompiletimeTransform(term) {
-    if (this.context.env.has(term.resolve())) {
-      return this.context.env.get(term.resolve());
+  isVarBindingTransform(term) {
+    return term && (term instanceof Syntax) &&
+           (this.context.env.get(term.resolve(this.context.phase)) instanceof VarBindingTransform ||
+            this.context.store.get(term.resolve(this.context.phase)) instanceof VarBindingTransform);
+  }
+
+  getFromCompiletimeEnvironment(term) {
+    if (this.context.env.has(term.resolve(this.context.phase))) {
+      return this.context.env.get(term.resolve(this.context.phase));
     }
-    return this.context.store.get(term.resolve());
+    return this.context.store.get(term.resolve(this.context.phase));
   }
 
   lineNumberEq(a, b) {

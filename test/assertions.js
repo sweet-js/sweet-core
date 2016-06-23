@@ -6,15 +6,11 @@ import Reader from "../src/shift-reader";
 import { Enforester } from "../src/enforester";
 import { List } from "immutable";
 
-function expr(program) {
-  return stmt(program).expression;
-}
+export const stmt = x => x.items[0];
+export const expr = x => stmt(x).expression;
+export const items = x => x.items;
 
-function stmt(program) {
-  return program.items[0];
-}
-
-function makeEnforester(code) {
+export function makeEnforester(code) {
   let reader = new Reader(code);
   let stxl = reader.read();
   return new Enforester(stxl, List(), {});
@@ -25,7 +21,7 @@ export function testParseFailure() {
 }
 
 function testParseWithOpts(code, acc, expectedAst, options) {
-  let parsedAst = parse(code, options);
+  let parsedAst = parse(code, options, options.includeImports);
   let isString = (x) => type(x) === 'String';
   let isObject = (x) => type(x) === 'Object';
   let isArray = (x) => type(x) === 'Array';
@@ -44,37 +40,37 @@ function testParseWithOpts(code, acc, expectedAst, options) {
       checker(actual[key]);
     }, expected);
   }
-  checkObjects(expectedAst, acc(parsedAst));
+  try {
+    checkObjects(expectedAst, acc(parsedAst));
+  } catch (e) {
+    throw new Error(e.message);
+  }
 }
 
-export function testModule(code, loader, expectedAst) {
-  return testParseWithOpts(code, x => x, expectedAst, {
-    loc: false,
-    moduleResolver: x => x,
-    moduleLoader: path => loader[path]
-  });
-}
 
-// if a property has the string <<hygiene> it is ignored
-function testParse(code, acc, expectedAst) {
+export function testParse(code, acc, expectedAst, loader = {}) {
   return testParseWithOpts(code, acc, expectedAst, {
     loc: false,
-    moduleResolver: () => "",
-    moduleLoader: () => "",
+    moduleResolver: x => x,
+    moduleLoader: path => loader[path],
+    includeImports: true
   });
 }
 
-function testEval(source, expectedOutput) {
-  let result = compile(source, { cwd: '.', transform });
+export function testEval(source, expectedOutput, loader) {
+  let result = compile(source, {
+    cwd: '.',
+    transform,
+    moduleResolver: x => x,
+    moduleLoader: path => loader[path],
+    includeImports: false
+  });
   var output;
   eval(result.code);
   expect(output).to.eql(expectedOutput);
 }
 
+
 export function testThrow(source) {
   expect(() => compile(source, { cwd: '.', transform})).to.throwError();
 }
-
-export {
-  makeEnforester, expr, stmt, testParse, testEval
-};

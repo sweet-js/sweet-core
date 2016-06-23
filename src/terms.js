@@ -12,20 +12,67 @@ export default class Term {
       this[prop] = props[prop];
     }
   }
-  addScope(scope, bindings, options) {
+
+  extend(props) {
+    let newProps = {};
+    for (let field of fieldsIn(this)) {
+      if (props.hasOwnProperty(field)) {
+        newProps[field] = props[field];
+      } else {
+        newProps[field] = this[field];
+      }
+    }
+    return new Term(this.type, newProps);
+  }
+
+  gen({ includeImports } = { includeImports: true }) {
     let next = {};
     for (let field of fieldsIn(this)) {
       if (this[field] == null) {
         next[field] = null;
-      } else if (typeof this[field].addScope === 'function') {
-        next[field] = this[field].addScope(scope, bindings, options);
+      } else if (this[field] instanceof Term) {
+        next[field] = this[field].gen(includeImports);
       } else if (List.isList(this[field])) {
-        next[field] = this[field].map(f => f.addScope(scope, bindings, options));
+        let pred = includeImports ? R.complement(isCompiletimeStatement) : R.both(R.complement(isImportDeclaration), R.complement(isCompiletimeStatement));
+        next[field] = this[field].filter(pred)
+                                 .map(term => term instanceof Term ? term.gen(includeImports) : term);
       } else {
         next[field] = this[field];
       }
     }
     return new Term(this.type, next);
+  }
+
+  visit(f) {
+    let next = {};
+    for (let field of fieldsIn(this)) {
+      if (this[field] == null) {
+        next[field] = null;
+      } else if (List.isList(this[field])) {
+        next[field] = this[field].map(field => field != null ? f(field) : null);
+      } else {
+        next[field] = f(this[field]);
+      }
+    }
+    return this.extend(next);
+  }
+
+  addScope(scope, bindings, phase, options) {
+    return this.visit(term => {
+      if (typeof term.addScope === 'function') {
+        return term.addScope(scope, bindings, phase, options);
+      }
+      return term;
+    });
+  }
+
+  removeScope(scope, phase) {
+    return this.visit(term => {
+      if (typeof term.removeScope === 'function') {
+        return term.removeScope(scope, phase);
+      }
+      return term;
+    });
   }
 
   // TODO: this is very wrong
@@ -53,6 +100,7 @@ export default class Term {
     return new Term(this.type, next);
   }
 }
+
 
 // bindings
 export const isBindingWithDefault = R.whereEq({ type: "BindingWithDefault" });
@@ -121,6 +169,7 @@ export const isYieldGeneratorExpression = R.whereEq({ type: "YieldGeneratorExpre
 export const isBlockStatement = R.whereEq({ type: "BlockStatement" });
 export const isBreakStatement = R.whereEq({ type: "BreakStatement" });
 export const isContinueStatement = R.whereEq({ type: "ContinueStatement" });
+export const isCompoundAssignmentExpression = R.whereEq({ type: "CompoundAssignmentExpression" });
 export const isDebuggerStatement = R.whereEq({ type: "DebuggerStatement" });
 export const isDoWhileStatement = R.whereEq({ type: "DoWhileStatement" });
 export const isEmptyStatement = R.whereEq({ type: "EmptyStatement" });
@@ -141,6 +190,7 @@ export const isWhileStatement = R.whereEq({ type: "WhileStatement" });
 export const isWithStatement = R.whereEq({ type: "WithStatement" });
 
 // other
+export const isPragma = R.whereEq({ type: 'Pragma' });
 export const isBlock = R.whereEq({ type: "Block" });
 export const isCatchClause = R.whereEq({ type: "CatchClause" });
 export const isDirective = R.whereEq({ type: "Directive" });
@@ -162,6 +212,15 @@ export const isSyntaxrecDeclaration = R.both(isVariableDeclaration, R.whereEq({ 
 export const isFunctionTerm = R.either(isFunctionDeclaration, isFunctionExpression);
 export const isFunctionWithName = R.and(isFunctionTerm, R.complement(R.where({ name: R.isNil })));
 export const isParenthesizedExpression = R.whereEq({ type: 'ParenthesizedExpression'});
+export const isExportSyntax = R.both(isExport, exp => R.or(isSyntaxDeclaration(exp.declaration), isSyntaxrecDeclaration(exp.declaration)));
+export const isSyntaxDeclarationStatement = R.both(isVariableDeclarationStatement, decl => isCompiletimeDeclaration(decl.declaration));
+
+
+export const isCompiletimeDeclaration = R.either(isSyntaxDeclaration, isSyntaxrecDeclaration);
+export const isCompiletimeStatement = term => {
+  return (term instanceof Term) && isVariableDeclarationStatement(term) && isCompiletimeDeclaration(term.declaration);
+};
+export const isImportDeclaration = R.either(isImport, isImportNamespace);
 
 const fieldsIn = R.cond([
   // bindings
@@ -177,7 +236,7 @@ const fieldsIn = R.cond([
   [isClassElement, R.always(List.of('isStatic', 'method'))],
   // modules
   [isModule, R.always(List.of('directives', 'items'))],
-  [isImport, R.always(List.of('moduleSpecifier', 'defaultBinding', 'namedImports'))],
+  [isImport, R.always(List.of('moduleSpecifier', 'defaultBinding', 'namedImports', 'forSyntax'))],
   [isImportNamespace, R.always(List.of('moduleSpecifier', 'defaultBinding', 'namespaceBinding'))],
   [isImportSpecifier, R.always(List.of('name', 'binding'))],
   [isExportAllFrom, R.always(List.of('moduleSpecifier'))],
@@ -186,9 +245,9 @@ const fieldsIn = R.cond([
   [isExportDefault, R.always(List.of('body'))],
   [isExportSpecifier, R.always(List.of('name', 'exportedName'))],
   // property definition
-  [isMethod, R.always(List.of('body', 'isGenerator', 'params'))],
-  [isGetter, R.always(List.of('body'))],
-  [isSetter, R.always(List.of('body', 'param'))],
+  [isMethod, R.always(List.of('name', 'body', 'isGenerator', 'params'))],
+  [isGetter, R.always(List.of('name', 'body'))],
+  [isSetter, R.always(List.of('name', 'body', 'param'))],
   [isDataProperty, R.always(List.of('name', 'expression'))],
   [isShorthandProperty, R.always(List.of('expression'))],
   [isStaticPropertyName, R.always(List.of('value'))],
@@ -217,12 +276,14 @@ const fieldsIn = R.cond([
   [isStaticMemberExpression, R.always(List.of('object', 'property'))],
   [isTemplateExpression, R.always(List.of('tag', 'elements'))],
   [isThisExpression, R.always(List())],
+  [isUpdateExpression, R.always(List.of('isPrefix', 'operator', 'operand'))],
   [isYieldExpression, R.always(List.of('expression'))],
   [isYieldGeneratorExpression, R.always(List.of('expression'))],
   // statements
   [isBlockStatement, R.always(List.of('block'))],
   [isBreakStatement, R.always(List.of('label'))],
   [isContinueStatement, R.always(List.of('label'))],
+  [isCompoundAssignmentExpression, R.always(List.of('binding', 'operator', 'expression'))],
   [isDebuggerStatement, R.always(List())],
   [isDoWhileStatement, R.always(List.of('test', 'body'))],
   [isEmptyStatement, R.always(List())],
@@ -230,15 +291,19 @@ const fieldsIn = R.cond([
   [isForInStatement, R.always(List.of('left', 'right', 'body'))],
   [isForOfStatement, R.always(List.of('left', 'right', 'body'))],
   [isForStatement, R.always(List.of('init', 'test', 'update', 'body'))],
+  [isIfStatement, R.always(List.of('test', 'consequent', 'alternate'))],
   [isLabeledStatement, R.always(List.of('label', 'body'))],
   [isReturnStatement, R.always(List.of('expression'))],
+  [isSwitchStatement, R.always(List.of('discriminant', 'cases'))],
   [isSwitchStatementWithDefault, R.always(List.of('discriminant', 'preDefaultCases', 'defaultCase', 'postDefaultCases'))],
   [isThrowStatement, R.always(List.of('expression'))],
   [isTryCatchStatement, R.always(List.of('body', 'catchClause'))],
   [isTryFinallyStatement, R.always(List.of('body', 'catchClause', 'finalizer'))],
   [isVariableDeclarationStatement, R.always(List.of('declaration'))],
   [isWithStatement, R.always(List.of('object', 'body'))],
+  [isWhileStatement, R.always(List.of('test', 'body'))],
   // other
+  [isPragma, R.always(List.of('kind', 'items'))],
   [isBlock, R.always(List.of('statements'))],
   [isCatchClause, R.always(List.of('binding', 'body'))],
   [isDirective, R.always(List.of('rawValue'))],

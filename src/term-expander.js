@@ -7,24 +7,26 @@ import Term, {
 import { Scope, freshScope } from "./scope";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
 import reducer, { MonoidalReducer } from "shift-reducer";
-import Expander from './expander';
-import Syntax from "./syntax";
+import Compiler from './compiler';
+import Syntax, { ALL_PHASES } from "./syntax";
 import { serializer, makeDeserializer } from "./serializer";
 import { enforestExpr, Enforester } from "./enforester";
 import { assert } from './errors';
 import { processTemplate }from './template-processor.js';
+import ASTDispatcher from './ast-dispatcher';
 
-export default class TermExpander {
+export default class TermExpander extends ASTDispatcher {
   constructor(context) {
+    super('expand', true);
     this.context = context;
   }
 
   expand(term) {
-    let field = "expand" + term.type;
-    if (typeof this[field] === 'function') {
-      return this[field](term);
-    }
-    assert(false, "expand not implemented yet for: " + term.type);
+    return this.dispatch(term);
+  }
+
+  expandPragma(term) {
+    return term;
   }
 
   expandTemplateExpression(term) {
@@ -302,10 +304,9 @@ export default class TermExpander {
   }
 
   expandSyntaxTemplate(term) {
-    let expander = new Expander(this.context);
     let r = processTemplate(term.template.inner());
-    let str = Syntax.fromString(serializer.write(r.template));
-    let callee = new Term('IdentifierExpression', { name: Syntax.fromIdentifier('syntaxTemplate') });
+    let str = Syntax.from("string", serializer.write(r.template));
+    let callee = new Term('IdentifierExpression', { name: Syntax.from("identifier", 'syntaxTemplate') });
 
     let expandedInterps = r.interp.map(i => {
       let enf = new Enforester(i, List(), this.context);
@@ -322,7 +323,7 @@ export default class TermExpander {
 
   expandSyntaxQuote(term) {
     let str = new Term("LiteralStringExpression", {
-      value: Syntax.fromString(serializer.write(term.name))
+      value: Syntax.from("string", serializer.write(term.name))
     });
 
     return new Term("TemplateExpression", {
@@ -406,6 +407,9 @@ export default class TermExpander {
   }
 
   expandVariableDeclaration(term) {
+    if (term.kind === 'syntax' || term.kind === 'syntaxrec') {
+      return term;
+    }
     return new Term("VariableDeclaration", {
       kind: term.kind,
       declarators: term.declarators.map(d => this.expand(d))
@@ -511,17 +515,17 @@ export default class TermExpander {
       params = this.expand(params);
     }
     this.context.currentScope.push(scope);
-    let expander = new Expander(this.context);
+    let compiler = new Compiler(this.context.phase, this.context.env, this.context.store, this.context);
 
     let markedBody, bodyTerm;
     if (term.body instanceof Term) {
       // Arrow functions have a single term as their body
-      bodyTerm = this.expand(term.body.addScope(scope, this.context.bindings));
+      bodyTerm = this.expand(term.body.addScope(scope, this.context.bindings, ALL_PHASES));
     } else {
-      markedBody = term.body.map(b => b.addScope(scope, this.context.bindings));
+      markedBody = term.body.map(b => b.addScope(scope, this.context.bindings, ALL_PHASES));
       bodyTerm = new Term("FunctionBody", {
         directives: List(),
-        statements: expander.expand(markedBody)
+        statements: compiler.compile(markedBody)
       });
     }
     this.context.currentScope.pop();
@@ -597,7 +601,7 @@ export default class TermExpander {
   }
 
   expandIdentifierExpression(term) {
-    let trans = this.context.env.get(term.name.resolve());
+    let trans = this.context.env.get(term.name.resolve(this.context.phase));
     if (trans) {
       return new Term("IdentifierExpression", {
         name: trans.id

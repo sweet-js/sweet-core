@@ -19,22 +19,22 @@ positions.
 Requires either lookahead/lookbehind of one (to see the $).
 */
 
-const isDolar     = s => s && s instanceof Syntax && s.isIdentifier() && s.val() === '$';
-const isDelimiter = s => s && typeof s.isDelimiter === 'function' && s.isDelimiter();
-const isBraces    = s => s && typeof s.isBraces === 'function' && s.isBraces();
-const isParens    = s => s && typeof s.isParens === 'function' && s.isParens();
-const isBrackets  = s => s && typeof s.isBrackets === 'function' && s.isBrackets();
+const isDolar     = s => s && s instanceof Syntax && s.match("identifier") && s.val() === '$';
+const isDelimiter = s => s && typeof s.match === 'function' && s.match("delimiter");
+const isBraces    = s => s && typeof s.match === 'function' && s.match("braces");
+const isParens    = s => s && typeof s.match === 'function' && s.match("parens");
+const isBrackets  = s => s && typeof s.match === 'function' && s.match("brackets");
 
 const insertIntoDelimiter = _.cond([
-  [isBraces, (s, r) => Syntax.fromBraces(r, s)],
-  [isParens, (s, r) => Syntax.fromParens(r, s)],
-  [isBrackets, (s, r) => Syntax.fromBrackets(r, s)]
+  [isBraces, (s, r) => Syntax.from("braces", r, s)],
+  [isParens, (s, r) => Syntax.from("parens", r, s)],
+  [isBrackets, (s, r) => Syntax.from("brackets", r, s)]
 ]);
 
 const process = (acc, s) => {
   if (isBraces(s) && isDolar(acc.template.last())) {
     return {
-      template: acc.template.push(Syntax.fromBraces(List.of(Syntax.fromNumber(acc.interp.size)), s)),
+      template: acc.template.push(Syntax.from("braces", List.of(Syntax.from("number", acc.interp.size)), s)),
       interp: acc.interp.push(s.inner())
     };
   } else if (isDelimiter(s)) {

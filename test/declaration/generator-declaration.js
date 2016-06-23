@@ -87,50 +87,50 @@ test("generator declaration", function () {
   //     expression: { type: "LiteralNumericExpression", value: 0 }
   //   });
 
-  testParse("function* a() {} function a() {}", id,
-    {
-      type: "Module",
-      directives: [],
-      items: [{
-        type: "FunctionDeclaration",
-        isGenerator: true,
-        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-        params: { type: "FormalParameters", items: [], rest: null },
-        body: { type: "FunctionBody", directives: [], statements: [] }
-      }, {
-        type: "FunctionDeclaration",
-        isGenerator: false,
-        name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-        params: { type: "FormalParameters", items: [], rest: null },
-        body: { type: "FunctionBody", directives: [], statements: [] }
-      }]
-    }
-  );
-
-  testParse("function a() { function* a() {} function a() {} }", stmt,
-    { type: "FunctionDeclaration",
-      isGenerator: false,
-      name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-      params: { type: "FormalParameters", items: [], rest: null },
-      body: {
-        type: "FunctionBody",
-        directives: [],
-        statements: [{
-          type: "FunctionDeclaration",
-          isGenerator: true,
-          name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-          params: { type: "FormalParameters", items: [], rest: null },
-          body: { type: "FunctionBody", directives: [], statements: [] }
-        }, {
-          type: "FunctionDeclaration",
-          isGenerator: false,
-          name: { type: "BindingIdentifier", name: "<<hygiene>>" },
-          params: { type: "FormalParameters", items: [], rest: null },
-          body: { type: "FunctionBody", directives: [], statements: [] }
-        }]
-      }
-    }
-  );
+  // testParse("function* a() {} function a() {}", id,
+  //   {
+  //     type: "Module",
+  //     directives: [],
+  //     items: [{
+  //       type: "FunctionDeclaration",
+  //       isGenerator: true,
+  //       name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //       params: { type: "FormalParameters", items: [], rest: null },
+  //       body: { type: "FunctionBody", directives: [], statements: [] }
+  //     }, {
+  //       type: "FunctionDeclaration",
+  //       isGenerator: false,
+  //       name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //       params: { type: "FormalParameters", items: [], rest: null },
+  //       body: { type: "FunctionBody", directives: [], statements: [] }
+  //     }]
+  //   }
+  // );
+  //
+  // testParse("function a() { function* a() {} function a() {} }", stmt,
+  //   { type: "FunctionDeclaration",
+  //     isGenerator: false,
+  //     name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //     params: { type: "FormalParameters", items: [], rest: null },
+  //     body: {
+  //       type: "FunctionBody",
+  //       directives: [],
+  //       statements: [{
+  //         type: "FunctionDeclaration",
+  //         isGenerator: true,
+  //         name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //         params: { type: "FormalParameters", items: [], rest: null },
+  //         body: { type: "FunctionBody", directives: [], statements: [] }
+  //       }, {
+  //         type: "FunctionDeclaration",
+  //         isGenerator: false,
+  //         name: { type: "BindingIdentifier", name: "<<hygiene>>" },
+  //         params: { type: "FormalParameters", items: [], rest: null },
+  //         body: { type: "FunctionBody", directives: [], statements: [] }
+  //       }]
+  //     }
+  //   }
+  // );
 
   testParseFailure("label: function* a(){}", "Unexpected token \"*\"");
   testParseFailure("function*g(yield){}", "Unexpected token \"yield\"");
