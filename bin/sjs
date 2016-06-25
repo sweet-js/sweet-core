@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-var transform = require('babel-core').transform;
-
 var argv = require('yargs')
   .usage('Usage: sjs [options] files ...')
   .demand(1)
@@ -21,8 +19,6 @@ var path = require('path');
 var fs   = require('fs');
 var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
 var sweetjs = require(dir + '/sweet.js');
-var moduleResolver = require(dir + '/node-module-resolver').default;
-var moduleLoader = require(dir + '/node-module-loader').default;
 
 argv._.forEach(function (file) {
   var infile = fs.readFileSync(file, 'utf8');
@@ -30,11 +26,7 @@ argv._.forEach(function (file) {
   var output = sweetjs.compile(infile, {
     cwd: fdir,
     noBabel: argv.noBabel,
-    transform: transform,
-    filename: file,
-    moduleResolver: moduleResolver,
-    moduleLoader: moduleLoader,
-    enforcePragma: false
+    filename: file
   });
 
   if (argv.outFile) {
