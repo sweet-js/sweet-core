@@ -119,6 +119,18 @@ test("new expression", function () {
       }]
     }
   );
+  testParse("new(a in b)", expr,
+    {
+      type: "NewExpression",
+      callee: {
+        type: "BinaryExpression",
+        left: { type: "IdentifierExpression", name: "a"},
+        operator: "in",
+        right: { type: "IdentifierExpression", name: "b"}
+      },
+      arguments: []
+    }
+  );
   testParse("new (Date(1))", expr,
     {
       type: "NewExpression",
@@ -131,6 +143,43 @@ test("new expression", function () {
         arguments: [{
           type: "LiteralNumericExpression",
           value: 1
+        }]
+      }
+    }
+  );
+  testParse("new [1, 2, 3]", expr,
+    {
+      type: "NewExpression",
+      callee: {
+        type: "ArrayExpression",
+        elements: [{
+          type: "LiteralNumericExpression",
+          value: 1
+        }, {
+          type: "LiteralNumericExpression",
+          value: 2
+        }, {
+          type: "LiteralNumericExpression",
+          value: 3
+        }]
+      }
+    }
+  );
+  testParse("new { a: 1 }", expr,
+    {
+      type: "NewExpression",
+      callee: {
+        type: "ObjectExpression",
+        properties: [{
+          type: "DataProperty",
+          name: {
+            type: "StaticPropertyName",
+            value: "a"
+          },
+          expression: {
+            type: "LiteralNumericExpression",
+            value: 1
+          }
         }]
       }
     }
