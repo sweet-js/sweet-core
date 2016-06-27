@@ -1129,7 +1129,10 @@ export class Enforester {
             // $x:expr [ $b:expr ]
             this.isBrackets(lookahead) ||
             // $x:expr (...)
-            this.isParens(lookahead)))) {
+            this.isParens(lookahead) ||
+            // $x:id `...`
+            this.isTemplate(lookahead)
+        ))) {
       return this.enforestLeftHandSideExpression({ allowCall: true });
     }
 
@@ -1143,13 +1146,6 @@ export class Enforester {
       return this.enforestBinaryExpression();
     }
 
-    // $x:id `...`
-    if (this.term && this.isTemplate(lookahead)) {
-      return new Term('TemplateExpression', {
-        tag: this.term,
-        elements: this.enforestTemplateElements()
-      });
-    }
     // $x:expr = $init:expr
     if (this.term && this.isAssign(lookahead)) {
       let binding = this.transformDestructuring(this.term);
@@ -1242,6 +1238,8 @@ export class Enforester {
         this.term = this.enforestStaticMemberExpression();
       } else if (this.isBrackets(lookahead)) {
         this.term = this.enforestComputedMemberExpression();
+      } else if (this.isTemplate(lookahead)) {
+        this.term = this.enforestTemplateLiteral();
       } else {
         break;
       }
@@ -1257,7 +1255,7 @@ export class Enforester {
 
   enforestTemplateLiteral() {
     return new Term('TemplateExpression', {
-      tag: null,
+      tag: this.term,
       elements: this.enforestTemplateElements()
     });
   }
@@ -1334,7 +1332,7 @@ export class Enforester {
       callee = this.enforestNewExpression();
     } else if (this.isKeyword(lookahead, 'super')) {
       callee = this.enforestLeftHandSideExpression({ allowCall: false });
-    } else if (this.isParens(lookahead) || this.isBrackets(lookahead) || this.isBraces(lookahead)) {
+    } else if (this.isParens(lookahead) || this.isBrackets(lookahead) || this.isBraces(lookahead) || this.isTemplate(lookahead)) {
       callee = this.enforestExpressionLoop();
     } else if (this.isPunctuator(lookahead, '.') && this.isIdentifier(this.peek(1), 'target')) {
       this.advance();
@@ -1343,6 +1341,12 @@ export class Enforester {
     } else {
       callee = new Term('IdentifierExpression', { name : this.enforestIdentifier() });
     }
+
+    if(this.isTemplate(this.peek())) {
+      this.term = callee;
+      callee = this.enforestLeftHandSideExpression({ allowCall: false });
+    }
+
     let args;
     if (this.isParens(this.peek())) {
       args = this.matchParens();

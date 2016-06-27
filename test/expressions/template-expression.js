@@ -118,18 +118,19 @@ test("tagged template expressions", function () {
     tag: { type: "CallExpression", callee: { type: "IdentifierExpression", name: "a" }, arguments: [] },
     elements: [{ type: "TemplateElement", rawValue: "" }]
   });
-  // testParse("new a``", expr, {
-  //   type: "NewExpression",
-  //   callee: {
-  //     type: "TemplateExpression",
-  //     tag: { type: "IdentifierExpression", name: "a" },
-  //     elements: [{ type: "TemplateElement", rawValue: "" }]
-  //   },
-  //   arguments: []
-  // });
-  // testParse("new a()``", expr, {
-  //   type: "TemplateExpression",
-  //   tag: { type: "NewExpression", callee: { type: "IdentifierExpression", name: "a" }, arguments: [] },
-  //   elements: [{ type: "TemplateElement", rawValue: "" }]
-  // });
+  testParse("new {}``.b", expr, {
+    type: "NewExpression",
+    callee: {
+      type: "StaticMemberExpression",
+      object: {
+        type: "TemplateExpression",
+        tag: {
+          type: "ObjectExpression",
+          properties: []
+        },
+        elements: [{ type: "TemplateElement", rawValue: "" }]
+      },
+      property: "b"
+    }
+  });
 });

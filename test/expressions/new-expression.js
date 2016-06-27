@@ -183,5 +183,29 @@ test("new expression", function () {
         }]
       }
     }
-  );
+           );
+  testParse("new ``", expr, {
+    type: "NewExpression",
+    callee: {
+      type: "TemplateExpression",
+      tag: null,
+      elements: [{ type: "TemplateElement", rawValue: "" }]
+    },
+    arguments: []
+  });
+
+  testParse("new a``", expr, {
+    type: "NewExpression",
+    callee: {
+      type: "TemplateExpression",
+      tag: { type: "IdentifierExpression", name: "a" },
+      elements: [{ type: "TemplateElement", rawValue: "" }]
+    },
+    arguments: []
+  });
+  testParse("new a()``", expr, {
+    type: "TemplateExpression",
+    tag: { type: "NewExpression", callee: { type: "IdentifierExpression", name: "a" }, arguments: [] },
+    elements: [{ type: "TemplateElement", rawValue: "" }]
+  });
 });
