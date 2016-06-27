@@ -242,7 +242,7 @@ new Droid('BB-8', 'orange');</code></pre>
 <div class="listingblock">
 <div class="content">
 <pre>{
-  next: (string?) -&gt; {
+  next: () -&gt; {
     done: boolean,
     value: Syntax
   }
@@ -276,7 +276,7 @@ We only need one new feature you haven&#8217;t seen yet:</p>
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax let = function (ctx) {
   let ident = ctx.next().value;
   ctx.next(); // eat `=`
-  let init = ctx.next('expr').value; <i class="conum" data-value="1"></i><b>(1)</b>
+  let init = ctx.expand('expr').value; <i class="conum" data-value="1"></i><b>(1)</b>
   return #`
     (function (${ident}) {
       ${ctx} <i class="conum" data-value="2"></i><b>(2)</b>
@@ -292,7 +292,7 @@ console.log(bb8.beep());</code></pre>
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>Match an expression</td>
+<td>Expand the syntax until an expression is matched</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -309,7 +309,7 @@ console.log(bb8.beep());</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Calling <code>next</code> with a string argument allows us to specify the grammar production we want to match; in this case we are matching an expression. You can think matching against a grammar production a little like matching an implicitly-delimited syntax object; these matches group multiple syntax object together.</p>
+<p>Calling <code>expand</code> allows us to specify the grammar production we want to match; in this case we are matching an expression. You can think matching against a grammar production a little like matching an implicitly-delimited syntax object; these matches group multiple syntax object together.</p>
 </div>
 </div>
 </div>
@@ -328,15 +328,15 @@ console.log(bb8.beep());</code></pre>
   let result = #``;
   for (let stx of bodyCtx) { <i class="conum" data-value="2"></i><b>(2)</b>
     if (stx.isKeyword('case')) { <i class="conum" data-value="3"></i><b>(3)</b>
-      let test = bodyCtx.next('expr').value;
+      let test = bodyCtx.expand('expr').value;
       // eat `:`
       bodyCtx.next();
-      let r = bodyCtx.next('expr').value;
+      let r = bodyCtx.expand('expr').value;
       result = result.concat(#`${test} ? ${r} :`);
     } else if (stx.isKeyword('default')) {
       // eat `:`
       bodyCtx.next();
-      let r = bodyCtx.next('expr').value;
+      let r = bodyCtx.expand('expr').value;
       result = result.concat(#`${r}`);
     } else {
       throw new Error('unknown syntax: ' + stx);

@@ -12,15 +12,23 @@ import BindingMap from "./binding-map.js";
 import Term from "./terms";
 import { Modules } from './modules';
 
+// not available in browser
+
+import { transform as babelTransform } from "babel-core";
+import nodeResolver from "./node-module-resolver";
+import nodeLoader from "./node-module-loader";
+
 export function expand(source, options = {}) {
   let bindings = new BindingMap();
   let modules = new Modules({
-    cwd: options.cwd,
+    bindings,
+    cwd: options.cwd || process.cwd(),
     filename: options.filename,
-    transform: options.transform ? options.transform : function(x) { return {code: x}; },
-    moduleResolver: options.moduleResolver,
-    moduleLoader: options.moduleLoader,
-    bindings
+    transform: options.transform || babelTransform || function(c) {
+      return {code: c};
+    },
+    moduleResolver: options.moduleResolver || nodeResolver,
+    moduleLoader: options.moduleLoader || nodeLoader
   });
   let compiledMod = modules.compileEntrypoint(source, options.filename, options.enforcePragma);
   let nativeImports = compiledMod.importEntries.filter(imp => !modules.has(imp.moduleSpecifier.val()));

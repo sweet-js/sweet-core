@@ -16,6 +16,11 @@
       "url": "http://github.com/mozilla/sweet.js/master/LICENSE.BSD"
     }
   ],
+  "browser": {
+    "babel-core": false,
+    "./build/src/node-module-loader.js": false,
+    "./build/src/node-module-resolver.js": false
+  },
   "scripts": {
     "clean": "rm -rf build",
     "lint": "eslint src",
