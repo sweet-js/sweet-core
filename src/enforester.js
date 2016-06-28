@@ -1231,15 +1231,17 @@ export class Enforester {
 
     while(true) {
       lookahead = this.peek();
-      if (allowCall && this.isParens(lookahead)) {
-        this.term = this.enforestCallExpression();
+      if (this.isParens(lookahead)) {
+        this.term = allowCall ? this.enforestCallExpression() : this.enforestExpressionLoop();
+      } else if (this.isBrackets(lookahead)) {
+        this.term = allowCall ? this.enforestComputedMemberExpression() : this.enforestExpressionLoop();
       } else if (this.isPunctuator(lookahead, '.') && (
         this.isIdentifier(this.peek(1)) || this.isKeyword(this.peek(1)))) {
         this.term = this.enforestStaticMemberExpression();
-      } else if (this.isBrackets(lookahead)) {
-        this.term = this.enforestComputedMemberExpression();
       } else if (this.isTemplate(lookahead)) {
         this.term = this.enforestTemplateLiteral();
+      } else if(this.isBraces(lookahead)) {
+        this.term = this.enforestPrimaryExpression();
       } else {
         break;
       }
@@ -1326,25 +1328,20 @@ export class Enforester {
 
   enforestNewExpression() {
     this.matchKeyword('new');
-    let callee;
     let lookahead = this.peek();
-    if (this.isKeyword(lookahead, 'new')) {
-      callee = this.enforestNewExpression();
-    } else if (this.isKeyword(lookahead, 'super')) {
-      callee = this.enforestLeftHandSideExpression({ allowCall: false });
-    } else if (this.isParens(lookahead) || this.isBrackets(lookahead) || this.isBraces(lookahead) || this.isTemplate(lookahead)) {
-      callee = this.enforestExpressionLoop();
-    } else if (this.isPunctuator(lookahead, '.') && this.isIdentifier(this.peek(1), 'target')) {
+    if (this.isPunctuator(lookahead, '.') && this.isIdentifier(this.peek(1), 'target')) {
       this.advance();
       this.advance();
       return new Term('NewTargetExpression', {});
+    } else if(this.isIdentifier(lookahead)){
+      this.term = new Term('IdentifierExpression', { name : this.enforestIdentifier() });
     } else {
-      callee = new Term('IdentifierExpression', { name : this.enforestIdentifier() });
+      this.term = this.enforestLeftHandSideExpression({ allowCall: false });
     }
 
+    // (new a``) is a NewExpression while (new a()``) is a TemplateExpression
     if(this.isTemplate(this.peek())) {
-      this.term = callee;
-      callee = this.enforestLeftHandSideExpression({ allowCall: false });
+      this.term = this.enforestLeftHandSideExpression({ allowCall: false });
     }
 
     let args;
@@ -1354,7 +1351,7 @@ export class Enforester {
       args = List();
     }
     return new Term('NewExpression', {
-      callee,
+      callee: this.term,
       arguments: args
     });
   }
