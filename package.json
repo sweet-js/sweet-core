@@ -62,13 +62,14 @@
     "ava": "^0.15.0",
     "babel": "^6.5.0",
     "babel-cli": "^6.5.0",
-    "eslint": "^2.11.1",
     "babel-preset-es2015-node5": "^1.2.0",
+    "eslint": "^2.11.1",
     "event-stream": "^3.3.2",
     "expect.js": "0.3.x",
     "nyc": "^6.0.0",
     "source-map": "~0.5.3",
-    "source-map-support": "^0.4.0"
+    "source-map-support": "^0.4.0",
+    "webpack": "^1.13.1"
   },
   "repository": {
     "type": "git",
