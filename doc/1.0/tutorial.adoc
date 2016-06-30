@@ -281,7 +281,7 @@ class Droid {
 [source, javascript]
 ----
 function Droid(name, color) {
-  this.name = name;kj
+  this.name = name;
   this.color = color;
 }
 
