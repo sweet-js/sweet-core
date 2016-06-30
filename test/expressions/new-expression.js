@@ -119,6 +119,18 @@ test("new expression", function () {
       }]
     }
   );
+  testParse("new(a, b)", expr,
+    {
+      type: "NewExpression",
+      callee: {
+        type: "BinaryExpression",
+        left: { type: "IdentifierExpression", name: "a"},
+        operator: ",",
+        right: { type: "IdentifierExpression", name: "b"}
+      },
+      arguments: []
+    }
+  );
   testParse("new(a in b)", expr,
     {
       type: "NewExpression",
