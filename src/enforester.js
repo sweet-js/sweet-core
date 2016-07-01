@@ -1129,11 +1129,14 @@ export class Enforester {
             // $x:expr [ $b:expr ]
             this.isBrackets(lookahead) ||
             // $x:expr (...)
-            this.isParens(lookahead) ||
-            // $x:id `...`
-            this.isTemplate(lookahead)
+            this.isParens(lookahead)
         ))) {
       return this.enforestLeftHandSideExpression({ allowCall: true });
+    }
+
+    // $x:id `...`
+    if(this.term && this.isTemplate(lookahead)) {
+      return this.enforestTemplateLiteral();
     }
 
     // postfix unary
