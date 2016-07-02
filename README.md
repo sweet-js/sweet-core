@@ -6,7 +6,7 @@ Hygienic Macros for JavaScript!
 
 Macros allow *you* to build the language of your dreams. Sweeten JavaScript by defining new syntax for your code.
 
-Sweet just got a shiny new 1.0 release. Some context about the changes is provided in this [post](https://medium.com/@disnet/announcing-sweet-js-1-0-e7f4f3e15594#.fo9kyqu48)
+Currently, Sweet should be considered experimental and under heavy development ([re-development](https://medium.com/@disnet/announcing-sweet-js-1-0-e7f4f3e15594#.fo9kyqu48) more like). As such, the API will be undergoing a bit of churn until probably the end of the year. So, probably best not to try Sweet in production systems just yet. If you're interested in helping out though we'd love to have you!
 
 # Getting started
 
