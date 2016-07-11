@@ -23,7 +23,7 @@
   },
   "scripts": {
     "clean": "rm -rf build",
-    "lint": "eslint src",
+    "lint": "eslint build/src",
     "prebuild": "mkdir -p build/test build/sweet dist/",
     "build:sweet": "bin/sjs -d build/sweet src/*.js -b",
     "build:src": "babel --out-dir build/src build/sweet",
