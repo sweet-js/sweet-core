@@ -3,6 +3,7 @@ import { assert, expect } from "./errors";
 import { mixin } from "./utils";
 import Syntax from "./syntax";
 import * as R from "ramda";
+import TermSpec from './term-spec';
 
 export default class Term {
   constructor(type, props) {
@@ -15,7 +16,7 @@ export default class Term {
 
   extend(props) {
     let newProps = {};
-    for (let field of fieldsIn(this)) {
+    for (let field of TermSpec.spec[this.type].fields) {
       if (props.hasOwnProperty(field)) {
         newProps[field] = props[field];
       } else {
@@ -27,7 +28,7 @@ export default class Term {
 
   gen({ includeImports } = { includeImports: true }) {
     let next = {};
-    for (let field of fieldsIn(this)) {
+    for (let field of TermSpec.spec[this.type].fields) {
       if (this[field] == null) {
         next[field] = null;
       } else if (this[field] instanceof Term) {
@@ -45,7 +46,7 @@ export default class Term {
 
   visit(f) {
     let next = {};
-    for (let field of fieldsIn(this)) {
+    for (let field of TermSpec.spec[this.type].fields) {
       if (this[field] == null) {
         next[field] = null;
       } else if (List.isList(this[field])) {
@@ -77,7 +78,7 @@ export default class Term {
 
   // TODO: this is very wrong
   lineNumber() {
-    for (let field of fieldsIn(this)) {
+    for (let field of TermSpec.spec[this.type].fields) {
       if (typeof this[field] && this[field].lineNumber === 'function') {
         return this[field].lineNumber();
       }
@@ -86,7 +87,7 @@ export default class Term {
 
   setLineNumber(line) {
     let next = {};
-    for (let field of fieldsIn(this)) {
+    for (let field of TermSpec.spec[this.type].fields) {
       if (this[field] == null) {
         next[field] = null;
       } else if (typeof this[field].setLineNumber === 'function') {
@@ -221,105 +222,3 @@ export const isCompiletimeStatement = term => {
   return (term instanceof Term) && isVariableDeclarationStatement(term) && isCompiletimeDeclaration(term.declaration);
 };
 export const isImportDeclaration = R.either(isImport, isImportNamespace);
-
-const fieldsIn = R.cond([
-  // bindings
-  [isBindingWithDefault, R.always(List.of('binding', 'init'))],
-  [isBindingIdentifier, R.always(List.of('name'))],
-  [isArrayBinding, R.always(List.of('elements', 'restElement'))],
-  [isObjectBinding, R.always(List.of('properties'))],
-  [isBindingPropertyIdentifier, R.always(List.of('binding', 'init'))],
-  [isBindingPropertyProperty, R.always(List.of('name', 'binding'))],
-  // class
-  [isClassExpression, R.always(List.of('name', 'super', 'elements'))],
-  [isClassDeclaration, R.always(List.of('name', 'super', 'elements'))],
-  [isClassElement, R.always(List.of('isStatic', 'method'))],
-  // modules
-  [isModule, R.always(List.of('directives', 'items'))],
-  [isImport, R.always(List.of('moduleSpecifier', 'defaultBinding', 'namedImports', 'forSyntax'))],
-  [isImportNamespace, R.always(List.of('moduleSpecifier', 'defaultBinding', 'namespaceBinding'))],
-  [isImportSpecifier, R.always(List.of('name', 'binding'))],
-  [isExportAllFrom, R.always(List.of('moduleSpecifier'))],
-  [isExportFrom, R.always(List.of('namedExports', 'moduleSpecifier'))],
-  [isExport, R.always(List.of('declaration'))],
-  [isExportDefault, R.always(List.of('body'))],
-  [isExportSpecifier, R.always(List.of('name', 'exportedName'))],
-  // property definition
-  [isMethod, R.always(List.of('name', 'body', 'isGenerator', 'params'))],
-  [isGetter, R.always(List.of('name', 'body'))],
-  [isSetter, R.always(List.of('name', 'body', 'param'))],
-  [isDataProperty, R.always(List.of('name', 'expression'))],
-  [isShorthandProperty, R.always(List.of('expression'))],
-  [isStaticPropertyName, R.always(List.of('value'))],
-  // literals
-  [isLiteralBooleanExpression, R.always(List.of('value'))],
-  [isLiteralInfinityExpression, R.always(List())],
-  [isLiteralNullExpression, R.always(List())],
-  [isLiteralNumericExpression, R.always(List.of('value'))],
-  [isLiteralRegExpExpression, R.always(List.of('pattern', 'flags'))],
-  [isLiteralStringExpression, R.always(List.of('value'))],
-  // expressions
-  [isArrayExpression, R.always(List.of('elements'))],
-  [isArrowExpression, R.always(List.of('params', 'body'))],
-  [isAssignmentExpression, R.always(List.of('binding', 'expression'))],
-  [isBinaryExpression, R.always(List.of('operator', 'left', 'right'))],
-  [isCallExpression, R.always(List.of('callee', 'arguments'))],
-  [isComputedAssignmentExpression, R.always(List.of('operator', 'binding', 'expression'))],
-  [isComputedMemberExpression, R.always(List.of('object', 'expression'))],
-  [isConditionalExpression, R.always(List.of('test', 'consequent', 'alternate'))],
-  [isFunctionExpression, R.always(List.of('name', 'isGenerator', 'params', 'body'))],
-  [isIdentifierExpression, R.always(List.of('name'))],
-  [isNewExpression, R.always(List.of('callee', 'arguments'))],
-  [isNewTargetExpression, R.always(List())],
-  [isObjectExpression, R.always(List.of('properties'))],
-  [isUnaryExpression, R.always(List.of('operator', 'operand'))],
-  [isStaticMemberExpression, R.always(List.of('object', 'property'))],
-  [isTemplateExpression, R.always(List.of('tag', 'elements'))],
-  [isThisExpression, R.always(List())],
-  [isUpdateExpression, R.always(List.of('isPrefix', 'operator', 'operand'))],
-  [isYieldExpression, R.always(List.of('expression'))],
-  [isYieldGeneratorExpression, R.always(List.of('expression'))],
-  // statements
-  [isBlockStatement, R.always(List.of('block'))],
-  [isBreakStatement, R.always(List.of('label'))],
-  [isContinueStatement, R.always(List.of('label'))],
-  [isCompoundAssignmentExpression, R.always(List.of('binding', 'operator', 'expression'))],
-  [isDebuggerStatement, R.always(List())],
-  [isDoWhileStatement, R.always(List.of('test', 'body'))],
-  [isEmptyStatement, R.always(List())],
-  [isExpressionStatement, R.always(List.of('expression'))],
-  [isForInStatement, R.always(List.of('left', 'right', 'body'))],
-  [isForOfStatement, R.always(List.of('left', 'right', 'body'))],
-  [isForStatement, R.always(List.of('init', 'test', 'update', 'body'))],
-  [isIfStatement, R.always(List.of('test', 'consequent', 'alternate'))],
-  [isLabeledStatement, R.always(List.of('label', 'body'))],
-  [isReturnStatement, R.always(List.of('expression'))],
-  [isSwitchStatement, R.always(List.of('discriminant', 'cases'))],
-  [isSwitchStatementWithDefault, R.always(List.of('discriminant', 'preDefaultCases', 'defaultCase', 'postDefaultCases'))],
-  [isThrowStatement, R.always(List.of('expression'))],
-  [isTryCatchStatement, R.always(List.of('body', 'catchClause'))],
-  [isTryFinallyStatement, R.always(List.of('body', 'catchClause', 'finalizer'))],
-  [isVariableDeclarationStatement, R.always(List.of('declaration'))],
-  [isWithStatement, R.always(List.of('object', 'body'))],
-  [isWhileStatement, R.always(List.of('test', 'body'))],
-  // other
-  [isPragma, R.always(List.of('kind', 'items'))],
-  [isBlock, R.always(List.of('statements'))],
-  [isCatchClause, R.always(List.of('binding', 'body'))],
-  [isDirective, R.always(List.of('rawValue'))],
-  [isFormalParameters, R.always(List.of('items', 'rest'))],
-  [isFunctionBody, R.always(List.of('directives', 'statements'))],
-  [isFunctionDeclaration, R.always(List.of('name', 'isGenerator', 'params', 'body'))],
-  [isScript, R.always(List.of('directives', 'statements'))],
-  [isSpreadElement, R.always(List.of('expression'))],
-  [isSuper, R.always(List())],
-  [isSwitchCase, R.always(List.of('test', 'consequent'))],
-  [isSwitchDefault, R.always(List.of('consequent'))],
-  [isTemplateElement, R.always(List.of('rawValue'))],
-  [isSyntaxTemplate, R.always(List.of('template'))],
-  [isVariableDeclaration, R.always(List.of('kind', 'declarators'))],
-  [isVariableDeclarator, R.always(List.of('binding', 'init'))],
-  [isParenthesizedExpression, R.always(List.of('inner'))],
-
-  [R.T, type => assert(false, 'Missing case in fields: ' + type.type)]
-]);
