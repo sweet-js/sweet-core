@@ -1,4 +1,7 @@
 import Term, { isIdentifierExpression } from "./terms";
+import { Maybe } from "ramda-fantasy";
+const Just = Maybe.Just;
+const Nothing = Maybe.Nothing;
 
 import {
   FunctionDeclTransform,
@@ -1899,7 +1902,7 @@ export class Enforester {
   enforestTemplateElements() {
     let lookahead = this.matchTemplate();
     let elements = lookahead.token.items.map(it => {
-      if (it instanceof Syntax && it.isDelimiter()) {
+      if (this.isDelimiter(it)) {
         let enf = new Enforester(it.inner(), List(), this.context);
         return enf.enforest("expression");
       }
@@ -1959,203 +1962,199 @@ export class Enforester {
     }
   }
 
+  safeCheck(obj, type, val = null) {
+    return obj && (typeof obj.match === 'function' ? obj.match(type, val) : false);
+  }
+
   isTerm(term) {
     return term && (term instanceof Term);
   }
 
-  isEOF(term) {
-    return term && (term instanceof Syntax) && term.isEOF();
+  isEOF(obj) {
+    return this.safeCheck(obj, 'eof');
   }
 
-  isIdentifier(term, val = null) {
-    return term && (term instanceof Syntax) && term.isIdentifier() &&
-            ((val === null) || (term.val() === val));
+  isIdentifier(obj, val = null) {
+    return this.safeCheck(obj, 'identifier', val);
   }
 
-  isPropertyName(term) {
-    return this.isIdentifier(term) || this.isKeyword(term) ||
-           this.isNumericLiteral(term) || this.isStringLiteral(term) || this.isBrackets(term);
+  isPropertyName(obj) {
+    return this.isIdentifier(obj) || this.isKeyword(obj) ||
+           this.isNumericLiteral(obj) || this.isStringLiteral(obj) || this.isBrackets(obj);
   }
 
-  isNumericLiteral(term) {
-    return term && (term instanceof Syntax) && term.isNumericLiteral();
+  isNumericLiteral(obj, val = null) {
+    return this.safeCheck(obj, 'number', val);
   }
 
-  isStringLiteral(term) {
-    return term && (term instanceof Syntax) && term.isStringLiteral();
+  isStringLiteral(obj, val = null) {
+    return this.safeCheck(obj, 'string', val);
   }
 
-  isTemplate(term) {
-    return term && (term instanceof Syntax) && term.isTemplate();
+  isTemplate(obj, val = null) {
+    return this.safeCheck(obj, 'template', val);
   }
 
-  isBooleanLiteral(term) {
-    return term && (term instanceof Syntax) && term.isBooleanLiteral();
+  isSyntaxTemplate(obj) {
+    return this.safeCheck(obj, 'syntaxTemplate');
   }
 
-  isNullLiteral(term) {
-    return term && (term instanceof Syntax) && term.isNullLiteral();
+  isBooleanLiteral(obj, val = null) {
+    return this.safeCheck(obj, 'boolean', val);
   }
 
-  isRegularExpression(term) {
-    return term && (term instanceof Syntax) && term.isRegularExpression();
+  isNullLiteral(obj, val = null) {
+    return this.safeCheck(obj, 'null', val);
   }
 
-  isParens(term) {
-    return term && (term instanceof Syntax) && term.isParens();
+  isRegularExpression(obj, val = null) {
+    return this.safeCheck(obj, 'regularExpression', val);
   }
 
-  isBraces(term) {
-    return term && (term instanceof Syntax) && term.isBraces();
+  isDelimiter(obj) {
+    return this.safeCheck(obj, 'delimiter');
   }
 
-  isBrackets(term) {
-    return term && (term instanceof Syntax) && term.isBrackets();
+  isParens(obj) {
+    return this.safeCheck(obj, 'parens');
   }
 
-  isAssign(term) {
-    if (this.isPunctuator(term)) {
-      switch (term.val()) {
-        case "=":
-        case "|=":
-        case "^=":
-        case "&=":
-        case "<<=":
-        case ">>=":
-        case ">>>=":
-        case "+=":
-        case "-=":
-        case "*=":
-        case "/=":
-        case "%=":
-          return true;
-        default:
-          return false;
-      }
-    }
-    return false;
+  isBraces(obj) {
+    return this.safeCheck(obj, 'braces');
   }
 
-  isKeyword(term, val = null) {
-    return term && (term instanceof Syntax) &&
-           term.isKeyword() && ((val === null) || (term.val() === val));
+  isBrackets(obj) {
+    return this.safeCheck(obj, 'brackets');
   }
 
-  isPunctuator(term, val = null) {
-    return term && (term instanceof Syntax) &&
-           term.isPunctuator() && ((val === null) || (term.val() === val));
+  isAssign(obj, val = null) {
+    return this.safeCheck(obj, 'assign', val);
   }
 
-  isOperator(term) {
-    return term && (term instanceof Syntax) && isOperator(term);
-  }
-  isUpdateOperator(term) {
-    return term && (term instanceof Syntax) && term.isPunctuator() &&
-      (term.val() === '++' || term.val() === '--');
+
+  isKeyword(obj, val = null) {
+    return this.safeCheck(obj, 'keyword', val);
   }
 
-  isFnDeclTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === FunctionDeclTransform;
+  isPunctuator(obj, val = null) {
+    return this.safeCheck(obj, 'punctuator', val);
   }
 
-  isVarDeclTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === VariableDeclTransform;
+  isOperator(obj) {
+    return (this.safeCheck(obj, 'punctuator') ||
+            this.safeCheck(obj, 'identifier') ||
+            this.safeCheck(obj, 'keyword')) && isOperator(obj);
   }
 
-  isLetDeclTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === LetDeclTransform;
+  isUpdateOperator(obj) {
+    return this.safeCheck(obj, 'punctuator', '++') ||
+           this.safeCheck(obj, 'punctuator', '--');
   }
 
-  isConstDeclTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === ConstDeclTransform;
+  safeResolve(obj, phase) {
+    return (obj && typeof obj.resolve === 'function') ? Just(obj.resolve(phase)) : Nothing();
   }
 
-  isSyntaxDeclTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === SyntaxDeclTransform;
+  isTransform(obj, trans) {
+    return this.safeResolve(obj, this.context.phase)
+               .map(name => this.context.env.get(name) === trans ||
+                            this.context.store.get(name) === trans)
+               .getOrElse(false);
   }
 
-  isSyntaxrecDeclTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === SyntaxrecDeclTransform;
-  }
-  isSyntaxTemplate(term) {
-    return term && (term instanceof Syntax) && term.isSyntaxTemplate();
-  }
-  isSyntaxQuoteTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === SyntaxQuoteTransform;
+  isTransformInstance(obj, trans) {
+    return this.safeResolve(obj, this.context.phase)
+               .map(name => this.context.env.get(name) instanceof trans ||
+                            this.context.store.get(name) instanceof trans)
+               .getOrElse(false);
   }
 
-  isReturnStmtTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === ReturnStatementTransform;
+  isFnDeclTransform(obj) {
+    return this.isTransform(obj, FunctionDeclTransform);
   }
 
-  isWhileTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === WhileTransform;
+  isVarDeclTransform(obj) {
+    return this.isTransform(obj, VariableDeclTransform);
   }
 
-  isForTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === ForTransform;
-  }
-  isSwitchTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === SwitchTransform;
-  }
-  isBreakTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === BreakTransform;
-  }
-  isContinueTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === ContinueTransform;
-  }
-  isDoTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === DoTransform;
-  }
-  isDebuggerTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === DebuggerTransform;
-  }
-  isWithTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === WithTransform;
-  }
-  isTryTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === TryTransform;
-  }
-  isThrowTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === ThrowTransform;
-  }
-  isIfTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === IfTransform;
-  }
-  isNewTransform(term) {
-    return term && (term instanceof Syntax) &&
-           this.context.env.get(term.resolve(this.context.phase)) === NewTransform;
+  isLetDeclTransform(obj) {
+    return this.isTransform(obj, LetDeclTransform);
   }
 
-  isCompiletimeTransform(term) {
-    return term && (term instanceof Syntax) &&
-           (this.context.env.get(term.resolve(this.context.phase)) instanceof CompiletimeTransform ||
-            this.context.store.get(term.resolve(this.context.phase)) instanceof CompiletimeTransform);
+  isConstDeclTransform(obj) {
+    return this.isTransform(obj, ConstDeclTransform);
   }
 
-  isVarBindingTransform(term) {
-    return term && (term instanceof Syntax) &&
-           (this.context.env.get(term.resolve(this.context.phase)) instanceof VarBindingTransform ||
-            this.context.store.get(term.resolve(this.context.phase)) instanceof VarBindingTransform);
+  isSyntaxDeclTransform(obj) {
+    return this.isTransform(obj, SyntaxDeclTransform);
+  }
+
+  isSyntaxrecDeclTransform(obj) {
+    return this.isTransform(obj, SyntaxrecDeclTransform);
+  }
+
+  isSyntaxQuoteTransform(obj) {
+    return this.isTransform(obj, SyntaxQuoteTransform);
+  }
+
+  isReturnStmtTransform(obj) {
+    return this.isTransform(obj, ReturnStatementTransform);
+  }
+
+  isWhileTransform(obj) {
+    return this.isTransform(obj, WhileTransform);
+  }
+
+  isForTransform(obj) {
+    return this.isTransform(obj, ForTransform);
+  }
+
+  isSwitchTransform(obj) {
+    return this.isTransform(obj, SwitchTransform);
+  }
+
+  isBreakTransform(obj) {
+    return this.isTransform(obj, BreakTransform);
+  }
+
+  isContinueTransform(obj) {
+    return this.isTransform(obj, ContinueTransform);
+  }
+
+  isDoTransform(obj) {
+    return this.isTransform(obj, DoTransform);
+  }
+
+  isDebuggerTransform(obj) {
+    return this.isTransform(obj, DebuggerTransform);
+  }
+
+  isWithTransform(obj) {
+    return this.isTransform(obj, WithTransform);
+  }
+
+  isTryTransform(obj) {
+    return this.isTransform(obj, TryTransform);
+  }
+
+  isThrowTransform(obj) {
+    return this.isTransform(obj, ThrowTransform);
+  }
+
+  isIfTransform(obj) {
+    return this.isTransform(obj, IfTransform);
+  }
+
+  isNewTransform(obj) {
+    return this.isTransform(obj, NewTransform);
+  }
+
+  isCompiletimeTransform(obj) {
+    return this.isTransformInstance(obj, CompiletimeTransform);
+  }
+
+  isVarBindingTransform(obj) {
+    return this.isTransformInstance(obj, VarBindingTransform);
   }
 
   getFromCompiletimeEnvironment(term) {

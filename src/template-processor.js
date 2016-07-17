@@ -19,7 +19,7 @@ positions.
 Requires either lookahead/lookbehind of one (to see the $).
 */
 
-const isDolar     = s => s && s instanceof Syntax && s.match("identifier") && s.val() === '$';
+const isDolar     = s => s && typeof s.match === 'function' && s.match("identifier") && s.val() === '$';
 const isDelimiter = s => s && typeof s.match === 'function' && s.match("delimiter");
 const isBraces    = s => s && typeof s.match === 'function' && s.match("braces");
 const isParens    = s => s && typeof s.match === 'function' && s.match("parens");
@@ -54,7 +54,7 @@ const process = (acc, s) => {
 function cloneLineNumber(to, from) {
   if (from && to && typeof to.setLineNumber === 'function') {
     return to.setLineNumber(from.lineNumber());
-  } 
+  }
   return to;
 }
 

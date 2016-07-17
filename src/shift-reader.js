@@ -289,7 +289,7 @@ export default class Reader extends Tokenizer {
       let tok = this.advance(prefix, b);
 
       // splicing allows syntax and terms
-      if (tok instanceof Syntax || tok instanceof Term) {
+      if (tok.scopesets || tok instanceof Term) {
         stack.push(tok);
         continue;
       }

@@ -281,7 +281,7 @@ export default class Syntax {
     }
     if (this.match("template")) {
       return this.token.items.map(el => {
-        if (el instanceof Syntax && el.match("delimiter")) {
+        if (typeof el.match === 'function' && el.match("delimiter")) {
           return '${...}';
         }
         return el.slice.text;

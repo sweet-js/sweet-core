@@ -13,18 +13,11 @@ const Nothing = Maybe.Nothing;
 const symWrap = Symbol('wrapper');
 const privateData = new WeakMap();
 
-const getLineNumber = t => {
-  if (t instanceof Syntax) {
-    return t.lineNumber();
-  }
-  throw new Error('Line numbers on terms not implemented yet');
-};
-
 const getVal = t => {
   if (t.match("delimiter")) {
     return null;
   }
-  if (t instanceof Syntax) {
+  if (typeof t.val === 'function') {
     return t.val();
   }
   return null;
@@ -38,7 +31,7 @@ export class SyntaxOrTermWrapper {
 
   match(type, value) {
     let stx = this[symWrap];
-    if (stx instanceof Syntax) {
+    if (typeof stx.match === 'function') {
       return stx.match(type, value);
     }
   }
@@ -108,7 +101,7 @@ export class SyntaxOrTermWrapper {
   }
 
   lineNumber() {
-    return getLineNumber(this[symWrap]);
+    return this[symWrap].lineNumber();
   }
 
   val() {
