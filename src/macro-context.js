@@ -181,7 +181,7 @@ ctx :: {
 export default class MacroContext {
   constructor(enf, name, context, useScope, introducedScope) {
     const priv = {
-      backup: enf,
+      backups: List.of(enf),
       name,
       context
     };
@@ -295,7 +295,7 @@ export default class MacroContext {
 
   _rest(enf) {
     const priv = privateData.get(this);
-    if(priv.backup === enf) {
+    if(priv.backups.last() === enf) {
       return priv.enf.rest;
     }
     throw Error("Unauthorized access!");
@@ -303,8 +303,25 @@ export default class MacroContext {
 
   reset() {
     const priv = privateData.get(this);
-    const { rest, prev, context } = priv.backup;
+    const { rest, prev, context } = priv.backups.first();
     priv.enf = new Enforester(rest, prev, context);
+    if (priv.backups.size > 1) {
+      priv.backups = priv.backups.shift();
+    }
+  }
+
+  mark() {
+    // 1. if at the beginning, do nothing (enf.rest.size === backups.last().size)
+    // 2. if at end, do nothing           (enf.rest.isEmpty())
+    // 3. if at last mark, do nothing     (enf.rest.size === backup.first().rest.size)
+    // 4. otherwise append enf to backups
+    const priv = privateData.get(this);
+    if (priv.enf.rest.size < priv.backups.last().rest.size &&
+       !priv.enf.rest.isEmpty() &&
+        priv.enf.rest.size < priv.backups.first().rest.size) {
+      const { rest, prev, context } = priv.enf;
+      priv.backups = priv.backups.unshift(new Enforester(rest, prev, context));
+    }
   }
 
   next() {

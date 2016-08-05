@@ -173,7 +173,11 @@ test('should handle the full macro context api', () => {
       let id = ctx.next().value;
       ctx.reset();
       id = ctx.next().value;
+
+      ctx.mark();
       let parens = ctx.next().value;
+      ctx.reset();
+      parens = ctx.next().value;
       let body = ctx.next().value;
 
       let parenCtx = parens.inner();
@@ -251,6 +255,26 @@ test('should allow the macro context to be reset', t => {
     }
 
     output = m 42 + 66
+  `, 42);
+});
+
+test('should allow the macro context to create a reset point', t => {
+  testEval(`
+    syntax m = ctx => {
+      ctx.next(); // 30
+      ctx.next(); // +
+      // lets play it safe
+      ctx.mark();
+      ctx.expand('expr'); // 42 + 66
+      // oops, just wanted one token
+      ctx.reset();
+      let value = ctx.next().value; // 42
+      ctx.next();
+      ctx.next();
+      return #\`\${value}\`;
+    }
+
+    output = m 30 + 42 + 66
   `, 42);
 });
 
