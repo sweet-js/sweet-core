@@ -193,6 +193,50 @@ export default class Syntax {
     return Types[type].create(value, stx);
   }
 
+  from(type, value) {
+    return Syntax.from(type, value, this);
+  }
+
+  fromNull() {
+    return this.from("null", null);
+  }
+
+  fromNumber(value) {
+    return this.from('number', value);
+  }
+
+  fromString(value) {
+    return this.from("string", value);
+  }
+
+  fromPunctuator(value) {
+    return this.from("punctuator", value);
+  }
+
+  fromKeyword(value) {
+    return this.from("keyword");
+  }
+
+  fromIdentifier(value) {
+    return this.from("identifier", value);
+  }
+
+  fromRegularExpression(value) {
+    return this.from("regularExpression", value);
+  }
+
+  fromBraces(inner) {
+    return this.from("braces", inner);
+  }
+
+  fromBrackets(inner) {
+    return this.from("brackets", inner);
+  }
+
+  fromParens(inner) {
+    return this.from("parens", inner);
+  }
+
   static fromNull(stx = {}) {
     return Syntax.from("null", null, stx);
   }
