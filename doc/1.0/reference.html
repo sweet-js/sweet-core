@@ -33,23 +33,34 @@
 </li>
 <li><a href="#_syntax_objects">5. Syntax Objects</a>
 <ul class="sectlevel2">
-<li><a href="#__code_val_code">5.1. <code>.val()</code></a></li>
-<li><a href="#__code_linenumber_code">5.2. <code>.lineNumber()</code></a></li>
-<li><a href="#__code_inner_code">5.3. <code>.inner()</code></a></li>
-<li><a href="#__code_isidentifier_code">5.4. <code>.isIdentifier()</code></a></li>
-<li><a href="#__code_isbooleanliteral_code">5.5. <code>.isBooleanLiteral()</code></a></li>
-<li><a href="#__code_isnullliteral_code">5.6. <code>.isNullLiteral()</code></a></li>
-<li><a href="#__code_isnumericliteral_code">5.7. <code>.isNumericLiteral()</code></a></li>
-<li><a href="#__code_isstringliteral_code">5.8. <code>.isStringLiteral()</code></a></li>
-<li><a href="#__code_iskeyword_code">5.9. <code>.isKeyword()</code></a></li>
-<li><a href="#__code_ispunctuator_code">5.10. <code>.isPunctuator()</code></a></li>
-<li><a href="#__code_isregularexpression_code">5.11. <code>.isRegularExpression()</code></a></li>
-<li><a href="#__code_istemplate_code">5.12. <code>.isTemplate()</code></a></li>
-<li><a href="#__code_isdelimiter_code">5.13. <code>.isDelimiter()</code></a></li>
-<li><a href="#__code_isparens_code">5.14. <code>.isParens()</code></a></li>
-<li><a href="#__code_isbrackets_code">5.15. <code>.isBrackets()</code></a></li>
-<li><a href="#__code_isbraces_code">5.16. <code>.isBraces()</code></a></li>
-<li><a href="#__code_issyntaxtemplate_code">5.17. <code>.isSyntaxTemplate()</code></a></li>
+<li><a href="#_val">5.1. val</a></li>
+<li><a href="#_linenumber">5.2. lineNumber</a></li>
+<li><a href="#_inner">5.3. inner</a></li>
+<li><a href="#_from">5.4. from</a></li>
+<li><a href="#_fromnull">5.5. fromNull</a></li>
+<li><a href="#_fromnumber">5.6. fromNumber</a></li>
+<li><a href="#_fromstring">5.7. fromString</a></li>
+<li><a href="#_frompunctuator">5.8. fromPunctuator</a></li>
+<li><a href="#_fromkeyword">5.9. fromKeyword</a></li>
+<li><a href="#_fromidentifier">5.10. fromIdentifier</a></li>
+<li><a href="#_fromregularexpression">5.11. fromRegularExpression</a></li>
+<li><a href="#_frombraces">5.12. fromBraces</a></li>
+<li><a href="#_frombrackets">5.13. fromBrackets</a></li>
+<li><a href="#_fromparens">5.14. fromParens</a></li>
+<li><a href="#_isidentifier">5.15. isIdentifier</a></li>
+<li><a href="#_isbooleanliteral">5.16. isBooleanLiteral</a></li>
+<li><a href="#_isnullliteral">5.17. isNullLiteral</a></li>
+<li><a href="#_isnumericliteral">5.18. isNumericLiteral</a></li>
+<li><a href="#_isstringliteral">5.19. isStringLiteral</a></li>
+<li><a href="#_iskeyword">5.20. isKeyword</a></li>
+<li><a href="#_ispunctuator">5.21. isPunctuator</a></li>
+<li><a href="#_isregularexpression">5.22. isRegularExpression</a></li>
+<li><a href="#_istemplate">5.23. isTemplate</a></li>
+<li><a href="#_isdelimiter">5.24. isDelimiter</a></li>
+<li><a href="#_isparens">5.25. isParens</a></li>
+<li><a href="#_isbrackets">5.26. isBrackets</a></li>
+<li><a href="#_isbraces">5.27. isBraces</a></li>
+<li><a href="#_issyntaxtemplate">5.28. isSyntaxTemplate</a></li>
 </ul>
 </li>
 <li><a href="#_syntax_templates">6. Syntax Templates</a></li>
@@ -319,106 +330,541 @@ m 42 + 66</code></pre>
 <h2 id="_syntax_objects">5. Syntax Objects</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Syntax objects represent the syntax from the source program. Syntax objects have a number of methods to inspect their contents.</p>
+<p>Syntax objects represent the syntax from the source program. Syntax objects have a number of methods to inspect their contents and construct new syntax object.</p>
 </div>
 <div class="sect2">
-<h3 id="__code_val_code">5.1. <code>.val()</code></h3>
+<h3 id="_val">5.1. val</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.val() -&gt; string?</code></pre>
+</div>
+</div>
 <div class="paragraph">
-<p>Returns a nullable value representing the textual value of the syntax. For example, the <code>.val()</code> of the identifier <code>foo</code> is the string <code>"foo"</code>. Some syntax objects (in particular delimiters) do not have a reasonable representation of their syntax and so <code>.val()</code> returns <code>null</code> in these cases.</p>
+<p>Returns a nullable value representing the textual value of the syntax object. For example, the <code>.val()</code> of the identifier <code>foo</code> is the string <code>"foo"</code>. Some syntax objects (in particular delimiters) do not have a reasonable representation of their syntax and so <code>.val()</code> returns <code>null</code> in these cases.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let id = ctx.next().value;
+  let delim = ctx.next().value;
+
+  id.val() === 'foo';   // true
+  delim.val() === null; // true
+  // ...
+}
+m foo (1)</code></pre>
+</div>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_linenumber_code">5.2. <code>.lineNumber()</code></h3>
+<h3 id="_linenumber">5.2. lineNumber</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.lineNumber() -&gt; number</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns the original line number for this syntax object.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_inner_code">5.3. <code>.inner()</code></h3>
+<h3 id="_inner">5.3. inner</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.inner() -&gt; TransformerContext</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>If the syntax object is a delimiter, returns a <a href="#context">transformer context</a> iterator into the delimiter. Otherwise, throw an exception.</p>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let delim = ctx.next().value;
+  var arr = [];
+  for (let item of delim.inner()) {
+    arr.push(item);
+  }
+  return #`[${arr}]`;
+}
+m {
+  1, 2, 3
+}</code></pre>
+</div>
+</div>
 </div>
 <div class="sect2">
-<h3 id="__code_isidentifier_code">5.4. <code>.isIdentifier()</code></h3>
+<h3 id="_from">5.4. from</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.from(type, value) -&gt; Syntax
+  type : string
+  value : any</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Construct a new syntax object from the provided <code>type</code> and <code>value</code> using the instance syntax object&#8217;s lexical context. Valid types are:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>'null'</code></p>
+</li>
+<li>
+<p><code>'number'</code></p>
+</li>
+<li>
+<p><code>'string'</code></p>
+</li>
+<li>
+<p><code>'punctuator'</code></p>
+</li>
+<li>
+<p><code>'keyword'</code></p>
+</li>
+<li>
+<p><code>'identifier'</code></p>
+</li>
+<li>
+<p><code>'regularExpression'</code></p>
+</li>
+<li>
+<p><code>'braces'</code></p>
+</li>
+<li>
+<p><code>'brackets'</code></p>
+</li>
+<li>
+<p><code>'parens'</code></p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_fromnull">5.5. fromNull</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromNull() -&gt; Syntax</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Creates a null literal with the instance syntax object&#8217;s lexical context.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  return #`${dummy.fromNull()}`;
+}
+m</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>null</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_fromnumber">5.6. fromNumber</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromNumber(value) -&gt; Syntax
+  value : number</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Creates a numeric literal matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  return #`${dummy.fromNumber(1)}`;
+}
+m</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>1</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_fromstring">5.7. fromString</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromString(value) -&gt; Syntax
+  value : string</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Creates a string literal matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  return #`${dummy.fromString('foo')}`;
+}
+m</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>'foo'</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_frompunctuator">5.8. fromPunctuator</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromPunctuator(value) -&gt; Syntax
+  value : string</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Creates a punctuator (e.g. <code>+</code>, <code>==</code>, etc.) matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  return #`1 ${dummy.fromPunctuator('+')} 1`;
+}
+m</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>1 + 1</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_fromkeyword">5.9. fromKeyword</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromKeyword(value) -&gt; Syntax
+  value : string</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Creates a keyword matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  return #`${dummy.fromKeyword('let')} x = 1`;
+}
+m</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>let x = 1</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_fromidentifier">5.10. fromIdentifier</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromIdentifier(value) -&gt; Syntax
+  value : string</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Creates a identifier matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax to_str = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  let arg = ctx.next().value;
+  return #`${dummy.fromIdentifier(arg.val())}`;
+}
+to_str foo</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>'foo'</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_fromregularexpression">5.11. fromRegularExpression</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromRegularExpression(value) -&gt; Syntax
+  value : string</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Creates a regular expression literal matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  return #`${dummy.fromRegularExpression('[a-zA-Z]*')}`;
+}
+m</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>/[a-zA-Z]/</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_frombraces">5.12. fromBraces</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromBraces(inner) -&gt; Syntax
+  inner : List(Syntax)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Creates a curly brace delimiter with inner syntax objects <code>inner</code> with the instance syntax object&#8217;s lexical context.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  let block = #`{ let x = 1; }`;
+  return #`${dummy.fromBraces(block)}`;
+}
+m</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>{
+  let x = 1;
+}</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_frombrackets">5.13. fromBrackets</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromBrackets(inner) -&gt; Syntax
+  inner : List(Syntax)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Creates a square bracket delimiter with inner syntax objects <code>inner</code> with the instance syntax object&#8217;s lexical context.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  let elements = #`1, 2, 3`;
+  return #`${dummy.fromBlock(elements)}`;
+}
+m</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>[1, 2, 3]</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_fromparens">5.14. fromParens</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromParens(inner) -&gt; Syntax
+  inner : List(Syntax)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Creates a parenthesis delimiter with inner syntax objects <code>inner</code> with the instance syntax object&#8217;s lexical context.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  let expr = #`5 * 5`;
+  return #`1 + ${dummy.fromParens(expr)}`;
+}
+m</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>1 + (5 * 5)</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_isidentifier">5.15. isIdentifier</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isIdentifier() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is an identifier.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_isbooleanliteral_code">5.5. <code>.isBooleanLiteral()</code></h3>
+<h3 id="_isbooleanliteral">5.16. isBooleanLiteral</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isBooleanLiteral() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a boolean literal.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_isnullliteral_code">5.6. <code>.isNullLiteral()</code></h3>
+<h3 id="_isnullliteral">5.17. isNullLiteral</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isNullLiteral() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a null literal.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_isnumericliteral_code">5.7. <code>.isNumericLiteral()</code></h3>
+<h3 id="_isnumericliteral">5.18. isNumericLiteral</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isNumericLiteral() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a numeric literal.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_isstringliteral_code">5.8. <code>.isStringLiteral()</code></h3>
+<h3 id="_isstringliteral">5.19. isStringLiteral</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isStringLiteral() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a string literal.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_iskeyword_code">5.9. <code>.isKeyword()</code></h3>
+<h3 id="_iskeyword">5.20. isKeyword</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isKeyword() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a keyword.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_ispunctuator_code">5.10. <code>.isPunctuator()</code></h3>
+<h3 id="_ispunctuator">5.21. isPunctuator</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isPunctuator() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a puncuator.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_isregularexpression_code">5.11. <code>.isRegularExpression()</code></h3>
+<h3 id="_isregularexpression">5.22. isRegularExpression</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isRegularExpression() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a regular expression literal.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_istemplate_code">5.12. <code>.isTemplate()</code></h3>
+<h3 id="_istemplate">5.23. isTemplate</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isTemplate() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a template literal.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_isdelimiter_code">5.13. <code>.isDelimiter()</code></h3>
+<h3 id="_isdelimiter">5.24. isDelimiter</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isDelimiter() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a delimiter.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_isparens_code">5.14. <code>.isParens()</code></h3>
+<h3 id="_isparens">5.25. isParens</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isParens() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a parenthesis delimiter (e.g. <code>( &#8230;&#8203; )</code>).</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_isbrackets_code">5.15. <code>.isBrackets()</code></h3>
+<h3 id="_isbrackets">5.26. isBrackets</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isBrackets() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a bracket delimiter (e.g. <code>[ &#8230;&#8203; ]</code>).</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_isbraces_code">5.16. <code>.isBraces()</code></h3>
+<h3 id="_isbraces">5.27. isBraces</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isBraces() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a braces delimiter (e.g. <code>{ &#8230;&#8203; }</code>).</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="__code_issyntaxtemplate_code">5.17. <code>.isSyntaxTemplate()</code></h3>
+<h3 id="_issyntaxtemplate">5.28. isSyntaxTemplate</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isSyntaxTemplate() -&gt; boolean</code></pre>
+</div>
+</div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a syntax template.</p>
 </div>
