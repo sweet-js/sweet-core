@@ -29,6 +29,52 @@ export class SyntaxOrTermWrapper {
     this.context = context;
   }
 
+  from(type, value) {
+    let stx = this[symWrap];
+    if (typeof stx.from === 'function') {
+      return stx.from(type, value);
+    }
+  }
+  fromNull() {
+    return this.from("null", null);
+  }
+
+  fromNumber(value) {
+    return this.from('number', value);
+  }
+
+  fromString(value) {
+    return this.from("string", value);
+  }
+
+  fromPunctuator(value) {
+    return this.from("punctuator", value);
+  }
+
+  fromKeyword(value) {
+    return this.from("keyword");
+  }
+
+  fromIdentifier(value) {
+    return this.from("identifier", value);
+  }
+
+  fromRegularExpression(value) {
+    return this.from("regularExpression", value);
+  }
+
+  fromBraces(inner) {
+    return this.from("braces", inner);
+  }
+
+  fromBrackets(inner) {
+    return this.from("brackets", inner);
+  }
+
+  fromParens(inner) {
+    return this.from("parens", inner);
+  }
+
   match(type, value) {
     let stx = this[symWrap];
     if (typeof stx.match === 'function') {

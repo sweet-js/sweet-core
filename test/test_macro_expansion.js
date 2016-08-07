@@ -295,3 +295,14 @@ test('should throw an error if the match fails for MacroContext::expand', t => {
     `, 1);
   });
 });
+
+test('should construct syntax from existing syntax', t => {
+  testEval(`
+    syntax m = ctx => {
+      let arg = ctx.next().value;
+      let dummy = #\`here\`.get(0);
+      return #\`\${dummy.fromString(arg.val())}\`
+    }
+    output = m foo
+  `, 'foo');
+});

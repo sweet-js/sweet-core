@@ -179,3 +179,10 @@ test('should work for an identifier with a scope', () => {
 
   expect(rtFoo.resolve(0)).to.be(foo.resolve(0));
 });
+
+test('should make new syntax from instance methods', t => {
+  let base = Syntax.fromIdentifier('foo');
+  let derived = base.from('identifier', 'bar');
+
+  t.is(derived.val(), 'bar');
+});
