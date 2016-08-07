@@ -39,6 +39,15 @@ test('should handle interpoations for delimiter tokens', t => {
    }()`, {a: 1});
 });
 
+test('should handle return and template literals', t => {
+  testEval(`
+    function f() {
+      return \`foo\`
+    }
+    output = f();
+  `, 'foo');
+});
+
 // test('should handle interpoations for terms', t => {
 //   testEval(`syntax m = ctx => #\`return \${ctx.next('expr').value}\`;
 //    output = function f() {

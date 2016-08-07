@@ -390,7 +390,8 @@ export default class Reader extends Tokenizer {
       } while (!element.tail);
       return {
         type: TokenType.TEMPLATE,
-        items: List(items)
+        items: List(items),
+        slice: this.getSlice(start, startLocation)
       };
     } else if (charCode === 35) { // #
       let startLocation = this.getLocation();
