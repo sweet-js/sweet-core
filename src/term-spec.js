@@ -4,26 +4,26 @@ spec Term {}
 
 // Bindings
 spec BindingWithDefault : Term {
-  'binding';
-  'init';
+  binding;
+  init;
 }
 spec BindingIdentifier : Term {
-  'name';
+  name;
 }
 spec ArrayBinding : Term {
-  'elements';
-  'restElement';
+  elements;
+  restElement;
 }
 spec ObjectBinding : Term {
-  'properties';
+  properties;
 }
 spec BindingPropertyIdentifier : Term {
-  'binding';
-  'init';
+  binding;
+  init;
 }
 spec BindingPropertyProperty : Term {
-  'name';
-  'binding';
+  name;
+  binding;
 }
 
 
@@ -32,327 +32,327 @@ spec Expression : Term {}
 
 // class
 spec ClassExpression : Expression {
-  'name';
-  'super';
-  'elements';
+  name;
+  super;
+  elements;
 }
 spec ClassDeclaration : Statement {
-  'name';
-  'super';
-  'elements';
+  name;
+  super;
+  elements;
 }
 spec ClassElement : Term {
-  'isStatic';
-  'method';
+  isStatic;
+  method;
 }
 
 
 // modules
 spec Module : Term {
-  'directives'
-  'items';
+  directives
+  items;
 }
 spec Import : Term {
-  'moduleSpecifier';
-  'defaultBinding';
-  'namedImports';
-  'forSyntax';
+  moduleSpecifier;
+  defaultBinding;
+  namedImports;
+  forSyntax;
 }
 spec ImportNamespace : Term {
-  'moduleSpecifier';
-  'defaultBinding';
-  'namespaceBinding';
+  moduleSpecifier;
+  defaultBinding;
+  namespaceBinding;
 }
 spec ImportSpecifier : Term {
-  'name';
-  'binding';
+  name;
+  binding;
 }
 spec ExportAllFrom : Term {
-  'moduleSpecifier';
+  moduleSpecifier;
 }
 spec ExportFrom : Term {
-  'namedExports';
-  'moduleSpecifier';
+  namedExports;
+  moduleSpecifier;
 }
 spec Export : Term {
-  'declaration';
+  declaration;
 }
 spec ExportDefault : Term {
-  'body';
+  body;
 }
 spec ExportSpecifier : Term {
-  'name';
-  'exportedName';
+  name;
+  exportedName;
 }
 
 // property definition
 spec Method : Term {
-  'name';
-  'body';
-  'isGenerator';
-  'params';
+  name;
+  body;
+  isGenerator;
+  params;
 }
 spec Getter : Term {
-  'name';
-  'body';
+  name;
+  body;
 }
 spec Setter : Term {
-  'name';
-  'body';
-  'param';
+  name;
+  body;
+  param;
 }
 spec DataProperty : Term {
-  'name';
-  'expression';
+  name;
+  expression;
 }
 spec ShorthandProperty : Term {
-  'expression';
+  expression;
 }
 spec StaticPropertyName : Term {
-  'value';
+  value;
 }
 
 // literals
 spec LiteralBooleanExpression : Expression {
-  'value';
+  value;
 }
 spec LiteralInfinityExpression : Expression { }
 spec LiteralNullExpression : Expression { }
 spec LiteralNumericExpression : Expression {
-  'value';
+  value;
 }
 spec LiteralRegExpExpression : Expression {
-  'pattern';
-  'flags';
+  pattern;
+  flags;
 }
 spec LiteralStringExpression : Expression {
-  'value';
+  value;
 }
 
 
 // expressions
 spec ArrayExpression : Expression {
-  'elements';
+  elements;
 }
 spec ArrowExpression : Expression {
-  'params';
-  'body';
+  params;
+  body;
 }
 spec AssignmentExpression : Expression {
-  'binding';
-  'expression';
+  binding;
+  expression;
 }
 spec BinaryExpression : Expression {
-  'operator';
-  'left';
-  'right';
+  operator;
+  left;
+  right;
 }
 spec CallExpression : Expression {
-  'callee';
-  'arguments';
+  callee;
+  arguments;
 }
 spec ComputedAssignmentExpression : Expression {
-  'operator';
-  'binding';
-  'expression';
+  operator;
+  binding;
+  expression;
 }
 spec ComputedMemberExpression : Expression {
-  'object';
-  'expression';
+  object;
+  expression;
 }
 spec ConditionalExpression : Expression {
-  'test';
-  'consequent';
-  'alternate';
+  test;
+  consequent;
+  alternate;
 }
 spec FunctionExpression : Expression {
-  'name';
-  'isGenerator';
-  'params';
-  'body';
+  name;
+  isGenerator;
+  params;
+  body;
 }
 spec IdentifierExpression : Expression {
-  'name';
+  name;
 }
 spec NewExpression : Expression {
-  'callee';
-  'arguments';
+  callee;
+  arguments;
 }
 spec NewTargetExpression : Expression { }
 spec ObjectExpression : Expression {
-  'properties';
+  properties;
 }
 spec UnaryExpression : Expression {
-  'operator';
-  'operand';
+  operator;
+  operand;
 }
 spec StaticMemberExpression : Expression {
-  'object';
-  'property';
+  object;
+  property;
 }
 spec TemplateExpression : Expression {
-  'tag';
-  'elements';
+  tag;
+  elements;
 }
 spec ThisExpression : Expression { }
 spec UpdateExpression : Expression {
-  'isPrefix';
-  'operator';
-  'operand';
+  isPrefix;
+  operator;
+  operand;
 }
 spec YieldExpression : Expression {
-  'expression';
+  expression;
 }
 spec YieldGeneratorExpression : Expression {
-  'expression';
+  expression;
 }
 spec ParenthesizedExpression : Expression {
-  'inner';
+  inner;
 }
 
 // statements
 spec BlockStatement : Statement {
-  'block';
+  block;
 }
 spec BreakStatement : Statement {
-  'label';
+  label;
 }
 spec ContinueStatement : Statement {
-  'label';
+  label;
 }
 spec CompoundAssignmentExpression : Statement {
-  'binding';
-  'operator';
-  'expression';
+  binding;
+  operator;
+  expression;
 }
 spec DebuggerStatement : Statement { }
 spec DoWhileStatement : Statement {
-  'test';
-  'body';
+  test;
+  body;
 }
 spec EmptyStatement : Statement { }
 spec ExpressionStatement : Statement {
-  'expression';
+  expression;
 }
 spec ForInStatement : Statement {
-  'left';
-  'right';
-  'body';
+  left;
+  right;
+  body;
 }
 spec ForOfStatement : Statement {
-  'left';
-  'right';
-  'body';
+  left;
+  right;
+  body;
 }
 spec ForStatement : Statement {
-  'init';
-  'test';
-  'update';
-  'body';
+  init;
+  test;
+  update;
+  body;
 }
 spec IfStatement : Statement {
-  'test';
-  'consequent';
-  'alternate';
+  test;
+  consequent;
+  alternate;
 }
 spec LabeledStatement : Statement {
-  'label';
-  'body';
+  label;
+  body;
 }
 spec ReturnStatement : Statement {
-  'expression';
+  expression;
 }
 spec SwitchStatement : Statement {
-  'discriminant';
-  'cases';
+  discriminant;
+  cases;
 }
 spec SwitchStatementWithDefault : Statement {
-  'discriminant';
-  'preDefaultCases';
-  'defaultCase';
-  'postDefaultCases';
+  discriminant;
+  preDefaultCases;
+  defaultCase;
+  postDefaultCases;
 }
 spec ThrowStatement : Statement {
-  'expression';
+  expression;
 }
 spec TryCatchStatement : Statement {
-  'body';
-  'catchClause';
+  body;
+  catchClause;
 }
 spec TryFinallyStatement : Statement {
-  'body';
-  'catchClause';
-  'finalizer';
+  body;
+  catchClause;
+  finalizer;
 }
 spec VariableDeclarationStatement : Statement {
-  'declaration';
+  declaration;
 }
 spec WithStatement : Statement {
-  'object';
-  'body';
+  object;
+  body;
 }
 spec WhileStatement : Statement {
-  'test';
-  'body';
+  test;
+  body;
 }
 
 // other
 spec Pragma : Term {
-  'kind';
-  'items';
+  kind;
+  items;
 }
 spec Block : Term {
-  'statements';
+  statements;
 }
 spec CatchClause : Term {
-  'binding';
-  'body';
+  binding;
+  body;
 }
 spec Directive : Term {
-  'rawValue';
+  rawValue;
 }
 spec FormalParameters : Term {
-  'items';
-  'rest';
+  items;
+  rest;
 }
 spec FunctionBody : Term {
-  'directives';
-  'statements';
+  directives;
+  statements;
 }
 spec FunctionDeclaration : Statement {
-  'name';
-  'isGenerator';
-  'params';
-  'body';
+  name;
+  isGenerator;
+  params;
+  body;
 }
 spec Script : Term {
-  'directives';
-  'statements';
+  directives;
+  statements;
 }
 spec SpreadElement : Term {
-  'expression';
+  expression;
 }
 spec Super : Term { }
 spec SwitchCase : Term {
-  'test';
-  'consequent';
+  test;
+  consequent;
 }
 spec SwitchDefault : Term {
-  'consequent';
+  consequent;
 }
 spec TemplateElement : Term {
-  'rawValue';
+  rawValue;
 }
 spec SyntaxTemplate : Term {
-  'template';
+  template;
 }
 spec VariableDeclaration : Term {
-  'kind';
-  'declarators';
+  kind;
+  declarators;
 }
 spec VariableDeclarator : Term {
-  'binding';
-  'init';
+  binding;
+  init;
 }
 
 

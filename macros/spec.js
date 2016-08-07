@@ -3,12 +3,13 @@
 export syntax spec = ctx => {
   let name = ctx.next();
   let bodyOrExtends = ctx.next();
+  let here = #`here`.get(0);
 
   function findFields (delim) {
     let fields = [];
     for (let stx of delim.inner()) {
-      if (stx.isStringLiteral()) {
-        fields.push(stx);
+      if (!stx.isPunctuator()) {
+        fields.push(here.fromString(stx.val()));
         fields.push(#`,`.get(0));
       }
     }
