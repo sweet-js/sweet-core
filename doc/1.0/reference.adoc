@@ -135,61 +135,457 @@ anchor:synobj[]
 
 == Syntax Objects
 
-Syntax objects represent the syntax from the source program. Syntax objects have a number of methods to inspect their contents.
+Syntax objects represent the syntax from the source program. Syntax objects have a number of methods to inspect their contents and construct new syntax object.
 
-=== `.val()`
 
-Returns a nullable value representing the textual value of the syntax. For example, the `.val()` of the identifier `foo` is the string `"foo"`. Some syntax objects (in particular delimiters) do not have a reasonable representation of their syntax and so `.val()` returns `null` in these cases.
+=== val
 
-=== `.lineNumber()`
+
+[source, javascript]
+----
+Syntax.prototype.val() -> string?
+----
+
+Returns a nullable value representing the textual value of the syntax object. For example, the `.val()` of the identifier `foo` is the string `"foo"`. Some syntax objects (in particular delimiters) do not have a reasonable representation of their syntax and so `.val()` returns `null` in these cases.
+
+[source, javascript]
+----
+syntax m = ctx => {
+  let id = ctx.next().value;
+  let delim = ctx.next().value;
+
+  id.val() === 'foo';   // true
+  delim.val() === null; // true
+  // ...
+}
+m foo (1)
+----
+
+=== lineNumber
+
+[source, javascript]
+----
+Syntax.prototype.lineNumber() -> number
+----
 
 Returns the original line number for this syntax object.
 
-=== `.inner()`
+=== inner
+
+[source, javascript]
+----
+Syntax.prototype.inner() -> TransformerContext
+----
 
 If the syntax object is a delimiter, returns a <<context, transformer context>> iterator into the delimiter. Otherwise, throw an exception.
 
-=== `.isIdentifier()`
+[source, javascript]
+----
+syntax m = ctx => {
+  let delim = ctx.next().value;
+  var arr = [];
+  for (let item of delim.inner()) {
+    arr.push(item);
+  }
+  return #`[${arr}]`;
+}
+m {
+  1, 2, 3
+}
+----
+
+=== from
+
+[source, javascript]
+----
+Syntax.prototype.from(type, value) -> Syntax
+  type : string
+  value : any
+----
+
+Construct a new syntax object from the provided `type` and `value` using the instance syntax object's lexical context. Valid types are:
+
+- `'null'`
+- `'number'`
+- `'string'`
+- `'punctuator'`
+- `'keyword'`
+- `'identifier'`
+- `'regularExpression'`
+- `'braces'`
+- `'brackets'`
+- `'parens'`
+
+=== fromNull
+
+[source, javascript]
+----
+Syntax.prototype.fromNull() -> Syntax
+----
+
+Creates a null literal with the instance syntax object's lexical context.
+
+
+[source, javascript]
+----
+syntax m = ctx => {
+  let dummy = #`dummy`.get(0);
+  return #`${dummy.fromNull()}`;
+}
+m
+----
+
+.(expansion)
+----
+null
+----
+
+=== fromNumber
+
+[source, javascript]
+----
+Syntax.prototype.fromNumber(value) -> Syntax
+  value : number
+----
+
+Creates a numeric literal matching `value` with the instance syntax object's lexical context.
+
+[source, javascript]
+----
+syntax m = ctx => {
+  let dummy = #`dummy`.get(0);
+  return #`${dummy.fromNumber(1)}`;
+}
+m
+----
+
+.(expansion)
+----
+1
+----
+
+=== fromString
+
+[source, javascript]
+----
+Syntax.prototype.fromString(value) -> Syntax
+  value : string
+----
+
+Creates a string literal matching `value` with the instance syntax object's lexical context.
+
+[source, javascript]
+----
+syntax m = ctx => {
+  let dummy = #`dummy`.get(0);
+  return #`${dummy.fromString('foo')}`;
+}
+m
+----
+
+.(expansion)
+----
+'foo'
+----
+
+=== fromPunctuator
+
+[source, javascript]
+----
+Syntax.prototype.fromPunctuator(value) -> Syntax
+  value : string
+----
+
+Creates a punctuator (e.g. `+`, `==`, etc.) matching `value` with the instance syntax object's lexical context.
+
+[source, javascript]
+----
+syntax m = ctx => {
+  let dummy = #`dummy`.get(0);
+  return #`1 ${dummy.fromPunctuator('+')} 1`;
+}
+m
+----
+
+.(expansion)
+----
+1 + 1
+----
+
+=== fromKeyword
+
+[source, javascript]
+----
+Syntax.prototype.fromKeyword(value) -> Syntax
+  value : string
+----
+
+Creates a keyword matching `value` with the instance syntax object's lexical context.
+
+[source, javascript]
+----
+syntax m = ctx => {
+  let dummy = #`dummy`.get(0);
+  return #`${dummy.fromKeyword('let')} x = 1`;
+}
+m
+----
+
+.(expansion)
+----
+let x = 1
+----
+
+=== fromIdentifier
+
+[source, javascript]
+----
+Syntax.prototype.fromIdentifier(value) -> Syntax
+  value : string
+----
+
+Creates a identifier matching `value` with the instance syntax object's lexical context.
+
+[source, javascript]
+----
+syntax to_str = ctx => {
+  let dummy = #`dummy`.get(0);
+  let arg = ctx.next().value;
+  return #`${dummy.fromIdentifier(arg.val())}`;
+}
+to_str foo
+----
+
+.(expansion)
+----
+'foo'
+----
+
+
+=== fromRegularExpression
+
+[source, javascript]
+----
+Syntax.prototype.fromRegularExpression(value) -> Syntax
+  value : string
+----
+
+Creates a regular expression literal matching `value` with the instance syntax object's lexical context.
+
+[source, javascript]
+----
+syntax m = ctx => {
+  let dummy = #`dummy`.get(0);
+  return #`${dummy.fromRegularExpression('[a-zA-Z]*')}`;
+}
+m
+----
+
+.(expansion)
+----
+/[a-zA-Z]/
+----
+
+=== fromBraces
+
+[source, javascript]
+----
+Syntax.prototype.fromBraces(inner) -> Syntax
+  inner : List(Syntax)
+----
+
+Creates a curly brace delimiter with inner syntax objects `inner` with the instance syntax object's lexical context.
+
+[source, javascript]
+----
+syntax m = ctx => {
+  let dummy = #`dummy`.get(0);
+  let block = #`{ let x = 1; }`;
+  return #`${dummy.fromBraces(block)}`;
+}
+m
+----
+
+.(expansion)
+----
+{
+  let x = 1;
+}
+----
+
+=== fromBrackets
+
+[source, javascript]
+----
+Syntax.prototype.fromBrackets(inner) -> Syntax
+  inner : List(Syntax)
+----
+
+Creates a square bracket delimiter with inner syntax objects `inner` with the instance syntax object's lexical context.
+
+[source, javascript]
+----
+syntax m = ctx => {
+  let dummy = #`dummy`.get(0);
+  let elements = #`1, 2, 3`;
+  return #`${dummy.fromBlock(elements)}`;
+}
+m
+----
+
+.(expansion)
+----
+[1, 2, 3]
+----
+
+=== fromParens
+
+[source, javascript]
+----
+Syntax.prototype.fromParens(inner) -> Syntax
+  inner : List(Syntax)
+----
+
+Creates a parenthesis delimiter with inner syntax objects `inner` with the instance syntax object's lexical context.
+
+[source, javascript]
+----
+syntax m = ctx => {
+  let dummy = #`dummy`.get(0);
+  let expr = #`5 * 5`;
+  return #`1 + ${dummy.fromParens(expr)}`;
+}
+m
+----
+
+.(expansion)
+----
+1 + (5 * 5)
+----
+
+=== isIdentifier
+
+[source, javascript]
+----
+Syntax.prototype.isIdentifier() -> boolean
+----
 
 Returns true if the syntax object is an identifier.
 
-=== `.isBooleanLiteral()`
+=== isBooleanLiteral
+
+[source, javascript]
+----
+Syntax.prototype.isBooleanLiteral() -> boolean
+----
+
 Returns true if the syntax object is a boolean literal.
 
-=== `.isNullLiteral()`
+=== isNullLiteral
+
+[source, javascript]
+----
+Syntax.prototype.isNullLiteral() -> boolean
+----
+
 Returns true if the syntax object is a null literal.
 
-=== `.isNumericLiteral()`
+=== isNumericLiteral
+
+[source, javascript]
+----
+Syntax.prototype.isNumericLiteral() -> boolean
+----
+
 Returns true if the syntax object is a numeric literal.
 
-=== `.isStringLiteral()`
+=== isStringLiteral
+
+[source, javascript]
+----
+Syntax.prototype.isStringLiteral() -> boolean
+----
+
 Returns true if the syntax object is a string literal.
 
-=== `.isKeyword()`
+=== isKeyword
+
+[source, javascript]
+----
+Syntax.prototype.isKeyword() -> boolean
+----
+
 Returns true if the syntax object is a keyword.
 
-=== `.isPunctuator()`
+=== isPunctuator
+
+[source, javascript]
+----
+Syntax.prototype.isPunctuator() -> boolean
+----
+
 Returns true if the syntax object is a puncuator.
 
-=== `.isRegularExpression()`
+=== isRegularExpression
+
+[source, javascript]
+----
+Syntax.prototype.isRegularExpression() -> boolean
+----
+
 Returns true if the syntax object is a regular expression literal.
 
-=== `.isTemplate()`
+=== isTemplate
+
+[source, javascript]
+----
+Syntax.prototype.isTemplate() -> boolean
+----
+
 Returns true if the syntax object is a template literal.
 
-=== `.isDelimiter()`
+=== isDelimiter
+
+[source, javascript]
+----
+Syntax.prototype.isDelimiter() -> boolean
+----
+
 Returns true if the syntax object is a delimiter.
 
-=== `.isParens()`
+=== isParens
+
+[source, javascript]
+----
+Syntax.prototype.isParens() -> boolean
+----
+
 Returns true if the syntax object is a parenthesis delimiter (e.g. `( ... )`).
 
-=== `.isBrackets()`
+=== isBrackets
+
+[source, javascript]
+----
+Syntax.prototype.isBrackets() -> boolean
+----
+
 Returns true if the syntax object is a bracket delimiter (e.g. `[ ... ]`).
 
-=== `.isBraces()`
+=== isBraces
+
+[source, javascript]
+----
+Syntax.prototype.isBraces() -> boolean
+----
+
 Returns true if the syntax object is a braces delimiter (e.g. `{ ... }`).
 
-=== `.isSyntaxTemplate()`
+=== isSyntaxTemplate
+
+[source, javascript]
+----
+Syntax.prototype.isSyntaxTemplate() -> boolean
+----
 
 Returns true if the syntax object is a syntax template.
 
