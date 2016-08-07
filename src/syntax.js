@@ -365,15 +365,14 @@ export default class Syntax {
   addScope(scope, bindings, phase, options = { flip: false }) {
     let token = this.match('delimiter') ? this.token.map(s => s.addScope(scope, bindings, phase, options)) : this.token;
     if (this.match('template')) {
-      token = {
-        type: this.token.type,
+      token = _.merge(token, {
         items: token.items.map(it => {
           if (it instanceof Syntax && it.match('delimiter')) {
             return it.addScope(scope, bindings, phase, options);
           }
           return it;
         })
-      };
+      });
     }
     let oldScopeset;
     if (phase === ALL_PHASES) {
