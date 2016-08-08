@@ -306,3 +306,12 @@ test('should construct syntax from existing syntax', t => {
     output = m foo
   `, 'foo');
 });
+
+test('should handle macros in blocks', t => {
+  testEval(`
+    {
+      syntax m = ctx => #\`1\`;
+      output = m
+    }
+  `, 1);
+});

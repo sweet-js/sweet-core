@@ -257,9 +257,17 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandBlock(term) {
-    return new Term('Block', {
-      statements: term.statements.map(s => this.expand(s)).toArray()
+    let scope = freshScope('block');
+    this.context.currentScope.push(scope);
+    let compiler = new Compiler(this.context.phase, this.context.env, this.context.store, this.context);
+
+    let markedBody, bodyTerm;
+    markedBody = term.statements.map(b => b.addScope(scope, this.context.bindings, ALL_PHASES));
+    bodyTerm = new Term('Block', {
+      statements: compiler.compile(markedBody)
     });
+    this.context.currentScope.pop();
+    return bodyTerm;
   }
 
   expandVariableDeclarationStatement(term) {
