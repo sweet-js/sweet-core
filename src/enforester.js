@@ -720,21 +720,8 @@ export class Enforester {
   }
 
   enforestBlock() {
-    let b = this.matchCurlies();
-    let body = [];
-    let enf = new Enforester(b, List(), this.context);
-
-    while (enf.rest.size !== 0) {
-      let lookahead = enf.peek();
-      let stmt = enf.enforestStatement();
-      if (stmt == null) {
-        throw enf.createError(lookahead, 'not a statement');
-      }
-      body.push(stmt);
-    }
-
     return new Term('Block', {
-      statements: List(body)
+      statements: this.matchCurlies()
     });
   }
 
