@@ -172,6 +172,13 @@ export function unwrap(x) {
   return x;
 }
 
+function cloneEnforester(enf) {
+  const { rest, prev, context } = enf;
+  return new Enforester(rest, prev, context);
+}
+
+function Marker () {}
+
 /*
 ctx :: {
   of: (Syntax) -> ctx
@@ -179,11 +186,15 @@ ctx :: {
 }
 */
 export default class MacroContext {
+
   constructor(enf, name, context, useScope, introducedScope) {
+    const startMarker = new Marker();
+    const startEnf = cloneEnforester(enf);
     const priv = {
-      backups: List.of(enf),
       name,
-      context
+      context,
+      startMarker,
+      markers: new Map([[startMarker, enf]]),
     };
 
     if (useScope && introducedScope) {
@@ -194,7 +205,7 @@ export default class MacroContext {
       priv.noScopes = true;
     }
     privateData.set(this, priv);
-    this.reset(); // instantiate enforester
+    this.reset(); // set current enforester
 
     this[Symbol.iterator] = () => this;
   }
@@ -295,33 +306,42 @@ export default class MacroContext {
 
   _rest(enf) {
     const priv = privateData.get(this);
-    if(priv.backups.last() === enf) {
+    if(priv.markers.get(priv.startMarker) === enf) {
       return priv.enf.rest;
     }
     throw Error("Unauthorized access!");
   }
 
-  reset() {
+  reset(marker) {
     const priv = privateData.get(this);
-    const { rest, prev, context } = priv.backups.first();
-    priv.enf = new Enforester(rest, prev, context);
-    if (priv.backups.size > 1) {
-      priv.backups = priv.backups.shift();
+    let enf;
+    if(marker == null) {
+      // go to the beginning
+      enf = priv.markers.get(priv.startMarker);
+    } else if(marker && marker instanceof Marker) {
+      enf = priv.markers.get(marker);
+    } else {
+      throw new Error('marker must be an instance of Marker');
     }
+    priv.enf = cloneEnforester(enf);
   }
 
   mark() {
-    // 1. if at the beginning, do nothing (enf.rest.size === backups.last().size)
-    // 2. if at end, do nothing           (enf.rest.isEmpty())
-    // 3. if at last mark, do nothing     (enf.rest.size === backup.first().rest.size)
-    // 4. otherwise append enf to backups
     const priv = privateData.get(this);
-    if (priv.enf.rest.size < priv.backups.last().rest.size &&
-       !priv.enf.rest.isEmpty() &&
-        priv.enf.rest.size < priv.backups.first().rest.size) {
-      const { rest, prev, context } = priv.enf;
-      priv.backups = priv.backups.unshift(new Enforester(rest, prev, context));
+    let marker;
+    if(priv.enf.rest.size === priv.markers.get(priv.startMarker).rest.size) {
+      marker = priv.startMarker;
+    } else if(priv.enf.rest.isEmpty()) {
+      if(!priv.endMarker) priv.endMarker = new Marker();
+      marker = priv.endMarker;
+    } else {
+      //TODO(optimization/dubious): check that there isn't already a marker for this index?
+      marker = new Marker();
     }
+    if(!priv.markers.has(marker)) {
+      priv.markers.set(marker, cloneEnforester(priv.enf));
+    }
+    return marker;
   }
 
   next() {

@@ -174,9 +174,9 @@ test('should handle the full macro context api', () => {
       ctx.reset();
       id = ctx.next().value;
 
-      ctx.mark();
+      const paramsMark = ctx.mark();
       let parens = ctx.next().value;
-      ctx.reset();
+      ctx.reset(paramsMark);
       parens = ctx.next().value;
       let body = ctx.next().value;
 
@@ -264,10 +264,10 @@ test('should allow the macro context to create a reset point', t => {
       ctx.next(); // 30
       ctx.next(); // +
       // lets play it safe
-      ctx.mark();
+      const marker42 = ctx.mark();
       ctx.expand('expr'); // 42 + 66
       // oops, just wanted one token
-      ctx.reset();
+      ctx.reset(marker42);
       let value = ctx.next().value; // 42
       ctx.next();
       ctx.next();
