@@ -278,6 +278,21 @@ test('should allow the macro context to create a reset point', t => {
   `, 42);
 });
 
+test('should throw if marker is from a different macro context', t => {
+  t.throws(() =>
+    testEval(`
+      syntax m = ctx => {
+        const result = ctx.next().value; // 1
+        const marker = ctx.mark();
+        ctx.next() // ,
+        const innerCtx = ctx.next().value.inner();
+        innerCtx.reset(marker);
+        return #\`\${result}\`;
+      }
+      output = m 1, [1];
+    `, 1));
+});
+
 test('should allow the macro context to match on a identifier expression', t => {
   testEval(`
     syntax m = ctx => {

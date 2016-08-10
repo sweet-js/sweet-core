@@ -319,7 +319,12 @@ export default class MacroContext {
       // go to the beginning
       enf = priv.markers.get(priv.startMarker);
     } else if(marker && marker instanceof Marker) {
-      enf = priv.markers.get(marker);
+      // marker could be from another context
+      if(priv.markers.has(marker)) {
+        enf = priv.markers.get(marker);
+      } else {
+        throw new Error('marker must originate from this context');
+      }
     } else {
       throw new Error('marker must be an instance of Marker');
     }
