@@ -104,7 +104,7 @@ Sweet's internal representation of syntax. Syntax objects are somewhat like toke
 == Sweet New
 
 Let's move on to a slightly more interesting example.
-Pretend you are using an OO framwork for JavaScript where instead of using `new` we want to call a `.create` method that has been monkey patched onto `Function.prototype` (don't worry, I won't judge...much). Rather than manually rewrite all usages of `new` to the `create` method you could define a macro that does it for you.
+Pretend you are using an OO framework for JavaScript where instead of using `new` we want to call a `.create` method that has been monkey patched onto `Function.prototype` (don't worry, I won't judge... much). Rather than manually rewrite all usages of `new` to the `create` method you could define a macro that does it for you.
 
 .New Macro
 [source, javascript]
