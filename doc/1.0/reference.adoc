@@ -400,7 +400,7 @@ Creates a curly brace delimiter with inner syntax objects `inner` with the insta
 ----
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
-  let block = #`{ let x = 1; }`;
+  let block = #`let x = 1;`;
   return #`${dummy.fromBraces(block)}`;
 }
 m
@@ -428,7 +428,7 @@ Creates a square bracket delimiter with inner syntax objects `inner` with the in
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
   let elements = #`1, 2, 3`;
-  return #`${dummy.fromBlock(elements)}`;
+  return #`${dummy.fromBrackets(elements)}`;
 }
 m
 ----
