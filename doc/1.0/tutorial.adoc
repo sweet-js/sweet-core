@@ -11,7 +11,7 @@
 Sweet brings the hygienic macros of languages like Scheme and Rust to JavaScript.
 Macros allow you to sweeten the syntax of JavaScript and craft the language you’ve always wanted.
 
-NOTE: This documents version 1.0 of Sweet and is still a work in progress. Contributions are welcome!
+NOTE: This documents version 1.0+ of Sweet and is still a work in progress. Contributions are welcome!
 
 == Installation and Getting Started
 
@@ -265,6 +265,7 @@ syntax class = function (ctx) {
   }
   return construct.concat(result);
 }
+
 class Droid {
   constructor(name, color) {
     this.name = name;
