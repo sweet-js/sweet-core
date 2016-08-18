@@ -2255,7 +2255,7 @@ export class Enforester {
     let offending = stx;
     if (this.rest.size > 0) {
       ctx = this.rest.slice(0, 20).map(term => {
-        if (term.isDelimiter()) {
+        if (this.isDelimiter(term)) {
           return term.inner();
         }
         return List.of(term);
