@@ -644,7 +644,7 @@ m</code></pre>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
-  let block = #`{ let x = 1; }`;
+  let block = #`let x = 1;`;
   return #`${dummy.fromBraces(block)}`;
 }
 m</code></pre>
@@ -675,7 +675,7 @@ m</code></pre>
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
   let elements = #`1, 2, 3`;
-  return #`${dummy.fromBlock(elements)}`;
+  return #`${dummy.fromBrackets(elements)}`;
 }
 m</code></pre>
 </div>
