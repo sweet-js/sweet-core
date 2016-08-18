@@ -306,7 +306,7 @@ export default class MacroContext {
 
   _rest(enf) {
     const priv = privateData.get(this);
-    if(priv.markers.get(priv.startMarker) === enf) {
+    if (priv.markers.get(priv.startMarker) === enf) {
       return priv.enf.rest;
     }
     throw Error("Unauthorized access!");
@@ -315,12 +315,12 @@ export default class MacroContext {
   reset(marker) {
     const priv = privateData.get(this);
     let enf;
-    if(marker == null) {
+    if (marker == null) {
       // go to the beginning
       enf = priv.markers.get(priv.startMarker);
-    } else if(marker && marker instanceof Marker) {
+    } else if (marker && marker instanceof Marker) {
       // marker could be from another context
-      if(priv.markers.has(marker)) {
+      if (priv.markers.has(marker)) {
         enf = priv.markers.get(marker);
       } else {
         throw new Error('marker must originate from this context');
@@ -334,16 +334,20 @@ export default class MacroContext {
   mark() {
     const priv = privateData.get(this);
     let marker;
-    if(priv.enf.rest.size === priv.markers.get(priv.startMarker).rest.size) {
+
+    // the idea here is that marking at the beginning shouldn't happen more than once.
+    // We can reuse startMarker.
+    if (priv.enf.rest.size === priv.markers.get(priv.startMarker).rest.size) {
       marker = priv.startMarker;
-    } else if(priv.enf.rest.isEmpty()) {
-      if(!priv.endMarker) priv.endMarker = new Marker();
+    } else if (priv.enf.rest.isEmpty()) {
+      // same reason as above
+      if (!priv.endMarker) priv.endMarker = new Marker();
       marker = priv.endMarker;
     } else {
       //TODO(optimization/dubious): check that there isn't already a marker for this index?
       marker = new Marker();
     }
-    if(!priv.markers.has(marker)) {
+    if (!priv.markers.has(marker)) {
       priv.markers.set(marker, cloneEnforester(priv.enf));
     }
     return marker;
