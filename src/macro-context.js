@@ -337,7 +337,7 @@ export default class MacroContext {
 
     // the idea here is that marking at the beginning shouldn't happen more than once.
     // We can reuse startMarker.
-    if (priv.enf.rest.size === priv.markers.get(priv.startMarker).rest.size) {
+    if (priv.enf.rest === priv.markers.get(priv.startMarker).rest) {
       marker = priv.startMarker;
     } else if (priv.enf.rest.isEmpty()) {
       // same reason as above
