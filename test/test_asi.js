@@ -37,6 +37,13 @@ test('should handle interpoations for delimiter tokens', t => {
        a: 1
      };
    }()`, {a: 1});
+
+  testEval(`
+    syntax m = ctx => #\`return \${ctx.next().value.inner()}\`;
+    output = function f () {
+      m { 1 }
+    }()`, 1);
+
 });
 
 test('should handle return and template literals', t => {
