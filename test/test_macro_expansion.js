@@ -173,7 +173,11 @@ test('should handle the full macro context api', () => {
       let id = ctx.next().value;
       ctx.reset();
       id = ctx.next().value;
+
+      const paramsMark = ctx.mark();
       let parens = ctx.next().value;
+      ctx.reset(paramsMark);
+      parens = ctx.next().value;
       let body = ctx.next().value;
 
       let parenCtx = parens.inner();
@@ -252,6 +256,41 @@ test('should allow the macro context to be reset', t => {
 
     output = m 42 + 66
   `, 42);
+});
+
+test('should allow the macro context to create a reset point', t => {
+  testEval(`
+    syntax m = ctx => {
+      ctx.next(); // 30
+      ctx.next(); // +
+      // lets play it safe
+      const marker42 = ctx.mark();
+      ctx.expand('expr'); // 42 + 66
+      // oops, just wanted one token
+      ctx.reset(marker42);
+      let value = ctx.next().value; // 42
+      ctx.next();
+      ctx.next();
+      return #\`\${value}\`;
+    }
+
+    output = m 30 + 42 + 66
+  `, 42);
+});
+
+test('should throw if marker is from a different macro context', t => {
+  t.throws(() =>
+    testEval(`
+      syntax m = ctx => {
+        const result = ctx.next().value; // 1
+        const marker = ctx.mark();
+        ctx.next() // ,
+        const innerCtx = ctx.next().value.inner();
+        innerCtx.reset(marker);
+        return #\`\${result}\`;
+      }
+      output = m 1, [1];
+    `, 1));
 });
 
 test('should allow the macro context to match on a identifier expression', t => {

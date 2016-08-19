@@ -172,6 +172,13 @@ export function unwrap(x) {
   return x;
 }
 
+function cloneEnforester(enf) {
+  const { rest, prev, context } = enf;
+  return new Enforester(rest, prev, context);
+}
+
+function Marker () {}
+
 /*
 ctx :: {
   of: (Syntax) -> ctx
@@ -179,11 +186,15 @@ ctx :: {
 }
 */
 export default class MacroContext {
+
   constructor(enf, name, context, useScope, introducedScope) {
+    const startMarker = new Marker();
+    const startEnf = cloneEnforester(enf);
     const priv = {
-      backup: enf,
       name,
-      context
+      context,
+      startMarker,
+      markers: new Map([[startMarker, enf]]),
     };
 
     if (useScope && introducedScope) {
@@ -194,7 +205,7 @@ export default class MacroContext {
       priv.noScopes = true;
     }
     privateData.set(this, priv);
-    this.reset(); // instantiate enforester
+    this.reset(); // set current enforester
 
     this[Symbol.iterator] = () => this;
   }
@@ -295,16 +306,51 @@ export default class MacroContext {
 
   _rest(enf) {
     const priv = privateData.get(this);
-    if(priv.backup === enf) {
+    if (priv.markers.get(priv.startMarker) === enf) {
       return priv.enf.rest;
     }
     throw Error("Unauthorized access!");
   }
 
-  reset() {
+  reset(marker) {
     const priv = privateData.get(this);
-    const { rest, prev, context } = priv.backup;
-    priv.enf = new Enforester(rest, prev, context);
+    let enf;
+    if (marker == null) {
+      // go to the beginning
+      enf = priv.markers.get(priv.startMarker);
+    } else if (marker && marker instanceof Marker) {
+      // marker could be from another context
+      if (priv.markers.has(marker)) {
+        enf = priv.markers.get(marker);
+      } else {
+        throw new Error('marker must originate from this context');
+      }
+    } else {
+      throw new Error('marker must be an instance of Marker');
+    }
+    priv.enf = cloneEnforester(enf);
+  }
+
+  mark() {
+    const priv = privateData.get(this);
+    let marker;
+
+    // the idea here is that marking at the beginning shouldn't happen more than once.
+    // We can reuse startMarker.
+    if (priv.enf.rest === priv.markers.get(priv.startMarker).rest) {
+      marker = priv.startMarker;
+    } else if (priv.enf.rest.isEmpty()) {
+      // same reason as above
+      if (!priv.endMarker) priv.endMarker = new Marker();
+      marker = priv.endMarker;
+    } else {
+      //TODO(optimization/dubious): check that there isn't already a marker for this index?
+      marker = new Marker();
+    }
+    if (!priv.markers.has(marker)) {
+      priv.markers.set(marker, cloneEnforester(priv.enf));
+    }
+    return marker;
   }
 
   next() {
