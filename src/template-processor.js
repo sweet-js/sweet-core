@@ -52,8 +52,12 @@ const process = (acc, s) => {
 };
 
 function cloneLineNumber(to, from) {
-  if (from && to && typeof to.setLineNumber === 'function') {
-    return to.setLineNumber(from.lineNumber());
+  if (from && to ) {
+    if (typeof to.setLineNumber === 'function') {
+      return to.setLineNumber(from.lineNumber());
+    } else if (List.isList(to)) {
+      return to.map(x => cloneLineNumber(x, from));
+    }
   }
   return to;
 }
