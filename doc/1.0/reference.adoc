@@ -276,11 +276,12 @@ Creates a string literal matching `value` with the instance syntax object's lexi
 
 [source, javascript]
 ----
-syntax m = ctx => {
+syntax to_str = ctx => {
   let dummy = #`dummy`.get(0);
-  return #`${dummy.fromString('foo')}`;
+  let arg = ctx.next().value;
+  return #`${dummy.fromString(arg.val())}`;
 }
-m
+to_str foo
 ----
 
 .(expansion)
@@ -348,17 +349,17 @@ Creates a identifier matching `value` with the instance syntax object's lexical 
 
 [source, javascript]
 ----
-syntax to_str = ctx => {
+syntax m = ctx => {
   let dummy = #`dummy`.get(0);
   let arg = ctx.next().value;
   return #`${dummy.fromIdentifier(arg.val())}`;
 }
-to_str foo
+m foo
 ----
 
 .(expansion)
 ----
-'foo'
+foo
 ----
 
 
