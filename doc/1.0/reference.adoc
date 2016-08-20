@@ -228,6 +228,21 @@ Construct a new syntax object from the provided `type` and `value` using the ins
 - `'brackets'`
 - `'parens'`
 
+[NOTE]
+====
+Be careful which syntax object you use to create a new syntax object via `from*` since the new object will share the original's lexical context. In most cases you will want to create a "dummy" syntax object inside a macro definition and then use that as a base to create new objects. For example,
+[source, javascript]
+----
+syntax to_str = ctx => {
+  let dummy = #`dummy`.get(0);
+  let arg = ctx.next().value;
+  return #`${dummy.fromString(arg.val())}`;
+}
+to_str foo
+----
+You may be tempted to reuse the syntax object provided by `ctx.name()` but resist that feeling! The `ctx.name()` syntax object comes from the macro call-site and so any syntax objects created from it will carry the lexical context of the call-site. Sometimes this is what you want, but most of the time this breaks hygiene!
+====
+
 === fromNull
 
 [source, javascript]
