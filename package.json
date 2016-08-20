@@ -47,6 +47,7 @@
     "ramda": "^0.19.0",
     "ramda-fantasy": "^0.4.1",
     "resolve": "^1.1.7",
+    "semver": "^5.3.0",
     "shift-codegen": "^4.0.0",
     "shift-js": "^0.2.1",
     "shift-parser": "^4.1.0",

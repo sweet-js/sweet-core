@@ -19,6 +19,12 @@ var path = require('path');
 var fs   = require('fs');
 var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
 var sweetjs = require(dir + '/sweet.js');
+var semver = require('semver');
+
+if (!semver.satisfies(process.version, '>=5.0.0')) {
+  console.log('Sweet requires node >=5.0.0, you have: ' + process.version);
+  process.exit(1);
+}
 
 argv._.forEach(function (file) {
   var infile = fs.readFileSync(file, 'utf8');
