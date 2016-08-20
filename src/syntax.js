@@ -8,6 +8,14 @@ const Nothing = Maybe.Nothing;
 
 import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
 
+function getFirstSlice(stx) {
+  if ((!stx) || typeof stx.isDelimiter !== 'function') return null; // TODO: should not have to do this
+  if (!stx.isDelimiter()) {
+    return stx.token.slice;
+  }
+  return stx.token.get(0).token.slice;
+}
+
 function sizeDecending(a, b) {
   if (a.scopes.size > b.scopes.size) {
     return -1;
@@ -190,7 +198,12 @@ export default class Syntax {
     else if (!Types[type].create) {
       throw new Error("Cannot create a syntax from type " + type);
     }
-    return Types[type].create(value, stx);
+    let newstx = Types[type].create(value, stx);
+    let slice = getFirstSlice(stx);
+    if (slice != null) {
+      newstx.token.slice = slice;
+    }
+    return newstx;
   }
 
   from(type, value) {
