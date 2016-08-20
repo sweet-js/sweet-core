@@ -158,7 +158,8 @@
     done: boolean,
     value: Syntax
   }
-  reset: () -&gt; undefined
+  mark: () -&gt; Marker
+  reset: (Marker?) -&gt; undefined
 }</pre>
 </div>
 </div>
@@ -308,16 +309,28 @@
 <p>The <code>name()</code> method returns the syntax object of the macro name at the macro invocation site. This is useful<span class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span> because it allows a macro transformer to get access to the lexical context at the invocation site.</p>
 </div>
 <div class="paragraph">
-<p>Calling <code>reset</code> returns the context to its initial state.</p>
+<p>A call to <code>mark</code> returns a pointer to the current state of the iterator.</p>
+</div>
+<div class="paragraph">
+<p>Calling <code>reset</code> with no arguments returns the context to its initial state, while passing a Marker instance returns the context to the state pointed to by the marker.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = function (ctx) {
   ctx.expand('expr');
   ctx.reset();
-  return #`${ctx.next().value} + 24`; // 42 + 24
+
+  const a = ctx.next().value;
+  ctx.next();
+
+  const marker = ctx.mark();
+  ctx.expand('expr');
+  ctx.reset(marker);
+
+  const b = ctx.next().value;
+  return #`${a} + ${b} + 24`; // 30 + 42 + 24
 }
-m 42 + 66</code></pre>
+m 30 + 42 + 66</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -439,6 +452,33 @@ m {
 </li>
 </ul>
 </div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Be careful which syntax object you use to create a new syntax object via <code>from*</code> since the new object will share the original&#8217;s lexical context. In most cases you will want to create a "dummy" syntax object inside a macro definition and then use that as a base to create new objects. For example,</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax to_str = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+  let arg = ctx.next().value;
+  return #`${dummy.fromString(arg.val())}`;
+}
+to_str foo</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You may be tempted to reuse the syntax object provided by <code>ctx.name()</code> but resist that feeling! The <code>ctx.name()</code> syntax object comes from the macro call-site and so any syntax objects created from it will carry the lexical context of the call-site. Sometimes this is what you want, but most of the time this breaks hygiene!</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
 </div>
 <div class="sect2">
 <h3 id="_fromnull">5.5. fromNull</h3>
@@ -506,11 +546,12 @@ m</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax to_str = ctx =&gt; {
   let dummy = #`dummy`.get(0);
-  return #`${dummy.fromString('foo')}`;
+  let arg = ctx.next().value;
+  return #`${dummy.fromString(arg.val())}`;
 }
-m</code></pre>
+to_str foo</code></pre>
 </div>
 </div>
 <div class="listingblock">
@@ -587,18 +628,18 @@ m</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax to_str = ctx =&gt; {
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
   let arg = ctx.next().value;
   return #`${dummy.fromIdentifier(arg.val())}`;
 }
-to_str foo</code></pre>
+m foo</code></pre>
 </div>
 </div>
 <div class="listingblock">
 <div class="title">(expansion)</div>
 <div class="content">
-<pre>'foo'</pre>
+<pre>foo</pre>
 </div>
 </div>
 </div>
