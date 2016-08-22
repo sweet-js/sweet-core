@@ -88,11 +88,13 @@ export let Types = {
     create: (inner, stx) => {
       let left = new Syntax({
         type: TokenType.LBRACE,
-        value: "{"
+        value: "{",
+        slice: getFirstSlice(stx)
       });
       let right = new Syntax({
         type: TokenType.RBRACE,
-        value: "}"
+        value: "}",
+        slice: getFirstSlice(stx)
       });
       return new Syntax(List.of(left).concat(inner).push(right), stx);
     }
@@ -103,11 +105,13 @@ export let Types = {
     create: (inner, stx) => {
       let left = new Syntax({
         type: TokenType.LBRACK,
-        value: "["
+        value: "[",
+        slice: getFirstSlice(stx)
       });
       let right = new Syntax({
         type: TokenType.RBRACK,
-        value: "]"
+        value: "]",
+        slice: getFirstSlice(stx)
       });
       return new Syntax(List.of(left).concat(inner).push(right), stx);
     }
@@ -118,11 +122,13 @@ export let Types = {
     create: (inner, stx) => {
       let left = new Syntax({
         type: TokenType.LPAREN,
-        value: "("
+        value: "(",
+        slice: getFirstSlice(stx)
       });
       let right = new Syntax({
         type: TokenType.RPAREN,
-        value: ")"
+        value: ")",
+        slice: getFirstSlice(stx)
       });
       return new Syntax(List.of(left).concat(inner).push(right), stx);
     }
