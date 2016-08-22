@@ -4,26 +4,26 @@ spec Term {}
 
 // Bindings
 spec BindingWithDefault : Term {
-  binding;
-  init;
+  binding : any;
+  init : any;
 }
 spec BindingIdentifier : Term {
-  name;
+  name : any;
 }
 spec ArrayBinding : Term {
-  elements;
-  restElement;
+  elements : any;
+  restElement : any;
 }
 spec ObjectBinding : Term {
-  properties;
+  properties : any;
 }
 spec BindingPropertyIdentifier : Term {
-  binding;
-  init;
+  binding : any;
+  init : any;
 }
 spec BindingPropertyProperty : Term {
-  name;
-  binding;
+  name : any;
+  binding : any;
 }
 
 
@@ -32,327 +32,327 @@ spec Expression : Term {}
 
 // class
 spec ClassExpression : Expression {
-  name;
-  super;
-  elements;
+  name : any;
+  super : any;
+  elements : any;
 }
 spec ClassDeclaration : Statement {
-  name;
-  super;
-  elements;
+  name : any;
+  super : any;
+  elements : any;
 }
 spec ClassElement : Term {
-  isStatic;
-  method;
+  isStatic : any;
+  method : any;
 }
 
 
 // modules
 spec Module : Term {
-  directives
-  items;
+  directives : any;
+  items : any;
 }
 spec Import : Term {
-  moduleSpecifier;
-  defaultBinding;
-  namedImports;
-  forSyntax;
+  moduleSpecifier : any;
+  defaultBinding : any;
+  namedImports : any;
+  forSyntax : any;
 }
 spec ImportNamespace : Term {
-  moduleSpecifier;
-  defaultBinding;
-  namespaceBinding;
+  moduleSpecifier : any;
+  defaultBinding : any;
+  namespaceBinding : any;
 }
 spec ImportSpecifier : Term {
-  name;
-  binding;
+  name : any;
+  binding : any;
 }
 spec ExportAllFrom : Term {
-  moduleSpecifier;
+  moduleSpecifier : any;
 }
 spec ExportFrom : Term {
-  namedExports;
-  moduleSpecifier;
+  namedExports : any;
+  moduleSpecifier : any;
 }
 spec Export : Term {
-  declaration;
+  declaration : any;
 }
 spec ExportDefault : Term {
-  body;
+  body : any;
 }
 spec ExportSpecifier : Term {
-  name;
-  exportedName;
+  name : any;
+  exportedName : any;
 }
 
 // property definition
 spec Method : Term {
-  name;
-  body;
-  isGenerator;
-  params;
+  name : any;
+  body : any;
+  isGenerator : any;
+  params : any;
 }
 spec Getter : Term {
-  name;
-  body;
+  name : any;
+  body : any;
 }
 spec Setter : Term {
-  name;
-  body;
-  param;
+  name : any;
+  body : any;
+  param : any;
 }
 spec DataProperty : Term {
-  name;
-  expression;
+  name : any;
+  expression : any;
 }
 spec ShorthandProperty : Term {
-  expression;
+  expression : any;
 }
 spec StaticPropertyName : Term {
-  value;
+  value : any;
 }
 
 // literals
 spec LiteralBooleanExpression : Expression {
-  value;
+  value : any;
 }
 spec LiteralInfinityExpression : Expression { }
 spec LiteralNullExpression : Expression { }
 spec LiteralNumericExpression : Expression {
-  value;
+  value : any;
 }
 spec LiteralRegExpExpression : Expression {
-  pattern;
-  flags;
+  pattern : any;
+  flags : any;
 }
 spec LiteralStringExpression : Expression {
-  value;
+  value : any;
 }
 
 
 // expressions
 spec ArrayExpression : Expression {
-  elements;
+  elements : any;
 }
 spec ArrowExpression : Expression {
-  params;
-  body;
+  params : any;
+  body : any;
 }
 spec AssignmentExpression : Expression {
-  binding;
-  expression;
+  binding : any;
+  expression : any;
 }
 spec BinaryExpression : Expression {
-  operator;
-  left;
-  right;
+  operator : any;
+  left : any;
+  right : any;
 }
 spec CallExpression : Expression {
-  callee;
-  arguments;
+  callee : any;
+  arguments : any;
 }
 spec ComputedAssignmentExpression : Expression {
-  operator;
-  binding;
-  expression;
+  operator : any;
+  binding : any;
+  expression : any;
 }
 spec ComputedMemberExpression : Expression {
-  object;
-  expression;
+  object : any;
+  expression : any;
 }
 spec ConditionalExpression : Expression {
-  test;
-  consequent;
-  alternate;
+  test : any;
+  consequent : any;
+  alternate : any;
 }
 spec FunctionExpression : Expression {
-  name;
-  isGenerator;
-  params;
-  body;
+  name : any;
+  isGenerator : any;
+  params : any;
+  body : any;
 }
 spec IdentifierExpression : Expression {
-  name;
+  name : any;
 }
 spec NewExpression : Expression {
-  callee;
-  arguments;
+  callee : any;
+  arguments : any;
 }
 spec NewTargetExpression : Expression { }
 spec ObjectExpression : Expression {
-  properties;
+  properties : any;
 }
 spec UnaryExpression : Expression {
-  operator;
-  operand;
+  operator : any;
+  operand : any;
 }
 spec StaticMemberExpression : Expression {
-  object;
-  property;
+  object : any;
+  property : any;
 }
 spec TemplateExpression : Expression {
-  tag;
-  elements;
+  tag : any;
+  elements : any;
 }
 spec ThisExpression : Expression { }
 spec UpdateExpression : Expression {
-  isPrefix;
-  operator;
-  operand;
+  isPrefix : any;
+  operator : any;
+  operand : any;
 }
 spec YieldExpression : Expression {
-  expression;
+  expression : any;
 }
 spec YieldGeneratorExpression : Expression {
-  expression;
+  expression : any;
 }
 spec ParenthesizedExpression : Expression {
-  inner;
+  inner : any;
 }
 
 // statements
 spec BlockStatement : Statement {
-  block;
+  block : any;
 }
 spec BreakStatement : Statement {
-  label;
+  label : any;
 }
 spec ContinueStatement : Statement {
-  label;
+  label : any;
 }
 spec CompoundAssignmentExpression : Statement {
-  binding;
-  operator;
-  expression;
+  binding : any;
+  operator : any;
+  expression : any;
 }
 spec DebuggerStatement : Statement { }
 spec DoWhileStatement : Statement {
-  test;
-  body;
+  test : any;
+  body : any;
 }
 spec EmptyStatement : Statement { }
 spec ExpressionStatement : Statement {
-  expression;
+  expression : any;
 }
 spec ForInStatement : Statement {
-  left;
-  right;
-  body;
+  left : any;
+  right : any;
+  body : any;
 }
 spec ForOfStatement : Statement {
-  left;
-  right;
-  body;
+  left : any;
+  right : any;
+  body : any;
 }
 spec ForStatement : Statement {
-  init;
-  test;
-  update;
-  body;
+  init : any;
+  test : any;
+  update : any;
+  body : any;
 }
 spec IfStatement : Statement {
-  test;
-  consequent;
-  alternate;
+  test : any;
+  consequent : any;
+  alternate : any;
 }
 spec LabeledStatement : Statement {
-  label;
-  body;
+  label : any;
+  body : any;
 }
 spec ReturnStatement : Statement {
-  expression;
+  expression : any;
 }
 spec SwitchStatement : Statement {
-  discriminant;
-  cases;
+  discriminant : any;
+  cases : any;
 }
 spec SwitchStatementWithDefault : Statement {
-  discriminant;
-  preDefaultCases;
-  defaultCase;
-  postDefaultCases;
+  discriminant : any;
+  preDefaultCases : any;
+  defaultCase : any;
+  postDefaultCases : any;
 }
 spec ThrowStatement : Statement {
-  expression;
+  expression : any;
 }
 spec TryCatchStatement : Statement {
-  body;
-  catchClause;
+  body : any;
+  catchClause : any;
 }
 spec TryFinallyStatement : Statement {
-  body;
-  catchClause;
-  finalizer;
+  body : any;
+  catchClause : any;
+  finalizer : any;
 }
 spec VariableDeclarationStatement : Statement {
-  declaration;
+  declaration : any;
 }
 spec WithStatement : Statement {
-  object;
-  body;
+  object : any;
+  body : any;
 }
 spec WhileStatement : Statement {
-  test;
-  body;
+  test : any;
+  body : any;
 }
 
 // other
 spec Pragma : Term {
-  kind;
-  items;
+  kind : any;
+  items : any;
 }
 spec Block : Term {
-  statements;
+  statements : any;
 }
 spec CatchClause : Term {
-  binding;
-  body;
+  binding : any;
+  body : any;
 }
 spec Directive : Term {
-  rawValue;
+  rawValue : any;
 }
 spec FormalParameters : Term {
-  items;
-  rest;
+  items : any;
+  rest : any;
 }
 spec FunctionBody : Term {
-  directives;
-  statements;
+  directives : any;
+  statements : any;
 }
 spec FunctionDeclaration : Statement {
-  name;
-  isGenerator;
-  params;
-  body;
+  name : any;
+  isGenerator : any;
+  params : any;
+  body : any;
 }
 spec Script : Term {
-  directives;
-  statements;
+  directives : any;
+  statements : any;
 }
 spec SpreadElement : Term {
-  expression;
+  expression : any;
 }
 spec Super : Term { }
 spec SwitchCase : Term {
-  test;
-  consequent;
+  test : any;
+  consequent : any;
 }
 spec SwitchDefault : Term {
-  consequent;
+  consequent : any;
 }
 spec TemplateElement : Term {
-  rawValue;
+  rawValue : any;
 }
 spec SyntaxTemplate : Term {
-  template;
+  template : any;
 }
 spec VariableDeclaration : Term {
-  kind;
-  declarators;
+  kind : any;
+  declarators : any;
 }
 spec VariableDeclarator : Term {
-  binding;
-  init;
+  binding : any;
+  init : any;
 }
 
 

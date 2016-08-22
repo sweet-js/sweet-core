@@ -5,11 +5,22 @@ import Syntax from "./syntax";
 import * as R from "ramda";
 import TermSpec from './term-spec';
 
+const specFieldNames = R.map(f => f.fieldName);
+
 export default class Term {
   constructor(type, props) {
+    if (!TermSpec.spec.hasOwnProperty(type)) {
+      throw new Error(`Unknown term: ${type}`);
+    }
     this.type = type;
     this.loc = null;
-    for (let prop of Object.keys(props)) {
+    let propKeys = Object.keys(props);
+    let diff = R.symmetricDifference(propKeys,
+                                     specFieldNames(TermSpec.spec[type].fields));
+    if (diff.length !== 0) {
+      throw new Error(`Unexpected properties for term ${type}: ${diff}`);
+    }
+    for (let prop of propKeys) {
       this[prop] = props[prop];
     }
   }
@@ -17,10 +28,10 @@ export default class Term {
   extend(props) {
     let newProps = {};
     for (let field of TermSpec.spec[this.type].fields) {
-      if (props.hasOwnProperty(field)) {
-        newProps[field] = props[field];
+      if (props.hasOwnProperty(field.fieldName)) {
+        newProps[field.fieldName] = props[field.fieldName];
       } else {
-        newProps[field] = this[field];
+        newProps[field.fieldName] = this[field.fieldName];
       }
     }
     return new Term(this.type, newProps);
@@ -29,16 +40,16 @@ export default class Term {
   gen({ includeImports } = { includeImports: true }) {
     let next = {};
     for (let field of TermSpec.spec[this.type].fields) {
-      if (this[field] == null) {
-        next[field] = null;
-      } else if (this[field] instanceof Term) {
-        next[field] = this[field].gen(includeImports);
-      } else if (List.isList(this[field])) {
+      if (this[field.fieldName] == null) {
+        next[field.fieldName] = null;
+      } else if (this[field.fieldName] instanceof Term) {
+        next[field.fieldName] = this[field.fieldName].gen(includeImports);
+      } else if (List.isList(this[field.fieldName])) {
         let pred = includeImports ? R.complement(isCompiletimeStatement) : R.both(R.complement(isImportDeclaration), R.complement(isCompiletimeStatement));
-        next[field] = this[field].filter(pred)
+        next[field.fieldName] = this[field.fieldName].filter(pred)
                                  .map(term => term instanceof Term ? term.gen(includeImports) : term);
       } else {
-        next[field] = this[field];
+        next[field.fieldName] = this[field.fieldName];
       }
     }
     return new Term(this.type, next);
@@ -47,12 +58,12 @@ export default class Term {
   visit(f) {
     let next = {};
     for (let field of TermSpec.spec[this.type].fields) {
-      if (this[field] == null) {
-        next[field] = null;
-      } else if (List.isList(this[field])) {
-        next[field] = this[field].map(field => field != null ? f(field) : null);
+      if (this[field.fieldName] == null) {
+        next[field.fieldName] = null;
+      } else if (List.isList(this[field.fieldName])) {
+        next[field.fieldName] = this[field.fieldName].map(field => field != null ? f(field) : null);
       } else {
-        next[field] = f(this[field]);
+        next[field.fieldName] = f(this[field.fieldName]);
       }
     }
     return this.extend(next);
@@ -79,8 +90,8 @@ export default class Term {
   // TODO: this is very wrong
   lineNumber() {
     for (let field of TermSpec.spec[this.type].fields) {
-      if (typeof this[field] && this[field].lineNumber === 'function') {
-        return this[field].lineNumber();
+      if (typeof this[field.fieldName] && this[field.fieldName].lineNumber === 'function') {
+        return this[field.fieldName].lineNumber();
       }
     }
   }
@@ -88,14 +99,14 @@ export default class Term {
   setLineNumber(line) {
     let next = {};
     for (let field of TermSpec.spec[this.type].fields) {
-      if (this[field] == null) {
-        next[field] = null;
-      } else if (typeof this[field].setLineNumber === 'function') {
-        next[field] = this[field].setLineNumber(line);
-      } else if (List.isList(this[field])) {
-        next[field] = this[field].map(f => f.setLineNumber(line));
+      if (this[field.fieldName] == null) {
+        next[field.fieldName] = null;
+      } else if (typeof this[field.fieldName].setLineNumber === 'function') {
+        next[field.fieldName] = this[field.fieldName].setLineNumber(line);
+      } else if (List.isList(this[field.fieldName])) {
+        next[field.fieldName] = this[field.fieldName].map(f => f.setLineNumber(line));
       } else {
-        next[field] = this[field];
+        next[field.fieldName] = this[field.fieldName];
       }
     }
     return new Term(this.type, next);

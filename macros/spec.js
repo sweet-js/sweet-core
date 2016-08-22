@@ -1,16 +1,41 @@
 #lang 'sweet.js';
 
+/**
+Syntax:
+
+  spec $name $opt(: $base) {
+    $(
+      $field;
+    ) ...
+  }
+
+Creates an object `$name` with an optional prototype pointing to `$base` (if
+`$base` is missing, then default to `Object.prototype`).
+
+Each object contains two properties:
+  - `spec` contains a reference to every object extending `$base`
+  - `fields` an array of each field name
+**/
 export syntax spec = ctx => {
   let name = ctx.next();
   let bodyOrExtends = ctx.next();
   let here = #`here`.get(0);
 
   function findFields (delim) {
-    let fields = [];
-    for (let stx of delim.inner()) {
-      if (!stx.isPunctuator()) {
-        fields.push(here.fromString(stx.val()));
-        fields.push(#`,`.get(0));
+    let fields = #``;
+    let innerCtx = delim.inner();
+
+    for (let stx of innerCtx) {
+      if (stx.isIdentifier() || stx.isKeyword()) {
+        innerCtx.next(); // :
+        let type = innerCtx.next().value;
+        if (type == null) { throw new Error(`what: ${stx.val()}`) }
+        fields = fields.concat(#`{
+          fieldName: ${here.fromString(stx.val())},
+          fieldType: {
+            name: ${here.fromString(type.val())}
+          }
+        }`)
       }
     }
     return #`[${fields}]`;
