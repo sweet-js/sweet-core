@@ -1,3 +1,10 @@
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(function (registration) {
+    console.log('ServiceWorker registered with scope: ' + registration.scope);
+  }).catch(function (err) {
+    console.log('ServiceWorker failed: ' + err);
+  });
+}
 (function(global, requirejs, require) {
 
 var storage_code  = "editor_code",
