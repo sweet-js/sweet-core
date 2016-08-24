@@ -5,7 +5,7 @@ import Syntax from "./syntax";
 import * as R from "ramda";
 import TermSpec from './term-spec';
 
-const specFieldNames = R.map(f => f.fieldName);
+const getFieldNames = R.map(f => f.fieldName);
 
 export default class Term {
   constructor(type, props) {
@@ -15,8 +15,8 @@ export default class Term {
     this.type = type;
     this.loc = null;
     let propKeys = Object.keys(props);
-    let diff = R.symmetricDifference(propKeys,
-                                     specFieldNames(TermSpec.spec[type].fields));
+    let fieldNames = getFieldNames(TermSpec.spec[type].fields);
+    let diff = R.symmetricDifference(propKeys, fieldNames);
     if (diff.length !== 0) {
       throw new Error(`Unexpected properties for term ${type}: ${diff}`);
     }
