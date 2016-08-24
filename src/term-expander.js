@@ -549,6 +549,11 @@ export default class TermExpander extends ASTDispatcher {
         param: term.param,
         body: bodyTerm
       });
+    } else if (type === 'ArrowExpression') {
+      return new Term(type, {
+        params: params,
+        body: bodyTerm
+      });
     }
     return new Term(type, {
       name: term.name,

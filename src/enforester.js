@@ -219,7 +219,10 @@ export class Enforester {
       let moduleSpecifier = this.advance();
       this.consumeSemicolon();
       return new Term('Import', {
-        defaultBinding, namedImports, moduleSpecifier
+        defaultBinding,
+        namedImports,
+        moduleSpecifier,
+        forSyntax
       });
     }
 
@@ -1817,19 +1820,17 @@ export class Enforester {
     this.opCtx.combine = rightTerm => {
       let type, term, isPrefix;
       if (operator.val() === '++' || operator.val() === '--') {
-        type = 'UpdateExpression';
-        term = this.transformDestructuring(rightTerm);
-        isPrefix = true;
+        return new Term('UpdateExpression', {
+          operator: operator.val(),
+          operand: this.transformDestructuring(rightTerm),
+          isPrefix: true
+        });
       } else {
-        type = 'UnaryExpression';
-        isPrefix = undefined;
-        term = rightTerm;
+        return new Term('UnaryExpression', {
+          operator: operator.val(),
+          operand: rightTerm
+        });
       }
-      return new Term(type, {
-        operator: operator.val(),
-        operand: term,
-        isPrefix
-      });
     };
     return EXPR_LOOP_OPERATOR;
   }

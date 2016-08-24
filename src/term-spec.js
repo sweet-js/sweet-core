@@ -62,6 +62,7 @@ spec ImportNamespace : Term {
   moduleSpecifier : any;
   defaultBinding : any;
   namespaceBinding : any;
+  forSyntax : any;
 }
 spec ImportSpecifier : Term {
   name : any;
@@ -106,10 +107,13 @@ spec DataProperty : Term {
   expression : any;
 }
 spec ShorthandProperty : Term {
-  expression : any;
+  name : any;
 }
 spec StaticPropertyName : Term {
   value : any;
+}
+spec ComputedPropertyName : Term {
+  expression : any;
 }
 
 // literals
@@ -194,7 +198,9 @@ spec TemplateExpression : Expression {
   tag : any;
   elements : any;
 }
-spec ThisExpression : Expression { }
+spec ThisExpression : Expression {
+  stx : any
+}
 spec UpdateExpression : Expression {
   isPrefix : any;
   operator : any;
@@ -344,6 +350,10 @@ spec TemplateElement : Term {
   rawValue : any;
 }
 spec SyntaxTemplate : Term {
+  template : any;
+}
+spec SyntaxQuote : Term {
+  name : any;
   template : any;
 }
 spec VariableDeclaration : Term {
