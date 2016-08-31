@@ -220,4 +220,40 @@ test("new expression", function () {
     tag: { type: "NewExpression", callee: { type: "IdentifierExpression", name: "a" }, arguments: [] },
     elements: [{ type: "TemplateElement", rawValue: "" }]
   });
+
+  testParse("new a.b()", stmt, {
+    type: "ExpressionStatement",
+    expression: {
+      type: "NewExpression",
+      callee: {
+        type: "StaticMemberExpression",
+        object: {
+          type: "IdentifierExpression",
+          name: "a"
+        },
+        property: "b"
+      },
+      arguments: []
+    }
+  });
+
+  testParse("new a['b']()", stmt, {
+    "type": "ExpressionStatement",
+    "expression": {
+      "type": "NewExpression",
+      "callee": {
+        "type": "ComputedMemberExpression",
+        "object": {
+          "type": "IdentifierExpression",
+          "name": "a"
+        },
+        "expression": {
+          "type": "LiteralStringExpression",
+          "value": "b"
+        }
+      },
+      "arguments": []
+    }
+  });
+
 });
