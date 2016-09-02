@@ -1,4 +1,4 @@
-import Term, { isIdentifierExpression } from "./terms";
+import Term, { isIdentifierExpression, isStaticMemberExpression, isComputedMemberExpression } from "./terms";
 import { Maybe } from "ramda-fantasy";
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
@@ -1226,7 +1226,11 @@ export class Enforester {
       lookahead = this.peek();
       if (this.isParens(lookahead)) {
         if (!allowCall) {
-          if (this.term && isIdentifierExpression(this.term)) {
+          // we're dealing with a new expression
+          if (this.term &&
+              (isIdentifierExpression(this.term) ||
+               isStaticMemberExpression(this.term) ||
+               isComputedMemberExpression(this.term))) {
             return this.term;
           }
           this.term = this.enforestExpressionLoop();
@@ -1234,7 +1238,7 @@ export class Enforester {
           this.term = this.enforestCallExpression();
         }
       } else if (this.isBrackets(lookahead)) {
-        this.term = allowCall ? this.enforestComputedMemberExpression() : this.enforestExpressionLoop();
+        this.term = this.term ? this.enforestComputedMemberExpression() : this.enforestPrimaryExpression();
       } else if (this.isPunctuator(lookahead, '.') && (
         this.isIdentifier(this.peek(1)) || this.isKeyword(this.peek(1)))) {
         this.term = this.enforestStaticMemberExpression();
