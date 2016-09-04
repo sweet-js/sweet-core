@@ -1,7 +1,6 @@
 import { List } from "immutable";
-import { expect, assert } from "./errors";
+import { assert } from "./errors";
 import { Maybe } from 'ramda-fantasy';
-import { ALL_PHASES } from './syntax';
 
 export default class BindingMap {
   constructor() {

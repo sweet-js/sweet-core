@@ -1,5 +1,4 @@
 import { List } from 'immutable';
-import { Maybe } from 'ramda-fantasy';
 import _ from 'ramda';
 import Syntax from './syntax';
 import { assert } from './errors';

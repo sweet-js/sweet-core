@@ -1,14 +1,8 @@
-import MapSyntaxReducer from "./map-syntax-reducer";
-import reducer from "shift-reducer";
 import { expect } from './errors';
 import { List } from 'immutable';
 import { Enforester } from './enforester';
-import Syntax, { ALL_PHASES } from './syntax';
+import { ALL_PHASES } from './syntax';
 import * as _ from 'ramda';
-import { Maybe } from 'ramda-fantasy';
-const Just = Maybe.Just;
-const Nothing = Maybe.Nothing;
-
 
 const symWrap = Symbol('wrapper');
 const privateData = new WeakMap();
@@ -52,7 +46,7 @@ export class SyntaxOrTermWrapper {
   }
 
   fromKeyword(value) {
-    return this.from("keyword");
+    return this.from("keyword", value);
   }
 
   fromIdentifier(value) {
@@ -193,6 +187,7 @@ export default class MacroContext {
     const priv = {
       name,
       context,
+      enf: startEnf,
       startMarker,
       markers: new Map([[startMarker, enf]]),
     };
@@ -289,7 +284,6 @@ export default class MacroContext {
       case 'BinaryExpression':
       case 'StaticMemberExpression':
       case 'ComputedMemberExpression':
-      case 'AssignmentExpression':
       case 'CompoundAssignmentExpression':
       case 'ConditionalExpression':
         value = enf.enforestExpressionLoop();

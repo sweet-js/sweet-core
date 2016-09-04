@@ -7,7 +7,7 @@ export default class MapSyntaxReducer extends CloneReducer {
     this.fn = fn;
   }
 
-  reduceBindingIdentifier(node, state) {
+  reduceBindingIdentifier(node) {
     let name = this.fn(node.name);
 
     return new Term("BindingIdentifier", {
@@ -15,7 +15,7 @@ export default class MapSyntaxReducer extends CloneReducer {
     });
   }
 
-  reduceIdentifierExpression(node, state) {
+  reduceIdentifierExpression(node) {
     let name = this.fn(node.name);
 
     return new Term("IdentifierExpression", {

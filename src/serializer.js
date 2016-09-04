@@ -1,8 +1,8 @@
 import transit from "transit-js";
 import { List, Map } from "immutable";
 import Syntax from "./syntax";
-import { Symbol, gensym, SymbolClass } from "./symbol";
-import { TokenClass, TokenType } from "shift-parser/dist/tokenizer";
+import { Symbol,  SymbolClass } from "./symbol";
+import { TokenType } from "shift-parser/dist/tokenizer";
 
 let typeMap = [TokenType.STRING, TokenType.EOS, TokenType.LPAREN, TokenType.RPAREN,
                TokenType.LBRACK, TokenType.RBRACK, TokenType.LBRACE, TokenType.RBRACE,
@@ -37,9 +37,9 @@ let ListHandler = transit.makeWriteHandler({
 });
 
 let MapHandler = transit.makeWriteHandler({
-  tag: function(v) { return "map"; },
+  tag: function() { return "map"; },
   rep: function(v) { return v; },
-  stringRep: function(v) { return null; }
+  stringRep: function() { return null; }
 });
 
 let SyntaxHandler = transit.makeWriteHandler({
@@ -71,15 +71,15 @@ let writer = transit.writer("json", {
 function makeReader(bindings) {
   return transit.reader("json", {
     arrayBuilder: {
-      init: (node) => List().asMutable(),
-      add: (ret, val, node) => ret.push(val),
-      finalize: (ret, node) => ret.asImmutable(),
-      fromArray: (arr, node) => List(arr)
+      init: () => List().asMutable(),
+      add: (ret, val) => ret.push(val),
+      finalize: (ret) => ret.asImmutable(),
+      fromArray: (arr) => List(arr)
     },
     mapBuilder: {
-      init: function(node) { return Map().asMutable(); },
-      add: function(ret, key, val, node) { return ret.set(key, val); },
-      finalize: function(ret, node) { return ret.asImmutable(); }
+      init: function() { return Map().asMutable(); },
+      add: function(ret, key, val) { return ret.set(key, val); },
+      finalize: function(ret) { return ret.asImmutable(); }
     },
     handlers: {
       "stx": (rep) => {

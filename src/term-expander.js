@@ -1,18 +1,12 @@
 import { List } from 'immutable';
-import Term, {
-  isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
-  isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isVariableDeclaration,
-  isVariableDeclarationStatement, isImport, isExport
-} from "./terms";
-import { Scope, freshScope } from "./scope";
+import Term from "./terms";
+import { freshScope } from "./scope";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
-import reducer, { MonoidalReducer } from "shift-reducer";
 import Compiler from './compiler';
 import Syntax, { ALL_PHASES } from "./syntax";
-import { serializer, makeDeserializer } from "./serializer";
-import { enforestExpr, Enforester } from "./enforester";
-import { assert } from './errors';
-import { processTemplate }from './template-processor.js';
+import { serializer } from "./serializer";
+import { Enforester } from "./enforester";
+import { processTemplate } from './template-processor.js';
 import ASTDispatcher from './ast-dispatcher';
 
 export default class TermExpander extends ASTDispatcher {

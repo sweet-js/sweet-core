@@ -1,12 +1,8 @@
 // @flow
-import Reader from "./shift-reader";
 import { List } from "immutable";
-import Syntax from "./syntax";
-import Env from "./env";
 import reduce from "shift-reducer";
 import ParseReducer from "./parse-reducer";
 import codegen, { FormattedCodeGen } from "shift-codegen";
-import { Scope, freshScope } from "./scope";
 
 import BindingMap from "./binding-map.js";
 

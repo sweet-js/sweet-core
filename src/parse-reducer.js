@@ -74,25 +74,25 @@ export default class ParseReducer extends CloneReducer {
     });
   }
 
-  reduceIdentifierExpression(node, state) {
+  reduceIdentifierExpression(node) {
     return new Term("IdentifierExpression", {
       name: node.name.resolve(this.context.phase)
     });
   }
 
-  reduceLiteralNumericExpression(node, state) {
+  reduceLiteralNumericExpression(node) {
     return new Term("LiteralNumericExpression", {
       value: node.value.val()
     });
   }
 
-  reduceLiteralBooleanExpression(node, state) {
+  reduceLiteralBooleanExpression(node) {
     return new Term("LiteralBooleanExpression", {
       value: node.value.val() === 'true'
     });
   }
 
-  reduceLiteralStringExpression(node, state) {
+  reduceLiteralStringExpression(node) {
     return new Term("LiteralStringExpression", {
       value: node.value.token.str
     });
@@ -119,7 +119,7 @@ export default class ParseReducer extends CloneReducer {
     });
   }
 
-  reduceBindingIdentifier(node, state) {
+  reduceBindingIdentifier(node) {
     return new Term("BindingIdentifier", {
       name: node.name.resolve(this.context.phase)
     });
@@ -146,7 +146,7 @@ export default class ParseReducer extends CloneReducer {
     });
   }
 
-  reduceStaticPropertyName(node, state) {
+  reduceStaticPropertyName(node) {
     return new Term("StaticPropertyName", {
       value: node.value.val().toString()
     });

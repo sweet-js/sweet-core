@@ -3,21 +3,12 @@ import Env from "./env";
 import Store from "./store";
 import Reader from "./shift-reader";
 import * as _ from "ramda";
-import TokenExpander from './token-expander.js';
-import TermExpander from "./term-expander.js";
-import BindingMap from "./binding-map.js";
 import { gensym } from './symbol';
-import Term, {
-  isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
-  isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
-  isVariableDeclarationStatement, isImport, isExport, isExportFrom, isExportAllFrom, isExportDefault,
-  isExportSyntax, isSyntaxDeclarationStatement, isPragma, isCompiletimeDeclaration, isCompiletimeStatement,
-  isClassDeclaration
-} from "./terms";
+import Term, * as T from "./terms";
 import { evalCompiletimeValue, evalRuntimeValues } from './load-syntax';
 import Compiler from "./compiler";
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
-import { Scope, freshScope } from "./scope";
+import { freshScope } from "./scope";
 import { assert } from './errors';
 import { collectBindings } from './hygiene-utils';
 
@@ -46,9 +37,9 @@ const findBindingIdentifierName = term => {
 const convertExport = term => {
   let declaration = term.declaration;
   let bindings = [];
-  if (isVariableDeclaration(declaration)) {
+  if (T.isVariableDeclaration(declaration)) {
     bindings = declaration.declarators.map(decl =>  findBindingIdentifierName(decl.binding));
-  } else if (isFunctionDeclaration(declaration) || isClassDeclaration(declaration)) {
+  } else if (T.isFunctionDeclaration(declaration) || T.isClassDeclaration(declaration)) {
     bindings.push(findBindingIdentifierName(declaration.name));
   }
 
@@ -111,16 +102,16 @@ export class Modules {
     let pragmas = [];
     let filteredTerms = terms.reduce((acc, t) => {
       return _.cond([
-        [isImport, t => {
+        [T.isImport, t => {
           importEntries.push(t);
           return acc;
         }],
-        [isExport, t => {
+        [T.isExport, t => {
           // exportEntries.push(t);
           // return acc.concat(t);
           if (t.declaration) {
             exportEntries.push(convertExport(t));
-            if (isVariableDeclaration(t.declaration)) {
+            if (T.isVariableDeclaration(t.declaration)) {
               return acc.concat(new Term('VariableDeclarationStatement', {
                 declaration: t.declaration
               }));
@@ -130,7 +121,7 @@ export class Modules {
           exportEntries.push(t);
           return acc;
         }],
-        [isPragma, t => { pragmas.push(t); return acc; } ],
+        [T.isPragma, t => { pragmas.push(t); return acc; } ],
         [_.T, t => acc.concat(t) ]
       ])(t);
     }, List());
@@ -241,7 +232,7 @@ export class Modules {
   visit(mod, phase, store) {
     // TODO: recursively visit imports
     mod.body.forEach(term => {
-      if (isSyntaxDeclarationStatement(term)) {
+      if (T.isSyntaxDeclarationStatement(term)) {
         this.registerSyntaxDeclaration(term.declaration, phase, store);
       }
     });
@@ -250,16 +241,16 @@ export class Modules {
 
   invoke(mod, phase, store) {
     // TODO: recursively visit imports
-    let body = mod.body.filter(_.complement(isCompiletimeStatement)).map(term => {
+    let body = mod.body.filter(_.complement(T.isCompiletimeStatement)).map(term => {
       term = term.gen(); // TODO: can we remove the need for gen? have to deeply remove compiletime code
-      if (isVariableDeclarationStatement(term)) {
+      if (T.isVariableDeclarationStatement(term)) {
         this.registerVariableDeclaration(term.declaration, phase, store);
-      } else if (isFunctionDeclaration(term)) {
+      } else if (T.isFunctionDeclaration(term)) {
         this.registerFunctionOrClass(term, phase, store);
       }
       return term;
     });
-    let exportsObj = evalRuntimeValues(body, _.merge(this.context, {
+    evalRuntimeValues(body, _.merge(this.context, {
       store, phase
     }));
     return store;
