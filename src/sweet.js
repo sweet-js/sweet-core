@@ -48,7 +48,7 @@ export function expand(source: string, options: SweetOptions = {}): any {
 }
 
 export function parse(source: string, options: SweetOptions, includeImports: boolean = true): any {
-  return reduce(new ParseReducer({phase: 0}), expand(source, options).gen({includeImports}));
+  return reduce(new ParseReducer({phase: 0}), expand(source, options).gen(includeImports));
 }
 
 export function compile(source: string, options: SweetOptions = {}): CodeOutput {
