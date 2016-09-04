@@ -3,19 +3,19 @@ import { assert, expect } from "./errors";
 import { mixin } from "./utils";
 import Syntax from "./syntax";
 import * as R from "ramda";
-import TermSpec from './term-spec';
+import TermSpec from 'sweet-spec';
 
-const getFieldNames = R.map(f => f.fieldName);
+const getFieldNames = R.map(f => f.attrName);
 
 export default class Term {
   constructor(type, props) {
-    if (!TermSpec.spec.hasOwnProperty(type)) {
+    if (!TermSpec.hasDescendant(type)) {
       throw new Error(`Unknown term: ${type}`);
     }
     this.type = type;
     this.loc = null;
     let propKeys = Object.keys(props);
-    let fieldNames = getFieldNames(TermSpec.spec[type].fields);
+    let fieldNames = getFieldNames(TermSpec.getDescendant(type).getAttributes());
     let diff = R.symmetricDifference(propKeys, fieldNames);
     if (diff.length !== 0) {
       throw new Error(`Unexpected properties for term ${type}: ${diff}`);
@@ -27,11 +27,11 @@ export default class Term {
 
   extend(props) {
     let newProps = {};
-    for (let field of TermSpec.spec[this.type].fields) {
-      if (props.hasOwnProperty(field.fieldName)) {
-        newProps[field.fieldName] = props[field.fieldName];
+    for (let field of TermSpec.getDescendant(this.type).getAttributes()) {
+      if (props.hasOwnProperty(field.attrName)) {
+        newProps[field.attrName] = props[field.attrName];
       } else {
-        newProps[field.fieldName] = this[field.fieldName];
+        newProps[field.attrName] = this[field.attrName];
       }
     }
     return new Term(this.type, newProps);
@@ -39,17 +39,17 @@ export default class Term {
 
   gen({ includeImports } = { includeImports: true }) {
     let next = {};
-    for (let field of TermSpec.spec[this.type].fields) {
-      if (this[field.fieldName] == null) {
-        next[field.fieldName] = null;
-      } else if (this[field.fieldName] instanceof Term) {
-        next[field.fieldName] = this[field.fieldName].gen(includeImports);
-      } else if (List.isList(this[field.fieldName])) {
+    for (let field of TermSpec.getDescendant(this.type).getAttributes()) {
+      if (this[field.attrName] == null) {
+        next[field.attrName] = null;
+      } else if (this[field.attrName] instanceof Term) {
+        next[field.attrName] = this[field.attrName].gen(includeImports);
+      } else if (List.isList(this[field.attrName])) {
         let pred = includeImports ? R.complement(isCompiletimeStatement) : R.both(R.complement(isImportDeclaration), R.complement(isCompiletimeStatement));
-        next[field.fieldName] = this[field.fieldName].filter(pred)
+        next[field.attrName] = this[field.attrName].filter(pred)
                                  .map(term => term instanceof Term ? term.gen(includeImports) : term);
       } else {
-        next[field.fieldName] = this[field.fieldName];
+        next[field.attrName] = this[field.attrName];
       }
     }
     return new Term(this.type, next);
@@ -57,13 +57,13 @@ export default class Term {
 
   visit(f) {
     let next = {};
-    for (let field of TermSpec.spec[this.type].fields) {
-      if (this[field.fieldName] == null) {
-        next[field.fieldName] = null;
-      } else if (List.isList(this[field.fieldName])) {
-        next[field.fieldName] = this[field.fieldName].map(field => field != null ? f(field) : null);
+    for (let field of TermSpec.getDescendant(this.type).getAttributes()) {
+      if (this[field.attrName] == null) {
+        next[field.attrName] = null;
+      } else if (List.isList(this[field.attrName])) {
+        next[field.attrName] = this[field.attrName].map(field => field != null ? f(field) : null);
       } else {
-        next[field.fieldName] = f(this[field.fieldName]);
+        next[field.attrName] = f(this[field.attrName]);
       }
     }
     return this.extend(next);
@@ -89,24 +89,24 @@ export default class Term {
 
   // TODO: this is very wrong
   lineNumber() {
-    for (let field of TermSpec.spec[this.type].fields) {
-      if (typeof this[field.fieldName] && this[field.fieldName].lineNumber === 'function') {
-        return this[field.fieldName].lineNumber();
+    for (let field of TermSpec.getDescendant(this.type).getAttributes()) {
+      if (typeof this[field.attrName] && this[field.attrName].lineNumber === 'function') {
+        return this[field.attrName].lineNumber();
       }
     }
   }
 
   setLineNumber(line) {
     let next = {};
-    for (let field of TermSpec.spec[this.type].fields) {
-      if (this[field.fieldName] == null) {
-        next[field.fieldName] = null;
-      } else if (typeof this[field.fieldName].setLineNumber === 'function') {
-        next[field.fieldName] = this[field.fieldName].setLineNumber(line);
-      } else if (List.isList(this[field.fieldName])) {
-        next[field.fieldName] = this[field.fieldName].map(f => f.setLineNumber(line));
+    for (let field of TermSpec.getDescendant(this.type).getAttributes()) {
+      if (this[field.attrName] == null) {
+        next[field.attrName] = null;
+      } else if (typeof this[field.attrName].setLineNumber === 'function') {
+        next[field.attrName] = this[field.attrName].setLineNumber(line);
+      } else if (List.isList(this[field.attrName])) {
+        next[field.attrName] = this[field.attrName].map(f => f.setLineNumber(line));
       } else {
-        next[field.fieldName] = this[field.fieldName];
+        next[field.attrName] = this[field.attrName];
       }
     }
     return new Term(this.type, next);
