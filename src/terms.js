@@ -1,7 +1,4 @@
 import { List } from "immutable";
-import { assert, expect } from "./errors";
-import { mixin } from "./utils";
-import Syntax from "./syntax";
 import * as R from "ramda";
 import TermSpec from 'sweet-spec';
 

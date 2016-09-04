@@ -1,12 +1,3 @@
-import { gensym } from './symbol';
-import { VarBindingTransform, CompiletimeTransform } from './transforms';
-import * as _ from "ramda";
-import { expect, assert } from "./errors";
-import Term, {
-  isEOF, isBindingIdentifier, isBindingPropertyProperty, isBindingPropertyIdentifier, isObjectBinding, isArrayBinding, isFunctionDeclaration, isFunctionExpression,
-  isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
-  isVariableDeclarationStatement, isImport, isExport, isPragma, isExportSyntax
-} from "./terms";
 import { List } from 'immutable';
 
 import ASTDispatcher from './ast-dispatcher';
@@ -57,7 +48,7 @@ export class CollectBindingSyntax extends ASTDispatcher {
     );
   }
 
-  collectObjectBinding (term) {
+  collectObjectBinding () {
     // return term.properties.flatMap(prop => this.collect(prop));
     return List();
   }

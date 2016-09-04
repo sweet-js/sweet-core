@@ -1,7 +1,5 @@
-import { List } from "immutable";
 import TermExpander from "./term-expander.js";
 import TokenExpander from './token-expander';
-import { Scope, freshScope } from "./scope";
 import * as _ from 'ramda';
 
 

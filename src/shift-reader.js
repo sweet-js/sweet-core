@@ -27,7 +27,7 @@ const isRightParen   = R.whereEq({ type: TokenType.RPAREN });
 
 const isEOS = R.whereEq({ type: TokenType.EOS });
 
-const isHash = R.whereEq({ type: TokenType.IDENTIFIER, value: '#'});
+// const isHash = R.whereEq({ type: TokenType.IDENTIFIER, value: '#'});
 const isLeftSyntax = R.whereEq({ type: LSYNTAX });
 const isRightSyntax = R.whereEq({ type: RSYNTAX });
 
@@ -64,14 +64,10 @@ const isEmpty = R.whereEq({size: 0});
 // Syntax -> Boolean
 const isPunctuator = s => s.match("punctuator");
 const isKeyword = s => s.match("keyword");
-const isDelimiter = s => s.match("delimiter");
 const isParens = s => s.match("parens");
 const isBraces = s => s.match("braces");
-const isBrackets = s => s.match("brackets");
 const isIdentifier = s => s.match("identifier");
 
-// Syntax -> any
-const val = s => s.val();
 // Any -> Syntax -> Boolean
 const isVal = R.curry((v, s) => s.val() === v);
 
@@ -231,7 +227,6 @@ const isRegexPrefix = b => R.anyPass([
   ),
   // P . {T}^l  where isExprPrefix(P, b, l) = false
   p => {
-    let isCurly = Maybe.isJust(safeLast(p).map(isBraces));
     let alreadyCheckedFunction = R.pipe(
       Maybe.of,
       functionPrefix,
@@ -344,8 +339,6 @@ export default class Reader extends Tokenizer {
   }
 
   advance(prefix, b) {
-    let startLocation = this.getLocation();
-
     this.lastIndex = this.index;
     this.lastLine = this.line;
     this.lastLineStart = this.lineStart;
@@ -438,7 +431,7 @@ export default class Reader extends Tokenizer {
     while (this.index < this.source.length) {
       let ch = this.source.charCodeAt(this.index);
       switch (ch) {
-        case 0x60:  // `
+        case 0x60: { // `
           // don't include the traling "`"
           let slice = this.getSlice(start, startLocation);
           this.index++;
@@ -448,6 +441,7 @@ export default class Reader extends Tokenizer {
             interp: false,
             slice: slice
           };
+        }
         case 0x24:  // $
           if (this.source.charCodeAt(this.index + 1) === 0x7B) {  // {
             // don't include the trailing "$"

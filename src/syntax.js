@@ -3,8 +3,6 @@ import { assert } from "./errors";
 import BindingMap from "./binding-map";
 import { Maybe } from "ramda-fantasy";
 import * as _ from 'ramda';
-const Just = Maybe.Just;
-const Nothing = Maybe.Nothing;
 
 import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
 
@@ -233,7 +231,7 @@ export default class Syntax {
   }
 
   fromKeyword(value) {
-    return this.from("keyword");
+    return this.from("keyword", value);
   }
 
   fromIdentifier(value) {
@@ -313,7 +311,7 @@ export default class Syntax {
 
       if (scopesetBindingList) {
         // { scopes: List<Scope>, binding: Symbol }
-        let biggestBindingPair = scopesetBindingList.filter(({scopes, binding}) => {
+        let biggestBindingPair = scopesetBindingList.filter(({scopes}) => {
           return scopes.isSubset(stxScopes);
         }).sort(sizeDecending);
 

@@ -1,17 +1,11 @@
 import * as _ from 'ramda';
-import TermExpander from './term-expander';
 import { List } from 'immutable';
 import ParseReducer from './parse-reducer.js';
-import reducer, { MonoidalReducer } from "shift-reducer";
+import reducer from "shift-reducer";
 import { makeDeserializer } from './serializer';
 import Syntax from "./syntax";
 import codegen, { FormattedCodeGen } from 'shift-codegen';
-import { VarBindingTransform, CompiletimeTransform } from './transforms';
-import Term, {
-  isEOF, isBindingIdentifier, isFunctionDeclaration, isFunctionExpression,
-  isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isVariableDeclaration,
-  isVariableDeclarationStatement, isImport, isExport
-} from "./terms";
+import Term, { isVariableDeclaration, isImport, isExport } from "./terms";
 import Reader from './shift-reader';
 
 import { unwrap } from './macro-context';
@@ -19,9 +13,6 @@ import { unwrap } from './macro-context';
 import { replaceTemplate } from './template-processor';
 
 import vm from "vm";
-
-// indirect eval so in the global scope
-let geval = eval;
 
 export function sanitizeReplacementValues(values) {
   if (Array.isArray(values)) {
@@ -38,7 +29,6 @@ export function sanitizeReplacementValues(values) {
 
 export function evalRuntimeValues(terms, context) {
   let prepped = terms.reduce((acc, term) => {
-    let result = List();
     if (isExport(term)) {
       if (isVariableDeclaration(term.declaration)) {
         return acc.concat(new Term('VariableDeclarationStatement', {
@@ -78,7 +68,7 @@ export function evalRuntimeValues(terms, context) {
   let exportsObj = {};
   context.store.set('exports', exportsObj);
 
-  let val = vm.runInContext(result.code, context.store.getNodeContext());
+  vm.runInContext(result.code, context.store.getNodeContext());
   return exportsObj;
 }
 

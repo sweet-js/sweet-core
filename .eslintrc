@@ -4,13 +4,16 @@
     "flowtype"
   ],
   "env": {
-    "es6": true
+    "es6": true,
+    "node": true
   },
   "ecmaVersion": 6,
   "parserOptions": {
     "sourceType": "module"
   },
+  "extends": "eslint:recommended",
   "rules": {
-    "semi": 2
+    "no-constant-condition": ["error", { "checkLoops": false }],
+    "comma-dangle": ["error", "only-multiline" ]
   }
 }

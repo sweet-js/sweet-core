@@ -1,22 +1,15 @@
 import { List } from 'immutable';
-import { enforestExpr, Enforester } from "./enforester";
+import {  Enforester } from "./enforester";
 import TermExpander from "./term-expander.js";
-import BindingMap from "./binding-map.js";
 import Env from "./env";
-import Reader from "./shift-reader";
 import * as _ from "ramda";
-import Term, {
-  isEOF, isBindingIdentifier, isBindingPropertyProperty, isBindingPropertyIdentifier, isObjectBinding, isArrayBinding, isFunctionDeclaration, isFunctionExpression,
-  isFunctionTerm, isFunctionWithName, isSyntaxDeclaration, isSyntaxrecDeclaration, isVariableDeclaration,
-  isVariableDeclarationStatement, isImport, isExport, isExportFrom, isPragma, isExportSyntax,
-  isClassDeclaration
-} from "./terms";
+import * as T from "./terms";
 import { gensym } from './symbol';
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
-import { expect, assert } from "./errors";
+import {  assert } from "./errors";
 import { evalCompiletimeValue } from './load-syntax';
-import { Scope, freshScope } from "./scope";
-import Syntax, { ALL_PHASES } from './syntax';
+import {  freshScope } from "./scope";
+import { ALL_PHASES } from './syntax';
 import ASTDispatcher from './ast-dispatcher';
 import { collectBindings } from './hygiene-utils';
 
@@ -39,14 +32,14 @@ function bindImports(impTerm, exModule, context) {
 
 function findNameInExports(name, exp) {
   let foundNames = exp.reduce((acc, e) => {
-    if (isExportFrom(e)) {
+    if (T.isExportFrom(e)) {
       return acc.concat(e.namedExports.reduce((acc, specifier) => {
         if (specifier.exportedName.val() === name.val()) {
           return acc.concat(specifier.exportedName);
         }
         return acc;
       }, List()));
-    } else if (isExport(e)) {
+    } else if (T.isExport(e)) {
       return acc.concat(e.declaration.declarators.reduce((acc, decl) => {
         if (decl.binding.name.val() === name.val()) {
           return acc.concat(decl.binding.name);
@@ -134,11 +127,11 @@ export default class TokenExpander extends ASTDispatcher {
   }
 
   expandExport(term) {
-    if (isFunctionDeclaration(term.declaration) || isClassDeclaration(term.declaration)) {
+    if (T.isFunctionDeclaration(term.declaration) || T.isClassDeclaration(term.declaration)) {
       return term.extend({
         declaration: this.registerFunctionOrClass(term.declaration)
       });
-    } else if (isVariableDeclaration(term.declaration)) {
+    } else if (T.isVariableDeclaration(term.declaration)) {
       return term.extend({
         declaration: this.registerVariableDeclaration(term.declaration)
       });
@@ -174,7 +167,7 @@ export default class TokenExpander extends ASTDispatcher {
   }
 
   registerVariableDeclaration(term) {
-    if (isSyntaxDeclaration(term) || isSyntaxrecDeclaration(term)) {
+    if (T.isSyntaxDeclaration(term) || T.isSyntaxrecDeclaration(term)) {
       return this.registerSyntaxDeclaration(term);
     }
     return term.extend({
@@ -200,7 +193,7 @@ export default class TokenExpander extends ASTDispatcher {
     // ->
     // syntaxrec id^{a,b,c} = function() { return <<id^{a}>> }
     // syntaxrec id^{a,b} = <init>^{a,b,c}
-    if (isSyntaxDeclaration(term)) {
+    if (T.isSyntaxDeclaration(term)) {
       let scope = freshScope('nonrec');
       term = term.extend({
         declarators: term.declarators.map(decl => {

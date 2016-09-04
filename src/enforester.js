@@ -428,7 +428,7 @@ export class Enforester {
 
   enforestLabeledStatement() {
     let label = this.matchIdentifier();
-    let punc = this.matchPunctuator(':');
+    this.matchPunctuator(':');
     let stmt = this.enforestStatement();
 
     return new Term('LabeledStatement', {
@@ -961,7 +961,7 @@ export class Enforester {
     let id = this.enforestBindingTarget({ allowPunctuator: isSyntax });
     let lookahead = this.peek();
 
-    let init, rest;
+    let init;
     if (this.isPunctuator(lookahead, '=')) {
       this.advance();
       let enf = new Enforester(this.rest, List(), this.context);
@@ -1225,7 +1225,7 @@ export class Enforester {
       this.term = this.enforestNewExpression();
     }
 
-    while(true) {
+    while (true) {
       lookahead = this.peek();
       if (this.isParens(lookahead)) {
         if (!allowCall) {
@@ -1373,6 +1373,7 @@ export class Enforester {
         if (term.inner.size === 1 && this.isIdentifier(term.inner.get(0))) {
           return new Term('BindingIdentifier', { name: term.inner.get(0)});
         }
+        return term;
       case 'DataProperty':
         return new Term('BindingPropertyProperty', {
           name: term.name,
@@ -1387,7 +1388,7 @@ export class Enforester {
         return new Term('ObjectBinding', {
           properties: term.properties.map(t => this.transformDestructuring(t))
         });
-      case 'ArrayExpression':
+      case 'ArrayExpression': {
         let last = term.elements.last();
         if (last != null && last.type === 'SpreadElement') {
           return new Term('ArrayBinding', {
@@ -1400,10 +1401,7 @@ export class Enforester {
             restElement: null
           });
         }
-        return new Term('ArrayBinding', {
-          elements: term.elements.map(t => t && this.transformDestructuring(t)),
-          restElement: null
-        });
+      }
       case 'StaticPropertyName':
         return new Term('BindingIdentifier', {
           name: term.value
@@ -1506,7 +1504,7 @@ export class Enforester {
 
   enforestStaticMemberExpression() {
     let object = this.term;
-    let dot = this.advance();
+    this.advance();
     let property = this.advance();
 
     return new Term("StaticMemberExpression", {
@@ -1679,8 +1677,8 @@ export class Enforester {
     };
   }
 
-  enforestFunction({isExpr, inDefault, allowGenerator}) {
-    let name = null, params, body, rest;
+  enforestFunction({isExpr, inDefault}) {
+    let name = null, params, body;
     let isGenerator = false;
     // eat the function keyword
     let fnKeyword = this.advance();
@@ -1719,7 +1717,7 @@ export class Enforester {
   }
 
   enforestFunctionExpression() {
-    let name = null, params, body, rest;
+    let name = null, params, body;
     let isGenerator = false;
     // eat the function keyword
     this.advance();
@@ -1750,7 +1748,7 @@ export class Enforester {
   }
 
   enforestFunctionDeclaration() {
-    let name, params, body, rest;
+    let name, params, body;
     let isGenerator = false;
     // eat the function keyword
     this.advance();
@@ -1818,7 +1816,6 @@ export class Enforester {
     // TODO: all builtins are 14, custom operators will change this
     this.opCtx.prec = 14;
     this.opCtx.combine = rightTerm => {
-      let type, term, isPrefix;
       if (operator.val() === '++' || operator.val() === '--') {
         return new Term('UpdateExpression', {
           operator: operator.val(),
@@ -2165,7 +2162,7 @@ export class Enforester {
 
   matchIdentifier(val) {
     let lookahead = this.advance();
-    if (this.isIdentifier(lookahead)) {
+    if (this.isIdentifier(lookahead, val)) {
       return lookahead;
     }
     throw this.createError(lookahead, "expecting an identifier");
