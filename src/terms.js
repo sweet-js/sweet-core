@@ -2,41 +2,46 @@ import { List } from "immutable";
 import * as R from "ramda";
 import TermSpec from 'sweet-spec';
 
-const getFieldNames = R.map(f => f.attrName);
+const attrName = a => a.attrName;
 
 export default class Term {
-  constructor(type, props) {
-    if (!TermSpec.hasDescendant(type)) {
+  type: string;
+  loc: null;
+  spec: typeof TermSpec;
+
+  constructor(type: string, props: {}) {
+    let spec = TermSpec.getDescendant(type);
+    if (spec == null) {
       throw new Error(`Unknown term: ${type}`);
     }
     this.type = type;
     this.loc = null;
+    this.spec = spec;
     let propKeys = Object.keys(props);
-    let fieldNames = getFieldNames(TermSpec.getDescendant(type).getAttributes());
+    let fieldNames = spec.getAttributes().map(attrName);
     let diff = R.symmetricDifference(propKeys, fieldNames);
     if (diff.length !== 0) {
       throw new Error(`Unexpected properties for term ${type}: ${diff}`);
     }
-    for (let prop of propKeys) {
-      this[prop] = props[prop];
-    }
+    Object.assign(this, props);
   }
 
-  extend(props) {
-    let newProps = {};
-    for (let field of TermSpec.getDescendant(this.type).getAttributes()) {
-      if (props.hasOwnProperty(field.attrName)) {
-        newProps[field.attrName] = props[field.attrName];
-      } else {
-        newProps[field.attrName] = this[field.attrName];
-      }
+  extend(props: {}) {
+    let specAttrNames = this.spec.getAttributes().map(attrName);
+    let newProps = R.pick(specAttrNames, this);
+
+    let invalidAttrs = R.difference(Object.keys(props), specAttrNames);
+    if (invalidAttrs.length > 0) {
+      throw new Error(`Unexpected properties for term ${this.type}: ${invalidAttrs}`);
     }
-    return new Term(this.type, newProps);
+
+    return new Term(this.type, Object.assign(newProps, props));
   }
 
-  gen({ includeImports } = { includeImports: true }) {
+  // TODO: remove
+  gen(includeImports: boolean = true) {
     let next = {};
-    for (let field of TermSpec.getDescendant(this.type).getAttributes()) {
+    for (let field of this.spec.getAttributes()) {
       if (this[field.attrName] == null) {
         next[field.attrName] = null;
       } else if (this[field.attrName] instanceof Term) {
@@ -52,6 +57,7 @@ export default class Term {
     return new Term(this.type, next);
   }
 
+  // TODO: remove
   visit(f) {
     let next = {};
     for (let field of TermSpec.getDescendant(this.type).getAttributes()) {
@@ -66,6 +72,7 @@ export default class Term {
     return this.extend(next);
   }
 
+  // TODO: remove
   addScope(scope, bindings, phase, options) {
     return this.visit(term => {
       if (typeof term.addScope === 'function') {
@@ -75,6 +82,7 @@ export default class Term {
     });
   }
 
+  // TODO: remove
   removeScope(scope, phase) {
     return this.visit(term => {
       if (typeof term.removeScope === 'function') {

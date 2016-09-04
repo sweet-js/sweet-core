@@ -57,7 +57,7 @@ export function evalRuntimeValues(terms, context) {
   let parsed = reducer(new ParseReducer(context, false), new Term('Module', {
     directives: List(),
     items: prepped
-  }).gen({ includeImports: false }));
+  }).gen(false));
 
   let gen = codegen(parsed, new FormattedCodeGen);
   let result = context.transform(gen, {
