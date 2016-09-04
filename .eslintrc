@@ -1,12 +1,16 @@
 {
-    "env": {
-        "es6": true
-    },
-    "ecmaVersion": 6,
-    "parserOptions": {
-      "sourceType": "module"
-    },
-    "rules": {
-        "semi": 2
-    }
+  "parser": "babel-eslint",
+  "plugins": [
+    "flowtype"
+  ],
+  "env": {
+    "es6": true
+  },
+  "ecmaVersion": 6,
+  "parserOptions": {
+    "sourceType": "module"
+  },
+  "rules": {
+    "semi": 2
+  }
 }

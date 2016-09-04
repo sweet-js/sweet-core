@@ -1,3 +1,4 @@
+// @flow
 import Reader from "./shift-reader";
 import { List } from "immutable";
 import Syntax from "./syntax";
@@ -18,7 +19,19 @@ import { transform as babelTransform } from "babel-core";
 import nodeResolver from "./node-module-resolver";
 import nodeLoader from "./node-module-loader";
 
-export function expand(source, options = {}) {
+type CodeOutput = {
+  code: string
+}
+
+type SweetOptions = {
+  includeImports?: boolean;
+  cwd?: string;
+  enforcePragma?: boolean;
+  filename?: string;
+  transform?: (s: string) => { code: string };
+}
+
+export function expand(source: string, options: SweetOptions = {}): any {
   let bindings = new BindingMap();
   let modules = new Modules({
     bindings,
@@ -38,11 +51,11 @@ export function expand(source, options = {}) {
   });
 }
 
-export function parse(source, options, includeImports = true) {
+export function parse(source: string, options: SweetOptions, includeImports: boolean = true): any {
   return reduce(new ParseReducer({phase: 0}), expand(source, options).gen({includeImports}));
 }
 
-export function compile(source, options = {}) {
+export function compile(source: string, options: SweetOptions = {}): CodeOutput {
   let ast = parse(source, options, options.includeImports);
   let gen = codegen(ast, new FormattedCodeGen());
   return options.transform && (!options.noBabel) ? options.transform(gen, {

@@ -343,7 +343,7 @@ export default class Reader extends Tokenizer {
     return List(stack);
   }
 
-  advance(prefix, b)/*: any */ {
+  advance(prefix, b) {
     let startLocation = this.getLocation();
 
     this.lastIndex = this.index;
