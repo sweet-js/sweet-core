@@ -24,16 +24,17 @@
   "scripts": {
     "clean": "rm -rf build",
     "lint": "eslint build/src",
-    "prebuild": "mkdir -p build/test build/sweet dist/",
+    "prebuild": "npm run lint && mkdir -p build/test build/sweet dist/",
     "build:sweet": "bin/sjs -d build/sweet src/*.js -b",
-    "build:src": "babel --out-dir build/src build/sweet",
+    "build:src": "babel --out-dir build/src src",
     "build:test": "rsync -R test/**/*.js build & cp test/*.js build/test && babel --out-file build/test/assertions.js test/assertions.js",
     "build:browser": "webpack build/src/sweet.js --output-library-target amd --output-library sweet",
-    "build": "npm run build:sweet && npm run build:src && npm run build:test",
-    "pretest": "npm run lint && npm run build",
+    "build": "npm run build:src && npm run build:test",
+    "pretest": "npm run build",
     "test:curr": "ava build/test/modules/export.js",
     "test:smoke": "ava build/test/*.js !build/test/assertions.js",
-    "test": "ava",
+    "test:full": "npm run build && npm run build:sweet && ava",
+    "test": "npm run test:smoke",
     "report": "nyc ava && nyc report --reporter=html",
     "docs": "asciidoctorjs doc/1.0/tutorial.adoc & asciidoctorjs doc/1.0/reference.adoc",
     "dist": "npm run build && npm run build:browser && npm run docs && cp build/src/*.js dist"
@@ -42,6 +43,7 @@
     "test": "test"
   },
   "dependencies": {
+    "sweet-spec": "1.0.0",
     "babel-core": "^6.5.0",
     "immutable": "^3.7.4",
     "ramda": "^0.19.0",

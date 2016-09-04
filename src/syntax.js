@@ -453,7 +453,7 @@ export default class Syntax {
       throw new Error(type + " is an invalid type");
     }
     return Types[type].match(this.token) && (value == null ||
-      value instanceof RegExp ? value.test(this.val()) : this.val() == value);
+      (value instanceof RegExp ? value.test(this.val()) : this.val() == value));
   }
 
   isIdentifier(value) {
