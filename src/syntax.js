@@ -1,3 +1,4 @@
+// @flow
 import { List, Map } from "immutable";
 import { assert } from "./errors";
 import BindingMap from "./binding-map";
@@ -6,7 +7,31 @@ import * as _ from 'ramda';
 
 import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
 
-function getFirstSlice(stx) {
+type Token = {
+  type: any;
+  value: any;
+  slice: any;
+};
+
+type TokenTag =
+  'null' |
+  'number' |
+  'string' |
+  'punctuator' |
+  'keyword' |
+  'identifier' |
+  'regularExpression' |
+  'boolean' |
+  'braces' |
+  'parens' |
+  'delimiter' |
+  'eof' |
+  'template' |
+  'assign' |
+  'syntaxTemplate' |
+  'brackets'
+
+function getFirstSlice(stx: ?Syntax) {
   if ((!stx) || typeof stx.isDelimiter !== 'function') return null; // TODO: should not have to do this
   if (!stx.isDelimiter()) {
     return stx.token.slice;
@@ -24,7 +49,14 @@ function sizeDecending(a, b) {
   }
 }
 
-export let Types = {
+type TypesHelper = {
+  [key: TokenTag]: {
+    match(token: any): boolean;
+    create?: (value: any, stx: ?Syntax) => Syntax;
+  }
+}
+
+export let Types: TypesHelper = {
   null: {
     match: token => !Types.delimiter.match(token) && token.type === TokenType.NULL,
     create: (value, stx) => new Syntax({
@@ -180,22 +212,32 @@ export let Types = {
 };
 export const ALL_PHASES = {};
 
+type Scopeset = {
+  all: List<any>;
+  phase: Map<number, any>;
+}
+
 export default class Syntax {
-  constructor(token, oldstx = {}) {
+  // token: Token | List<Token>;
+  token: any;
+  bindings: BindingMap;
+  scopesets: Scopeset;
+
+  constructor(token: any, oldstx: ?{ bindings: any; scopesets: any}) {
     this.token = token;
-    this.bindings = oldstx.bindings != null ? oldstx.bindings : new BindingMap();
-    this.scopesets = oldstx.scopesets != null ? oldstx.scopesets : {
+    this.bindings = oldstx && (oldstx.bindings != null) ? oldstx.bindings : new BindingMap();
+    this.scopesets = oldstx && (oldstx.scopesets != null) ? oldstx.scopesets : {
       all: List(),
       phase: Map()
     };
     Object.freeze(this);
   }
 
-  static of(token, stx = {}) {
+  static of(token: Token, stx: ?Syntax) {
     return new Syntax(token, stx);
   }
 
-  static from(type, value, stx = {}) {
+  static from(type, value, stx: ?Syntax) {
     if (!Types[type]) {
       throw new Error(type + " is not a valid type");
     }
@@ -210,7 +252,7 @@ export default class Syntax {
     return newstx;
   }
 
-  from(type, value) {
+  from(type: TokenTag, value: any) {
     return Syntax.from(type, value, this);
   }
 
@@ -218,84 +260,84 @@ export default class Syntax {
     return this.from("null", null);
   }
 
-  fromNumber(value) {
+  fromNumber(value: number) {
     return this.from('number', value);
   }
 
-  fromString(value) {
+  fromString(value: string) {
     return this.from("string", value);
   }
 
-  fromPunctuator(value) {
+  fromPunctuator(value: string) {
     return this.from("punctuator", value);
   }
 
-  fromKeyword(value) {
+  fromKeyword(value: string) {
     return this.from("keyword", value);
   }
 
-  fromIdentifier(value) {
+  fromIdentifier(value: string) {
     return this.from("identifier", value);
   }
 
-  fromRegularExpression(value) {
+  fromRegularExpression(value: any) {
     return this.from("regularExpression", value);
   }
 
-  fromBraces(inner) {
+  fromBraces(inner: List<Syntax>) {
     return this.from("braces", inner);
   }
 
-  fromBrackets(inner) {
+  fromBrackets(inner: List<Syntax>) {
     return this.from("brackets", inner);
   }
 
-  fromParens(inner) {
+  fromParens(inner: List<Syntax>) {
     return this.from("parens", inner);
   }
 
-  static fromNull(stx = {}) {
+  static fromNull(stx: Syntax) {
     return Syntax.from("null", null, stx);
   }
 
-  static fromNumber(value, stx = {}) {
+  static fromNumber(value, stx) {
     return Syntax.from("number", value, stx);
   }
 
-  static fromString(value, stx = {}) {
+  static fromString(value, stx) {
     return Syntax.from("string", value, stx);
   }
 
-  static fromPunctuator(value, stx = {}) {
+  static fromPunctuator(value, stx) {
     return Syntax.from("punctuator", value, stx);
   }
 
-  static fromKeyword(value, stx = {}) {
+  static fromKeyword(value, stx) {
     return Syntax.from("keyword", value, stx);
   }
 
-  static fromIdentifier(value, stx = {}) {
+  static fromIdentifier(value, stx) {
     return Syntax.from("identifier", value, stx);
   }
 
-  static fromRegularExpression(value, stx = {}) {
+  static fromRegularExpression(value, stx) {
     return Syntax.from("regularExpression", value, stx);
   }
 
-  static fromBraces(inner, stx = {}) {
+  static fromBraces(inner, stx) {
     return Syntax.from("braces", inner, stx);
   }
 
-  static fromBrackets(inner, stx = {}) {
+  static fromBrackets(inner, stx) {
     return Syntax.from("brackets", inner, stx);
   }
 
-  static fromParens(inner, stx = {}) {
+  static fromParens(inner, stx) {
     return Syntax.from("parens", inner, stx);
   }
 
   // () -> string
-  resolve(phase) {
+  resolve(phase: any) {
     assert(phase != null, "must provide a phase to resolve");
     let allScopes = this.scopesets.all;
     let stxScopes = this.scopesets.phase.has(phase) ? this.scopesets.phase.get(phase) : List();
@@ -359,7 +401,7 @@ export default class Syntax {
     }
   }
 
-  setLineNumber(line) {
+  setLineNumber(line: number) {
     let newTok = {};
     if (this.isDelimiter()) {
       newTok = this.token.map(s => s.setLineNumber(line));
@@ -379,7 +421,7 @@ export default class Syntax {
     return this.token.slice(1, this.token.size - 1);
   }
 
-  addScope(scope, bindings, phase, options = { flip: false }) {
+  addScope(scope: any, bindings: any, phase: number, options: any = { flip: false }) {
     let token = this.match('delimiter') ? this.token.map(s => s.addScope(scope, bindings, phase, options)) : this.token;
     if (this.match('template')) {
       token = _.merge(token, {
@@ -424,7 +466,7 @@ export default class Syntax {
     return new Syntax(token, newstx);
   }
 
-  removeScope(scope, phase) {
+  removeScope(scope: any, phase: number) {
     let token = this.match('delimiter') ? this.token.map(s => s.removeScope(scope, phase)) : this.token;
     let phaseScopeset = this.scopesets.phase.has(phase) ? this.scopesets.phase.get(phase) : List();
     let allScopeset = this.scopesets.all;
@@ -446,7 +488,7 @@ export default class Syntax {
     return new Syntax(token, newstx);
   }
 
-  match(type, value) {
+  match(type: TokenTag, value: any) {
     if (!Types[type]) {
       throw new Error(type + " is an invalid type");
     }
@@ -454,67 +496,67 @@ export default class Syntax {
       (value instanceof RegExp ? value.test(this.val()) : this.val() == value));
   }
 
-  isIdentifier(value) {
+  isIdentifier(value: string) {
     return this.match("identifier", value);
   }
 
-  isAssign(value) {
+  isAssign(value: string) {
     return this.match("assign", value);
   }
 
-  isBooleanLiteral(value) {
+  isBooleanLiteral(value: boolean) {
     return this.match("boolean", value);
   }
 
-  isKeyword(value) {
+  isKeyword(value: string) {
     return this.match("keyword", value);
   }
 
-  isNullLiteral(value) {
+  isNullLiteral(value: any) {
     return this.match("null", value);
   }
 
-  isNumericLiteral(value) {
+  isNumericLiteral(value: number) {
     return this.match("number", value);
   }
 
-  isPunctuator(value) {
+  isPunctuator(value: string) {
     return this.match("punctuator", value);
   }
 
-  isStringLiteral(value) {
+  isStringLiteral(value: string) {
     return this.match("string", value);
   }
 
-  isRegularExpression(value) {
+  isRegularExpression(value: any) {
     return this.match("regularExpression", value);
   }
 
-  isTemplate(value) {
+  isTemplate(value: any) {
     return this.match("template", value);
   }
 
-  isDelimiter(value) {
+  isDelimiter(value: any) {
     return this.match("delimiter", value);
   }
 
-  isParens(value) {
+  isParens(value: any) {
     return this.match("parens", value);
   }
 
-  isBraces(value) {
+  isBraces(value: any) {
     return this.match("braces", value);
   }
 
-  isBrackets(value) {
+  isBrackets(value: any) {
     return this.match("brackets", value);
   }
 
-  isSyntaxTemplate(value) {
+  isSyntaxTemplate(value: any) {
     return this.match("syntaxTemplate", value);
   }
 
-  isEOF(value) {
+  isEOF(value: any) {
     return this.match("eof", value);
   }
 
