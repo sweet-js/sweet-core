@@ -1,10 +1,10 @@
 // @flow
 
 type LocationInfo = {
-  filename: string,
-  line: number,
-  column: number,
-  position: number
+  filename?: string,
+  line?: number,
+  column?: number,
+  position?: number
 };
 
 export default class CharStream {
@@ -20,7 +20,7 @@ export default class CharStream {
     };
   }
 
-  get locationInfo(): LocationInfo  {
+  get locationInfo(): LocationInfo {
     const { filename, line, column, position } = this._loc;
     return { filename, line, column, position };
   }
