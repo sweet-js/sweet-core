@@ -1,21 +1,79 @@
+// @flow
+
 import test from 'ava';
 import expect from 'expect.js';
+import { List } from 'immutable';
 
-import CharStream from '../src/char-stream';
+import CharStream, { isEOS } from '../src/char-stream';
 import defaultReadtable from '../src/default-readtable';
-import { setCurrentReadtable } from '../src/readtable';
+import Readtable, { setCurrentReadtable } from '../src/readtable';
+import type { ReadtableEntry } from '../src/readtable';
 
 setCurrentReadtable(defaultReadtable);
 
-function getEntryFor(stream) {
+let reader;
+
+class Reader {
+  _readtable: Readtable;
+  _prefix: List<any>;
+  _locationInfo: { line: number, column: number };
+  constructor(readtable: Readtable = defaultReadtable) {
+    this._readtable = readtable;
+    this._prefix = List();
+    this._locationInfo= {
+      line: 0, column: 0
+    };
+  }
+
+  get locationInfo(): { line: number, column: number } {
+    const { line, column } = this._locationInfo;
+    return { line, column };
+  }
+
+  set locationInfo({ line, column }): void {
+    this._locationInfo.line = line | this._locationInfo.line;
+    this._locationInfo.column = column | this._locationInfo.column;
+  }
+
+  get prefix() {
+    return this._prefix;
+  }
+
+  read(stream: CharStream) {
+    // reset location info
+    // TODO: change positionInfo to locationInfo
+    while (!isEOS(stream.peek())) {
+      const entry = getEntryFor(this._readtable, stream);
+      const { filename, position } = stream.sourceInfo;
+      const { line, column } = this._locationInfo;
+      const result = entry.action.call(this, stream);
+      let node = null;
+      if (result != null) {
+        node = {
+          type: result.type,
+          value: result.value,
+          locationInfo: {
+            filename, position, line, column
+          }
+        }
+      }
+      this._prefix.push(node);
+    }
+    return this._prefix;
+  }
+}
+
+function getEntryFor(readtable: Readtable, stream: CharStream): ReadtableEntry {
   const key = stream.peek();
-  return defaultReadtable.getEntry(key);
+  return readtable.getEntry(key);
 }
 
 function testParse(source, tst) {
+  reader = new Reader();
   const stream = new CharStream(source);
-  const entry = getEntryFor(stream);
-  const result = entry.action(stream);
+  const result = reader.read(stream).first();
+
+  if (result == null) return;
 
   tst(result, stream);
 }
@@ -37,7 +95,9 @@ test('should parse Unicode identifiers', t => {
   testParseIdentifier(t, 'abcd ', 'abcd');
   testParseIdentifier(t, '日本語 ', '日本語');
   testParseIdentifier(t, '\u2163\u2161 ', '\u2163\u2161');
+  testParseIdentifier(t, '\\u2163\\u2161 ', '\u2163\u2161');
   testParseIdentifier(t, '\u{102A7} ', '\u{102A7}');
+  testParseIdentifier(t, '\\u{102A7} ', '\u{102A7}');
   testParseIdentifier(t, '\uD800\uDC00 ', '\uD800\uDC00');
   testParseIdentifier(t, '\u2163\u2161\u200A', '\u2163\u2161');
 });
@@ -72,13 +132,15 @@ test('should parse whitespace', t => {
 test('should parse line terminators', t => {
   function testParseLineTerminators(t, source) {
     testParse(source, (result, stream) => {
-      const { line, column, position } = stream.locationInfo;
+      const { line, column } = reader.locationInfo;
+      const { position } = stream.sourceInfo;
       t.is(result, undefined);
       t.is(line, 1);
       t.is(column, 0);
       t.is(position, 1);
     });
   }
+
   testParseLineTerminators(t, '\n');
   testParseLineTerminators(t, '\r\n');
   testParseLineTerminators(t, '\u2029');

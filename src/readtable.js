@@ -19,7 +19,7 @@ export default class Readtable {
     this._entries = entries;
   }
   
-  getEntry(key: ReadtableKey): ReadtableEntry {
+  getEntry(key?: ReadtableKey): ReadtableEntry {
     if (!isValidKey(key)) throw Error('Invalid key type:', key);
     return this._entries[convertKey(key)] || this._entries[0];
   }
@@ -74,7 +74,7 @@ function isValidAction(action) {
   return typeof action === "function";
 }
 
-type ReadtableKey = null | string | number;
+type ReadtableKey = string | number | null;
 
 // type ReadtableMode = Symbol;
 
@@ -82,7 +82,9 @@ type Token = { type: string, value: string };
 
 export type TokenTree = Token | List<TokenTree> | Array<TokenTree>;
 
-type Action = (stream : CharStream, prefix?: TokenTree) => TokenTree;
+export type ActionResult = { type: string, value: string } | null;
+
+type Action = (stream : CharStream) => ActionResult;
 
 export type ReadtableEntry = {
   key?: ?ReadtableKey,
