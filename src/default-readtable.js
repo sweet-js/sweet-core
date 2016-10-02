@@ -1,8 +1,15 @@
+// @flow
+
 import { EmptyReadtable, setCurrentReadtable } from './readtable';
 
 import readIdentifier from './reader/read-identifier';
 import readNumericLiteral from './reader/read-numeric';
 import readStringLiteral from './reader/read-string';
+
+import type { ActionResult } from './readtable';
+
+// import type { ReadtableEntry } from './readtable';
+// import readTemplateElement from './reader/read-template';
 
 // strategy: create a series of readtables
 // 0. whitespace - check!
@@ -10,7 +17,7 @@ import readStringLiteral from './reader/read-string';
 // 2. delimiters
 // 3. numbers - check!
 // 4. identifiers - check!
-// 5. string- check!
+// 5. string - check!
 // 6. regex
 // 7. template elements?
 // 8. keywords - check!
@@ -19,8 +26,9 @@ import readStringLiteral from './reader/read-string';
 
 // use https://github.com/mathiasbynens/regenerate to generate the Unicode code points
 
-function eatWhitespace(stream) {
+function eatWhitespace(stream): ActionResult {
   stream.readString();
+  return null;
 }
 
 function insertSequence(coll, seq) {
@@ -59,15 +67,14 @@ const punctuatorTable = punctuators.reduce(insertSequence, {});
 const punctuatorEntries = Object.keys(punctuatorTable).map(p => ({
   key: p,
   action(stream) {
-    const { filename, line, column, position } = stream.locationInfo;
     const len = retrieveSequenceLength(punctuatorTable[p], stream, 1);
     if (len >= 0) {
       return {
         type: 'Punctuator',
         value: stream.readString(len),
-        locationInfo: { filename, line, column, position }
       };
     }
+    throw Error('Unknown punctuator');
   }
 }));
 
@@ -82,13 +89,11 @@ const keywordTable = keywords.reduce(insertSequence, {});
 const keywordEntries = Object.keys(keywordTable).map(k => ({
   key: k,
   action(stream) {
-    const { filename, line, column, position } = stream.locationInfo;
     const len = retrieveSequenceLength(keywordTable[k], stream, 1);
     if (len >= 0) {
       return {
         type: 'Keyword',
         value: stream.readString(len),
-        locationInfo: { filename, line, column, position }
       };
     }
     return defaultReadtable.getEntry().action(stream);
@@ -109,7 +114,7 @@ const lineTerminatorTable = [0x0A, 0x0D, 0x2028, 0x2029];
 const lineTerminatorEntries = lineTerminatorTable.map(lt => ({
   key: lt,
   action(stream) {
-    stream.locationInfo = { line: stream.locationInfo.line + 1, column: 0 };
+    this.positionInfo = { line: this.locationInfo.line + 1, column: 0 };
     return eatWhitespace(stream);
   }
 }));
@@ -130,11 +135,9 @@ const stringEntries = quotes.map(q => ({
 
 const identifierEntry = {
   action(stream) {
-    const { filename, line, column, position } = stream.locationInfo;
     return {
       type: 'Identifier',
       value: readIdentifier(stream),
-      locationInfo: { filename, line, column, position }
     };
   }
 };
@@ -145,13 +148,14 @@ const identifierEntry = {
 // console.log('line terminators:', lineTerminatorEntries)
 
 const defaultReadtable = EmptyReadtable.extendReadtable(
-  identifierEntry,
+  ...[identifierEntry,
+  // templateElementEntry,
   ...punctuatorEntries,
   ...keywordEntries,
   ...whiteSpaceEntries,
   ...lineTerminatorEntries,
   ...numericEntries,
-  ...stringEntries);
+  ...stringEntries]);
 
 export default defaultReadtable;
 
