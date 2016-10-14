@@ -1,29 +1,41 @@
-import { isEOS } from '../char-stream';
+// @flow
+
 import { scanUnicode } from './utils';
 
+import { isEOS } from '../char-stream';
+import type CharStream from '../char-stream';
+
 import { code } from 'esutils';
+
+import { IdentifierToken } from '../tokens';
 
 const { isIdentifierPartES6: isIdentifierPart,
         isIdentifierStartES6: isIdentifierStart } = code;
 
 
-export default function readIdentifier(stream) {
+export default function readIdentifier(stream: CharStream) {
   let char = stream.peek();
-  let code = char.charCodeAt(0);
+  let code;
   let check = isIdentifierStart;
-  let idx = 1;
+  let idx = 0;
   while(!isEOS(char)) {
+    code = char.charCodeAt(0);
     if (char === '\\' || 0xD800 <= code && code <= 0xDBFF) {
-      return getEscapedIdentifier(stream);
+      return new IdentifierToken({
+        value: getEscapedIdentifier(stream)
+      });
     }
     if (!check(code)) {
-      return stream.readString(idx);
+      return new IdentifierToken({
+        value: stream.readString(idx)
+      });
     }
     char = stream.peek(++idx);
-    code = char.charCodeAt(0);
     check = isIdentifierPart;
   }
-  return stream.readString(idx);
+  return new IdentifierToken({
+    value: stream.readString(idx)
+  });
 }
 
 function getEscapedIdentifier(stream) {

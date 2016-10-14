@@ -59,7 +59,8 @@ export function scanUnicode(stream, start) {
 
 export function readStringEscape(str: string, stream: CharStream, start: number, octal?) {
   let idx = start + 1,
-      char = stream.peek(idx);
+      char = stream.peek(idx),
+      newline = false;
 
   if (!isLineTerminator(char)) {
     switch (char) {
@@ -100,9 +101,9 @@ export function readStringEscape(str: string, stream: CharStream, start: number,
       ++idx;
     }
     ++idx;
-    this.positionInfo = { line: this.positionInfo.line + 1 };
+    newline = true;
   }
-  return [str, idx, octal];
+  return [str, idx, octal, newline];
 }
 
 function scanOctal(str, stream, char, start, octal) {
@@ -141,4 +142,28 @@ function scanHexEscape2(stream, idx) {
 
   stream.readString(2);
   return r1 << 4 | r2;
+}
+
+export function insertSequence(coll, seq) {
+  const char = seq[0];
+  if (!coll[char]) {
+    coll[char] = {};
+  }
+  if (seq.length === 1) {
+    coll[char].isValue = true;
+    return coll;
+  } else {
+    coll[char] = insertSequence(coll[char], seq.slice(1));
+    return coll;
+  }
+}
+
+export function retrieveSequenceLength(table, stream, idx) {
+  const char = stream.peek(idx);
+  if (!table[char]) {
+    if (table.isValue) return idx;
+    return -1;
+  } else {
+    return retrieveSequenceLength(table[char], stream, ++idx);
+  }
 }

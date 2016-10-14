@@ -5,54 +5,36 @@ import { EmptyReadtable, setCurrentReadtable } from './readtable';
 import readIdentifier from './reader/read-identifier';
 import readNumericLiteral from './reader/read-numeric';
 import readStringLiteral from './reader/read-string';
+import readTemplateLiteral from './reader/read-template';
+import readDelimiter from './reader/read-delimiter';
 
-import type { ActionResult } from './readtable';
+import type CharStream from './char-stream';
+import type { LocationInfo } from './reader/token-reader';
+import { KeywordToken, PunctuatorToken, EmptyToken } from './tokens';
+import { insertSequence, retrieveSequenceLength } from './reader/utils';
+
+// import type { ActionResult } from './readtable';
 
 // import type { ReadtableEntry } from './readtable';
-// import readTemplateElement from './reader/read-template';
 
 // strategy: create a series of readtables
 // 0. whitespace - check!
 // 1. punctuators - check!
-// 2. delimiters
+// 2. delimiters - check!
 // 3. numbers - check!
 // 4. identifiers - check!
 // 5. string - check!
 // 6. regex
-// 7. template elements?
+// 7. templates - check!
 // 8. keywords - check!
 // 9. dispatch characters (e.g. #, @)
 // 10. '`' dispatch macro (i.e. syntaxQuote/syntaxTemplate)
 
 // use https://github.com/mathiasbynens/regenerate to generate the Unicode code points
 
-function eatWhitespace(stream): ActionResult {
+function eatWhitespace(stream: CharStream) {
   stream.readString();
-  return null;
-}
-
-function insertSequence(coll, seq) {
-  const char = seq[0];
-  if (!coll[char]) {
-    coll[char] = {};
-  }
-  if (seq.length === 1) {
-    coll[char].isValue = true;
-    return coll;
-  } else {
-    coll[char] = insertSequence(coll[char], seq.slice(1));
-    return coll;
-  }
-}
-
-function retrieveSequenceLength(coll, stream, idx) {
-  const char = stream.peek();
-  if (!coll[char]) {
-    if (coll.isValue) return idx;
-    return -1;
-  } else {
-    return retrieveSequenceLength(coll[char], stream, ++idx);
-  }
+  return EmptyToken;
 }
 
 const punctuators = [':', ';', '.', '=', '?', '+', '-', ',', '|',
@@ -67,12 +49,11 @@ const punctuatorTable = punctuators.reduce(insertSequence, {});
 const punctuatorEntries = Object.keys(punctuatorTable).map(p => ({
   key: p,
   action(stream) {
-    const len = retrieveSequenceLength(punctuatorTable[p], stream, 1);
+    const len = retrieveSequenceLength(punctuatorTable, stream, 0);
     if (len >= 0) {
-      return {
-        type: 'Punctuator',
+      return new PunctuatorToken({
         value: stream.readString(len),
-      };
+      });
     }
     throw Error('Unknown punctuator');
   }
@@ -89,14 +70,13 @@ const keywordTable = keywords.reduce(insertSequence, {});
 const keywordEntries = Object.keys(keywordTable).map(k => ({
   key: k,
   action(stream) {
-    const len = retrieveSequenceLength(keywordTable[k], stream, 1);
+    const len = retrieveSequenceLength(keywordTable[k], stream, 0);
     if (len >= 0) {
-      return {
-        type: 'Keyword',
+      return new KeywordToken({
         value: stream.readString(len),
-      };
+      });
     }
-    return defaultReadtable.getEntry().action(stream);
+    return defaultReadtable.getEntry().action.call(this, stream);
   }
 }));
 
@@ -114,7 +94,7 @@ const lineTerminatorTable = [0x0A, 0x0D, 0x2028, 0x2029];
 const lineTerminatorEntries = lineTerminatorTable.map(lt => ({
   key: lt,
   action(stream) {
-    this.positionInfo = { line: this.locationInfo.line + 1, column: 0 };
+    this.locationInfo = { line: this.locationInfo.line + 1, column: 1 };
     return eatWhitespace(stream);
   }
 }));
@@ -134,13 +114,22 @@ const stringEntries = quotes.map(q => ({
 }));
 
 const identifierEntry = {
-  action(stream) {
-    return {
-      type: 'Identifier',
-      value: readIdentifier(stream),
-    };
-  }
+  action: readIdentifier
 };
+
+const templateEntry = {
+  key: '`',
+  action: readTemplateLiteral
+}
+
+const delimiterPairs = [['{','}'], ['[',']'], ['(',')']];
+
+const delimiterEntries = delimiterPairs.map(p => ({
+  key: p[0],
+  action(stream) {
+    return readDelimiter.call(this, p[1], stream);
+  }
+}));
 
 // console.log('punctuators:', punctuatorEntries);
 // console.log('keywords:', keywordEntries);
@@ -149,10 +138,11 @@ const identifierEntry = {
 
 const defaultReadtable = EmptyReadtable.extendReadtable(
   ...[identifierEntry,
-  // templateElementEntry,
+  ...whiteSpaceEntries,
+  templateEntry,
+  ...delimiterEntries,
   ...punctuatorEntries,
   ...keywordEntries,
-  ...whiteSpaceEntries,
   ...lineTerminatorEntries,
   ...numericEntries,
   ...stringEntries]);

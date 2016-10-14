@@ -1,6 +1,8 @@
 // @flow
-import { List } from 'immutable';
+
 import type CharStream from './char-stream';
+
+import type { TokenTree } from './tokens';
 
 /*
  * Note: these are possible features for future enhancements. 
@@ -76,15 +78,7 @@ function isValidAction(action) {
 
 type ReadtableKey = string | number | null;
 
-// type ReadtableMode = Symbol;
-
-type Token = { type: string, value: string };
-
-export type TokenTree = Token | List<TokenTree> | Array<TokenTree>;
-
-export type ActionResult = { type: string, value: string } | null;
-
-type Action = (stream : CharStream) => ActionResult;
+type Action = (stream: CharStream) => any;
 
 export type ReadtableEntry = {
   key?: ?ReadtableKey,

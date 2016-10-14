@@ -1,25 +1,38 @@
 // @flow
 import type CharStream from '../char-stream';
-
-import { isEOS } from '../char-stream';
+import type LocationInfo from './token-reader';
 
 import { readStringEscape } from './utils';
+import { isEOS } from '../char-stream';
+import { StringToken } from '../tokens';
 
-
-export default function readStringLiteral(stream: CharStream): { type: string, value: string, octal: ?string} {
+// TODO: put line/column info on the reader state (for newlines etc.)
+export default function readStringLiteral(stream: CharStream): StringToken {
   let value = '', octal = null, idx: number = 0,
       quote = stream.readString(),
-      char = stream.peek();
+      char = stream.peek(),
+      { line, column } = this.locationInfo,
+      newline = false;
 
   while (!isEOS(char)) {
     if (char === quote) {
       stream.readString(idx+1);
       // "value" should really be "str"
-      return { type: 'StringLiteral', value , octal  };
+      return new StringToken({ value });
     } else if (char === "\\") {
-      [value, idx, octal] = readStringEscape.call(this, value, stream, idx, octal);
+      let newIdx;
+      [value, newIdx, octal, newline] = readStringEscape(value, stream, idx, octal);
+      if (newline) {
+        ++line;
+        column = 0;
+        newline = false;
+      } else {
+        column += newIdx - idx;
+        idx = newIdx;
+      }
     } else {
       ++idx;
+      ++column;
       value += char;
     }
     char = stream.peek(idx);

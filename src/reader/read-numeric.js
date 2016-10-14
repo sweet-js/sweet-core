@@ -1,12 +1,17 @@
+// @flow
+
 import { isEOS } from '../char-stream';
 import { code } from 'esutils';
 import { getHexValue } from './utils';
+import { NumericToken } from '../tokens';
+
+import type CharStream from '../char-stream';
 
 const { isIdentifierPartES6: isIdentifierPart,
         isIdentifierStartES6: isIdentifierStart,
         } = code;
 
-export default function readNumericLiteral(stream) {
+export default function readNumericLiteral(stream: CharStream) {
   let idx = 0, char = stream.peek();
 
   if (char === '0') {
@@ -22,24 +27,22 @@ export default function readNumericLiteral(stream) {
         }
       }
     } else {
-      return {
-        type: 'NumericLiteral',
+      return new NumericToken({
         value: stream.readString(),
         octal: false,
         noctal: false
-      };
+      });
     }
   } else if (char !== '.') {
     while (isDecimalChar(char)) {
       ++idx;
       char = stream.peek(idx);
       if (isEOS(char)) {
-        return {
-          type: 'NumericLiteral',
+        return new NumericToken({
           value: stream.readString(idx),
           octal: false,
           noctal: false
-        }
+        });
       }
     }
   }
@@ -51,12 +54,11 @@ export default function readNumericLiteral(stream) {
     throw Error('Illegal numeric literal');
   }
 
-  return {
-    type: 'NumericLiteral',
-    value: +stream.readString(idx),
+  return new NumericToken({
+    value: stream.readString(idx),
     octal: false,
     noctal: false
-  }
+  });
 }
 
 function addDecimalLiteralSuffixLength(stream, idx) {
@@ -181,14 +183,13 @@ function readBinaryLiteral(stream) {
 }
 
 function readHexLiteral(stream) {
-  let start, char, idx = start = 2;
+  let start, idx = start = 2, char = stream.peek(idx);
   while(true) {
-    char = stream.peek(idx);
     let hex = getHexValue(char);
     if (hex === -1) {
       break;
     }
-    idx++;
+    char = stream.peek(++idx);
   }
 
   if (idx === start) {
