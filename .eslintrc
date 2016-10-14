@@ -11,7 +11,7 @@
   "parserOptions": {
     "sourceType": "module"
   },
-  "extends": "eslint:recommended",
+  "extends": "plugin:flowtype/recommended",
   "rules": {
     "no-constant-condition": ["error", { "checkLoops": false }],
     "comma-dangle": ["error", "only-multiline" ],
