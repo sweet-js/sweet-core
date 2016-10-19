@@ -43,8 +43,8 @@ export class NumericToken extends BaseToken {
   octal: boolean;
   noctal: boolean;
   
-  constructor({ value, octal, noctal }: { value: string, octal: boolean, noctal: boolean}) {
-    super({type: 'NumericLiteral', value: +value });
+  constructor({ value, octal=false, noctal=false }: { value: number, octal?: boolean, noctal?: boolean}) {
+    super({type: 'NumericLiteral', value });
     this.octal = octal;
     this.noctal = noctal;
   }
