@@ -203,4 +203,47 @@ test('should parse delimiters', t => {
     t.is(z.type, 'Identifier');
     t.is(z.value, 'z');
   });
+
+  testParse('[ x , z ]', result => {
+    t.is(result.type, 'Delimiter');
+    t.is(result.value, '[');
+
+    const [x,y,z] = result.items;
+
+    t.is(x.type, 'Identifier');
+    t.is(x.value, 'x');
+
+    t.is(y.type, 'Punctuator');
+    t.is(y.value, ',');
+
+    t.is(z.type, 'Identifier');
+    t.is(z.value, 'z');
+  });
+
+  testParse('[{x : 3}, z]', result => {
+    t.is(result.type, 'Delimiter');
+    t.is(result.value, '[');
+
+    const [x,y,z] = result.items;
+
+    t.is(x.type, 'Delimiter');
+    t.is(x.items.size, 3);
+
+    const [a,b,c] = x.items;
+
+    t.is(a.type, 'Identifier');
+    t.is(a.value, 'x');
+
+    t.is(b.type, 'Punctuator');
+    t.is(b.value, ':');
+
+    t.is(c.type, 'NumericLiteral');
+    t.is(c.value, 3);
+
+    t.is(y.type, 'Punctuator');
+    t.is(y.value, ',');
+
+    t.is(z.type, 'Identifier');
+    t.is(z.value, 'z');
+  });
 });

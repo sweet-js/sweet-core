@@ -28,23 +28,17 @@ export default function readNumericLiteral(stream: CharStream) {
       }
     } else {
       return new NumericToken({
-        value: stream.readString(),
-        octal: false,
-        noctal: false
+        value: +stream.readString()
       });
     }
   } else if (char !== '.') {
     while (isDecimalChar(char)) {
       ++idx;
       char = stream.peek(idx);
-      if (isEOS(char)) {
-        return new NumericToken({
-          value: stream.readString(idx),
-          octal: false,
-          noctal: false
-        });
-      }
     }
+    return new NumericToken({
+      value: +stream.readString(idx)
+    });
   }
 
   idx = addDecimalLiteralSuffixLength(stream, idx);
@@ -55,9 +49,7 @@ export default function readNumericLiteral(stream: CharStream) {
   }
 
   return new NumericToken({
-    value: stream.readString(idx),
-    octal: false,
-    noctal: false
+    value: +stream.readString(idx)
   });
 }
 
@@ -114,19 +106,17 @@ function readLegacyOctalLiteral(stream) {
     char = stream.peek(idx);
   }
 
-  if (!isOctal) return {
-    type: 'NumericLiteral',
+  if (!isOctal) return new NumericToken({
     value: parseNumeric(stream, idx, 10),
     octal: true,
     noctal: !isOctal
-  };
+  });
 
-  return {
-    type: 'NumericLiteral',
+  return new NumericToken({
     value: parseNumeric(stream, idx, 8),
     octal: true,
     noctal: !isOctal
-  }
+  });
 }
 
 function readOctalLiteral(stream) {
@@ -146,12 +136,9 @@ function readOctalLiteral(stream) {
     throw Error("Illegal octal literal");
   }
 
-  return {
-    type: 'NumericLiteral',
-    value: parseNumeric(stream, idx, 8, start),
-    octal: false,
-    noctal: false
-  };
+  return new NumericToken({
+    value: parseNumeric(stream, idx, 8, start)
+  });
 }
 
 function readBinaryLiteral(stream) {
@@ -174,12 +161,9 @@ function readBinaryLiteral(stream) {
     throw Error("Illegal binary literal");
   }
 
-  return {
-    type: 'NumericLiteral',
-    value: parseNumeric(stream, idx, 2, start),
-    octal: false,
-    noctal: false
-  }
+  return new NumericToken({
+    value: parseNumeric(stream, idx, 2, start)
+  });
 }
 
 function readHexLiteral(stream) {
@@ -200,15 +184,14 @@ function readHexLiteral(stream) {
     throw Error("Illegal hex literal");
   }
 
-  return {
-    type: "NumericLiteral",
+  return new NumericToken({
     value: parseNumeric(stream, idx, 16, start)
-  }
+  });
 }
 
-function parseNumeric(stream, len, radix, start) {
-  if (start) stream.readString(start);
-  return parseInt(stream.readString(len), radix);
+function parseNumeric(stream, len, radix, start=0) {
+  stream.readString(start);
+  return parseInt(stream.readString(len - start), radix);
 }
 
 function isDecimalChar(char) {
