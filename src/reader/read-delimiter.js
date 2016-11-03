@@ -12,7 +12,7 @@ export default function readDelimiter(closing: string, stream: CharStream) {
   let items = List();
   let result;
   while (!isEOS(char) && char !== closing) {
-    result = this.read(stream);
+    result = this.readToken(stream);
     if (result !== EmptyToken) items = items.push(result);
     char = stream.peek();
   }

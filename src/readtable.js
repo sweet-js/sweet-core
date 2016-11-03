@@ -65,7 +65,7 @@ function isValidKey(key) {
   return key == null ||
     (typeof key === 'number' && key <= 0x10FFFF) ||
     // TODO: not sure this is right
-    (typeof key === 'string' && (key.length === 1 || key.length === 2));
+    (typeof key === 'string' && (key.length >= 0 && key.length <= 2));
 }
 
 // function isValidMode(mode: Symbol): boolean {

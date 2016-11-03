@@ -1,25 +1,20 @@
-// @flow
 import test from 'ava';
 import expect from 'expect.js';
 
 import CharStream from '../src/char-stream';
 import { setCurrentReadtable } from '../src/readtable';
 import defaultReadtable from '../src/default-readtable';
-import TokenReader from '../src/reader/token-reader';
+import read from '../src/reader/token-reader';
 import { EmptyToken } from '../src/tokens';
 
 setCurrentReadtable(defaultReadtable);
 
-let reader;
-
 function testParse(source, tst) {
-  reader = new TokenReader();
-  const stream = new CharStream(source);
-  const result = reader.read(stream);
+  const results = read(source);
 
-  if (result == null) return;
+  if (results.isEmpty()) return;
 
-  tst(result, stream);
+  tst(results.first());
 }
 
 test('should parse Unicode identifiers', t => {
@@ -77,13 +72,8 @@ test('should parse whitespace', t => {
 
 test('should parse line terminators', t => {
   function testParseLineTerminators(t, source) {
-    testParse(source, (result, stream) => {
-      const { line, column } = reader.locationInfo;
-      const { position } = stream.sourceInfo;
+    testParse(source, result => {
       t.is(result, EmptyToken);
-      t.is(line, 2);
-      t.is(column, 1);
-      t.is(position, 1);
     });
   }
 
@@ -113,7 +103,7 @@ test('should parse string literals', t => {
       expect(result.value).to.eql(value);
     });
   }
-  
+
   testParseStringLiteral(t, '""', '');
   testParseStringLiteral(t, "'x'", 'x');
   testParseStringLiteral(t, '"x"', 'x');
@@ -146,12 +136,12 @@ test('should parse string literals', t => {
 test('should parse template literals', t => {
   function testParseTemplateLiteral(t, source, value, isTail, isInterp) {
     testParse(source, result => {
-      t.is(result.type, 'TemplateLiteral')
+      t.is(result.type, 'TemplateLiteral');
       const elt = result.items.first();
-      t.is(elt.type, 'TemplateElement')
+      t.is(elt.type, 'TemplateElement');
       t.is(elt.value, value);
       t.is(elt.tail, isTail);
-      t.is(elt.interp, isInterp)
+      t.is(elt.interp, isInterp);
     });
   }
 
