@@ -1,38 +1,63 @@
 // @flow
 
 import Reader from './reader';
+import { List } from 'immutable';
+import CharStream, { isEOS } from '../char-stream';
+import { EmptyToken } from '../tokens';
 
 import type Readtable from '../readtable';
-import type CharStream from '../char-stream';
+import type { TokenTree } from '../tokens';
 
 export type LocationInfo = {
   line: number,
   column: number
 };
 
-export default class TokenReader extends Reader {
+export class TokenReader extends Reader {
   locationInfo: LocationInfo;
-  insideBlock: boolean;
+  inObject: boolean;
+  _prefix: List<TokenTree>;
   constructor(readtable?: Readtable) {
     super(readtable);
     this.locationInfo = {
       line: 1,
       column: 1
     };
-    this.insideBlock = false;
+    this._prefix = List();
   }
-  
-  read(stream: CharStream) {
-    const startLocation: any = Object.assign({}, this.locationInfo, stream.sourceInfo);
-    
-    const result = super.read(stream);
-    if (result != null) {
+
+  get prefix(): List<TokenTree> {
+    return this._prefix;
+  }
+
+  readToken(stream: CharStream): TokenTree {
+    let startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
+    let result = super.read(stream);
+    if (result !== EmptyToken) {
       result.locationInfo = startLocation;
-    }
-    const currentLocation = this.locationInfo;
-    if (startLocation.line === this.locationInfo.line) {
-      this.locationInfo.column += stream.sourceInfo.position - startLocation.position;
+      this._prefix = (result instanceof List) ? this._prefix.concat(result) : this._prefix.push(result);
+      const currentLocation = this.locationInfo;
+      if (startLocation.line === this.locationInfo.line) {
+        this.locationInfo.column += stream.sourceInfo.position - startLocation.position;
+      }
     }
     return result;
   }
+}
+
+export default function read(source: string): List<TokenTree> {
+  const reader = new TokenReader();
+  const stream = new CharStream(source);
+  let results = List();
+  let result;
+
+  while (!isEOS(stream.peek())) {
+    result = reader.readToken(stream);
+    if (result instanceof List) {
+      results = results.concat(result);
+    } else {
+      results = results.push(result);
+    }
+  }
+  return results;
 }

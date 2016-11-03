@@ -48,7 +48,7 @@ const punctuatorTable = punctuators.reduce(insertSequence, {});
                             
 const punctuatorEntries = Object.keys(punctuatorTable).map(p => ({
   key: p,
-  action(stream) {
+  action: function readPunctuator(stream) {
     const len = retrieveSequenceLength(punctuatorTable, stream, 0);
     if (len >= 0) {
       return new PunctuatorToken({
@@ -93,7 +93,7 @@ const lineTerminatorTable = [0x0A, 0x0D, 0x2028, 0x2029];
 
 const lineTerminatorEntries = lineTerminatorTable.map(lt => ({
   key: lt,
-  action(stream) {
+  action: function readLineTerminator(stream) {
     this.locationInfo = { line: this.locationInfo.line + 1, column: 1 };
     return eatWhitespace(stream);
   }
@@ -126,8 +126,8 @@ const delimiterPairs = [['{','}'], ['[',']'], ['(',')']];
 
 const delimiterEntries = delimiterPairs.map(p => ({
   key: p[0],
-  action(stream) {
-    return readDelimiter.call(this, p[1], stream);
+  action: function readDelimiters(stream, ...rest) {
+    return readDelimiter.call(this, p[1], stream, ...rest);
   }
 }));
 
