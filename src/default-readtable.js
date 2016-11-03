@@ -45,7 +45,7 @@ const punctuators = [':', ';', '.', '=', '?', '+', '-', ',', '|',
                      '==', '!=', '===', '!==', '<=', '>='];
 
 const punctuatorTable = punctuators.reduce(insertSequence, {});
-                            
+
 const punctuatorEntries = Object.keys(punctuatorTable).map(p => ({
   key: p,
   action: function readPunctuator(stream) {
@@ -69,8 +69,8 @@ const keywordTable = keywords.reduce(insertSequence, {});
 
 const keywordEntries = Object.keys(keywordTable).map(k => ({
   key: k,
-  action(stream) {
-    const len = retrieveSequenceLength(keywordTable[k], stream, 0);
+  action: function readKeyword(stream) {
+    const len = retrieveSequenceLength(keywordTable, stream, 0);
     if (len >= 0) {
       return new KeywordToken({
         value: stream.readString(len),

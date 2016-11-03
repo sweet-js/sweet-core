@@ -41,6 +41,27 @@ test('should parse Unicode identifiers', t => {
   testParseIdentifier(t, '\u2163\u2161\u200A', '\u2163\u2161');
 });
 
+test('should parse keywords', t => {
+  function testParseKeyword(t, source, id) {
+    testParse(source, result => {
+      t.is(result.value, id);
+      t.is(result.type, 'Keyword');
+      t.deepEqual(result.locationInfo, {
+        filename: '',
+        line: 1,
+        column: 1,
+        position: 0
+      });
+    });
+  }
+
+  testParseKeyword(t, 'await ', 'await');
+  testParseKeyword(t, 'break ', 'break');
+  testParseKeyword(t, 'case ', 'case');
+  testParseKeyword(t, 'catch ', 'catch');
+  testParseKeyword(t, 'class ', 'class');
+});
+
 test('should parse punctuators', t => {
   function testParsePunctuator(t, source, p) {
     testParse(source, result => {

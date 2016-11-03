@@ -53,6 +53,7 @@ export default function read(source: string): List<TokenTree> {
 
   while (!isEOS(stream.peek())) {
     result = reader.readToken(stream);
+    if (result === EmptyToken) continue;
     if (result instanceof List) {
       results = results.concat(result);
     } else {
