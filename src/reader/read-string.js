@@ -1,6 +1,5 @@
 // @flow
 import type CharStream from '../char-stream';
-import type LocationInfo from './token-reader';
 
 import { readStringEscape } from './utils';
 import { isEOS } from '../char-stream';
@@ -24,7 +23,7 @@ export default function readStringLiteral(stream: CharStream): StringToken {
       [value, newIdx, octal, newline] = readStringEscape(value, stream, idx, octal);
       if (newline) {
         ++line;
-        column = 0;
+        column = 1;
         newline = false;
       } else {
         column += newIdx - idx;

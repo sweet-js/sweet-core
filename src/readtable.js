@@ -20,7 +20,7 @@ export default class Readtable {
   constructor(entries: Array<ReadtableEntry> = []) {
     this._entries = entries;
   }
-  
+
   getEntry(key?: ReadtableKey): ReadtableEntry {
     if (!isValidKey(key)) throw Error('Invalid key type:', key);
     return this._entries[convertKey(key)] || this._entries[0];
@@ -39,7 +39,7 @@ function addEntry(table: Array<ReadtableEntry>, { key, action }: ReadtableEntry)
   // null/undefined key is the default and will be converted to 0
   // chars will be converted via codePointAt
   // numbers are...numbers
-  // to accomodate default (null) 1 will be added to all and default will be at 0
+  // to accommodate default (null) 1 will be added to all and default will be at 0
   table[convertKey(key)] = { action };
 
   // if is a dispatch macro, we have to convert the key and bump it up by 0x110000
@@ -78,7 +78,7 @@ function isValidAction(action) {
 
 type ReadtableKey = string | number | null;
 
-type Action = (stream: CharStream) => any;
+type Action = (stream: CharStream, ...rest: Array<any>) => any;
 
 export type ReadtableEntry = {
   key?: ?ReadtableKey,
@@ -91,11 +91,4 @@ function isValidEntry(entry) {
 
 function convertKey(key?: ReadtableKey): number {
   return key == null ? 0 : (typeof key === 'number' ? key : key.codePointAt(0)) + 1;
-}
-
-// TODO: probably going to change this. It should be in the reader, or whatever uses the readtables.
-export let CurrentReadtable = null;
-
-export function setCurrentReadtable(readtable: Readtable): void {
-  CurrentReadtable = readtable;
 }

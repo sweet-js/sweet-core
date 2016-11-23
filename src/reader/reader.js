@@ -1,21 +1,17 @@
 // @flow
 
 import type Readtable from '../readtable';
-import defaultReadtable from '../default-readtable';
-import { isEOS } from '../char-stream';
-
 import type CharStream from '../char-stream';
 
-export default class Reader {
-  _readtable: Readtable;
-  constructor(readtable: Readtable = defaultReadtable) {
-    this._readtable = readtable;
-  }
+import { isEOS } from '../char-stream';
 
+let currentReadtable;
+
+export default class Reader {
   read(stream: CharStream, ...rest?: Array<any>): any {
     let char = stream.peek();
     if (!isEOS(char)) {
-      const entry = this._readtable.getEntry(char);
+      const entry = currentReadtable.getEntry(char);
       const result = entry.action.call(this, stream, ...rest);
       return result;
     }
@@ -23,3 +19,10 @@ export default class Reader {
   }
 }
 
+export function setCurrentReadtable(readtable: Readtable): void {
+  currentReadtable = readtable;
+}
+
+export function getCurrentReadtable(): Readtable {
+  return currentReadtable;
+}
