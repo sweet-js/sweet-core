@@ -3,62 +3,55 @@
 import Reader from './reader';
 import { List } from 'immutable';
 import CharStream, { isEOS } from '../char-stream';
-import { EmptyToken } from '../tokens';
-
-import type Readtable from '../readtable';
-import type { TokenTree } from '../tokens';
+import { EmptyToken, PunctuatorToken } from '../tokens';
+import Syntax from '../syntax';
+import { getCurrentReadtable } from './reader';
 
 export type LocationInfo = {
   line: number,
   column: number
 };
 
+type Context = {
+  bindings: any,
+  scopesets: any
+};
+
 export class TokenReader extends Reader {
   locationInfo: LocationInfo;
-  inObject: boolean;
-  _prefix: List<TokenTree>;
-  constructor(readtable?: Readtable) {
-    super(readtable);
+  context: ?Context;
+  constructor(context?: Context) {
+    super();
+    this.context = context;
     this.locationInfo = {
       line: 1,
       column: 1
     };
-    this._prefix = List();
   }
 
-  get prefix(): List<TokenTree> {
-    return this._prefix;
-  }
+  readToken(stream: CharStream, prefix: List<Syntax>, b: boolean): Syntax {
+    const startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
+    const result = super.read(stream, prefix, b);
+    if (result === EmptyToken) return result;
 
-  readToken(stream: CharStream): TokenTree {
-    let startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
-    let result = super.read(stream);
-    if (result !== EmptyToken) {
-      result.locationInfo = startLocation;
-      this._prefix = (result instanceof List) ? this._prefix.concat(result) : this._prefix.push(result);
-      const currentLocation = this.locationInfo;
-      if (startLocation.line === this.locationInfo.line) {
-        this.locationInfo.column += stream.sourceInfo.position - startLocation.position;
-      }
+    result.slice = {
+      text: stream.getSlice(startLocation.position),
+      start: startLocation.position,
+      startLocation,
+      end: stream.sourceInfo.position
+    };
+    // don't know about the below. it isn't working currently though
+    if (startLocation.line === this.locationInfo.line) {
+      this.locationInfo.column += stream.sourceInfo.position - startLocation.position;
     }
-    return result;
+    return new Syntax(result, this.context);
   }
 }
 
-export default function read(source: string): List<TokenTree> {
+export default function read(source: string): List<Syntax> {
   const reader = new TokenReader();
   const stream = new CharStream(source);
-  let results = List();
-  let result;
+  const entry = getCurrentReadtable().getEntry('');
 
-  while (!isEOS(stream.peek())) {
-    result = reader.readToken(stream);
-    if (result === EmptyToken) continue;
-    if (result instanceof List) {
-      results = results.concat(result);
-    } else {
-      results = results.push(result);
-    }
-  }
-  return results;
+  return entry.action.call(reader, stream, List(), false);
 }

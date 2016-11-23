@@ -2,23 +2,21 @@
 
 import { List } from 'immutable';
 import { isEOS } from '../char-stream';
-import { DelimiterToken, EmptyToken } from '../tokens';
+import { PunctuatorToken } from '../tokens';
+import { EmptyToken } from '../tokens';
 
 import type CharStream from '../char-stream';
+import type Syntax from '../syntax';
 
-export default function readDelimiter(closing: string, stream: CharStream) {
-  let value = stream.readString();
-  let char = stream.peek();
-  let items = List();
+export default function readDelimiter(delimiter: string, stream: CharStream, prefix: List<Syntax>, b: boolean) {
+  let results = List();
   let result;
-  while (!isEOS(char) && char !== closing) {
-    result = this.readToken(stream);
-    if (result !== EmptyToken) items = items.push(result);
-    char = stream.peek();
+  while (stream.peek() !== delimiter) {
+    result = this.readToken(stream, results, b);
+
+    if (result !== EmptyToken) {
+      results = results.push(result);
+    }
   }
-  stream.readString();
-  return new DelimiterToken({
-    value,
-    items
-  });
+  return results;
 }

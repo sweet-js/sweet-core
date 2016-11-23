@@ -1,18 +1,20 @@
 // @flow
 
-import { EmptyReadtable, setCurrentReadtable } from './readtable';
-
+import { List } from 'immutable';
+import { EmptyReadtable } from './readtable';
+import { getCurrentReadtable, setCurrentReadtable } from './reader/reader';
 import readIdentifier from './reader/read-identifier';
 import readNumericLiteral from './reader/read-numeric';
 import readStringLiteral from './reader/read-string';
 import readTemplateLiteral from './reader/read-template';
 import readDelimiter from './reader/read-delimiter';
+import readRegExp from './reader/read-regexp.js';
+import { punctuatorTable as punctuatorMapping, keywordTable as keywordMapping,
+         KeywordToken, PunctuatorToken, EmptyToken } from './tokens';
+import { insertSequence, retrieveSequenceLength, isExprPrefix, isRegexPrefix } from './reader/utils';
 
 import type CharStream from './char-stream';
 import type { LocationInfo } from './reader/token-reader';
-import { KeywordToken, PunctuatorToken, EmptyToken } from './tokens';
-import { insertSequence, retrieveSequenceLength } from './reader/utils';
-
 // import type { ActionResult } from './readtable';
 
 // import type { ReadtableEntry } from './readtable';
@@ -37,47 +39,21 @@ function eatWhitespace(stream: CharStream) {
   return EmptyToken;
 }
 
-const punctuators = [':', ';', '.', '=', '?', '+', '-', ',', '|',
-                     '^', '&', '*', '/', '%', '!', '<', '>', '~',
-                     '...', '=>', '++', '--', '|=', '^=', '&=',
-                     '<<=', '>>=', '>>>=', '+=', '-=', '*=', '/=',
-                     '%=', '**=', '&&', '<<', '>>', '>>>', '**',
-                     '==', '!=', '===', '!==', '<=', '>='];
+const punctuatorTable = Object.keys(punctuatorMapping).reduce(insertSequence, {});
 
-const punctuatorTable = punctuators.reduce(insertSequence, {});
+function readPunctuator(stream) {
+  const len = retrieveSequenceLength(punctuatorTable, stream, 0);
+  if (len >= 0) {
+    return new PunctuatorToken({
+      value: stream.readString(len)
+    });
+  }
+  throw Error('Unknown punctuator');
+}
 
 const punctuatorEntries = Object.keys(punctuatorTable).map(p => ({
   key: p,
-  action: function readPunctuator(stream) {
-    const len = retrieveSequenceLength(punctuatorTable, stream, 0);
-    if (len >= 0) {
-      return new PunctuatorToken({
-        value: stream.readString(len),
-      });
-    }
-    throw Error('Unknown punctuator');
-  }
-}));
-
-const keywords = ['await', 'break', 'case', 'catch', 'class', 'continue', 'debugger',
-                  'default', 'delete', 'do', 'else', 'export', 'extends', 'false',
-                  'finally', 'for', 'function', 'if', 'import', 'instanceof', 'in',
-                  'let', 'new', 'null', 'return', 'super', 'switch', 'this', 'throw',
-                  'true', 'try', 'typeof', 'var', 'void', 'while', 'with', 'yield'];
-
-const keywordTable = keywords.reduce(insertSequence, {});
-
-const keywordEntries = Object.keys(keywordTable).map(k => ({
-  key: k,
-  action: function readKeyword(stream) {
-    const len = retrieveSequenceLength(keywordTable, stream, 0);
-    if (len >= 0) {
-      return new KeywordToken({
-        value: stream.readString(len),
-      });
-    }
-    return defaultReadtable.getEntry().action.call(this, stream);
-  }
+  action: readPunctuator
 }));
 
 const whiteSpaceTable = [0x20, 0x09, 0x0B, 0x0C, 0xA0, 0x1680, 0x2000, 0x2001, 0x2002,
@@ -122,32 +98,91 @@ const templateEntry = {
   action: readTemplateLiteral
 }
 
-const delimiterPairs = [['{','}'], ['[',']'], ['(',')']];
+const primitiveReadtable = EmptyReadtable.extendReadtable(
+    ...[identifierEntry,
+        ...whiteSpaceEntries,
+        templateEntry,
+        ...punctuatorEntries,
+        ...lineTerminatorEntries,
+        ...numericEntries,
+        ...stringEntries]);
 
-const delimiterEntries = delimiterPairs.map(p => ({
-  key: p[0],
-  action: function readDelimiters(stream, ...rest) {
-    return readDelimiter.call(this, p[1], stream, ...rest);
+const keywordTable = Object.keys(keywordMapping).reduce(insertSequence, {});
+
+const keywordEntries = Object.keys(keywordTable).map(k => ({
+  key: k,
+  action: function readKeyword(stream) {
+    const len = retrieveSequenceLength(keywordTable, stream, 0);
+    if (len >= 0) {
+      return new KeywordToken({
+        value: stream.readString(len),
+      });
+    }
+    const currentReadtable = getCurrentReadtable();
+    setCurrentReadtable(primitiveReadtable);
+    const result = this.readToken(stream);
+    setCurrentReadtable(currentReadtable);
+    return result.token;
   }
 }));
 
-// console.log('punctuators:', punctuatorEntries);
-// console.log('keywords:', keywordEntries);
-// console.log('white space:', whiteSpaceEntries);
-// console.log('line terminators:', lineTerminatorEntries)
+const topLevelEntry = {
+  key: '',
+  action: function readTopLevel(stream) {
+    return readDelimiter.call(this, '', stream, List(), false);
+  }
+};
 
-const defaultReadtable = EmptyReadtable.extendReadtable(
-  ...[identifierEntry,
-  ...whiteSpaceEntries,
-  templateEntry,
-  ...delimiterEntries,
-  ...punctuatorEntries,
-  ...keywordEntries,
-  ...lineTerminatorEntries,
-  ...numericEntries,
-  ...stringEntries]);
+const delimiterPairs = [['[',']'], ['(',')']];
 
-export default defaultReadtable;
+function readDelimiters(opening, closing, stream, prefix, b) {
+  const currentReadtable = getCurrentReadtable();
+  setCurrentReadtable(primitiveReadtable);
+
+  let results = List.of(this.readToken(stream));
+
+  setCurrentReadtable(currentReadtable);
+  results = results.concat(readDelimiter.call(this, closing, stream, prefix, b));
+
+  results = results.push(this.readToken(stream));
+  return results;
+}
+
+const delimiterEntries = delimiterPairs.map(p => ({
+  key: p[0],
+  action: function readDefaultDelimiters(stream, prefix, b) {
+    return readDelimiters.call(this, p[0], p[1], stream, prefix, b);
+  }
+}));
+
+const bracesEntry = {
+  key: '{',
+  action: function readBraces(stream, prefix, b) {
+    const line = this.locationInfo.line;
+    const innerB = isExprPrefix(line, b)(prefix);
+    return readDelimiters.call(this, '{', '}', stream, prefix, b);
+  }
+};
+
+const divEntry = {
+  key: '/',
+  action: function readDiv(stream, prefix, b) {
+    if (isRegexPrefix(b)(prefix)) {
+      return readRegExp.call(this, stream, prefix, b);
+    }
+    const currentReadtable = getCurrentReadtable();
+    setCurrentReadtable(primitiveReadtable);
+    const result = this.readToken(stream, prefix, b);
+    setCurrentReadtable(currentReadtable);
+    return result.token;
+  }
+};
+
+const defaultReadtable = primitiveReadtable.extendReadtable(
+  ...[topLevelEntry,
+    ...delimiterEntries,
+    bracesEntry,
+    divEntry,
+    ...keywordEntries]);
 
 setCurrentReadtable(defaultReadtable);
-

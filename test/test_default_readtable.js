@@ -1,28 +1,30 @@
 import test from 'ava';
 import expect from 'expect.js';
+import { List } from 'immutable';
 
 import CharStream from '../src/char-stream';
-import { setCurrentReadtable } from '../src/readtable';
-import defaultReadtable from '../src/default-readtable';
+import '../src/default-readtable';
 import read from '../src/reader/token-reader';
-import { EmptyToken } from '../src/tokens';
-
-setCurrentReadtable(defaultReadtable);
+import { TokenType as TT, TokenClass as TC, EmptyToken } from '../src/tokens';
 
 function testParse(source, tst) {
   const results = read(source);
 
   if (results.isEmpty()) return;
 
-  tst(results.first());
+  tst(results.first().token);
+}
+
+function testParseResults(source, tst) {
+  tst(read(source).map(s => s.token));
 }
 
 test('should parse Unicode identifiers', t => {
   function testParseIdentifier(t, source, id) {
     testParse(source, result => {
       t.is(result.value, id);
-      t.is(result.type, 'Identifier');
-      t.deepEqual(result.locationInfo, {
+      t.is(result.type, TT.IDENTIFIER);
+      t.deepEqual(result.slice.startLocation, {
         filename: '',
         line: 1,
         column: 1,
@@ -45,8 +47,8 @@ test('should parse keywords', t => {
   function testParseKeyword(t, source, id) {
     testParse(source, result => {
       t.is(result.value, id);
-      t.is(result.type, 'Keyword');
-      t.deepEqual(result.locationInfo, {
+      t.is(result.type.klass, TC.Keyword);
+      t.deepEqual(result.slice.startLocation, {
         filename: '',
         line: 1,
         column: 1,
@@ -66,8 +68,8 @@ test('should parse punctuators', t => {
   function testParsePunctuator(t, source, p) {
     testParse(source, result => {
       t.is(result.value, p);
-      t.is(result.type, 'Punctuator');
-      t.deepEqual(result.locationInfo, {
+      t.is(result.type.klass, TC.Punctuator);
+      t.deepEqual(result.slice.startLocation, {
         filename: '',
         line: 1,
         column: 1,
@@ -120,7 +122,7 @@ test('should parse numeric literals', t => {
 test('should parse string literals', t => {
   function testParseStringLiteral(t, source, value) {
     testParse(source, result => {
-      expect(result.type).to.eql('StringLiteral');
+      expect(result.type).to.eql(TT.STRING);
       expect(result.value).to.eql(value);
     });
   }
@@ -157,9 +159,9 @@ test('should parse string literals', t => {
 test('should parse template literals', t => {
   function testParseTemplateLiteral(t, source, value, isTail, isInterp) {
     testParse(source, result => {
-      t.is(result.type, 'TemplateLiteral');
+      t.is(result.type, TT.TEMPLATE);
       const elt = result.items.first();
-      t.is(elt.type, 'TemplateElement');
+      t.is(elt.type, TT.TEMPLATE);
       t.is(elt.value, value);
       t.is(elt.tail, isTail);
       t.is(elt.interp, isInterp);
@@ -171,18 +173,19 @@ test('should parse template literals', t => {
   testParseTemplateLiteral(t, '`\\111`', 'I', true, false);
   testParseTemplateLiteral(t, '`foo${bar}`', 'foo', false, true);
   testParse('`foo${bar}baz`', result => {
-    t.is(result.type, 'TemplateLiteral');
+    t.is(result.type, TT.TEMPLATE);
     const [x,y,z] = result.items;
 
-    t.is(x.type, 'TemplateElement');
+    t.is(x.type, TT.TEMPLATE);
     t.is(x.value, 'foo');
     t.false(x.tail);
     t.true(x.interp);
 
-    t.is(y.type, 'Identifier');
-    t.is(y.value, 'bar');
+    t.true(List.isList(y.token));
+    t.is(y.token.get(1).token.type, TT.IDENTIFIER);
+    t.is(y.token.get(1).token.value, 'bar');
 
-    t.is(z.type, 'TemplateElement');
+    t.is(z.type, TT.TEMPLATE);
     t.is(z.value, 'baz');
     t.true(z.tail);
     t.false(z.interp);
@@ -191,70 +194,115 @@ test('should parse template literals', t => {
 
 test('should parse delimiters', t => {
   function testParseDelimiter(t, source, value) {
-    testParse(source, result => {
-      t.is(result.type, 'Delimiter');
-      t.is(result.items.first().value, value);
+    testParse(source, results => {
+      t.true(List.isList(results));
+      results.forEach((r, i) => t.true(source.includes(r.token.value)));
     });
   }
 
   testParseDelimiter(t, '{a}', 'a');
 
   testParse('{ x + z }', result => {
-    t.is(result.type, 'Delimiter');
-    t.is(result.value, '{');
+    t.true(List.isList(result));
 
-    const [x,y,z] = result.items;
+    const [v,w,x,y,z] = result.map(s => s.token);
 
-    t.is(x.type, 'Identifier');
-    t.is(x.value, 'x');
+    t.is(v.type, TT.LBRACE);
 
-    t.is(y.type, 'Punctuator');
-    t.is(y.value, '+');
+    t.is(w.type, TT.IDENTIFIER);
+    t.is(w.value, 'x');
 
-    t.is(z.type, 'Identifier');
-    t.is(z.value, 'z');
+    t.is(x.type, TT.ADD);
+
+    t.is(y.type, TT.IDENTIFIER);
+    t.is(y.value, 'z');
+
+    t.is(z.type, TT.RBRACE);
   });
 
   testParse('[ x , z ]', result => {
-    t.is(result.type, 'Delimiter');
-    t.is(result.value, '[');
+    t.true(List.isList(result));
 
-    const [x,y,z] = result.items;
+    const [v,w,x,y,z] = result.map(s => s.token);
 
-    t.is(x.type, 'Identifier');
-    t.is(x.value, 'x');
+    t.is(v.type, TT.LBRACK);
 
-    t.is(y.type, 'Punctuator');
-    t.is(y.value, ',');
+    t.is(w.type, TT.IDENTIFIER);
+    t.is(w.value, 'x');
 
-    t.is(z.type, 'Identifier');
-    t.is(z.value, 'z');
+    t.is(x.type, TT.COMMA);
+
+    t.is(y.type, TT.IDENTIFIER);
+    t.is(y.value, 'z');
+
+    t.is(z.type, TT.RBRACK);
   });
 
   testParse('[{x : 3}, z]', result => {
-    t.is(result.type, 'Delimiter');
-    t.is(result.value, '[');
+    t.true(List.isList(result));
 
-    const [x,y,z] = result.items;
+    const [v,w,x,y,z] = result.map(s => s.token);
 
-    t.is(x.type, 'Delimiter');
-    t.is(x.items.size, 3);
+    t.is(v.type, TT.LBRACK);
 
-    const [a,b,c] = x.items;
+    t.true(List.isList(w));
 
-    t.is(a.type, 'Identifier');
-    t.is(a.value, 'x');
+    const [a,b,c,d,e] = w.map(s => s.token);
 
-    t.is(b.type, 'Punctuator');
-    t.is(b.value, ':');
+    t.is(a.type, TT.LBRACE);
 
-    t.is(c.type, 'NumericLiteral');
-    t.is(c.value, 3);
+    t.is(b.type, TT.IDENTIFIER);
+    t.is(b.value, 'x');
 
-    t.is(y.type, 'Punctuator');
-    t.is(y.value, ',');
+    t.is(c.type, TT.COLON);
 
-    t.is(z.type, 'Identifier');
-    t.is(z.value, 'z');
+    t.is(d.type, TT.NUMBER);
+    t.is(d.value, 3);
+
+    t.is(e.type, TT.RBRACE);
+
+    t.is(x.type, TT.COMMA);
+
+    t.is(y.type, TT.IDENTIFIER);
+    t.is(y.value, 'z');
+
+    t.is(z.type, TT.RBRACK);
+  });
+});
+
+test('should parse regexp literals', t => {
+  function testParseRegExpLiteral(t, source, value) {
+    testParse(source, result => {
+      t.is(result.type, TT.REGEXP);
+      t.is(result.value, value);
+    });
+  }
+
+  testParseRegExpLiteral(t, '/foo/g ', '/foo/g');
+  testParseRegExpLiteral(t, '/=foo/g ', '/=foo/g');
+
+  testParseResults('if (x) /a/', ([x,y,z]) => {
+    t.is(x.type, TT.IF);
+    t.true(List.isList(y));
+
+    t.is(z.type, TT.REGEXP);
+    t.is(z.value, '/a/');
+  });
+});
+
+test('should parse division expressions', t => {
+  testParseResults('a/4/3', ([v,w,x,y,z]) => {
+    t.is(v.type, TT.IDENTIFIER);
+    t.is(v.value, 'a');
+
+    t.is(w.type, TT.DIV);
+
+    t.is(x.type, TT.NUMBER);
+    t.is(x.value, 4);
+
+    t.is(y.type, TT.DIV);
+
+    t.is(z.type, TT.NUMBER);
+    t.is(z.value, 3);
   });
 });

@@ -12,7 +12,7 @@ export default class CharStream {
       source,
       filename,
       position: 0
-    })
+    });
   }
 
   get sourceInfo(): SourceInfo {
@@ -26,8 +26,7 @@ export default class CharStream {
 
   // returns the Unicode character charsToSkip ahead.
   peek(charsToSkip: number = 0): string {
-    const info = sourceInfo.get(this); 
-    const { source, position } = info;
+    const { source, position } = sourceInfo.get(this);
     if (position + charsToSkip >= source.length) return '';
     return source[position + charsToSkip];
   }
@@ -39,6 +38,11 @@ export default class CharStream {
     const str = source.slice(position, position + numChars);
     info.position += str.length;
     return str;
+  }
+
+  getSlice(start: number): string {
+    const { source, position } = sourceInfo.get(this);
+    return source.slice(start, position);
   }
 }
 

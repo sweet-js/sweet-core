@@ -2,6 +2,7 @@
 import { List } from 'immutable';
 
 import type CharStream from '../char-stream';
+import type Syntax from '../syntax';
 
 import { isEOS } from '../char-stream';
 
@@ -9,17 +10,16 @@ import { readStringEscape } from './utils';
 
 import { TemplateToken, TemplateElementToken } from '../tokens';
 
-export default function readTemplateLiteral(stream: CharStream): TemplateToken {
+export default function readTemplateLiteral(stream: CharStream, prefix: List<Syntax>, b: boolean): TemplateToken {
   let element, items = [];
   stream.readString();
 
   do {
-    // element = stream.peek() !== '{' ? readTemplateElement(stream) : this.read(stream);
     element = readTemplateElement(stream);
     items.push(element);
     if (element.interp) {
-      element = this.read(stream);
-      items.push(element.items.first())
+      element = this.readToken(stream, List(), false);
+      items.push(element);
     }
   } while(!element.tail);
 
