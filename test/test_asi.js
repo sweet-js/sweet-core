@@ -1,7 +1,7 @@
 import { testEval } from './assertions';
 import test from 'ava';
 
-test('should handle interpoations for normal tokens', t => {
+test('should handle interpolations for normal tokens', t => {
   testEval(`
     syntax m = ctx => #\`return \${ctx.next().value}\`;
     output = function f() {
@@ -21,7 +21,7 @@ test('should handle interpoations for normal tokens', t => {
     }()`, false);
 });
 
-test('should handle interpoations for delimiter tokens', t => {
+test('should handle interpolations for delimiter tokens', t => {
   testEval(`
     syntax m = ctx => #\`return \${ctx.next().value}\`;
     output = function f() {
@@ -61,7 +61,7 @@ test('should handle return and template literals', t => {
   `, 'foo');
 });
 
-// test('should handle interpoations for terms', t => {
+// test('should handle interpolations for terms', t => {
 //   testEval(`syntax m = ctx => #\`return \${ctx.next('expr').value}\`;
 //    output = function f() {
 //      m 1

@@ -17,7 +17,9 @@ export default function readStringLiteral(stream: CharStream): StringToken {
     if (char === quote) {
       stream.readString(idx+1);
       // "value" should really be "str"
-      return new StringToken({ value });
+      this.locationInfo.line = line;
+      this.locationInfo.column = column;
+      return new StringToken({ value, octal });
     } else if (char === "\\") {
       let newIdx;
       [value, newIdx, octal, newline] = readStringEscape(value, stream, idx, octal);
