@@ -6,6 +6,7 @@ import type CharStream from '../char-stream';
 
 import { code  } from 'esutils';
 const { isLineTerminator,
+        isWhiteSpace,
         isIdentifierPartES6: isIdentifierPart,
         isIdentifierStartES6: isIdentifierStart } = code;
 
@@ -15,13 +16,13 @@ import { Maybe } from 'ramda-fantasy';
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
 
-const LSYNTAX = { name: 'left-syntax' };
-const RSYNTAX = { name: 'right-syntax' };
+export const LSYNTAX = { name: 'left-syntax' };
+export const RSYNTAX = { name: 'right-syntax' };
 
 // TODO: also, need to handle contextual yield
 const literalKeywords = ['this', 'null', 'true', 'false'];
 
-export { isLineTerminator, isIdentifierStart, isIdentifierPart };
+export { isLineTerminator, isWhiteSpace, isIdentifierStart, isIdentifierPart };
 
 export function getHexValue(rune: string) {
   if ("0" <= rune && rune <= "9") {

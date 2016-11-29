@@ -8,6 +8,8 @@ import codegen, { FormattedCodeGen } from 'shift-codegen';
 import Term, { isVariableDeclaration, isImport, isExport } from "./terms";
 import Reader from './shift-reader';
 
+import read from './reader/token-reader';
+
 import { unwrap } from './macro-context';
 
 import { replaceTemplate } from './template-processor';
@@ -78,8 +80,11 @@ export function evalCompiletimeValue(expr, context) {
   let sandbox = {
     syntaxQuote: function (strings, ...values) {
       let ctx = deserializer.read(_.last(values));
-      let reader = new Reader(strings, ctx, _.take(values.length - 1, values));
-      return reader.read();
+      // console.log('strings', strings)
+      // console.log('context', ctx)
+      // console.log('replacement values', _.take(values.length - 1, values))
+      // let reader = new Reader(strings, ctx, _.take(values.length - 1, values));
+      return read(strings.join(''), ctx)//reader.read();
     },
     syntaxTemplate: function(str, ...values) {
       return replaceTemplate(deserializer.read(str), sanitizeReplacementValues(values));

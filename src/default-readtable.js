@@ -9,9 +9,11 @@ import readStringLiteral from './reader/read-string';
 import readTemplateLiteral from './reader/read-template';
 import readDelimiter from './reader/read-delimiter';
 import readRegExp from './reader/read-regexp.js';
+import readComment from './reader/read-comment';
+import readDispatch from './reader/read-dispatch';
 import { punctuatorTable as punctuatorMapping, keywordTable as keywordMapping,
-         KeywordToken, PunctuatorToken, EmptyToken } from './tokens';
-import { insertSequence, retrieveSequenceLength, isExprPrefix, isRegexPrefix } from './reader/utils';
+         KeywordToken, PunctuatorToken, EmptyToken, IdentifierToken, TokenClass } from './tokens';
+import { insertSequence, retrieveSequenceLength, isExprPrefix, isRegexPrefix, isIdentifierPart, isWhiteSpace, isLineTerminator } from './reader/utils';
 
 import type CharStream from './char-stream';
 import type { LocationInfo } from './reader/token-reader';
@@ -43,7 +45,7 @@ const punctuatorTable = Object.keys(punctuatorMapping).reduce(insertSequence, {}
 
 function readPunctuator(stream) {
   const len = retrieveSequenceLength(punctuatorTable, stream, 0);
-  if (len >= 0) {
+  if (len > 0) {
     return new PunctuatorToken({
       value: stream.readString(len)
     });
@@ -113,9 +115,9 @@ const keywordEntries = Object.keys(keywordTable).map(k => ({
   key: k,
   action: function readKeyword(stream) {
     const len = retrieveSequenceLength(keywordTable, stream, 0);
-    if (len >= 0) {
+    if (len > 0 && !isIdentifierPart(stream.peek(len).charCodeAt(0))) {
       return new KeywordToken({
-        value: stream.readString(len),
+        value: stream.readString(len)
       });
     }
     const currentReadtable = getCurrentReadtable();
@@ -151,7 +153,7 @@ function readDelimiters(opening, closing, stream, prefix, b) {
 const delimiterEntries = delimiterPairs.map(p => ({
   key: p[0],
   action: function readDefaultDelimiters(stream, prefix, b) {
-    return readDelimiters.call(this, p[0], p[1], stream, prefix, b);
+    return readDelimiters.call(this, p[0], p[1], stream, prefix, true);
   }
 }));
 
@@ -160,13 +162,18 @@ const bracesEntry = {
   action: function readBraces(stream, prefix, b) {
     const line = this.locationInfo.line;
     const innerB = isExprPrefix(line, b)(prefix);
-    return readDelimiters.call(this, '{', '}', stream, prefix, b);
+    return readDelimiters.call(this, '{', '}', stream, prefix, innerB);
   }
 };
 
 const divEntry = {
   key: '/',
   action: function readDiv(stream, prefix, b) {
+    let nxt = stream.peek(1);
+    if (nxt === '/' || nxt === '*') {
+      const result = readComment.call(this, stream);
+      return result;
+    }
     if (isRegexPrefix(b)(prefix)) {
       return readRegExp.call(this, stream, prefix, b);
     }
@@ -178,11 +185,35 @@ const divEntry = {
   }
 };
 
+const dispatchEntry = {
+  key: '#',
+  action: function readHash(stream, prefix, b) {
+    const nxt = stream.peek(1).charCodeAt(0);
+    if (isWhiteSpace(nxt) || isLineTerminator(nxt)) {
+      return new IdentifierToken({ value: stream.readString() });
+    }
+    return readDispatch.call(this, stream, prefix, b);
+  }
+};
+
+const atEntry = {
+  key: '@',
+  action: function readAt(stream, prefix, b) {
+    const nxt = stream.peek(1).charCodeAt(0);
+    if (isWhiteSpace(nxt) || isLineTerminator(nxt)) {
+      return new IdentifierToken({ value: stream.readString() });
+    }
+    throw new SyntaxError('Invalid or unexpected token');
+  }
+};
+
 const defaultReadtable = primitiveReadtable.extendReadtable(
   ...[topLevelEntry,
     ...delimiterEntries,
     bracesEntry,
     divEntry,
-    ...keywordEntries]);
+    ...keywordEntries,
+    dispatchEntry,
+    atEntry]);
 
 setCurrentReadtable(defaultReadtable);

@@ -383,6 +383,7 @@ export default class Syntax {
       return this.token.str;
     }
     if (this.match("template")) {
+      if (!this.token.items) return this.token.value;
       return this.token.items.map(el => {
         if (typeof el.match === 'function' && el.match("delimiter")) {
           return '${...}';

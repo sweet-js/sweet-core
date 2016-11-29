@@ -9,8 +9,7 @@ import { code } from 'esutils';
 
 import { IdentifierToken } from '../tokens';
 
-const { isIdentifierPartES6: isIdentifierPart,
-        isIdentifierStartES6: isIdentifierStart } = code;
+import { isIdentifierPart, isIdentifierStart } from './utils';
 
 
 export default function readIdentifier(stream: CharStream) {

@@ -2,6 +2,8 @@
 
 import type { List } from 'immutable';
 
+import type Syntax from './syntax';
+
 import { TokenType, TokenClass } from 'shift-parser/dist/tokenizer';
 
 export { TokenType, TokenClass };
@@ -169,37 +171,59 @@ export const keywordTable = {
 
 export const EmptyToken = {};
 
-class BaseToken {
-  type: { klass: { name: string, isIdentifierName?: boolean}, name: string };
-  value: ?string | ?number;
+export type StartLocation = {
+  line: number,
+  column: number,
+  filename: string,
+  position: number
+};
 
-  constructor({ type, value }) {
+export type Slice = {
+  text: string,
+  start: number,
+  startLocation: StartLocation,
+  end: number
+};
+
+type TokenTypeType = { klass: { name: string, isIdentifierName?: boolean}, name: string };
+
+class BaseToken {
+  type: TokenTypeType;
+  value: ?string | ?number;
+  slice: ?Slice;
+
+  constructor({ type, value, slice }: { type: TokenTypeType, value?: string | number, slice?: Slice}) {
     this.type = type;
     this.value = value;
+    this.slice = slice;
   }
 }
 
 export class StringToken extends BaseToken {
-  constructor({ value }: { value: string }) {
-    super({ type: TT.STRING, value });
+  str: string;
+  octal: ?string;
+  constructor({ value, octal, slice }: { value: string, octal: ?string, slice?: Slice }) {
+    super({ type: TT.STRING, slice });
+    this.str = value;
+    this.octal = octal;
   }
 }
 
 export class IdentifierToken extends BaseToken {
-  constructor({ value }: { value: string }) {
-    super({ type: TT.IDENTIFIER, value });
+  constructor({ value, slice }: { value: string, slice?: Slice }) {
+    super({ type: TT.IDENTIFIER, value, slice });
   }
 }
 
 export class KeywordToken extends BaseToken {
-  constructor({ value }: { value: string }) {
-    super({ type: keywordTable[value], value });
+  constructor({ value, slice }: { value: string, slice?: Slice }) {
+    super({ type: keywordTable[value], value, slice });
   }
 }
 
 export class PunctuatorToken extends BaseToken {
-  constructor({ value }: { value: string }) {
-    super({ type: punctuatorTable[value], value });
+  constructor({ value, slice }: { value: string, slice?: Slice }) {
+    super({ type: punctuatorTable[value], value, slice });
   }
 }
 
@@ -207,8 +231,8 @@ export class NumericToken extends BaseToken {
   octal: boolean;
   noctal: boolean;
 
-  constructor({ value, octal=false, noctal=false }: { value: number, octal?: boolean, noctal?: boolean}) {
-    super({type: TT.NUMBER, value });
+  constructor({ value, octal=false, noctal=false, slice }: { value: number, octal?: boolean, noctal?: boolean, slice?: Slice }) {
+    super({type: TT.NUMBER, value, slice });
     this.octal = octal;
     this.noctal = noctal;
   }
@@ -218,18 +242,18 @@ export class TemplateElementToken extends BaseToken {
   tail: boolean;
   interp: boolean;
 
-  constructor({ value, tail, interp }: { value: string, tail: boolean, interp: boolean }) {
-    super({ type: TT.TEMPLATE, value });
+  constructor({ value, tail, interp, slice }: { value: string, tail: boolean, interp: boolean, slice?: Slice }) {
+    super({ type: TT.TEMPLATE, value, slice });
     this.tail = tail;
     this.interp = interp;
   }
 }
 
 export class TemplateToken extends BaseToken {
-  items: List<TemplateElementToken>;
+  items: List<Syntax>;
 
-  constructor({ items }: { items: List<TemplateElementToken> }) {
-    super({ type: TT.TEMPLATE, value: null });
+  constructor({ items, slice }: { items: List<Syntax>, slice?: Slice }) {
+    super({ type: TT.TEMPLATE, slice });
     this.items = items;
   }
 }
@@ -237,15 +261,15 @@ export class TemplateToken extends BaseToken {
 export class DelimiterToken extends BaseToken {
   items: List<Token>;
 
-  constructor({ value, items }: { value: string, items: List<Token> }) {
-    super({ type: punctuatorTable[value], value });
+  constructor({ value, items, slice }: { value: string, items: List<Token>, slice?: Slice }) {
+    super({ type: punctuatorTable[value], value, slice });
     this.items = items;
   }
 }
 
 export class RegExpToken extends BaseToken {
-  constructor({ value }: { value: string }) {
-    super({ type: TT.REGEXP, value });
+  constructor({ value, slice }: { value: string, slice?: Slice }) {
+    super({ type: TT.REGEXP, value, slice });
   }
 }
 

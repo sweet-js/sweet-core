@@ -2,6 +2,9 @@ import { List } from 'immutable';
 import Env from "./env";
 import Store from "./store";
 import Reader from "./shift-reader";
+
+import read from './reader/token-reader';
+
 import * as _ from "ramda";
 import { gensym } from './symbol';
 import Term, * as T from "./terms";
@@ -72,10 +75,12 @@ export class Modules {
         body: List()
       };
     }
-    return {
+    const result = {
       isNative: !hasPragma,
-      body: new Reader(str).read()
+      // body: new Reader(str).read()
+      body: read(str)
     };
+    return result;
   }
 
   load(path) {
