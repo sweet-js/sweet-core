@@ -15,14 +15,14 @@ export default function readNumericLiteral(stream: CharStream) {
   let idx = 0, char = stream.peek();
 
   if (char === '0') {
-    char = stream.peek(1);
+    char = stream.peek(++idx);
     if (!isEOS(char)) {
       char = char.toLowerCase();
       switch (char) {
         case 'x': return readHexLiteral(stream);
         case 'b': return readBinaryLiteral(stream);
         case 'o': return readOctalLiteral(stream);
-        default: if ('0' <= char && char <= '9') {
+        default: if (isDecimalChar(char)) {
           return readLegacyOctalLiteral(stream); // reads legacy octal and decimal
         }
       }
@@ -33,17 +33,18 @@ export default function readNumericLiteral(stream: CharStream) {
     }
   } else if (char !== '.') {
     while (isDecimalChar(char)) {
-      ++idx;
-      char = stream.peek(idx);
+      char = stream.peek(++idx);
     }
-    return new NumericToken({
-      value: +stream.readString(idx)
-    });
+    if (isEOS(char)) {
+      return new NumericToken({
+        value: +stream.readString(idx)
+      });
+    }
   }
 
   idx = addDecimalLiteralSuffixLength(stream, idx);
 
-  char = stream.peek(++idx);
+  char = stream.peek(idx);
   if (!isEOS(char) && isIdentifierStart(char)) {
     throw Error('Illegal numeric literal');
   }
@@ -57,11 +58,11 @@ function addDecimalLiteralSuffixLength(stream, idx) {
   let char = stream.peek(idx);
   if (char === '.') {
     char = stream.peek(++idx);
-    if (isEOS(char)) return idx - 1;
+    if (isEOS(char)) return idx;
 
     while (isDecimalChar(char)) {
       char = stream.peek(++idx);
-      if (isEOS(char)) return idx - 1;
+      if (isEOS(char)) return idx;
     }
   }
 
@@ -74,14 +75,9 @@ function addDecimalLiteralSuffixLength(stream, idx) {
       if (isEOS(char)) throw Error('Illegal decimal literal suffix');
     }
 
-    if (isDecimalChar(char)) {
-      while (isDecimalChar(char)) {
-        char = stream.peek(++idx);
-        if (isEOS(char)) {
-          char = stream.peek(++idx);
-          if (isEOS(char)) break;
-        }
-      }
+    while (isDecimalChar(char)) {
+      char = stream.peek(++idx);
+      if (isEOS(char)) break;
     }
   }
   return idx;
@@ -123,8 +119,7 @@ function readOctalLiteral(stream) {
   let start, idx = start = 2, char = stream.peek(idx);
   while (!isEOS(char)) {
     if ("0" <= char && char <= "7") {
-      ++idx;
-      char = stream.peek(idx);
+      char = stream.peek(++idx);
     } else if (isIdentifierPart(char.charCodeAt(0))) {
       throw Error("Illegal octal literal");
     } else {

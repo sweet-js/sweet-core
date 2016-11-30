@@ -152,7 +152,8 @@ export const punctuatorTable = {
 };
 
 export const keywordTable = {
-  'await': TT.AWAIT,
+  // 'await': TT.AWAIT, TODO: uncomment when new version of shift is used
+  // TODO: add 'async'
   'break': TT.BREAK,
   'case': TT.CASE, 'catch': TT.CATCH, 'class': TT.CLASS, 'const': TT.CONST, 'continue': TT.CONTINUE,
   'delete': TT.DELETE, 'debugger': TT.DEBUGGER, 'default': TT.DEFAULT, 'do': TT.DO,

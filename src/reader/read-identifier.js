@@ -44,6 +44,7 @@ function getEscapedIdentifier(stream) {
   let char = sPeek();
   let code = char.charCodeAt(0);
   while (!isEOS(char)) {
+    let streamRead = false;
     if (char === '\\') {
       let nxt = sPeek(1);
       if (isEOS(nxt)) {
@@ -53,6 +54,7 @@ function getEscapedIdentifier(stream) {
         throw Error('Unexpected token:', char);
       }
       code = scanUnicode(stream, 2);
+      streamRead = true;
       if (code < 0) {
         throw Error('Illegal Unicode value');
       }
@@ -64,7 +66,7 @@ function getEscapedIdentifier(stream) {
       if (0xDC00 > lowSurrogateCode || lowSurrogateCode > 0xDFFF) {
         throw Error('Invalid UTF-16');
       }
-      stream.readString(2)
+      stream.readString(2);
       code = decodeUtf16(code, lowSurrogateCode);
     }
     if (!check(code)) {
@@ -73,6 +75,9 @@ function getEscapedIdentifier(stream) {
       }
       return id;
     }
+
+    if (!streamRead) stream.readString();
+
     id += String.fromCodePoint(code);
     char = sPeek();
     code = char.charCodeAt(0);
