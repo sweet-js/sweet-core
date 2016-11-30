@@ -38,6 +38,25 @@ export function getHexValue(rune: string) {
   return -1;
 }
 
+export function skipSingleLineComment(stream: CharStream, idx: number): number {
+  idx += 2;
+  let char = stream.peek(idx);
+  while (!isEOS(char)) {
+    let chCode = char.charCodeAt(0);
+    if (isLineTerminator(chCode)) {
+      ++idx;
+      if (chCode === 0xD /* "\r" */ && stream.peek(idx).charCodeAt(0) === 0xA /*"\n" */) {
+        ++idx;
+      }
+      this.incrementLine();
+      break;
+    }
+    ++idx;
+    char = stream.peek(idx);
+  }
+  return idx;
+}
+
 export function scanUnicode(stream: CharStream, start: number) {
   const sPeek = stream.peek.bind(stream);
   let idx = start;

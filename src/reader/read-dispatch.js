@@ -7,6 +7,7 @@ import { List } from 'immutable';
 import { getSlice } from './token-reader';
 import Syntax from '../syntax';
 import { EmptyToken } from '../tokens';
+import { skipSingleLineComment } from './utils';
 
 import type CharStream from '../char-stream';
 
@@ -34,7 +35,8 @@ const dispatchReadtable = EmptyReadtable.extendReadtable({
   }
 }, {
   action: function readDefault(stream: CharStream, prefix: List<Syntax>, b: boolean, dispatchKey: string): typeof EmptyToken {
-    this.readToken(stream, prefix, b);
+    // treating them as single line comments
+    stream.readString(skipSingleLineComment.call(this, stream, 0));
     return EmptyToken;
   }
 });

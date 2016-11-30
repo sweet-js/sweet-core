@@ -54,6 +54,11 @@ export class TokenReader extends Reader {
     }
     return new Syntax(result, this.context);
   }
+
+  incrementLine(): void {
+    this.locationInfo.line += 1;
+    this.locationInfo.column = 1;
+  }
 }
 
 export default function read(source: string | CharStream, context?: Context): List<Syntax> {
