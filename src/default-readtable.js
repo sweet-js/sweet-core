@@ -13,7 +13,7 @@ import readComment from './reader/read-comment';
 import readDispatch from './reader/read-dispatch';
 import { punctuatorTable as punctuatorMapping, keywordTable as keywordMapping,
          KeywordToken, PunctuatorToken, EmptyToken, IdentifierToken, TokenClass } from './tokens';
-import { insertSequence, retrieveSequenceLength, isExprPrefix, isRegexPrefix, isIdentifierPart, isWhiteSpace, isLineTerminator } from './reader/utils';
+import { insertSequence, retrieveSequenceLength, isExprPrefix, isRegexPrefix, isIdentifierPart, isWhiteSpace, isLineTerminator, isDecimalDigit } from './reader/utils';
 
 import type CharStream from './char-stream';
 import type { LocationInfo } from './reader/token-reader';
@@ -77,7 +77,7 @@ const lineTerminatorEntries = lineTerminatorTable.map(lt => ({
   }
 }));
 
-const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8'];
+const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 const numericEntries = digits.map(d => ({
   key: d,
@@ -109,6 +109,25 @@ const primitiveReadtable = EmptyReadtable.extendReadtable(
         ...numericEntries,
         ...stringEntries]);
 
+function readFromReadtable(reader, readtable, stream) {
+  const currentReadtable = getCurrentReadtable();
+  setCurrentReadtable(readtable);
+  const result = reader.readToken(stream);
+  setCurrentReadtable(currentReadtable);
+  return result;
+}
+
+const dotEntry = {
+  key: '.',
+  action: function readDot(stream, ...rest) {
+    const nxt = stream.peek(1).charCodeAt(0);
+    if (isDecimalDigit(nxt)) {
+      return readNumericLiteral(stream, ...rest);
+    }
+    return readFromReadtable(this, primitiveReadtable, stream).token;
+  }
+}
+
 const keywordTable = Object.keys(keywordMapping).reduce(insertSequence, {});
 
 const keywordEntries = Object.keys(keywordTable).map(k => ({
@@ -120,11 +139,7 @@ const keywordEntries = Object.keys(keywordTable).map(k => ({
         value: stream.readString(len)
       });
     }
-    const currentReadtable = getCurrentReadtable();
-    setCurrentReadtable(primitiveReadtable);
-    const result = this.readToken(stream);
-    setCurrentReadtable(currentReadtable);
-    return result.token;
+    return readFromReadtable(this, primitiveReadtable, stream).token;
   }
 }));
 
@@ -177,11 +192,7 @@ const divEntry = {
     if (isRegexPrefix(b)(prefix)) {
       return readRegExp.call(this, stream, prefix, b);
     }
-    const currentReadtable = getCurrentReadtable();
-    setCurrentReadtable(primitiveReadtable);
-    const result = this.readToken(stream, prefix, b);
-    setCurrentReadtable(currentReadtable);
-    return result.token;
+    return readFromReadtable(this, primitiveReadtable, stream).token;
   }
 };
 
@@ -209,6 +220,7 @@ const atEntry = {
 
 const defaultReadtable = primitiveReadtable.extendReadtable(
   ...[topLevelEntry,
+    dotEntry,
     ...delimiterEntries,
     bracesEntry,
     divEntry,

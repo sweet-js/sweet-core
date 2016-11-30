@@ -25,7 +25,7 @@ export function getSlice(stream: CharStream, startLocation: StartLocation): Slic
     text: stream.getSlice(startLocation.position),
     start: startLocation.position,
     startLocation,
-    end: stream.sourceInfo.position - 1
+    end: stream.sourceInfo.position - 1 //TODO: don't know if this is right
   };
 }
 
@@ -48,7 +48,7 @@ export class TokenReader extends Reader {
 
     result.slice = getSlice(stream, startLocation);
 
-    // don't know about the below. it isn't working currently though
+    // TODO: don't know about the below. it isn't working currently though
     if (!List.isList(result) && result.type !== TokenType.STRING && startLocation.line === this.locationInfo.line) {
       this.locationInfo.column += stream.sourceInfo.position - startLocation.position;
     }

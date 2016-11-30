@@ -43,6 +43,8 @@ test('should parse Unicode identifiers', t => {
   testParseIdentifier('\\u{102A7} ', '\u{102A7}');
   testParseIdentifier('\uD800\uDC00 ', '\uD800\uDC00');
   testParseIdentifier('\u2163\u2161\u200A', '\u2163\u2161');
+  testParseIdentifier('a\\u0061', 'aa');
+  testParseIdentifier('\\u0061a', 'aa');
 });
 
 test('should parse keywords', t => {
@@ -59,7 +61,7 @@ test('should parse keywords', t => {
     });
   }
 
-  testParseKeyword('await ', 'await');
+  // testParseKeyword('await ', 'await'); TODO: uncomment when await is a keyword
   testParseKeyword('break ', 'break');
   testParseKeyword('case ', 'case');
   testParseKeyword('catch ', 'catch');
@@ -112,6 +114,16 @@ test('should parse numeric literals', t => {
   function testParseNumericLiterals(source, value) {
     testParse(source, result => t.is(result.value, value));
   }
+  testParseNumericLiterals('0', 0);
+  testParseNumericLiterals('1', 1);
+  testParseNumericLiterals('2', 2);
+  testParseNumericLiterals('3', 3);
+  testParseNumericLiterals('4', 4);
+  testParseNumericLiterals('5', 5);
+  testParseNumericLiterals('6', 6);
+  testParseNumericLiterals('7', 7);
+  testParseNumericLiterals('8', 8);
+  testParseNumericLiterals('9', 9);
   testParseNumericLiterals('0xFFFF ', 0xFFFF);
   testParseNumericLiterals('0xFF ', 0xFF);
   testParseNumericLiterals('0o0756 ', 0o0756);
@@ -120,6 +132,8 @@ test('should parse numeric literals', t => {
   testParseNumericLiterals('0b10 ', 0b10);
   testParseNumericLiterals('042 ', 0o042);
   testParseNumericLiterals('42 ', 42);
+  testParseNumericLiterals('2e308', 1/0);
+  testParseNumericLiterals('1.5', 1.5);
 });
 
 test('should parse string literals', t => {

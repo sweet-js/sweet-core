@@ -7,6 +7,7 @@ import type CharStream from '../char-stream';
 import { code  } from 'esutils';
 const { isLineTerminator,
         isWhiteSpace,
+        isDecimalDigit,
         isIdentifierPartES6: isIdentifierPart,
         isIdentifierStartES6: isIdentifierStart } = code;
 
@@ -22,7 +23,7 @@ export const RSYNTAX = { name: 'right-syntax' };
 // TODO: also, need to handle contextual yield
 const literalKeywords = ['this', 'null', 'true', 'false'];
 
-export { isLineTerminator, isWhiteSpace, isIdentifierStart, isIdentifierPart };
+export { isLineTerminator, isWhiteSpace, isDecimalDigit, isIdentifierStart, isIdentifierPart };
 
 export function getHexValue(rune: string) {
   if ("0" <= rune && rune <= "9") {
