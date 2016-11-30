@@ -2,7 +2,7 @@
 import type CharStream from '../char-stream';
 
 import { isEOS } from '../char-stream';
-import { isLineTerminator, isWhiteSpace } from './utils';
+import { isLineTerminator, isWhiteSpace, skipSingleLineComment } from './utils';
 import { EmptyToken } from '../tokens';
 
 export default function readComment(stream: CharStream): typeof EmptyToken {
@@ -17,7 +17,7 @@ export default function readComment(stream: CharStream): typeof EmptyToken {
       if (chCode === 13 /* "\r" */ && stream.peek().charAt(0) === "\n") {
         ++idx;
       }
-      incrementLine(this);
+      this.incrementLine();
     } else if (chCode === 47 /* "/" */) {
       const nxt = stream.peek(1);
       if (isEOS(nxt)) {
@@ -41,30 +41,6 @@ export default function readComment(stream: CharStream): typeof EmptyToken {
   return EmptyToken;
 }
 
-function incrementLine(reader) {
-  reader.locationInfo.line += 1;
-  reader.locationInfo.column = 1;
-}
-
-function skipSingleLineComment(stream: CharStream, idx: number): number {
-  idx += 2;
-  let char = stream.peek(idx);
-  while (!isEOS(char)) {
-    let chCode = char.charCodeAt(0);
-    if (isLineTerminator(chCode)) {
-      ++idx;
-      if (chCode === 0xD /* "\r" */ && stream.peek(idx).charCodeAt(0) === 0xA /*"\n" */) {
-        ++idx;
-      }
-      incrementLine(this);
-      break;
-    }
-    ++idx;
-    char = stream.peek(idx);
-  }
-  return idx;
-}
-
 function skipMultiLineComment(stream: CharStream, idx: number): number {
   idx += 2;
   let char = stream.peek(idx);
@@ -81,21 +57,21 @@ function skipMultiLineComment(stream: CharStream, idx: number): number {
         break;
       case 10:  // "\n"
         ++idx;
-        incrementLine(this);
+        this.incrementLine();
         break;
       case 13: // "\r":
         if (stream.peek(idx + 1).charAt(0) === "\n") {
           ++idx;
         }
         ++idx;
-        incrementLine(this);
+        this.incrementLine();
         break;
       default:
         ++idx;
       }
     } else if (chCode === 0x2028 || chCode === 0x2029) {
       ++idx;
-      incrementLine(this);
+      this.incrementLine();
     } else {
       ++idx;
     }

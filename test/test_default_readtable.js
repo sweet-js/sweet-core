@@ -362,6 +362,12 @@ test('should parse syntax templates', t => {
   });
 });
 
+test('should erase #lang pragmas', t => {
+  const results = read(`#lang "sweet.js"`);
+  t.true(List.isList(results));
+  t.true(results.isEmpty());
+});
+
 test('should parse comments', t => {
   function testParseComment(source) {
     const result = read(source);
