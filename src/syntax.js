@@ -5,7 +5,7 @@ import BindingMap from "./binding-map";
 import { Maybe } from "ramda-fantasy";
 import * as _ from 'ramda';
 
-import { TokenType, TokenClass } from "shift-parser/dist/tokenizer";
+import { TokenType, TokenClass } from "./tokens";
 
 type Token = {
   type: any;

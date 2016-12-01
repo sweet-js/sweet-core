@@ -11,7 +11,7 @@ const { isLineTerminator,
         isIdentifierPartES6: isIdentifierPart,
         isIdentifierStartES6: isIdentifierStart } = code;
 
-import { TokenClass, TokenType } from "shift-parser/dist/tokenizer";
+import { TokenClass, TokenType } from '../tokens';
 import * as R from 'ramda';
 import { Maybe } from 'ramda-fantasy';
 const Just = Maybe.Just;

@@ -1,8 +1,6 @@
 import { List } from 'immutable';
 import Env from "./env";
 import Store from "./store";
-import Reader from "./shift-reader";
-
 import read from './reader/token-reader';
 
 import * as _ from "ramda";
@@ -77,7 +75,6 @@ export class Modules {
     }
     const result = {
       isNative: !hasPragma,
-      // body: new Reader(str).read()
       body: read(str)
     };
     return result;
