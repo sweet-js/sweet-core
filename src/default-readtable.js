@@ -156,12 +156,12 @@ function readDelimiters(opening, closing, stream, prefix, b) {
   const currentReadtable = getCurrentReadtable();
   setCurrentReadtable(primitiveReadtable);
 
-  let results = List.of(this.readToken(stream));
+  let results = List.of(this.readToken(stream, List(), b));
 
   setCurrentReadtable(currentReadtable);
-  results = results.concat(readDelimiter.call(this, closing, stream, prefix, b));
+  results = results.concat(readDelimiter.call(this, closing, stream, results, b));
 
-  results = results.push(this.readToken(stream));
+  results = results.push(this.readToken(stream, results, b));
   return results;
 }
 
@@ -180,6 +180,20 @@ const bracesEntry = {
     return readDelimiters.call(this, '{', '}', stream, prefix, innerB);
   }
 };
+
+function readClosingDelimiter(opening, closing, stream, prefix, b) {
+  if (prefix.first().token.value !== opening) {
+    throw Error('Unmatched delimiter:', closing);
+  }
+  return readFromReadtable(this, primitiveReadtable, stream).token;
+}
+
+const unmatchedDelimiterEntries = [['{','}'], ['[',']'], ['(',')']].map(p => ({
+  key: p[1],
+  action: function readClosingDelimiters(stream, prefix, b) {
+    return readClosingDelimiter.call(this, ...p, stream, prefix, b);
+  }
+}));
 
 const divEntry = {
   key: '/',
@@ -222,6 +236,7 @@ const defaultReadtable = primitiveReadtable.extendReadtable(
   ...[topLevelEntry,
     dotEntry,
     ...delimiterEntries,
+    ...unmatchedDelimiterEntries,
     bracesEntry,
     divEntry,
     ...keywordEntries,

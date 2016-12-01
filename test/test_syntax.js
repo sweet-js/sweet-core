@@ -3,7 +3,7 @@ import expect from "expect.js";
 import { Scope, freshScope } from "../src/scope";
 import BindingMap from "../src/binding-map";
 
-import Reader from "../src/shift-reader";
+import read from "../src/reader/token-reader";
 import { serializer, makeDeserializer } from "../src/serializer";
 
 import { Symbol, gensym } from "../src/symbol";
@@ -121,8 +121,7 @@ test('should make an identifier syntax object with another identifier as the con
 
 let deserializer = makeDeserializer();
 test('should work for a numeric literal', () => {
-  let reader = new Reader("42");
-  let json = serializer.write(reader.read());
+  let json = serializer.write(read("42"));
   let stxl = deserializer.read(json);
 
   expect(stxl.get(0).isNumericLiteral()).to.be(true);
@@ -130,8 +129,7 @@ test('should work for a numeric literal', () => {
 });
 
 test('should work for a string literal', () => {
-  let reader = new Reader("'foo'");
-  let json = serializer.write(reader.read());
+  let json = serializer.write(read("'foo'"));
   let stxl = deserializer.read(json);
 
   expect(stxl.get(0).isStringLiteral()).to.be(true);
@@ -139,8 +137,7 @@ test('should work for a string literal', () => {
 });
 
 test('should work for a paren delimiter', () => {
-  let reader = new Reader("( 42 )");
-  let json = serializer.write(reader.read());
+  let json = serializer.write(read("( 42 )"));
   let stxl = deserializer.read(json);
 
   expect(stxl.get(0).isParens()).to.be(true);
@@ -149,8 +146,7 @@ test('should work for a paren delimiter', () => {
 });
 
 test('should work for an identifier', () => {
-  let reader = new Reader("foo");
-  let json = serializer.write(reader.read());
+  let json = serializer.write(read("foo"));
   let stxl = deserializer.read(json);
 
   expect(stxl.get(0).isIdentifier()).to.be(true);

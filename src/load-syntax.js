@@ -6,8 +6,6 @@ import { makeDeserializer } from './serializer';
 import Syntax from "./syntax";
 import codegen, { FormattedCodeGen } from 'shift-codegen';
 import Term, { isVariableDeclaration, isImport, isExport } from "./terms";
-import Reader from './shift-reader';
-
 import read from './reader/token-reader';
 
 import { unwrap } from './macro-context';
@@ -80,10 +78,6 @@ export function evalCompiletimeValue(expr, context) {
   let sandbox = {
     syntaxQuote: function (strings, ...values) {
       let ctx = deserializer.read(_.last(values));
-      // console.log('strings', strings)
-      // console.log('context', ctx)
-      // console.log('replacement values', _.take(values.length - 1, values))
-      // let reader = new Reader(strings, ctx, _.take(values.length - 1, values));
       return read(strings.join(''), ctx)//reader.read();
     },
     syntaxTemplate: function(str, ...values) {

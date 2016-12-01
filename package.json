@@ -51,7 +51,6 @@
     "semver": "^5.3.0",
     "shift-codegen": "^4.0.0",
     "shift-js": "^0.2.1",
-    "shift-parser": "^4.1.0",
     "shift-reducer": "^3.0.2",
     "shift-spidermonkey-converter": "^1.0.0",
     "transit-js": "^0.8.846",

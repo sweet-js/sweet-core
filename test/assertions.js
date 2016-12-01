@@ -2,7 +2,7 @@ import { parse, compile } from "../src/sweet";
 import expect from "expect.js";
 import { zip, curry, equals, cond, identity, T, and, compose, type, mapObjIndexed, map, keys, has } from 'ramda';
 import { transform } from 'babel-core';
-import Reader from "../src/shift-reader";
+import read from "../src/reader/token-reader";
 import { Enforester } from "../src/enforester";
 import { List } from "immutable";
 
@@ -11,8 +11,7 @@ export const expr = x => stmt(x).expression;
 export const items = x => x.items;
 
 export function makeEnforester(code) {
-  let reader = new Reader(code);
-  let stxl = reader.read();
+  let stxl = read(code);
   return new Enforester(stxl, List(), {});
 }
 

@@ -2,7 +2,7 @@ import transit from "transit-js";
 import { List, Map } from "immutable";
 import Syntax from "./syntax";
 import { Symbol,  SymbolClass } from "./symbol";
-import { TokenType } from "shift-parser/dist/tokenizer";
+import { TokenType } from "./tokens";
 
 let typeMap = [TokenType.STRING, TokenType.EOS, TokenType.LPAREN, TokenType.RPAREN,
                TokenType.LBRACK, TokenType.RBRACK, TokenType.LBRACE, TokenType.RBRACE,
