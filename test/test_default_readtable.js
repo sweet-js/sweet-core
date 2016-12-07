@@ -149,11 +149,11 @@ test('should parse string literals', t => {
   testParseStringLiteral('"x"', 'x');
   testParseStringLiteral("'\\\\\\''", "\\'");
   testParseStringLiteral('"\\\\\\\""', '\\\"');
-  testParseStringLiteral("'\\\r'", '\r');
-  testParseStringLiteral('"\\\r\n"', '\r\n');
-  testParseStringLiteral('"\\\n"', '\n');
-  testParseStringLiteral('"\\\u2028"', '\u2028');
-  testParseStringLiteral('"\\\u2029"', '\u2029');
+  testParseStringLiteral("'\\\r'", '');
+  testParseStringLiteral('"\\\r\n"', '');
+  testParseStringLiteral('"\\\n"', '');
+  testParseStringLiteral('"\\\u2028"', '');
+  testParseStringLiteral('"\\\u2029"', '');
   testParseStringLiteral('"\\u202a"', '\u202a');
   testParseStringLiteral('"\\0"', '\0');
   testParseStringLiteral('"\\0x"', '\0x');
@@ -385,4 +385,27 @@ test('should parse comments', t => {
   * line
   * comment
   */`);
-  });
+});
+
+test('should properly update location information', t => {
+  function testLocationInfo(source, { idx, size, line: expectedLine, column: expectedColumn}) {
+    let result = read(source);
+    let { line, column } = result.get(idx).token.slice.startLocation;
+    t.is(result.size, size);
+    t.is(line, expectedLine);
+    t.is(column, expectedColumn);
+  }
+  testLocationInfo('1 2 3 []\na b c', { idx: 6, size: 7, line: 2, column: 5 });
+  testLocationInfo('1 2 3 []\na b c', { idx: 2, size: 7, line: 1, column: 5 });
+  testLocationInfo(' /*3456789*/a', { idx: 0, size: 1, line: 1, column: 13 });
+  testLocationInfo(
+`a/*
+  * this
+  * is
+  * a
+  * multi
+  * line
+  * comment
+  */b c`, { idx: 2, size: 3, line: 8, column: 7 });
+  testLocationInfo('"a\\\nb c\\\n d f g" a', { idx: 1, size: 2, line: 3, column: 9 });
+});

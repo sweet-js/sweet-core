@@ -36,7 +36,7 @@ const dispatchReadtable = EmptyReadtable.extendReadtable({
 }, {
   action: function readDefault(stream: CharStream, prefix: List<Syntax>, b: boolean, dispatchKey: string): typeof EmptyToken {
     // treating them as single line comments
-    stream.readString(skipSingleLineComment.call(this, stream, 0));
+    skipSingleLineComment.call(this, stream);
     return EmptyToken;
   }
 });

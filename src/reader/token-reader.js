@@ -44,14 +44,14 @@ export class TokenReader extends Reader {
   readToken(stream: CharStream, prefix: List<Syntax>, b: boolean): Syntax {
     const startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
     const result = super.read(stream, prefix, b);
+    if (startLocation.column === this.locationInfo.column && startLocation.line === this.locationInfo.line) {
+      this.locationInfo.column += stream.sourceInfo.position - startLocation.position;
+    }
+
     if (result === EmptyToken) return result;
 
     if (!List.isList(result)) result.slice = getSlice(stream, startLocation);
 
-    // TODO: don't know about the below. it isn't working currently though
-    if (!List.isList(result) && result.type !== TokenType.STRING && startLocation.line === this.locationInfo.line) {
-      this.locationInfo.column += stream.sourceInfo.position - startLocation.position;
-    }
     return new Syntax(result, this.context);
   }
 
