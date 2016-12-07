@@ -38,8 +38,8 @@ export function getHexValue(rune: string) {
   return -1;
 }
 
-export function skipSingleLineComment(stream: CharStream, idx: number): number {
-  idx += 2;
+export function skipSingleLineComment(stream: CharStream): void {
+  let idx = 0;
   let char = stream.peek(idx);
   while (!isEOS(char)) {
     let chCode = char.charCodeAt(0);
@@ -54,7 +54,7 @@ export function skipSingleLineComment(stream: CharStream, idx: number): number {
     ++idx;
     char = stream.peek(idx);
   }
-  return idx;
+  stream.readString(idx);
 }
 
 export function scanUnicode(stream: CharStream, start: number) {
@@ -99,9 +99,8 @@ export function scanUnicode(stream: CharStream, start: number) {
 export function readStringEscape(str: string, stream: CharStream, start: number, octal: ?string) {
   let idx = start + 1,
       char = stream.peek(idx),
-      newline = false;
-
-  if (!isLineTerminator(char)) {
+      lineStart;
+  if (!isLineTerminator(char.charCodeAt(0))) {
     switch (char) {
       case 'b': str += '\b'; ++idx; break;
       case 'f': str += '\f'; ++idx; break;
@@ -140,9 +139,10 @@ export function readStringEscape(str: string, stream: CharStream, start: number,
       ++idx;
     }
     ++idx;
-    newline = true;
+    this.incrementLine();
+    lineStart = idx;
   }
-  return [str, idx, octal, newline];
+  return [str, idx, octal, lineStart];
 }
 
 function scanOctal(str, stream, char, start, octal) {

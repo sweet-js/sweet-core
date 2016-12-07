@@ -72,7 +72,7 @@ const lineTerminatorTable = [0x0A, 0x0D, 0x2028, 0x2029];
 const lineTerminatorEntries = lineTerminatorTable.map(lt => ({
   key: lt,
   action: function readLineTerminator(stream) {
-    this.locationInfo = { line: this.locationInfo.line + 1, column: 1 };
+    this.incrementLine();
     return eatWhitespace(stream);
   }
 }));
