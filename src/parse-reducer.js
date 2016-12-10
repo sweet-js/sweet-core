@@ -112,6 +112,12 @@ export default class ParseReducer extends CloneReducer {
     });
   }
 
+  reduceBlock(node, state) {
+    return new Term("Block", {
+      statements: state.statements.toArray()
+    });
+  }
+
   reduceFormalParameters(node, state) {
     return new Term("FormalParameters", {
       items: state.items.toArray(),

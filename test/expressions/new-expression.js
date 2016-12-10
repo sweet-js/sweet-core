@@ -237,6 +237,47 @@ test("new expression", function () {
     }
   });
 
+  testParse("new a.b(1)", stmt, {
+    type: "ExpressionStatement",
+    expression: {
+      type: "NewExpression",
+      callee: {
+        type: "StaticMemberExpression",
+        object: {
+          type: "IdentifierExpression",
+          name: "a"
+        },
+        property: "b"
+      },
+      arguments: [{
+        type: "LiteralNumericExpression",
+        value: 1
+      }]
+    }
+  });
+
+  testParse("new a.b(1, 2)", stmt, {
+    type: "ExpressionStatement",
+    expression: {
+      type: "NewExpression",
+      callee: {
+        type: "StaticMemberExpression",
+        object: {
+          type: "IdentifierExpression",
+          name: "a"
+        },
+        property: "b"
+      },
+      arguments: [{
+        type: "LiteralNumericExpression",
+        value: 1
+      },{
+        type: "LiteralNumericExpression",
+        value: 2
+      }]
+    }
+  });
+
   testParse("new this.b(1, 2)", stmt, {
     type: "ExpressionStatement",
     expression: {

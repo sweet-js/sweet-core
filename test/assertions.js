@@ -30,7 +30,7 @@ function testParseWithOpts(code, acc, expectedAst, options) {
     let checkWithHygiene = cond([
       [and(isString, equals('<<hygiene>>')), curry((a, b) => true)],
       [isObject, curry((a, b) => checkObjects(a, b))],
-      [isArray, curry((a, b) => map(([a, b]) => checkObjects(a, b), zip(a, b)))],
+      [isArray, curry((a, b) => (expect(b).to.have.length(a.length), map(([a, b]) => checkObjects(a, b), zip(a, b))))],
       [T, curry((a, b) => expect(b).to.be(a))]
     ]);
 
