@@ -1,5 +1,5 @@
 import { List } from 'immutable';
-import Term from "./terms";
+import Term, { isExpressionStatement, isLiteralStringExpression } from "./terms";
 import { freshScope } from "./scope";
 import ApplyScopeInParamsReducer from "./apply-scope-in-params-reducer";
 import Compiler from './compiler';
@@ -519,15 +519,19 @@ export default class TermExpander extends ASTDispatcher {
     this.context.currentScope.push(scope);
     let compiler = new Compiler(this.context.phase, this.context.env, this.context.store, this.context);
 
-    let markedBody, bodyTerm;
+    let bodyTerm;
     if (term.body instanceof Term) {
       // Arrow functions have a single term as their body
       bodyTerm = this.expand(term.body.addScope(scope, this.context.bindings, ALL_PHASES));
     } else {
-      markedBody = term.body.map(b => b.addScope(scope, this.context.bindings, ALL_PHASES));
+      let compiledBody = compiler.compile(
+        term.body.map(b => b.addScope(scope, this.context.bindings, ALL_PHASES)));
+      const directives = compiledBody
+            .takeWhile(s => isExpressionStatement(s) && isLiteralStringExpression(s.expression))
+            .map(s => new Term('Directive', { rawValue: s.expression.value.token.str }));
       bodyTerm = new Term("FunctionBody", {
-        directives: List(),
-        statements: compiler.compile(markedBody)
+        directives,
+        statements: compiledBody.slice(directives.size)
       });
     }
     this.context.currentScope.pop();
