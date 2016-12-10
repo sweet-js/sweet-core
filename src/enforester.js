@@ -1223,6 +1223,8 @@ export class Enforester {
       this.term = new Term('Super', {});
     } else if (this.isNewTransform(lookahead)) {
       this.term = this.enforestNewExpression();
+    } else if (this.isKeyword(lookahead, 'this')) {
+      this.term = this.enforestThisExpression();
     }
 
     while (true) {
