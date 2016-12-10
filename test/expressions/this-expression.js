@@ -23,3 +23,18 @@ test("this expression", function () {
   testParse("this\n", expr, { type: "ThisExpression" });
 
 });
+
+test("this in assignment expression", function () {
+
+  testParse("a = this\n", expr, {
+      type: "AssignmentExpression",
+      binding: {
+        type: "BindingIdentifier",
+        name: "a"
+      },
+      expression: {
+        type: "ThisExpression"
+      }
+  });
+
+});

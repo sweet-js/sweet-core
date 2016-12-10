@@ -237,22 +237,71 @@ test("new expression", function () {
     }
   });
 
-  testParse("new a['b']()", stmt, {
-    "type": "ExpressionStatement",
-    "expression": {
-      "type": "NewExpression",
-      "callee": {
-        "type": "ComputedMemberExpression",
-        "object": {
-          "type": "IdentifierExpression",
-          "name": "a"
+  testParse("new this.b(1, 2)", stmt, {
+    type: "ExpressionStatement",
+    expression: {
+      type: "NewExpression",
+      callee: {
+        type: "StaticMemberExpression",
+        object: {
+          type: "ThisExpression"
         },
-        "expression": {
-          "type": "LiteralStringExpression",
-          "value": "b"
+        property: "b"
+      },
+      arguments: [{
+        type: "LiteralNumericExpression",
+        value: 1
+      },{
+        type: "LiteralNumericExpression",
+        value: 2
+      }]
+    }
+  });
+
+  testParse("new (this.b(1, 2))", stmt,{
+    type: "ExpressionStatement",
+    expression: {
+      type: "NewExpression",
+      callee: {
+        type: "CallExpression",
+        callee: {
+          type: "StaticMemberExpression",
+          object: {
+            type: "ThisExpression"
+          },
+          property: "b"
+        },
+        arguments: [
+          {
+            type: "LiteralNumericExpression",
+            value: 1
+          },
+          {
+            type: "LiteralNumericExpression",
+            value: 2
+          }
+        ]
+      },
+      arguments: []
+    }
+  });
+
+  testParse("new a['b']()", stmt, {
+    type: "ExpressionStatement",
+    expression: {
+      type: "NewExpression",
+      callee: {
+        type: "ComputedMemberExpression",
+        object: {
+          type: "IdentifierExpression",
+          name: "a"
+        },
+        expression: {
+          type: "LiteralStringExpression",
+          value: "b"
         }
       },
-      "arguments": []
+      arguments: []
     }
   });
 
