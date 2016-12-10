@@ -157,7 +157,7 @@ export class Enforester {
       });
     } else if (this.isFnDeclTransform(lookahead)) {
       return new Term('Export', {
-        declaration: this.enforestFunction({isExpr: false, inDefault: false})
+        declaration: this.enforestFunction({isExpr: false})
       });
     } else if (this.isKeyword(lookahead, 'default')) {
       this.advance();
@@ -326,7 +326,7 @@ export class Enforester {
     let lookahead = this.peek();
 
     if (this.isFnDeclTransform(lookahead)) {
-      return this.enforestFunctionDeclaration({ isExpr: false });
+      return this.enforestFunction({ isExpr: false });
     } else if (this.isKeyword(lookahead, 'class')) {
       return this.enforestClass({ isExpr: false });
     } else {
@@ -392,7 +392,7 @@ export class Enforester {
     }
 
     if (this.term === null && this.isFnDeclTransform(lookahead)) {
-      return this.enforestFunctionDeclaration();
+      return this.enforestFunction({isExpr: false});
     }
 
     if (this.term === null && this.isIdentifier(lookahead) &&
@@ -1202,7 +1202,7 @@ export class Enforester {
     }
     // $x:FunctionExpression
     if (this.term === null && this.isFnDeclTransform(lookahead)) {
-      return this.enforestFunctionExpression();
+      return this.enforestFunction({isExpr: true});
     }
     // { $p:prop (,) ... }
     if (this.term === null && this.isBraces(lookahead)) {
@@ -1711,65 +1711,6 @@ export class Enforester {
     let formalParams = enf.enforestFormalParameters();
 
     return new Term(type, {
-      name: name,
-      isGenerator: isGenerator,
-      params: formalParams,
-      body: body
-    });
-  }
-
-  enforestFunctionExpression() {
-    let name = null, params, body;
-    let isGenerator = false;
-    // eat the function keyword
-    this.advance();
-    let lookahead = this.peek();
-
-    if (this.isPunctuator(lookahead, "*")) {
-      isGenerator = true;
-      this.advance();
-      lookahead = this.peek();
-    }
-
-    if (!this.isParens(lookahead)) {
-      name = this.enforestBindingIdentifier();
-    }
-
-    params = this.matchParens();
-    body = this.matchCurlies();
-
-    let enf = new Enforester(params, List(), this.context);
-    let formalParams = enf.enforestFormalParameters();
-
-    return new Term("FunctionExpression", {
-      name: name,
-      isGenerator: isGenerator,
-      params: formalParams,
-      body: body
-    });
-  }
-
-  enforestFunctionDeclaration() {
-    let name, params, body;
-    let isGenerator = false;
-    // eat the function keyword
-    this.advance();
-    let lookahead = this.peek();
-
-    if (this.isPunctuator(lookahead, "*")) {
-      isGenerator = true;
-      this.advance();
-    }
-
-    name = this.enforestBindingIdentifier();
-
-    params = this.matchParens();
-    body = this.matchCurlies();
-
-    let enf = new Enforester(params, List(), this.context);
-    let formalParams = enf.enforestFormalParameters();
-
-    return new Term("FunctionDeclaration", {
       name: name,
       isGenerator: isGenerator,
       params: formalParams,
