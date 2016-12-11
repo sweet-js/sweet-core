@@ -1,24 +1,30 @@
-let internedMap = new Map();
+// @flow
+let internedMap: Map<string, Symbol> = new Map();
 
 let counter = 0;
 
-export function gensym(name) {
+export function gensym(name: string) {
   let prefix = name == null ? "s_" : name + "_";
   let sym = new Symbol(prefix + counter);
   counter++;
   return sym;
 }
 
-function Symbol(name) {
-  this.name = name;
-}
-Symbol.prototype.toString = function () {
-  return this.name;
-};
+class Symbol {
+  name: string;
 
-function makeSymbol(name) {
-  if (internedMap.has(name)) {
-    return internedMap.get(name);
+  constructor(name: string) {
+    this.name = name;
+  }
+  toString() {
+    return this.name;
+  }
+}
+
+function makeSymbol(name: string): Symbol {
+  let s = internedMap.get(name);
+  if (s) {
+    return s;
   } else {
     let sym = new Symbol(name);
     internedMap.set(name, sym);

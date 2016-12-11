@@ -1,28 +1,17 @@
+'use strict';
 /*
 This file makes debugging sweet.js easier. Uses the built version of sweet.js
-to compile "test.js". You can use node-inspector to step through the expansion
+to compile 'test.js'. You can use node-inspector to step through the expansion
 process:
 
 	npm install -g node-inspector
 	node-debug debug.js
 */
 
-var compile = require("./build/src/sweet").compile;
-var transform = require('babel-core').transform;
-var moduleResolver = require('./build/src/node-module-resolver').default;
-var moduleLoader = require('./build/src/node-module-loader').default;
-
-var fs = require("fs");
-
-var source = fs.readFileSync("./test.js", "utf8");
+require('babel-register');
+var compile = require('./src/sweet-loader.js').default;
 
 debugger;
-var result = compile(source, {
-	cwd: __dirname,
-	// transform: transform,
-	filename: './test.js',
-  moduleResolver: moduleResolver,
-  moduleLoader: moduleLoader,
-	enforcePragma: true
-});
-console.log(result.code);
+
+let mod = compile('./test.js');
+console.log(mod.codegen());

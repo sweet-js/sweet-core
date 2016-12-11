@@ -1,3 +1,4 @@
+import * as S from 'sweet-spec';
 import * as _ from 'ramda';
 import { List } from 'immutable';
 import ParseReducer from './parse-reducer.js';
@@ -7,12 +8,27 @@ import Syntax from "./syntax";
 import codegen, { FormattedCodeGen } from 'shift-codegen';
 import Term, { isVariableDeclaration, isImport, isExport } from "./terms";
 import read from './reader/token-reader';
+import SweetToShiftReducer from './sweet-to-shift-reducer';
+import TermExpander from './term-expander';
+import Env from './env';
 
 import { unwrap } from './macro-context';
 
 import { replaceTemplate } from './template-processor';
 
 import vm from "vm";
+
+export function expandCompiletime(term, context) {
+  // each compiletime value needs to be expanded with a fresh
+  // environment and in the next higher phase
+  let syntaxExpander = new TermExpander(_.merge(context, {
+    phase: context.phase + 1,
+    env: new Env(),
+    store: context.store
+  }));
+
+  return syntaxExpander.expand(term);
+}
 
 export function sanitizeReplacementValues(values) {
   if (Array.isArray(values)) {
@@ -31,33 +47,36 @@ export function evalRuntimeValues(terms, context) {
   let prepped = terms.reduce((acc, term) => {
     if (isExport(term)) {
       if (isVariableDeclaration(term.declaration)) {
-        return acc.concat(new Term('VariableDeclarationStatement', {
+        return acc.concat(new S.VariableDeclarationStatement({
           declaration: term.declaration
         })).concat(term.declaration.declarators.map(decl => {
-          return new Term('ExpressionStatement', {
-            expression: new Term('AssignmentExpression', {
-              binding: new Term('StaticMemberExpression', {
-                object: new Term('IdentifierExpression', {
+          return new S.ExpressionStatement({
+            expression: new S.AssignmentExpression({
+              binding: new S.StaticMemberExpression({
+                object: new S.IdentifierExpression({
                   name: Syntax.fromIdentifier('exports')
                 }),
                 property: decl.binding.name
               }),
-              expression: new Term('IdentifierExpression', {
+              expression: new S.IdentifierExpression({
                 name: decl.binding.name
               })
             })
           });
         }));
+      } else if (term.declaration instanceof S.FunctionDeclaration) {
+        return acc.concat(term.declaration);
       }
     } else if (isImport(term)) {
       return acc;
     }
     return acc.concat(term);
   }, List());
-  let parsed = reducer(new ParseReducer(context, false), new Term('Module', {
+
+  let parsed = new S.Module({
     directives: List(),
     items: prepped
-  }).gen(false));
+  }).reduce(new SweetToShiftReducer(context.phase));
 
   let gen = codegen(parsed, new FormattedCodeGen);
   let result = context.transform(gen, {
@@ -73,46 +92,41 @@ export function evalRuntimeValues(terms, context) {
 }
 
 // (Expression, Context) -> [function]
-export function evalCompiletimeValue(expr, context) {
-  let deserializer = makeDeserializer(context.bindings);
+export function evalCompiletimeValue(expr: S.Expression, context: any) {
   let sandbox = {
-    syntaxQuote: function (strings, ...values) {
-      let ctx = deserializer.read(_.last(values));
-      return read(strings.join(''), ctx);
-    },
-    syntaxTemplate: function(str, ...values) {
-      return replaceTemplate(deserializer.read(str), sanitizeReplacementValues(values));
+    syntaxTemplate: function(ident, ...values) {
+      return replaceTemplate(context.templateMap.get(ident), sanitizeReplacementValues(values));
     }
   };
 
   let sandboxKeys = List(Object.keys(sandbox));
   let sandboxVals = sandboxKeys.map(k => sandbox[k]).toArray();
 
-  let parsed = reducer(new ParseReducer(context), new Term("Module", {
+  let parsed = new S.Module({
     directives: List(),
-    items: List.of(new Term("ExpressionStatement", {
-      expression: new Term("FunctionExpression", {
+    items: List.of(new S.ExpressionStatement({
+      expression: new S.FunctionExpression({
         isGenerator: false,
         name: null,
-        params: new Term("FormalParameters", {
+        params: new S.FormalParameters({
           items: sandboxKeys.map(param => {
-            return new Term("BindingIdentifier", {
+            return new S.BindingIdentifier({
               name: Syntax.from("identifier", param)
             });
           }),
           rest: null
         }),
-        body: new Term("FunctionBody", {
-          directives: List.of(new Term('Directive', {
+        body: new S.FunctionBody({
+          directives: List.of(new S.Directive({
             rawValue: 'use strict'
           })),
-          statements: List.of(new Term("ReturnStatement", {
+          statements: List.of(new S.ReturnStatement({
             expression: expr
           }))
         })
       })
     }))
-  }));
+  }).reduce(new SweetToShiftReducer(context.phase));
 
   let gen = codegen(parsed, new FormattedCodeGen);
   let result = context.transform(gen, {

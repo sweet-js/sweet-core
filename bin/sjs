@@ -29,6 +29,7 @@ if (!semver.satisfies(process.version, '>=5.0.0')) {
 argv._.forEach(function (file) {
   var infile = fs.readFileSync(file, 'utf8');
   var fdir = path.dirname(fs.realpathSync(file));
+  console.log(`compiling ${file}`);
   var output = sweetjs.compile(infile, {
     cwd: fdir,
     noBabel: argv.noBabel,

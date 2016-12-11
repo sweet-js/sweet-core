@@ -1,4 +1,4 @@
-import Term from "./terms";
+import * as T from 'sweet-spec';
 import { CloneReducer } from "shift-reducer";
 
 export default class ParseReducer extends CloneReducer {
@@ -7,7 +7,7 @@ export default class ParseReducer extends CloneReducer {
     this.context = context;
   }
   reduceModule(node, state) {
-    return new Term("Module", {
+    return new T.Module({
       directives: state.directives.toArray(),
       items: state.items.toArray()
     });
@@ -15,7 +15,7 @@ export default class ParseReducer extends CloneReducer {
 
   reduceImport(node, state) {
     let moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
-    return new Term('Import', {
+    return new T.Import({
       defaultBinding: state.defaultBinding,
       namedImports: state.namedImports.toArray(),
       moduleSpecifier,
@@ -25,7 +25,7 @@ export default class ParseReducer extends CloneReducer {
 
   reduceImportNamespace(node, state) {
     let moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
-    return new Term('ImportNamespace', {
+    return new T.ImportNamespace({
       defaultBinding: state.defaultBinding,
       namespaceBinding: state.namespaceBinding,
       moduleSpecifier,
@@ -34,19 +34,19 @@ export default class ParseReducer extends CloneReducer {
   }
 
   reduceExport(node, state) {
-    return new Term('Export', {
+    return new T.Export({
       declaration: state.declaration
     });
   }
 
   reduceExportAllFrom(node, state) {
     let moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
-    return new Term('ExportAllFrom', { moduleSpecifier });
+    return new T.ExportAllFrom({ moduleSpecifier });
   }
 
   reduceExportFrom(node, state) {
     let moduleSpecifier = state.moduleSpecifier ? state.moduleSpecifier.val() : null;
-    return new Term('ExportFrom', {
+    return new T.ExportFrom({
       moduleSpecifier,
       namedExports: state.namedExports.toArray()
     });
@@ -61,52 +61,52 @@ export default class ParseReducer extends CloneReducer {
       name = name.resolve(this.context.phase);
       exportedName = exportedName.val();
     }
-    return new Term('ExportSpecifier', {
+    return new T.ExportSpecifier({
       name, exportedName
     });
   }
 
   reduceImportSpecifier(node, state) {
     let name = state.name ? state.name.resolve(this.context.phase) : null;
-    return new Term('ImportSpecifier', {
+    return new T.ImportSpecifier({
       name,
       binding: state.binding
     });
   }
 
   reduceIdentifierExpression(node) {
-    return new Term("IdentifierExpression", {
+    return new T.IdentifierExpression({
       name: node.name.resolve(this.context.phase)
     });
   }
 
   reduceLiteralNumericExpression(node) {
-    return new Term("LiteralNumericExpression", {
+    return new T.LiteralNumericExpression({
       value: node.value.val()
     });
   }
 
   reduceLiteralBooleanExpression(node) {
-    return new Term("LiteralBooleanExpression", {
+    return new T.LiteralBooleanExpression({
       value: node.value.val() === 'true'
     });
   }
 
   reduceLiteralStringExpression(node) {
-    return new Term("LiteralStringExpression", {
+    return new T.LiteralStringExpression({
       value: node.value.token.str
     });
   }
 
   reduceCallExpression(node, state) {
-    return new Term("CallExpression", {
+    return new T.CallExpression({
       callee: state.callee,
       arguments: state.arguments.toArray()
     });
   }
 
   reduceFunctionBody(node, state) {
-    return new Term("FunctionBody", {
+    return new T.FunctionBody({
       directives: state.directives.toArray(),
       statements: state.statements.toArray()
     });
@@ -119,20 +119,20 @@ export default class ParseReducer extends CloneReducer {
   }
 
   reduceFormalParameters(node, state) {
-    return new Term("FormalParameters", {
+    return new T.FormalParameters({
       items: state.items.toArray(),
       rest: state.rest
     });
   }
 
   reduceBindingIdentifier(node) {
-    return new Term("BindingIdentifier", {
+    return new T.BindingIdentifier({
       name: node.name.resolve(this.context.phase)
     });
   }
 
   reduceBinaryExpression(node, state) {
-    return new Term("BinaryExpression", {
+    return new T.BinaryExpression({
       left: state.left,
       operator: node.operator.val(),
       right: state.right
@@ -140,32 +140,32 @@ export default class ParseReducer extends CloneReducer {
   }
 
   reduceObjectExpression(node, state) {
-    return new Term("ObjectExpression", {
+    return new T.ObjectExpression({
       properties: state.properties.toArray()
     });
   }
 
   reduceVariableDeclaration(node, state) {
-    return new Term("VariableDeclaration", {
+    return new T.VariableDeclaration({
       kind: state.kind,
       declarators: state.declarators.toArray()
     });
   }
 
   reduceStaticPropertyName(node) {
-    return new Term("StaticPropertyName", {
+    return new T.StaticPropertyName({
       value: node.value.val().toString()
     });
   }
 
   reduceArrayExpression(node, state) {
-    return new Term("ArrayExpression", {
+    return new T.ArrayExpression({
       elements: state.elements.toArray()
     });
   }
 
   reduceStaticMemberExpression(node, state) {
-    return new Term("StaticMemberExpression", {
+    return new T.StaticMemberExpression({
       object: state.object,
       property: state.property.val()
     });
