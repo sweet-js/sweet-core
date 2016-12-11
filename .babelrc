@@ -1,5 +1,5 @@
 {
-  "presets": ["es2015-node5"],
+  "presets": ["node7"],
   "plugins": ["transform-flow-strip-types"],
   "sourceMaps": "inline"
 }

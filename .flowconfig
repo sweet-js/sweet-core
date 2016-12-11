@@ -1,4 +1,6 @@
 [ignore]
+build/*
+dist/*
 
 [include]
 

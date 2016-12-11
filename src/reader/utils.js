@@ -451,4 +451,3 @@ export const isRegexPrefix = (exprAllowed: boolean) => R.anyPass([
 function lastEl(l) {
   return l[l.length - 1];
 }
-

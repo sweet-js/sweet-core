@@ -214,7 +214,7 @@ export const ALL_PHASES = {};
 
 type Scopeset = {
   all: List<any>;
-  phase: Map<number, any>;
+  phase: Map<number | {}, any>;
 }
 
 export default class Syntax {
@@ -377,7 +377,7 @@ export default class Syntax {
     return this.token.value;
   }
 
-  val() {
+  val(): any {
     assert(!this.match("delimiter"), "cannot get the val of a delimiter");
     if (this.match("string")) {
       return this.token.str;
@@ -417,12 +417,12 @@ export default class Syntax {
   }
 
   // () -> List<Syntax>
-  inner() {
-    assert(this.match("delimiter"), "can only get the inner of a delimiter");
-    return this.token.slice(1, this.token.size - 1);
-  }
+  // inner() {
+  //   assert(this.match("delimiter"), "can only get the inner of a delimiter");
+  //   return this.token.slice(1, this.token.size - 1);
+  // }
 
-  addScope(scope: any, bindings: any, phase: number, options: any = { flip: false }) {
+  addScope(scope: any, bindings: any, phase: number | {}, options: any = { flip: false }) {
     let token = this.match('delimiter') ? this.token.map(s => s.addScope(scope, bindings, phase, options)) : this.token;
     if (this.match('template')) {
       token = _.merge(token, {

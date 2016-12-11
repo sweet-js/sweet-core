@@ -24,17 +24,15 @@
   "scripts": {
     "clean": "rm -rf build",
     "lint": "eslint src && flow",
-    "prebuild": "npm run lint && mkdir -p build/test build/sweet dist/",
+    "prebuild": "mkdir -p build/test build/sweet dist/",
     "build:src": "babel --out-dir build/src src",
-    "build:test": "rsync -R test/**/*.js build & cp test/*.js build/test && babel --out-file build/test/assertions.js test/assertions.js",
     "build:browser": "webpack build/src/sweet.js --output-library-target amd --output-library sweet",
-    "build": "npm run build:src && npm run build:test",
-    "pretest": "npm run build",
-    "test:curr": "ava build/test/test_default_readtable.js",
+    "profile": "node --prof profile.js && node --prof-process *v8.log > v8-processed.log && rm *v8.log",
+    "build": "npm run build:src",
+    "test:curr": "ava build/test/modules/export.js",
     "test:smoke": "ava build/test/*.js !build/test/assertions.js",
     "test:full": "npm run build && ava",
-    "test": "npm run test:smoke",
-    "profile": "node --prof profile.js && node --prof-process *v8.log > v8-processed.log && rm *v8.log",
+    "test": "ava",
     "report": "nyc ava && nyc report --reporter=html",
     "docs": "asciidoctorjs doc/1.0/tutorial.adoc & asciidoctorjs doc/1.0/reference.adoc",
     "dist": "npm run build && npm run build:browser && npm run docs && cp -r build/src/ dist"
@@ -43,11 +41,11 @@
     "test": "test"
   },
   "dependencies": {
-    "sweet-spec": "1.1.0",
-    "babel-core": "^6.5.0",
+    "sweet-spec": "3.0.0-pre.0",
+    "babel-core": "^6.18.0",
     "immutable": "^3.7.4",
-    "ramda": "^0.19.0",
-    "ramda-fantasy": "^0.4.1",
+    "ramda": "^0.22.0",
+    "ramda-fantasy": "^0.6.0",
     "resolve": "^1.1.7",
     "semver": "^5.3.0",
     "shift-codegen": "^4.0.0",
@@ -61,17 +59,17 @@
   "devDependencies": {
     "asciidoctor-cli": "^1.5.2-alpha.3",
     "asciidoctor.js": "^1.5.4",
-    "ava": "^0.15.0",
-    "babel": "^6.5.0",
-    "babel-cli": "^6.5.0",
+    "ava": "^0.17.0",
+    "babel-cli": "^6.18.0",
     "babel-eslint": "^7.0.0",
     "babel-plugin-transform-flow-strip-types": "^6.14.0",
-    "babel-preset-es2015-node5": "^1.2.0",
+    "babel-preset-node7": "1.4.0",
+    "babel-register": "6.18.0",
     "eslint": "^3.7.1",
     "eslint-plugin-flowtype": "^2.11.4",
     "event-stream": "^3.3.2",
     "expect.js": "0.3.x",
-    "flow-bin": "^0.32.0",
+    "flow-bin": "^0.36.0",
     "nyc": "^6.0.0",
     "source-map": "~0.5.3",
     "source-map-support": "^0.4.0",
@@ -90,13 +88,19 @@
   "ava": {
     "babel": "inherit",
     "files": [
-      "build/test/*.js",
-      "build/test/declaration/*.js",
-      "build/test/destructuring/**/*.js",
-      "build/test/expressions/**/*.js",
-      "build/test/modules/**/*.js",
-      "build/test/statements/**/*.js",
-      "!build/test/assertions.js"
-    ]
+      "test/test-sweet-loader.js",
+      "test/test-run-test262.js",
+      "test/test-macro-expansion.js",
+      "test/test-hygiene.js",
+      "test/test-asi.js",
+      "test/test-modules.js",
+      "test/test-syntax.js",
+      "test/test-symbols.js",
+      "test/test-macro-context.js"
+    ],
+    "require": [
+      "babel-register"
+    ],
+    "babel": "inherit"
   }
 }
