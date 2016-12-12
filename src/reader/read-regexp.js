@@ -1,7 +1,7 @@
 // @flow
-import type CharStream from '../char-stream';
+import type CharStream from './char-stream';
 
-import { isEOS } from '../char-stream';
+import { isEOS } from './char-stream';
 import { RegExpToken } from '../tokens';
 import { isLineTerminator, isIdentifierPart } from './utils';
 

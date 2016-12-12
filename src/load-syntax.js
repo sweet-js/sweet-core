@@ -78,7 +78,7 @@ export function evalCompiletimeValue(expr, context) {
   let sandbox = {
     syntaxQuote: function (strings, ...values) {
       let ctx = deserializer.read(_.last(values));
-      return read(strings.join(''), ctx)//reader.read();
+      return read(strings.join(''), ctx);
     },
     syntaxTemplate: function(str, ...values) {
       return replaceTemplate(deserializer.read(str), sanitizeReplacementValues(values));

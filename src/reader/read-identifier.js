@@ -2,8 +2,8 @@
 
 import { scanUnicode } from './utils';
 
-import { isEOS } from '../char-stream';
-import type CharStream from '../char-stream';
+import { isEOS } from './char-stream';
+import type CharStream from './char-stream';
 
 import { code } from 'esutils';
 

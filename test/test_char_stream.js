@@ -1,4 +1,4 @@
-import CharStream, { isEOS } from '../src/char-stream';
+import CharStream, { isEOS } from '../src/reader/char-stream';
 import test from 'ava';
 
 let stream;
@@ -21,21 +21,21 @@ test('peek should return eos if charsToSkip is > source length', t => {
   t.true(isEOS(stream.peek(3)));
 });
 
-// test('readChar should consume the next character', t => {
-//   t.is(stream.readChar(), 'a');
-//   t.is(stream.peek(), 'b');
-// });
+test('readString should consume the next character when no arguments are passed', t => {
+  t.is(stream.readString(), 'a');
+  t.is(stream.peek(), 'b');
+});
 
-// test('readChar should return eos if it reaches the end of source', t => {
-//   readChar(stream); readChar(stream); readChar(stream);
-//   t.true(isEOS(readChar(stream)));
-// });
+test('readString should return eos if it reaches the end of source', t => {
+  stream.readString(3);
+  t.true(isEOS(stream.readString()));
+});
 
 test('readString should return the specified number of characters', t => {
   t.is(stream.readString(2), 'ab');
   t.is(stream.readString(), 'c');
 });
 
-test('readString should all remaining characters if asked for too many', t => {
+test('readString should read all remaining characters numChars is > source length', t => {
   t.is(stream.readString(4), 'abc');
 });

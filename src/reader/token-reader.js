@@ -1,14 +1,15 @@
 // @flow
 
-import Reader from './reader';
+import Reader, { getCurrentReadtable, setCurrentReadtable } from './reader';
+import defaultReadtable from './default-readtable';
 import { List } from 'immutable';
-import CharStream, { isEOS } from '../char-stream';
+import CharStream, { isEOS } from './char-stream';
 import { TokenType, EmptyToken } from '../tokens';
 import Syntax from '../syntax';
-import { getCurrentReadtable } from './reader';
-import '../default-readtable';
 
 import type { StartLocation, Slice } from '../tokens';
+
+setCurrentReadtable(defaultReadtable);
 
 export type LocationInfo = {
   line: number,
@@ -25,7 +26,7 @@ export function getSlice(stream: CharStream, startLocation: StartLocation): Slic
     text: stream.getSlice(startLocation.position),
     start: startLocation.position,
     startLocation,
-    end: stream.sourceInfo.position - 1 //TODO: don't know if this is right
+    end: stream.sourceInfo.position
   };
 }
 
@@ -41,9 +42,24 @@ export class TokenReader extends Reader {
     };
   }
 
-  readToken(stream: CharStream, prefix: List<Syntax>, b: boolean): Syntax {
+  createError(msg: string): ReadError {
+    let message = msg.replace(/\{(\d+)\}/g, (_, n) => JSON.stringify(arguments[+n + 1]));
+    return new ReadError({ message,
+                           index: streams.get(this).sourceInfo.position,
+                           line: this.locationInfo.line,
+                           column: this.locationInfo.column });
+  }
+
+  createILLEGAL(char) {
+    return !isEOS(char)
+      ? this.createError("Unexpected {0}", char)
+    : this.createError("Unexpected end of input");
+  }
+
+  readToken(stream: CharStream, prefix: List<Syntax>, exprAllowed: boolean): Syntax {
     const startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
-    const result = super.read(stream, prefix, b);
+    const result = super.read(stream, prefix, exprAllowed);
+
     if (startLocation.column === this.locationInfo.column && startLocation.line === this.locationInfo.line) {
       this.locationInfo.column += stream.sourceInfo.position - startLocation.position;
     }

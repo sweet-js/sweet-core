@@ -1,5 +1,4 @@
-import { isReadtable,
-         EmptyReadtable } from '../src/readtable';
+import { EmptyReadtable } from '../src/reader/readtable';
 
 import test from 'ava';
 
@@ -15,10 +14,6 @@ const entry = {
 
 let table = EmptyReadtable.extendReadtable(entry);
 
-test('extendReadtable should extend a readtable with new entries', t => {
-  t.true(isReadtable(table));
-});
-
 test('getEntry retrieves an entry from a readtable', t => {
   const theEntry = table.getEntry('@');
 
@@ -31,7 +26,7 @@ test('should be able to get an entry after a readtable has been extended', t => 
       return {
         type: 'Punctuator',
         value: 'HASH'
-      }
+      };
     }
   };
   const newTable = table.extendReadtable(newEntry);
