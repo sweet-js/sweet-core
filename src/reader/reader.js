@@ -1,9 +1,9 @@
 // @flow
 
-import type Readtable from '../readtable';
-import type CharStream from '../char-stream';
+import type Readtable from './readtable';
+import type CharStream from './char-stream';
 
-import { isEOS } from '../char-stream';
+import { isEOS } from './char-stream';
 
 let currentReadtable;
 

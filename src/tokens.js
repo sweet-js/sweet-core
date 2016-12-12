@@ -6,8 +6,6 @@ import type Syntax from './syntax';
 
 export type LocationInfo = { filename: string, position: number, line: number, column: number };
 
-//TODO: uncomment the TokenClass and TokenType after new reader is integrated into the parsing pipeline
-
 export const TokenClass = {
   Eof: {name: "<End>"},
   Ident: {name: "Identifier", isIdentifierName: true},
@@ -196,13 +194,16 @@ class BaseToken {
   }
 }
 
-export class StringToken extends BaseToken {
+export class StringToken {
+  type: TokenTypeType;
   str: string;
   octal: ?string;
-  constructor({ value, octal, slice }: { value: string, octal: ?string, slice?: Slice }) {
-    super({ type: TT.STRING, slice });
-    this.str = value;
+  slice: ?Slice;
+  constructor({ str, octal, slice }: { str: string, octal: ?string, slice?: Slice }) {
+    this.type = TT.STRING;
+    this.str = str;
     this.octal = octal;
+    this.slice = slice;
   }
 }
 
@@ -247,19 +248,10 @@ export class TemplateElementToken extends BaseToken {
 }
 
 export class TemplateToken extends BaseToken {
-  items: List<Syntax>;
-
-  constructor({ items, slice }: { items: List<Syntax>, slice?: Slice }) {
-    super({ type: TT.TEMPLATE, slice });
-    this.items = items;
-  }
-}
-
-export class DelimiterToken extends BaseToken {
   items: List<Token>;
 
-  constructor({ value, items, slice }: { value: string, items: List<Token>, slice?: Slice }) {
-    super({ type: punctuatorTable[value], value, slice });
+  constructor({ items, slice }: { items: List<Token>, slice?: Slice }) {
+    super({ type: TT.TEMPLATE, slice });
     this.items = items;
   }
 }
@@ -270,6 +262,4 @@ export class RegExpToken extends BaseToken {
   }
 }
 
-export type Token = StringToken | IdentifierToken | KeywordToken | PunctuatorToken | NumericToken | TemplateElementToken | TemplateToken | DelimiterToken | RegExpToken;
-
-export type TokenTree = Token | List<TokenTree>;
+export type Token = StringToken | IdentifierToken | KeywordToken | PunctuatorToken | NumericToken | TemplateElementToken | TemplateToken | RegExpToken;

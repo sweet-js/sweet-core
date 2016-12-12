@@ -19,10 +19,6 @@ export default class CharStream {
     const { filename, position/*, source*/ } = sourceInfo.get(this);
     return { filename, position/*, source*/ };
   }
-  
-  get done(): boolean {
-    return this.peek() === '';
-  }
 
   // returns the Unicode character charsToSkip ahead.
   peek(charsToSkip: number = 0): string {

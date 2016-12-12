@@ -2,8 +2,6 @@
 
 import type CharStream from './char-stream';
 
-import type { TokenTree } from './tokens';
-
 /*
  * Note: these are possible features for future enhancements. 
  * extendReadtable features:
@@ -48,11 +46,6 @@ function addEntry(table: Array<ReadtableEntry>, { key, action }: ReadtableEntry)
   return table;
 }
 
-// TODO: do we even need this?
-export function isReadtable(readtable: any): boolean {
-  return readtable instanceof Readtable;
-}
-
 export const EmptyReadtable = new Readtable();
 
 // Note: This was an experiment. IF the mode flags are included here, they can just be string constants.
@@ -64,7 +57,6 @@ export const EmptyReadtable = new Readtable();
 function isValidKey(key) {
   return key == null ||
     (typeof key === 'number' && key <= 0x10FFFF) ||
-    // TODO: not sure this is right
     (typeof key === 'string' && (key.length >= 0 && key.length <= 2));
 }
 

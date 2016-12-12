@@ -1,15 +1,15 @@
 // @flow
 import { List } from 'immutable';
 
-import type CharStream from '../char-stream';
+import type CharStream from './char-stream';
 import type Syntax from '../syntax';
 
-import { isEOS } from '../char-stream';
+import { isEOS } from './char-stream';
 import { readStringEscape } from './utils';
 import { getSlice } from './token-reader';
 import { TemplateToken, TemplateElementToken } from '../tokens';
 
-export default function readTemplateLiteral(stream: CharStream, prefix: List<Syntax>, b: boolean): TemplateToken {
+export default function readTemplateLiteral(stream: CharStream, prefix: List<Syntax>): TemplateToken {
   let element, items = [];
   stream.readString();
 
@@ -27,8 +27,8 @@ export default function readTemplateLiteral(stream: CharStream, prefix: List<Syn
   });
 }
 
-function readTemplateElement(stream: CharStream): Syntax {
-  let char = stream.peek(), idx = 0, value = '';
+function readTemplateElement(stream: CharStream): TemplateElementToken {
+  let char = stream.peek(), idx = 0, value = '', octal = null;
   const startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
   while (!isEOS(char)) {
     switch (char) {
@@ -45,7 +45,7 @@ function readTemplateElement(stream: CharStream): Syntax {
       }
       case '$': {
         if (stream.peek(idx+1) === '{') {
-          stream.readString(idx)
+          stream.readString(idx);
           const slice = getSlice(stream, startLocation);
           stream.readString();
 

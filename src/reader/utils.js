@@ -1,8 +1,8 @@
 // @flow
 
-import { isEOS } from '../char-stream';
+import { isEOS } from './char-stream';
 
-import type CharStream from '../char-stream';
+import type CharStream from './char-stream';
 
 import { code  } from 'esutils';
 const { isLineTerminator,
@@ -281,7 +281,7 @@ let safeLast = R.pipe(R.cond([
   [R.T, R.compose(Maybe.of, last)]
 ]));
 
-// TODO: better name
+// TODO: better name (areTrue & areFalse)?
 // List -> Boolean -> Maybe List
 let stuffTrue = R.curry((p, b) => b ? Just(p) : Nothing());
 let stuffFalse = R.curry((p, b) => !b ? Just(p) : Nothing());
@@ -373,7 +373,7 @@ const functionPrefix = R.pipeK(
     func);
 
 // Boolean -> List a -> Boolean
-export const isRegexPrefix = (b: boolean) => R.anyPass([
+export const isRegexPrefix = (exprAllowed: boolean) => R.anyPass([
   // ε
   isEmpty,
   // P . t   where t ∈ Punctuator
@@ -408,7 +408,7 @@ export const isRegexPrefix = (b: boolean) => R.anyPass([
         return safeLast(p)
           .map(s => s.lineNumber())
           .chain(fnLine => {
-            return pop(p).map(isExprPrefix(fnLine, b));
+            return pop(p).map(isExprPrefix(fnLine, exprAllowed));
           })
           .chain(stuffFalse(p));
       }
@@ -432,7 +432,7 @@ export const isRegexPrefix = (b: boolean) => R.anyPass([
         return safeLast(p)
         .map(s => s.lineNumber())
         .chain(curlyLine => {
-          return pop(p).map(isExprPrefix(curlyLine, b));
+          return pop(p).map(isExprPrefix(curlyLine, exprAllowed));
         })
         .chain(stuffFalse(p));
       }),

@@ -1,11 +1,11 @@
 // @flow
 
-import { isEOS } from '../char-stream';
+import { isEOS } from './char-stream';
 import { code } from 'esutils';
 import { getHexValue } from './utils';
 import { NumericToken } from '../tokens';
 
-import type CharStream from '../char-stream';
+import type CharStream from './char-stream';
 
 const { isIdentifierPartES6: isIdentifierPart,
         isIdentifierStartES6: isIdentifierStart,

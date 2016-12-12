@@ -2,39 +2,22 @@
 
 import { List } from 'immutable';
 import { EmptyReadtable } from './readtable';
-import { getCurrentReadtable, setCurrentReadtable } from './reader/reader';
-import readIdentifier from './reader/read-identifier';
-import readNumericLiteral from './reader/read-numeric';
-import readStringLiteral from './reader/read-string';
-import readTemplateLiteral from './reader/read-template';
-import readDelimiter from './reader/read-delimiter';
-import readRegExp from './reader/read-regexp.js';
-import readComment from './reader/read-comment';
-import readDispatch from './reader/read-dispatch';
+import { getCurrentReadtable, setCurrentReadtable } from './reader';
+import readIdentifier from './read-identifier';
+import readNumericLiteral from './read-numeric';
+import readStringLiteral from './read-string';
+import readTemplateLiteral from './read-template';
+import readDelimiter from './read-delimiter';
+import readRegExp from './read-regexp.js';
+import readComment from './read-comment';
+import readDispatch from './read-dispatch';
 import { punctuatorTable as punctuatorMapping, keywordTable as keywordMapping,
-         KeywordToken, PunctuatorToken, EmptyToken, IdentifierToken, TokenClass } from './tokens';
-import { insertSequence, retrieveSequenceLength, isExprPrefix, isRegexPrefix, isIdentifierPart, isWhiteSpace, isLineTerminator, isDecimalDigit } from './reader/utils';
+         KeywordToken, PunctuatorToken, EmptyToken, IdentifierToken, TokenClass } from '../tokens';
+import { insertSequence, retrieveSequenceLength, isExprPrefix, isRegexPrefix, isIdentifierPart, isWhiteSpace, isLineTerminator, isDecimalDigit } from './utils';
 
 import type CharStream from './char-stream';
-import type { LocationInfo } from './reader/token-reader';
-// import type { ActionResult } from './readtable';
 
-// import type { ReadtableEntry } from './readtable';
-
-// strategy: create a series of readtables
-// 0. whitespace - check!
-// 1. punctuators - check!
-// 2. delimiters - check!
-// 3. numbers - check!
-// 4. identifiers - check!
-// 5. string - check!
-// 6. regex
-// 7. templates - check!
-// 8. keywords - check!
-// 9. dispatch characters (e.g. #, @)
-// 10. '`' dispatch macro (i.e. syntaxQuote/syntaxTemplate)
-
-// use https://github.com/mathiasbynens/regenerate to generate the Unicode code points
+// use https://github.com/mathiasbynens/regenerate to generate the Unicode code points when implementing modes
 
 function eatWhitespace(stream: CharStream) {
   stream.readString();
@@ -98,7 +81,7 @@ const identifierEntry = {
 const templateEntry = {
   key: '`',
   action: readTemplateLiteral
-}
+};
 
 const primitiveReadtable = EmptyReadtable.extendReadtable(
     ...[identifierEntry,
@@ -243,4 +226,4 @@ const defaultReadtable = primitiveReadtable.extendReadtable(
     dispatchEntry,
     atEntry]);
 
-setCurrentReadtable(defaultReadtable);
+export default defaultReadtable;
