@@ -1,6 +1,5 @@
 // @flow
-import { Modules } from './modules';
-import Reader from './shift-reader';
+import read from './reader/token-reader';
 import { Scope, freshScope } from './scope';
 import Env from './env';
 import Store from './store';
@@ -112,7 +111,7 @@ export class SweetLoader {
   }
 
   read(source: string): List<Term> {
-    return wrapInTerms(new Reader(source).read());
+    return wrapInTerms(read(source));
   }
 
   compileSource(source: string) {
