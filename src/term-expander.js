@@ -4,7 +4,6 @@ import Term, * as T from "sweet-spec";
 import { freshScope } from "./scope";
 import Compiler from './compiler';
 import Syntax, { ALL_PHASES } from "./syntax";
-import { serializer } from "./serializer";
 import { Enforester } from "./enforester";
 import { processTemplate } from './template-processor';
 import ASTDispatcher from './ast-dispatcher';
@@ -339,19 +338,6 @@ export default class TermExpander extends ASTDispatcher {
 
     return new T.CallExpression({
       callee, arguments: args
-    });
-  }
-
-  expandSyntaxQuote(term) {
-    let str = new T.LiteralStringExpression({
-      value: Syntax.from("string", serializer.write(term.name))
-    });
-
-    return new T.TemplateExpression({
-      tag: term.template.tag,
-      elements: term.template.elements.push(str).push(new T.TemplateElement({
-        rawValue: ''
-      })).toArray()
     });
   }
 

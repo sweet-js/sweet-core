@@ -14,7 +14,6 @@ import {
   ConstDeclTransform,
   SyntaxDeclTransform,
   SyntaxrecDeclTransform,
-  SyntaxQuoteTransform,
   ReturnStatementTransform,
   WhileTransform,
   IfTransform,
@@ -1103,10 +1102,6 @@ export class Enforester {
     if (this.term === null && this.isSyntaxTemplate(lookahead)) {
       return this.enforestSyntaxTemplate();
     }
-    // syntaxQuote ` ... `
-    if (this.term === null && this.isSyntaxQuoteTransform(lookahead)) {
-      return this.enforestSyntaxQuote();
-    }
 
     // ($x:expr)
     if (this.term === null && this.isParens(lookahead)) {
@@ -1525,19 +1520,6 @@ export class Enforester {
   enforestSyntaxTemplate() {
     return new T.SyntaxTemplate({
       template: this.matchRawDelimiter()
-    });
-  }
-
-  enforestSyntaxQuote() {
-    let name = this.matchRawSyntax();
-    return new T.SyntaxQuote({
-      name: name,
-      template: new T.TemplateExpression({
-        tag: new T.IdentifierExpression({
-          name: name
-        }),
-        elements: this.enforestTemplateElements()
-      })
     });
   }
 
@@ -2080,10 +2062,6 @@ export class Enforester {
 
   isSyntaxrecDeclTransform(obj: Syntax | Term) {
     return this.isTransform(obj, SyntaxrecDeclTransform);
-  }
-
-  isSyntaxQuoteTransform(obj: Syntax | Term) {
-    return this.isTransform(obj, SyntaxQuoteTransform);
   }
 
   isReturnStmtTransform(obj: Syntax | Term) {

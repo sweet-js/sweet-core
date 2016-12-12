@@ -1,1 +1,1 @@
-function a() { 'use strict'; "\0"; }
+a + b - c

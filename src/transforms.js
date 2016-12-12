@@ -16,7 +16,6 @@ export class WithTransform { }
 export class DebuggerTransform { }
 export class SyntaxrecDeclTransform { }
 export class SyntaxDeclTransform { }
-export class SyntaxQuoteTransform { }
 export class ReturnStatementTransform { }
 export class VarBindingTransform {
   constructor(id) {

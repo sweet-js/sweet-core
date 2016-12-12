@@ -4,7 +4,6 @@ import { Scope, freshScope } from "../src/scope";
 import BindingMap from "../src/binding-map";
 
 import read from "../src/reader/token-reader";
-import { serializer, makeDeserializer } from "../src/serializer";
 
 import { Symbol, gensym } from "../src/symbol";
 import test from 'ava';
@@ -116,55 +115,6 @@ test('should make an identifier syntax object with another identifier as the con
 
 
   expect(foo.resolve(0)).to.be(foo_1.resolve(0));
-});
-
-
-let deserializer = makeDeserializer();
-test('should work for a numeric literal', () => {
-  let json = serializer.write(read("42"));
-  let stxl = deserializer.read(json);
-
-  expect(stxl.get(0).isNumericLiteral()).to.be(true);
-  expect(stxl.get(0).val()).to.be(42);
-});
-
-test('should work for a string literal', () => {
-  let json = serializer.write(read("'foo'"));
-  let stxl = deserializer.read(json);
-
-  expect(stxl.get(0).isStringLiteral()).to.be(true);
-  expect(stxl.get(0).val()).to.be('foo');
-});
-
-test('should work for an identifier', () => {
-  let json = serializer.write(read("foo"));
-  let stxl = deserializer.read(json);
-
-  expect(stxl.get(0).isIdentifier()).to.be(true);
-  expect(stxl.get(0).val()).to.be('foo');
-});
-
-test('should work for a scope', () => {
-  let bindings = new BindingMap();
-  let scope = freshScope("1");
-
-  let rtScope = deserializer.read(serializer.write(scope));
-  expect(scope).to.be(rtScope);
-});
-
-test('should work for an identifier with a scope', () => {
-  let bindings = new BindingMap();
-  let scope1 = freshScope("1");
-  let deserializer = makeDeserializer(bindings);
-
-  let foo = Syntax.fromIdentifier('foo');
-  foo = foo.addScope(scope1, bindings, 0);
-
-  bindings.add(foo, {binding: gensym('foo'), phase: 0});
-
-  let rtFoo = deserializer.read(serializer.write(foo));
-
-  expect(rtFoo.resolve(0)).to.be(foo.resolve(0));
 });
 
 test('should make new syntax from instance methods', t => {

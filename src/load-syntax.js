@@ -1,13 +1,9 @@
 import * as S from 'sweet-spec';
 import * as _ from 'ramda';
 import { List } from 'immutable';
-import ParseReducer from './parse-reducer.js';
-import reducer from "shift-reducer";
-import { makeDeserializer } from './serializer';
 import Syntax from "./syntax";
 import codegen, { FormattedCodeGen } from 'shift-codegen';
-import Term, { isVariableDeclaration, isImport, isExport } from "./terms";
-import read from './reader/token-reader';
+import { isVariableDeclaration, isImport, isExport } from "./terms";
 import SweetToShiftReducer from './sweet-to-shift-reducer';
 import TermExpander from './term-expander';
 import Env from './env';

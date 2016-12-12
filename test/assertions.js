@@ -1,9 +1,5 @@
-import { parse } from "../src/sweet";
-import compile, { load, SweetLoader } from '../src/sweet-loader';
-import expect from "expect.js";
-import { zip, curry, equals, cond, identity, T, and, compose, type, mapObjIndexed, map, keys, has } from 'ramda';
-import { transform } from 'babel-core';
 import read from "../src/reader/token-reader";
+import compile from '../src/sweet-loader';
 import { Enforester } from "../src/enforester";
 import { List } from "immutable";
 

@@ -89,7 +89,6 @@
     "babel": "inherit",
     "files": [
       "test/test-sweet-loader.js",
-      "test/test-run-test262.js",
       "test/test-macro-expansion.js",
       "test/test-hygiene.js",
       "test/test-asi.js",
