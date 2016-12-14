@@ -30,12 +30,29 @@ export function getSlice(stream: CharStream, startLocation: StartLocation): Slic
   };
 }
 
-export class TokenReader extends Reader {
+const streams = new WeakMap();
+
+class ReadError extends Error {
+  index: number;
+  line: number;
+  column: number;
+  message: string;
+  constructor({ index, line, column, message }: { index: number, line: number, column: number, message: string }) {
+    super(message);
+    this.index = index;
+    this.line = line;
+    this.column = column;
+    this.message = `[${line}:${column}] ${message}`;
+  }
+}
+
+class TokenReader extends Reader {
   locationInfo: LocationInfo;
   context: ?Context;
-  constructor(context?: Context) {
+  constructor(stream: CharStream, context?: Context) {
     super();
     this.context = context;
+    streams.set(this, stream);
     this.locationInfo = {
       line: 1,
       column: 1
@@ -78,8 +95,8 @@ export class TokenReader extends Reader {
 }
 
 export default function read(source: string | CharStream, context?: Context): List<Syntax> {
-  const reader = new TokenReader(context);
   const stream = (typeof source === 'string') ? new CharStream(source) : source;
+  const reader = new TokenReader(stream, context);
   const entry = getCurrentReadtable().getEntry('');
 
   return entry.action.call(reader, stream, List(), false);

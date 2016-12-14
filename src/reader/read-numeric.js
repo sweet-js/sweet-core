@@ -19,11 +19,11 @@ export default function readNumericLiteral(stream: CharStream) {
     if (!isEOS(char)) {
       char = char.toLowerCase();
       switch (char) {
-        case 'x': return readHexLiteral(stream);
-        case 'b': return readBinaryLiteral(stream);
-        case 'o': return readOctalLiteral(stream);
+        case 'x': return readHexLiteral.call(this, stream);
+        case 'b': return readBinaryLiteral.call(this, stream);
+        case 'o': return readOctalLiteral.call(this, stream);
         default: if (isDecimalChar(char)) {
-          return readLegacyOctalLiteral(stream); // reads legacy octal and decimal
+          return readLegacyOctalLiteral.call(this, stream); // reads legacy octal and decimal
         }
       }
     } else {
@@ -42,11 +42,11 @@ export default function readNumericLiteral(stream: CharStream) {
     }
   }
 
-  idx = addDecimalLiteralSuffixLength(stream, idx);
+  idx = addDecimalLiteralSuffixLength.call(this, stream, idx);
 
   char = stream.peek(idx);
   if (!isEOS(char) && isIdentifierStart(char)) {
-    throw Error('Illegal numeric literal');
+    throw this.createILLEGAL(char);
   }
 
   return new NumericToken({
@@ -68,11 +68,11 @@ function addDecimalLiteralSuffixLength(stream, idx) {
 
   if (char.toLowerCase() === 'e') {
     char = stream.peek(++idx);
-    if (isEOS(char)) throw Error('Illegal decimal literal suffix');
+    if (isEOS(char)) throw this.createILLEGAL(char);
 
     if (char === '+' || char === '-') {
       char = stream.peek(++idx);
-      if (isEOS(char)) throw Error('Illegal decimal literal suffix');
+      if (isEOS(char)) throw this.createILLEGAL(char);
     }
 
     while (isDecimalChar(char)) {
@@ -94,7 +94,7 @@ function readLegacyOctalLiteral(stream) {
       isOctal = false;
       idx++;
     } else if (isIdentifierPart(char.charCodeAt(0))) {
-      throw Error("Illegal numeric literal");
+      throw this.createILLEGAL(char);
     } else {
       break;
     }
@@ -121,14 +121,14 @@ function readOctalLiteral(stream) {
     if ("0" <= char && char <= "7") {
       char = stream.peek(++idx);
     } else if (isIdentifierPart(char.charCodeAt(0))) {
-      throw Error("Illegal octal literal");
+      throw this.createILLEGAL(char);
     } else {
       break;
     }
   }
 
   if (idx === start) {
-    throw Error("Illegal octal literal");
+    throw this.createILLEGAL(char);
   }
 
   return new NumericToken({
@@ -149,11 +149,11 @@ function readBinaryLiteral(stream) {
   }
 
   if (idx === start) {
-    throw Error("Illegal binary literal");
+    throw this.createILLEGAL(char);
   }
 
   if (!isEOS(char) && (isIdentifierStart(char) || isDecimalChar(char))) {
-    throw Error("Illegal binary literal");
+    throw this.createILLEGAL(char);
   }
 
   return new NumericToken({
@@ -172,11 +172,11 @@ function readHexLiteral(stream) {
   }
 
   if (idx === start) {
-    throw Error("Illegal hex literal");
+    throw this.createILLEGAL(char);
   }
 
   if (!isEOS(char) && isIdentifierStart(char)) {
-    throw Error("Illegal hex literal");
+    throw this.createILLEGAL(char);
   }
 
   return new NumericToken({

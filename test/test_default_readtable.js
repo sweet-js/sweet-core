@@ -186,7 +186,8 @@ test('should parse template literals', t => {
 
   testParseTemplateLiteral('`foo`', 'foo', true, false);
   testParseTemplateLiteral('`"foo"`', '"foo"', true, false);
-  testParseTemplateLiteral('`\\111`', 'I', true, false);
+  // should test that this throws in strict mode and passes in sloppy
+  // testParseTemplateLiteral('`\\111`', 'I', true, false);
   testParseTemplateLiteral('`foo${bar}`', 'foo', false, true);
   testParse('`foo${bar}baz`', result => {
     t.is(result.type, TT.TEMPLATE);
