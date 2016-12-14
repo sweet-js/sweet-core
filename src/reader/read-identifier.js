@@ -21,7 +21,7 @@ export default function readIdentifier(stream: CharStream) {
     code = char.charCodeAt(0);
     if (char === '\\' || 0xD800 <= code && code <= 0xDBFF) {
       return new IdentifierToken({
-        value: getEscapedIdentifier(stream)
+        value: getEscapedIdentifier.call(this, stream)
       });
     }
     if (!check(code)) {
@@ -48,30 +48,30 @@ function getEscapedIdentifier(stream) {
     if (char === '\\') {
       let nxt = sPeek(1);
       if (isEOS(nxt)) {
-        throw Error('Unexpected end of input');
+        throw this.createILLEGAL(char);
       }
       if (nxt !== 'u') {
-        throw Error('Unexpected token:', char);
+        throw this.createILLEGAL(char);
       }
       code = scanUnicode(stream, 2);
       streamRead = true;
       if (code < 0) {
-        throw Error('Illegal Unicode value');
+        throw this.createILLEGAL(char);
       }
     } else if (0xD800 <= code && code <= 0xDBFF) {
       if (isEOS(char)) {
-        throw Error('Unexpected end of input');
+        throw this.createILLEGAL(char);
       }
       let lowSurrogateCode = sPeek(1).charCodeAt(0);
       if (0xDC00 > lowSurrogateCode || lowSurrogateCode > 0xDFFF) {
-        throw Error('Invalid UTF-16');
+        throw this.createILLEGAL(char);
       }
       stream.readString(2);
       code = decodeUtf16(code, lowSurrogateCode);
     }
     if (!check(code)) {
       if (id.length < 1) {
-        throw Error('Invalid identifier');
+        throw this.createILLEGAL(char);
       }
       return id;
     }

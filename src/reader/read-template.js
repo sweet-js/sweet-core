@@ -60,7 +60,8 @@ function readTemplateElement(stream: CharStream): TemplateElementToken {
       }
       case '\\': {
         let newVal;
-        [newVal, idx] = readStringEscape.call(this, '', stream, idx, null);
+        [newVal, idx, octal] = readStringEscape.call(this, '', stream, idx, octal);
+        if (octal != null) throw this.createILLEGAL(octal);
         value += newVal;
         --idx;
         break;
@@ -71,5 +72,5 @@ function readTemplateElement(stream: CharStream): TemplateElementToken {
     }
     char = stream.peek(++idx);
   }
-  throw Error('Illegal template literal');
+  throw this.createILLEGAL(char);
 }

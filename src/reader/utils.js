@@ -70,15 +70,15 @@ export function scanUnicode(stream: CharStream, start: number) {
       if (hex === -1) break;
       hexDigits = (hexDigits << 4) | hex;
       if (hexDigits > 0x10FFFF) {
-        throw Error('Value outside of Unicode range:', hexDigits.toString(16));
+        throw this.createILLEGAL(char);
       }
       char = sPeek(++idx);
     }
     if (char !== '}') {
-      throw Error('Expected "}", found', char);
+      throw this.createILLEGAL(char);
     }
     if (idx === start + 1) {
-      throw Error('Unexpected "}"');
+      throw this.createILLEGAL(stream.peek(idx+1));
     }
     ++idx;
   } else {
@@ -100,6 +100,8 @@ export function readStringEscape(str: string, stream: CharStream, start: number,
   let idx = start + 1,
       char = stream.peek(idx),
       lineStart;
+  if (isEOS(char)) throw this.createILLEGAL(char);
+
   if (!isLineTerminator(char.charCodeAt(0))) {
     switch (char) {
       case 'b': str += '\b'; ++idx; break;
@@ -114,10 +116,10 @@ export function readStringEscape(str: string, stream: CharStream, start: number,
         ++idx;
         let nxt = stream.peek(idx);
         if (isEOS(nxt)) {
-          throw Error('Invalid string literal');
+          throw this.createILLEGAL(nxt);
         }
-        unescaped = char === 'u' ? scanUnicode(stream, idx) : scanHexEscape2(stream);
-        if (unescaped === -1) throw Error('Illegal string escape');
+        unescaped = char === 'u' ? scanUnicode.call(this, stream, idx) : scanHexEscape2.call(this, stream);
+        if (unescaped === -1) throw this.createILLEGAL(char);
         idx = 0; // stream is read in scanUnicode and scanHexEscape2
 
         str += String.fromCodePoint(unescaped);
@@ -125,9 +127,9 @@ export function readStringEscape(str: string, stream: CharStream, start: number,
       }
       default: {
         if ('0' <= char && char <= '7') {
-          [str, octal, idx] = scanOctal(str, stream, char, idx, octal);
+          [str, idx, octal] = scanOctal.call(this, str, stream, char, idx, octal);
         } else if(char === '8' || char === '9') {
-          throw Error("Illegal octal escape");
+          throw this.createILLEGAL(char);
         } else {
           str += char;
           ++idx;
@@ -151,21 +153,24 @@ function scanOctal(str, stream, char, start, octal) {
     len = 0;
   }
   let code = 0;
+
   while (len < 3 && '0' <= char && char <= '7') {
+    ++idx;
     if (len > 0 || char !== '0') {
-      octal = str; 
+      let octalCount = idx - start;
+      if (octal == null) octal = '';
+      octal += char;
     }
     code *= 8;
     code += +char; //coersion
     ++len;
-    // str += char;
-    char = stream.peek(++idx);
+    char = stream.peek(idx);
     if (isEOS(char)) {
-      throw Error()
+      throw this.createILLEGAL(char);
     }
   }
   str += String.fromCharCode(code);
-  return [str, octal, idx];
+  return [str, idx, octal];
 }
 
 function scanHexEscape2(stream, idx) {

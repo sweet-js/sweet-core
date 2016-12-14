@@ -76,6 +76,5 @@ function skipMultiLineComment(stream: CharStream): void {
     }
     char = stream.peek(idx);
   }
-  throw Error('Unexpected end of source');
+  throw this.createILLEGAL(char);
 }
-

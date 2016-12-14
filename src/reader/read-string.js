@@ -1,7 +1,7 @@
 // @flow
 import type CharStream from './char-stream';
 
-import { readStringEscape } from './utils';
+import { readStringEscape, isLineTerminator } from './utils';
 import { isEOS } from './char-stream';
 import { StringToken } from '../tokens';
 
@@ -18,11 +18,13 @@ export default function readStringLiteral(stream: CharStream): StringToken {
       return new StringToken({ str, octal });
     } else if (char === "\\") {
       [str, idx, octal, lineStart] = readStringEscape.call(this, str, stream, idx, octal);
+    } else if (isLineTerminator(char.charCodeAt(0))) {
+      throw this.createILLEGAL(char);
     } else {
       ++idx;
       str += char;
     }
     char = stream.peek(idx);
   }
-  throw Error('Unexpected end of input');
+  throw this.createILLEGAL(char);
 }

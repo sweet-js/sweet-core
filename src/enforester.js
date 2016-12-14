@@ -2168,7 +2168,7 @@ export class Enforester {
     if (this.isBrackets(lookahead)) {
       return lookahead.inner();
     }
-    throw this.createError(lookahead, "expecting sqaure braces");
+    throw this.createError(lookahead, "expecting square braces");
   }
 
   matchUnaryOperator() {

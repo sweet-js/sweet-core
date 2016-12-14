@@ -8,6 +8,8 @@ import { isLineTerminator, isIdentifierPart } from './utils';
 export default function readRegExp(stream: CharStream) {
   let value = stream.readString(), char = stream.peek(), idx = 0, classMarker = false, terminated = false;
 
+  const UNTERMINATED_REGEXP_MSG = "Invalid regular expression: missing /";
+
   while (!isEOS(char)) {
     if (char === '\\') {
       value += char;
@@ -15,12 +17,12 @@ export default function readRegExp(stream: CharStream) {
       char = stream.peek(idx);
 
       if (isLineTerminator(char.charCodeAt(0))) {
-        throw Error("Unterminated RegExp");
+        throw this.createError(UNTERMINATED_REGEXP_MSG);
       }
       value += char;
       ++idx;
     } else if (isLineTerminator(char.charCodeAt(0))) {
-      throw Error("Unterminated RegExp");
+      throw this.createError(UNTERMINATED_REGEXP_MSG);
     } else {
       if (classMarker) {
         if (char === ']') {
@@ -44,12 +46,12 @@ export default function readRegExp(stream: CharStream) {
   }
 
   if (!terminated) {
-    throw Error("Unterminated RegExp");
+    throw this.createError(UNTERMINATED_REGEXP_MSG);
   }
 
   while (!isEOS(char)) {
     if (char === '\\') {
-      throw Error("Invalid RegExp flags");
+      throw this.createError("Invalid regular expression flags");
     }
     if (!isIdentifierPart(char.charCodeAt(0))) {
       break;
