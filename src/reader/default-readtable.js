@@ -12,7 +12,7 @@ import readRegExp from './read-regexp.js';
 import readComment from './read-comment';
 import readDispatch from './read-dispatch';
 import { punctuatorTable as punctuatorMapping, keywordTable as keywordMapping,
-         KeywordToken, PunctuatorToken, EmptyToken, IdentifierToken, TokenClass } from '../tokens';
+         KeywordToken, PunctuatorToken, EmptyToken, IdentifierToken } from '../tokens';
 import { insertSequence, retrieveSequenceLength, isExprPrefix, isRegexPrefix, isIdentifierPart, isWhiteSpace, isLineTerminator, isDecimalDigit } from './utils';
 
 import type CharStream from './char-stream';
