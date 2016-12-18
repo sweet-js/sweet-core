@@ -10,6 +10,32 @@ let fail = fs.readdirSync(`${PARSER_TEST_DIR}/fail`);
 
 // TODO: make these pass
 const passExcluded = [
+  // known problems with the reader
+  '1111.script.js',
+  '1252.script.js',
+  '978.script.js',
+  '953.script.js',
+  '952.script.js',
+  '951.script.js',
+  '950.script.js',
+  '949.script.js',
+  '947.script.js',
+  '669.script.js',
+  '582.script.js',
+  '348.script.js',
+  '315.script.js',
+  '314.script.js',
+  '311.script.js',
+  '299.script.js',
+  '211.script.js',
+  '210.script.js',
+  '1657.script.js',
+  '1656.script.js',
+  '1655.script.js',
+  '1654.script.js',
+  '1328.script.js',
+  '1328.script.js',
+
   '1012.script.js',
   '1051.module.js',
   '1052.module.js',

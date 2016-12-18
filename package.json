@@ -95,6 +95,7 @@
       "test/test-modules.js",
       "test/test-syntax.js",
       "test/test-symbols.js",
+      "test/test-run-test262.js",
       "test/test-macro-context.js"
     ],
     "require": [
