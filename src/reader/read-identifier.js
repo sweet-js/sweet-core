@@ -42,8 +42,9 @@ function getEscapedIdentifier(stream) {
   let id = '';
   let check = isIdentifierStart;
   let char = sPeek();
-  let code = char.charCodeAt(0);
+  let code;
   while (!isEOS(char)) {
+    code = char.charCodeAt(0);
     let streamRead = false;
     if (char === '\\') {
       let nxt = sPeek(1);
@@ -69,6 +70,9 @@ function getEscapedIdentifier(stream) {
       stream.readString(2);
       code = decodeUtf16(code, lowSurrogateCode);
     }
+
+    if (!streamRead) stream.readString();
+
     if (!check(code)) {
       if (id.length < 1) {
         throw this.createILLEGAL(char);
@@ -76,11 +80,8 @@ function getEscapedIdentifier(stream) {
       return id;
     }
 
-    if (!streamRead) stream.readString();
-
     id += String.fromCodePoint(code);
     char = sPeek();
-    code = char.charCodeAt(0);
     check = isIdentifierPart;
   }
   return id;

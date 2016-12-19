@@ -118,7 +118,7 @@ export function readStringEscape(str: string, stream: CharStream, start: number,
         if (isEOS(nxt)) {
           throw this.createILLEGAL(nxt);
         }
-        unescaped = char === 'u' ? scanUnicode.call(this, stream, idx) : scanHexEscape2.call(this, stream);
+        unescaped = char === 'u' ? scanUnicode.call(this, stream, idx) : scanHexEscape2.call(this, stream, idx);
         if (unescaped === -1) throw this.createILLEGAL(char);
         idx = 0; // stream is read in scanUnicode and scanHexEscape2
 
@@ -178,10 +178,10 @@ function scanHexEscape2(stream, idx) {
 
   if (isEOS(char)) return -1;
 
-  let r1 = getHexValue(stream.peek());
+  let r1 = getHexValue(char);
   if (r1 === -1) return r1;
 
-  let r2 = getHexValue(stream.peek(1));
+  let r2 = getHexValue(stream.peek(idx + 1));
   if (r2 === -1) return r2;
 
   stream.readString(2);
