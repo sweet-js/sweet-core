@@ -17,7 +17,7 @@ export function testParseFailure() {
 }
 
 export function testEval(store, cb) {
-  let mod = compile('main.js', store);
+  let mod = compile('main.js', { debugStore: store });
 
   var output;
   var result = mod.codegen();

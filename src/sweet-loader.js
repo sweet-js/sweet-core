@@ -13,6 +13,7 @@ import * as _ from 'ramda';
 import Syntax from './syntax';
 import ScopeReducer from './scope-reducer';
 import { wrapInTerms } from './macro-context';
+import { transform as babel } from 'babel-core';
 
 const phaseInModulePathRegexp = /(.*):(\d+)\s*$/;
 
@@ -34,7 +35,9 @@ export class SweetLoader {
       getTemplateIdentifier: () => ++tempIdent,
       loader: this,
       transform: c => {
-        return { code: c };
+        return babel(c, {
+          babelrc: true
+        });
       }
     };
   }
@@ -132,7 +135,8 @@ export class SweetLoader {
 
 function makeLoader(debugStore) {
   let l = new SweetLoader();
-  if (debugStore) {
+  const store = debugStore;
+  if (store != null) {
     // $FlowFixMe: it's fine
     l.normalize = function normalize(name) {
       if (!phaseInModulePathRegexp.test(name)) {
@@ -142,8 +146,8 @@ function makeLoader(debugStore) {
     };
     // $FlowFixMe: it's fine
     l.fetch = function fetch({ name, address, metadata }) {
-      if (debugStore.has(address.path)) {
-        return debugStore.get(address.path);
+      if (store.has(address.path)) {
+        return store.get(address.path);
       }
       throw new Error(`The module ${name} is not in the debug store: addr.path is ${address.path}`);
     };
@@ -155,6 +159,16 @@ export function load(entryPath: string, debugStore: any) {
   return makeLoader(debugStore).load(entryPath);
 }
 
-export default function compile(entryPath: string, debugStore: any) {
-  return makeLoader(debugStore).compile(entryPath);
+type CompileOptions = {
+  refererName?: string;
+  debugStore?: any;
+}
+
+export default function compile(entryPath: string, options?: CompileOptions) {
+  let debugStore, refererName;
+  if (options != null) {
+    debugStore = options.debugStore;
+    refererName = options.refererName; 
+  }
+  return makeLoader(debugStore).compile(entryPath, refererName);
 }

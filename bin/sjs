@@ -18,7 +18,7 @@ var argv = require('yargs')
 var path = require('path');
 var fs   = require('fs');
 var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
-var sweetjs = require(dir + '/sweet.js');
+var compile = require(dir + '/sweet-loader.js').default;
 var semver = require('semver');
 
 if (!semver.satisfies(process.version, '>=5.0.0')) {
@@ -29,18 +29,16 @@ if (!semver.satisfies(process.version, '>=5.0.0')) {
 argv._.forEach(function (file) {
   var infile = fs.readFileSync(file, 'utf8');
   var fdir = path.dirname(fs.realpathSync(file));
-  console.log(`compiling ${file}`);
-  var output = sweetjs.compile(infile, {
-    cwd: fdir,
-    noBabel: argv.noBabel,
-    filename: file
-  });
+  var output = compile(file, {
+    refererName: fdir,
+    noBabel: argv.noBabel
+  }).codegen();
 
   if (argv.outFile) {
-    fs.writeFileSync(argv.outFile, output.code, 'utf8');
+    fs.writeFileSync(argv.outFile, output, 'utf8');
   } else if (argv.outDir) {
-    fs.writeFileSync(path.join(argv.outDir, path.basename(file)), output.code, 'utf8');
+    fs.writeFileSync(path.join(argv.outDir, path.basename(file)), output, 'utf8');
   } else {
-    console.log(output.code);
+    console.log(output);
   }
 });
