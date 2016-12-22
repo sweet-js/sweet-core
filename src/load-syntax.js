@@ -75,10 +75,7 @@ export function evalRuntimeValues(terms, context) {
   }).reduce(new SweetToShiftReducer(context.phase));
 
   let gen = codegen(parsed, new FormattedCodeGen);
-  let result = context.transform(gen, {
-    babelrc: true,
-    filename: context.filename
-  });
+  let result = context.transform(gen);
 
   let exportsObj = {};
   context.store.set('exports', exportsObj);
@@ -125,10 +122,7 @@ export function evalCompiletimeValue(expr: S.Expression, context: any) {
   }).reduce(new SweetToShiftReducer(context.phase));
 
   let gen = codegen(parsed, new FormattedCodeGen);
-  let result = context.transform(gen, {
-    babelrc: true,
-    filename: context.filename
-  });
+  let result = context.transform(gen);
 
   let val = vm.runInContext(result.code, context.store.getNodeContext());
   return val.apply(undefined, sandboxVals);
