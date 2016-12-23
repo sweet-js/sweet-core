@@ -1,7 +1,7 @@
 import test from 'ava';
 import fs from 'fs';
 
-import compile from '../src/sweet-loader.js';
+import { compile } from '../src/sweet.js';
 
 const PARSER_TEST_DIR = './test/test262-parser-tests';
 
@@ -179,7 +179,7 @@ const passExcluded = [
 
 function mkTester(subdir) {
   function f(t, fname) {
-    let result = compile(`${PARSER_TEST_DIR}/${subdir}/${fname}`).codegen()
+    let result = compile(`${PARSER_TEST_DIR}/${subdir}/${fname}`);
     t.not(result, null);
   }
   f.title = (title, fname, expected) => {
