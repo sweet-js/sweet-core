@@ -28,3 +28,4 @@ _site
 .projectile
 .nyc_output
 coverage
+dist/
