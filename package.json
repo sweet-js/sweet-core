@@ -13,7 +13,7 @@
   "licenses": [
     {
       "type": "BSD",
-      "url": "http://github.com/mozilla/sweet.js/master/LICENSE.BSD"
+      "url": "http://github.com/sweet-js/sweet.js/master/LICENSE.BSD"
     }
   ],
   "browser": {
@@ -27,15 +27,13 @@
     "prebuild": "mkdir -p build/test build/sweet dist/",
     "build:src": "babel --out-dir build/src src",
     "build:browser": "webpack build/src/sweet.js --output-library-target amd --output-library sweet",
+    "build": "npm run build:src && npm run build:browser",
+    "preprofile": "npm run build",
     "profile": "node --prof profile.js && node --prof-process *v8.log > v8-processed.log && rm *v8.log",
-    "build": "npm run build:src",
-    "test:curr": "ava build/test/modules/export.js",
-    "test:smoke": "ava build/test/*.js !build/test/assertions.js",
-    "test:full": "npm run build && ava",
     "test": "ava",
-    "report": "nyc ava && nyc report --reporter=html",
+    "report": "nyc ava && nyc report--reporter=html",
     "docs": "asciidoctorjs doc/1.0/tutorial.adoc & asciidoctorjs doc/1.0/reference.adoc",
-    "dist": "npm run build && npm run build:browser && npm run docs && cp -r build/src/ dist"
+    "dist": "rsync -r build/src/ dist"
   },
   "directories": {
     "test": "test"
@@ -69,7 +67,7 @@
     "eslint-plugin-flowtype": "^2.11.4",
     "event-stream": "^3.3.2",
     "expect.js": "0.3.x",
-    "flow-bin": "^0.36.0",
+    "flow-bin": "^0.37.0",
     "nyc": "^6.0.0",
     "source-map": "~0.5.3",
     "source-map-support": "^0.4.0",
@@ -78,7 +76,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/mozilla/sweet.js.git"
+    "url": "git://github.com/sweet-js/sweet.js.git"
   },
   "keywords": [
     "macros",
