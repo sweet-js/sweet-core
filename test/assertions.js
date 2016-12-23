@@ -1,5 +1,5 @@
 import read from "../src/reader/token-reader";
-import compile from '../src/sweet-loader';
+import { compile } from '../src/sweet';
 import { Enforester } from "../src/enforester";
 import { List } from "immutable";
 
@@ -17,10 +17,9 @@ export function testParseFailure() {
 }
 
 export function testEval(store, cb) {
-  let mod = compile('main.js', { debugStore: store });
+  let result = compile('main.js', { debugStore: store }).code;
 
   var output;
-  var result = mod.codegen();
   try {
     eval(result);
   } catch (e) {

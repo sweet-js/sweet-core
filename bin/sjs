@@ -18,7 +18,7 @@ var argv = require('yargs')
 var path = require('path');
 var fs   = require('fs');
 var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
-var compile = require(dir + '/sweet-loader.js').default;
+var compile = require(dir + '/sweet.js').compile;
 var semver = require('semver');
 
 if (!semver.satisfies(process.version, '>=5.0.0')) {
@@ -32,7 +32,7 @@ argv._.forEach(function (file) {
   var output = compile(file, {
     refererName: fdir,
     noBabel: argv.noBabel
-  }).codegen();
+  }).code;
 
   if (argv.outFile) {
     fs.writeFileSync(argv.outFile, output, 'utf8');

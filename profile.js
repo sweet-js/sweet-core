@@ -20,13 +20,12 @@ var fs = require('fs');
 var parse = require('./build/src/sweet').parse;
 
 function benchmarkParsing(fileName) {
-  var source = fs.readFileSync(require.resolve(fileName), 'utf-8');
   var start = Date.now(), N = 100;
   for (var i = 0; i < N; i++) {
-    parse(source);
+    parse(fileName);
   }
   var time = Date.now() - start;
   console.log((time / N).toFixed(2) + "ms");
 }
 
-benchmarkParsing('angular/angular');
+benchmarkParsing('./node_modules/angular/angular.js');

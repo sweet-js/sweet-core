@@ -133,7 +133,7 @@ export class SweetLoader {
   }
 }
 
-function makeLoader(debugStore) {
+export function makeLoader(debugStore?: Map<string, string>) {
   let l = new SweetLoader();
   const store = debugStore;
   if (store != null) {
@@ -159,16 +159,3 @@ export function load(entryPath: string, debugStore: any) {
   return makeLoader(debugStore).load(entryPath);
 }
 
-type CompileOptions = {
-  refererName?: string;
-  debugStore?: any;
-}
-
-export default function compile(entryPath: string, options?: CompileOptions) {
-  let debugStore, refererName;
-  if (options != null) {
-    debugStore = options.debugStore;
-    refererName = options.refererName; 
-  }
-  return makeLoader(debugStore).compile(entryPath, refererName);
-}
