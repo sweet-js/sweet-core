@@ -211,18 +211,6 @@ export default class TokenExpander extends ASTDispatcher {
     return term;
   }
 
-  // [isPragma, term => {
-  //   let pathStx = term.items.get(0);
-  //   if (pathStx.val() === 'base') {
-  //     return term;
-  //   }
-  //   let mod = this.context.modules.loadAndCompile(pathStx.val());
-  //   store = this.context.modules.visit(mod, phase, store);
-  //   bindAllSyntaxExports(mod, pathStx, this.context);
-  //   return term;
-  // }],
-
-
   registerFunctionOrClass(term: Term) {
     let red = new RegisterBindingsReducer(
       this.context.useScope,

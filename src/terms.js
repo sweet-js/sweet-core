@@ -89,7 +89,6 @@ export const isWhileStatement = R.whereEq({ type: "WhileStatement" });
 export const isWithStatement = R.whereEq({ type: "WithStatement" });
 
 // other
-export const isPragma = R.whereEq({ type: 'Pragma' });
 export const isBlock = R.whereEq({ type: "Block" });
 export const isCatchClause = R.whereEq({ type: "CatchClause" });
 export const isDirective = R.whereEq({ type: "Directive" });

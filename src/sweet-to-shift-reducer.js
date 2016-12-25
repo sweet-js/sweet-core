@@ -18,10 +18,6 @@ export default class extends Term.CloneReducer {
     });
   }
 
-  reducePragma(t, s) {
-    return new S.EmptyStatement({});
-  }
-
   reduceIdentifierExpression(t: Term, s: { name: Syntax }) {
     return new S.IdentifierExpression({
       name: s.name.resolve(this.phase)
