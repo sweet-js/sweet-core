@@ -9,9 +9,9 @@ process:
 */
 
 require('babel-register');
-var compile = require('./src/sweet-loader.js').default;
+var compile = require('./src/sweet.js').compile;
 
 debugger;
 
-let mod = compile('./test.js');
-console.log(mod.codegen());
+let result = compile('./test.js');
+console.log(result.code);
