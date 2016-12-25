@@ -27,7 +27,6 @@ if (!semver.satisfies(process.version, '>=5.0.0')) {
 }
 
 argv._.forEach(function (file) {
-  var infile = fs.readFileSync(file, 'utf8');
   var fdir = path.dirname(fs.realpathSync(file));
   var output = compile(file, {
     refererName: fdir,
