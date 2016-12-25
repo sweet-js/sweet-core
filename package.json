@@ -101,7 +101,6 @@
     ],
     "require": [
       "babel-register"
-    ],
-    "babel": "inherit"
+    ]
   }
 }
