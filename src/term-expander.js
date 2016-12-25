@@ -21,10 +21,6 @@ export default class TermExpander extends ASTDispatcher {
     return this.dispatch(term);
   }
 
-  expandPragma(term) {
-    return term;
-  }
-
   expandRawSyntax(term) {
     return term;
   }
