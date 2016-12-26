@@ -31,6 +31,7 @@
     "preprofile": "npm run build",
     "profile": "node --prof profile.js && node --prof-process *v8.log > v8-processed.log && rm *v8.log",
     "pretest": "npm run lint",
+    "test:ci": "npm run pretest && ava && ava test/test-compile-external-libs.js",
     "test": "ava",
     "report": "nyc ava && nyc report--reporter=html",
     "docs": "asciidoctorjs doc/1.0/tutorial.adoc & asciidoctorjs doc/1.0/reference.adoc",
@@ -56,6 +57,7 @@
     "yargs": "^4.3.2"
   },
   "devDependencies": {
+    "angular": "1.6.0",
     "asciidoctor-cli": "^1.5.2-alpha.3",
     "asciidoctor.js": "^1.5.4",
     "ava": "^0.17.0",
@@ -69,11 +71,11 @@
     "event-stream": "^3.3.2",
     "expect.js": "0.3.x",
     "flow-bin": "^0.37.0",
+    "jquery": "3.1.1",
     "nyc": "^6.0.0",
     "source-map": "~0.5.3",
     "source-map-support": "^0.4.0",
-    "webpack": "^1.13.1",
-    "angular": "^1.6.0"
+    "webpack": "^1.13.1"
   },
   "repository": {
     "type": "git",
