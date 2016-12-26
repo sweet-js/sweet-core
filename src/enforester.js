@@ -1685,7 +1685,7 @@ export class Enforester {
     };
   }
 
-  enforestFunction({isExpr, inDefault}: {isExpr: boolean, inDefault: boolean}) {
+  enforestFunction({isExpr, inDefault}: {isExpr?: boolean, inDefault?: boolean}) {
     let name = null, params, body;
     let isGenerator = false;
     // eat the function keyword
