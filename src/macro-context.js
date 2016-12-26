@@ -81,18 +81,6 @@ export class SyntaxOrTermWrapper {
     return this.from('regularExpression', value);
   }
 
-  fromBraces(inner) {
-    return this.from('braces', inner);
-  }
-
-  fromBrackets(inner) {
-    return this.from('brackets', inner);
-  }
-
-  fromParens(inner) {
-    return this.from('parens', inner);
-  }
-
   match(type, value) {
     let stx = this[symWrap];
     if (typeof stx.match === 'function') {

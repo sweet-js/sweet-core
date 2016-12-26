@@ -4,6 +4,7 @@ import { assert } from './errors';
 import BindingMap from './binding-map';
 import { Maybe } from 'ramda-fantasy';
 import * as _ from 'ramda';
+import * as T from 'sweet-spec';
 
 import { TokenType, TokenClass } from './tokens';
 
@@ -253,7 +254,7 @@ export default class Syntax {
   }
 
   from(type: TokenTag, value: any) {
-    return Syntax.from(type, value, this);
+    return new T.RawSyntax({ value: Syntax.from(type, value, this) });
   }
 
   fromNull() {
@@ -284,18 +285,6 @@ export default class Syntax {
     return this.from('regularExpression', value);
   }
 
-  fromBraces(inner: List<Syntax>) {
-    return this.from('braces', inner);
-  }
-
-  fromBrackets(inner: List<Syntax>) {
-    return this.from('brackets', inner);
-  }
-
-  fromParens(inner: List<Syntax>) {
-    return this.from('parens', inner);
-  }
-
   static fromNull(stx: Syntax) {
     return Syntax.from('null', null, stx);
   }
@@ -322,18 +311,6 @@ export default class Syntax {
 
   static fromRegularExpression(value, stx) {
     return Syntax.from('regularExpression', value, stx);
-  }
-
-  static fromBraces(inner, stx) {
-    return Syntax.from('braces', inner, stx);
-  }
-
-  static fromBrackets(inner, stx) {
-    return Syntax.from('brackets', inner, stx);
-  }
-
-  static fromParens(inner, stx) {
-    return Syntax.from('parens', inner, stx);
   }
 
   // () -> string

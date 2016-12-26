@@ -209,6 +209,14 @@ syntax m = ctx => {
 output = m foo
 `, 'foo');
 
+test('should construct a delimiter from existing syntax', evalWithOutput, `
+syntax m = ctx => {
+  let arg = ctx.next().value;
+  let dummy = #\`here\`.get(0);
+  return #\`(\${dummy.fromNumber(arg.val())})\`;
+}
+output = m 1`, 1)
+
 test('should handle macros in blocks', evalWithOutput, `
 {
   syntax m = ctx => #\`1\`;

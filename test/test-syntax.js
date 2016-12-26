@@ -121,5 +121,5 @@ test('should make new syntax from instance methods', t => {
   let base = Syntax.fromIdentifier('foo');
   let derived = base.from('identifier', 'bar');
 
-  t.is(derived.val(), 'bar');
+  t.is(derived.value.val(), 'bar');
 });
