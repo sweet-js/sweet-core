@@ -61,10 +61,8 @@ class TokenReader extends Reader {
 
   createError(msg: string): ReadError {
     let message = msg.replace(/\{(\d+)\}/g, (_, n) => JSON.stringify(arguments[+n + 1]));
-    return new ReadError({ message,
-                           index: streams.get(this).sourceInfo.position,
-                           line: this.locationInfo.line,
-                           column: this.locationInfo.column });
+    // $FlowFixMe: decide on how to handle possible nullability
+    return new ReadError({ message, index: streams.get(this).sourceInfo.position, line: this.locationInfo.line, column: this.locationInfo.column });
   }
 
   createILLEGAL(char) {

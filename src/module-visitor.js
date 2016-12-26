@@ -7,15 +7,17 @@ import { gensym } from './symbol';
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { collectBindings } from './hygiene-utils';
 
+import type { Context } from './sweet-loader';
+
 export default class {
 
-  context: any;
+  context: Context;
 
-  constructor(context) {
+  constructor(context: Context) {
     this.context = context;
   }
 
-  visit(mod, phase, store) {
+  visit(mod: any, phase: any, store: any) {
     // TODO: recursively visit imports
     mod.items.forEach(term => {
       if (T.isSyntaxDeclarationStatement(term)) {
@@ -27,7 +29,7 @@ export default class {
     return store;
   }
 
-  invoke(mod, phase, store) {
+  invoke(mod: any, phase: any, store: any) {
     // TODO: recursively visit imports
     let body = mod.runtimeItems().map(term => {
       if (T.isVariableDeclarationStatement(term)) {
@@ -43,7 +45,7 @@ export default class {
     return store;
   }
 
-  registerSyntaxDeclaration(term, phase, store) {
+  registerSyntaxDeclaration(term: any, phase: any, store: any) {
     term.declarators.forEach(decl => {
       let val = evalCompiletimeValue(decl.init, _.merge(this.context, {
         phase: phase + 1, store
@@ -64,7 +66,7 @@ export default class {
     });
   }
 
-  registerVariableDeclaration(term, phase, store) {
+  registerVariableDeclaration(term: any, phase: any, store: any) {
     term.declarators.forEach(decl => {
       collectBindings(decl.binding).forEach(stx => {
         if (phase !== 0) { // phase 0 bindings extend the binding map during compilation
@@ -81,7 +83,7 @@ export default class {
     });
   }
 
-  registerFunctionOrClass(term, phase, store) {
+  registerFunctionOrClass(term: any, phase: any, store: any) {
     collectBindings(term.name).forEach(stx => {
       if (phase !== 0) {
         let newBinding = gensym(stx.val());

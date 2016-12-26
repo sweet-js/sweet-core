@@ -16,10 +16,18 @@ import { transform as babel } from 'babel-core';
 
 const phaseInModulePathRegexp = /(.*):(\d+)\s*$/;
 
+export type Context = {
+  bindings: any;
+  templateMap: any;
+  getTemplateIdentifier: any;
+  loader: any;
+  transform: any;
+}
+
 export class SweetLoader {
   sourceCache: Map<string, string>;
   compiledCache: Map<string, SweetModule>;
-  context: any;
+  context: Context;
 
   constructor() {
     this.sourceCache = new Map();
