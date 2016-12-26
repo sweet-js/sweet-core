@@ -2,7 +2,7 @@
 import type CharStream from './char-stream';
 
 import { isEOS } from './char-stream';
-import { isLineTerminator, isWhiteSpace, skipSingleLineComment } from './utils';
+import { skipSingleLineComment } from './utils';
 import { EmptyToken } from '../tokens';
 
 export default function readComment(stream: CharStream): typeof EmptyToken {
@@ -43,7 +43,7 @@ function skipMultiLineComment(stream: CharStream): void {
       switch (chCode) {
       case 42:  // "*"
         // Block comment ends with "*/".
-        if (stream.peek(idx + 1).charAt(0) === "/") {
+        if (stream.peek(idx + 1).charAt(0) === '/') {
           stream.readString(idx + 2);
           if (lineStart) this.locationInfo.column = stream.sourceInfo.position - lineStart;
           return;
@@ -56,14 +56,16 @@ function skipMultiLineComment(stream: CharStream): void {
         ++idx;
         break;
       case 13: // "\r":
+      {
         let startIdx = idx;
-        if (stream.peek(idx + 1).charAt(0) === "\n") {
+        if (stream.peek(idx + 1).charAt(0) === '\n') {
           ++idx;
         }
         ++idx;
         this.incrementLine();
         lineStart = startPosition + startIdx;
         break;
+      }
       default:
         ++idx;
       }

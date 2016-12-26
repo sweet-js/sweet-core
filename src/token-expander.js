@@ -1,16 +1,16 @@
 // @flow
 import Term, * as S from 'sweet-spec';
 import { List } from 'immutable';
-import {  Enforester } from "./enforester";
-import TermExpander from "./term-expander.js";
-import Env from "./env";
-import * as _ from "ramda";
-import * as T from "./terms";
+import {  Enforester } from './enforester';
+import TermExpander from './term-expander.js';
+import Env from './env';
+import * as _ from 'ramda';
+import * as T from './terms';
 import { gensym } from './symbol';
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
-import {  assert } from "./errors";
+import {  assert } from './errors';
 import { evalCompiletimeValue } from './load-syntax';
-import {  freshScope } from "./scope";
+import {  freshScope } from './scope';
 import { ALL_PHASES } from './syntax';
 import ASTDispatcher from './ast-dispatcher';
 import Syntax from './syntax.js';

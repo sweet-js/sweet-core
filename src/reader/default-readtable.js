@@ -67,7 +67,7 @@ const numericEntries = digits.map(d => ({
   action: readNumericLiteral
 }));
 
-const quotes = ["'", '"'];
+const quotes = ['\'', '"'];
 
 const stringEntries = quotes.map(q => ({
   key: q,
@@ -206,7 +206,7 @@ const dispatchEntry = {
 
 const atEntry = {
   key: '@',
-  action: function readAt(stream, prefix, b) {
+  action: function readAt(stream, prefix) {
     const nxt = stream.peek(1).charCodeAt(0);
     if (isWhiteSpace(nxt) || isLineTerminator(nxt)) {
       return new IdentifierToken({ value: stream.readString() });

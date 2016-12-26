@@ -1,9 +1,9 @@
 import * as S from 'sweet-spec';
 import * as _ from 'ramda';
 import { List } from 'immutable';
-import Syntax from "./syntax";
+import Syntax from './syntax';
 import codegen, { FormattedCodeGen } from 'shift-codegen';
-import { isVariableDeclaration, isImport, isExport } from "./terms";
+import { isVariableDeclaration, isImport, isExport } from './terms';
 import SweetToShiftReducer from './sweet-to-shift-reducer';
 import TermExpander from './term-expander';
 import Env from './env';
@@ -12,7 +12,7 @@ import { unwrap } from './macro-context';
 
 import { replaceTemplate } from './template-processor';
 
-import vm from "vm";
+import vm from 'vm';
 
 export function expandCompiletime(term, context) {
   // each compiletime value needs to be expanded with a fresh
@@ -32,7 +32,7 @@ export function sanitizeReplacementValues(values) {
   } else if (List.isList(values)) {
     return values.map(sanitizeReplacementValues);
   } else if (values == null) {
-    throw new Error("replacement values for syntax template must not be null or undefined");
+    throw new Error('replacement values for syntax template must not be null or undefined');
   } else if (typeof values.next === 'function') {
     return sanitizeReplacementValues(List(values));
   }
@@ -104,7 +104,7 @@ export function evalCompiletimeValue(expr: S.Expression, context: any) {
         params: new S.FormalParameters({
           items: sandboxKeys.map(param => {
             return new S.BindingIdentifier({
-              name: Syntax.from("identifier", param)
+              name: Syntax.from('identifier', param)
             });
           }),
           rest: null

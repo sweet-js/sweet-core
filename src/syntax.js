@@ -1,11 +1,11 @@
 // @flow
-import { List, Map } from "immutable";
-import { assert } from "./errors";
-import BindingMap from "./binding-map";
-import { Maybe } from "ramda-fantasy";
+import { List, Map } from 'immutable';
+import { assert } from './errors';
+import BindingMap from './binding-map';
+import { Maybe } from 'ramda-fantasy';
 import * as _ from 'ramda';
 
-import { TokenType, TokenClass } from "./tokens";
+import { TokenType, TokenClass } from './tokens';
 
 type Token = {
   type: any;
@@ -118,12 +118,12 @@ export let Types: TypesHelper = {
     create: (inner, stx) => {
       let left = new Syntax({
         type: TokenType.LBRACE,
-        value: "{",
+        value: '{',
         slice: getFirstSlice(stx)
       });
       let right = new Syntax({
         type: TokenType.RBRACE,
-        value: "}",
+        value: '}',
         slice: getFirstSlice(stx)
       });
       return new Syntax(List.of(left).concat(inner).push(right), stx);
@@ -135,12 +135,12 @@ export let Types: TypesHelper = {
     create: (inner, stx) => {
       let left = new Syntax({
         type: TokenType.LBRACK,
-        value: "[",
+        value: '[',
         slice: getFirstSlice(stx)
       });
       let right = new Syntax({
         type: TokenType.RBRACK,
-        value: "]",
+        value: ']',
         slice: getFirstSlice(stx)
       });
       return new Syntax(List.of(left).concat(inner).push(right), stx);
@@ -152,12 +152,12 @@ export let Types: TypesHelper = {
     create: (inner, stx) => {
       let left = new Syntax({
         type: TokenType.LPAREN,
-        value: "(",
+        value: '(',
         slice: getFirstSlice(stx)
       });
       let right = new Syntax({
         type: TokenType.RPAREN,
-        value: ")",
+        value: ')',
         slice: getFirstSlice(stx)
       });
       return new Syntax(List.of(left).concat(inner).push(right), stx);
@@ -168,18 +168,18 @@ export let Types: TypesHelper = {
     match: token => {
       if (Types.punctuator.match(token)) {
         switch (token.value) {
-          case "=":
-          case "|=":
-          case "^=":
-          case "&=":
-          case "<<=":
-          case ">>=":
-          case ">>>=":
-          case "+=":
-          case "-=":
-          case "*=":
-          case "/=":
-          case "%=":
+          case '=':
+          case '|=':
+          case '^=':
+          case '&=':
+          case '<<=':
+          case '>>=':
+          case '>>>=':
+          case '+=':
+          case '-=':
+          case '*=':
+          case '/=':
+          case '%=':
             return true;
           default:
             return false;
@@ -239,10 +239,10 @@ export default class Syntax {
 
   static from(type, value, stx: ?Syntax) {
     if (!Types[type]) {
-      throw new Error(type + " is not a valid type");
+      throw new Error(type + ' is not a valid type');
     }
     else if (!Types[type].create) {
-      throw new Error("Cannot create a syntax from type " + type);
+      throw new Error('Cannot create a syntax from type ' + type);
     }
     let newstx = Types[type].create(value, stx);
     let slice = getFirstSlice(stx);
@@ -257,7 +257,7 @@ export default class Syntax {
   }
 
   fromNull() {
-    return this.from("null", null);
+    return this.from('null', null);
   }
 
   fromNumber(value: number) {
@@ -265,80 +265,80 @@ export default class Syntax {
   }
 
   fromString(value: string) {
-    return this.from("string", value);
+    return this.from('string', value);
   }
 
   fromPunctuator(value: string) {
-    return this.from("punctuator", value);
+    return this.from('punctuator', value);
   }
 
   fromKeyword(value: string) {
-    return this.from("keyword", value);
+    return this.from('keyword', value);
   }
 
   fromIdentifier(value: string) {
-    return this.from("identifier", value);
+    return this.from('identifier', value);
   }
 
   fromRegularExpression(value: any) {
-    return this.from("regularExpression", value);
+    return this.from('regularExpression', value);
   }
 
   fromBraces(inner: List<Syntax>) {
-    return this.from("braces", inner);
+    return this.from('braces', inner);
   }
 
   fromBrackets(inner: List<Syntax>) {
-    return this.from("brackets", inner);
+    return this.from('brackets', inner);
   }
 
   fromParens(inner: List<Syntax>) {
-    return this.from("parens", inner);
+    return this.from('parens', inner);
   }
 
   static fromNull(stx: Syntax) {
-    return Syntax.from("null", null, stx);
+    return Syntax.from('null', null, stx);
   }
 
   static fromNumber(value, stx) {
-    return Syntax.from("number", value, stx);
+    return Syntax.from('number', value, stx);
   }
 
   static fromString(value, stx) {
-    return Syntax.from("string", value, stx);
+    return Syntax.from('string', value, stx);
   }
 
   static fromPunctuator(value, stx) {
-    return Syntax.from("punctuator", value, stx);
+    return Syntax.from('punctuator', value, stx);
   }
 
   static fromKeyword(value, stx) {
-    return Syntax.from("keyword", value, stx);
+    return Syntax.from('keyword', value, stx);
   }
 
   static fromIdentifier(value, stx) {
-    return Syntax.from("identifier", value, stx);
+    return Syntax.from('identifier', value, stx);
   }
 
   static fromRegularExpression(value, stx) {
-    return Syntax.from("regularExpression", value, stx);
+    return Syntax.from('regularExpression', value, stx);
   }
 
   static fromBraces(inner, stx) {
-    return Syntax.from("braces", inner, stx);
+    return Syntax.from('braces', inner, stx);
   }
 
   static fromBrackets(inner, stx) {
-    return Syntax.from("brackets", inner, stx);
+    return Syntax.from('brackets', inner, stx);
   }
 
   static fromParens(inner, stx) {
-    return Syntax.from("parens", inner, stx);
+    return Syntax.from('parens', inner, stx);
   }
 
   // () -> string
   resolve(phase: any) {
-    assert(phase != null, "must provide a phase to resolve");
+    assert(phase != null, 'must provide a phase to resolve');
     let allScopes = this.scopesets.all;
     let stxScopes = this.scopesets.phase.has(phase) ? this.scopesets.phase.get(phase) : List();
     stxScopes = allScopes.concat(stxScopes);
@@ -378,14 +378,14 @@ export default class Syntax {
   }
 
   val(): any {
-    assert(!this.match("delimiter"), "cannot get the val of a delimiter");
-    if (this.match("string")) {
+    assert(!this.match('delimiter'), 'cannot get the val of a delimiter');
+    if (this.match('string')) {
       return this.token.str;
     }
-    if (this.match("template")) {
+    if (this.match('template')) {
       if (!this.token.items) return this.token.value;
       return this.token.items.map(el => {
-        if (typeof el.match === 'function' && el.match("delimiter")) {
+        if (typeof el.match === 'function' && el.match('delimiter')) {
           return '${...}';
         }
         return el.slice.text;
@@ -395,7 +395,7 @@ export default class Syntax {
   }
 
   lineNumber() {
-    if (!this.match("delimiter")) {
+    if (!this.match('delimiter')) {
       return this.token.slice.startLocation.line;
     } else {
       return this.token.get(0).lineNumber();
@@ -491,84 +491,84 @@ export default class Syntax {
 
   match(type: TokenTag, value: any) {
     if (!Types[type]) {
-      throw new Error(type + " is an invalid type");
+      throw new Error(type + ' is an invalid type');
     }
     return Types[type].match(this.token) && (value == null ||
       (value instanceof RegExp ? value.test(this.val()) : this.val() == value));
   }
 
   isIdentifier(value: string) {
-    return this.match("identifier", value);
+    return this.match('identifier', value);
   }
 
   isAssign(value: string) {
-    return this.match("assign", value);
+    return this.match('assign', value);
   }
 
   isBooleanLiteral(value: boolean) {
-    return this.match("boolean", value);
+    return this.match('boolean', value);
   }
 
   isKeyword(value: string) {
-    return this.match("keyword", value);
+    return this.match('keyword', value);
   }
 
   isNullLiteral(value: any) {
-    return this.match("null", value);
+    return this.match('null', value);
   }
 
   isNumericLiteral(value: number) {
-    return this.match("number", value);
+    return this.match('number', value);
   }
 
   isPunctuator(value: string) {
-    return this.match("punctuator", value);
+    return this.match('punctuator', value);
   }
 
   isStringLiteral(value: string) {
-    return this.match("string", value);
+    return this.match('string', value);
   }
 
   isRegularExpression(value: any) {
-    return this.match("regularExpression", value);
+    return this.match('regularExpression', value);
   }
 
   isTemplate(value: any) {
-    return this.match("template", value);
+    return this.match('template', value);
   }
 
   isDelimiter(value: any) {
-    return this.match("delimiter", value);
+    return this.match('delimiter', value);
   }
 
   isParens(value: any) {
-    return this.match("parens", value);
+    return this.match('parens', value);
   }
 
   isBraces(value: any) {
-    return this.match("braces", value);
+    return this.match('braces', value);
   }
 
   isBrackets(value: any) {
-    return this.match("brackets", value);
+    return this.match('brackets', value);
   }
 
   isSyntaxTemplate(value: any) {
-    return this.match("syntaxTemplate", value);
+    return this.match('syntaxTemplate', value);
   }
 
   isEOF(value: any) {
-    return this.match("eof", value);
+    return this.match('eof', value);
   }
 
   toString() {
-    if (this.match("delimiter")) {
-      return this.token.map(s => s.toString()).join(" ");
+    if (this.match('delimiter')) {
+      return this.token.map(s => s.toString()).join(' ');
     }
-    if (this.match("string")) {
-      return "'" + this.token.str;
+    if (this.match('string')) {
+      return '\'' + this.token.str;
     }
-    if (this.match("template")) {
+    if (this.match('template')) {
       return this.val();
     }
     return this.token.value;

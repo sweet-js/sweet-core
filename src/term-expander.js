@@ -1,15 +1,15 @@
 import { List } from 'immutable';
-import { isExpressionStatement, isLiteralStringExpression } from "./terms";
-import Term, * as T from "sweet-spec";
-import { freshScope } from "./scope";
+import { isExpressionStatement, isLiteralStringExpression } from './terms';
+import Term, * as T from 'sweet-spec';
+import { freshScope } from './scope';
 import Compiler from './compiler';
-import Syntax, { ALL_PHASES } from "./syntax";
-import { Enforester } from "./enforester";
+import { ALL_PHASES } from './syntax';
+import { Enforester } from './enforester';
 import { processTemplate } from './template-processor';
 import ASTDispatcher from './ast-dispatcher';
 import ScopeReducer from './scope-reducer';
-import { gensym } from "./symbol";
-import { VarBindingTransform } from "./transforms";
+import { gensym } from './symbol';
+import { VarBindingTransform } from './transforms';
 
 export default class TermExpander extends ASTDispatcher {
   constructor(context) {
@@ -421,13 +421,13 @@ export default class TermExpander extends ASTDispatcher {
 
   expandParenthesizedExpression(term) {
     if (term.inner.size === 0) {
-      throw new Error("unexpected end of input");
+      throw new Error('unexpected end of input');
     }
     let enf = new Enforester(term.inner, List(), this.context);
     let lookahead = enf.peek();
     let t = enf.enforestExpression();
     if (t == null || enf.rest.size > 0) {
-      throw enf.createError(lookahead, "unexpected syntax");
+      throw enf.createError(lookahead, 'unexpected syntax');
     }
     return this.expand(t);
   }
@@ -510,7 +510,7 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   doFunctionExpansion(term, type) {
-    let scope = freshScope("fun");
+    let scope = freshScope('fun');
     let params;
     let self = this;
     if (type !== 'Getter' && type !== 'Setter') {
@@ -609,11 +609,11 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandFunctionDeclarationE(term) {
-    return this.doFunctionExpansion(term, "FunctionDeclaration");
+    return this.doFunctionExpansion(term, 'FunctionDeclaration');
   }
 
   expandFunctionExpressionE(term) {
-    return this.doFunctionExpansion(term, "FunctionExpression");
+    return this.doFunctionExpansion(term, 'FunctionExpression');
   }
 
   expandCompoundAssignmentExpression(term) {

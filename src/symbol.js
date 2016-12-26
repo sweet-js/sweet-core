@@ -4,7 +4,7 @@ let internedMap: Map<string, Symbol> = new Map();
 let counter = 0;
 
 export function gensym(name: string) {
-  let prefix = name == null ? "s_" : name + "_";
+  let prefix = name == null ? 's_' : name + '_';
   let sym = new Symbol(prefix + counter);
   counter++;
   return sym;

@@ -1,7 +1,7 @@
 // @flow
-import { isIdentifierExpression, isStaticMemberExpression, isComputedMemberExpression } from "./terms";
+import { isIdentifierExpression, isStaticMemberExpression, isComputedMemberExpression } from './terms';
 import Term, * as T from 'sweet-spec';
-import { Maybe } from "ramda-fantasy";
+import { Maybe } from 'ramda-fantasy';
 import ScopeReducer from './scope-reducer';
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
@@ -28,23 +28,23 @@ import {
   ThrowTransform,
   CompiletimeTransform,
   VarBindingTransform
-} from "./transforms";
-import { List } from "immutable";
-import { expect, assert } from "./errors";
+} from './transforms';
+import { List } from 'immutable';
+import { expect, assert } from './errors';
 import {
   isOperator,
   isUnaryOperator,
   getOperatorAssoc,
   getOperatorPrec,
   operatorLt
-} from "./operators";
-import Syntax, { ALL_PHASES } from "./syntax";
+} from './operators';
+import Syntax, { ALL_PHASES } from './syntax';
 import type { SymbolClass } from './symbol';
 
-import { freshScope } from "./scope";
+import { freshScope } from './scope';
 import { sanitizeReplacementValues } from './load-syntax';
 
-import MacroContext from "./macro-context";
+import MacroContext from './macro-context';
 
 const EXPR_LOOP_OPERATOR = {};
 const EXPR_LOOP_NO_CHANGE = {};
@@ -84,9 +84,9 @@ export class Enforester {
 
   constructor(stxl: List<Term>, prev: List<Term>, context: any) {
     this.done = false;
-    assert(List.isList(stxl), "expecting a list of terms to enforest");
-    assert(List.isList(prev), "expecting a list of terms to enforest");
-    assert(context, "expecting a context to enforest");
+    assert(List.isList(stxl), 'expecting a list of terms to enforest');
+    assert(List.isList(prev), 'expecting a list of terms to enforest');
+    assert(context, 'expecting a context to enforest');
     this.term = null;
 
     this.rest = stxl;
@@ -111,7 +111,7 @@ export class Enforester {
    term - the current term being enforested (initially null)
    rest - remaining Terms to enforest
    */
-  enforest(type?: 'expression' | 'Module' = "Module") {
+  enforest(type?: 'expression' | 'Module' = 'Module') {
     // initialize the term
     this.term = null;
 
@@ -127,7 +127,7 @@ export class Enforester {
     }
 
     let result;
-    if (type === "expression") {
+    if (type === 'expression') {
       result = this.enforestExpressionLoop();
     } else {
       result = this.enforestModule();
@@ -408,7 +408,7 @@ export class Enforester {
     }
 
     // TODO: put somewhere else
-    if (this.term === null && this.isKeyword(lookahead, "class")) {
+    if (this.term === null && this.isKeyword(lookahead, 'class')) {
       return this.enforestClass({isExpr: false});
     }
 
@@ -438,7 +438,7 @@ export class Enforester {
       return this.enforestReturnStatement();
     }
 
-    if (this.term === null && this.isPunctuator(lookahead, ";")) {
+    if (this.term === null && this.isPunctuator(lookahead, ';')) {
       this.advance();
       return new T.EmptyStatement({});
     }
@@ -788,7 +788,7 @@ export class Enforester {
       if (kind === 'method') {
         elements.push(new T.ClassElement({isStatic, method: methodOrKey}));
       } else {
-        throw this.createError(enf.peek(), "Only methods are allowed in classes");
+        throw this.createError(enf.peek(), 'Only methods are allowed in classes');
       }
     }
     return new (isExpr ? T.ClassExpression : T.ClassDeclaration)({
@@ -898,7 +898,7 @@ export class Enforester {
     if (this.isPunctuator(lookahead)) {
       return this.matchRawSyntax();
     }
-    throw this.createError(lookahead, "expecting a punctuator");
+    throw this.createError(lookahead, 'expecting a punctuator');
   }
 
   enforestIdentifier() {
@@ -906,7 +906,7 @@ export class Enforester {
     if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
       return this.matchRawSyntax();
     }
-    throw this.createError(lookahead, "expecting an identifier");
+    throw this.createError(lookahead, 'expecting an identifier');
   }
 
 
@@ -925,7 +925,7 @@ export class Enforester {
     let term = null;
     if (!this.isPunctuator(lookahead, ';')) {
       term = this.enforestExpression();
-      expect(term != null, "Expecting an expression to follow return keyword", lookahead, this.rest);
+      expect(term != null, 'Expecting an expression to follow return keyword', lookahead, this.rest);
     }
 
     this.consumeSemicolon();
@@ -942,29 +942,29 @@ export class Enforester {
 
     if (kindSyn &&
         this.context.env.get(kindSyn.resolve(phase)) === VariableDeclTransform) {
-      kind = "var";
+      kind = 'var';
     } else if (kindSyn &&
                this.context.env.get(kindSyn.resolve(phase)) === LetDeclTransform) {
-      kind = "let";
+      kind = 'let';
     } else if (kindSyn &&
                this.context.env.get(kindSyn.resolve(phase)) === ConstDeclTransform) {
-      kind = "const";
+      kind = 'const';
     } else if (kindSyn &&
                this.context.env.get(kindSyn.resolve(phase)) === SyntaxDeclTransform) {
-      kind = "syntax";
+      kind = 'syntax';
     } else if (kindSyn &&
                this.context.env.get(kindSyn.resolve(phase)) === SyntaxrecDeclTransform) {
-      kind = "syntaxrec";
+      kind = 'syntaxrec';
     }
 
     let decls = List();
 
     while (true) {
-      let term = this.enforestVariableDeclarator({ isSyntax: kind === "syntax" || kind === 'syntaxrec' });
+      let term = this.enforestVariableDeclarator({ isSyntax: kind === 'syntax' || kind === 'syntaxrec' });
       let lookahead = this.peek();
       decls = decls.concat(term);
 
-      if (this.isPunctuator(lookahead, ",")) {
+      if (this.isPunctuator(lookahead, ',')) {
         this.advance();
       } else {
         break;
@@ -985,7 +985,7 @@ export class Enforester {
     if (this.isPunctuator(lookahead, '=')) {
       this.advance();
       let enf = new Enforester(this.rest, List(), this.context);
-      init = enf.enforest("expression");
+      init = enf.enforest('expression');
       this.rest = enf.rest;
     } else {
       init = null;
@@ -1000,7 +1000,7 @@ export class Enforester {
     let start = this.rest.get(0);
     let expr = this.enforestExpression();
     if (expr === null) {
-      throw this.createError(start, "not a valid expression");
+      throw this.createError(start, 'not a valid expression');
     }
     this.consumeSemicolon();
 
@@ -1098,7 +1098,7 @@ export class Enforester {
     }
 
     if (this.term === null && (
-      this.isKeyword(lookahead, "this") ||
+      this.isKeyword(lookahead, 'this') ||
       this.isIdentifier(lookahead) ||
       this.isKeyword(lookahead, 'let') ||
       this.isKeyword(lookahead, 'yield') ||
@@ -1167,7 +1167,7 @@ export class Enforester {
       let op = this.matchRawSyntax();
 
       let enf = new Enforester(this.rest, List(), this.context);
-      let init = enf.enforest("expression");
+      let init = enf.enforest('expression');
       this.rest = enf.rest;
 
       if (op.val() === '=') {
@@ -1194,7 +1194,7 @@ export class Enforester {
   enforestPrimaryExpression() {
     let lookahead = this.peek();
     // $x:ThisExpression
-    if (this.term === null && this.isKeyword(lookahead, "this")) {
+    if (this.term === null && this.isKeyword(lookahead, 'this')) {
       return this.enforestThisExpression();
     }
     // $x:ident
@@ -1317,7 +1317,7 @@ export class Enforester {
   enforestRegularExpressionLiteral() {
     let reStx = this.matchRawSyntax();
 
-    let lastSlash = reStx.token.value.lastIndexOf("/");
+    let lastSlash = reStx.token.value.lastIndexOf('/');
     let pattern = reStx.token.value.slice(1, lastSlash);
     let flags = reStx.token.value.slice(lastSlash + 1);
     return new T.LiteralRegExpExpression({
@@ -1442,7 +1442,7 @@ export class Enforester {
 
   transformDestructuringWithDefault(term: Term) {
     switch (term.type) {
-      case "AssignmentExpression":
+      case 'AssignmentExpression':
         return new T.BindingWithDefault({
           binding: this.transformDestructuring(term.binding),
           init: term.expression,
@@ -1530,7 +1530,7 @@ export class Enforester {
 
     while (enf.rest.size > 0) {
       let lookahead = enf.peek();
-      if (enf.isPunctuator(lookahead, ",")) {
+      if (enf.isPunctuator(lookahead, ',')) {
         enf.advance();
         elements.push(null);
       } else if (enf.isPunctuator(lookahead, '...')) {
@@ -1543,7 +1543,7 @@ export class Enforester {
       } else {
         let term = enf.enforestExpressionLoop();
         if (term == null) {
-          throw enf.createError(lookahead, "expected expression");
+          throw enf.createError(lookahead, 'expected expression');
         }
         elements.push(term);
         enf.consumeComma();
@@ -1569,7 +1569,7 @@ export class Enforester {
       properties = properties.concat(prop);
 
       if (lastProp === prop) {
-        throw enf.createError(prop, "invalid syntax in object");
+        throw enf.createError(prop, 'invalid syntax in object');
       }
       lastProp = prop;
     }
@@ -1692,7 +1692,7 @@ export class Enforester {
     let fnKeyword = this.matchRawSyntax();
     let lookahead = this.peek();
 
-    if (this.isPunctuator(lookahead, "*")) {
+    if (this.isPunctuator(lookahead, '*')) {
       isGenerator = true;
       this.advance();
       lookahead = this.peek();
@@ -1842,7 +1842,7 @@ export class Enforester {
     let elements = lookahead.token.items.map(it => {
       if (this.isDelimiter(it)) {
         let enf = new Enforester(it.inner.slice(1, it.inner.size - 1), List(), this.context);
-        return enf.enforest("expression");
+        return enf.enforest('expression');
       }
       return new T.TemplateElement({
         rawValue: it.slice.text
@@ -1859,11 +1859,11 @@ export class Enforester {
       let syntaxTransform = this.getFromCompiletimeEnvironment(name);
       if (syntaxTransform == null) {
         throw this.createError(name, `The macro ${name.resolve(this.context.phase)} does not have a bound value`);
-      } else if (typeof syntaxTransform.value !== "function") {
+      } else if (typeof syntaxTransform.value !== 'function') {
         throw this.createError(name, `The macro ${name.resolve(this.context.phase)} was not bound to a callable value: ${syntaxTransform.value}`);
       }
-      let useSiteScope = freshScope("u");
-      let introducedScope = freshScope("i");
+      let useSiteScope = freshScope('u');
+      let introducedScope = freshScope('i');
       // TODO: needs to be a list of scopes I think
       this.context.useScope = useSiteScope;
 
@@ -1871,7 +1871,7 @@ export class Enforester {
 
       let result = sanitizeReplacementValues(syntaxTransform.value.call(null, ctx));
       if (!List.isList(result)) {
-        throw this.createError(name, "macro must return a list but got: " + result);
+        throw this.createError(name, 'macro must return a list but got: ' + result);
       }
       let scopeReducer = new ScopeReducer([{scope: introducedScope, phase: ALL_PHASES, flip: true}], this.context.bindings, true);
       result = result.map(terms => {
@@ -1893,7 +1893,7 @@ export class Enforester {
   consumeSemicolon() {
     let lookahead = this.peek();
 
-    if (lookahead && this.isPunctuator(lookahead, ";")) {
+    if (lookahead && this.isPunctuator(lookahead, ';')) {
       this.advance();
     }
   }
@@ -2146,7 +2146,7 @@ export class Enforester {
     if (this.isIdentifier(lookahead, val)) {
       return this.matchRawSyntax();
     }
-    throw this.createError(lookahead, "expecting an identifier");
+    throw this.createError(lookahead, 'expecting an identifier');
   }
 
   matchKeyword(val: string) {
@@ -2167,7 +2167,7 @@ export class Enforester {
         this.isRegularExpression(lookahead)) {
       return this.matchRawSyntax();
     }
-    throw this.createError(lookahead, "expecting a literal");
+    throw this.createError(lookahead, 'expecting a literal');
   }
 
   matchStringLiteral() {
@@ -2192,7 +2192,7 @@ export class Enforester {
       let inner = this.matchRawDelimiter();
       return inner.slice(1, inner.size - 1);
     }
-    throw this.createError(lookahead, "expecting parens");
+    throw this.createError(lookahead, 'expecting parens');
   }
 
   matchCurlies() {
@@ -2201,7 +2201,7 @@ export class Enforester {
       let inner = this.matchRawDelimiter();
       return inner.slice(1, inner.size - 1);
     }
-    throw this.createError(lookahead, "expecting curly braces");
+    throw this.createError(lookahead, 'expecting curly braces');
   }
 
   matchSquares(): List<T.SyntaxTerm> {
@@ -2210,7 +2210,7 @@ export class Enforester {
       let inner = this.matchRawDelimiter();
       return inner.slice(1, inner.size - 1);
     }
-    throw this.createError(lookahead, "expecting square braces");
+    throw this.createError(lookahead, 'expecting square braces');
   }
 
   matchUnaryOperator() {
@@ -2218,7 +2218,7 @@ export class Enforester {
     if (isUnaryOperator(lookahead)) {
       return lookahead;
     }
-    throw this.createError(lookahead, "expecting a unary operator");
+    throw this.createError(lookahead, 'expecting a unary operator');
   }
 
   matchPunctuator(val: string) {
@@ -2229,16 +2229,16 @@ export class Enforester {
           return lookahead;
         } else {
           throw this.createError(lookahead,
-            "expecting a " + val + " punctuator");
+            'expecting a ' + val + ' punctuator');
         }
       }
       return lookahead;
     }
-    throw this.createError(lookahead, "expecting a punctuator");
+    throw this.createError(lookahead, 'expecting a punctuator');
   }
 
   createError(stx: Syntax | Term, message: string) {
-    let ctx = "";
+    let ctx = '';
     let offending = stx;
     if (this.rest.size > 0) {
       ctx = this.rest.slice(0, 20).map(term => {
@@ -2249,14 +2249,14 @@ export class Enforester {
       }).flatten().map(s => {
         let sval = s instanceof T.RawSyntax ? s.value.val() : s.toString();
         if (s === offending) {
-          return "__" + sval + "__";
+          return '__' + sval + '__';
         }
         return sval;
-      }).join(" ");
+      }).join(' ');
     } else {
       ctx = offending.toString();
     }
-    return new Error(message + "\n" + ctx);
+    return new Error(message + '\n' + ctx);
 
   }
 }

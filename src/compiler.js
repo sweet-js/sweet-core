@@ -1,4 +1,4 @@
-import TermExpander from "./term-expander.js";
+import TermExpander from './term-expander.js';
 import TokenExpander from './token-expander';
 import * as _ from 'ramda';
 

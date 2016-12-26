@@ -65,7 +65,7 @@ function isValidKey(key) {
 // }
 
 function isValidAction(action) {
-  return typeof action === "function";
+  return typeof action === 'function';
 }
 
 type ReadtableKey = string | number | null;

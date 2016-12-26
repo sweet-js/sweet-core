@@ -1,16 +1,15 @@
 // @flow
 import read from './reader/token-reader';
-import { Scope, freshScope } from './scope';
+import { freshScope } from './scope';
 import Env from './env';
 import Store from './store';
 import { List } from 'immutable';
 import Compiler from './compiler';
 import { ALL_PHASES } from './syntax';
 import BindingMap from './binding-map.js';
-import Term, * as S from 'sweet-spec';
+import Term from 'sweet-spec';
 import SweetModule from './sweet-module';
 import * as _ from 'ramda';
-import Syntax from './syntax';
 import ScopeReducer from './scope-reducer';
 import { wrapInTerms } from './macro-context';
 import { transform as babel } from 'babel-core';

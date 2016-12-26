@@ -4,7 +4,7 @@ import Reader, { getCurrentReadtable, setCurrentReadtable } from './reader';
 import defaultReadtable from './default-readtable';
 import { List } from 'immutable';
 import CharStream, { isEOS } from './char-stream';
-import { TokenType, EmptyToken } from '../tokens';
+import { EmptyToken } from '../tokens';
 import Syntax from '../syntax';
 
 import type { StartLocation, Slice } from '../tokens';
@@ -69,8 +69,8 @@ class TokenReader extends Reader {
 
   createILLEGAL(char) {
     return !isEOS(char)
-      ? this.createError("Unexpected {0}", char)
-    : this.createError("Unexpected end of input");
+      ? this.createError('Unexpected {0}', char)
+    : this.createError('Unexpected end of input');
   }
 
   readToken(stream: CharStream, prefix: List<Syntax>, exprAllowed: boolean): Syntax {

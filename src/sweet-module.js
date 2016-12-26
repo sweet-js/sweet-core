@@ -1,5 +1,5 @@
 // @flow
-import * as _ from "ramda";
+import * as _ from 'ramda';
 import Term, * as S from 'sweet-spec';
 import codegen from './codegen';
 import { List } from 'immutable';

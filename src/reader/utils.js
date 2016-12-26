@@ -11,7 +11,6 @@ const { isLineTerminator,
         isIdentifierPartES6: isIdentifierPart,
         isIdentifierStartES6: isIdentifierStart } = code;
 
-import { TokenClass, TokenType } from '../tokens';
 import * as R from 'ramda';
 import { Maybe } from 'ramda-fantasy';
 const Just = Maybe.Just;
@@ -26,13 +25,13 @@ const literalKeywords = ['this', 'null', 'true', 'false'];
 export { isLineTerminator, isWhiteSpace, isDecimalDigit, isIdentifierStart, isIdentifierPart };
 
 export function getHexValue(rune: string) {
-  if ("0" <= rune && rune <= "9") {
+  if ('0' <= rune && rune <= '9') {
     return rune.charCodeAt(0) - 48;
   }
-  if ("a" <= rune && rune <= "f") {
+  if ('a' <= rune && rune <= 'f') {
     return rune.charCodeAt(0) - 87;
   }
-  if ("A" <= rune && rune <= "F") {
+  if ('A' <= rune && rune <= 'F') {
     return rune.charCodeAt(0) - 55;
   }
   return -1;
@@ -109,7 +108,7 @@ export function readStringEscape(str: string, stream: CharStream, start: number,
       case 'n': str += '\n'; ++idx; break;
       case 'r': str += '\r'; ++idx; break;
       case 't': str += '\t'; ++idx; break;
-      case 'v': str += "\u000B"; ++idx; break;
+      case 'v': str += '\u000B'; ++idx; break;
       case 'u':
       case 'x': {
         let unescaped;
@@ -157,7 +156,6 @@ function scanOctal(str, stream, char, start, octal) {
   while (len < 3 && '0' <= char && char <= '7') {
     ++idx;
     if (len > 0 || char !== '0') {
-      let octalCount = idx - start;
       if (octal == null) octal = '';
       octal += char;
     }
@@ -212,56 +210,28 @@ export function retrieveSequenceLength(table: Object, stream: CharStream, idx: n
   }
 }
 
-// Token -> Boolean
-const isLeftBracket  = R.whereEq({ type: TokenType.LBRACK });
-const isLeftBrace    = R.whereEq({ type: TokenType.LBRACE });
-const isLeftParen    = R.whereEq({ type: TokenType.LPAREN });
-const isRightBracket = R.whereEq({ type: TokenType.RBRACK });
-const isRightBrace   = R.whereEq({ type: TokenType.RBRACE });
-const isRightParen   = R.whereEq({ type: TokenType.RPAREN });
-
 // const isEOS = R.whereEq({ type: TokenType.EOS });
 
 // const isHash = R.whereEq({ type: TokenType.IDENTIFIER, value: '#'});
-const isLeftSyntax = R.whereEq({ type: LSYNTAX });
-const isRightSyntax = R.whereEq({ type: RSYNTAX });
 
-const isLeftDelimiter = R.anyPass([isLeftBracket,
-                                   isLeftBrace,
-                                   isLeftParen,
-                                   isLeftSyntax]);
+const assignOps =  ['=', '+=', '-=', '*=', '/=', '%=', '<<=', '>>=', '>>>=',
+                  '&=', '|=', '^=', ','];
 
-const isRightDelimiter = R.anyPass([isRightBracket,
-                                    isRightBrace,
-                                    isRightParen,
-                                    isRightSyntax]);
+const binaryOps = ['+', '-', '*', '/', '%','<<', '>>', '>>>', '&', '|', '^',
+                 '&&', '||', '?', ':',
+                 '===', '==', '>=', '<=', '<', '>', '!=', '!==', 'instanceof'];
 
-const isMatchingDelimiters = R.cond([
-  [isLeftBracket, (_, b) => isRightBracket(b)],
-  [isLeftBrace, (_, b) => isRightBrace(b)],
-  [isLeftParen, (_, b) => isRightParen(b)],
-  [isLeftSyntax, (_, b) => isRightSyntax(b)],
-  [R.T, R.F]
-]);
-
-const assignOps =  ["=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", ">>>=",
-                  "&=", "|=", "^=", ","];
-
-const binaryOps = ["+", "-", "*", "/", "%","<<", ">>", ">>>", "&", "|", "^",
-                 "&&", "||", "?", ":",
-                 "===", "==", ">=", "<=", "<", ">", "!=", "!==", "instanceof"];
-
-const unaryOps = ["++", "--", "~", "!", "delete", "void", "typeof", "yield", "throw", "new"];
+const unaryOps = ['++', '--', '~', '!', 'delete', 'void', 'typeof', 'yield', 'throw', 'new'];
 
 // List -> Boolean
 const isEmpty = R.whereEq({size: 0});
 
 // Syntax -> Boolean
-const isPunctuator = s => s.match("punctuator");
-const isKeyword = s => s.match("keyword");
-const isParens = s => s.match("parens");
-const isBraces = s => s.match("braces");
-const isIdentifier = s => s.match("identifier");
+const isPunctuator = s => s.match('punctuator');
+const isKeyword = s => s.match('keyword');
+const isParens = s => s.match('parens');
+const isBraces = s => s.match('braces');
+const isIdentifier = s => s.match('identifier');
 
 // Any -> Syntax -> Boolean
 const isVal = R.curry((v, s) => s.val() === v);
@@ -270,7 +240,7 @@ const isVal = R.curry((v, s) => s.val() === v);
 const isDot = R.allPass([isPunctuator, isVal('.')]);
 const isColon = R.allPass([isPunctuator, isVal(':')]);
 const isFunctionKeyword = R.allPass([isKeyword, isVal('function')]);
-const isOperator = s => (s.match("punctuator") || s.match("keyword")) &&
+const isOperator = s => (s.match('punctuator') || s.match('keyword')) &&
                           R.any(R.equals(s.val()),
                                 assignOps.concat(binaryOps).concat(unaryOps));
 const isNonLiteralKeyword = R.allPass([isKeyword,
@@ -313,7 +283,7 @@ let isExprReturn = R.curry((l, p) => {
     return true;
   }
   return retKwd.map(s => {
-    return s.match("keyword") && s.val() === 'return' && s.lineNumber() === l;
+    return s.match('keyword') && s.val() === 'return' && s.lineNumber() === l;
   }).getOrElse(false);
 });
 
@@ -362,7 +332,7 @@ let opt = R.curry((a, b, p) => {
 let notDot = R.ifElse(
   R.whereEq({size: 0}),
   Just,
-  p => safeLast(p).map(s => !(s.match("punctuator") && s.val() === '.')).chain(stuffTrue(p))
+  p => safeLast(p).map(s => !(s.match('punctuator') && s.val() === '.')).chain(stuffTrue(p))
 );
 
 // List a -> Maybe List a
@@ -447,7 +417,3 @@ export const isRegexPrefix = (exprAllowed: boolean) => R.anyPass([
 
 
 ]);
-
-function lastEl(l) {
-  return l[l.length - 1];
-}
