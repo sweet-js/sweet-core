@@ -27,7 +27,7 @@
     "prebuild": "mkdir -p build/test build/sweet dist/",
     "build:src": "babel --out-dir build/src src",
     "build:browser": "webpack build/src/sweet.js --output-library-target amd --output-library sweet",
-    "build": "npm run build:src && npm run build:browser",
+    "build": "npm run build:src",
     "preprofile": "npm run build",
     "profile": "node --prof profile.js && node --prof-process *v8.log > v8-processed.log && rm *v8.log",
     "pretest": "npm run lint",
