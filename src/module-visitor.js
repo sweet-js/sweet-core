@@ -1,7 +1,7 @@
 // @flow
-import { expandCompiletime, evalCompiletimeValue, evalRuntimeValues } from './load-syntax';
-import * as T from "./terms";
-import * as _ from "ramda";
+import { evalCompiletimeValue, evalRuntimeValues } from './load-syntax';
+import * as T from './terms';
+import * as _ from 'ramda';
 import * as S from 'sweet-spec';
 import { gensym } from './symbol';
 import { VarBindingTransform, CompiletimeTransform } from './transforms';

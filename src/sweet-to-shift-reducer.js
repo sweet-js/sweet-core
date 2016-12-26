@@ -79,7 +79,7 @@ export default class extends Term.CloneReducer {
     });
   }
 
-  reduceImport(t, s) {
+  reduceImport() {
     return new S.EmptyStatement({});
   }
 

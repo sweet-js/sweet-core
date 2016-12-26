@@ -11,10 +11,15 @@
   "parserOptions": {
     "sourceType": "module"
   },
-  "extends": "plugin:flowtype/recommended",
+  "extends": [
+    "eslint:recommended",
+    "plugin:flowtype/recommended"
+  ],
   "rules": {
     "no-constant-condition": ["error", { "checkLoops": false }],
     "comma-dangle": ["error", "only-multiline" ],
-    "no-console": ["warn"]
+    "no-console": ["warn"],
+    "no-unused-vars": ["error", { "args": "none"}],
+    "quotes": ["error", "single", { "allowTemplateLiterals": true}]
   }
 }

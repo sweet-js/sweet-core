@@ -30,6 +30,7 @@
     "build": "npm run build:src && npm run build:browser",
     "preprofile": "npm run build",
     "profile": "node --prof profile.js && node --prof-process *v8.log > v8-processed.log && rm *v8.log",
+    "pretest": "npm run lint",
     "test": "ava",
     "report": "nyc ava && nyc report--reporter=html",
     "docs": "asciidoctorjs doc/1.0/tutorial.adoc & asciidoctorjs doc/1.0/reference.adoc",

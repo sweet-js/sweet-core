@@ -10,59 +10,59 @@ const unaryOperators = {
   'delete': true,
 };
 const binaryOperatorPrecedence = {
-  "*": 13,
-  "/": 13,
-  "%": 13,
-  "+": 12,
-  "-": 12,
-  ">>": 11,
-  "<<": 11,
-  ">>>": 11,
-  "<": 10,
-  "<=": 10,
-  ">": 10,
-  ">=": 10,
-  "in": 10,
-  "instanceof": 10,
-  "==": 9,
-  "!=": 9,
-  "===": 9,
-  "!==": 9,
-  "&": 8,
-  "^": 7,
-  "|": 6,
-  "&&": 5,
-  "||": 4,
+  '*': 13,
+  '/': 13,
+  '%': 13,
+  '+': 12,
+  '-': 12,
+  '>>': 11,
+  '<<': 11,
+  '>>>': 11,
+  '<': 10,
+  '<=': 10,
+  '>': 10,
+  '>=': 10,
+  'in': 10,
+  'instanceof': 10,
+  '==': 9,
+  '!=': 9,
+  '===': 9,
+  '!==': 9,
+  '&': 8,
+  '^': 7,
+  '|': 6,
+  '&&': 5,
+  '||': 4,
 };
 
 var operatorAssoc = {
-  "*": "left",
-  "/": "left",
-  "%": "left",
-  "+": "left",
-  "-": "left",
-  ">>": "left",
-  "<<": "left",
-  ">>>": "left",
-  "<": "left",
-  "<=": "left",
-  ">": "left",
-  ">=": "left",
-  "in": "left",
-  "instanceof": "left",
-  "==": "left",
-  "!=": "left",
-  "===": "left",
-  "!==": "left",
-  "&": "left",
-  "^": "left",
-  "|": "left",
-  "&&": "left",
-  "||": "left",
+  '*': 'left',
+  '/': 'left',
+  '%': 'left',
+  '+': 'left',
+  '-': 'left',
+  '>>': 'left',
+  '<<': 'left',
+  '>>>': 'left',
+  '<': 'left',
+  '<=': 'left',
+  '>': 'left',
+  '>=': 'left',
+  'in': 'left',
+  'instanceof': 'left',
+  '==': 'left',
+  '!=': 'left',
+  '===': 'left',
+  '!==': 'left',
+  '&': 'left',
+  '^': 'left',
+  '|': 'left',
+  '&&': 'left',
+  '||': 'left',
 };
 
 export function operatorLt(left, right, assoc) {
-  if (assoc === "left") {
+  if (assoc === 'left') {
     return left < right;
   } else {
     return left <= right;
@@ -77,12 +77,12 @@ export function getOperatorAssoc(op) {
 }
 
 export function isUnaryOperator(op) {
-  return (op.match("punctuator") || op.match("identifier") || op.match("keyword")) &&
+  return (op.match('punctuator') || op.match('identifier') || op.match('keyword')) &&
         unaryOperators.hasOwnProperty(op.val());
 }
 
 export function isOperator(op) {
-  if (op.match("punctuator") || op.match("identifier") || op.match("keyword")) {
+  if (op.match('punctuator') || op.match('identifier') || op.match('keyword')) {
     return binaryOperatorPrecedence.hasOwnProperty(op) || unaryOperators.hasOwnProperty(op.val());
   }
   return false;

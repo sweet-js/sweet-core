@@ -5,8 +5,6 @@ import { scanUnicode } from './utils';
 import { isEOS } from './char-stream';
 import type CharStream from './char-stream';
 
-import { code } from 'esutils';
-
 import { IdentifierToken } from '../tokens';
 
 import { isIdentifierPart, isIdentifierStart } from './utils';

@@ -1,5 +1,5 @@
 // @flow
-import { load, makeLoader } from './sweet-loader';
+import { makeLoader } from './sweet-loader';
 import { transform as babel } from 'babel-core';
 
 type CompileOptions = {

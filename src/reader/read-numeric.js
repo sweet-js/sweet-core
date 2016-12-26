@@ -88,9 +88,9 @@ function readLegacyOctalLiteral(stream) {
 
 
   while (!isEOS(char)) {
-    if ("0" <= char && char <= "7") {
+    if ('0' <= char && char <= '7') {
       idx++;
-    } else if (char === "8" || char === "9") {
+    } else if (char === '8' || char === '9') {
       isOctal = false;
       idx++;
     } else if (isIdentifierPart(char.charCodeAt(0))) {
@@ -118,7 +118,7 @@ function readLegacyOctalLiteral(stream) {
 function readOctalLiteral(stream) {
   let start, idx = start = 2, char = stream.peek(idx);
   while (!isEOS(char)) {
-    if ("0" <= char && char <= "7") {
+    if ('0' <= char && char <= '7') {
       char = stream.peek(++idx);
     } else if (isIdentifierPart(char.charCodeAt(0))) {
       throw this.createILLEGAL(char);
@@ -141,7 +141,7 @@ function readBinaryLiteral(stream) {
   let char = stream.peek(idx);
 
   while(!isEOS(char)) {
-    if (char !== "0" && char !== "1") {
+    if (char !== '0' && char !== '1') {
       break;
     }
     char = stream.peek(idx);

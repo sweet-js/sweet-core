@@ -1,6 +1,6 @@
 // @flow
-import { List } from "immutable";
-import { assert } from "./errors";
+import { List } from 'immutable';
+import { assert } from './errors';
 import { Maybe } from 'ramda-fantasy';
 import type { SymbolClass } from './symbol';
 import Syntax from './syntax';
@@ -28,7 +28,7 @@ export default class BindingMap {
     let allScopeset = stx.scopesets.all;
     let scopeset = stx.scopesets.phase.has(phase) ? stx.scopesets.phase.get(phase) : List();
     scopeset = allScopeset.concat(scopeset);
-    assert(phase != null, "must provide a phase for binding add");
+    assert(phase != null, 'must provide a phase for binding add');
 
     let scopesetBindingList = this._map.get(stxName);
     if (scopesetBindingList) {
@@ -54,7 +54,7 @@ export default class BindingMap {
     let allScopeset = stx.scopesets.all;
     let scopeset = stx.scopesets.phase.has(phase) ? stx.scopesets.phase.get(phase) : List();
     scopeset = allScopeset.concat(scopeset);
-    assert(phase != null, "must provide a phase for binding add");
+    assert(phase != null, 'must provide a phase for binding add');
 
     let scopesetBindingList = this._map.get(stxName);
     if (scopesetBindingList) {

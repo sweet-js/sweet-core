@@ -21,7 +21,7 @@ Requires either lookahead/lookbehind of one (to see the $).
 
 const isDolar = (s: T.SyntaxTerm) => (s instanceof T.RawSyntax) &&
                                       typeof s.value.match === 'function' &&
-                                      s.value.match("identifier") &&
+                                      s.value.match('identifier') &&
                                       s.value.val() === '$';
 const isDelimiter = (s: T.SyntaxTerm) => (s instanceof T.RawDelimiter);
 const isBraces    = (s: T.SyntaxTerm) => (s instanceof T.RawDelimiter) && s.kind === 'braces';
@@ -39,8 +39,8 @@ const mkDelimiter = (kind: DelimKind, inner: List<T.SyntaxTerm>, from: T.RawDeli
 
 const insertIntoDelimiter = _.cond([
   [isBraces, (s, r) => mkDelimiter('braces', r, s)],
-  [isParens, (s, r) => mkDelimiter("parens", r, s)],
-  [isBrackets, (s, r) => mkDelimiter("brackets", r, s)]
+  [isParens, (s, r) => mkDelimiter('parens', r, s)],
+  [isBrackets, (s, r) => mkDelimiter('brackets', r, s)]
 ]);
 
 const process = (acc: { template: List<T.SyntaxTerm>, interp: List<List<T.SyntaxTerm>> }, s: T.SyntaxTerm) => {
@@ -100,7 +100,7 @@ const replace = (acc: { template: List<T.SyntaxTerm>, rep: List<T.Term | List<T.
   let beforeLast = acc.template.get(-2);
   if (isBraces(s) && isDolar(last)) {
     let index = s.inner.get(1).value.val();
-    assert(acc.rep.size > index, "unknown replacement value");
+    assert(acc.rep.size > index, 'unknown replacement value');
     // TODO: figure out holistic solution to line nubmers and ASI
     let replacement = cloneLineNumber(acc.rep.get(index), beforeLast);
     // let replacement = acc.rep.get(index);
