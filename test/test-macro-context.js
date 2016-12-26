@@ -62,30 +62,6 @@ test('a wrapper should work with regular expressions', t => {
   t.false(wrap.isRegularExpression('foo'));
 });
 
-test('a wrapper should work with braces', t => {
-  let val = Syntax.fromBraces(List.of(Syntax.fromIdentifier('foo')));
-  let wrap = new SyntaxOrTermWrapper(val);
-  t.true(wrap.isBraces());
-  t.true(wrap.isDelimiter());
-  t.true(null === wrap.val());
-});
-
-test('a wrapper should work with brackets', t => {
-  let val = Syntax.fromBrackets(List.of(Syntax.fromIdentifier('foo')));
-  let wrap = new SyntaxOrTermWrapper(val);
-  t.true(wrap.isBrackets());
-  t.true(wrap.isDelimiter());
-  t.true(null === wrap.val());
-});
-
-test('a wrapper should work with parens', t => {
-  let val = Syntax.fromParens(List.of(Syntax.fromIdentifier('foo')));
-  let wrap = new SyntaxOrTermWrapper(val);
-  t.true(wrap.isParens());
-  t.true(wrap.isDelimiter());
-  t.true(null === wrap.val());
-});
-
 test.skip('a wrapper should work with an inner iterator', t => {
   let val = Syntax.fromParens(List.of(Syntax.fromIdentifier('foo'), Syntax.fromIdentifier('bar')));
   let wrap = new SyntaxOrTermWrapper(val);

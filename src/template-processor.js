@@ -3,6 +3,7 @@ import { List } from 'immutable';
 import _ from 'ramda';
 import { assert } from './errors';
 import * as T from 'sweet-spec';
+import Syntax from './syntax';
 
 /*
 Given a syntax list like:
@@ -45,9 +46,10 @@ const insertIntoDelimiter = _.cond([
 
 const process = (acc: { template: List<T.SyntaxTerm>, interp: List<List<T.SyntaxTerm>> }, s: T.SyntaxTerm) => {
   if (isBraces(s) && isDolar(acc.template.last())) {
+    let idx = Syntax.fromNumber(acc.interp.size, s.inner.first().value);
     return {
       template: acc.template.push(mkDelimiter('braces', List.of(new T.RawSyntax({
-        value: s.inner.first().value.fromNumber(acc.interp.size)
+        value: idx
       })), s)),
       interp: acc.interp.push(s.inner.slice(1, s.inner.size - 1))
     };

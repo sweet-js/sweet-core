@@ -10,6 +10,7 @@ import ASTDispatcher from './ast-dispatcher';
 import ScopeReducer from './scope-reducer';
 import { gensym } from './symbol';
 import { VarBindingTransform } from './transforms';
+import Syntax from './syntax';
 
 export default class TermExpander extends ASTDispatcher {
   constructor(context) {
@@ -319,9 +320,9 @@ export default class TermExpander extends ASTDispatcher {
     let r = processTemplate(term.template.slice(1, term.template.size - 1));
     let ident = this.context.getTemplateIdentifier();
     this.context.templateMap.set(ident, r.template);
-
+    let name = Syntax.fromIdentifier('syntaxTemplate', term.template.first().value);
     let callee = new T.IdentifierExpression({
-      name: term.template.first().value.fromIdentifier('syntaxTemplate')
+      name: name
     });
 
     let expandedInterps = r.interp.map(i => {
