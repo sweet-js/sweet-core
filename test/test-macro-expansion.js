@@ -223,3 +223,11 @@ test('should handle macros in blocks', evalWithOutput, `
   output = m
 }
 `, 1);
+
+test('should construct syntax from arguments', evalWithOutput, `
+syntax m = ctx => {
+  let arg = ctx.next().value;
+  let stx = arg.fromNumber(1);
+  return #\`\${stx}\`;
+}
+output = m 1`, 1)
