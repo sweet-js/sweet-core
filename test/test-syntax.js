@@ -1,11 +1,9 @@
-import Syntax from "../src/syntax";
-import expect from "expect.js";
-import { Scope, freshScope } from "../src/scope";
-import BindingMap from "../src/binding-map";
+import Syntax from '../src/syntax';
+import expect from 'expect.js';
+import { freshScope } from '../src/scope';
+import BindingMap from '../src/binding-map';
 
-import read from "../src/reader/token-reader";
-
-import { Symbol, gensym } from "../src/symbol";
+import { gensym } from '../src/symbol';
 import test from 'ava';
 
 
@@ -16,7 +14,7 @@ test('that have no bindings or scopes should resolve to their original name ', (
 
 test('where one identifier has a scope and associated binding and the other does not will resolve to different names', () => {
     let bindings = new BindingMap();
-    let scope1 = freshScope("1");
+    let scope1 = freshScope('1');
 
     let foo = Syntax.fromIdentifier('foo');
     let foo_1 = Syntax.fromIdentifier('foo');
@@ -30,8 +28,8 @@ test('where one identifier has a scope and associated binding and the other does
 
 test('resolve to different bindings when both identifiers have a binding on a different scope', () => {
     let bindings = new BindingMap();
-    let scope1 = freshScope("1");
-    let scope2 = freshScope("2");
+    let scope1 = freshScope('1');
+    let scope2 = freshScope('2');
 
     let foo_1 = Syntax.fromIdentifier('foo');
     let foo_2 = Syntax.fromIdentifier('foo');
@@ -47,9 +45,9 @@ test('resolve to different bindings when both identifiers have a binding on a di
 
 test('should resolve when syntax object has a scopeset that is a superset of the binding', () => {
     let bindings = new BindingMap();
-    let scope1 = freshScope("1");
-    let scope2 = freshScope("2");
-    let scope3 = freshScope("3");
+    let scope1 = freshScope('1');
+    let scope2 = freshScope('2');
+    let scope3 = freshScope('3');
 
     let foo_1 = Syntax.fromIdentifier('foo');
     let foo_123 = Syntax.fromIdentifier('foo');
@@ -67,9 +65,9 @@ test('should resolve when syntax object has a scopeset that is a superset of the
 
 test('should throw an error for ambiguous scops sets', () => {
   let bindings = new BindingMap();
-  let scope1 = freshScope("1");
-  let scope2 = freshScope("2");
-  let scope3 = freshScope("3");
+  let scope1 = freshScope('1');
+  let scope2 = freshScope('2');
+  let scope3 = freshScope('3');
 
   let foo_13 = Syntax.fromIdentifier('foo');
   let foo_12 = Syntax.fromIdentifier('foo');
@@ -98,15 +96,15 @@ test('should make a number syntax object', () => {
 });
 
 test('should make an identifier syntax object', () => {
-  let s = Syntax.fromIdentifier("foo");
+  let s = Syntax.fromIdentifier('foo');
 
-  expect(s.val()).to.be("foo");
-  expect(s.resolve(0)).to.be("foo");
+  expect(s.val()).to.be('foo');
+  expect(s.resolve(0)).to.be('foo');
 });
 
 test('should make an identifier syntax object with another identifier as the context', () => {
   let bindings = new BindingMap();
-  let scope1 = freshScope("1");
+  let scope1 = freshScope('1');
 
   let foo = Syntax.fromIdentifier('foo').addScope(scope1, bindings, 0);
   bindings.add(foo, { binding: gensym('foo'), phase: 0});

@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import compile, { load, SweetLoader } from '../src/sweet-loader';
+import { SweetLoader } from '../src/sweet-loader';
 import { evalWithOutput } from './assertions';
 
 // SweetLoader unit tests

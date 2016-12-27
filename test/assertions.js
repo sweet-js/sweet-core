@@ -1,7 +1,7 @@
-import read from "../src/reader/token-reader";
+import read from '../src/reader/token-reader';
 import { compile } from '../src/sweet';
-import { Enforester } from "../src/enforester";
-import { List } from "immutable";
+import { Enforester } from '../src/enforester';
+import { List } from 'immutable';
 
 export const stmt = x => x.items[0];
 export const expr = x => stmt(x).expression;

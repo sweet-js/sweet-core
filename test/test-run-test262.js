@@ -6,7 +6,7 @@ import { compile } from '../src/sweet.js';
 const PARSER_TEST_DIR = './test/test262-parser-tests';
 
 let pass = fs.readdirSync(`${PARSER_TEST_DIR}/pass`);
-let fail = fs.readdirSync(`${PARSER_TEST_DIR}/fail`);
+let fail = fs.readdirSync(`${PARSER_TEST_DIR}/fail`); // eslint-disable-line no-unused-vars
 
 // TODO: make these pass
 const passExcluded = [

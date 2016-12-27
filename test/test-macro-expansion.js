@@ -1,32 +1,32 @@
 import test from 'ava';
 
-import { evalWithOutput, evalThrows } from "./assertions";
+import { evalWithOutput, evalThrows } from './assertions';
 
-test("should handle basic expansion at a statement expression position", evalWithOutput, `
+test('should handle basic expansion at a statement expression position', evalWithOutput, `
 syntaxrec m = function(ctx) {
   return #\`200\`;
 }
 output = m`,  200);
 
-test("should handle basic expansion with an arrow transformer", evalWithOutput, `
+test('should handle basic expansion with an arrow transformer', evalWithOutput, `
 syntaxrec m = ctx => #\`200\`
 output = m`, 200);
 
-test("should handle basic expansion at an expression position", evalWithOutput, `
+test('should handle basic expansion at an expression position', evalWithOutput, `
 syntaxrec m = function (ctx) {
   return #\`200\`;
 }
 let v = m;
 output = v;`, 200);
 
-test("should handle expansion where an argument is eaten", evalWithOutput, `
+test('should handle expansion where an argument is eaten', evalWithOutput, `
 syntaxrec m = function(ctx) {
   ctx.next();
   return #\`200\`
 }
 output = m 42`, 200);
 
-test("should handle expansion that eats an expression", evalWithOutput, `
+test('should handle expansion that eats an expression', evalWithOutput, `
 syntaxrec m = function(ctx) {
   let term = ctx.expand('expr')
   return #\`200\`

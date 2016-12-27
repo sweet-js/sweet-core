@@ -1,4 +1,4 @@
-import { evalWithStore } from "./assertions";
+import { evalWithStore } from './assertions';
 import test from 'ava';
 
 test('should load a simple syntax transformer', evalWithStore, {
