@@ -1,8 +1,8 @@
 import test from 'ava';
 
-import { evalWithOutput, evalThrows } from "./assertions";
+import { evalWithOutput, evalThrows } from './assertions';
 
-test("should work with references to function expression parameters", evalWithOutput, `
+test('should work with references to function expression parameters', evalWithOutput, `
 output = function foo(x) {
    syntaxrec m = function (ctx) {
        return #\`x\`
@@ -12,7 +12,7 @@ output = function foo(x) {
    }(2);
 }(1);`, 1);
 
-test("should work with references to function declaration parameters", evalWithOutput, `
+test('should work with references to function declaration parameters', evalWithOutput, `
 function foo(x) {
    syntaxrec m = function (ctx) {
        return #\`x\`
@@ -24,7 +24,7 @@ function foo(x) {
 };
 output = foo(1)`,  1);
 
-test("should work with introduced var declarations", evalWithOutput, `
+test('should work with introduced var declarations', evalWithOutput, `
 syntaxrec m = function (ctx) {
   return #\`var x = 42;\`
 }

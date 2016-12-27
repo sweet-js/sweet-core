@@ -3,9 +3,6 @@ import MacroContext, { SyntaxOrTermWrapper } from '../src/macro-context';
 import Syntax from '../src/syntax';
 import { makeEnforester } from './assertions';
 import { List } from 'immutable';
-import { Maybe } from 'ramda-fantasy';
-const Just = Maybe.Just;
-const Nothing = Maybe.Nothing;
 
 test('a wrapper should work with keywords', t => {
   let kwd = Syntax.fromKeyword('foo');

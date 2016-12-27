@@ -2,7 +2,6 @@ import test from 'ava';
 import expect from 'expect.js';
 import { List } from 'immutable';
 
-import CharStream from '../src/reader/char-stream';
 import read from '../src/reader/token-reader';
 import { TokenType as TT, TokenClass as TC, EmptyToken } from '../src/tokens';
 import { LSYNTAX, RSYNTAX } from '../src/reader/utils';
@@ -144,11 +143,11 @@ test('should parse string literals', t => {
   }
 
   testParseStringLiteral('""', '');
-  testParseStringLiteral("'x'", 'x');
+  testParseStringLiteral('\'x\'', 'x');
   testParseStringLiteral('"x"', 'x');
-  testParseStringLiteral("'\\\\\\''", "\\'");
+  testParseStringLiteral('\'\\\\\\\'\'', '\\\'');
   testParseStringLiteral('"\\\\\\\""', '\\\"');
-  testParseStringLiteral("'\\\r'", '');
+  testParseStringLiteral('\'\\\r\'', '');
   testParseStringLiteral('"\\\r\n"', '');
   testParseStringLiteral('"\\\n"', '');
   testParseStringLiteral('"\\\u2028"', '');
@@ -297,7 +296,7 @@ test('should parse delimiters', t => {
 
     t.is(y.type, TT.STRING);
     t.is(y.str, 'bar');
-    t.is(y.slice.text, "'bar'");
+    t.is(y.slice.text, '\'bar\'');
 
     t.is(z.type, TT.RPAREN);
   });
@@ -372,7 +371,7 @@ test('should parse comments', t => {
   function testParseComment(source) {
     const result = read(source);
     t.true(result.isEmpty());
-  };
+  }
 
   testParseComment('// this is a single line comment\n // here\'s another');
   testParseComment('/* this is a block line comment */');
