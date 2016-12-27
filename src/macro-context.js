@@ -1,4 +1,4 @@
-import { assert, expect } from './errors';
+import { expect } from './errors';
 import { List } from 'immutable';
 import { Enforester } from './enforester';
 import { ALL_PHASES } from './syntax';
@@ -48,7 +48,6 @@ export class SyntaxOrTermWrapper {
 
   from(type, value) {
     let stx = this[symWrap];
-    assert(false, 'Need to wrap in RawSyntax');
     if (typeof stx.from === 'function') {
       return stx.from(type, value);
     }
