@@ -23,7 +23,7 @@
   },
   "scripts": {
     "clean": "rm -rf build",
-    "lint": "eslint src && flow",
+    "lint": "eslint src test && flow",
     "prebuild": "mkdir -p build/test build/sweet dist/",
     "build:src": "babel --out-dir build/src src",
     "build:browser": "webpack build/src/sweet.js --output-library-target amd --output-library sweet",
