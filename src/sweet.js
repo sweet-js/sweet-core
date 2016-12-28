@@ -1,30 +1,33 @@
 // @flow
-import { makeLoader } from './sweet-loader';
+import type SweetLoader from './sweet-loader';
 import { transform as babel } from 'babel-core';
 
 type CompileOptions = {
   refererName?: string;
   debugStore?: Map<string, string>;
   noBabel?: boolean;
+  loader: SweetLoader;
 }
 
-export function parse(entryPath: string, options?: CompileOptions) {
-  let debugStore, refererName;
+function compileModule(entryPath: string, loader: SweetLoader, refererName?: string) {
+  return loader.compile(entryPath, refererName);
+}
+
+export function parse(entryPath: string, loader: SweetLoader, options?: CompileOptions) {
+  let refererName;
   if (options != null) {
-    debugStore = options.debugStore;
     refererName = options.refererName; 
   }
-  return makeLoader(debugStore).compile(entryPath, refererName).parse();
+  return compileModule(entryPath, loader, refererName).parse();
 }
 
-export function compile(entryPath: string, options?: CompileOptions) {
-  let debugStore, refererName, noBabel = true;
+export function compile(entryPath: string, loader: SweetLoader, options?: CompileOptions) {
+  let refererName, noBabel = true;
   if (options != null) {
-    debugStore = options.debugStore;
     refererName = options.refererName; 
     noBabel = options.noBabel;
   }
-  let code = makeLoader(debugStore).compile(entryPath, refererName).codegen()
+  let code = compileModule(entryPath, loader, refererName).codegen()
   if (noBabel) {
     return {
       code

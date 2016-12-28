@@ -19,6 +19,7 @@ var path = require('path');
 var fs   = require('fs');
 var dir  = path.join(path.dirname(fs.realpathSync(__filename)), '../dist');
 var compile = require(dir + '/sweet.js').compile;
+var NodeLoader = require(dir + '/node-loader').default;
 var semver = require('semver');
 
 if (!semver.satisfies(process.version, '>=5.0.0')) {
@@ -26,10 +27,9 @@ if (!semver.satisfies(process.version, '>=5.0.0')) {
   process.exit(1);
 }
 
+var loader = new NodeLoader(path.join(path.dirname(fs.realpathSync(__filename)), '../'));
 argv._.forEach(function (file) {
-  var fdir = path.dirname(fs.realpathSync(file));
-  var output = compile(file, {
-    refererName: fdir,
+  var output = compile(file, loader, {
     noBabel: argv.noBabel
   }).code;
 

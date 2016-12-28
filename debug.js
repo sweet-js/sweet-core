@@ -10,8 +10,10 @@ process:
 
 require('babel-register');
 var compile = require('./src/sweet.js').compile;
+var NodeLoader = require('./src/node-loader').default;
+
 
 debugger;
 
-let result = compile('./test.js');
+let result = compile('./test.js', new NodeLoader(__dirname));
 console.log(result.code);
