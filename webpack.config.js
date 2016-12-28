@@ -1,5 +1,5 @@
 module.exports = {
-	entry: './build/src/sweet.js',
+	entry: './build/src/browser-sweet.js',
 	output: {
 		path: __dirname + '/browser/scripts',
 		library: "sweet",

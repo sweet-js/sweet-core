@@ -17,17 +17,15 @@
     }
   ],
   "browser": {
-    "babel-core": false,
-    "./build/src/node-module-loader.js": false,
-    "./build/src/node-module-resolver.js": false
+    "babel-core": false
   },
   "scripts": {
     "clean": "rm -rf build",
     "lint": "eslint src test && flow",
     "prebuild": "mkdir -p build/test build/sweet dist/",
     "build:src": "babel --out-dir build/src src",
-    "build:browser": "webpack build/src/sweet.js --output-library-target amd --output-library sweet",
-    "build": "npm run build:src",
+    "build:browser": "webpack build/src/browser-sweet.js --output-library-target amd --output-library sweet",
+    "build": "npm run build:src && npm run build:browser",
     "preprofile": "npm run build",
     "profile": "node --prof profile.js && node --prof-process *v8.log > v8-processed.log && rm *v8.log",
     "pretest": "npm run lint",
