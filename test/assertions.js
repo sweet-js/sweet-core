@@ -2,10 +2,12 @@ import read from '../src/reader/token-reader';
 import { compile } from '../src/sweet';
 import { Enforester } from '../src/enforester';
 import { List } from 'immutable';
+import StoreLoader from '../src/store-loader';
 
 export const stmt = x => x.items[0];
 export const expr = x => stmt(x).expression;
 export const items = x => x.items;
+
 
 export function makeEnforester(code) {
   let stxl = read(code);
@@ -17,7 +19,8 @@ export function testParseFailure() {
 }
 
 export function testEval(store, cb) {
-  let result = compile('main.js', { debugStore: store }).code;
+  let loader = new StoreLoader(__dirname, store);
+  let result = compile('main.js', loader).code;
 
   var output;
   try {

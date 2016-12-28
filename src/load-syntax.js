@@ -12,8 +12,6 @@ import { unwrap } from './macro-context';
 
 import { replaceTemplate } from './template-processor';
 
-import vm from 'vm';
-
 export function expandCompiletime(term, context) {
   // each compiletime value needs to be expanded with a fresh
   // environment and in the next higher phase
@@ -80,7 +78,8 @@ export function evalRuntimeValues(terms, context) {
   let exportsObj = {};
   context.store.set('exports', exportsObj);
 
-  vm.runInContext(result.code, context.store.getNodeContext());
+  context.loader.eval(result.code, context.store);
+  // vm.runInContext(result.code, context.store.getNodeContext());
   return exportsObj;
 }
 
@@ -124,6 +123,7 @@ export function evalCompiletimeValue(expr: S.Expression, context: any) {
   let gen = codegen(parsed, new FormattedCodeGen);
   let result = context.transform(gen);
 
-  let val = vm.runInContext(result.code, context.store.getNodeContext());
+  let val = context.loader.eval(result.code, context.store);
+  // let val = vm.runInContext(result.code, context.store.getNodeContext());
   return val.apply(undefined, sandboxVals);
 }

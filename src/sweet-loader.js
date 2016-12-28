@@ -2,7 +2,6 @@
 import read from './reader/token-reader';
 import { freshScope } from './scope';
 import Env from './env';
-import Store from './store';
 import { List } from 'immutable';
 import Compiler from './compiler';
 import { ALL_PHASES } from './syntax';
@@ -13,8 +12,9 @@ import * as _ from 'ramda';
 import ScopeReducer from './scope-reducer';
 import { wrapInTerms } from './macro-context';
 import { transform as babel } from 'babel-core';
+import Store from './store';
 
-const phaseInModulePathRegexp = /(.*):(\d+)\s*$/;
+export const phaseInModulePathRegexp = /(.*):(\d+)\s*$/;
 
 export type Context = {
   bindings: any;
@@ -24,14 +24,16 @@ export type Context = {
   transform: any;
 }
 
-export class SweetLoader {
+export default class SweetLoader {
   sourceCache: Map<string, string>;
   compiledCache: Map<string, SweetModule>;
   context: Context;
+  baseDir: string;
 
-  constructor() {
+  constructor(baseDir: string) {
     this.sourceCache = new Map();
     this.compiledCache = new Map();
+    this.baseDir = baseDir;
 
     let bindings = new BindingMap();
     let templateMap = new Map();
@@ -63,7 +65,6 @@ export class SweetLoader {
     // takes `/abs/path/to/source.js:<phase>`
     // gives { path: '/abs/path/to/source.js', phase: <phase> }
     let match = name.match(phaseInModulePathRegexp);
-    // console.log(match);
     if (match && match.length >= 3) {
       return {
         path: match[1],
@@ -74,14 +75,7 @@ export class SweetLoader {
   }
 
   fetch({name, address, metadata}: {name: string, address: {path: string, phase: number}, metadata: {}}) {
-    let src = this.sourceCache.get(address.path);
-    if (src != null) {
-      return src;
-    } else {
-      let data = require('fs').readFileSync(address.path, 'utf8');
-      this.sourceCache.set(address.path, data);
-      return data;
-    }
+    throw new Error('No default fetch defined');
   }
 
   translate({name, address, source, metadata}: {name: string, address: {path: string, phase: number}, source: string, metadata: {}}) {
@@ -96,6 +90,10 @@ export class SweetLoader {
 
   instantiate({name, address, source, metadata}: {name: string, address: {path: string, phase: number}, source: SweetModule, metadata: {}}) {
     throw new Error('Not implemented yet');
+  }
+
+  eval(source: string) {
+    return (0, eval)(source);
   }
 
   load(entryPath: string) {
@@ -124,12 +122,16 @@ export class SweetLoader {
     return wrapInTerms(read(source));
   }
 
+  freshStore() {
+    return new Store({});
+  }
+
   compileSource(source: string) {
     let stxl = this.read(source);
     let outScope = freshScope('outsideEdge');
     let inScope = freshScope('insideEdge0');
     // the compiler starts at phase 0, with an empty environment and store
-    let compiler = new Compiler(0, new Env(), new Store(),  _.merge(this.context, {
+    let compiler = new Compiler(0, new Env(), this.freshStore(),  _.merge(this.context, {
       currentScope: [outScope, inScope],
     }));
     return new SweetModule(compiler.compile(stxl.map(s => s.reduce(new ScopeReducer([
@@ -139,30 +141,3 @@ export class SweetLoader {
     ))));
   }
 }
-
-export function makeLoader(debugStore?: Map<string, string>) {
-  let l = new SweetLoader();
-  const store = debugStore;
-  if (store != null) {
-    // $FlowFixMe: it's fine
-    l.normalize = function normalize(name) {
-      if (!phaseInModulePathRegexp.test(name)) {
-        return `${name}:0`;
-      }
-      return name;
-    };
-    // $FlowFixMe: it's fine
-    l.fetch = function fetch({ name, address, metadata }) {
-      if (store.has(address.path)) {
-        return store.get(address.path);
-      }
-      throw new Error(`The module ${name} is not in the debug store: addr.path is ${address.path}`);
-    };
-  }
-  return l;
-}
-
-export function load(entryPath: string, debugStore: any) {
-  return makeLoader(debugStore).load(entryPath);
-}
-
