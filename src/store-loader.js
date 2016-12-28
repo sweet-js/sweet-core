@@ -7,8 +7,8 @@ import Store from './store';
 export default class extends SweetLoader {
   store: Map<string, string>;
 
-  constructor(baseDir: string, store: Map<string, string>) {
-    super(baseDir);
+  constructor(baseDir: string, store: Map<string, string>, noBabel: boolean = false) {
+    super(baseDir, noBabel);
     this.store = store;
   }
 

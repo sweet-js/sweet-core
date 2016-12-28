@@ -30,7 +30,7 @@ export default class SweetLoader {
   context: Context;
   baseDir: string;
 
-  constructor(baseDir: string) {
+  constructor(baseDir: string, noBabel: boolean = false) {
     this.sourceCache = new Map();
     this.compiledCache = new Map();
     this.baseDir = baseDir;
@@ -44,6 +44,11 @@ export default class SweetLoader {
       getTemplateIdentifier: () => ++tempIdent,
       loader: this,
       transform: c => {
+        if (noBabel) {
+          return {
+            code: c
+          };
+        }
         return babel(c, {
           babelrc: true
         });

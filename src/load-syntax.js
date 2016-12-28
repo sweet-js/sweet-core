@@ -79,7 +79,6 @@ export function evalRuntimeValues(terms, context) {
   context.store.set('exports', exportsObj);
 
   context.loader.eval(result.code, context.store);
-  // vm.runInContext(result.code, context.store.getNodeContext());
   return exportsObj;
 }
 
@@ -124,6 +123,5 @@ export function evalCompiletimeValue(expr: S.Expression, context: any) {
   let result = context.transform(gen);
 
   let val = context.loader.eval(result.code, context.store);
-  // let val = vm.runInContext(result.code, context.store.getNodeContext());
   return val.apply(undefined, sandboxVals);
 }
