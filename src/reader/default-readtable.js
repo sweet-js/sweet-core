@@ -1,7 +1,7 @@
 // @flow
 
 import { List } from 'immutable';
-import { EmptyReadtable } from './readtable';
+import { EmptyReadtable, TerminatingMacro, NonTerminatingMacro } from './readtable';
 import { getCurrentReadtable, setCurrentReadtable } from './reader';
 import readIdentifier from './read-identifier';
 import readNumericLiteral from './read-numeric';
@@ -38,6 +38,7 @@ function readPunctuator(stream) {
 
 const punctuatorEntries = Object.keys(punctuatorTable).map(p => ({
   key: p,
+  mode: TerminatingMacro,
   action: readPunctuator
 }));
 
@@ -47,6 +48,7 @@ const whiteSpaceTable = [0x20, 0x09, 0x0B, 0x0C, 0xA0, 0x1680, 0x2000, 0x2001, 0
 
 const whiteSpaceEntries = whiteSpaceTable.map(w => ({
   key: w,
+  mode: TerminatingMacro,
   action: eatWhitespace
 }));
 
@@ -54,6 +56,7 @@ const lineTerminatorTable = [0x0A, 0x0D, 0x2028, 0x2029];
 
 const lineTerminatorEntries = lineTerminatorTable.map(lt => ({
   key: lt,
+  mode: TerminatingMacro,
   action: function readLineTerminator(stream) {
     this.incrementLine();
     return eatWhitespace(stream);
@@ -64,6 +67,7 @@ const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 const numericEntries = digits.map(d => ({
   key: d,
+  mode: NonTerminatingMacro,
   action: readNumericLiteral
 }));
 
@@ -71,15 +75,18 @@ const quotes = ['\'', '"'];
 
 const stringEntries = quotes.map(q => ({
   key: q,
+  mode: TerminatingMacro,
   action: readStringLiteral
 }));
 
 const identifierEntry = {
+  mode: NonTerminatingMacro,
   action: readIdentifier
 };
 
 const templateEntry = {
   key: '`',
+  mode: TerminatingMacro,
   action: readTemplateLiteral
 };
 
@@ -102,6 +109,7 @@ function readFromReadtable(reader, readtable, stream) {
 
 const dotEntry = {
   key: '.',
+  mode: TerminatingMacro,
   action: function readDot(stream, ...rest) {
     const nxt = stream.peek(1).charCodeAt(0);
     if (isDecimalDigit(nxt)) {
@@ -109,12 +117,13 @@ const dotEntry = {
     }
     return readFromReadtable(this, primitiveReadtable, stream).token;
   }
-}
+};
 
 const keywordTable = Object.keys(keywordMapping).reduce(insertSequence, {});
 
 const keywordEntries = Object.keys(keywordTable).map(k => ({
   key: k,
+  mode: NonTerminatingMacro,
   action: function readKeyword(stream) {
     const len = retrieveSequenceLength(keywordTable, stream, 0);
     if (len > 0 && !isIdentifierPart(stream.peek(len).charCodeAt(0))) {
@@ -150,6 +159,7 @@ function readDelimiters(opening, closing, stream, prefix, b) {
 
 const delimiterEntries = delimiterPairs.map(p => ({
   key: p[0],
+  mode: TerminatingMacro,
   action: function readDefaultDelimiters(stream, prefix, b) {
     return readDelimiters.call(this, p[0], p[1], stream, prefix, true);
   }
@@ -157,6 +167,7 @@ const delimiterEntries = delimiterPairs.map(p => ({
 
 const bracesEntry = {
   key: '{',
+  mode: TerminatingMacro,
   action: function readBraces(stream, prefix, b) {
     const line = this.locationInfo.line;
     const innerB = isExprPrefix(line, b)(prefix);
@@ -173,6 +184,7 @@ function readClosingDelimiter(opening, closing, stream, prefix, b) {
 
 const unmatchedDelimiterEntries = [['{','}'], ['[',']'], ['(',')']].map(p => ({
   key: p[1],
+  mode: TerminatingMacro,
   action: function readClosingDelimiters(stream, prefix, b) {
     return readClosingDelimiter.call(this, ...p, stream, prefix, b);
   }
@@ -180,6 +192,7 @@ const unmatchedDelimiterEntries = [['{','}'], ['[',']'], ['(',')']].map(p => ({
 
 const divEntry = {
   key: '/',
+  mode: TerminatingMacro,
   action: function readDiv(stream, prefix, b) {
     let nxt = stream.peek(1);
     if (nxt === '/' || nxt === '*') {
@@ -195,6 +208,7 @@ const divEntry = {
 
 const dispatchEntry = {
   key: '#',
+  mode: TerminatingMacro,
   action: function readHash(stream, prefix, b) {
     const nxt = stream.peek(1).charCodeAt(0);
     if (isWhiteSpace(nxt) || isLineTerminator(nxt)) {
@@ -206,6 +220,7 @@ const dispatchEntry = {
 
 const atEntry = {
   key: '@',
+  mode: TerminatingMacro,
   action: function readAt(stream, prefix) {
     const nxt = stream.peek(1).charCodeAt(0);
     if (isWhiteSpace(nxt) || isLineTerminator(nxt)) {
