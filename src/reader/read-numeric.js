@@ -86,7 +86,6 @@ function addDecimalLiteralSuffixLength(stream, idx) {
 function readLegacyOctalLiteral(stream) {
   let idx = 0, isOctal = true, char = stream.peek();
 
-
   while (!isEOS(char)) {
     if ('0' <= char && char <= '7') {
       idx++;

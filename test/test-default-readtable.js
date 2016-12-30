@@ -2,12 +2,15 @@ import test from 'ava';
 import expect from 'expect.js';
 import { List } from 'immutable';
 
+import { getCurrentReadtable } from '../src/reader/reader';
 import read from '../src/reader/token-reader';
 import { TokenType as TT, TokenClass as TC, EmptyToken } from '../src/tokens';
 import { LSYNTAX, RSYNTAX } from '../src/reader/utils';
 
 function testParse(source, tst) {
+  const prevTable = getCurrentReadtable();
   const results = read(source);
+  expect(getCurrentReadtable() === prevTable).to.be.true;
 
   if (results.isEmpty()) return;
 
@@ -15,7 +18,10 @@ function testParse(source, tst) {
 }
 
 function testParseResults(source, tst) {
-  tst(read(source).map(s => s.token));
+  const prevTable = getCurrentReadtable();
+  const result = read(source);
+  expect(getCurrentReadtable() === prevTable).to.be.true;
+  tst(result.map(s => s.token));
 }
 
 test('should parse Unicode identifiers', t => {
@@ -364,7 +370,7 @@ test('should parse syntax templates', t => {
 test('should erase #lang pragmas', t => {
   const results = read(`#lang "sweet.js"`);
   t.true(List.isList(results));
-  t.true(results.isEmpty());
+  t.true(results.size === 1);
 });
 
 test('should parse comments', t => {
