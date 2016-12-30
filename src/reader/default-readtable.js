@@ -7,7 +7,6 @@ import readIdentifier from './read-identifier';
 import readNumericLiteral from './read-numeric';
 import readStringLiteral from './read-string';
 import readTemplateLiteral from './read-template';
-import readDelimiter from './read-delimiter';
 import readRegExp from './read-regexp.js';
 import readComment from './read-comment';
 import readDispatch from './read-dispatch';
@@ -135,13 +134,6 @@ const keywordEntries = Object.keys(keywordTable).map(k => ({
   }
 }));
 
-const topLevelEntry = {
-  key: '',
-  action: function readTopLevel(stream) {
-    return readDelimiter.call(this, '', stream, List(), false);
-  }
-};
-
 const delimiterPairs = [['[',']'], ['(',')']];
 
 function readDelimiters(opening, closing, stream, prefix, b) {
@@ -151,10 +143,7 @@ function readDelimiters(opening, closing, stream, prefix, b) {
   let results = List.of(this.readToken(stream, List(), b));
 
   setCurrentReadtable(currentReadtable);
-  results = results.concat(readDelimiter.call(this, closing, stream, results, b));
-
-  results = results.push(this.readToken(stream, results, b));
-  return results;
+  return this.readUntil(closing, stream, results, b, closing);
 }
 
 const delimiterEntries = delimiterPairs.map(p => ({
@@ -231,8 +220,7 @@ const atEntry = {
 };
 
 const defaultReadtable = primitiveReadtable.extendReadtable(
-  ...[topLevelEntry,
-    dotEntry,
+  ...[dotEntry,
     ...delimiterEntries,
     ...unmatchedDelimiterEntries,
     bracesEntry,

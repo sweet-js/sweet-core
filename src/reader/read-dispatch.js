@@ -1,52 +1,84 @@
 // @flow
 
-import { EmptyReadtable } from './readtable';
-import readDelimiter from './read-delimiter';
 import { TerminatingMacro } from './readtable';
+import { getCurrentReadtable, setCurrentReadtable } from './reader';
 import { LSYNTAX, RSYNTAX } from './utils';
 import { List } from 'immutable';
-import { getSlice } from './token-reader';
 import Syntax from '../syntax';
 import { EmptyToken } from '../tokens';
-import { skipSingleLineComment } from './utils';
 
 import type CharStream from './char-stream';
 
-const dispatchReadtable = EmptyReadtable.extendReadtable({
+const backtickEntry = {
   key: '`',
-  action: function readSyntaxTemplate(stream: CharStream, prefix: List<Syntax>, exprAllowed: boolean, dispatchKey: string): List<Syntax> {
   mode: TerminatingMacro,
+  action: function readBacktick(stream: CharStream, prefix: List<Syntax>, e: boolean) {
+
+    if (prefix.isEmpty()) {
+      return {
+        type: LSYNTAX,
+        value: stream.readString()
+      };
+    }
+
+    return {
+      type: RSYNTAX,
+      value: stream.readString()
+    };
+  }
+};
+
+const dispatchEntries = [{
+  key: '`',
   mode: TerminatingMacro,
+  action: function readSyntaxTemplate(stream: CharStream, prefix: List<Syntax>, exprAllowed: boolean): List<Syntax> | { type: typeof RSYNTAX, value: string } {
     // return read('syntaxTemplate').first().token;
     // TODO: Can we simply tack 'syntaxTemplate' on the front and process it as a
     //       syntax macro?
-    let startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
-    const opening = new Syntax({
-      type: LSYNTAX,
-      value: `${dispatchKey}${stream.readString()}`,
-      slice: getSlice(stream, startLocation)
-    }, this.context);
-    const result = readDelimiter.call(this, '`', stream, List(), true);
+    const prevTable = getCurrentReadtable();
+    const backtickReadtable = prevTable.extendReadtable(backtickEntry);
+    setCurrentReadtable(backtickReadtable);
 
-    startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
-    const closing = new Syntax({
-      type: RSYNTAX,
-      value: stream.readString(),
-      slice: getSlice(stream, startLocation)
-    }, this.context);
-    return result.unshift(opening).push(closing);
+    const result = this.readUntil(
+      '`',
+      stream,
+      List.of(this.readToken(stream, List(), exprAllowed)),
+      exprAllowed);
+
+    setCurrentReadtable(prevTable);
+    return result;
   }
-}, {
-  action: function readDefault(stream: CharStream, prefix: List<Syntax>, exprAllowed: boolean, dispatchKey: string): typeof EmptyToken {
-    // treating them as single line comments
-    skipSingleLineComment.call(this, stream);
-    return EmptyToken;
-  }
-});
+}];
+
+const dispatchKeys = dispatchEntries.map(e => e.key);
 
 export default function readDispatch(stream: CharStream, prefix: List<Syntax>, exprAllowed: boolean): List<Syntax> | typeof EmptyToken {
   const dispatchKey = stream.readString();
-  const dispatchEntry = dispatchReadtable.getEntry(stream.peek());
-  const result = dispatchEntry.action.call(this, stream, prefix, exprAllowed, dispatchKey);
-  return result;
+
+  if (!dispatchKeys.find(k => k === stream.peek())) {
+    this.readToken(stream, prefix, exprAllowed);
+    return EmptyToken;
+  }
+
+  const prevTable = getCurrentReadtable();
+  const dispatchReadtable = prevTable.extendReadtable(...dispatchEntries);
+  setCurrentReadtable(dispatchReadtable);
+
+  const result = this.readToken(stream, prefix, exprAllowed);
+  setCurrentReadtable(prevTable);
+
+  updateSyntax(dispatchKey, List.isList(result.token) ? result.token.first() : result);
+  return result.token;
+}
+
+function updateSyntax(prefix, syntax) {
+  const token = syntax.token;
+  if (token === EmptyToken) return syntax;
+
+  token.value = prefix + token.value;
+  token.slice.text = prefix + token.slice.text;
+  --token.slice.start;
+  --token.slice.startLocation.position;
+
+  return syntax;
 }

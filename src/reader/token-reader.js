@@ -1,6 +1,6 @@
 // @flow
 
-import Reader, { getCurrentReadtable, setCurrentReadtable } from './reader';
+import Reader, { setCurrentReadtable } from './reader';
 import defaultReadtable from './default-readtable';
 import { List } from 'immutable';
 import CharStream, { isEOS } from './char-stream';
@@ -71,9 +71,10 @@ class TokenReader extends Reader {
     : this.createError('Unexpected end of input');
   }
 
-  readToken(stream: CharStream, prefix: List<Syntax>, exprAllowed: boolean): Syntax {
+  readToken(stream: CharStream, prefix: List<Syntax>, exprAllowed: boolean, ...rest: Array<any>): Syntax {
     const startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
-    const result = super.read(stream, prefix, exprAllowed);
+    const result = super.read(stream, prefix, exprAllowed, ...rest);
+
 
     if (startLocation.column === this.locationInfo.column && startLocation.line === this.locationInfo.line) {
       this.locationInfo.column += stream.sourceInfo.position - startLocation.position;
@@ -86,6 +87,20 @@ class TokenReader extends Reader {
     return new Syntax(result, this.context);
   }
 
+  readUntil(closing: string, stream: CharStream, results: List<Syntax>, exprAllowed: boolean): List<Syntax> {
+    let result, char;
+    do {
+      char = stream.peek();
+      if (isEOS(char)) break;
+      result = this.readToken(stream, results, exprAllowed);
+
+      if (result !== EmptyToken) {
+        results = results.push(result);
+      }
+    } while(char !== closing)
+    return results;
+  }
+
   incrementLine(): void {
     this.locationInfo.line += 1;
     this.locationInfo.column = 1;
@@ -94,8 +109,6 @@ class TokenReader extends Reader {
 
 export default function read(source: string | CharStream, context?: Context): List<Syntax> {
   const stream = (typeof source === 'string') ? new CharStream(source) : source;
-  const reader = new TokenReader(stream, context);
-  const entry = getCurrentReadtable().getEntry('');
-
-  return entry.action.call(reader, stream, List(), false);
+  if (isEOS(stream.peek())) return List();
+  return new TokenReader(stream, context).readUntil('', stream, List(), false);
 }
