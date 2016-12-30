@@ -8,9 +8,13 @@ import type CharStream from './char-stream';
 import { IdentifierToken } from '../tokens';
 
 import { isIdentifierPart, isIdentifierStart } from './utils';
+import { TerminatingMacro } from './readtable';
+import { getCurrentReadtable } from './reader';
 
+const isTerminating = table => char => table.getEntry(char).mode === TerminatingMacro;
 
 export default function readIdentifier(stream: CharStream) {
+  const terminates = isTerminating(getCurrentReadtable());
   let char = stream.peek();
   let code;
   let check = isIdentifierStart;
@@ -22,7 +26,7 @@ export default function readIdentifier(stream: CharStream) {
         value: getEscapedIdentifier.call(this, stream)
       });
     }
-    if (!check(code)) {
+    if (terminates(code) || !check(code)) {
       return new IdentifierToken({
         value: stream.readString(idx)
       });
@@ -36,6 +40,7 @@ export default function readIdentifier(stream: CharStream) {
 }
 
 function getEscapedIdentifier(stream) {
+  const terminates = isTerminating(getCurrentReadtable());
   const sPeek = stream.peek.bind(stream);
   let id = '';
   let check = isIdentifierStart;
@@ -67,7 +72,7 @@ function getEscapedIdentifier(stream) {
       stream.readString(2);
       code = decodeUtf16(code, lowSurrogateCode);
     }
-    if (!check(code)) {
+    if (terminates(code) || !check(code)) {
       if (id.length < 1) {
         throw this.createILLEGAL(char);
       }
