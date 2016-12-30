@@ -48,6 +48,7 @@ test('should parse Unicode identifiers', t => {
   testParseIdentifier('\uD800\uDC00 ', '\uD800\uDC00');
   testParseIdentifier('\u2163\u2161\u200A', '\u2163\u2161');
   testParseIdentifier('a\\u0061', 'aa');
+  testParseIdentifier('a\\u0061a', 'aaa');
   testParseIdentifier('\\u0061a', 'aa');
 });
 
