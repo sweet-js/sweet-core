@@ -2,6 +2,7 @@
 
 import { EmptyReadtable } from './readtable';
 import readDelimiter from './read-delimiter';
+import { TerminatingMacro } from './readtable';
 import { LSYNTAX, RSYNTAX } from './utils';
 import { List } from 'immutable';
 import { getSlice } from './token-reader';
@@ -14,6 +15,8 @@ import type CharStream from './char-stream';
 const dispatchReadtable = EmptyReadtable.extendReadtable({
   key: '`',
   action: function readSyntaxTemplate(stream: CharStream, prefix: List<Syntax>, exprAllowed: boolean, dispatchKey: string): List<Syntax> {
+  mode: TerminatingMacro,
+  mode: TerminatingMacro,
     // return read('syntaxTemplate').first().token;
     // TODO: Can we simply tack 'syntaxTemplate' on the front and process it as a
     //       syntax macro?

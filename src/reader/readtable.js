@@ -30,7 +30,7 @@ export default class Readtable {
   }
 }
 
-function addEntry(table: Array<ReadtableEntry>, { key, action }: ReadtableEntry): Array<ReadtableEntry> {
+function addEntry(table: Array<ReadtableEntry>, { key, mode, action }: ReadtableEntry): Array<ReadtableEntry> {
   if (!isValidKey(key)) throw Error('Invalid key type:', key);
   if (!isValidEntry({key, action})) throw Error('Invalid readtable entry:', {key, action});
 
@@ -38,7 +38,7 @@ function addEntry(table: Array<ReadtableEntry>, { key, action }: ReadtableEntry)
   // chars will be converted via codePointAt
   // numbers are...numbers
   // to accommodate default (null) 1 will be added to all and default will be at 0
-  table[convertKey(key)] = { action };
+  table[convertKey(key)] = { action, mode };
 
   // if is a dispatch macro, we have to convert the key and bump it up by 0x110000
   // Note: The above depends on a primitive implementation of dispatch macros.
@@ -48,11 +48,11 @@ function addEntry(table: Array<ReadtableEntry>, { key, action }: ReadtableEntry)
 
 export const EmptyReadtable = new Readtable();
 
-// Note: This was an experiment. IF the mode flags are included here, they can just be string constants.
+// Note: This is an experiment. IF the mode flags are included here, can they just be string constants?
 // Symbol.for creates cross-realm Symbols
-// export const TerminatingMacro = Symbol.for('readtable.terminating-macro-mode');
-// export const NonTerminatingMacro = Symbol.for('readtable.non-terminating-macro-mode');
-// export const DispatchMacro = Symbol.for('readtable.dispatch-macro-mode');
+export const TerminatingMacro = Symbol.for('readtable.terminating-macro-mode');
+export const NonTerminatingMacro = Symbol.for('readtable.non-terminating-macro-mode');
+export const DispatchMacro = Symbol.for('readtable.dispatch-macro-mode');
 
 function isValidKey(key) {
   return key == null ||
@@ -74,6 +74,7 @@ type Action = (stream: CharStream, ...rest: Array<any>) => any;
 
 export type ReadtableEntry = {
   key?: ?ReadtableKey,
+  mode: Symbol, //TODO: reference the actual values
   action: Action
 };
 
