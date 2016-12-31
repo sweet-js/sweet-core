@@ -66,12 +66,12 @@ syntaxrec def = function(ctx) {
   parens = ctx.next().value;
   let body = ctx.next().value;
 
-  let parenCtx = parens.inner();
+  let parenCtx = ctx.contextify(parens);
   let paren_id = parenCtx.next().value;
   parenCtx.next() // =
   let paren_init = parenCtx.expand('expr').value;
 
-  let bodyCtx = body.inner();
+  let bodyCtx = ctx.contextify(body);
   let b = [];
   for (let s of bodyCtx) {
     b.push(s);
@@ -204,7 +204,7 @@ test('should construct syntax from existing syntax', evalWithOutput, `
 syntax m = ctx => {
   let arg = ctx.next().value;
   let dummy = #\`here\`.get(0);
-  return #\`\${dummy.fromString(arg.val())}\`
+  return #\`\${dummy.fromString(arg.value.val())}\`
 }
 output = m foo
 `, 'foo');
@@ -213,7 +213,7 @@ test('should construct a delimiter from existing syntax', evalWithOutput, `
 syntax m = ctx => {
   let arg = ctx.next().value;
   let dummy = #\`here\`.get(0);
-  return #\`(\${dummy.fromNumber(arg.val())})\`;
+  return #\`(\${dummy.fromNumber(arg.value.val())})\`;
 }
 output = m 1`, 1)
 

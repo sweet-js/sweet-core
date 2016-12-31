@@ -42,7 +42,7 @@ output = function f() {
 }().a`, 1);
 
 test(evalWithOutput, `
-syntax m = ctx => #\`return \${ctx.next().value.inner()}\`;
+syntax m = ctx => #\`return \${ctx.contextify(ctx.next().value)}\`;
 output = function f () {
   m { 1 }
 }()`, 1);
