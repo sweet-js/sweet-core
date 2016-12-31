@@ -30,152 +30,7 @@ export function wrapInTerms(stx: List<Syntax>): List<Term> {
 }
 
 
-const symWrap = Symbol('wrapper');
 const privateData = new WeakMap();
-
-const getVal = t => {
-  if (t instanceof T.RawSyntax) {
-    return t.value.val();
-  }
-  return null;
-};
-
-export class SyntaxOrTermWrapper {
-  constructor(s, context = {}) {
-    this[symWrap] = s;
-    this.context = context;
-  }
-
-  from(type, value) {
-    let stx = this[symWrap];
-    if (typeof stx.from === 'function') {
-      return stx.from(type, value);
-    }
-  }
-  fromNull() {
-    return this.from('null', null);
-  }
-
-  fromNumber(value) {
-    return this.from('number', value);
-  }
-
-  fromString(value) {
-    return this.from('string', value);
-  }
-
-  fromPunctuator(value) {
-    return this.from('punctuator', value);
-  }
-
-  fromKeyword(value) {
-    return this.from('keyword', value);
-  }
-
-  fromIdentifier(value) {
-    return this.from('identifier', value);
-  }
-
-  fromRegularExpression(value) {
-    return this.from('regularExpression', value);
-  }
-
-  match(type, value) {
-    let stx = this[symWrap];
-    if (typeof stx.match === 'function') {
-      return stx.match(type, value);
-    }
-  }
-
-  isIdentifier(value) {
-    return this.match('identifier', value);
-  }
-
-  isAssign(value) {
-    return this.match('assign', value);
-  }
-
-  isBooleanLiteral(value) {
-    return this.match('boolean', value);
-  }
-
-  isKeyword(value) {
-    return this.match('keyword', value);
-  }
-
-  isNullLiteral(value) {
-    return this.match('null', value);
-  }
-
-  isNumericLiteral(value) {
-    return this.match('number', value);
-  }
-
-  isPunctuator(value) {
-    return this.match('punctuator', value);
-  }
-
-  isStringLiteral(value) {
-    return this.match('string', value);
-  }
-
-  isRegularExpression(value) {
-    return this.match('regularExpression', value);
-  }
-
-  isTemplate(value) {
-    return this.match('template', value);
-  }
-
-  isDelimiter(value) {
-    return this.match('delimiter', value);
-  }
-
-  isParens(value) {
-    return this.match('parens', value);
-  }
-
-  isBraces(value) {
-    return this.match('braces', value);
-  }
-
-  isBrackets(value) {
-    return this.match('brackets', value);
-  }
-
-  isSyntaxTemplate(value) {
-    return this.match('syntaxTemplate', value);
-  }
-
-  isEOF(value) {
-    return this.match('eof', value);
-  }
-
-  lineNumber() {
-    return this[symWrap].lineNumber();
-  }
-
-  val() {
-    return getVal(this[symWrap]);
-  }
-
-  inner() {
-    let stx = this[symWrap];
-    if (!(stx instanceof T.RawDelimiter)) {
-      throw new Error('Can only get inner syntax on a delimiter');
-    }
-
-    let enf = new Enforester(stx.inner.slice(1, stx.inner.size - 1), List(), this.context);
-    return new MacroContext(enf, 'inner', this.context);
-  }
-}
-
-export function unwrap(x) {
-  if (x instanceof SyntaxOrTermWrapper) {
-    return x[symWrap];
-  }
-  return x;
-}
 
 function cloneEnforester(enf) {
   const { rest, prev, context } = enf;
@@ -217,12 +72,22 @@ export default class MacroContext {
   }
 
   name() {
-    const { name, context } = privateData.get(this);
-    return new SyntaxOrTermWrapper(name, context);
+    const { name } = privateData.get(this);
+    return name;
+  }
+
+  contextify(delim: any) {
+    if (!(delim instanceof T.RawDelimiter)) {
+      throw new Error(`Can only contextify a delimiter but got ${delim}`);
+    }
+    const { context } = privateData.get(this);
+
+    let enf = new Enforester(delim.inner.slice(1, delim.inner.size - 1), List(), context);
+    return new MacroContext(enf, 'inner', context);
   }
 
   expand(type) {
-    const { enf, context } = privateData.get(this);
+    const { enf } = privateData.get(this);
     if (enf.rest.size === 0) {
       return {
         done: true,
@@ -305,7 +170,7 @@ export default class MacroContext {
     }
     return {
       done: false,
-      value: new SyntaxOrTermWrapper(value, context)
+      value: value
     };
   }
 
@@ -375,7 +240,7 @@ export default class MacroContext {
     }
     return {
       done: false,
-      value: new SyntaxOrTermWrapper(value, context)
+      value: value
     };
   }
 }

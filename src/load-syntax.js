@@ -8,8 +8,6 @@ import SweetToShiftReducer from './sweet-to-shift-reducer';
 import TermExpander from './term-expander';
 import Env from './env';
 
-import { unwrap } from './macro-context';
-
 import { replaceTemplate } from './template-processor';
 
 export function expandCompiletime(term, context) {
@@ -34,7 +32,7 @@ export function sanitizeReplacementValues(values) {
   } else if (typeof values.next === 'function') {
     return sanitizeReplacementValues(List(values));
   }
-  return unwrap(values);
+  return values;
 }
 
 export function evalRuntimeValues(terms, context) {
