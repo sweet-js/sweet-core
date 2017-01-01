@@ -107,6 +107,34 @@ test('importing a macro for syntax only binds what is named', evalWithStore, {
   `
   }, 1);
 
+  test('exporting names for syntax', evalWithStore, {
+'./mod.js': `
+function id(x) { return x; }
+export { id }  
+`,
+'main.js': `
+import { id } from './mod.js' for syntax;
+syntax m = ctx => {
+  return id(#\`1\`);
+}
+output = m
+`
+  }, 1)
+
+  test('exporting names with renaming for syntax', evalWithStore, {
+'./mod.js': `
+function id(x) { return x; }
+export { id as di }  
+`,
+'main.js': `
+import { di } from './mod.js' for syntax;
+syntax m = ctx => {
+  return di(#\`1\`);
+}
+output = m
+`
+  }, 1)
+
 // test('importing a chain for syntax works', evalWithStore, {
 //   'b': `#lang 'sweet.js';
 //     export function b(x) { return x; }
