@@ -1,51 +1,57 @@
 // @flow
-import { evalCompiletimeValue, evalRuntimeValues } from './load-syntax';
-import * as T from './terms';
+import { evalCompiletimeValue } from './load-syntax';
 import * as _ from 'ramda';
-import * as S from 'sweet-spec';
+import * as T from 'sweet-spec';
+import * as S from './sweet-spec-utils';
 import { gensym } from './symbol';
-import { VarBindingTransform, CompiletimeTransform } from './transforms';
+import { CompiletimeTransform } from './transforms';
 import { collectBindings } from './hygiene-utils';
+import SweetModule from './sweet-module';
+import { List } from 'immutable';
+import SweetToShiftReducer from './sweet-to-shift-reducer';
+import codegen, { FormattedCodeGen } from 'shift-codegen';
 
 import type { Context } from './sweet-loader';
 
 export default class {
-
   context: Context;
 
   constructor(context: Context) {
     this.context = context;
   }
 
-  visit(mod: any, phase: any, store: any) {
+  visit(mod: SweetModule, phase: any, store: any) {
     // TODO: recursively visit imports
-    mod.items.forEach(term => {
-      if (T.isSyntaxDeclarationStatement(term)) {
+    for (let term of mod.compiletimeItems()) {
+      if (S.isSyntaxDeclarationStatement(term)) {
         this.registerSyntaxDeclaration(term.declaration, phase, store);
-      } else if (term instanceof S.Export && term.declaration instanceof S.VariableDeclaration && term.declaration.kind === 'syntax') {
-        this.registerSyntaxDeclaration(term.declaration, phase, store)
-      }
-    });
+      } 
+    }
     return store;
   }
 
   invoke(mod: any, phase: any, store: any) {
     // TODO: recursively visit imports
-    let body = mod.runtimeItems().map(term => {
-      if (T.isVariableDeclarationStatement(term)) {
+    let items = mod.runtimeItems();
+    for (let term of items) {
+      if (S.isVariableDeclarationStatement(term)) {
         this.registerVariableDeclaration(term.declaration, phase, store);
-      } else if (T.isFunctionDeclaration(term)) {
+      } else if (S.isFunctionDeclaration(term)) {
         this.registerFunctionOrClass(term, phase, store);
       }
-      return term;
-    });
-    evalRuntimeValues(body, _.merge(this.context, {
-      store, phase
-    }));
+    }
+    let parsed = new T.Module({
+      directives: List(), items
+    }).reduce(new SweetToShiftReducer(phase));
+
+    let gen = codegen(parsed, new FormattedCodeGen);
+    let result = this.context.transform(gen);
+
+    this.context.loader.eval(result.code, store);
     return store;
   }
 
-  registerSyntaxDeclaration(term: any, phase: any, store: any) {
+  registerSyntaxDeclaration(term: T.VariableDeclarationStatement, phase: any, store: any) {
     term.declarators.forEach(decl => {
       let val = evalCompiletimeValue(decl.init, _.merge(this.context, {
         phase: phase + 1, store
@@ -77,8 +83,6 @@ export default class {
             skipDup: term.kind === 'var'
           });
         }
-        let resolvedName = stx.resolve(phase);
-        store.set(resolvedName, new VarBindingTransform(stx));
       });
     });
   }
@@ -93,8 +97,6 @@ export default class {
           skipDup: false
         });
       }
-      let resolvedName = stx.resolve(phase);
-      store.set(resolvedName, new VarBindingTransform(stx));
     });
   }
 

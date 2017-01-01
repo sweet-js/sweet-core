@@ -8,7 +8,6 @@ import * as _ from 'ramda';
 import * as T from './terms';
 import { gensym } from './symbol';
 import { VarBindingTransform, CompiletimeTransform } from './transforms';
-import {  assert } from './errors';
 import { evalCompiletimeValue } from './load-syntax';
 import {  freshScope } from './scope';
 import { ALL_PHASES } from './syntax';
@@ -16,6 +15,7 @@ import ASTDispatcher from './ast-dispatcher';
 import Syntax from './syntax.js';
 import ScopeReducer from './scope-reducer';
 import ModuleVisitor from './module-visitor';
+import SweetModule from './sweet-module';
 
 
 class RegisterBindingsReducer extends Term.CloneReducer {
@@ -81,12 +81,12 @@ class RegisterSyntaxBindingsReducer extends Term.CloneReducer {
   }
 }
 
-function bindImports(impTerm, exModule, context) {
+function bindImports(impTerm: S.ImportDeclaration, exModule: SweetModule, context) {
   let names = [];
   let phase = impTerm.forSyntax ? context.phase + 1 : context.phase;
   impTerm.namedImports.forEach(specifier => {
     let name = specifier.binding.name;
-    let exportName = findNameInExports(name, exModule.exportEntries());
+    let exportName = exModule.exportedNames.find(exName => exName.val() === name.val());
     if (exportName != null) {
       let newBinding = gensym(name.val());
       context.store.set(newBinding.toString(), new VarBindingTransform(name));
@@ -97,56 +97,10 @@ function bindImports(impTerm, exModule, context) {
   return List(names);
 }
 
-
-function findNameInExports(name, exp) {
-  let foundNames = exp.reduce((acc, e) => {
-    if (T.isExportFrom(e)) {
-      return acc.concat(e.namedExports.reduce((acc, specifier) => {
-        if (specifier.exportedName.val() === name.val()) {
-          return acc.concat(specifier.exportedName);
-        }
-        return acc;
-      }, List()));
-    } else if (T.isExport(e)) {
-      if (e.declaration.name && e.declaration.name.name) {
-        if (e.declaration.name.name.val() === name.val()) {
-          return acc.concat(e.declaration.name.name);
-        }
-        return acc;
-      }
-      return acc.concat(e.declaration.declarators.reduce((acc, decl) => {
-        if (decl.binding.name.val() === name.val()) {
-          return acc.concat(decl.binding.name);
-        }
-        return acc;
-      }, List()));
-    }
-    return acc;
-  }, List());
-  assert(foundNames.size <= 1, 'expecting no more than 1 matching name in exports');
-  return foundNames.get(0);
-}
-
 function removeNames(impTerm, names) {
   let namedImports = impTerm.namedImports.filter(specifier => !names.contains(specifier.binding.name));
   return impTerm.extend({ namedImports });
 }
-
-// function bindAllSyntaxExports(exModule, toSynth, context) {
-//   let phase = context.phase;
-//   exModule.exportEntries.forEach(ex => {
-//     if (isExportSyntax(ex)) {
-//       ex.declaration.declarators.forEach(decl => {
-//         let name = decl.binding.name;
-//         let newBinding = gensym(name.val());
-//         let storeName = exModule.moduleSpecifier + ":" + name.val() + ":" + phase;
-//         let synthStx = Syntax.fromIdentifier(name.val(), toSynth);
-//         let storeStx = Syntax.fromIdentifier(storeName, toSynth);
-//         context.bindings.addForward(synthStx, storeStx, newBinding, phase);
-//       });
-//     }
-//   });
-// }
 
 export default class TokenExpander extends ASTDispatcher {
   constructor(context: any) {
@@ -192,10 +146,13 @@ export default class TokenExpander extends ASTDispatcher {
     } else {
       mod = this.context.loader.get(path, this.context.phase, this.context.cwd);
       this.context.store = visitor.visit(mod, this.context.phase, this.context.store);
-      // this.context.store = this.context.modules.visit(mod, this.context.phase, this.context.store);
     }
     let boundNames = bindImports(term, mod, this.context);
     return removeNames(term, boundNames);
+  }
+
+  expandImportNamespace(term: S.Term) {
+    throw new Error('not implemented yet');
   }
 
   expandExport(term: Term) {
