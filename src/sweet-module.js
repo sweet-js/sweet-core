@@ -13,20 +13,27 @@ const extractDeclaration = _.cond([
   [_.T,               term => { throw new Error(`Expecting an Export or ExportDefault but got ${term}`) }]
 ]);
 
+const ExpSpec = x => ({ exportedName: x })
+
 const extractDeclarationNames = _.cond([
-  [S.isVariableDeclarator, decl => List.of(decl.binding.name)],
-  [S.isVariableDeclaration, decl => decl.declarators.flatMap(extractDeclarationNames)],
-  [S.isFunctionDeclaration, decl => List.of(decl.name.name)],
-  [S.isClassDeclaration, decl => List.of(decl.name.name)]
+  [S.isVariableDeclarator,  ({binding}) => List.of(ExpSpec(binding.name))],
+  [S.isVariableDeclaration, ({declarators}) => declarators.flatMap(extractDeclarationNames)],
+  [S.isFunctionDeclaration, ({name}) => List.of(ExpSpec(name.name))],
+  [S.isClassDeclaration,    ({name}) => List.of(ExpSpec(name.name))]
 ]);
 
-function extractNames(term: T.ExportDeclaration): List<Syntax> {
+type ExportSpecifier = {
+  name?: Syntax;
+  exportedName: Syntax
+}
+
+function extractNames(term: T.ExportDeclaration): List<ExportSpecifier> {
   if (S.isExport(term)) {
     return extractDeclarationNames(term.declaration);  
   } else if (S.isExportDefault(term)) {
     return List(); 
   } else if (S.isExportFrom(term)) {
-    return List();    
+    return term.namedExports;
   }
   throw new Error(`Unknown export type`);
 }
@@ -44,7 +51,7 @@ export default class SweetModule {
   items: List<T.Term>;
   imports: List<T.ImportDeclaration>;
   exports: List<T.ExportDeclaration>;
-  exportedNames: List<Syntax>;
+  exportedNames: List<ExportSpecifier>;
 
   runtime: List<T.Term>;
   compiletime: List<T.Term>;

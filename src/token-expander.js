@@ -86,11 +86,12 @@ function bindImports(impTerm: S.ImportDeclaration, exModule: SweetModule, contex
   let phase = impTerm.forSyntax ? context.phase + 1 : context.phase;
   impTerm.namedImports.forEach(specifier => {
     let name = specifier.binding.name;
-    let exportName = exModule.exportedNames.find(exName => exName.val() === name.val());
+    let exportName = exModule.exportedNames.find(exName => exName.exportedName.val() === name.val());
     if (exportName != null) {
       let newBinding = gensym(name.val());
+      let toForward = exportName.name ? exportName.name : exportName.exportedName;
       context.store.set(newBinding.toString(), new VarBindingTransform(name));
-      context.bindings.addForward(name, exportName, newBinding, phase);
+      context.bindings.addForward(name, toForward, newBinding, phase);
       names.push(name);
     }
   });
