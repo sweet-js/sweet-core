@@ -1,4 +1,4 @@
-#lang 'base';
-export function id(x) {
-  return x;
-}
+    #lang 'base';
+    export function id(x) {
+      return x;
+    }

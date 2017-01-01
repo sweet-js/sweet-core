@@ -3,7 +3,6 @@ import * as _ from 'ramda';
 import { List } from 'immutable';
 import Syntax from './syntax';
 import codegen, { FormattedCodeGen } from 'shift-codegen';
-import { isVariableDeclaration, isImport, isExport } from './terms';
 import SweetToShiftReducer from './sweet-to-shift-reducer';
 import TermExpander from './term-expander';
 import Env from './env';
@@ -33,51 +32,6 @@ export function sanitizeReplacementValues(values) {
     return sanitizeReplacementValues(List(values));
   }
   return values;
-}
-
-export function evalRuntimeValues(terms, context) {
-  let prepped = terms.reduce((acc, term) => {
-    if (isExport(term)) {
-      if (isVariableDeclaration(term.declaration)) {
-        return acc.concat(new S.VariableDeclarationStatement({
-          declaration: term.declaration
-        })).concat(term.declaration.declarators.map(decl => {
-          return new S.ExpressionStatement({
-            expression: new S.AssignmentExpression({
-              binding: new S.StaticMemberExpression({
-                object: new S.IdentifierExpression({
-                  name: Syntax.fromIdentifier('exports')
-                }),
-                property: decl.binding.name
-              }),
-              expression: new S.IdentifierExpression({
-                name: decl.binding.name
-              })
-            })
-          });
-        }));
-      } else if (term.declaration instanceof S.FunctionDeclaration) {
-        return acc.concat(term.declaration);
-      }
-    } else if (isImport(term)) {
-      return acc;
-    }
-    return acc.concat(term);
-  }, List());
-
-  let parsed = new S.Module({
-    directives: List(),
-    items: prepped
-  }).reduce(new SweetToShiftReducer(context.phase));
-
-  let gen = codegen(parsed, new FormattedCodeGen);
-  let result = context.transform(gen);
-
-  let exportsObj = {};
-  context.store.set('exports', exportsObj);
-
-  context.loader.eval(result.code, context.store);
-  return exportsObj;
 }
 
 // (Expression, Context) -> [function]
