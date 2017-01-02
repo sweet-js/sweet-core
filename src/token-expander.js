@@ -95,6 +95,17 @@ function bindImports(impTerm: S.ImportDeclaration, exModule: SweetModule, contex
       names.push(name);
     }
   });
+  if (impTerm.defaultBinding != null) {
+    let exportName = exModule.exportedNames.find(exName => exName.exportedName.val() === '_default');
+    let name = impTerm.defaultBinding.name;
+    if (exportName != null) {
+      let newBinding = gensym('_default');
+      let toForward = exportName.exportedName;
+      context.store.set(newBinding.toString(), new VarBindingTransform(name));
+      context.bindings.addForward(name, toForward, newBinding, phase);
+      names.push(name);
+    }
+  }
   return List(names);
 }
 

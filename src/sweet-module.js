@@ -47,6 +47,20 @@ function wrapStatement(declaration: T.Term) {
 
 const memoSym = Symbol('memo');
 
+function makeVarDeclStmt(name: T.BindingIdentifier,  expr: T.Expression) {
+  return new T.VariableDeclarationStatement({
+    declaration: new T.VariableDeclaration({
+      kind: 'var',
+      declarators: List.of(
+        new T.VariableDeclarator({
+          binding: name,
+          init: expr
+        })
+      )
+    })
+  });
+}
+
 export default class SweetModule {
   items: List<T.Term>;
   imports: List<T.ImportDeclaration>;
@@ -67,8 +81,23 @@ export default class SweetModule {
       } else if (S.isExportDeclaration(item)) {
         exports.push(item);
         this.exportedNames = this.exportedNames.concat(extractNames(item));
-        if (S.isExport(item) || S.isExportDefault(item)) {
+        if (S.isExport(item)) {
           body.push(wrapStatement(extractDeclaration(item))); 
+        } else if (S.isExportDefault(item)) {
+          let decl = extractDeclaration(item);
+          let defStx = Syntax.fromIdentifier('_default');
+          let def = new T.BindingIdentifier({
+            name: defStx
+          });
+          this.exportedNames = this.exportedNames.push(ExpSpec(defStx));
+          if (S.isFunctionDeclaration(decl) || S.isClassDeclaration(decl)) {
+            body.push(decl);
+            // extract name and bind it to _default
+            body.push(makeVarDeclStmt(def, new T.IdentifierExpression({ name: decl.name.name })));
+          } else {
+            // expression so bind it to _default
+            body.push(makeVarDeclStmt(def, decl));
+          }
         }
       } else {
         body.push(item);

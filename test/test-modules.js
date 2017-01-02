@@ -135,6 +135,19 @@ output = m
 `
   }, 1)
 
+  test('exporting default names for syntax', evalWithStore, {
+'./mod.js': `
+export default function id(x) { return x; }
+`,
+'main.js': `
+import id from './mod.js' for syntax;
+syntax m = ctx => {
+  return id(#\`1\`);
+}
+output = m
+`
+  }, 1)
+
 // test('importing a chain for syntax works', evalWithStore, {
 //   'b': `#lang 'sweet.js';
 //     export function b(x) { return x; }
