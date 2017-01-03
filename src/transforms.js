@@ -1,3 +1,7 @@
+// @flow
+import SweetModule from './sweet-module';
+import Syntax from './syntax';
+
 export class FunctionDeclTransform { }
 export class VariableDeclTransform { }
 export class NewTransform { }
@@ -17,13 +21,26 @@ export class DebuggerTransform { }
 export class SyntaxrecDeclTransform { }
 export class SyntaxDeclTransform { }
 export class ReturnStatementTransform { }
+export class ModuleNamespaceTransform {
+  namespace: Syntax;
+  mod: SweetModule;
+
+  constructor(namespace: Syntax, mod: SweetModule) {
+    this.namespace = namespace;
+    this.mod = mod;
+  }
+}
 export class VarBindingTransform {
-  constructor(id) {
+  id: Syntax;
+  
+  constructor(id: Syntax) {
     this.id = id;
   }
 }
 export class CompiletimeTransform {
-  constructor(value) {
+  value: any;
+
+  constructor(value: any) {
     this.value = value;
   }
 }
