@@ -7,7 +7,7 @@ import Env from './env';
 import * as _ from 'ramda';
 import * as T from './terms';
 import { gensym } from './symbol';
-import { VarBindingTransform, CompiletimeTransform } from './transforms';
+import { ModuleNamespaceTransform, VarBindingTransform, CompiletimeTransform } from './transforms';
 import { evalCompiletimeValue } from './load-syntax';
 import {  freshScope } from './scope';
 import { ALL_PHASES } from './syntax';
@@ -84,34 +84,49 @@ class RegisterSyntaxBindingsReducer extends Term.CloneReducer {
 function bindImports(impTerm: S.ImportDeclaration, exModule: SweetModule, context) {
   let names = [];
   let phase = impTerm.forSyntax ? context.phase + 1 : context.phase;
-  impTerm.namedImports.forEach(specifier => {
-    let name = specifier.binding.name;
-    let exportName = exModule.exportedNames.find(exName => exName.exportedName.val() === name.val());
-    if (exportName != null) {
-      let newBinding = gensym(name.val());
-      let toForward = exportName.name ? exportName.name : exportName.exportedName;
-      context.store.set(newBinding.toString(), new VarBindingTransform(name));
-      context.bindings.addForward(name, toForward, newBinding, phase);
-      names.push(name);
-    }
-  });
   if (impTerm.defaultBinding != null) {
     let exportName = exModule.exportedNames.find(exName => exName.exportedName.val() === '_default');
     let name = impTerm.defaultBinding.name;
     if (exportName != null) {
       let newBinding = gensym('_default');
       let toForward = exportName.exportedName;
-      context.store.set(newBinding.toString(), new VarBindingTransform(name));
       context.bindings.addForward(name, toForward, newBinding, phase);
       names.push(name);
     }
+  }
+  if (impTerm.namedImports) {
+    impTerm.namedImports.forEach(specifier => {
+      let name = specifier.binding.name;
+      let exportName = exModule.exportedNames.find(exName => exName.exportedName.val() === name.val());
+      if (exportName != null) {
+        let newBinding = gensym(name.val());
+        let toForward = exportName.name ? exportName.name : exportName.exportedName;
+        context.bindings.addForward(name, toForward, newBinding, phase);
+        names.push(name);
+      }
+    });
+  }
+  if (impTerm.namespaceBinding) {
+    let name = impTerm.namespaceBinding.name;
+    let newBinding = gensym(name.val());
+    context.store.set(newBinding.toString(), new ModuleNamespaceTransform(name, exModule));
+    context.bindings.add(name, {
+      binding: newBinding,
+      phase: phase,
+      skipDup: false
+    });
+
+    names.push(name);
   }
   return List(names);
 }
 
 function removeNames(impTerm, names) {
-  let namedImports = impTerm.namedImports.filter(specifier => !names.contains(specifier.binding.name));
-  return impTerm.extend({ namedImports });
+  if (impTerm.namedImports) {
+    let namedImports = impTerm.namedImports.filter(specifier => !names.contains(specifier.binding.name));
+    return impTerm.extend({ namedImports });
+  }
+  return impTerm;
 }
 
 export default class TokenExpander extends ASTDispatcher {
@@ -147,7 +162,7 @@ export default class TokenExpander extends ASTDispatcher {
 
   // TODO: think about function expressions
 
-  expandImport(term: Term) {
+  registerImport(term: S.Import | S.ImportNamespace) {
     let path = term.moduleSpecifier.val();
     let mod;
     let visitor = new ModuleVisitor(this.context);
@@ -163,8 +178,12 @@ export default class TokenExpander extends ASTDispatcher {
     return removeNames(term, boundNames);
   }
 
-  expandImportNamespace(term: S.Term) {
-    throw new Error('not implemented yet');
+  expandImport(term: S.Import) {
+    return this.registerImport(term);
+  }
+
+  expandImportNamespace(term: S.ImportNamespace) {
+    return this.registerImport(term);
   }
 
   expandExport(term: Term) {

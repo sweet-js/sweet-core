@@ -27,7 +27,8 @@ import {
   TryTransform,
   ThrowTransform,
   CompiletimeTransform,
-  VarBindingTransform
+  VarBindingTransform,
+  ModuleNamespaceTransform
 } from './transforms';
 import { List } from 'immutable';
 import { expect, assert } from './errors';
@@ -1058,6 +1059,19 @@ export class Enforester {
 
   enforestAssignmentExpression() {
     let lookahead = this.peek();
+
+    if (this.term === null && this.isModuleNamespaceTransform(lookahead)) {
+      // $FlowFixMe: we need to refactor the enforester to make flow work better
+      let namespace = this.getFromCompiletimeEnvironment(this.advance().value);
+      this.matchPunctuator('.');
+      let name = this.matchIdentifier();
+      // $FlowFixMe: we need to refactor the enforester to make flow work better
+      let exportedName = namespace.mod.exportedNames.find(exName => exName.exportedName.val() === name.val())
+      this.rest = this.rest.unshift(new T.RawSyntax({
+        value: Syntax.fromIdentifier(name.val(), exportedName.exportedName)
+      }));
+      lookahead = this.peek();
+    }
 
     if (this.term === null && this.isCompiletimeTransform(lookahead)) {
       this.expandMacro();
@@ -2105,6 +2119,10 @@ export class Enforester {
 
   isCompiletimeTransform(obj: Syntax | Term) {
     return this.isTransformInstance(obj, CompiletimeTransform);
+  }
+
+  isModuleNamespaceTransform(obj: Term) {
+    return this.isTransformInstance(obj, ModuleNamespaceTransform);
   }
 
   isVarBindingTransform(obj: Syntax | Term) {

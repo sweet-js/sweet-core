@@ -148,6 +148,17 @@ output = m
 `
   }, 1)
 
+  test('importing a namespace for syntax', evalWithStore, {
+'./mod.js': `
+export function id(x) { return x; }`,
+'main.js': `
+import * as M from './mod.js' for syntax;
+syntax m = ctx => {
+  return M.id(#\`1\`);
+}
+output = m`
+  }, 1)
+
 // test('importing a chain for syntax works', evalWithStore, {
 //   'b': `#lang 'sweet.js';
 //     export function b(x) { return x; }
