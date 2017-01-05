@@ -7,9 +7,11 @@ import vm from 'vm';
 import Store from './store';
 
 export default class NodeLoader extends SweetLoader {
+  extensions: ?string[];
 
-  constructor(baseDir: string) {
+  constructor(baseDir: string, extensions?: string[]) {
     super(baseDir);
+    this.extensions = extensions;
   }
 
   normalize(name: string, refererName?: string, refererAddress?: string) {
@@ -17,7 +19,8 @@ export default class NodeLoader extends SweetLoader {
     let match = normName.match(phaseInModulePathRegexp);
     if (match && match.length >= 3) {
       let resolvedName = resolve.sync(match[1], {
-        basedir: refererName ? dirname(refererName) : this.baseDir
+        basedir: refererName ? dirname(refererName) : this.baseDir,
+        extensions: this.extensions ? this.extensions : [ '.js' ]
       });
       return `${resolvedName}:${match[2]}`;
     }
