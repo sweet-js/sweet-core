@@ -39,7 +39,11 @@ export default class NodeLoader extends SweetLoader {
   }
 
   freshStore() {
-    return new Store(vm.createContext());
+    let sandbox = {
+      process: global.process,
+      console: global.console
+    };
+    return new Store(vm.createContext(sandbox));
   }
 
   eval(source: string, store: Store) {
