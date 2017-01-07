@@ -480,7 +480,7 @@ export default class TermExpander extends ASTDispatcher {
 
   expandSuper(term) { return term; }
 
-  expandCallExpression(term) {
+  expandCallExpressionE(term) {
     let callee = this.expand(term.callee);
     let enf = new Enforester(term.arguments, List(), this.context);
     let args = enf.enforestArgumentList().map(arg => this.expand(arg));

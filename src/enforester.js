@@ -1467,7 +1467,7 @@ export class Enforester {
 
   enforestCallExpression() {
     let paren = this.matchParens();
-    return new T.CallExpression({
+    return new T.CallExpressionE({
       callee: this.term,
       arguments: paren
     });
