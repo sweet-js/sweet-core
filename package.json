@@ -39,7 +39,7 @@
     "test": "test"
   },
   "dependencies": {
-    "sweet-spec": "3.0.0-pre.2",
+    "sweet-spec": "3.0.0-pre.3",
     "babel-core": "^6.18.0",
     "immutable": "^3.7.4",
     "ramda": "^0.22.0",
