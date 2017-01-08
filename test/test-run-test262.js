@@ -4,10 +4,6 @@ import fs from 'fs';
 import { compile } from '../src/sweet.js';
 import NodeLoader from '../src/node-loader';
 
-const PARSER_TEST_DIR = 'test262-parser-tests';
-
-let pass = fs.readdirSync(`./test/${PARSER_TEST_DIR}/pass`);
-let fail = fs.readdirSync(`./test/${PARSER_TEST_DIR}/fail`); // eslint-disable-line no-unused-vars
 
 // TODO: make these pass
 const passExcluded = [
@@ -176,15 +172,23 @@ const passExcluded = [
   '95.script.js',
   '993.script.js',
   '995.script.js',
-]
+];
 
-function mkTester(subdir) {
+const PARSER_TEST_DIR = 'test262-parser-tests';
+const EXTRA_TEST_DIR = 'extra-parser-tests';
+
+let pass = fs.readdirSync(`./test/${PARSER_TEST_DIR}/pass`);
+let fail = fs.readdirSync(`./test/${PARSER_TEST_DIR}/fail`); // eslint-disable-line no-unused-vars
+
+let passExtra = fs.readdirSync(`./test/${EXTRA_TEST_DIR}/pass`);
+
+function mkTester(subdir, testDir) {
   function f(t, fname) {
-    let result = compile(`./${PARSER_TEST_DIR}/${subdir}/${fname}`, new NodeLoader(__dirname));
+    let result = compile(`./${testDir}/${subdir}/${fname}`, new NodeLoader(__dirname));
     t.not(result, null);
   }
   f.title = (title, fname, expected) => {
-    let src = fs.readFileSync(`./test/${PARSER_TEST_DIR}/${subdir}/${fname}`, 'utf8');
+    let src = fs.readFileSync(`./test/${testDir}/${subdir}/${fname}`, 'utf8');
     return `${fname}:
 ${src}
 `;
@@ -192,9 +196,14 @@ ${src}
   return f;
 }
 
-let passTest = mkTester('pass')
+let passTest = mkTester('pass', PARSER_TEST_DIR);
+let extras = mkTester('pass', EXTRA_TEST_DIR);
 
 
 pass.filter(f => !passExcluded.includes(f)).forEach(f => {
   test(passTest, f);
+});
+
+passExtra.forEach(f => {
+  test(extras, f);
 });
