@@ -3,14 +3,12 @@
 import type CharStream from './char-stream';
 
 /*
- * Note: these are possible features for future enhancements. 
- * extendReadtable features:
- * 1. { key, mode: TerminatingMacro, action } - creates a delimiter must return an Array/List
- * 2. { key, mode: NonTerminatingMacro, action } - must return a Token or null/undefined. null/undefined simply consumes the read charstream.
- * 3. { key, mode: DispatchMacro, action } - triggered by reading #. otherwise like 2
- * 4. { key, delegateKey, delegateReadtable } - delegates to likeChar entry in readtable. Can be implemented
- *    by getEntry(delegateReadtable, delegateKey), adding key and passing to extendReadtable
- * 5. { key: null, mode: NonTerminatingMacro, action } - sets the default behavior for unmatched characters (identifiers/numbers)
+ * 1. { key, mode: 'terminating', action } - creates a delimiter must return an Array/List
+ * 2. { key, mode: 'non-terminating', action } - must return a Token or null/undefined. null/undefined simply consumes the read charstream.
+ * 3. { key, mode: 'dispatch', action } - triggered by reading #. otherwise like 2
+ * 4. { key, mode: delegateKey, delegateReadtable | false } - delegates to likeChar entry in readtable. Can be implemented
+ *    by getEntry(delegateReadtable, delegateKey), adding key and passing to extend
+ * 5. { key: null, mode: 'non-terminating', action } - sets the default behavior for unmatched characters (identifiers/numbers)
  */
 
 export default class Readtable {
@@ -31,8 +29,7 @@ export default class Readtable {
 }
 
 function addEntry(table: Array<ReadtableEntry>, { key, mode, action }: ReadtableEntry): Array<ReadtableEntry> {
-  if (!isValidKey(key)) throw Error('Invalid key type:', key);
-  if (!isValidEntry({key, action})) throw Error('Invalid readtable entry:', {key, action});
+  if (!isValidEntry({key, mode, action})) throw Error('Invalid readtable entry:', {key, mode, action});
 
   // null/undefined key is the default and will be converted to 0
   // chars will be converted via codePointAt
@@ -48,24 +45,22 @@ function addEntry(table: Array<ReadtableEntry>, { key, mode, action }: Readtable
 
 export const EmptyReadtable = new Readtable();
 
-// Note: This is an experiment. IF the mode flags are included here, can they just be string constants?
-// Symbol.for creates cross-realm Symbols
-export const TerminatingMacro = Symbol.for('readtable.terminating-macro-mode');
-export const NonTerminatingMacro = Symbol.for('readtable.non-terminating-macro-mode');
-export const DispatchMacro = Symbol.for('readtable.dispatch-macro-mode');
-
 function isValidKey(key) {
   return key == null ||
     (typeof key === 'number' && key <= 0x10FFFF) ||
     (typeof key === 'string' && (key.length >= 0 && key.length <= 2));
 }
 
-// function isValidMode(mode: Symbol): boolean {
-//   return mode === TerminatingMacro || mode === NonTerminatingMacro || mode === DispatchMacro;
-// }
+function isValidMode(mode: string): boolean {
+  return mode === 'terminating' || mode === 'non-terminating' || mode === 'dispatch' || mode.length <= 2;
+}
 
 function isValidAction(action) {
   return typeof action === 'function';
+}
+
+function isValidEntry(entry: ReadtableEntry) {
+  return entry && isValidKey(entry.key) && isValidMode(entry.mode) && isValidAction(entry.action);
 }
 
 type ReadtableKey = string | number | null;
@@ -74,14 +69,9 @@ type Action = (stream: CharStream, ...rest: Array<any>) => any;
 
 export type ReadtableEntry = {
   key?: ?ReadtableKey,
-  mode: Symbol, //TODO: reference the actual values
+  mode: string,
   action: Action
 };
-
-function isValidEntry(entry) {
-  return entry && isValidKey(entry.key) && /*isValidMode(entry.mode) &&*/ isValidAction(entry.action);
-}
-
 function convertKey(key?: ReadtableKey): number {
   return key == null ? 0 : (typeof key === 'number' ? key : key.codePointAt(0)) + 1;
 }

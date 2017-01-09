@@ -1,6 +1,5 @@
 // @flow
 
-import { TerminatingMacro } from './readtable';
 import { getCurrentReadtable, setCurrentReadtable } from './reader';
 import { LSYNTAX, RSYNTAX } from './utils';
 import { List } from 'immutable';
@@ -11,9 +10,8 @@ import type CharStream from './char-stream';
 
 const backtickEntry = {
   key: '`',
-  mode: TerminatingMacro,
+  mode: 'terminating',
   action: function readBacktick(stream: CharStream, prefix: List<Syntax>, e: boolean) {
-
     if (prefix.isEmpty()) {
       return {
         type: LSYNTAX,
