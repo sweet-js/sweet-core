@@ -89,7 +89,7 @@ const templateEntry = {
   action: readTemplateLiteral
 };
 
-const primitiveReadtable = EmptyReadtable.extendReadtable(
+const primitiveReadtable = EmptyReadtable.extend(
     ...[identifierEntry,
         ...whiteSpaceEntries,
         templateEntry,
@@ -219,7 +219,7 @@ const atEntry = {
   }
 };
 
-const defaultReadtable = primitiveReadtable.extendReadtable(
+const defaultReadtable = primitiveReadtable.extend(
   ...[dotEntry,
     ...delimiterEntries,
     ...unmatchedDelimiterEntries,
