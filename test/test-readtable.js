@@ -4,6 +4,7 @@ import test from 'ava';
 
 const entry = {
   key: '@',
+  mode: 'terminating',
   action() {
     return {
       type: 'Punctuator',
@@ -22,6 +23,7 @@ test('getEntry retrieves an entry from a readtable', t => {
 test('should be able to get an entry after a readtable has been extended', t => {
   const newEntry = {
     key: '#',
+    mode: 'terminating',
     action() {
       return {
         type: 'Punctuator',

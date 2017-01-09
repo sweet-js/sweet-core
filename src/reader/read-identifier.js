@@ -8,10 +8,9 @@ import type CharStream from './char-stream';
 import { IdentifierToken } from '../tokens';
 
 import { isIdentifierPart, isIdentifierStart } from './utils';
-import { TerminatingMacro } from './readtable';
 import { getCurrentReadtable } from './reader';
 
-const isTerminating = table => char => table.getEntry(char).mode === TerminatingMacro;
+const isTerminating = table => char => table.getEntry(char).mode === 'terminating';
 
 export default function readIdentifier(stream: CharStream) {
   const terminates = isTerminating(getCurrentReadtable());
