@@ -22,12 +22,15 @@ export type Context = {
   getTemplateIdentifier: any;
   loader: any;
   transform: any;
+  phase: number;
+  store: Store;
 }
+
 
 export default class SweetLoader {
   sourceCache: Map<string, string>;
   compiledCache: Map<string, SweetModule>;
-  context: Context;
+  context: any;
   baseDir: string;
 
   constructor(baseDir: string, noBabel: boolean = false) {
@@ -39,6 +42,7 @@ export default class SweetLoader {
     let templateMap = new Map();
     let tempIdent = 0;
     this.context = {
+      phase: 0,
       bindings,
       templateMap,
       getTemplateIdentifier: () => ++tempIdent,

@@ -159,6 +159,21 @@ syntax m = ctx => {
 output = m`
   }, 1);
 
+test('importing a function through multiple modules for syntax', evalWithStore, {
+  './a.js': `
+export function f(x) { return x; }
+  `,
+  './mod.js': `
+import { f } from './a.js';
+export function id(x) { return f(x); }`,
+  'main.js': `
+import * as M from './mod.js' for syntax;
+syntax m = ctx => {
+  return M.id(#\`1\`);
+}
+output = m`
+}, 1);
+
 // test('importing a chain for syntax works', evalWithStore, {
 //   'b': `#lang 'sweet.js';
 //     export function b(x) { return x; }

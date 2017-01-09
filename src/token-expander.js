@@ -7,15 +7,14 @@ import Env from './env';
 import * as _ from 'ramda';
 import * as T from './terms';
 import { gensym } from './symbol';
-import { ModuleNamespaceTransform, VarBindingTransform, CompiletimeTransform } from './transforms';
+import { VarBindingTransform, CompiletimeTransform } from './transforms';
 import { evalCompiletimeValue } from './load-syntax';
 import {  freshScope } from './scope';
 import { ALL_PHASES } from './syntax';
 import ASTDispatcher from './ast-dispatcher';
 import Syntax from './syntax.js';
 import ScopeReducer from './scope-reducer';
-import ModuleVisitor from './module-visitor';
-import SweetModule from './sweet-module';
+import ModuleVisitor, { bindImports } from './module-visitor';
 
 
 class RegisterBindingsReducer extends Term.CloneReducer {
@@ -81,54 +80,6 @@ class RegisterSyntaxBindingsReducer extends Term.CloneReducer {
   }
 }
 
-function bindImports(impTerm: S.ImportDeclaration, exModule: SweetModule, context) {
-  let names = [];
-  let phase = impTerm.forSyntax ? context.phase + 1 : context.phase;
-  if (impTerm.defaultBinding != null) {
-    let exportName = exModule.exportedNames.find(exName => exName.exportedName.val() === '_default');
-    let name = impTerm.defaultBinding.name;
-    if (exportName != null) {
-      let newBinding = gensym('_default');
-      let toForward = exportName.exportedName;
-      context.bindings.addForward(name, toForward, newBinding, phase);
-      names.push(name);
-    }
-  }
-  if (impTerm.namedImports) {
-    impTerm.namedImports.forEach(specifier => {
-      let name = specifier.binding.name;
-      let exportName = exModule.exportedNames.find(exName => exName.exportedName.val() === name.val());
-      if (exportName != null) {
-        let newBinding = gensym(name.val());
-        let toForward = exportName.name ? exportName.name : exportName.exportedName;
-        context.bindings.addForward(name, toForward, newBinding, phase);
-        names.push(name);
-      }
-    });
-  }
-  if (impTerm.namespaceBinding) {
-    let name = impTerm.namespaceBinding.name;
-    let newBinding = gensym(name.val());
-    context.store.set(newBinding.toString(), new ModuleNamespaceTransform(name, exModule));
-    context.bindings.add(name, {
-      binding: newBinding,
-      phase: phase,
-      skipDup: false
-    });
-
-    names.push(name);
-  }
-  return List(names);
-}
-
-function removeNames(impTerm, names) {
-  if (impTerm.namedImports) {
-    let namedImports = impTerm.namedImports.filter(specifier => !names.contains(specifier.binding.name));
-    return impTerm.extend({ namedImports });
-  }
-  return impTerm;
-}
-
 export default class TokenExpander extends ASTDispatcher {
   constructor(context: any) {
     super('expand', false);
@@ -174,8 +125,8 @@ export default class TokenExpander extends ASTDispatcher {
       mod = this.context.loader.get(path, this.context.phase, this.context.cwd);
       this.context.store = visitor.visit(mod, this.context.phase, this.context.store);
     }
-    let boundNames = bindImports(term, mod, this.context);
-    return removeNames(term, boundNames);
+    bindImports(term, mod, this.context.phase, this.context);
+    return term;
   }
 
   expandImport(term: S.Import) {
