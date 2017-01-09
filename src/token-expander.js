@@ -227,7 +227,7 @@ export default class TokenExpander extends ASTDispatcher {
       declarators: term.declarators.map(decl => {
         return decl.extend({
           binding: decl.binding.reduce(red)
-        })
+        });
       })
     });
   }

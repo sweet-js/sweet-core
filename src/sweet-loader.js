@@ -84,7 +84,7 @@ export default class SweetLoader {
   }
 
   translate({name, address, source, metadata}: {name: string, address: {path: string, phase: number}, source: string, metadata: {}}) {
-    let src = this.compiledCache.get(address.path)
+    let src = this.compiledCache.get(address.path);
     if (src != null) {
       return src;
     }

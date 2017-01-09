@@ -36,7 +36,7 @@ const mkDelimiter = (kind: DelimKind, inner: List<T.SyntaxTerm>, from: T.RawDeli
     kind,
     inner: List.of(from.inner.first()).concat(inner).concat(from.inner.last())
   });
-}
+};
 
 const insertIntoDelimiter = _.cond([
   [isBraces, (s, r) => mkDelimiter('braces', r, s)],

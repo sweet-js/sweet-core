@@ -660,7 +660,7 @@ export class Enforester {
             right = enf.enforestExpression();
             cnst = T.ForInStatement;
           } else {
-            assert(this.isIdentifier(lookahead, 'of'), 'expecting `of` keyword')
+            assert(this.isIdentifier(lookahead, 'of'), 'expecting `of` keyword');
             enf.advance();
             right = enf.enforestExpression();
             cnst = T.ForOfStatement;
@@ -1066,7 +1066,7 @@ export class Enforester {
       this.matchPunctuator('.');
       let name = this.matchIdentifier();
       // $FlowFixMe: we need to refactor the enforester to make flow work better
-      let exportedName = namespace.mod.exportedNames.find(exName => exName.exportedName.val() === name.val())
+      let exportedName = namespace.mod.exportedNames.find(exName => exName.exportedName.val() === name.val());
       this.rest = this.rest.unshift(new T.RawSyntax({
         value: Syntax.fromIdentifier(name.val(), exportedName.exportedName)
       }));
@@ -1487,7 +1487,7 @@ export class Enforester {
     let body;
     if (this.isBraces(this.peek())) {
       body = this.matchCurlies();
-      return new T.ArrowExpressionE({ params, body })
+      return new T.ArrowExpressionE({ params, body });
     } else {
       enf = new Enforester(this.rest, List(), this.context);
       body = enf.enforestExpressionLoop();

@@ -215,7 +215,7 @@ syntax m = ctx => {
   let dummy = #\`here\`.get(0);
   return #\`(\${dummy.fromNumber(arg.value.val())})\`;
 }
-output = m 1`, 1)
+output = m 1`, 1);
 
 test('should handle macros in blocks', evalWithOutput, `
 {
@@ -230,4 +230,4 @@ syntax m = ctx => {
   let stx = arg.fromNumber(1);
   return #\`\${stx}\`;
 }
-output = m 1`, 1)
+output = m 1`, 1);

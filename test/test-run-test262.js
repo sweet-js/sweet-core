@@ -192,7 +192,7 @@ function mkTester(subdir, testDir) {
     return `${fname}:
 ${src}
 `;
-  }
+  };
   return f;
 }
 
