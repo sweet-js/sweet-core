@@ -116,7 +116,7 @@ syntax # = function (ctx) {
 output = #
 `, 42);
 
-test('should allow macros to be defined with #', evalWithOutput, `
+test('should allow macros to be defined with *', evalWithOutput, `
 syntax * = function (ctx) {
   return #\`42\`;
 }

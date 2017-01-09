@@ -3,6 +3,7 @@
 import { isEOS } from './char-stream';
 
 import type CharStream from './char-stream';
+import type Readtable from './readtable';
 
 import { code  } from 'esutils';
 const { isLineTerminator,
@@ -200,7 +201,10 @@ export function insertSequence(coll: Object, seq: string) {
   }
 }
 
-export function retrieveSequenceLength(table: Object, stream: CharStream, idx: number) {
+export const isTerminating = (table: Readtable) => (char: string): boolean => table.getMapping(char).mode === 'terminating';
+
+// check for terminating doesn't work if it's at the start
+export function retrieveSequenceLength(table: Object, stream: CharStream, idx: number): number {
   const char = stream.peek(idx);
   if (!table[char]) {
     if (table.isValue) return idx;

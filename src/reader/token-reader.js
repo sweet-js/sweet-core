@@ -71,9 +71,9 @@ class TokenReader extends Reader {
     : this.createError('Unexpected end of input');
   }
 
-  readToken(stream: CharStream, prefix: List<Syntax>, exprAllowed: boolean, ...rest: Array<any>): Syntax {
+  readToken(stream: CharStream, ...rest: Array<any>): Syntax {
     const startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
-    const result = super.read(stream, prefix, exprAllowed, ...rest);
+    const result = super.read(stream, ...rest);
 
 
     if (startLocation.column === this.locationInfo.column && startLocation.line === this.locationInfo.line) {
@@ -87,17 +87,17 @@ class TokenReader extends Reader {
     return new Syntax(result, this.context);
   }
 
-  readUntil(closing: string, stream: CharStream, results: List<Syntax>, exprAllowed: boolean): List<Syntax> {
-    let result, char;
+  readUntil(close: ?Function | ?string, stream: CharStream, results: List<Syntax>, exprAllowed: boolean): List<Syntax> {
+    let result, done = false;
     do {
-      char = stream.peek();
-      if (isEOS(char)) break;
+      if (isEOS(stream.peek())) break;
+      done = typeof close === 'function' ? close() : stream.peek() === close;
       result = this.readToken(stream, results, exprAllowed);
 
       if (result !== EmptyToken) {
         results = results.push(result);
       }
-    } while(char !== closing)
+    } while(!done)
     return results;
   }
 
@@ -110,5 +110,5 @@ class TokenReader extends Reader {
 export default function read(source: string | CharStream, context?: Context): List<Syntax> {
   const stream = (typeof source === 'string') ? new CharStream(source) : source;
   if (isEOS(stream.peek())) return List();
-  return new TokenReader(stream, context).readUntil('', stream, List(), false);
+  return new TokenReader(stream, context).readUntil(null, stream, List(), false);
 }

@@ -98,7 +98,8 @@
       "test/test-char-stream.js",
       "test/test-readtable.js",
       "test/test-default-readtable.js",
-      "test/test-macro-context.js"
+      "test/test-macro-context.js",
+      "test/test-reader-extensions.js"
     ],
     "require": [
       "babel-register"

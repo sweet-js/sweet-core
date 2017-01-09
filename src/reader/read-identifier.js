@@ -7,25 +7,25 @@ import type CharStream from './char-stream';
 
 import { IdentifierToken } from '../tokens';
 
-import { isIdentifierPart, isIdentifierStart } from './utils';
+import { isTerminating, isIdentifierPart, isIdentifierStart } from './utils';
 import { getCurrentReadtable } from './reader';
 
-const isTerminating = table => char => table.getEntry(char).mode === 'terminating';
+let terminates;
 
 export default function readIdentifier(stream: CharStream) {
-  const terminates = isTerminating(getCurrentReadtable());
+  terminates = isTerminating(getCurrentReadtable());
   let char = stream.peek();
   let code;
   let check = isIdentifierStart;
   let idx = 0;
-  while(!isEOS(char)) {
+  while(!terminates(char) && !isEOS(char)) {
     code = char.charCodeAt(0);
     if (char === '\\' || 0xD800 <= code && code <= 0xDBFF) {
       return new IdentifierToken({
         value: getEscapedIdentifier.call(this, stream)
       });
     }
-    if (terminates(code) || !check(code)) {
+    if (!check(code)) {
       return new IdentifierToken({
         value: stream.readString(idx)
       });
@@ -39,13 +39,12 @@ export default function readIdentifier(stream: CharStream) {
 }
 
 function getEscapedIdentifier(stream) {
-  const terminates = isTerminating(getCurrentReadtable());
   const sPeek = stream.peek.bind(stream);
   let id = '';
   let check = isIdentifierStart;
   let char = sPeek();
   let code = char.charCodeAt(0);
-  while (!isEOS(char)) {
+  while (!terminates(char) && !isEOS(char)) {
     let streamRead = false;
     if (char === '\\') {
       let nxt = sPeek(1);
@@ -71,7 +70,7 @@ function getEscapedIdentifier(stream) {
       stream.readString(2);
       code = decodeUtf16(code, lowSurrogateCode);
     }
-    if (terminates(code) || !check(code)) {
+    if (!check(code)) {
       if (id.length < 1) {
         throw this.createILLEGAL(char);
       }

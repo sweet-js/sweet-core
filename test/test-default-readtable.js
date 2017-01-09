@@ -374,6 +374,12 @@ test('should erase #lang pragmas', t => {
   t.true(results.size === 1);
 });
 
+test('should return an identifier for a lone #', t => {
+  const results = read(`const # = 3`);
+  t.true(List.isList(results));
+  t.is(results.get(1).token.type, TT.IDENTIFIER);
+});
+
 test('should parse comments', t => {
   function testParseComment(source) {
     const result = read(source);

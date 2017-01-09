@@ -15,12 +15,13 @@ const entry = {
 
 const table = EmptyReadtable.extend(entry);
 
-test('getEntry retrieves an entry from a readtable', t => {
-  const theEntry = table.getEntry('@');
+test('getMapping retrieves a mapping from a readtable', t => {
+  const theMapping = table.getMapping('@');
 
-  t.is(theEntry.action, entry.action);
+  t.is(theMapping.action, entry.action);
 });
-test('should be able to get an entry after a readtable has been extended', t => {
+
+test('should be able to get a mapping after a readtable has been extended', t => {
   const newEntry = {
     key: '#',
     mode: 'terminating',
@@ -33,9 +34,9 @@ test('should be able to get an entry after a readtable has been extended', t => 
   };
   const newTable = table.extend(newEntry);
 
-  const theEntry = newTable.getEntry('@');
-  t.is(theEntry.action, entry.action);
+  const theMapping = newTable.getMapping('@');
+  t.is(theMapping.action, entry.action);
 
-  const theOtherEntry = newTable.getEntry('#');
-  t.is(theOtherEntry.action, newEntry.action);
+  const theOtherMapping = newTable.getMapping('#');
+  t.is(theOtherMapping.action, newEntry.action);
 });
