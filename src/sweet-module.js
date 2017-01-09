@@ -10,10 +10,10 @@ import Syntax from './syntax';
 const extractDeclaration = _.cond([
   [S.isExport,        _.prop('declaration')],
   [S.isExportDefault, _.prop('body')],
-  [_.T,               term => { throw new Error(`Expecting an Export or ExportDefault but got ${term}`) }]
+  [_.T,               term => { throw new Error(`Expecting an Export or ExportDefault but got ${term}`); }]
 ]);
 
-const ExpSpec = x => ({ exportedName: x })
+const ExpSpec = x => ({ exportedName: x });
 
 const extractDeclarationNames = _.cond([
   [S.isVariableDeclarator,  ({binding}) => List.of(ExpSpec(binding.name))],
@@ -29,7 +29,7 @@ type ExportSpecifier = {
 
 function extractNames(term: T.ExportDeclaration): List<ExportSpecifier> {
   if (S.isExport(term)) {
-    return extractDeclarationNames(term.declaration);  
+    return extractDeclarationNames(term.declaration);
   } else if (S.isExportDefault(term)) {
     return List(); 
   } else if (S.isExportFrom(term)) {

@@ -23,7 +23,7 @@ export const isSyntaxDeclarationStatement = (term: any) => {
   // syntax m = ...
   // syntaxrec m = ...
   return isVariableDeclarationStatement(term) && isSyntaxVariableDeclartion(term.declaration);
-}
+};
 
 export const isCompiletimeStatement = isSyntaxDeclarationStatement;
 

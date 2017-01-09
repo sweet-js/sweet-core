@@ -27,7 +27,7 @@ export function compile(entryPath: string, loader: SweetLoader, options?: Compil
     refererName = options.refererName; 
     noBabel = options.noBabel;
   }
-  let code = compileModule(entryPath, loader, refererName).codegen()
+  let code = compileModule(entryPath, loader, refererName).codegen();
   if (noBabel) {
     return {
       code

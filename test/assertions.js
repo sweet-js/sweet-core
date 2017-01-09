@@ -42,7 +42,7 @@ export function evalWithStore(t, inputStore, expected) {
 }
 evalWithStore.title = (title, inputStore, expected) => `${title}
 ${Array.from(Object.entries(inputStore)).map(([modName, modSrc]) => `${modName}\n----\n${modSrc}\n----`).join('\n')}
-> ${expected}`
+> ${expected}`;
 
 export function evalWithOutput(t, input, expected) {
   let store = new Map();
@@ -51,7 +51,7 @@ export function evalWithOutput(t, input, expected) {
 }
 evalWithOutput.title = (title, input, expected) => `${title}
 ${input}
-> ${expected}`
+> ${expected}`;
 
 export function evalThrows(t, input) {
   let store = new Map();
@@ -60,7 +60,7 @@ export function evalThrows(t, input) {
 }
 evalThrows.title = (title, input) => `${title}
 ${input}
-> should have thrown`
+> should have thrown`;
 
 export function testThrow(source) {
   // expect(() => compile(source, { cwd: '.', transform})).to.throwError();

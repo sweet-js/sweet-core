@@ -521,7 +521,7 @@ export default class TermExpander extends ASTDispatcher {
           let name = term.name.addScope(scope, self.context.bindings, ALL_PHASES);
           let newBinding = gensym(name.val());
 
-          self.context.env.set(newBinding.toString(), new VarBindingTransform(name))
+          self.context.env.set(newBinding.toString(), new VarBindingTransform(name));
           self.context.bindings.add(name, {
             binding: newBinding,
             phase: self.context.phase,

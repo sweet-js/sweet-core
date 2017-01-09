@@ -16,6 +16,7 @@
     "plugin:flowtype/recommended"
   ],
   "rules": {
+    "semi": ["error", "always"],
     "no-constant-condition": ["error", { "checkLoops": false }],
     "comma-dangle": ["error", "only-multiline" ],
     "no-console": ["warn"],

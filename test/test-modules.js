@@ -119,7 +119,7 @@ syntax m = ctx => {
 }
 output = m
 `
-  }, 1)
+  }, 1);
 
   test('exporting names with renaming for syntax', evalWithStore, {
 './mod.js': `
@@ -133,7 +133,7 @@ syntax m = ctx => {
 }
 output = m
 `
-  }, 1)
+  }, 1);
 
   test('exporting default names for syntax', evalWithStore, {
 './mod.js': `
@@ -146,7 +146,7 @@ syntax m = ctx => {
 }
 output = m
 `
-  }, 1)
+  }, 1);
 
   test('importing a namespace for syntax', evalWithStore, {
 './mod.js': `
@@ -157,7 +157,7 @@ syntax m = ctx => {
   return M.id(#\`1\`);
 }
 output = m`
-  }, 1)
+  }, 1);
 
 // test('importing a chain for syntax works', evalWithStore, {
 //   'b': `#lang 'sweet.js';
