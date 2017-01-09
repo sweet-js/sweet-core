@@ -2,16 +2,19 @@
 
 import { isEOS } from './char-stream';
 import { code } from 'esutils';
-import { getHexValue } from './utils';
+import { isTerminating, getHexValue } from './utils';
 import { NumericToken } from '../tokens';
+import { getCurrentReadtable } from './reader';
 
 import type CharStream from './char-stream';
 
 const { isIdentifierPartES6: isIdentifierPart,
-        isIdentifierStartES6: isIdentifierStart,
-        } = code;
+        isIdentifierStartES6: isIdentifierStart } = code;
+
+let terminates;
 
 export default function readNumericLiteral(stream: CharStream) {
+  terminates = isTerminating(getCurrentReadtable());
   let idx = 0, char = stream.peek();
 
   if (char === '0') {
@@ -32,7 +35,7 @@ export default function readNumericLiteral(stream: CharStream) {
       });
     }
   } else if (char !== '.') {
-    while (isDecimalChar(char)) {
+    while (!terminates(char) && isDecimalChar(char)) {
       char = stream.peek(++idx);
     }
     if (isEOS(char)) {
@@ -45,7 +48,7 @@ export default function readNumericLiteral(stream: CharStream) {
   idx = addDecimalLiteralSuffixLength.call(this, stream, idx);
 
   char = stream.peek(idx);
-  if (!isEOS(char) && isIdentifierStart(char)) {
+  if (!isEOS(char) && !terminates(char) && isIdentifierStart(char)) {
     throw this.createILLEGAL(char);
   }
 
@@ -62,7 +65,7 @@ function addDecimalLiteralSuffixLength(stream, idx) {
 
     while (isDecimalChar(char)) {
       char = stream.peek(++idx);
-      if (isEOS(char)) return idx;
+      if (terminates(char) || isEOS(char)) return idx;
     }
   }
 
@@ -77,7 +80,7 @@ function addDecimalLiteralSuffixLength(stream, idx) {
 
     while (isDecimalChar(char)) {
       char = stream.peek(++idx);
-      if (isEOS(char)) break;
+      if (terminates(char) || isEOS(char)) break;
     }
   }
   return idx;
@@ -86,7 +89,7 @@ function addDecimalLiteralSuffixLength(stream, idx) {
 function readLegacyOctalLiteral(stream) {
   let idx = 0, isOctal = true, char = stream.peek();
 
-  while (!isEOS(char)) {
+  while (!terminates(char) && !isEOS(char)) {
     if ('0' <= char && char <= '7') {
       idx++;
     } else if (char === '8' || char === '9') {
@@ -116,7 +119,7 @@ function readLegacyOctalLiteral(stream) {
 
 function readOctalLiteral(stream) {
   let start, idx = start = 2, char = stream.peek(idx);
-  while (!isEOS(char)) {
+  while (!terminates(char) && !isEOS(char)) {
     if ('0' <= char && char <= '7') {
       char = stream.peek(++idx);
     } else if (isIdentifierPart(char.charCodeAt(0))) {
@@ -139,7 +142,7 @@ function readBinaryLiteral(stream) {
   let start, idx = start = 2;
   let char = stream.peek(idx);
 
-  while(!isEOS(char)) {
+  while(!terminates(char) && !isEOS(char)) {
     if (char !== '0' && char !== '1') {
       break;
     }
@@ -151,7 +154,7 @@ function readBinaryLiteral(stream) {
     throw this.createILLEGAL(char);
   }
 
-  if (!isEOS(char) && (isIdentifierStart(char) || isDecimalChar(char))) {
+  if (!isEOS(char) && !terminates(char) && (isIdentifierStart(char) || isDecimalChar(char))) {
     throw this.createILLEGAL(char);
   }
 
@@ -162,7 +165,7 @@ function readBinaryLiteral(stream) {
 
 function readHexLiteral(stream) {
   let start, idx = start = 2, char = stream.peek(idx);
-  while(true) {
+  while(!terminates(char)) {
     let hex = getHexValue(char);
     if (hex === -1) {
       break;
@@ -174,7 +177,7 @@ function readHexLiteral(stream) {
     throw this.createILLEGAL(char);
   }
 
-  if (!isEOS(char) && isIdentifierStart(char)) {
+  if (!isEOS(char) && !terminates(char) && isIdentifierStart(char)) {
     throw this.createILLEGAL(char);
   }
 

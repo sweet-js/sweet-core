@@ -4,16 +4,29 @@ import type Readtable from './readtable';
 import type CharStream from './char-stream';
 
 import { isEOS } from './char-stream';
+import { EmptyReadtable } from './readtable';
 
-let currentReadtable;
+const defaultDispatchKey = '#';
+let dispatching = false;
+
+let currentReadtable = EmptyReadtable.extend({
+  key: defaultDispatchKey,
+  mode: 'non-terminating',
+  action: function readDispatchChar(stream, ...rest) {
+    stream.readString();
+    dispatching = true;
+    return this.read(stream, ...rest, defaultDispatchKey);
+  }
+});
 
 export default class Reader {
   read(stream: CharStream, ...rest?: Array<any>): any {
-    let char = stream.peek();
-    if (!isEOS(char)) {
-      const entry = currentReadtable.getEntry(char);
-      const result = entry.action.call(this, stream, ...rest);
-      return result;
+    let key = stream.peek();
+    if (!isEOS(key)) {
+      const entry = currentReadtable.getMapping(key);
+      const action = dispatching ? (dispatching = false, entry.dispatchAction) : entry.action;
+
+      return action.call(this, stream, ...rest);
     }
     throw Error('Unexpected end of input');
   }

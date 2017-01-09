@@ -17,12 +17,15 @@
 "use strict";
 
 var fs = require('fs');
+var path = require('path');
 var parse = require('./build/src/sweet').parse;
+var NodeLoader = require('./build/src/node-loader').default;
 
 function benchmarkParsing(fileName) {
+  var loader = new NodeLoader(path.dirname(fs.realpathSync(__filename)));
   var start = Date.now(), N = 100;
   for (var i = 0; i < N; i++) {
-    parse(fileName);
+    parse(fileName, loader);
   }
   var time = Date.now() - start;
   console.log((time / N).toFixed(2) + "ms");

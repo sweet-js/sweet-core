@@ -6,10 +6,28 @@ import type CharStream from './char-stream';
  * 1. { key, mode: 'terminating', action } - creates a delimiter must return an Array/List
  * 2. { key, mode: 'non-terminating', action } - must return a Token or null/undefined. null/undefined simply consumes the read charstream.
  * 3. { key, mode: 'dispatch', action } - triggered by reading #. otherwise like 2
- * 4. { key, mode: delegateKey, delegateReadtable | false } - delegates to likeChar entry in readtable. Can be implemented
- *    by getEntry(delegateReadtable, delegateKey), adding key and passing to extend
- * 5. { key: null, mode: 'non-terminating', action } - sets the default behavior for unmatched characters (identifiers/numbers)
+ * 4. { key: null | undefined, mode: 'non-terminating', action } - sets the default behavior for unmatched characters (identifiers/numbers)
  */
+
+const DISPATCH_OFFSET = 0x110000;
+
+type ReadtableKey = string | number | null;
+
+type Action = (stream: CharStream, ...rest: Array<any>) => any;
+
+type ReadtableMode = 'terminating' | 'non-terminating' | 'dispatch';
+
+type ReadtableEntry = {
+  key?: ?ReadtableKey,
+  mode: ReadtableMode,
+  action: Action
+};
+
+type ReadtableMapping = {
+  mode: ReadtableMode,
+  action: Action,
+  dispatchAction: Action
+};
 
 export default class Readtable {
   _entries: Array<ReadtableEntry>;
@@ -17,9 +35,12 @@ export default class Readtable {
     this._entries = entries;
   }
 
-  getEntry(key?: ReadtableKey): ReadtableEntry {
+  getMapping(key?: ReadtableKey): ReadtableMapping {
     if (!isValidKey(key)) throw Error('Invalid key type:', key);
-    return this._entries[convertKey(key)] || this._entries[0];
+    key = convertKey(key);
+    const { action, mode } = this._entries[key] || this._entries[0];
+    const dispatchEntry = this._entries[key + DISPATCH_OFFSET] || this._entries[DISPATCH_OFFSET] || {};
+    return { action, mode, dispatchAction: dispatchEntry.action };
   }
 
   extend(...entries: Array<ReadtableEntry>): Readtable {
@@ -35,11 +56,9 @@ function addEntry(table: Array<ReadtableEntry>, { key, mode, action }: Readtable
   // chars will be converted via codePointAt
   // numbers are...numbers
   // to accommodate default (null) 1 will be added to all and default will be at 0
-  table[convertKey(key)] = { action, mode };
+  // if is a dispatch macro, we have to convert the key and bump it up by DISPATCH_OFFSET
+  table[convertKey(key) + (mode === 'dispatch' ? DISPATCH_OFFSET : 0)] = { action, mode };
 
-  // if is a dispatch macro, we have to convert the key and bump it up by 0x110000
-  // Note: The above depends on a primitive implementation of dispatch macros.
-  //       I'm considering another implementation which will just use the current capabilities.
   return table;
 }
 
@@ -47,12 +66,12 @@ export const EmptyReadtable = new Readtable();
 
 function isValidKey(key) {
   return key == null ||
-    (typeof key === 'number' && key <= 0x10FFFF) ||
+    (typeof key === 'number' && key < DISPATCH_OFFSET) ||
     (typeof key === 'string' && (key.length >= 0 && key.length <= 2));
 }
 
 function isValidMode(mode: string): boolean {
-  return mode === 'terminating' || mode === 'non-terminating' || mode === 'dispatch' || mode.length <= 2;
+  return mode === 'terminating' || mode === 'non-terminating' || mode === 'dispatch';
 }
 
 function isValidAction(action) {
@@ -63,15 +82,6 @@ function isValidEntry(entry: ReadtableEntry) {
   return entry && isValidKey(entry.key) && isValidMode(entry.mode) && isValidAction(entry.action);
 }
 
-type ReadtableKey = string | number | null;
-
-type Action = (stream: CharStream, ...rest: Array<any>) => any;
-
-export type ReadtableEntry = {
-  key?: ?ReadtableKey,
-  mode: string,
-  action: Action
-};
 function convertKey(key?: ReadtableKey): number {
   return key == null ? 0 : (typeof key === 'number' ? key : key.codePointAt(0)) + 1;
 }
