@@ -22,7 +22,7 @@ export default class Readtable {
     return this._entries[convertKey(key)] || this._entries[0];
   }
 
-  extendReadtable(...entries: Array<ReadtableEntry>): Readtable {
+  extend(...entries: Array<ReadtableEntry>): Readtable {
     const newTable = this._entries.slice();
     return new Readtable(entries.reduce(addEntry, newTable));
   }

@@ -13,7 +13,7 @@ const entry = {
   }
 };
 
-let table = EmptyReadtable.extendReadtable(entry);
+const table = EmptyReadtable.extend(entry);
 
 test('getEntry retrieves an entry from a readtable', t => {
   const theEntry = table.getEntry('@');
@@ -31,7 +31,7 @@ test('should be able to get an entry after a readtable has been extended', t => 
       };
     }
   };
-  const newTable = table.extendReadtable(newEntry);
+  const newTable = table.extend(newEntry);
 
   const theEntry = newTable.getEntry('@');
   t.is(theEntry.action, entry.action);
