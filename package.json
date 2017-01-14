@@ -7,7 +7,7 @@
   },
   "version": "2.2.1",
   "engines": {
-    "node": ">5.0.0"
+    "node": ">=7.0.0"
   },
   "author": "Tim Disney",
   "licenses": [
