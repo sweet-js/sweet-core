@@ -97,7 +97,7 @@ class TokenReader extends Reader {
       if (result !== EmptyToken) {
         results = results.push(result);
       }
-    } while(!done)
+    } while(!done);
     return results;
   }
 
