@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/sweet-js/sweet.js.png)](https://travis-ci.org/sweet-js/sweet.js)
+[![Build Status](https://travis-ci.org/sweet-js/sweet.js.svg)](https://travis-ci.org/sweet-js/sweet.js)
 
 [![Join the chat at https://gitter.im/mozilla/sweet.js](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mozilla/sweet.js?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
