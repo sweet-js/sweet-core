@@ -8,7 +8,6 @@ import NodeLoader from '../src/node-loader';
 // TODO: make these pass
 const passExcluded = [
   // known problems with the reader
-  '1111.script.js',
   '1252.script.js',
   '978.script.js',
   '953.script.js',

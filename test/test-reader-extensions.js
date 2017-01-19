@@ -24,22 +24,26 @@ test('terminating macros should delimit identifiers and numbers', t => {
   });
 
   // reading with 'z' and '0' as 'non-terminating'
-  let result = read('abczefgzhij');
+  let result = read('abczefgzhij\u{102A7}ba ').get(0).val();
   t.is(prevTable.getMapping('z').mode, 'non-terminating');
-  t.is(result.toString(), 'List [ abczefgzhij ]');
+  t.is(result, 'abczefgzhij𐊧ba');
 
-  result = read('12304560789');
+  result = read('12304560789').get(0).val();
   t.is(prevTable.getMapping('0').mode, 'non-terminating');
-  t.is(result.toString(), 'List [ 12304560789 ]');
+  t.is(result, 12304560789);
 
   setCurrentReadtable(newTable);
 
   // reading with 'z' and '0' as 'terminating'
-  result = read('abczefgzhij');
-  t.is(result.toString(), 'List [ abc, efg, hij ]');
+  let [x,y,z] = read('abczefgzhij\u{102A7}ba ').map(s => s.val());
+  t.is(x, 'abc');
+  t.is(y, 'efg');
+  t.is(z, 'hij𐊧ba');
 
-  result = read('12304560789');
-  t.is(result.toString(), 'List [ 123, 456, 789 ]');
+  ([x,y,z] = read('12304560789').map(s => s.val()));
+  t.is(x, 123);
+  t.is(y, 456);
+  t.is(z, 789);
 
   setCurrentReadtable(prevTable);
 });
