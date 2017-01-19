@@ -69,6 +69,7 @@ function getEscapedIdentifier(stream) {
       }
       stream.readString(2);
       code = decodeUtf16(code, lowSurrogateCode);
+      streamRead = true;
     }
     if (!check(code)) {
       if (id.length < 1) {
