@@ -231,3 +231,13 @@ syntax m = ctx => {
   return #\`\${stx}\`;
 }
 output = m 1`, 1);
+
+
+test('should construct delimiters', evalWithOutput, `
+syntax m = ctx => {
+  let dummy = #\`dummy\`.get(0);
+  let expr = #\`5 * 5\`;
+  return #\`1 + \${dummy.fromParens(expr)}\`;
+}
+output = m
+`, 26);

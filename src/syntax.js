@@ -117,51 +117,72 @@ export let Types: TypesHelper = {
 		match: token => Types.delimiter.match(token) &&
            token.get(0).token.type === TokenType.LBRACE,
     create: (inner, stx) => {
-      let left = new Syntax({
-        type: TokenType.LBRACE,
-        value: '{',
-        slice: getFirstSlice(stx)
+      let left = new T.RawSyntax({
+        value: new Syntax({
+          type: TokenType.LBRACE,
+          value: '{',
+          slice: getFirstSlice(stx)
+        })
       });
-      let right = new Syntax({
-        type: TokenType.RBRACE,
-        value: '}',
-        slice: getFirstSlice(stx)
+      let right = new T.RawSyntax({
+        value: new Syntax({
+          type: TokenType.RBRACE,
+          value: '}',
+          slice: getFirstSlice(stx)
+        })
       });
-      return new Syntax(List.of(left).concat(inner).push(right), stx);
+      return new T.RawDelimiter({
+        kind: 'braces',
+        inner: List.of(left).concat(inner).push(right)
+      });
     }
   },
   brackets: {
 		match: token => Types.delimiter.match(token) &&
            token.get(0).token.type === TokenType.LBRACK,
     create: (inner, stx) => {
-      let left = new Syntax({
-        type: TokenType.LBRACK,
-        value: '[',
-        slice: getFirstSlice(stx)
+      let left = new T.RawSyntax({
+        value: new Syntax({
+          type: TokenType.LBRACK,
+          value: '[',
+          slice: getFirstSlice(stx)
+        })
       });
-      let right = new Syntax({
-        type: TokenType.RBRACK,
-        value: ']',
-        slice: getFirstSlice(stx)
+      let right = new T.RawSyntax({
+        value: new Syntax({
+          type: TokenType.RBRACK,
+          value: ']',
+          slice: getFirstSlice(stx)
+        })
       });
-      return new Syntax(List.of(left).concat(inner).push(right), stx);
+      return new T.RawDelimiter({
+        kind: 'brackets',
+        inner: List.of(left).concat(inner).push(right)
+      });
     }
   },
   parens: {
 		match: token => Types.delimiter.match(token) &&
            token.get(0).token.type === TokenType.LPAREN,
     create: (inner, stx) => {
-      let left = new Syntax({
-        type: TokenType.LPAREN,
-        value: '(',
-        slice: getFirstSlice(stx)
+      let left = new T.RawSyntax({
+        value: new Syntax({
+          type: TokenType.LPAREN,
+          value: '(',
+          slice: getFirstSlice(stx)
+        })
       });
-      let right = new Syntax({
-        type: TokenType.RPAREN,
-        value: ')',
-        slice: getFirstSlice(stx)
+      let right = new T.RawSyntax({
+        value: new Syntax({
+          type: TokenType.RPAREN,
+          value: ')',
+          slice: getFirstSlice(stx)
+        })
       });
-      return new Syntax(List.of(left).concat(inner).push(right), stx);
+      return new T.RawDelimiter({
+        kind: 'parens',
+        inner: List.of(left).concat(inner).push(right)
+      });
     }
   },
 
@@ -247,14 +268,19 @@ export default class Syntax {
     }
     let newstx = Types[type].create(value, stx);
     let slice = getFirstSlice(stx);
-    if (slice != null) {
+    if (slice != null && newstx.token != null) {
       newstx.token.slice = slice;
     }
     return newstx;
   }
 
   from(type: TokenTag, value: any) {
-    return new T.RawSyntax({ value: Syntax.from(type, value, this) });
+    // TODO: this is gross, fix
+    let s = Syntax.from(type, value, this);
+    if (s instanceof Syntax) {
+      return new T.RawSyntax({ value: s });
+    }
+    return s;
   }
 
   fromNull() {
