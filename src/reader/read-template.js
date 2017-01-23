@@ -1,15 +1,13 @@
 // @flow
 import { List } from 'immutable';
 
-import type { CharStream } from 'readtable';
-import type Syntax from '../syntax';
+import type { isEOS, CharStream } from 'readtable';
 
-import { isEOS } from 'readtable';
 import { readStringEscape } from './utils';
 import { getSlice } from './token-reader';
 import { TemplateToken, TemplateElementToken } from '../tokens';
 
-export default function readTemplateLiteral(stream: CharStream, prefix: List<Syntax>): TemplateToken {
+export default function readTemplateLiteral(stream: CharStream, prefix: List<any>): TemplateToken {
   let element, items = [];
   stream.readString();
 

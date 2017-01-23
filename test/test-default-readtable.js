@@ -14,14 +14,14 @@ function testParse(source, tst) {
 
   if (results.isEmpty()) return;
 
-  tst(results.first().token);
+  tst(results.first());
 }
 
 function testParseResults(source, tst) {
   const prevTable = getCurrentReadtable();
   const result = read(source);
   expect(getCurrentReadtable() === prevTable).to.be.true;
-  tst(result.map(s => s.token));
+  tst(result);
 }
 
 test('should parse Unicode identifiers', t => {
@@ -207,9 +207,9 @@ test('should parse template literals', t => {
     t.false(x.tail);
     t.true(x.interp);
 
-    t.true(List.isList(y.token));
-    t.is(y.token.get(1).token.type, TT.IDENTIFIER);
-    t.is(y.token.get(1).token.value, 'bar');
+    t.true(List.isList(y));
+    t.is(y.get(1).type, TT.IDENTIFIER);
+    t.is(y.get(1).value, 'bar');
 
     t.is(z.type, TT.TEMPLATE);
     t.is(z.value, 'baz');
@@ -222,7 +222,7 @@ test('should parse delimiters', t => {
   function testParseDelimiter(source, value) {
     testParse(source, results => {
       t.true(List.isList(results));
-      results.forEach((r, i) => t.true(source.includes(r.token.value)));
+      results.forEach((r, i) => t.true(source.includes(r.value)));
     });
   }
 
@@ -231,7 +231,7 @@ test('should parse delimiters', t => {
   testParse('{ x + z }', result => {
     t.true(List.isList(result));
 
-    const [v,w,x,y,z] = result.map(s => s.token);
+    const [v,w,x,y,z] = result;
 
     t.is(v.type, TT.LBRACE);
 
@@ -249,7 +249,7 @@ test('should parse delimiters', t => {
   testParse('[ x , z ]', result => {
     t.true(List.isList(result));
 
-    const [v,w,x,y,z] = result.map(s => s.token);
+    const [v,w,x,y,z] = result;
 
     t.is(v.type, TT.LBRACK);
 
@@ -267,13 +267,13 @@ test('should parse delimiters', t => {
   testParse('[{x : 3}, z]', result => {
     t.true(List.isList(result));
 
-    const [v,w,x,y,z] = result.map(s => s.token);
+    const [v,w,x,y,z] = result;
 
     t.is(v.type, TT.LBRACK);
 
     t.true(List.isList(w));
 
-    const [a,b,c,d,e] = w.map(s => s.token);
+    const [a,b,c,d,e] = w;
 
     t.is(a.type, TT.LBRACE);
 
@@ -299,7 +299,7 @@ test('should parse delimiters', t => {
     t.is(foo.type, TT.IDENTIFIER);
     t.is(foo.value, 'foo');
 
-    const [x,y,z] = bar.map(s => s.token);
+    const [x,y,z] = bar;
 
 
     t.is(x.type, TT.LPAREN);
@@ -351,7 +351,7 @@ test('should parse division expressions', t => {
 
 test('should parse syntax templates', t => {
   testParseResults('#`a 1 ${}`', ([result]) => {
-    const [u,v,w,x,y,z] = result.map(s => s.token);
+    const [u,v,w,x,y,z] = result;
     t.is(u.type, LSYNTAX);
 
     t.is(v.type, TT.IDENTIFIER);
@@ -364,8 +364,8 @@ test('should parse syntax templates', t => {
     t.is(x.value, '$');
 
     t.true(List.isList(y));
-    t.is(y.first().token.type, TT.LBRACE);
-    t.is(y.get(1).token.type, TT.RBRACE);
+    t.is(y.first().type, TT.LBRACE);
+    t.is(y.get(1).type, TT.RBRACE);
 
     t.is(z.type, RSYNTAX);
   });
@@ -380,7 +380,7 @@ test('should erase #lang pragmas', t => {
 test('should return an identifier for a lone #', t => {
   const results = read(`const # = 3`);
   t.true(List.isList(results));
-  t.is(results.get(1).token.type, TT.IDENTIFIER);
+  t.is(results.get(1).type, TT.IDENTIFIER);
 });
 
 test('should parse comments', t => {
@@ -405,7 +405,7 @@ test('should parse comments', t => {
 test('should properly update location information', t => {
   function testLocationInfo(source, { idx, size, line: expectedLine, column: expectedColumn}) {
     let result = read(source);
-    let { line, column } = result.get(idx).token.slice.startLocation;
+    let { line, column } = result.get(idx).slice.startLocation;
     t.is(result.size, size);
     t.is(line, expectedLine);
     t.is(column, expectedColumn);
