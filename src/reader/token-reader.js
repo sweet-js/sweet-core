@@ -4,7 +4,6 @@ import { CharStream, isEOS, Reader, setCurrentReadtable } from 'readtable';
 import defaultReadtable from './default-readtable';
 import { List } from 'immutable';
 import { EmptyToken } from '../tokens';
-import Syntax from '../syntax';
 
 import type { StartLocation, Slice } from '../tokens';
 
@@ -70,7 +69,7 @@ class TokenReader extends Reader {
     : this.createError('Unexpected end of input');
   }
 
-  readToken(stream: CharStream, ...rest: Array<any>): Syntax {
+  readToken(stream: CharStream, ...rest: Array<any>) {
     const startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
     const result = super.read(stream, ...rest);
 
@@ -83,11 +82,11 @@ class TokenReader extends Reader {
 
     if (!List.isList(result)) result.slice = getSlice(stream, startLocation);
 
-    return new Syntax(result, this.context);
+    return result;
   }
 
-  readUntil(close: ?Function | ?string, stream: CharStream, results: List<Syntax>, exprAllowed: boolean): List<Syntax> {
-    let result, done = false;
+  readUntil(close: ?Function | ?string, stream: CharStream, prefix: List<any>, exprAllowed: boolean): List<any> {
+    let result, results = prefix, done = false;
     do {
       if (isEOS(stream.peek())) break;
       done = typeof close === 'function' ? close() : stream.peek() === close;
@@ -106,7 +105,7 @@ class TokenReader extends Reader {
   }
 }
 
-export default function read(source: string | CharStream, context?: Context): List<Syntax> {
+export default function read(source: string | CharStream, context?: Context): List<any> {
   const stream = (typeof source === 'string') ? new CharStream(source) : source;
   if (isEOS(stream.peek())) return List();
   return new TokenReader(stream, context).readUntil(null, stream, List(), false);

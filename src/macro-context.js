@@ -7,24 +7,29 @@ import ScopeReducer from './scope-reducer';
 import * as T from 'sweet-spec';
 import Term, * as S from 'sweet-spec';
 import Syntax from './syntax';
+import { isTemplate, isDelimiter, getKind } from './tokens';
+import type { TokenTree } from './tokens';
 
-export function wrapInTerms(stx: List<Syntax>): List<Term> {
+export function wrapInTerms(stx: List<TokenTree>): List<Term> {
   return stx.map(s => {
-    if (s.isTemplate()) {
-      s.token.items = s.token.items.map(t => {
-        if (t instanceof Syntax) {
-          return wrapInTerms(List.of(t)).first();
-        }
-        return t;
+    if (isTemplate(s)) {
+      if (s.items) {
+        s.items = wrapInTerms(s.items);
+        return new T.RawSyntax({
+          value: new Syntax(s)
+        });
+      }
+      return new T.RawSyntax({
+        value: new Syntax(s)
       });
-    } else if (s.isParens() || s.isBraces() || s.isBrackets() || s.isSyntaxTemplate()) {
+    } else if (isDelimiter(s)) {
       return new S.RawDelimiter({
-        kind: s.isBraces() ? 'braces' : s.isParens() ? 'parens' : s.isBrackets() ? 'brackets' : 'syntaxTemplate',
-        inner: wrapInTerms(s.token)
+        kind: getKind(s),
+        inner: wrapInTerms(s)
       });
     }
     return new S.RawSyntax({
-      value: s
+      value: new Syntax(s)
     });
   });
 }
