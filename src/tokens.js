@@ -180,6 +180,20 @@ export type Slice = {
 
 type TokenTypeType = { klass: { name: string, isIdentifierName?: boolean}, name: string };
 
+function hasType(x: any, type?: {}) {
+  if (type) {
+    return x && typeof x.type === 'object' && x.type === type;
+  }
+  return x && typeof x.type === 'object';
+}
+
+function hasKlass(x: any, klass?: {}) {
+  if (klass) {
+    return hasType(x) && x.type.klass === klass;
+  }
+  return hasType(x) && typeof x.type.klass === 'object';
+}
+
 class BaseToken {
   type: TokenTypeType;
   value: ?string | ?number;
@@ -190,6 +204,14 @@ class BaseToken {
     this.value = value;
     this.slice = slice;
   }
+}
+
+export function isString(x: any, value?: string) {
+  let r = hasType(x, TT.STRING);
+  if (value != null) {
+    return r && x.value === value;
+  }
+  return r;
 }
 
 export class StringToken {
@@ -205,10 +227,31 @@ export class StringToken {
   }
 }
 
+
+export function isIdentifier(x: any, value?: string) {
+  let r = hasType(x, TT.IDENTIFIER);
+  if (value != null) {
+    return r && x.value === value;
+  }
+  return r;
+}
+
 export class IdentifierToken extends BaseToken {
   constructor({ value, slice }: { value: string, slice?: Slice }) {
     super({ type: TT.IDENTIFIER, value, slice });
   }
+}
+
+export function isKeyword(x: any, value?: string | string[]) {
+  let r = hasKlass(x, TC.Keyword);
+  if (value != null) {
+    if (typeof value === 'string') {
+      return r && x.value === value;
+    } else if (typeof value.some === 'function') {
+      return value.some(v => v === x.value);
+    }
+  }
+  return r;
 }
 
 export class KeywordToken extends BaseToken {
@@ -217,12 +260,26 @@ export class KeywordToken extends BaseToken {
   }
 }
 
+export function isPunctuator(x: any, value?: string) {
+  let r = hasKlass(x, TC.Punctuator);
+  if (value != null) {
+    return r && x.value === value;
+  }
+  return r;
+}
 export class PunctuatorToken extends BaseToken {
   constructor({ value, slice }: { value: string, slice?: Slice }) {
     super({ type: punctuatorTable[value], value, slice });
   }
 }
 
+export function isNumeric(x: any, value?: number) {
+  let r = hasType(x, TT.NUMBER);
+  if (value != null) {
+    return r && x.value === value;
+  }
+  return r;
+}
 export class NumericToken extends BaseToken {
   octal: boolean;
   noctal: boolean;
@@ -234,6 +291,9 @@ export class NumericToken extends BaseToken {
   }
 }
 
+export function isTemplate(x: any) {
+  return hasType(x, TT.TEMPLATE);
+}
 export class TemplateElementToken extends BaseToken {
   tail: boolean;
   interp: boolean;
@@ -254,10 +314,46 @@ export class TemplateToken extends BaseToken {
   }
 }
 
+
+export function isRegExp(x: any, value?: string) {
+  let r = hasType(x, TT.REGEXP);
+  if (value != null) {
+    return r && x.value === value;
+  }
+  return r;
+}
 export class RegExpToken extends BaseToken {
   constructor({ value, slice }: { value: string, slice?: Slice }) {
     super({ type: TT.REGEXP, value, slice });
   }
 }
 
+export function isParens(x: any) {
+  if (x && typeof x.first === 'function') {
+    return hasType(x.first(), TT.LPAREN);
+  }
+  return false;
+}
+
+export function isBraces(x: any) {
+  if (x && typeof x.first === 'function') {
+    return hasType(x.first(), TT.LBRACE);
+  }
+  return false;
+}
+export function isBrackets(x: any) {
+  if (x && typeof x.first === 'function') {
+    return hasType(x.first(), TT.LBRACK);
+  }
+  return false;
+}
+
+export function getLineNumber(t: TokenTree) {
+  if (t.slice && t.slice.startLocation) {
+    return this.token.slice.startLocation.line;
+  }
+  return null;
+}
+
 export type Token = StringToken | IdentifierToken | KeywordToken | PunctuatorToken | NumericToken | TemplateElementToken | TemplateToken | RegExpToken;
+export type TokenTree = Token | List<TokenTree>

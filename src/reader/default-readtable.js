@@ -151,13 +151,13 @@ const bracesEntry = {
   mode: 'terminating',
   action: function readBraces(stream, prefix, b) {
     const line = this.locationInfo.line;
-    const innerB = isExprPrefix(line, b)(prefix);
+    const innerB = isExprPrefix(line, b, prefix);
     return readDelimiters.call(this, '}', stream, prefix, innerB);
   }
 };
 
 function readClosingDelimiter(opening, closing, stream, prefix, b) {
-  if (prefix.first().token.value !== opening) {
+  if (prefix.first().value !== opening) {
     throw Error('Unmatched delimiter:', closing);
   }
   return readPunctuator.call(this, stream);
@@ -180,7 +180,7 @@ const divEntry = {
       const result = readComment.call(this, stream);
       return result;
     }
-    if (isRegexPrefix(b)(prefix)) {
+    if (isRegexPrefix(b, prefix)) {
       return readRegExp.call(this, stream, prefix, b);
     }
     return readPunctuator.call(this, stream);
