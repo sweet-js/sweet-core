@@ -26,6 +26,8 @@ export const TokenType = {
   RBRACK: {klass: TC.Punctuator, name: ']'},
   LBRACE: {klass: TC.Punctuator, name: '{'},
   RBRACE: {klass: TC.Punctuator, name: '}'},
+  LSYNTAX: {klass: TC.Punctuator, name: 'left-syntax'},
+  RSYNTAX: {klass: TC.Punctuator, name: 'right-syntax'},
   COLON: {klass: TC.Punctuator, name: ':'},
   SEMICOLON: {klass: TC.Punctuator, name: ';'},
   PERIOD: {klass: TC.Punctuator, name: '.'},
@@ -180,6 +182,20 @@ export type Slice = {
 
 type TokenTypeType = { klass: { name: string, isIdentifierName?: boolean}, name: string };
 
+function hasType(x: any, type?: {}) {
+  if (type) {
+    return x && typeof x.type === 'object' && x.type === type;
+  }
+  return x && typeof x.type === 'object';
+}
+
+function hasKlass(x: any, klass?: {}) {
+  if (klass) {
+    return hasType(x) && x.type.klass === klass;
+  }
+  return hasType(x) && typeof x.type.klass === 'object';
+}
+
 class BaseToken {
   type: TokenTypeType;
   value: ?string | ?number;
@@ -190,6 +206,14 @@ class BaseToken {
     this.value = value;
     this.slice = slice;
   }
+}
+
+export function isString(x: any, value?: string) {
+  let r = hasType(x, TT.STRING);
+  if (value != null) {
+    return r && x.str === value;
+  }
+  return r;
 }
 
 export class StringToken {
@@ -205,10 +229,31 @@ export class StringToken {
   }
 }
 
+
+export function isIdentifier(x: any, value?: string) {
+  let r = hasType(x, TT.IDENTIFIER);
+  if (value != null) {
+    return r && x.value === value;
+  }
+  return r;
+}
+
 export class IdentifierToken extends BaseToken {
   constructor({ value, slice }: { value: string, slice?: Slice }) {
     super({ type: TT.IDENTIFIER, value, slice });
   }
+}
+
+export function isKeyword(x: any, value?: string | string[]) {
+  let r = hasKlass(x, TC.Keyword);
+  if (value != null) {
+    if (typeof value === 'string') {
+      return r && x.value === value;
+    } else if (typeof value.some === 'function') {
+      return value.some(v => v === x.value);
+    }
+  }
+  return r;
 }
 
 export class KeywordToken extends BaseToken {
@@ -217,12 +262,26 @@ export class KeywordToken extends BaseToken {
   }
 }
 
+export function isPunctuator(x: any, value?: string) {
+  let r = hasKlass(x, TC.Punctuator);
+  if (value != null) {
+    return r && x.value === value;
+  }
+  return r;
+}
 export class PunctuatorToken extends BaseToken {
   constructor({ value, slice }: { value: string, slice?: Slice }) {
     super({ type: punctuatorTable[value], value, slice });
   }
 }
 
+export function isNumeric(x: any, value?: number) {
+  let r = hasType(x, TT.NUMBER);
+  if (value != null) {
+    return r && x.value === value;
+  }
+  return r;
+}
 export class NumericToken extends BaseToken {
   octal: boolean;
   noctal: boolean;
@@ -232,6 +291,14 @@ export class NumericToken extends BaseToken {
     this.octal = octal;
     this.noctal = noctal;
   }
+}
+
+export function isTemplateElement(x: any, value?: string) {
+  let r = hasType(x, TT.TEMPLATE) && x.items == null;
+  if (value != null) {
+    return r && x.value === value;
+  }
+  return r;
 }
 
 export class TemplateElementToken extends BaseToken {
@@ -245,6 +312,9 @@ export class TemplateElementToken extends BaseToken {
   }
 }
 
+export function isTemplate(x: any) {
+  return hasType(x, TT.TEMPLATE) && x.items != null;
+}
 export class TemplateToken extends BaseToken {
   items: List<Token>;
 
@@ -254,10 +324,49 @@ export class TemplateToken extends BaseToken {
   }
 }
 
+
+export function isRegExp(x: any, value?: string) {
+  let r = hasType(x, TT.REGEXP);
+  if (value != null) {
+    return r && x.value === value;
+  }
+  return r;
+}
 export class RegExpToken extends BaseToken {
   constructor({ value, slice }: { value: string, slice?: Slice }) {
     super({ type: TT.REGEXP, value, slice });
   }
 }
 
+const isDelimiterType = (x, type) => {
+  if (x && x[Symbol.iterator] && ([x] = x)) {
+    return x && hasType(x, type);
+  }
+  return false;
+};
+
+export const isParens = (x: any) => isDelimiterType(x, TT.LPAREN);
+export const isBraces = (x: any) => isDelimiterType(x, TT.LBRACE);
+export const isBrackets = (x: any) => isDelimiterType(x, TT.LBRACK);
+export const isSyntaxTemplate = (x: any) => isDelimiterType(x, TT.LSYNTAX);
+
+export const isDelimiter = (x: any) => isParens(x) || isBraces(x) || isBrackets(x) || isSyntaxTemplate(x);
+
+export function getKind(x: List<TokenTree>) {
+  return isParens(x) ? 'parens' :
+         isBraces(x) ? 'braces' :
+         isBrackets(x) ? 'brackets' :
+         isSyntaxTemplate(x) ? 'syntaxTemplate' : '';
+}
+
+export function getLineNumber(t: any) {
+  if (t.slice && t.slice.startLocation) {
+    return t.slice.startLocation.line;
+  } else if (t[Symbol.iterator] && ([t] = t)) {
+    return getLineNumber(t);
+  }
+  return null;
+}
+
 export type Token = StringToken | IdentifierToken | KeywordToken | PunctuatorToken | NumericToken | TemplateElementToken | TemplateToken | RegExpToken;
+export type TokenTree = Token | List<TokenTree>

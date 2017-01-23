@@ -1859,7 +1859,7 @@ export class Enforester {
         return enf.enforest('expression');
       }
       return new T.TemplateElement({
-        rawValue: it.slice.text
+        rawValue: it.value.token.slice.text
       });
     });
     return elements;

@@ -13,9 +13,8 @@ test.skip('a macro context should have a name', t => {
 test('a macro context should be resettable', t => {
   let enf = makeEnforester('a b c');
   let ctx = new MacroContext(enf, 'foo', enf.context);
-  const val = v => v.val();
 
-  let [a1, b1, c1] = [...ctx].map(val);
+  let [a1, b1, c1] = [...ctx];
   t.true(ctx.next().done);
 
   ctx.reset();
@@ -23,7 +22,7 @@ test('a macro context should be resettable', t => {
   let nxt = ctx.next();
   t.false(nxt.done);
 
-  let [a2, b2, c2] = [nxt.value, ...ctx].map(val);
+  let [a2, b2, c2] = [nxt.value, ...ctx];
   t.true(a1 === a2);
   t.true(b1 === b2);
   t.true(c1 === c2);
@@ -32,7 +31,6 @@ test('a macro context should be resettable', t => {
 test('a macro context should be able to create a reset point', t => {
   let enf = makeEnforester('a b c');
   let ctx = new MacroContext(enf, Syntax.fromIdentifier('foo'), {});
-  const val = v => v.val();
 
   let a1 = ctx.next(); // a
 
@@ -48,7 +46,7 @@ test('a macro context should be able to create a reset point', t => {
 
   ctx.reset(bMarker);
 
-  const [b2, c2] = [...ctx].map(val);
+  const [b2, c2] = [...ctx];
 
   ctx.reset(cMarker);
 
@@ -56,18 +54,18 @@ test('a macro context should be able to create a reset point', t => {
 
   ctx.reset();
 
-  let [a2, b3, c4] = [...ctx].map(val);
+  let [a2, b3, c4] = [...ctx];
 
   ctx.reset(cMarker);
 
   let c5 = ctx.next();
 
-  t.true(a1.value.val() === a2);
-  t.true(b1.value.val() === b2 && b2 === b3);
-  t.true(c1.value.val() === c2 &&
-         c2 === c3.value.val() &&
+  t.true(a1.value === a2);
+  t.true(b1.value === b2 && b2 === b3);
+  t.true(c1.value === c2 &&
+         c2 === c3.value &&
          c2 === c4 &&
-         c4 === c5.value.val());
+         c4 === c5.value);
 });
 
 test('an enforester should be able to access a macro context\'s syntax list', t => {
