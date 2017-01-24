@@ -41,12 +41,13 @@ export function readSyntaxTemplate(stream: CharStream, prefix: List<any>, exprAl
   return result;
 }
 
-function updateSyntax(prefix, token) {
-
-  token.value = prefix + token.value;
-  token.slice.text = prefix + token.slice.text;
-  token.slice.start -= 1;
-  token.slice.startLocation.position -= 1;
-
-  return token;
+function updateSyntax(prefix, term) {
+  if (term.value) {
+    let token = term.value;
+    token.value = prefix + token.value;
+    token.slice.text = prefix + token.slice.text;
+    token.slice.start -= 1;
+    token.slice.startLocation.position -= 1;
+  }
+  return term;
 }

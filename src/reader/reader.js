@@ -20,7 +20,7 @@ let currentReadtable = EmptyReadtable.extend({
 });
 
 export default class Reader {
-  read(stream: CharStream, ...rest?: Array<any>): any {
+  read(stream: CharStream, ...rest?: Array<any>) {
     let key = stream.peek();
     if (!isEOS(key)) {
       const entry = currentReadtable.getMapping(key);

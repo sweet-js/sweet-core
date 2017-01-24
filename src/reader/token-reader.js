@@ -4,7 +4,9 @@ import Reader, { setCurrentReadtable } from './reader';
 import defaultReadtable from './default-readtable';
 import { List } from 'immutable';
 import CharStream, { isEOS } from './char-stream';
-import { EmptyToken } from '../tokens';
+import { EmptyToken, getKind } from '../tokens';
+import * as T from 'sweet-spec';
+import Syntax from '../syntax';
 
 import type { StartLocation, Slice } from '../tokens';
 
@@ -81,9 +83,16 @@ class TokenReader extends Reader {
 
     if (result === EmptyToken) return result;
 
-    if (!List.isList(result)) result.slice = getSlice(stream, startLocation);
-
-    return result;
+    if (List.isList(result)) {
+      return new T.RawDelimiter({
+        kind: getKind(result),
+        inner: result
+      });
+    }
+    result.slice = getSlice(stream, startLocation);
+    return new T.RawSyntax({
+      value: new Syntax(result)
+    });
   }
 
   readUntil(close: ?Function | ?string, stream: CharStream, results: List<any>, exprAllowed: boolean): List<any> {
