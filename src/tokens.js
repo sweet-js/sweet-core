@@ -348,6 +348,12 @@ export function isBrackets(x: any) {
   return false;
 }
 
+export function getKind(x: List<TokenTree>) {
+  return isParens(x) ? 'parens' :
+         isBraces(x) ? 'braces' :
+         isBrackets(x) ? 'brackets' : '';
+}
+
 export function getLineNumber(t: TokenTree) {
   if (t.slice && t.slice.startLocation) {
     return this.token.slice.startLocation.line;

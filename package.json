@@ -88,19 +88,7 @@
   "ava": {
     "babel": "inherit",
     "files": [
-      "test/test-sweet-loader.js",
-      "test/test-macro-expansion.js",
-      "test/test-hygiene.js",
-      "test/test-asi.js",
-      "test/test-modules.js",
-      "test/test-syntax.js",
-      "test/test-symbols.js",
-      "test/test-run-test262.js",
-      "test/test-char-stream.js",
-      "test/test-readtable.js",
-      "test/test-default-readtable.js",
-      "test/test-macro-context.js",
-      "test/test-reader-extensions.js"
+      "test/test-default-readtable.js"
     ],
     "require": [
       "babel-register"
