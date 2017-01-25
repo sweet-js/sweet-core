@@ -5,7 +5,6 @@ import defaultReadtable from './default-readtable';
 import { List } from 'immutable';
 import { EmptyToken, getKind } from '../tokens';
 import * as T from 'sweet-spec';
-import Syntax from '../syntax';
 
 import type { StartLocation, Slice } from '../tokens';
 
@@ -82,27 +81,21 @@ class TokenReader extends Reader {
 
     if (result === EmptyToken) return result;
 
-    if (List.isList(result)) {
-      return new T.RawDelimiter({
-        kind: getKind(result),
-        inner: result
-      });
-    }
-    result.slice = getSlice(stream, startLocation);
-    return new T.RawSyntax({
-      value: new Syntax(result)
-    });
+    if (!List.isList(result)) result.slice = getSlice(stream, startLocation);
+
+    return result;
   }
 
-  readUntil(close: ?Function | ?string, stream: CharStream, results: List<any>, exprAllowed: boolean): List<any> {
-    let result, done = false;
+  readUntil(close: ?Function | ?string, stream: CharStream, prefix: List<any>, exprAllowed: boolean): List<any> {
+    let result, results = prefix.map(wrapToken), done = false;
     do {
       if (isEOS(stream.peek())) break;
       done = typeof close === 'function' ? close() : stream.peek() === close;
-      result = this.readToken(stream, results, exprAllowed);
+      result = this.readToken(stream, prefix, exprAllowed);
 
       if (result !== EmptyToken) {
-        results = results.push(result);
+        prefix = prefix.push(result);
+        results = results.push(wrapToken(result));
       }
     } while(!done);
     return results;
@@ -112,6 +105,18 @@ class TokenReader extends Reader {
     this.locationInfo.line += 1;
     this.locationInfo.column = 1;
   }
+}
+
+function wrapToken(t) {
+  if (List.isList(t)) {
+    return new T.RawDelimiter({
+      kind: getKind(t),
+      inner: t
+    });
+  }
+  return new T.RawSyntax({
+    value: t
+  });
 }
 
 export default function read(source: string | CharStream, context?: Context): List<any> {
