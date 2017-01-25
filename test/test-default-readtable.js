@@ -7,21 +7,22 @@ import read from '../src/reader/token-reader';
 import { TokenType as TT, TokenClass as TC, EmptyToken } from '../src/tokens';
 import { LSYNTAX, RSYNTAX } from '../src/reader/utils';
 
+const unwrap = t => List.isList(t.inner) ? t.inner.map(unwrap) : t.value;
 function testParse(source, tst) {
   const prevTable = getCurrentReadtable();
-  const results = read(source);
+  const [result] = read(source);
   expect(getCurrentReadtable() === prevTable).to.be.true;
 
-  if (results.isEmpty()) return;
+  if (result == null) return;
 
-  tst(results.first());
+  tst(unwrap(result));
 }
 
 function testParseResults(source, tst) {
   const prevTable = getCurrentReadtable();
   const result = read(source);
   expect(getCurrentReadtable() === prevTable).to.be.true;
-  tst(result);
+  tst(result.map(unwrap));
 }
 
 test('should parse Unicode identifiers', t => {
@@ -208,8 +209,8 @@ test('should parse template literals', t => {
     t.true(x.interp);
 
     t.true(List.isList(y));
-    t.is(y.get(1).type, TT.IDENTIFIER);
-    t.is(y.get(1).value, 'bar');
+    t.is(y.get(1).value.type, TT.IDENTIFIER);
+    t.is(y.get(1).value.value, 'bar');
 
     t.is(z.type, TT.TEMPLATE);
     t.is(z.value, 'baz');
@@ -380,7 +381,7 @@ test('should erase #lang pragmas', t => {
 test('should return an identifier for a lone #', t => {
   const results = read(`const # = 3`);
   t.true(List.isList(results));
-  t.is(results.get(1).type, TT.IDENTIFIER);
+  t.is(results.get(1).value.type, TT.IDENTIFIER);
 });
 
 test('should parse comments', t => {
@@ -405,7 +406,7 @@ test('should parse comments', t => {
 test('should properly update location information', t => {
   function testLocationInfo(source, { idx, size, line: expectedLine, column: expectedColumn}) {
     let result = read(source);
-    let { line, column } = result.get(idx).slice.startLocation;
+    let { line, column } = result.get(idx).value.slice.startLocation;
     t.is(result.size, size);
     t.is(line, expectedLine);
     t.is(column, expectedColumn);
