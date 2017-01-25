@@ -328,25 +328,16 @@ export class RegExpToken extends BaseToken {
   }
 }
 
-export function isParens(x: any) {
-  if (x && typeof x.first === 'function') {
-    return hasType(x.first(), TT.LPAREN);
+const isDelimiterType = (x, type) => {
+  if (x && x[Symbol.iterator] && ([x] = x)) {
+    return x && hasType(x.value, type);
   }
   return false;
-}
+};
 
-export function isBraces(x: any) {
-  if (x && typeof x.first === 'function') {
-    return hasType(x.first(), TT.LBRACE);
-  }
-  return false;
-}
-export function isBrackets(x: any) {
-  if (x && typeof x.first === 'function') {
-    return hasType(x.first(), TT.LBRACK);
-  }
-  return false;
-}
+export function isParens(x: any) { return isDelimiterType(x, TT.LPAREN); }
+export function isBraces(x: any) { return isDelimiterType(x, TT.LBRACE); }
+export function isBrackets(x: any) { return isDelimiterType(x, TT.LBRACK); }
 
 export function getKind(x: List<TokenTree>) {
   return isParens(x) ? 'parens' :
