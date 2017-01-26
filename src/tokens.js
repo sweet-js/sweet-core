@@ -330,7 +330,7 @@ export class RegExpToken extends BaseToken {
 
 const isDelimiterType = (x, type) => {
   if (x && x[Symbol.iterator] && ([x] = x)) {
-    return x && hasType(x.value, type);
+    return x && hasType(x, type);
   }
   return false;
 };
