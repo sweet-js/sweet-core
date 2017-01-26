@@ -95,7 +95,7 @@ class TokenReader extends Reader {
       result = this.readToken(stream, prefix, exprAllowed);
 
       if (result !== EmptyToken) {
-        prefix = prefix.push(result);
+        prefix = prefix.push(unwrapToken(result));
         results = results.push(wrapToken(result));
       }
     } while(!done);
@@ -106,6 +106,13 @@ class TokenReader extends Reader {
     this.locationInfo.line += 1;
     this.locationInfo.column = 1;
   }
+}
+
+function unwrapToken(tok: List<T.SyntaxTerm>) {
+  if (List.isList(tok)) {
+    return List.of(tok.first().value, tok.last().value);
+  }
+  return tok;
 }
 
 function wrapToken(t) {
