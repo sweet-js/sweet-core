@@ -2,7 +2,7 @@ import test from 'ava';
 import { List } from 'immutable';
 
 import read from '../src/reader/token-reader';
-import { getCurrentReadtable, setCurrentReadtable } from '../src/reader/reader';
+import { getCurrentReadtable, setCurrentReadtable } from 'readtable';
 import { keywordTable, IdentifierToken, EmptyToken } from '../src/tokens';
 
 test('terminating macros should delimit identifiers and numbers', t => {

@@ -52,7 +52,8 @@
     "shift-spidermonkey-converter": "^1.0.0",
     "transit-js": "^0.8.846",
     "utils-dirname": "^1.0.0",
-    "yargs": "^4.3.2"
+    "yargs": "^4.3.2",
+    "readtable": "^0.0.1"
   },
   "devDependencies": {
     "angular": "1.6.0",

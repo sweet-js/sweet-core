@@ -1,9 +1,8 @@
 // @flow
 
-import Reader, { setCurrentReadtable } from './reader';
+import { CharStream, isEOS, Reader, setCurrentReadtable } from 'readtable';
 import defaultReadtable from './default-readtable';
 import { List } from 'immutable';
-import CharStream, { isEOS } from './char-stream';
 import { EmptyToken } from '../tokens';
 import Syntax from '../syntax';
 

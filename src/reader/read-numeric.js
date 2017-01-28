@@ -1,12 +1,11 @@
 // @flow
 
-import { isEOS } from './char-stream';
+import { isEOS, getCurrentReadtable } from 'readtable';
 import { code } from 'esutils';
 import { isTerminating, getHexValue } from './utils';
 import { NumericToken } from '../tokens';
-import { getCurrentReadtable } from './reader';
 
-import type CharStream from './char-stream';
+import type { CharStream } from 'readtable';
 
 const { isIdentifierPartES6: isIdentifierPart,
         isIdentifierStartES6: isIdentifierStart } = code;

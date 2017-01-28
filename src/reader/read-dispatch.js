@@ -1,11 +1,11 @@
 // @flow
 
-import { getCurrentReadtable, setCurrentReadtable } from './reader';
+import { getCurrentReadtable, setCurrentReadtable } from 'readtable';
 import { LSYNTAX, RSYNTAX } from './utils';
 import { List } from 'immutable';
 import Syntax from '../syntax';
 
-import type CharStream from './char-stream';
+import type { CharStream } from 'readtable';
 
 const backtickEntry = {
   key: '`',

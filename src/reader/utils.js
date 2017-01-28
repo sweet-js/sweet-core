@@ -1,9 +1,8 @@
 // @flow
 
-import { isEOS } from './char-stream';
+import { isEOS } from 'readtable';
 
-import type CharStream from './char-stream';
-import type Readtable from './readtable';
+import type { Readtable, CharStream } from 'readtable';
 
 import { code  } from 'esutils';
 const { isLineTerminator,

@@ -1,7 +1,7 @@
 // @flow
-import type CharStream from './char-stream';
+import type { CharStream } from 'readtable';
 
-import { isEOS } from './char-stream';
+import { isEOS } from 'readtable';
 import { RegExpToken } from '../tokens';
 import { isLineTerminator, isIdentifierPart } from './utils';
 
