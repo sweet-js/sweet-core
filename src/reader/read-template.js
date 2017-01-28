@@ -1,10 +1,10 @@
 // @flow
 import { List } from 'immutable';
 
-import type CharStream from './char-stream';
+import type { CharStream } from 'readtable';
 import type Syntax from '../syntax';
 
-import { isEOS } from './char-stream';
+import { isEOS } from 'readtable';
 import { readStringEscape } from './utils';
 import { getSlice } from './token-reader';
 import { TemplateToken, TemplateElementToken } from '../tokens';

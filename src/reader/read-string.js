@@ -1,8 +1,8 @@
 // @flow
-import type CharStream from './char-stream';
+import type { CharStream } from 'readtable';
 
 import { readStringEscape, isLineTerminator } from './utils';
-import { isEOS } from './char-stream';
+import { isEOS } from 'readtable';
 import { StringToken } from '../tokens';
 
 export default function readStringLiteral(stream: CharStream): StringToken {

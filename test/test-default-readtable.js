@@ -2,7 +2,7 @@ import test from 'ava';
 import expect from 'expect.js';
 import { List } from 'immutable';
 
-import { getCurrentReadtable } from '../src/reader/reader';
+import { getCurrentReadtable } from 'readtable';
 import read from '../src/reader/token-reader';
 import { TokenType as TT, TokenClass as TC, EmptyToken } from '../src/tokens';
 import { LSYNTAX, RSYNTAX } from '../src/reader/utils';

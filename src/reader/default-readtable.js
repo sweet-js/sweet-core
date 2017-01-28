@@ -1,8 +1,7 @@
 // @flow
 
 import { List } from 'immutable';
-import { getCurrentReadtable, setCurrentReadtable } from './reader';
-import { isEOS } from './char-stream';
+import { isEOS, getCurrentReadtable, setCurrentReadtable } from 'readtable';
 import readIdentifier from './read-identifier';
 import readNumericLiteral from './read-numeric';
 import readStringLiteral from './read-string';
@@ -14,7 +13,7 @@ import { punctuatorTable as punctuatorMapping, keywordTable as keywordMapping,
          KeywordToken, PunctuatorToken, EmptyToken, IdentifierToken } from '../tokens';
 import { insertSequence, retrieveSequenceLength, isExprPrefix, isRegexPrefix, isIdentifierPart, isWhiteSpace, isLineTerminator, isDecimalDigit } from './utils';
 
-import type CharStream from './char-stream';
+import type  { CharStream } from 'readtable';
 
 // use https://github.com/mathiasbynens/regenerate to generate the Unicode code points when implementing modes
 

@@ -2,13 +2,12 @@
 
 import { scanUnicode } from './utils';
 
-import { isEOS } from './char-stream';
-import type CharStream from './char-stream';
+import { isEOS, getCurrentReadtable } from 'readtable';
+import type { CharStream } from 'readtable';
 
 import { IdentifierToken } from '../tokens';
 
 import { isTerminating, isIdentifierPart, isIdentifierStart } from './utils';
-import { getCurrentReadtable } from './reader';
 
 let terminates;
 
