@@ -1,8 +1,8 @@
 // @flow
 
 import { getCurrentReadtable, setCurrentReadtable } from 'readtable';
-import { LSYNTAX, RSYNTAX } from './utils';
 import { List } from 'immutable';
+import { TokenType as TT } from '../tokens';
 
 import type { CharStream } from 'readtable';
 
@@ -12,19 +12,19 @@ const backtickEntry = {
   action: function readBacktick(stream: CharStream, prefix: List<any>, e: boolean) {
     if (prefix.isEmpty()) {
       return {
-        type: LSYNTAX,
+        type: TT.LSYNTAX,
         value: stream.readString()
       };
     }
 
     return {
-      type: RSYNTAX,
+      type: TT.RSYNTAX,
       value: stream.readString()
     };
   }
 };
 
-export function readSyntaxTemplate(stream: CharStream, prefix: List<any>, exprAllowed: boolean, dispatchChar: string): List<any> | { type: typeof RSYNTAX, value: string } {
+export function readSyntaxTemplate(stream: CharStream, prefix: List<any>, exprAllowed: boolean, dispatchChar: string): List<any> | { type: typeof TT.RSYNTAX, value: string } {
   // return read('syntaxTemplate').first().token;
   // TODO: Can we simply tack 'syntaxTemplate' on the front and process it as a
   //       syntax macro?

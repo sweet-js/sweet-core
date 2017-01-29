@@ -3,7 +3,7 @@ import { List } from 'immutable';
 
 import read from '../src/reader/token-reader';
 import { getCurrentReadtable, setCurrentReadtable } from 'readtable';
-import { keywordTable, IdentifierToken, EmptyToken } from '../src/tokens';
+import { keywordTable, IdentifierToken, EmptyToken, isKeyword, isIdentifier } from '../src/tokens';
 
 test('terminating macros should delimit identifiers and numbers', t => {
   const prevTable = getCurrentReadtable();
@@ -24,23 +24,23 @@ test('terminating macros should delimit identifiers and numbers', t => {
   });
 
   // reading with 'z' and '0' as 'non-terminating'
-  let result = read('abczefgzhij\u{102A7}ba ').get(0).val();
+  let [result] = read('abczefgzhij\u{102A7}ba ');
   t.is(prevTable.getMapping('z').mode, 'non-terminating');
-  t.is(result, 'abczefgzhij𐊧ba');
+  t.is(result.value, 'abczefgzhij𐊧ba');
 
-  result = read('12304560789').get(0).val();
+  [result] = read('12304560789');
   t.is(prevTable.getMapping('0').mode, 'non-terminating');
-  t.is(result, 12304560789);
+  t.is(result.value, 12304560789);
 
   setCurrentReadtable(newTable);
 
   // reading with 'z' and '0' as 'terminating'
-  let [x,y,z] = read('abczefgzhij\u{102A7}ba ').map(s => s.val());
+  let [x,y,z] = read('abczefgzhij\u{102A7}ba ').map(s => s.value);
   t.is(x, 'abc');
   t.is(y, 'efg');
   t.is(z, 'hij𐊧ba');
 
-  ([x,y,z] = read('12304560789').map(s => s.val()));
+  ([x,y,z] = read('12304560789').map(s => s.value));
   t.is(x, 123);
   t.is(y, 456);
   t.is(z, 789);
@@ -63,18 +63,17 @@ test('should create a dispatch macro', t => {
   });
 
   function readDefault(stream, prefix, allowExpr) {
-    const { token: parens } = read('()').first();
-    let result = List.of(parens.first());
+    const [ [openParen, closeParen ] ] = read('()');
 
     setCurrentReadtable(prevTable);
 
     const stx = this.readToken(stream, List(), false);
 
-    result = result.push(stx.fromString(stx.token.value).value);
+    let result = List.of(openParen).push(stx);
 
     setCurrentReadtable(newTable);
 
-    return result.push(parens.last());
+    return result.push(closeParen);
   }
 
   const kwLetters = Array.from(new Set(Object.keys(keywordTable).map(w => w[0])));
@@ -90,9 +89,13 @@ test('should create a dispatch macro', t => {
   });
 
   setCurrentReadtable(newTable);
-  const result = read('#:for if #:else');
+  const [one, [open, kw, close], iff, els, [open2, elkw]] = read('#:for if #:else'); // eslint-disable-line no-unused-vars
+  t.true(isIdentifier(one, 'Keyword'));
+  t.true(isKeyword(kw, 'for'));
+  t.true(isKeyword(iff, 'if'));
+  t.true(isIdentifier(els, 'Keyword'));
+  t.true(isKeyword(elkw, 'else'));
   setCurrentReadtable(prevTable);
-  t.is(result.toString(), 'List [ Keyword, ( \'for ), if, Keyword, ( \'else ) ]');
 });
 
 test('should allow replacing the dispatch character', t => {

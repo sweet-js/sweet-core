@@ -1,7 +1,8 @@
 // @flow
 import { List } from 'immutable';
 
-import type { isEOS, CharStream } from 'readtable';
+import type { CharStream } from 'readtable';
+import { isEOS } from 'readtable';
 
 import { readStringEscape } from './utils';
 import { getSlice } from './token-reader';

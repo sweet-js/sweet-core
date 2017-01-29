@@ -3,8 +3,7 @@
 import { CharStream, isEOS, Reader, setCurrentReadtable } from 'readtable';
 import defaultReadtable from './default-readtable';
 import { List } from 'immutable';
-import { EmptyToken, getKind } from '../tokens';
-import * as T from 'sweet-spec';
+import { EmptyToken } from '../tokens';
 
 import type { StartLocation, Slice } from '../tokens';
 
@@ -87,15 +86,14 @@ class TokenReader extends Reader {
   }
 
   readUntil(close: ?Function | ?string, stream: CharStream, prefix: List<any>, exprAllowed: boolean): List<any> {
-    let result, results = prefix.map(wrapToken), done = false;
+    let result, results = prefix, done = false;
     do {
       if (isEOS(stream.peek())) break;
       done = typeof close === 'function' ? close() : stream.peek() === close;
-      result = this.readToken(stream, prefix, exprAllowed);
+      result = this.readToken(stream, results, exprAllowed);
 
       if (result !== EmptyToken) {
-        prefix = prefix.push(result);
-        results = results.push(wrapToken(result));
+        results = results.push(result);
       }
     } while(!done);
     return results;
@@ -105,18 +103,6 @@ class TokenReader extends Reader {
     this.locationInfo.line += 1;
     this.locationInfo.column = 1;
   }
-}
-
-function wrapToken(t) {
-  if (List.isList(t)) {
-    return new T.RawDelimiter({
-      kind: getKind(t),
-      inner: t
-    });
-  }
-  return new T.RawSyntax({
-    value: t
-  });
 }
 
 export default function read(source: string | CharStream, context?: Context): List<any> {

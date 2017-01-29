@@ -19,9 +19,6 @@ import * as R from 'ramda';
 import { Maybe } from 'ramda-fantasy';
 const Nothing = Maybe.Nothing;
 
-export const LSYNTAX = { name: 'left-syntax' };
-export const RSYNTAX = { name: 'right-syntax' };
-
 // TODO: also, need to handle contextual yield
 const literalKeywords = ['this', 'null', 'true', 'false'];
 
@@ -237,15 +234,8 @@ function isExprReturn(l: number, p: List<TokenTree>) {
   // ... return {x: 42} /r /i
   // ... return\n{x: 42} /r /i
   return popRestMaybe(p)
-    .chain(([retKwd, rest]) => {
-      if (isKeyword(retKwd, 'return') && getLineNumber(retKwd) === l) {
-        return popRestMaybe(rest);
-      }
-      return Nothing();
-    })
-    .map(([dot, rest]) => {
-      return isPunctuator(dot, '.');
-    }).getOrElse(false);
+    .map(([retKwd, rest]) => isKeyword(retKwd, 'return') && getLineNumber(retKwd) === l)
+    .getOrElse(false);
 }
 
 // List a -> Boolean
@@ -382,7 +372,7 @@ function isTopFunctionExpression(prefix: List<TokenTree>, exprAllowed: boolean) 
         if (l == null) {
           throw new Error('Un-expected null line number');
         }
-        return Maybe.of(isExprPrefix(l, exprAllowed, rest));
+        return Maybe.of(!isExprPrefix(l, exprAllowed, rest));
       }
       return Maybe.of(false);
     }).getOrElse(false);
@@ -403,6 +393,35 @@ function isTopObjectLiteral(prefix: List<TokenTree>, exprAllowed: boolean) {
     }).getOrElse(false);
 }
 
+function isTopFunction(prefix: List<TokenTree>) {
+  // P . function^l . x? . () . {}     where isExprPrefix(P, b, l) = false
+  return popRestMaybe(prefix)
+    .chain(([curly, rest]) => {
+      if (isBraces(curly)) {
+        return popRestMaybe(rest);
+      }
+      return Nothing();
+    })
+    .chain(([paren, rest]) => {
+      if (isParens(paren)) {
+        return popRestMaybe(rest);
+      }
+      return Nothing();
+    })
+    .chain(([optIdent, rest]) => {
+      if (isIdentifier(optIdent)) {
+        return popRestMaybe(rest);
+      }
+      return Maybe.of([optIdent, rest]);
+    })
+    .chain(([fnKwd, rest]) => {
+      if (isKeyword(fnKwd, 'function')) {
+        return Maybe.of(true);
+      }
+      return Maybe.of(false);
+    }).getOrElse(false);
+}
+
 export function isRegexPrefix(exprAllowed: boolean, prefix: List<TokenTree>) {
   if (prefix.isEmpty()) {
     // ε
@@ -416,9 +435,9 @@ export function isRegexPrefix(exprAllowed: boolean, prefix: List<TokenTree>) {
   } else if (isTopParensWithKeyword(prefix)) {
     // P . t . t' . (T)  where t \not = "." and t' ∈ (Keyword \setminus LiteralKeyword)
     return true;
-  } else if (isTopFunctionExpression(prefix, exprAllowed)) {
+  } else if (isTopFunction(prefix)) {
     // P . function^l . x? . () . {}     where isExprPrefix(P, b, l) = false
-    return true;
+    return isTopFunctionExpression(prefix, exprAllowed);
   } else if (isTopObjectLiteral(prefix, exprAllowed)) {
     // P . {T}^l  where isExprPrefix(P, b, l) = false
     return true;
