@@ -492,17 +492,17 @@ export default class Syntax {
     return new Syntax(token, newstx);
   }
 
-  match(type: TokenTag, value: any) {
-    if (!Types[type]) {
-      throw new Error(type + ' is an invalid type');
-    }
-    return Types[type].match(this.token) && (value == null ||
-      (value instanceof RegExp ? value.test(this.val()) : this.val() == value));
-  }
+  // match(type: TokenTag, value: any) {
+  //   if (!Types[type]) {
+  //     throw new Error(type + ' is an invalid type');
+  //   }
+  //   return Types[type].match(this.token) && (value == null ||
+  //     (value instanceof RegExp ? value.test(this.val()) : this.val() == value));
+  // }
 
-  isIdentifier(value: string) {
-    return this.match('identifier', value);
-  }
+  // isIdentifier(value: string) {
+  //   return this.match('identifier', value);
+  // }
 
   isAssign(value: string) {
     return this.match('assign', value);
@@ -536,9 +536,9 @@ export default class Syntax {
     return this.match('regularExpression', value);
   }
 
-  isTemplate(value: any) {
-    return this.match('template', value);
-  }
+  // isTemplate(value: any) {
+  //   return this.match('template', value);
+  // }
 
   isDelimiter(value: any) {
     return this.match('delimiter', value);

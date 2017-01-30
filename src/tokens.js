@@ -294,6 +294,7 @@ export class NumericToken extends BaseToken {
 }
 
 export function isTemplateElement(x: any, value?: string) {
+  x = x.token ? x.token : x;
   let r = hasType(x, TT.TEMPLATE) && x.items == null;
   if (value != null) {
     return r && x.value === value;
@@ -367,6 +368,17 @@ export function getLineNumber(t: any) {
   }
   return null;
 }
+
+export function matchTokenTag(x: mixed, tag: TokenTag, value?: any) {
+  switch (tag) {
+    case 'identifier':
+      return isIdentifier(x, value);
+    case 'numeric':
+      return isNumeric(x, value);
+  }
+}
+
+export type TokenTag = 'identifier' | 'numeric';
 
 export type Token = StringToken | IdentifierToken | KeywordToken | PunctuatorToken | NumericToken | TemplateElementToken | TemplateToken | RegExpToken;
 export type TokenTree = Token | List<TokenTree>

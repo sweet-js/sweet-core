@@ -3,6 +3,8 @@ import { isIdentifierExpression, isStaticMemberExpression, isComputedMemberExpre
 import Term, * as T from 'sweet-spec';
 import { Maybe } from 'ramda-fantasy';
 import ScopeReducer from './scope-reducer';
+import * as Tok from './tokens';
+import type { TokenTag } from './tokens';
 const Just = Maybe.Just;
 const Nothing = Maybe.Nothing;
 
@@ -118,12 +120,6 @@ export class Enforester {
 
     if (this.rest.size === 0) {
       this.done = true;
-      return this.term;
-    }
-
-    if (this.isEOF(this.peek())) {
-      this.term = new T.EOF({});
-      this.advance();
       return this.term;
     }
 
@@ -1313,12 +1309,12 @@ export class Enforester {
   }
 
   enforestNumericLiteral() {
-    let num = this.matchRawSyntax();
-    if (num.val() === 1 / 0) {
+    let num = this.matchNumericLiteral();
+    if (num.value.value === 1 / 0) {
       return new T.LiteralInfinityExpression({});
     }
     return new T.LiteralNumericExpression({
-      value: num.val()
+      value: num.value.value
     });
   }
 
@@ -1920,26 +1916,20 @@ export class Enforester {
     }
   }
 
-  safeCheck(obj: Syntax | Term, type: any, val: ?string = null) {
-    if (obj instanceof Term) {
-      if (obj instanceof T.RawSyntax) {
-        return obj.value && (typeof obj.value.match === 'function' ? obj.value.match(type, val) : false);
-      } else if (obj instanceof T.RawDelimiter) {
-        return type === 'delimiter' || obj.kind === type;
-      }
+  safeCheck(obj: Term, type: TokenTag, val?: any) {
+    if (obj instanceof T.RawSyntax) {
+      return Tok.matchTokenTag(obj.value, type, val);
+    } else if (obj instanceof T.RawDelimiter) {
+      return type === 'delimiter' || obj.kind === type;
     }
-    return obj && (typeof obj.match === 'function' ? obj.match(type, val) : false);
+    return false;
   }
 
   isTerm(term: any) {
     return term && (term instanceof Term);
   }
 
-  isEOF(obj: Syntax | Term) {
-    return this.safeCheck(obj, 'eof');
-  }
-
-  isIdentifier(obj: Syntax | Term, val: ?string = null) {
+  isIdentifier(obj: Term, val: ?string = null) {
     return this.safeCheck(obj, 'identifier', val);
   }
 
@@ -1949,7 +1939,7 @@ export class Enforester {
   }
 
   isNumericLiteral(obj: Syntax | Term, val: ?string = null) {
-    return this.safeCheck(obj, 'number', val);
+    return this.safeCheck(obj, 'numeric', val);
   }
 
   isStringLiteral(obj: Syntax | Term, val: ?string = null) {
@@ -2151,10 +2141,10 @@ export class Enforester {
     throw this.createError(lookahead, 'expecting a RawDelimiter');
   }
 
-  matchRawSyntax(): Syntax {
+  matchRawSyntax(): T.RawSyntax {
     let lookahead = this.advance();
     if (lookahead instanceof T.RawSyntax) {
-      return lookahead.value;
+      return lookahead;
     }
     throw this.createError(lookahead, 'expecting a RawSyntax');
   }
@@ -2194,6 +2184,14 @@ export class Enforester {
       return this.matchRawSyntax();
     }
     throw this.createError(lookahead, 'expecting a string literal');
+  }
+
+  matchNumericLiteral() {
+    let lookahead = this.peek();
+    if (this.isNumericLiteral(lookahead)) {
+      return this.matchRawSyntax();
+    }
+    throw this.createError(lookahead, 'expecting a numeric literal');
   }
 
   matchTemplate() {
@@ -2265,7 +2263,7 @@ export class Enforester {
         }
         return List.of(term);
       }).flatten().map(s => {
-        let sval = s instanceof T.RawSyntax ? s.value.val() : s.toString();
+        let sval = s instanceof T.RawSyntax ? s.value.value : s.toString();
         if (s === offending) {
           return '__' + sval + '__';
         }

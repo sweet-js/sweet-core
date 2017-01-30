@@ -6,7 +6,6 @@ import * as _ from 'ramda';
 import ScopeReducer from './scope-reducer';
 import * as T from 'sweet-spec';
 import Term, * as S from 'sweet-spec';
-import Syntax from './syntax';
 import { isTemplate, isDelimiter, getKind } from './tokens';
 import type { TokenTree } from './tokens';
 
@@ -16,11 +15,11 @@ export function wrapInTerms(stx: List<TokenTree>): List<Term> {
       if (s.items) {
         s.items = wrapInTerms(s.items);
         return new T.RawSyntax({
-          value: new Syntax(s)
+          value: s
         });
       }
       return new T.RawSyntax({
-        value: new Syntax(s)
+        value: s
       });
     } else if (isDelimiter(s)) {
       return new S.RawDelimiter({
@@ -29,7 +28,7 @@ export function wrapInTerms(stx: List<TokenTree>): List<Term> {
       });
     }
     return new S.RawSyntax({
-      value: new Syntax(s)
+      value: s
     });
   });
 }
