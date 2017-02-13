@@ -1,4 +1,3 @@
-// @flow
 import { List, Map } from 'immutable';
 import { assert } from './errors';
 import BindingMap from './binding-map';

@@ -375,10 +375,21 @@ export function matchTokenTag(x: mixed, tag: TokenTag, value?: any) {
       return isIdentifier(x, value);
     case 'numeric':
       return isNumeric(x, value);
+    case 'string':
+      return isString(x, value);
+    case 'template':
+      return isTemplate(x);
+    case 'keyword':
+      return isKeyword(x, value);
+    case 'regex':
+      return isRegExp(x, value);
+    case 'punctuator':
+      return isPunctuator(x, value);
   }
 }
 
-export type TokenTag = 'identifier' | 'numeric';
+export type TokenTag = 'identifier' | 'numeric' | 'string' | 'template' |
+                       'syntaxTemplate' | 'keyword' | 'regex' | 'punctuator';
 
 export type Token = StringToken | IdentifierToken | KeywordToken | PunctuatorToken | NumericToken | TemplateElementToken | TemplateToken | RegExpToken;
 export type TokenTree = Token | List<TokenTree>
