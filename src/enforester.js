@@ -44,7 +44,12 @@ import type { SymbolClass } from './symbol';
 import { freshScope } from './scope';
 import { sanitizeReplacementValues } from './load-syntax';
 
+import { Maybe } from 'ramda-fantasy';
+
 import MacroContext from './macro-context';
+
+const Just = Maybe.Just;
+const Nothing = Maybe.Nothing;
 
 const EXPR_LOOP_OPERATOR = {};
 const EXPR_LOOP_NO_CHANGE = {};
@@ -1904,7 +1909,7 @@ export class Enforester {
   }
 
   safeCheck(obj: Term, type: TokenTag, val?: any) {
-    if (obj.type === 'RawSyntax') {
+    if (obj && obj.type === 'RawSyntax') {
       return Tok.matchTokenTag(obj.value, type, val);
     }
     return false;
@@ -1952,7 +1957,7 @@ export class Enforester {
   }
 
   isDelimiter(obj: Term) {
-    return obj.type === 'RawDelimiter';
+    return obj && obj.type === 'RawDelimiter';
   }
 
   isParens(obj: Term) {
@@ -2003,7 +2008,11 @@ export class Enforester {
   }
 
   safeResolve(obj: Term, phase: number | {}) {
-    throw new Error(`Resolve not implemented yet`);
+    // TODO: call correct resolve
+    if (obj && obj.type === 'RawSyntax') {
+      return Just(obj.value.value);
+    }
+    return Nothing();
   }
 
   isTransform(obj: Term, trans: any) {

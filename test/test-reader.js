@@ -115,13 +115,13 @@ test('should handle nested syntax templates', t => {
   t.true(T.isIdentifier(iinner, 'bar'));
 });
 
-test.skip('should handle escaped string templates literals inside a syntax literal', t => {
-  let [r] = read('#`x = \`foo\``');
+test('should handle escaped string templates literals inside a syntax literal', t => {
+  let [r] = read('#`x = \\`foo\\``');
   t.true(T.isSyntaxTemplate(r));
   let [open, x, eq, str, close] = r;
   t.true(T.isIdentifier(x, 'x'));
   t.true(T.isPunctuator(eq, '='));
-  t.true(T.isString(str, 'foo'));
+  t.true(T.isTemplate(str, 'foo'));
 });
 
 test('should read a regex when it begins the source', t => {
