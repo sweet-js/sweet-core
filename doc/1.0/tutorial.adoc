@@ -11,8 +11,6 @@
 Sweet brings the hygienic macros of languages like Scheme and Rust to JavaScript.
 Macros allow you to sweeten the syntax of JavaScript and craft the language you’ve always wanted.
 
-NOTE: This documents version 1.0+ of Sweet and is still a work in progress. Contributions are welcome!
-
 == Installation and Getting Started
 
 Install Sweet with npm:
@@ -188,18 +186,20 @@ One task we often need to perform in a macro is looping over syntax. Sweet helps
 .cond Macro
 [source, javascript]
 ----
+import { unwrap, isKeyword } from 'sweet.js/helpers' for syntax; // <3>
+
 syntax cond = function (ctx) {
-  let bodyCtx = ctx.next().value.inner(); // <1>
+  let bodyCtx = ctx.contextify(ctx.next().value); // <1>
 
   let result = #``;
   for (let stx of bodyCtx) { // <2>
-    if (stx.isKeyword('case')) { // <3>
+    if (isKeyword(stx) && unwrap(stx).value === 'case') { // <3>
       let test = bodyCtx.expand('expr').value;
       // eat `:`
       bodyCtx.next();
       let r = bodyCtx.expand('expr').value;
       result = result.concat(#`${test} ? ${r} :`);
-    } else if (stx.isKeyword('default')) {
+    } else if (isKeyword(stx) && unwrap(stx).value === 'default') {
       // eat `:`
       bodyCtx.next();
       let r = bodyCtx.expand('expr').value;
@@ -220,9 +220,9 @@ let realTypeof = cond {
   default: typeof x
 }
 ----
-<1> The `.inner` method on delimiter syntax objects gives us an iterator into the syntax inside the delimiter. In this case, that is everything inside of `{ ... }`.
+<1> The `.contextify` method gives us another context inside the delimiter. In this case, that is everything inside of `{ ... }`.
 <2> A macro context is iterable so you can `for-of` over it.
-<3> Syntax objects have helpful methods on them that allow you to find out more about them.
+<3> Utility functions are available for import to help inspect what kind of syntax you are processing. Note the `for syntax` on the import declaration, which is required for the helpers to be available inside of a macro definition. Modules and macros are described more <<_sweet_modules, later>>.
 
 .(expansion)
 [source, javascript]
@@ -242,6 +242,8 @@ So putting together what we've learned so far, let's make the sweetest of ES2015
 .class Macro
 [source, javascript]
 ----
+import { unwrap, isIdentifier } from 'sweet.js/helpers' for syntax;
+
 syntax class = function (ctx) {
   let name = ctx.next().value;
   let bodyCtx = ctx.next().value.inner();
@@ -250,7 +252,7 @@ syntax class = function (ctx) {
   let construct = #`function ${name} () {}`;
   let result = #``;
   for (let item of bodyCtx) {
-    if (item.isIdentifier('constructor')) {
+    if (isIdentifier(item) && unwrap(item).value === 'constructor') {
       construct = #`
         function ${name} ${bodyCtx.next().value}
         ${bodyCtx.next().value}

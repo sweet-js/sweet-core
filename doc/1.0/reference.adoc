@@ -147,141 +147,117 @@ anchor:synobj[]
 
 == Syntax Objects
 
-Syntax objects represent the syntax from the source program. Syntax objects have a number of methods to inspect their contents and construct new syntax object.
+Syntax objects represent the syntax from the source program. While syntax objects have internal structure, that structure is intentionally undocumented and subject to change (in fact, major change to syntax objects is planned for the next major version).
+
+Introspection and manipulation functions are provided in the helpers library documented in the following section.
 
 
-=== val
+== Helpers
 
-
-[source, javascript]
-----
-Syntax.prototype.val() -> string?
-----
-
-Returns a nullable value representing the textual value of the syntax object. For example, the `.val()` of the identifier `foo` is the string `"foo"`. Some syntax objects (in particular delimiters) do not have a reasonable representation of their syntax and so `.val()` returns `null` in these cases.
+A library of helper functions for introspecting syntax objects is provided at `'sweet.js/helpers'`. To use inside a macro definition, import `for syntax`.
 
 [source, javascript]
 ----
+import { isStringLiteral } from 'sweet.js/helpers' for syntax;
+
+syntax m = ctx => {
+  return isStringLiteral(ctx.next().value) ? #`'a string'` : #`'not a string'`;
+}
+m 'foo'
+----
+
+.(expansion)
+----
+'a string'
+----
+
+The helper library contains the following kinds of functions:
+
+- `is*` functions that test the type of a syntax object (e.g. `isIdentifier` for identifiers and `isStringLiteral` for strings)
+- `from*` functions that create new syntax objects from primitive data
+- an `unwrap` function that returns the primitive representation of a syntax object
+
+=== unwrap
+
+[source, javascript]
+----
+unwrap(stx: any): {
+  value?: string | number | List<Syntax>
+}
+----
+
+In the case of a flat syntax object (i.e. not delimiters), `unwrap` returns an object with a single `value` property that holds the primitive representation of that piece of syntax (a string for string literals, keywords, and identifiers or a number for numeric literals).
+
+For syntax objects that represent delimiters, `unwrap` returns an object who's `value` property is a list of the syntax objects inside the delimiter.
+
+For all other inputs `unwrap` returns the empty object.
+
+[source, javascript]
+----
+import { unwrap } from 'sweet.js/helpers' for syntax;
+
 syntax m = ctx => {
   let id = ctx.next().value;
   let delim = ctx.next().value;
 
-  id.val() === 'foo';   // true
-  delim.val() === null; // true
+  unwrap(id).value === 'foo';  // true
+  let num = unwrap(delim).value.get(1);
+  unwrap(num).value === 1;     // true
   // ...
 }
 m foo (1)
 ----
 
-=== lineNumber
+=== fromIdentifier
 
 [source, javascript]
 ----
-Syntax.prototype.lineNumber() -> number
+fromIdentifier(other: Syntax, s: string): Syntax
 ----
 
-Returns the original line number for this syntax object.
-
-=== inner
+Create a new identifier syntax object named `s` using the lexical context from `other`.
 
 [source, javascript]
 ----
-Syntax.prototype.inner() -> TransformerContext
-----
+import { fromIdentifier } from 'sweet.js/helpers' for syntax;
 
-If the syntax object is a delimiter, returns a <<context, transformer context>> iterator into the delimiter. Otherwise, throw an exception.
-
-[source, javascript]
-----
-syntax m = ctx => {
-  let delim = ctx.next().value;
-  var arr = [];
-  for (let item of delim.inner()) {
-    arr.push(item);
-  }
-  return #`[${arr}]`;
-}
-m {
-  1, 2, 3
-}
-----
-
-=== from
-
-[source, javascript]
-----
-Syntax.prototype.from(type, value) -> Syntax
-  type : string
-  value : any
-----
-
-Construct a new syntax object from the provided `type` and `value` using the instance syntax object's lexical context. Valid types are:
-
-- `'null'`
-- `'number'`
-- `'string'`
-- `'punctuator'`
-- `'keyword'`
-- `'identifier'`
-- `'regularExpression'`
-- `'braces'`
-- `'brackets'`
-- `'parens'`
-
-[NOTE]
-====
-Be careful which syntax object you use to create a new syntax object via `from*` since the new object will share the original's lexical context. In most cases you will want to create a "dummy" syntax object inside a macro definition and then use that as a base to create new objects. For example,
-[source, javascript]
-----
-syntax to_str = ctx => {
-  let dummy = #`dummy`.get(0);
-  let arg = ctx.next().value;
-  return #`${dummy.fromString(arg.val())}`;
-}
-to_str foo
-----
-You may be tempted to reuse the syntax object provided by `ctx.name()` but resist that feeling! The `ctx.name()` syntax object comes from the macro call-site and so any syntax objects created from it will carry the lexical context of the call-site. Sometimes this is what you want, but most of the time this breaks hygiene!
-====
-
-=== fromNull
-
-[source, javascript]
-----
-Syntax.prototype.fromNull() -> Syntax
-----
-
-Creates a null literal with the instance syntax object's lexical context.
-
-
-[source, javascript]
-----
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
-  return #`${dummy.fromNull()}`;
+
+  return #`${fromIdentifier(dummy, 'bar')}`;
 }
-m
+m foo
 ----
 
 .(expansion)
 ----
-null
+bar
 ----
+
+[NOTE]
+====
+Be careful which syntax object you use to create a new syntax object via `fromIdentifier` and related functions since the new object will share the original's lexical context. In most cases you will want to create a "dummy" syntax object inside a macro definition and then use that as a base to create new objects. By using a dummy syntax object you are using the scope of the macro definition; usually the macro definition scope is what you want.
+
+You may be tempted to reuse the syntax object provided by `ctx.name()` but resist that feeling! The `ctx.name()` syntax object comes from the macro call-site and so any syntax objects created from it will carry the lexical context of the call-site. Sometimes this is what you want, but most of the time this breaks hygiene!
+====
 
 === fromNumber
 
 [source, javascript]
 ----
-Syntax.prototype.fromNumber(value) -> Syntax
-  value : number
+fromNumber(other: Syntax, n: number): Syntax
 ----
 
-Creates a numeric literal matching `value` with the instance syntax object's lexical context.
+Create a new numeric literal syntax object with the value `n` using the lexical context from `other`.
 
 [source, javascript]
 ----
+import { fromNumber } from 'sweet.js/helpers' for syntax;
+
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
-  return #`${dummy.fromNumber(1)}`;
+
+  return #`${fromNumber(dummy, 1)}`;
 }
 m
 ----
@@ -295,18 +271,19 @@ m
 
 [source, javascript]
 ----
-Syntax.prototype.fromString(value) -> Syntax
-  value : string
+fromString(other: Syntax, s: string): Syntax
 ----
 
-Creates a string literal matching `value` with the instance syntax object's lexical context.
+Create a new string literal syntax object with the value `s` using the lexical context from `other`.
 
 [source, javascript]
 ----
+import { unwrap, fromString } from 'sweet.js/helpers' for syntax;
+
 syntax to_str = ctx => {
   let dummy = #`dummy`.get(0);
-  let arg = ctx.next().value;
-  return #`${dummy.fromString(arg.val())}`;
+  let arg = unwrap(ctx.next().value).value;
+  return #`${fromString(dummy, arg)}`;
 }
 to_str foo
 ----
@@ -320,17 +297,18 @@ to_str foo
 
 [source, javascript]
 ----
-Syntax.prototype.fromPunctuator(value) -> Syntax
-  value : string
+fromPunctuator(other: Syntax, punc: string): Syntax
 ----
 
-Creates a punctuator (e.g. `+`, `==`, etc.) matching `value` with the instance syntax object's lexical context.
+Creates a punctuator (e.g. `+`, `==`, etc.) from its string representation `punc` using the lexical context from `other`.
 
 [source, javascript]
 ----
+import { fromPunctuator } from 'sweet.js/helpers' for syntax;
+
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
-  return #`1 ${dummy.fromPunctuator('+')} 1`;
+  return #`1 ${fromPunctuator(dummy, '+')} 1`;
 }
 m
 ----
@@ -344,11 +322,10 @@ m
 
 [source, javascript]
 ----
-Syntax.prototype.fromKeyword(value) -> Syntax
-  value : string
+fromKeyword(other: Syntax, kwd: string): Syntax
 ----
 
-Creates a keyword matching `value` with the instance syntax object's lexical context.
+Create a new keyword syntax object with the value `kwd` using the lexical context from `other`.
 
 [source, javascript]
 ----
@@ -364,72 +341,23 @@ m
 let x = 1
 ----
 
-=== fromIdentifier
-
-[source, javascript]
-----
-Syntax.prototype.fromIdentifier(value) -> Syntax
-  value : string
-----
-
-Creates a identifier matching `value` with the instance syntax object's lexical context.
-
-[source, javascript]
-----
-syntax m = ctx => {
-  let dummy = #`dummy`.get(0);
-  let arg = ctx.next().value;
-  return #`${dummy.fromIdentifier(arg.val())}`;
-}
-m foo
-----
-
-.(expansion)
-----
-foo
-----
-
-
-=== fromRegularExpression
-
-[source, javascript]
-----
-Syntax.prototype.fromRegularExpression(value) -> Syntax
-  value : string
-----
-
-Creates a regular expression literal matching `value` with the instance syntax object's lexical context.
-
-[source, javascript]
-----
-syntax m = ctx => {
-  let dummy = #`dummy`.get(0);
-  return #`${dummy.fromRegularExpression('[a-zA-Z]*')}`;
-}
-m
-----
-
-.(expansion)
-----
-/[a-zA-Z]/
-----
-
 === fromBraces
 
 [source, javascript]
 ----
-Syntax.prototype.fromBraces(inner) -> Syntax
-  inner : List(Syntax)
+fromBraces(other: Syntax, inner: List<Syntax>): Syntax
 ----
 
-Creates a curly brace delimiter with inner syntax objects `inner` with the instance syntax object's lexical context.
+Creates a curly brace delimiter with inner syntax objects `inner` using the lexical context from `other`.
 
 [source, javascript]
 ----
+import { fromBraces } from 'sweet.js/helpers' for syntax;
+
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
   let block = #`let x = 1;`;
-  return #`${dummy.fromBraces(block)}`;
+  return #`${fromBraces(dummy, block)}`;
 }
 m
 ----
@@ -445,18 +373,17 @@ m
 
 [source, javascript]
 ----
-Syntax.prototype.fromBrackets(inner) -> Syntax
-  inner : List(Syntax)
+fromBrackets(other: Syntax, inner: List<Syntax>): Syntax
 ----
 
-Creates a square bracket delimiter with inner syntax objects `inner` with the instance syntax object's lexical context.
+Creates a bracket delimiter with inner syntax objects `inner` using the lexical context from `other`.
 
 [source, javascript]
 ----
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
   let elements = #`1, 2, 3`;
-  return #`${dummy.fromBrackets(elements)}`;
+  return #`${fromBrackets(dummy, elements)}`;
 }
 m
 ----
@@ -470,18 +397,19 @@ m
 
 [source, javascript]
 ----
-Syntax.prototype.fromParens(inner) -> Syntax
-  inner : List(Syntax)
+fromParens(other: Syntax, inner: List<Syntax>): Syntax
 ----
 
-Creates a parenthesis delimiter with inner syntax objects `inner` with the instance syntax object's lexical context.
+creates a paren delimiter with inner syntax objects `inner` using the lexical context from `other`.
 
 [source, javascript]
 ----
+import { fromParens } from 'sweet.js/helpers' for syntax;
+
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
   let expr = #`5 * 5`;
-  return #`1 + ${dummy.fromParens(expr)}`;
+  return #`1 + ${fromParens(dummy, expr)}`;
 }
 m
 ----
@@ -495,34 +423,16 @@ m
 
 [source, javascript]
 ----
-Syntax.prototype.isIdentifier() -> boolean
+isIdentifier(s: Syntax): boolean
 ----
 
 Returns true if the syntax object is an identifier.
-
-=== isBooleanLiteral
-
-[source, javascript]
-----
-Syntax.prototype.isBooleanLiteral() -> boolean
-----
-
-Returns true if the syntax object is a boolean literal.
-
-=== isNullLiteral
-
-[source, javascript]
-----
-Syntax.prototype.isNullLiteral() -> boolean
-----
-
-Returns true if the syntax object is a null literal.
 
 === isNumericLiteral
 
 [source, javascript]
 ----
-Syntax.prototype.isNumericLiteral() -> boolean
+isNumericLiteral(s: Syntax): boolean
 ----
 
 Returns true if the syntax object is a numeric literal.
@@ -531,7 +441,7 @@ Returns true if the syntax object is a numeric literal.
 
 [source, javascript]
 ----
-Syntax.prototype.isStringLiteral() -> boolean
+isStringLiteral(s: Syntax): boolean
 ----
 
 Returns true if the syntax object is a string literal.
@@ -540,7 +450,7 @@ Returns true if the syntax object is a string literal.
 
 [source, javascript]
 ----
-Syntax.prototype.isKeyword() -> boolean
+isKeyword(s: Syntax): boolean
 ----
 
 Returns true if the syntax object is a keyword.
@@ -549,43 +459,34 @@ Returns true if the syntax object is a keyword.
 
 [source, javascript]
 ----
-Syntax.prototype.isPunctuator() -> boolean
+isPunctuator(s: Syntax): boolean
 ----
 
 Returns true if the syntax object is a puncuator.
-
-=== isRegularExpression
-
-[source, javascript]
-----
-Syntax.prototype.isRegularExpression() -> boolean
-----
-
-Returns true if the syntax object is a regular expression literal.
 
 === isTemplate
 
 [source, javascript]
 ----
-Syntax.prototype.isTemplate() -> boolean
+isTemplate(s: Syntax): boolean
 ----
 
 Returns true if the syntax object is a template literal.
 
-=== isDelimiter
+=== isSyntaxTemplate
 
 [source, javascript]
 ----
-Syntax.prototype.isDelimiter() -> boolean
+isSyntaxTemplate(s: Syntax): boolean
 ----
 
-Returns true if the syntax object is a delimiter.
+Returns true if the syntax object is a syntax template literal.
 
 === isParens
 
 [source, javascript]
 ----
-Syntax.prototype.isParens() -> boolean
+isParens(s: Syntax): boolean
 ----
 
 Returns true if the syntax object is a parenthesis delimiter (e.g. `( ... )`).
@@ -594,7 +495,7 @@ Returns true if the syntax object is a parenthesis delimiter (e.g. `( ... )`).
 
 [source, javascript]
 ----
-Syntax.prototype.isBrackets() -> boolean
+isBrackets(s: Syntax): boolean
 ----
 
 Returns true if the syntax object is a bracket delimiter (e.g. `[ ... ]`).
@@ -603,19 +504,10 @@ Returns true if the syntax object is a bracket delimiter (e.g. `[ ... ]`).
 
 [source, javascript]
 ----
-Syntax.prototype.isBraces() -> boolean
+isBraces(s: Syntax): boolean
 ----
 
 Returns true if the syntax object is a braces delimiter (e.g. `{ ... }`).
-
-=== isSyntaxTemplate
-
-[source, javascript]
-----
-Syntax.prototype.isSyntaxTemplate() -> boolean
-----
-
-Returns true if the syntax object is a syntax template.
 
 
 == Syntax Templates
