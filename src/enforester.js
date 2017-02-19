@@ -1,10 +1,9 @@
 // @flow
 import { isIdentifierExpression, isStaticMemberExpression, isComputedMemberExpression } from './terms';
 import Term, * as T from 'sweet-spec';
-import { Maybe } from 'ramda-fantasy';
 import ScopeReducer from './scope-reducer';
-const Just = Maybe.Just;
-const Nothing = Maybe.Nothing;
+import * as Tok from './tokens';
+import type { TokenTag } from './tokens';
 
 import {
   FunctionDeclTransform,
@@ -39,30 +38,25 @@ import {
   getOperatorPrec,
   operatorLt
 } from './operators';
-import Syntax, { ALL_PHASES } from './syntax';
+import { ALL_PHASES } from './syntax';
 import type { SymbolClass } from './symbol';
 
 import { freshScope } from './scope';
 import { sanitizeReplacementValues } from './load-syntax';
 
+import { Maybe } from 'ramda-fantasy';
+
 import MacroContext from './macro-context';
+
+const Just = Maybe.Just;
+const Nothing = Maybe.Nothing;
 
 const EXPR_LOOP_OPERATOR = {};
 const EXPR_LOOP_NO_CHANGE = {};
 const EXPR_LOOP_EXPANSION = {};
 
-function getLineNumber(x: Syntax | T.Term) {
-  let stx;
-  if (x instanceof Syntax) {
-    stx = x;
-  } else if (x instanceof T.RawSyntax) {
-    stx = x.value;
-  } else if (x instanceof T.RawDelimiter) {
-    return getLineNumber(x.inner.first());
-  } else {
-    throw new Error(`Not implemented yet ${x}`);
-  }
-  return stx.lineNumber();
+function getLineNumber(x: T.Term) {
+  throw new Error(`Not implemented yet ${x}`);
 }
 
 export class Enforester {
@@ -118,12 +112,6 @@ export class Enforester {
 
     if (this.rest.size === 0) {
       this.done = true;
-      return this.term;
-    }
-
-    if (this.isEOF(this.peek())) {
-      this.term = new T.EOF({});
-      this.advance();
       return this.term;
     }
 
@@ -1313,12 +1301,12 @@ export class Enforester {
   }
 
   enforestNumericLiteral() {
-    let num = this.matchRawSyntax();
-    if (num.val() === 1 / 0) {
+    let num = this.matchNumericLiteral();
+    if (num.value.value === 1 / 0) {
       return new T.LiteralInfinityExpression({});
     }
     return new T.LiteralNumericExpression({
-      value: num.val()
+      value: num.value.value
     });
   }
 
@@ -1859,7 +1847,7 @@ export class Enforester {
         return enf.enforest('expression');
       }
       return new T.TemplateElement({
-        rawValue: it.slice.text
+        rawValue: it.value.token.slice.text
       });
     });
     return elements;
@@ -1920,204 +1908,204 @@ export class Enforester {
     }
   }
 
-  safeCheck(obj: Syntax | Term, type: any, val: ?string = null) {
-    if (obj instanceof Term) {
-      if (obj instanceof T.RawSyntax) {
-        return obj.value && (typeof obj.value.match === 'function' ? obj.value.match(type, val) : false);
-      } else if (obj instanceof T.RawDelimiter) {
-        return type === 'delimiter' || obj.kind === type;
-      }
+  safeCheck(obj: Term, type: TokenTag, val?: any) {
+    if (obj && obj.type === 'RawSyntax') {
+      return Tok.matchTokenTag(obj.value, type, val);
     }
-    return obj && (typeof obj.match === 'function' ? obj.match(type, val) : false);
+    return false;
   }
 
   isTerm(term: any) {
     return term && (term instanceof Term);
   }
 
-  isEOF(obj: Syntax | Term) {
-    return this.safeCheck(obj, 'eof');
-  }
-
-  isIdentifier(obj: Syntax | Term, val: ?string = null) {
+  isIdentifier(obj: Term, val: ?string = null) {
     return this.safeCheck(obj, 'identifier', val);
   }
 
-  isPropertyName(obj: Syntax | Term) {
+  isPropertyName(obj: Term) {
     return this.isIdentifier(obj) || this.isKeyword(obj) ||
            this.isNumericLiteral(obj) || this.isStringLiteral(obj) || this.isBrackets(obj);
   }
 
-  isNumericLiteral(obj: Syntax | Term, val: ?string = null) {
-    return this.safeCheck(obj, 'number', val);
+  isNumericLiteral(obj: Term, val: ?string = null) {
+    return this.safeCheck(obj, 'numeric', val);
   }
 
-  isStringLiteral(obj: Syntax | Term, val: ?string = null) {
+  isStringLiteral(obj: Term, val: ?string = null) {
     return this.safeCheck(obj, 'string', val);
   }
 
-  isTemplate(obj: Syntax | Term, val: ?string = null) {
+  isTemplate(obj: Term, val: ?string = null) {
     return this.safeCheck(obj, 'template', val);
   }
 
-  isSyntaxTemplate(obj: Syntax | Term) {
+  isSyntaxTemplate(obj: Term) {
     return this.safeCheck(obj, 'syntaxTemplate');
   }
 
-  isBooleanLiteral(obj: Syntax | Term, val: ?string = null) {
-    return this.safeCheck(obj, 'boolean', val);
+  isBooleanLiteral(obj: Term) {
+    return this.safeCheck(obj, 'keyword', 'true') || this.safeCheck(obj, 'keyword', 'false');
   }
 
-  isNullLiteral(obj: Syntax | Term, val: ?string = null) {
-    return this.safeCheck(obj, 'null', val);
+  isNullLiteral(obj: Term) {
+    return this.safeCheck(obj, 'keyword', 'null');
   }
 
-  isRegularExpression(obj: Syntax | Term, val: ?string = null) {
-    return this.safeCheck(obj, 'regularExpression', val);
+  isRegularExpression(obj: Term, val: ?string = null) {
+    return this.safeCheck(obj, 'regex', val);
   }
 
-  isDelimiter(obj: Syntax | Term) {
-    return this.safeCheck(obj, 'delimiter');
+  isDelimiter(obj: Term) {
+    return obj && obj.type === 'RawDelimiter';
   }
 
-  isParens(obj: Syntax | Term) {
-    return this.safeCheck(obj, 'parens');
+  isParens(obj: Term) {
+    return this.isDelimiter(obj) && obj.kind === 'parens';
   }
 
-  isBraces(obj: Syntax | Term) {
-    return this.safeCheck(obj, 'braces');
+  isBraces(obj: Term) {
+    return this.isDelimiter(obj) && obj.kind === 'braces';
   }
 
-  isBrackets(obj: Syntax | Term) {
-    return this.safeCheck(obj, 'brackets');
+  isBrackets(obj: Term) {
+    return this.isDelimiter(obj) && obj.kind === 'brackets';
   }
 
-  isAssign(obj: Syntax | Term, val: ?string = null) {
-    return this.safeCheck(obj, 'assign', val);
+  isAssign(obj: Term, val: ?string = null) {
+    return this.safeCheck(obj, 'punctuator', '=') ||
+           this.safeCheck(obj, 'punctuator', '|=') ||
+           this.safeCheck(obj, 'punctuator', '^=') ||
+           this.safeCheck(obj, 'punctuator', '&=') ||
+           this.safeCheck(obj, 'punctuator', '<<=') ||
+           this.safeCheck(obj, 'punctuator', '>>=') ||
+           this.safeCheck(obj, 'punctuator', '>>>=') ||
+           this.safeCheck(obj, 'punctuator', '+=') ||
+           this.safeCheck(obj, 'punctuator', '-=') ||
+           this.safeCheck(obj, 'punctuator', '*=') ||
+           this.safeCheck(obj, 'punctuator', '/=') ||
+           this.safeCheck(obj, 'punctuator', '%=');
   }
 
-
-  isKeyword(obj: Syntax | Term, val: ?string = null) {
+  isKeyword(obj: Term, val: ?string = null) {
     return this.safeCheck(obj, 'keyword', val);
   }
 
-  isPunctuator(obj: Syntax | Term, val: ?string = null) {
+  isPunctuator(obj: Term, val: ?string = null) {
     return this.safeCheck(obj, 'punctuator', val);
   }
 
-  isOperator(obj: Syntax | Term) {
+  isOperator(obj: Term) {
     return (this.safeCheck(obj, 'punctuator') ||
             this.safeCheck(obj, 'identifier') ||
             this.safeCheck(obj, 'keyword')) &&
-            ((obj instanceof T.RawSyntax && isOperator(obj.value)) ||
-             (obj instanceof Syntax && isOperator(obj)));
+            ((obj instanceof T.RawSyntax && isOperator(obj.value)));
   }
 
-  isUpdateOperator(obj: Syntax | Term) {
+  isUpdateOperator(obj: Term) {
     return this.safeCheck(obj, 'punctuator', '++') ||
            this.safeCheck(obj, 'punctuator', '--');
   }
 
-  safeResolve(obj: Syntax | Term, phase: number | {}) {
-    if (obj instanceof T.RawSyntax) {
-      return typeof obj.value.resolve === 'function' ? Just(obj.value.resolve(phase)) : Nothing();
-    } else if (obj instanceof Syntax) {
-      return typeof obj.resolve === 'function' ? Just(obj.resolve(phase)) : Nothing();
+  safeResolve(obj: Term, phase: number | {}) {
+    // TODO: call correct resolve
+    if (obj && obj.type === 'RawSyntax') {
+      return Just(obj.value.value);
     }
     return Nothing();
   }
 
-  isTransform(obj: Syntax | Term, trans: any) {
+  isTransform(obj: Term, trans: any) {
     return this.safeResolve(obj, this.context.phase)
                .map(name => this.context.env.get(name) === trans ||
                             this.context.store.get(name) === trans)
                .getOrElse(false);
   }
 
-  isTransformInstance(obj: Syntax | Term, trans: any) {
+  isTransformInstance(obj: Term, trans: any) {
     return this.safeResolve(obj, this.context.phase)
                .map(name => this.context.env.get(name) instanceof trans ||
                             this.context.store.get(name) instanceof trans)
                .getOrElse(false);
   }
 
-  isFnDeclTransform(obj: Syntax | Term) {
+  isFnDeclTransform(obj: Term) {
     return this.isTransform(obj, FunctionDeclTransform);
   }
 
-  isVarDeclTransform(obj: Syntax | Term) {
+  isVarDeclTransform(obj: Term) {
     return this.isTransform(obj, VariableDeclTransform);
   }
 
-  isLetDeclTransform(obj: Syntax | Term) {
+  isLetDeclTransform(obj: Term) {
     return this.isTransform(obj, LetDeclTransform);
   }
 
-  isConstDeclTransform(obj: Syntax | Term) {
+  isConstDeclTransform(obj: Term) {
     return this.isTransform(obj, ConstDeclTransform);
   }
 
-  isSyntaxDeclTransform(obj: Syntax | Term) {
+  isSyntaxDeclTransform(obj: Term) {
     return this.isTransform(obj, SyntaxDeclTransform);
   }
 
-  isSyntaxrecDeclTransform(obj: Syntax | Term) {
+  isSyntaxrecDeclTransform(obj: Term) {
     return this.isTransform(obj, SyntaxrecDeclTransform);
   }
 
-  isReturnStmtTransform(obj: Syntax | Term) {
+  isReturnStmtTransform(obj: Term) {
     return this.isTransform(obj, ReturnStatementTransform);
   }
 
-  isWhileTransform(obj: Syntax | Term) {
+  isWhileTransform(obj: Term) {
     return this.isTransform(obj, WhileTransform);
   }
 
-  isForTransform(obj: Syntax | Term) {
+  isForTransform(obj: Term) {
     return this.isTransform(obj, ForTransform);
   }
 
-  isSwitchTransform(obj: Syntax | Term) {
+  isSwitchTransform(obj: Term) {
     return this.isTransform(obj, SwitchTransform);
   }
 
-  isBreakTransform(obj: Syntax | Term) {
+  isBreakTransform(obj: Term) {
     return this.isTransform(obj, BreakTransform);
   }
 
-  isContinueTransform(obj: Syntax | Term) {
+  isContinueTransform(obj: Term) {
     return this.isTransform(obj, ContinueTransform);
   }
 
-  isDoTransform(obj: Syntax | Term) {
+  isDoTransform(obj: Term) {
     return this.isTransform(obj, DoTransform);
   }
 
-  isDebuggerTransform(obj: Syntax | Term) {
+  isDebuggerTransform(obj: Term) {
     return this.isTransform(obj, DebuggerTransform);
   }
 
-  isWithTransform(obj: Syntax | Term) {
+  isWithTransform(obj: Term) {
     return this.isTransform(obj, WithTransform);
   }
 
-  isTryTransform(obj: Syntax | Term) {
+  isTryTransform(obj: Term) {
     return this.isTransform(obj, TryTransform);
   }
 
-  isThrowTransform(obj: Syntax | Term) {
+  isThrowTransform(obj: Term) {
     return this.isTransform(obj, ThrowTransform);
   }
 
-  isIfTransform(obj: Syntax | Term) {
+  isIfTransform(obj: Term) {
     return this.isTransform(obj, IfTransform);
   }
 
-  isNewTransform(obj: Syntax | Term) {
+  isNewTransform(obj: Term) {
     return this.isTransform(obj, NewTransform);
   }
 
-  isCompiletimeTransform(obj: Syntax | Term) {
+  isCompiletimeTransform(obj: Term) {
     return this.isTransformInstance(obj, CompiletimeTransform);
   }
 
@@ -2125,18 +2113,20 @@ export class Enforester {
     return this.isTransformInstance(obj, ModuleNamespaceTransform);
   }
 
-  isVarBindingTransform(obj: Syntax | Term) {
+  isVarBindingTransform(obj: Term) {
     return this.isTransformInstance(obj, VarBindingTransform);
   }
 
-  getFromCompiletimeEnvironment(term: Syntax) {
-    if (this.context.env.has(term.resolve(this.context.phase))) {
-      return this.context.env.get(term.resolve(this.context.phase));
-    }
-    return this.context.store.get(term.resolve(this.context.phase));
+  getFromCompiletimeEnvironment(term: Term) {
+    throw new Error(`not implemneted yet`);
+    // if (this.context.env.has(term.resolve(this.context.phase))) {
+    //   return this.context.env.get(term.resolve(this.context.phase));
+    // }
+    // return this.context.store.get(term.resolve(this.context.phase));
   }
 
-  lineNumberEq(a: ?(T.Term | Syntax), b: ?(Syntax | T.Term)) {
+  lineNumberEq(a: ?Term, b: ?Term) {
+    throw new Error(`Not implemented yet`);
     if (!(a && b)) {
       return false;
     }
@@ -2151,10 +2141,10 @@ export class Enforester {
     throw this.createError(lookahead, 'expecting a RawDelimiter');
   }
 
-  matchRawSyntax(): Syntax {
+  matchRawSyntax(): T.RawSyntax {
     let lookahead = this.advance();
     if (lookahead instanceof T.RawSyntax) {
-      return lookahead.value;
+      return lookahead;
     }
     throw this.createError(lookahead, 'expecting a RawSyntax');
   }
@@ -2194,6 +2184,14 @@ export class Enforester {
       return this.matchRawSyntax();
     }
     throw this.createError(lookahead, 'expecting a string literal');
+  }
+
+  matchNumericLiteral() {
+    let lookahead = this.peek();
+    if (this.isNumericLiteral(lookahead)) {
+      return this.matchRawSyntax();
+    }
+    throw this.createError(lookahead, 'expecting a numeric literal');
   }
 
   matchTemplate() {
@@ -2255,7 +2253,7 @@ export class Enforester {
     throw this.createError(lookahead, 'expecting a punctuator');
   }
 
-  createError(stx: Syntax | Term, message: string) {
+  createError(stx: Term, message: string) {
     let ctx = '';
     let offending = stx;
     if (this.rest.size > 0) {
@@ -2265,7 +2263,7 @@ export class Enforester {
         }
         return List.of(term);
       }).flatten().map(s => {
-        let sval = s instanceof T.RawSyntax ? s.value.val() : s.toString();
+        let sval = s instanceof T.RawSyntax ? s.value.value : s.toString();
         if (s === offending) {
           return '__' + sval + '__';
         }

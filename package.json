@@ -39,21 +39,21 @@
     "test": "test"
   },
   "dependencies": {
-    "sweet-spec": "3.0.0-pre.3",
     "babel-core": "^6.18.0",
     "immutable": "^3.7.4",
     "ramda": "^0.22.0",
     "ramda-fantasy": "^0.6.0",
+    "readtable": "^0.0.1",
     "resolve": "^1.1.7",
     "semver": "^5.3.0",
     "shift-codegen": "^4.0.0",
     "shift-js": "^0.2.1",
     "shift-reducer": "^3.0.2",
     "shift-spidermonkey-converter": "^1.0.0",
+    "sweet-spec": "3.0.0-pre.3",
     "transit-js": "^0.8.846",
     "utils-dirname": "^1.0.0",
-    "yargs": "^4.3.2",
-    "readtable": "^0.0.1"
+    "yargs": "^4.3.2"
   },
   "devDependencies": {
     "angular": "1.6.0",
@@ -88,19 +88,18 @@
   "ava": {
     "babel": "inherit",
     "files": [
-      "test/test-sweet-loader.js",
-      "test/test-macro-expansion.js",
-      "test/test-hygiene.js",
       "test/test-asi.js",
-      "test/test-modules.js",
-      "test/test-syntax.js",
-      "test/test-symbols.js",
-      "test/test-run-test262.js",
-      "test/test-char-stream.js",
-      "test/test-readtable.js",
       "test/test-default-readtable.js",
+      "test/test-hygiene.js",
       "test/test-macro-context.js",
-      "test/test-reader-extensions.js"
+      "test/test-macro-expansion.js",
+      "test/test-modules.js",
+      "test/test-reader-extensions.js",
+      "test/test-reader.js",
+      "test/test-run-test262.js",
+      "test/test-sweet-loader.js",
+      "test/test-symbols.js",
+      "test/test-syntax.js"
     ],
     "require": [
       "babel-register"

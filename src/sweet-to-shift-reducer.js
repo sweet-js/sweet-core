@@ -1,7 +1,6 @@
 // @flow
 import Term, * as S from 'sweet-spec';
 import { List } from 'immutable';
-import type Syntax from './syntax.js';
 
 export default class extends Term.CloneReducer {
   phase: number;
@@ -18,28 +17,32 @@ export default class extends Term.CloneReducer {
     });
   }
 
-  reduceIdentifierExpression(t: Term, s: { name: Syntax }) {
+  reduceIdentifierExpression(t: Term, s: Term) {
     return new S.IdentifierExpression({
-      name: s.name.resolve(this.phase)
+      // TODO: resolve
+      // name: s.name.resolve(this.phase)
+      name: s.name.value
     });
   }
 
-  reduceStaticPropertyName(t: Term, s: { value: Syntax }) {
+  reduceStaticPropertyName(t: Term, s: Term) {
     return new S.StaticPropertyName({
-      value: s.value.val().toString()
+      value: s.value.value
     });
   }
 
-  reduceBindingIdentifier(t: Term, s: { name: Syntax }) {
+  reduceBindingIdentifier(t: Term, s: Term) {
     return new S.BindingIdentifier({
-      name: s.name.resolve(this.phase)
+      // TODO: resolve
+      // name: s.name.resolve(this.phase)
+      name: s.name.value
     });
   }
 
-  reduceStaticMemberExpression(t: Term, s: { object: any, property: Syntax }) {
+  reduceStaticMemberExpression(t: Term, s: Term) {
     return new S.StaticMemberExpression({
       object: s.object,
-      property: s.property.val()
+      property: s.property.value
     });
   }
 
