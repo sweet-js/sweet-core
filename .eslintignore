@@ -1,2 +1,3 @@
 test/test262-parser-tests
+test/extra-parser-tests
 debug.js
