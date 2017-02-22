@@ -1285,6 +1285,7 @@ export class Enforester {
       } else if (this.isBraces(lookahead)) {
         this.term = this.enforestPrimaryExpression();
       } else if (this.isIdentifier(lookahead)) {
+        if (this.term) break;
         this.term = new T.IdentifierExpression({ name: this.enforestIdentifier() });
       } else {
         break;
