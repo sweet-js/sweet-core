@@ -1,25 +1,33 @@
 import { evalWithStore } from './assertions';
 import test from 'ava';
+import { readFileSync } from 'fs';
 
-test('should load a simple syntax transformer', evalWithStore, {
-  './m.js': `
+test(
+  'should load a simple syntax transformer',
+  evalWithStore,
+  {
+    './m.js': `
 #lang "sweet.js";
 export syntax m = function (ctx) {
   return #\`1\`;
 }`,
 
-  'main.js': `
+    'main.js': `
 import { m } from "./m.js";
 output = m`
+  },
+  1
+);
 
-  }, 1);
-
-test('importing for syntax with a single number exported', evalWithStore, {
-  './num.js': `
+test(
+  'importing for syntax with a single number exported',
+  evalWithStore,
+  {
+    './num.js': `
 #lang 'base';
 export var n = 1;`,
 
-  'main.js': `
+    'main.js': `
 import { n } from './num.js' for syntax;
 
 syntax m = function (ctx) {
@@ -29,16 +37,21 @@ syntax m = function (ctx) {
   return #\`false\`;
 }
 output = m;`
-  }, true);
+  },
+  true
+);
 
-test('import for syntax; export var; function', evalWithStore, {
-  './id.js': `
+test(
+  'import for syntax; export var; function',
+  evalWithStore,
+  {
+    './id.js': `
     #lang 'base';
     export var id = function (x) {
       return x;
     }
   `,
-  'main.js': `
+    'main.js': `
     import { id } from './id.js' for syntax;
 
     syntax m = ctx => {
@@ -46,16 +59,21 @@ test('import for syntax; export var; function', evalWithStore, {
     }
     output = m;
   `
-  }, 1);
+  },
+  1
+);
 
-test('import for syntax; export declaration; function', evalWithStore, {
-  './id.js': `
+test(
+  'import for syntax; export declaration; function',
+  evalWithStore,
+  {
+    './id.js': `
     #lang 'base';
     export function id(x) {
       return x;
     }
   `,
-  'main.js': `
+    'main.js': `
     import { id } from './id.js' for syntax;
 
     syntax m = ctx => {
@@ -63,17 +81,21 @@ test('import for syntax; export declaration; function', evalWithStore, {
     }
     output = m;
   `
-  }, 1);
+  },
+  1
+);
 
-
-test('importing a macro for syntax', evalWithStore, {
-  './id.js': `
+test(
+  'importing a macro for syntax',
+  evalWithStore,
+  {
+    './id.js': `
     #lang 'base';
     export syntax m = function (ctx) {
       return #\`1\`;
     }
   `,
-  'main.js': `
+    'main.js': `
     import { m } from './id.js' for syntax;
 
     syntax m = ctx => {
@@ -82,10 +104,15 @@ test('importing a macro for syntax', evalWithStore, {
     }
     output = m;
   `
-  }, 1);
+  },
+  1
+);
 
-test('importing a macro for syntax only binds what is named', evalWithStore, {
-  './id.js': `
+test(
+  'importing a macro for syntax only binds what is named',
+  evalWithStore,
+  {
+    './id.js': `
     #lang 'base';
     syntax n = ctx => #\`2\`;
 
@@ -94,7 +121,7 @@ test('importing a macro for syntax only binds what is named', evalWithStore, {
     }
 
   `,
-  'main.js': `
+    'main.js': `
     import { m } from './id.js' for syntax;
 
     syntax test = ctx => {
@@ -105,74 +132,123 @@ test('importing a macro for syntax only binds what is named', evalWithStore, {
     }
     output = test;
   `
-  }, 1);
+  },
+  1
+);
 
-  test('exporting names for syntax', evalWithStore, {
-'./mod.js': `
+test(
+  'exporting names for syntax',
+  evalWithStore,
+  {
+    './mod.js': `
 function id(x) { return x; }
-export { id }  
+export { id }
 `,
-'main.js': `
+    'main.js': `
 import { id } from './mod.js' for syntax;
 syntax m = ctx => {
   return id(#\`1\`);
 }
 output = m
 `
-  }, 1);
+  },
+  1
+);
 
-  test('exporting names with renaming for syntax', evalWithStore, {
-'./mod.js': `
+test(
+  'exporting names with renaming for syntax',
+  evalWithStore,
+  {
+    './mod.js': `
 function id(x) { return x; }
-export { id as di }  
+export { id as di }
 `,
-'main.js': `
+    'main.js': `
 import { di } from './mod.js' for syntax;
 syntax m = ctx => {
   return di(#\`1\`);
 }
 output = m
 `
-  }, 1);
+  },
+  1
+);
 
-  test('exporting default names for syntax', evalWithStore, {
-'./mod.js': `
+test(
+  'exporting default names for syntax',
+  evalWithStore,
+  {
+    './mod.js': `
 export default function id(x) { return x; }
 `,
-'main.js': `
+    'main.js': `
 import id from './mod.js' for syntax;
 syntax m = ctx => {
   return id(#\`1\`);
 }
 output = m
 `
-  }, 1);
+  },
+  1
+);
 
-  test('importing a namespace for syntax', evalWithStore, {
-'./mod.js': `
+test(
+  'importing a namespace for syntax',
+  evalWithStore,
+  {
+    './mod.js': `
 export function id(x) { return x; }`,
-'main.js': `
+    'main.js': `
 import * as M from './mod.js' for syntax;
 syntax m = ctx => {
   return M.id(#\`1\`);
 }
 output = m`
-  }, 1);
+  },
+  1
+);
 
-test('importing a function through multiple modules for syntax', evalWithStore, {
-  './a.js': `
+test(
+  'importing a function through multiple modules for syntax',
+  evalWithStore,
+  {
+    './a.js': `
 export function f(x) { return x; }
   `,
-  './mod.js': `
+    './mod.js': `
 import { f } from './a.js';
 export function id(x) { return f(x); }`,
-  'main.js': `
+    'main.js': `
 import * as M from './mod.js' for syntax;
 syntax m = ctx => {
   return M.id(#\`1\`);
 }
 output = m`
-}, 1);
+  },
+  1
+);
+
+let helperSrc = readFileSync('./helpers.js', 'utf8');
+
+test(
+  'using helpers works',
+  evalWithStore,
+  {
+    './helpers.js': helperSrc,
+    'main.js': `
+    import { isKeyword } from './helpers.js' for syntax;
+    syntax m = ctx => {
+      let n = ctx.next().value;
+      if (isKeyword(n)) {
+        return #\`true\`;
+      }
+      return #\`false\`;
+    }
+    output = m if
+  `
+  },
+  true
+);
 
 // test('importing a chain for syntax works', evalWithStore, {
 //   'b': `#lang 'sweet.js';
