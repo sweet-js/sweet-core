@@ -137,6 +137,7 @@ export class Enforester {
     if (this.rest.size === 0) {
       this.done = true;
     }
+    this.prev = List.of(result);
     return result;
   }
 
@@ -1883,7 +1884,7 @@ export class Enforester {
 
       let ctx = new MacroContext(this, name, this.context, useSiteScope, introducedScope);
 
-      let result = sanitizeReplacementValues(syntaxTransform.value.call(null, ctx));
+      let result = sanitizeReplacementValues(syntaxTransform.value.call(null, ctx, this.prev));
       if (!List.isList(result)) {
         throw this.createError(name, 'macro must return a list but got: ' + result);
       }
