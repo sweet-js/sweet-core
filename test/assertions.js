@@ -1,17 +1,41 @@
-import read from '../src/reader/token-reader';
-import { compile } from '../src/sweet';
-import { Enforester } from '../src/enforester';
 import { List } from 'immutable';
+
+import read from '../src/reader/token-reader';
+import { compile, parse } from '../src/sweet';
+import { Enforester } from '../src/enforester';
 import StoreLoader from '../src/store-loader';
 
 export const stmt = x => x.items[0];
 export const expr = x => stmt(x).expression;
 export const items = x => x.items;
 
-
 export function makeEnforester(code) {
   let stxl = read(code);
   return new Enforester(stxl, List(), {});
+}
+
+function getAst(code) {
+  const store = new Map();
+  store.set('main.js', code);
+
+  const loader = new StoreLoader(__dirname, store);
+  return parse('main.js', loader);
+}
+
+function testParseWithOpts(t, acc, code, expectedAst) {
+  try {
+    t.deepEqual(expectedAst, acc(getAst(code)));
+  } catch (e) {
+    throw new Error(e.message);
+  }
+}
+
+export function testParse(t, acc, code, expectedAst) {
+  return testParseWithOpts(t, acc, code, expectedAst);
+}
+
+export function testParseComparison(t, acc, codeA, codeB) {
+  testParse(t, acc, codeA, acc(getAst(codeB)));
 }
 
 export function testParseFailure() {
