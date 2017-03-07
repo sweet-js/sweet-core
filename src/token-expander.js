@@ -91,8 +91,7 @@ export default class TokenExpander extends ASTDispatcher {
     if (stxl.size === 0) {
       return List(result);
     }
-    let prev = List();
-    let enf = new Enforester(stxl, prev, this.context);
+    let enf = new Enforester(stxl, List(), this.context);
 
     while (!enf.done) {
       result.push(this.dispatch(enf.enforest()));

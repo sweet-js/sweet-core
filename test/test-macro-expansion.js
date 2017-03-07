@@ -241,3 +241,10 @@ syntax m = ctx => {
 }
 output = m
 `, 26);
+
+test('should support infix macros', evalWithOutput, `
+syntax m = (ctx, prev) => {
+  return prev;
+}
+output = 1 m
+`, 1);
