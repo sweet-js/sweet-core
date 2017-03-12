@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import { evalWithOutput, evalThrows } from './assertions';
+import { evalWithOutput, evalThrows } from '../assertions';
 
 test('should handle basic expansion at a statement expression position', evalWithOutput, `
 syntaxrec m = function(ctx) {

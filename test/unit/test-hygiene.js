@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import { evalWithOutput, evalThrows } from './assertions';
+import { evalWithOutput, evalThrows } from '../assertions';
 
 test('should work with references to function expression parameters', evalWithOutput, `
 output = function foo(x) {

@@ -1,5 +1,5 @@
 import test from 'ava';
-import { evalWithOutput } from './assertions';
+import { evalWithOutput } from '../assertions';
 
 test('should handle interpolations for normal tokens', evalWithOutput, `
 syntax m = ctx => #\`return \${ctx.next().value}\`;

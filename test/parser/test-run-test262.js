@@ -1,8 +1,8 @@
 import test from 'ava';
 import fs from 'fs';
 
-import { compile } from '../src/sweet.js';
-import NodeLoader from '../src/node-loader';
+import { compile } from '../../src/sweet.js';
+import NodeLoader from '../../src/node-loader';
 
 
 // TODO: make these pass
@@ -131,10 +131,10 @@ const passExcluded = [
 const PARSER_TEST_DIR = 'test262-parser-tests';
 const EXTRA_TEST_DIR = 'extra-parser-tests';
 
-let pass = fs.readdirSync(`./test/${PARSER_TEST_DIR}/pass`);
-let fail = fs.readdirSync(`./test/${PARSER_TEST_DIR}/fail`); // eslint-disable-line no-unused-vars
+let pass = fs.readdirSync(`./test/parser/${PARSER_TEST_DIR}/pass`);
+let fail = fs.readdirSync(`./test/parser/${PARSER_TEST_DIR}/fail`); // eslint-disable-line no-unused-vars
 
-let passExtra = fs.readdirSync(`./test/${EXTRA_TEST_DIR}/pass`);
+let passExtra = fs.readdirSync(`./test/parser/${EXTRA_TEST_DIR}/pass`);
 
 function mkTester(subdir, testDir) {
   function f(t, fname) {
@@ -142,7 +142,7 @@ function mkTester(subdir, testDir) {
     t.not(result, null);
   }
   f.title = (title, fname, expected) => {
-    let src = fs.readFileSync(`./test/${testDir}/${subdir}/${fname}`, 'utf8');
+    let src = fs.readFileSync(`./test/parser/${testDir}/${subdir}/${fname}`, 'utf8');
     return `${fname}:
 ${src}
 `;

@@ -1,6 +1,6 @@
-import read from '../src/reader/token-reader';
+import read from '../../src/reader/token-reader';
 import test from 'ava';
-import * as T from '../src/tokens';
+import * as T from '../../src/tokens';
 
 /* eslint-disable no-unused-vars */
 
