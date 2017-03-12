@@ -1,7 +1,7 @@
 import expect from 'expect.js';
 import test from 'ava';
 
-import { Symbol, gensym } from '../src/symbol';
+import { Symbol, gensym } from '../../src/symbol';
 
 test('with the same names should be ===', () => {
   let s1 = Symbol('foo');

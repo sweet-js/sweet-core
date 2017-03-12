@@ -1,9 +1,9 @@
 import test from 'ava';
 import { List } from 'immutable';
 
-import read from '../src/reader/token-reader';
+import read from '../../src/reader/token-reader';
 import { getCurrentReadtable, setCurrentReadtable } from 'readtable';
-import { keywordTable, IdentifierToken, EmptyToken, isKeyword, isIdentifier } from '../src/tokens';
+import { keywordTable, IdentifierToken, EmptyToken, isKeyword, isIdentifier } from '../../src/tokens';
 
 test('terminating macros should delimit identifiers and numbers', t => {
   const prevTable = getCurrentReadtable();

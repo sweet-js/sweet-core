@@ -1,9 +1,9 @@
-import Syntax from '../src/syntax';
+import Syntax from '../../src/syntax';
 import expect from 'expect.js';
-import { freshScope } from '../src/scope';
-import BindingMap from '../src/binding-map';
+import { freshScope } from '../../src/scope';
+import BindingMap from '../../src/binding-map';
 
-import { gensym } from '../src/symbol';
+import { gensym } from '../../src/symbol';
 import test from 'ava';
 
 

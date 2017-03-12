@@ -1,7 +1,7 @@
 import test from 'ava';
-import MacroContext from '../src/macro-context';
-import Syntax from '../src/syntax';
-import { makeEnforester } from './assertions';
+import MacroContext from '../../src/macro-context';
+import Syntax from '../../src/syntax';
+import { makeEnforester } from '../assertions';
 import { List } from 'immutable';
 
 test.skip('a macro context should have a name', t => {

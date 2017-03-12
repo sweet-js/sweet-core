@@ -1,6 +1,6 @@
 import test from 'ava';
 
-import { items, testParseComparison } from './assertions';
+import { items, testParseComparison } from '../assertions';
 
 test('CallExpression followed by identifier', testParseComparison, items, `
 x
