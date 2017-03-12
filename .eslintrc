@@ -21,6 +21,7 @@
     "comma-dangle": ["error", "only-multiline" ],
     "no-console": ["warn"],
     "no-unused-vars": ["error", { "args": "none"}],
-    "quotes": ["error", "single", { "allowTemplateLiterals": true}]
+    "quotes": ["error", "single", { "allowTemplateLiterals": true}],
+    "object-curly-spacing": ["error", "always"]
   }
 }

@@ -22,6 +22,8 @@
   "scripts": {
     "clean": "rm -rf build",
     "lint": "eslint src test && flow",
+    "format": "prettier-eslint --write \"src/**/*.js\" \"test/**/*.js\"",
+    "precommit": "lint-staged",
     "prebuild": "mkdir -p build/test build/sweet dist/",
     "build:src": "babel --out-dir build/src src",
     "build:browser": "webpack build/src/browser-sweet.js --output-library-target amd --output-library sweet",
@@ -34,6 +36,12 @@
     "report": "nyc ava && nyc report--reporter=html",
     "docs": "asciidoctorjs doc/1.0/tutorial.adoc & asciidoctorjs doc/1.0/reference.adoc",
     "dist": "rsync -r build/src/ dist"
+  },
+  "lint-staged": {
+    "*.js": [
+      "prettier-eslint --write",
+      "git add"
+    ]
   },
   "directories": {
     "test": "test"
@@ -70,8 +78,11 @@
     "event-stream": "^3.3.2",
     "expect.js": "0.3.x",
     "flow-bin": "^0.39.0",
+    "husky": "^0.13.2",
     "jquery": "3.1.1",
+    "lint-staged": "^3.3.1",
     "nyc": "^6.0.0",
+    "prettier-eslint-cli": "^3.1.2",
     "source-map": "~0.5.3",
     "source-map-support": "^0.4.0",
     "webpack": "^1.13.1"
