@@ -38,4 +38,4 @@ console.log('hello, world!')
 * Read the [reference documentation](http://sweetjs.org/doc/1.0/reference.html).
 * Play with the [editor](http://sweetjs.org/browser/editor.html).
 * Discuss on [Google Groups](https://groups.google.com/forum/#!forum/sweetjs).
-* Hang out on IRC: #sweet.js at irc.mozilla.org.
+* Hang out on IRC: #sweet.js at irc.mozilla.org and on [Gitter](https://gitter.im/sweet-js/sweet.js).
