@@ -13,12 +13,18 @@ import codegen, { FormattedCodeGen } from 'shift-codegen';
 
 import type { Context } from './sweet-loader';
 
-
-export function bindImports(impTerm: T.ImportDeclaration, exModule: SweetModule, phase: any, context: Context) {
+export function bindImports(
+  impTerm: T.ImportDeclaration,
+  exModule: SweetModule,
+  phase: any,
+  context: Context,
+) {
   let names = [];
   let phaseToBind = impTerm.forSyntax ? phase + 1 : phase;
   if (impTerm.defaultBinding != null) {
-    let exportName = exModule.exportedNames.find(exName => exName.exportedName.val() === '_default');
+    let exportName = exModule.exportedNames.find(
+      exName => exName.exportedName.val() === '_default',
+    );
     let name = impTerm.defaultBinding.name;
     if (exportName != null) {
       let newBinding = gensym('_default');
@@ -30,10 +36,14 @@ export function bindImports(impTerm: T.ImportDeclaration, exModule: SweetModule,
   if (impTerm.namedImports) {
     impTerm.namedImports.forEach(specifier => {
       let name = specifier.binding.name;
-      let exportName = exModule.exportedNames.find(exName => exName.exportedName.val() === name.val());
+      let exportName = exModule.exportedNames.find(
+        exName => exName.exportedName.val() === name.val(),
+      );
       if (exportName != null) {
         let newBinding = gensym(name.val());
-        let toForward = exportName.name ? exportName.name : exportName.exportedName;
+        let toForward = exportName.name
+          ? exportName.name
+          : exportName.exportedName;
         context.bindings.addForward(name, toForward, newBinding, phaseToBind);
         names.push(name);
       }
@@ -42,11 +52,14 @@ export function bindImports(impTerm: T.ImportDeclaration, exModule: SweetModule,
   if (impTerm.namespaceBinding) {
     let name = impTerm.namespaceBinding.name;
     let newBinding = gensym(name.val());
-    context.store.set(newBinding.toString(), new ModuleNamespaceTransform(name, exModule));
+    context.store.set(
+      newBinding.toString(),
+      new ModuleNamespaceTransform(name, exModule),
+    );
     context.bindings.add(name, {
       binding: newBinding,
       phase: phaseToBind,
-      skipDup: false
+      skipDup: false,
     });
 
     names.push(name);
@@ -64,7 +77,11 @@ export default class {
   visit(mod: SweetModule, phase: any, store: any) {
     mod.imports.forEach(imp => {
       if (imp.forSyntax) {
-        let mod = this.context.loader.get(imp.moduleSpecifier.val(), phase + 1, '');
+        let mod = this.context.loader.get(
+          imp.moduleSpecifier.val(),
+          phase + 1,
+          '',
+        );
         this.visit(mod, phase + 1, store);
         this.invoke(mod, phase + 1, store);
       } else {
@@ -74,7 +91,7 @@ export default class {
       bindImports(imp, mod, phase, this.context);
     });
     for (let term of mod.compiletimeItems()) {
-     if (S.isSyntaxDeclarationStatement(term)) {
+      if (S.isSyntaxDeclarationStatement(term)) {
         this.registerSyntaxDeclaration(term.declaration, phase, store);
       }
     }
@@ -98,29 +115,39 @@ export default class {
       }
     }
     let parsed = new T.Module({
-      directives: List(), items
+      directives: List(),
+      items,
     }).reduce(new SweetToShiftReducer(phase));
 
-    let gen = codegen(parsed, new FormattedCodeGen);
+    let gen = codegen(parsed, new FormattedCodeGen());
     let result = this.context.transform(gen);
 
     this.context.loader.eval(result.code, store);
     return store;
   }
 
-  registerSyntaxDeclaration(term: T.VariableDeclarationStatement, phase: any, store: any) {
+  registerSyntaxDeclaration(
+    term: T.VariableDeclarationStatement,
+    phase: any,
+    store: any,
+  ) {
     term.declarators.forEach(decl => {
-      let val = evalCompiletimeValue(decl.init, _.merge(this.context, {
-        phase: phase + 1, store
-      }));
+      let val = evalCompiletimeValue(
+        decl.init,
+        _.merge(this.context, {
+          phase: phase + 1,
+          store,
+        }),
+      );
 
       collectBindings(decl.binding).forEach(stx => {
-        if (phase !== 0) { // phase 0 bindings extend the binding map during compilation
+        if (phase !== 0) {
+          // phase 0 bindings extend the binding map during compilation
           let newBinding = gensym(stx.val());
           this.context.bindings.add(stx, {
             binding: newBinding,
             phase: phase,
-            skipDup: false
+            skipDup: false,
           });
         }
         let resolvedName = stx.resolve(phase);
@@ -132,12 +159,13 @@ export default class {
   registerVariableDeclaration(term: any, phase: any, store: any) {
     term.declarators.forEach(decl => {
       collectBindings(decl.binding).forEach(stx => {
-        if (phase !== 0) { // phase 0 bindings extend the binding map during compilation
+        if (phase !== 0) {
+          // phase 0 bindings extend the binding map during compilation
           let newBinding = gensym(stx.val());
           this.context.bindings.add(stx, {
             binding: newBinding,
             phase: phase,
-            skipDup: term.kind === 'var'
+            skipDup: term.kind === 'var',
           });
         }
       });
@@ -151,10 +179,9 @@ export default class {
         this.context.bindings.add(stx, {
           binding: newBinding,
           phase: phase,
-          skipDup: false
+          skipDup: false,
         });
       }
     });
   }
-
 }

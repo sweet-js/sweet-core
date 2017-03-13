@@ -9,11 +9,26 @@ import readTemplateLiteral from './read-template';
 import readRegExp from './read-regexp.js';
 import readComment from './read-comment';
 import { readSyntaxTemplate } from './read-dispatch';
-import { punctuatorTable as punctuatorMapping, keywordTable as keywordMapping,
-         KeywordToken, PunctuatorToken, EmptyToken, IdentifierToken } from '../tokens';
-import { insertSequence, retrieveSequenceLength, isExprPrefix, isRegexPrefix, isIdentifierPart, isWhiteSpace, isLineTerminator, isDecimalDigit } from './utils';
+import {
+  punctuatorTable as punctuatorMapping,
+  keywordTable as keywordMapping,
+  KeywordToken,
+  PunctuatorToken,
+  EmptyToken,
+  IdentifierToken,
+} from '../tokens';
+import {
+  insertSequence,
+  retrieveSequenceLength,
+  isExprPrefix,
+  isRegexPrefix,
+  isIdentifierPart,
+  isWhiteSpace,
+  isLineTerminator,
+  isDecimalDigit,
+} from './utils';
 
-import type  { CharStream } from 'readtable';
+import type { CharStream } from 'readtable';
 
 // use https://github.com/mathiasbynens/regenerate to generate the Unicode code points when implementing modes
 
@@ -22,13 +37,14 @@ function eatWhitespace(stream: CharStream) {
   return EmptyToken;
 }
 
-const punctuatorTable = Object.keys(punctuatorMapping).reduce(insertSequence, {});
+const punctuatorTable = Object.keys(punctuatorMapping).reduce(insertSequence, {
+});
 
 function readPunctuator(stream) {
   const len = retrieveSequenceLength(punctuatorTable, stream, 0);
   if (len > 0) {
     return new PunctuatorToken({
-      value: stream.readString(len)
+      value: stream.readString(len),
     });
   }
   throw Error('Unknown punctuator');
@@ -37,20 +53,40 @@ function readPunctuator(stream) {
 const punctuatorEntries = Object.keys(punctuatorTable).map(p => ({
   key: p,
   mode: 'terminating',
-  action: readPunctuator
+  action: readPunctuator,
 }));
 
-const whiteSpaceTable = [0x20, 0x09, 0x0B, 0x0C, 0xA0, 0x1680, 0x2000, 0x2001, 0x2002,
-                         0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200A,
-                         0x202F, 0x205F, 0x3000, 0xFEFF];
+const whiteSpaceTable = [
+  0x20,
+  0x09,
+  0x0b,
+  0x0c,
+  0xa0,
+  0x1680,
+  0x2000,
+  0x2001,
+  0x2002,
+  0x2003,
+  0x2004,
+  0x2005,
+  0x2006,
+  0x2007,
+  0x2008,
+  0x2009,
+  0x200a,
+  0x202f,
+  0x205f,
+  0x3000,
+  0xfeff,
+];
 
 const whiteSpaceEntries = whiteSpaceTable.map(w => ({
   key: w,
   mode: 'terminating',
-  action: eatWhitespace
+  action: eatWhitespace,
 }));
 
-const lineTerminatorTable = [0x0A, 0x0D, 0x2028, 0x2029];
+const lineTerminatorTable = [0x0a, 0x0d, 0x2028, 0x2029];
 
 const lineTerminatorEntries = lineTerminatorTable.map(lt => ({
   key: lt,
@@ -58,7 +94,7 @@ const lineTerminatorEntries = lineTerminatorTable.map(lt => ({
   action: function readLineTerminator(stream) {
     this.incrementLine();
     return eatWhitespace(stream);
-  }
+  },
 }));
 
 const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -66,7 +102,7 @@ const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const numericEntries = digits.map(d => ({
   key: d,
   mode: 'non-terminating',
-  action: readNumericLiteral
+  action: readNumericLiteral,
 }));
 
 const quotes = ['\'', '"'];
@@ -74,28 +110,31 @@ const quotes = ['\'', '"'];
 const stringEntries = quotes.map(q => ({
   key: q,
   mode: 'terminating',
-  action: readStringLiteral
+  action: readStringLiteral,
 }));
 
 const identifierEntry = {
   mode: 'non-terminating',
-  action: readIdentifier
+  action: readIdentifier,
 };
 
 const templateEntry = {
   key: '`',
   mode: 'terminating',
-  action: readTemplateLiteral
+  action: readTemplateLiteral,
 };
 
 const primitiveReadtable = getCurrentReadtable().extend(
-    ...[identifierEntry,
-        ...whiteSpaceEntries,
-        templateEntry,
-        ...punctuatorEntries,
-        ...lineTerminatorEntries,
-        ...numericEntries,
-        ...stringEntries]);
+  ...[
+    identifierEntry,
+    ...whiteSpaceEntries,
+    templateEntry,
+    ...punctuatorEntries,
+    ...lineTerminatorEntries,
+    ...numericEntries,
+    ...stringEntries,
+  ],
+);
 
 const dotEntry = {
   key: '.',
@@ -106,7 +145,7 @@ const dotEntry = {
       return readNumericLiteral(stream, ...rest);
     }
     return readPunctuator.call(this, stream);
-  }
+  },
 };
 
 const keywordTable = Object.keys(keywordMapping).reduce(insertSequence, {});
@@ -118,14 +157,14 @@ const keywordEntries = Object.keys(keywordTable).map(k => ({
     const len = retrieveSequenceLength(keywordTable, stream, 0);
     if (len > 0 && !isIdentifierPart(stream.peek(len).charCodeAt(0))) {
       return new KeywordToken({
-        value: stream.readString(len)
+        value: stream.readString(len),
       });
     }
     return readIdentifier.call(this, stream);
-  }
+  },
 }));
 
-const delimiterPairs = [['[',']'], ['(',')']];
+const delimiterPairs = [['[', ']'], ['(', ')']];
 
 function readDelimiters(closing, stream, prefix, b) {
   const currentReadtable = getCurrentReadtable();
@@ -142,7 +181,7 @@ const delimiterEntries = delimiterPairs.map(p => ({
   mode: 'terminating',
   action: function readDefaultDelimiters(stream, prefix, b) {
     return readDelimiters.call(this, p[1], stream, prefix, true);
-  }
+  },
 }));
 
 const bracesEntry = {
@@ -152,7 +191,7 @@ const bracesEntry = {
     const line = this.locationInfo.line;
     const innerB = isExprPrefix(line, b, prefix);
     return readDelimiters.call(this, '}', stream, prefix, innerB);
-  }
+  },
 };
 
 function readClosingDelimiter(opening, closing, stream, prefix, b) {
@@ -162,12 +201,16 @@ function readClosingDelimiter(opening, closing, stream, prefix, b) {
   return readPunctuator.call(this, stream);
 }
 
-const unmatchedDelimiterEntries = [['{','}'], ['[',']'], ['(',')']].map(p => ({
+const unmatchedDelimiterEntries = [
+  ['{', '}'],
+  ['[', ']'],
+  ['(', ')'],
+].map(p => ({
   key: p[1],
   mode: 'terminating',
   action: function readClosingDelimiters(stream, prefix, b) {
     return readClosingDelimiter.call(this, ...p, stream, prefix, b);
-  }
+  },
 }));
 
 const divEntry = {
@@ -183,13 +226,13 @@ const divEntry = {
       return readRegExp.call(this, stream, prefix, b);
     }
     return readPunctuator.call(this, stream);
-  }
+  },
 };
 
 const dispatchBacktickEntry = {
   key: '`',
   mode: 'dispatch',
-  action: readSyntaxTemplate
+  action: readSyntaxTemplate,
 };
 
 const defaultDispatchEntry = {
@@ -197,17 +240,24 @@ const defaultDispatchEntry = {
   action: function readDefaultDispatch(...args) {
     this.readToken(...args);
     return EmptyToken;
-  }
+  },
 };
 
-const dispatchWhiteSpaceEntries = whiteSpaceTable.concat(lineTerminatorTable).map(w => ({
-  key: w,
-  mode: 'dispatch',
-  action: function readDispatchWhitespace(stream, prefix, allowExprs, dispatchKey) {
-    this.readToken(stream, prefix, allowExprs);
-    return new IdentifierToken({ value: dispatchKey });
-  }
-}));
+const dispatchWhiteSpaceEntries = whiteSpaceTable
+  .concat(lineTerminatorTable)
+  .map(w => ({
+    key: w,
+    mode: 'dispatch',
+    action: function readDispatchWhitespace(
+      stream,
+      prefix,
+      allowExprs,
+      dispatchKey,
+    ) {
+      this.readToken(stream, prefix, allowExprs);
+      return new IdentifierToken({ value: dispatchKey });
+    },
+  }));
 
 const atEntry = {
   key: '@',
@@ -218,11 +268,12 @@ const atEntry = {
       return new IdentifierToken({ value: stream.readString() });
     }
     throw new SyntaxError('Invalid or unexpected token');
-  }
+  },
 };
 
 const defaultReadtable = primitiveReadtable.extend(
-  ...[dotEntry,
+  ...[
+    dotEntry,
     ...delimiterEntries,
     ...unmatchedDelimiterEntries,
     bracesEntry,
@@ -231,6 +282,8 @@ const defaultReadtable = primitiveReadtable.extend(
     defaultDispatchEntry,
     dispatchBacktickEntry,
     ...dispatchWhiteSpaceEntries,
-    atEntry]);
+    atEntry,
+  ],
+);
 
 export default defaultReadtable;

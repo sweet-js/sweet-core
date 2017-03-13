@@ -33,22 +33,23 @@ export class CollectBindingSyntax extends ASTDispatcher {
     return this.collect(term.binding);
   }
 
-  collectBindingPropertyProperty (term) {
+  collectBindingPropertyProperty(term) {
     return this.collect(term.binding);
   }
 
-  collectArrayBinding (term) {
+  collectArrayBinding(term) {
     let restElement = null;
     if (term.restElement != null) {
       restElement = this.collect(term.restElement);
     }
-    return this.names.concat(restElement).concat(
-      term.elements.filter(el => el != null)
-                   .flatMap(el => this.collect(el))
-    );
+    return this.names
+      .concat(restElement)
+      .concat(
+        term.elements.filter(el => el != null).flatMap(el => this.collect(el)),
+      );
   }
 
-  collectObjectBinding () {
+  collectObjectBinding() {
     // return term.properties.flatMap(prop => this.collect(prop));
     return List();
   }

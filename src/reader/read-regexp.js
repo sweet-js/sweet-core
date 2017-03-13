@@ -6,7 +6,11 @@ import { RegExpToken } from '../tokens';
 import { isLineTerminator, isIdentifierPart } from './utils';
 
 export default function readRegExp(stream: CharStream) {
-  let value = stream.readString(), char = stream.peek(), idx = 0, classMarker = false, terminated = false;
+  let value = stream.readString(),
+    char = stream.peek(),
+    idx = 0,
+    classMarker = false,
+    terminated = false;
 
   const UNTERMINATED_REGEXP_MSG = 'Invalid regular expression: missing /';
 
@@ -64,6 +68,6 @@ export default function readRegExp(stream: CharStream) {
   stream.readString(idx);
 
   return new RegExpToken({
-    value
+    value,
   });
 }

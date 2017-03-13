@@ -31,8 +31,8 @@ test('two symbols recreated from the names of two gensyms should not be ===', ()
   expect(Symbol(s1.name)).to.not.be(Symbol(s2.name));
 });
 
-test( 'a symbol recreated from the name of a gensym should not be === with the original gensym', () => {
-    let s1 = gensym();
+test('a symbol recreated from the name of a gensym should not be === with the original gensym', () => {
+  let s1 = gensym();
 
-    expect(Symbol(s1.name)).to.not.be(s1);
+  expect(Symbol(s1.name)).to.not.be(s1);
 });

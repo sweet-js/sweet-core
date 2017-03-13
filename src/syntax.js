@@ -11,7 +11,7 @@ import { TokenType, TokenClass, TypeCodes } from './tokens';
 type Token = {
   type: any,
   value: any,
-  slice: any
+  slice: any,
 };
 
 type TokenTag =
@@ -53,104 +53,111 @@ function sizeDecending(a, b) {
 type TypesHelper = {
   [key: TokenTag]: {
     match(token: any): boolean,
-    create?: (value: any, stx: ?Syntax) => Syntax
-  }
+    create?: (value: any, stx: ?Syntax) => Syntax,
+  },
 };
 
 export let Types: TypesHelper = {
   null: {
     match: token =>
       !Types.delimiter.match(token) && token.type === TokenType.NULL,
-    create: (value, stx) => new Syntax(
-      {
-        type: TokenType.NULL,
-        value: null,
-        typeCode: TypeCodes.Keyword
-      },
-      stx
-    )
+    create: (value, stx) =>
+      new Syntax(
+        {
+          type: TokenType.NULL,
+          value: null,
+          typeCode: TypeCodes.Keyword,
+        },
+        stx,
+      ),
   },
   number: {
     match: token =>
       !Types.delimiter.match(token) &&
       token.type.klass === TokenClass.NumericLiteral,
-    create: (value, stx) => new Syntax(
-      {
-        type: TokenType.NUMBER,
-        value,
-        typeCode: TypeCodes.NumericLiteral
-      },
-      stx
-    )
+    create: (value, stx) =>
+      new Syntax(
+        {
+          type: TokenType.NUMBER,
+          value,
+          typeCode: TypeCodes.NumericLiteral,
+        },
+        stx,
+      ),
   },
   string: {
     match: token =>
       !Types.delimiter.match(token) &&
       token.type.klass === TokenClass.StringLiteral,
-    create: (value, stx) => new Syntax(
-      {
-        type: TokenType.STRING,
-        str: value,
-        typeCode: TypeCodes.StringLiteral
-      },
-      stx
-    )
+    create: (value, stx) =>
+      new Syntax(
+        {
+          type: TokenType.STRING,
+          str: value,
+          typeCode: TypeCodes.StringLiteral,
+        },
+        stx,
+      ),
   },
   punctuator: {
     match: token =>
       !Types.delimiter.match(token) &&
       token.type.klass === TokenClass.Punctuator,
-    create: (value, stx) => new Syntax(
-      {
-        type: {
-          klass: TokenClass.Punctuator,
-          name: value
+    create: (value, stx) =>
+      new Syntax(
+        {
+          type: {
+            klass: TokenClass.Punctuator,
+            name: value,
+          },
+          typeCode: TypeCodes.Punctuator,
+          value,
         },
-        typeCode: TypeCodes.Punctuator,
-        value
-      },
-      stx
-    )
+        stx,
+      ),
   },
   keyword: {
     match: token =>
       !Types.delimiter.match(token) && token.type.klass === TokenClass.Keyword,
-    create: (value, stx) => new Syntax(
-      {
-        type: {
-          klass: TokenClass.Keyword,
-          name: value
+    create: (value, stx) =>
+      new Syntax(
+        {
+          type: {
+            klass: TokenClass.Keyword,
+            name: value,
+          },
+          typeCode: TypeCodes.Keyword,
+          value,
         },
-        typeCode: TypeCodes.Keyword,
-        value
-      },
-      stx
-    )
+        stx,
+      ),
   },
   identifier: {
     match: token =>
       !Types.delimiter.match(token) && token.type.klass === TokenClass.Ident,
-    create: (value, stx) => new Syntax(
-      {
-        type: TokenType.IDENTIFIER,
-        value,
-        typeCode: TypeCodes.Identifier
-      },
-      stx
-    )
+    create: (value, stx) =>
+      new Syntax(
+        {
+          type: TokenType.IDENTIFIER,
+          value,
+          typeCode: TypeCodes.Identifier,
+        },
+        stx,
+      ),
   },
   regularExpression: {
     match: token =>
       !Types.delimiter.match(token) &&
       token.type.klass === TokenClass.RegularExpression,
-    create: (value, stx) => new Syntax(
-      {
-        type: TokenType.REGEXP,
-        value,
-        typeCode: TypeCodes.RegExp
-      },
-      stx
-    )
+    create: (value, stx) =>
+      new Syntax(
+        {
+          type: TokenType.REGEXP,
+          value,
+          typeCode: TypeCodes.RegExp,
+        },
+        stx,
+      ),
   },
   braces: {
     match: token =>
@@ -162,22 +169,22 @@ export let Types: TypesHelper = {
           type: TokenType.LBRACE,
           typeCode: TypeCodes.Punctuator,
           value: '{',
-          slice: getFirstSlice(stx)
-        })
+          slice: getFirstSlice(stx),
+        }),
       });
       let right = new T.RawSyntax({
         value: new Syntax({
           type: TokenType.RBRACE,
           typeCode: TypeCodes.Punctuator,
           value: '}',
-          slice: getFirstSlice(stx)
-        })
+          slice: getFirstSlice(stx),
+        }),
       });
       return new T.RawDelimiter({
         kind: 'braces',
-        inner: List.of(left).concat(inner).push(right)
+        inner: List.of(left).concat(inner).push(right),
       });
-    }
+    },
   },
   brackets: {
     match: token =>
@@ -189,22 +196,22 @@ export let Types: TypesHelper = {
           type: TokenType.LBRACK,
           typeCode: TypeCodes.Punctuator,
           value: '[',
-          slice: getFirstSlice(stx)
-        })
+          slice: getFirstSlice(stx),
+        }),
       });
       let right = new T.RawSyntax({
         value: new Syntax({
           type: TokenType.RBRACK,
           typeCode: TypeCodes.Punctuator,
           value: ']',
-          slice: getFirstSlice(stx)
-        })
+          slice: getFirstSlice(stx),
+        }),
       });
       return new T.RawDelimiter({
         kind: 'brackets',
-        inner: List.of(left).concat(inner).push(right)
+        inner: List.of(left).concat(inner).push(right),
       });
-    }
+    },
   },
   parens: {
     match: token =>
@@ -216,22 +223,22 @@ export let Types: TypesHelper = {
           type: TokenType.LPAREN,
           typeCode: TypeCodes.Punctuator,
           value: '(',
-          slice: getFirstSlice(stx)
-        })
+          slice: getFirstSlice(stx),
+        }),
       });
       let right = new T.RawSyntax({
         value: new Syntax({
           type: TokenType.RPAREN,
           typeCode: TypeCodes.Punctuator,
           value: ')',
-          slice: getFirstSlice(stx)
-        })
+          slice: getFirstSlice(stx),
+        }),
       });
       return new T.RawDelimiter({
         kind: 'parens',
-        inner: List.of(left).concat(inner).push(right)
+        inner: List.of(left).concat(inner).push(right),
       });
-    }
+    },
   },
 
   assign: {
@@ -256,38 +263,38 @@ export let Types: TypesHelper = {
         }
       }
       return false;
-    }
+    },
   },
 
   boolean: {
     match: token =>
       (!Types.delimiter.match(token) && token.type === TokenType.TRUE) ||
-      token.type === TokenType.FALSE
+      token.type === TokenType.FALSE,
   },
 
   template: {
     match: token =>
-      !Types.delimiter.match(token) && token.type === TokenType.TEMPLATE
+      !Types.delimiter.match(token) && token.type === TokenType.TEMPLATE,
   },
 
   delimiter: {
-    match: token => List.isList(token)
+    match: token => List.isList(token),
   },
 
   syntaxTemplate: {
-    match: token => Types.delimiter.match(token) && token.get(0).val() === '#`'
+    match: token => Types.delimiter.match(token) && token.get(0).val() === '#`',
   },
 
   eof: {
     match: token =>
-      !Types.delimiter.match(token) && token.type === TokenType.EOS
-  }
+      !Types.delimiter.match(token) && token.type === TokenType.EOS,
+  },
 };
 export const ALL_PHASES = {};
 
 type Scopeset = {
   all: List<any>,
-  phase: Map<number | {}, any>
+  phase: Map<number | {}, any>,
 };
 
 export default class Syntax {
@@ -305,7 +312,7 @@ export default class Syntax {
       ? oldstx.scopesets
       : {
           all: List(),
-          phase: Map()
+          phase: Map(),
         };
     Object.freeze(this);
   }
@@ -438,7 +445,7 @@ export default class Syntax {
             'Scopeset ' +
               debugBase +
               ' has ambiguous subsets ' +
-              debugAmbigousScopesets
+              debugAmbigousScopesets,
           );
         } else if (biggestBindingPair.size !== 0) {
           let bindingStr = biggestBindingPair.get(0).binding.toString();
@@ -493,7 +500,7 @@ export default class Syntax {
       }
       assert(
         newTok.slice && newTok.slice.startLocation,
-        'all tokens must have line info'
+        'all tokens must have line info',
       );
       newTok.slice.startLocation.line = line;
     }
@@ -510,7 +517,7 @@ export default class Syntax {
     scope: any,
     bindings: any,
     phase: number | {},
-    options: any = { flip: false }
+    options: any = { flip: false },
   ) {
     let token = this.match('delimiter')
       ? this.token.map(s => s.addScope(scope, bindings, phase, options))
@@ -522,7 +529,7 @@ export default class Syntax {
             return it.addScope(scope, bindings, phase, options);
           }
           return it;
-        })
+        }),
       });
     }
     let oldScopeset;
@@ -548,8 +555,8 @@ export default class Syntax {
       bindings,
       scopesets: {
         all: this.scopesets.all,
-        phase: this.scopesets.phase
-      }
+        phase: this.scopesets.phase,
+      },
     };
 
     if (phase === ALL_PHASES) {
@@ -572,8 +579,8 @@ export default class Syntax {
       bindings: this.bindings,
       scopesets: {
         all: this.scopesets.all,
-        phase: this.scopesets.phase
-      }
+        phase: this.scopesets.phase,
+      },
     };
 
     let phaseIndex = phaseScopeset.indexOf(scope);
@@ -581,7 +588,7 @@ export default class Syntax {
     if (phaseIndex !== -1) {
       newstx.scopesets.phase = this.scopesets.phase.set(
         phase,
-        phaseScopeset.remove(phaseIndex)
+        phaseScopeset.remove(phaseIndex),
       );
     } else if (allIndex !== -1) {
       newstx.scopesets.all = allScopeset.remove(allIndex);

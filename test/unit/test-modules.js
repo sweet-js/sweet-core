@@ -14,9 +14,9 @@ export syntax m = function (ctx) {
 
     'main.js': `
 import { m } from "./m.js";
-output = m`
+output = m`,
   },
-  1
+  1,
 );
 
 test(
@@ -36,9 +36,9 @@ syntax m = function (ctx) {
   }
   return #\`false\`;
 }
-output = m;`
+output = m;`,
   },
-  true
+  true,
 );
 
 test(
@@ -58,9 +58,9 @@ test(
       return id(#\`1\`);
     }
     output = m;
-  `
+  `,
   },
-  1
+  1,
 );
 
 test(
@@ -80,9 +80,9 @@ test(
       return id(#\`1\`);
     }
     output = m;
-  `
+  `,
   },
-  1
+  1,
 );
 
 test(
@@ -103,9 +103,9 @@ test(
       return #\`1\`;
     }
     output = m;
-  `
+  `,
   },
-  1
+  1,
 );
 
 test(
@@ -131,9 +131,9 @@ test(
       return #\`1\`;
     }
     output = test;
-  `
+  `,
   },
-  1
+  1,
 );
 
 test(
@@ -150,9 +150,9 @@ syntax m = ctx => {
   return id(#\`1\`);
 }
 output = m
-`
+`,
   },
-  1
+  1,
 );
 
 test(
@@ -169,9 +169,9 @@ syntax m = ctx => {
   return di(#\`1\`);
 }
 output = m
-`
+`,
   },
-  1
+  1,
 );
 
 test(
@@ -187,9 +187,9 @@ syntax m = ctx => {
   return id(#\`1\`);
 }
 output = m
-`
+`,
   },
-  1
+  1,
 );
 
 test(
@@ -203,9 +203,9 @@ import * as M from './mod.js' for syntax;
 syntax m = ctx => {
   return M.id(#\`1\`);
 }
-output = m`
+output = m`,
   },
-  1
+  1,
 );
 
 test(
@@ -223,9 +223,9 @@ import * as M from './mod.js' for syntax;
 syntax m = ctx => {
   return M.id(#\`1\`);
 }
-output = m`
+output = m`,
   },
-  1
+  1,
 );
 
 let helperSrc = readFileSync('./helpers.js', 'utf8');
@@ -245,9 +245,9 @@ test(
       return #\`false\`;
     }
     output = m if
-  `
+  `,
   },
-  true
+  true,
 );
 
 // test('importing a chain for syntax works', evalWithStore, {

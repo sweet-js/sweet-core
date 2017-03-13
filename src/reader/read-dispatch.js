@@ -9,22 +9,31 @@ import type { CharStream } from 'readtable';
 const backtickEntry = {
   key: '`',
   mode: 'terminating',
-  action: function readBacktick(stream: CharStream, prefix: List<any>, e: boolean) {
+  action: function readBacktick(
+    stream: CharStream,
+    prefix: List<any>,
+    e: boolean,
+  ) {
     if (prefix.isEmpty()) {
       return {
         type: TT.LSYNTAX,
-        value: stream.readString()
+        value: stream.readString(),
       };
     }
 
     return {
       type: TT.RSYNTAX,
-      value: stream.readString()
+      value: stream.readString(),
     };
-  }
+  },
 };
 
-export function readSyntaxTemplate(stream: CharStream, prefix: List<any>, exprAllowed: boolean, dispatchChar: string): List<any> | { type: typeof TT.RSYNTAX, value: string } {
+export function readSyntaxTemplate(
+  stream: CharStream,
+  prefix: List<any>,
+  exprAllowed: boolean,
+  dispatchChar: string,
+): List<any> | { type: typeof TT.RSYNTAX, value: string } {
   // return read('syntaxTemplate').first().token;
   // TODO: Can we simply tack 'syntaxTemplate' on the front and process it as a
   //       syntax macro?
@@ -34,8 +43,11 @@ export function readSyntaxTemplate(stream: CharStream, prefix: List<any>, exprAl
   const result = this.readUntil(
     '`',
     stream,
-    List.of(updateSyntax(dispatchChar, this.readToken(stream, List(), exprAllowed))),
-    exprAllowed);
+    List.of(
+      updateSyntax(dispatchChar, this.readToken(stream, List(), exprAllowed)),
+    ),
+    exprAllowed,
+  );
 
   setCurrentReadtable(prevTable);
   return result;

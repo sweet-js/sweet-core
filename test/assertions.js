@@ -50,9 +50,11 @@ export function testEval(store, cb) {
   try {
     eval(result);
   } catch (e) {
-  throw new Error(`Syntax error: ${e.message}
+    throw new Error(
+      `Syntax error: ${e.message}
 
-${result}`);
+${result}`,
+    );
   }
   return cb(output);
 }
@@ -64,8 +66,11 @@ export function evalWithStore(t, inputStore, expected) {
   }
   testEval(store, output => t.is(output, expected));
 }
-evalWithStore.title = (title, inputStore, expected) => `${title}
-${Array.from(Object.entries(inputStore)).map(([modName, modSrc]) => `${modName}\n----\n${modSrc}\n----`).join('\n')}
+evalWithStore.title = (title, inputStore, expected) =>
+  `${title}
+${Array.from(Object.entries(inputStore))
+    .map(([modName, modSrc]) => `${modName}\n----\n${modSrc}\n----`)
+    .join('\n')}
 > ${expected}`;
 
 export function evalWithOutput(t, input, expected) {
@@ -73,7 +78,8 @@ export function evalWithOutput(t, input, expected) {
   store.set('main.js', input);
   testEval(store, output => t.is(output, expected));
 }
-evalWithOutput.title = (title, input, expected) => `${title}
+evalWithOutput.title = (title, input, expected) =>
+  `${title}
 ${input}
 > ${expected}`;
 
@@ -82,7 +88,8 @@ export function evalThrows(t, input) {
   store.set('main.js', input);
   t.throws(() => testEval(store, () => {}));
 }
-evalThrows.title = (title, input) => `${title}
+evalThrows.title = (title, input) =>
+  `${title}
 ${input}
 > should have thrown`;
 

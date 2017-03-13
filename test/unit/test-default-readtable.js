@@ -4,7 +4,11 @@ import { List } from 'immutable';
 
 import { getCurrentReadtable } from 'readtable';
 import read from '../../src/reader/token-reader';
-import { TokenType as TT, TokenClass as TC, EmptyToken } from '../../src/tokens';
+import {
+  TokenType as TT,
+  TokenClass as TC,
+  EmptyToken,
+} from '../../src/tokens';
 
 function testParse(source, tst) {
   const prevTable = getCurrentReadtable();
@@ -32,7 +36,7 @@ test('should parse Unicode identifiers', t => {
         filename: '',
         line: 1,
         column: 1,
-        position: 0
+        position: 0,
       });
     });
   }
@@ -63,7 +67,7 @@ test('should parse keywords', t => {
         filename: '',
         line: 1,
         column: 1,
-        position: 0
+        position: 0,
       });
     });
   }
@@ -84,7 +88,7 @@ test('should parse punctuators', t => {
         filename: '',
         line: 1,
         column: 1,
-        position: 0
+        position: 0,
       });
     });
   }
@@ -131,15 +135,15 @@ test('should parse numeric literals', t => {
   testParseNumericLiterals('7', 7);
   testParseNumericLiterals('8', 8);
   testParseNumericLiterals('9', 9);
-  testParseNumericLiterals('0xFFFF ', 0xFFFF);
-  testParseNumericLiterals('0xFF ', 0xFF);
+  testParseNumericLiterals('0xFFFF ', 0xffff);
+  testParseNumericLiterals('0xFF ', 0xff);
   testParseNumericLiterals('0o0756 ', 0o0756);
   testParseNumericLiterals('0o76 ', 0o76);
   testParseNumericLiterals('0b1010 ', 0b1010);
   testParseNumericLiterals('0b10 ', 0b10);
   testParseNumericLiterals('042 ', 0o042);
   testParseNumericLiterals('42 ', 42);
-  testParseNumericLiterals('2e308', 1/0);
+  testParseNumericLiterals('2e308', 1 / 0);
   testParseNumericLiterals('1.5', 1.5);
 });
 
@@ -155,7 +159,7 @@ test('should parse string literals', t => {
   testParseStringLiteral('\'x\'', 'x');
   testParseStringLiteral('"x"', 'x');
   testParseStringLiteral('\'\\\\\\\'\'', '\\\'');
-  testParseStringLiteral('"\\\\\\\""', '\\\"');
+  testParseStringLiteral('"\\\\\\""', '\\"');
   testParseStringLiteral('\'\\\r\'', '');
   testParseStringLiteral('"\\\r\n"', '');
   testParseStringLiteral('"\\\n"', '');
@@ -199,7 +203,7 @@ test('should parse template literals', t => {
   testParseTemplateLiteral('`foo${bar}`', 'foo', false, true);
   testParse('`foo${bar}baz`', result => {
     t.is(result.type, TT.TEMPLATE);
-    const [x,y,z] = result.items;
+    const [x, y, z] = result.items;
 
     t.is(x.type, TT.TEMPLATE);
     t.is(x.value, 'foo');
@@ -230,7 +234,7 @@ test('should parse delimiters', t => {
   testParse('{ x + z }', result => {
     t.true(List.isList(result));
 
-    const [v,w,x,y,z] = result;
+    const [v, w, x, y, z] = result;
 
     t.is(v.type, TT.LBRACE);
 
@@ -248,7 +252,7 @@ test('should parse delimiters', t => {
   testParse('[ x , z ]', result => {
     t.true(List.isList(result));
 
-    const [v,w,x,y,z] = result;
+    const [v, w, x, y, z] = result;
 
     t.is(v.type, TT.LBRACK);
 
@@ -266,13 +270,13 @@ test('should parse delimiters', t => {
   testParse('[{x : 3}, z]', result => {
     t.true(List.isList(result));
 
-    const [v,w,x,y,z] = result;
+    const [v, w, x, y, z] = result;
 
     t.is(v.type, TT.LBRACK);
 
     t.true(List.isList(w));
 
-    const [a,b,c,d,e] = w;
+    const [a, b, c, d, e] = w;
 
     t.is(a.type, TT.LBRACE);
 
@@ -294,12 +298,11 @@ test('should parse delimiters', t => {
     t.is(z.type, TT.RBRACK);
   });
 
-  testParseResults(`foo('bar')`, ([foo, bar])=> {
+  testParseResults(`foo('bar')`, ([foo, bar]) => {
     t.is(foo.type, TT.IDENTIFIER);
     t.is(foo.value, 'foo');
 
-    const [x,y,z] = bar;
-
+    const [x, y, z] = bar;
 
     t.is(x.type, TT.LPAREN);
 
@@ -322,7 +325,7 @@ test('should parse regexp literals', t => {
   testParseRegExpLiteral('/foo/g ', '/foo/g');
   testParseRegExpLiteral('/=foo/g ', '/=foo/g');
 
-  testParseResults('if (x) /a/', ([x,y,z]) => {
+  testParseResults('if (x) /a/', ([x, y, z]) => {
     t.is(x.type, TT.IF);
     t.true(List.isList(y));
 
@@ -332,7 +335,7 @@ test('should parse regexp literals', t => {
 });
 
 test('should parse division expressions', t => {
-  testParseResults('a/4/3', ([v,w,x,y,z]) => {
+  testParseResults('a/4/3', ([v, w, x, y, z]) => {
     t.is(v.type, TT.IDENTIFIER);
     t.is(v.value, 'a');
 
@@ -350,7 +353,7 @@ test('should parse division expressions', t => {
 
 test('should parse syntax templates', t => {
   testParseResults('#`a 1 ${}`', ([result]) => {
-    const [u,v,w,x,y,z] = result;
+    const [u, v, w, x, y, z] = result;
     t.is(u.type, TT.LSYNTAX);
 
     t.is(v.type, TT.IDENTIFIER);
@@ -391,18 +394,22 @@ test('should parse comments', t => {
   testParseComment('// this is a single line comment\n // here\'s another');
   testParseComment('/* this is a block line comment */');
   testParseComment(
-`/*
+    `/*
   * this
   * is
   * a
   * multi
   * line
   * comment
-  */`);
+  */`,
+  );
 });
 
 test('should properly update location information', t => {
-  function testLocationInfo(source, { idx, size, line: expectedLine, column: expectedColumn}) {
+  function testLocationInfo(
+    source,
+    { idx, size, line: expectedLine, column: expectedColumn },
+  ) {
     let result = read(source);
     let { line, column } = result.get(idx).slice.startLocation;
     t.is(result.size, size);
@@ -413,13 +420,20 @@ test('should properly update location information', t => {
   testLocationInfo('1 2 3 []\na b c', { idx: 2, size: 7, line: 1, column: 5 });
   testLocationInfo(' /*3456789*/a', { idx: 0, size: 1, line: 1, column: 13 });
   testLocationInfo(
-`a/*
+    `a/*
   * this
   * is
   * a
   * multi
   * line
   * comment
-  */b c`, { idx: 2, size: 3, line: 8, column: 7 });
-  testLocationInfo('"a\\\nb c\\\n d f g" a', { idx: 1, size: 2, line: 3, column: 9 });
+  */b c`,
+    { idx: 2, size: 3, line: 8, column: 7 },
+  );
+  testLocationInfo('"a\\\nb c\\\n d f g" a', {
+    idx: 1,
+    size: 2,
+    line: 3,
+    column: 9,
+  });
 });
