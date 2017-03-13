@@ -115,14 +115,17 @@ test('should handle nested syntax templates', t => {
   t.true(T.isIdentifier(iinner, 'bar'));
 });
 
-test.skip('should handle escaped string templates literals inside a syntax literal', t => {
-  let [r] = read('#`x = \\`foo\\``');
-  t.true(T.isSyntaxTemplate(r));
-  let [open, x, eq, str, close] = r;
-  t.true(T.isIdentifier(x, 'x'));
-  t.true(T.isPunctuator(eq, '='));
-  t.true(T.isTemplate(str, 'foo'));
-});
+test.skip(
+  'should handle escaped string templates literals inside a syntax literal',
+  t => {
+    let [r] = read('#`x = \\`foo\\``');
+    t.true(T.isSyntaxTemplate(r));
+    let [open, x, eq, str, close] = r;
+    t.true(T.isIdentifier(x, 'x'));
+    t.true(T.isPunctuator(eq, '='));
+    t.true(T.isTemplate(str, 'foo'));
+  },
+);
 
 test('should read a regex when it begins the source', t => {
   let [r] = read('/42/i');
@@ -171,12 +174,14 @@ test('should read a regex when it follows a block statement', t => {
 });
 
 test('should read a regex when it follows a function declaration following a return', t => {
-  let [ret, fn, fnname, paren, curly, re] = read('return\nfunction foo() {} /42/i');
+  let [ret, fn, fnname, paren, curly, re] = read(
+    'return\nfunction foo() {} /42/i',
+  );
   t.true(T.isRegExp(re, '/42/i'));
 });
 
 test('should read a regex when it follows a labeled statement inside a labeled statement', t => {
-  let [ [open, lab, colon, block, re] ] = read('{x: {x: 42}/42/i}');
+  let [[open, lab, colon, block, re]] = read('{x: {x: 42}/42/i}');
   t.true(T.isRegExp(re, '/42/i'));
 });
 
@@ -196,7 +201,7 @@ test('should read as regex {y:5}{x:4}/b/i', t => {
 });
 
 test('should read as regex {y:{x:4}/b/i}', t => {
-  let [ [open, lab, colon, block, re] ] = read('{y:{x:4}/b/i}');
+  let [[open, lab, colon, block, re]] = read('{y:{x:4}/b/i}');
   t.true(T.isRegExp(re, '/b/i'));
 });
 
@@ -211,12 +216,16 @@ test('should read as regex foo = 2\n{} /b/i', t => {
 });
 
 test('should read as regex {a:function foo() {}/b/i}', t => {
-  let [ [open, lab, colon, fn, fnname, paren, curly, re]] = read('{a:function foo() {}/b/i}');
+  let [[open, lab, colon, fn, fnname, paren, curly, re]] = read(
+    '{a:function foo() {}/b/i}',
+  );
   t.true(T.isRegExp(re, '/b/i'));
 });
 
 test('should read as regex for( ; {a:/b/i} ; ){}', t => {
-  let [forkw, [ open, semi, [op, lab, colon, re]]] = read('for( ; {a:/b/i} ; ){}');
+  let [forkw, [open, semi, [op, lab, colon, re]]] = read(
+    'for( ; {a:/b/i} ; ){}',
+  );
   t.true(T.isRegExp(re, '/b/i'));
 });
 
@@ -226,22 +235,30 @@ test('should read as regex function foo() {} /asdf/', t => {
 });
 
 test('should read as regex {false}function foo() {} /42/', t => {
-  let [curly, fn, fnname, parens, curly2, re] = read('{false} function foo() {} /42/i');
+  let [curly, fn, fnname, parens, curly2, re] = read(
+    '{false} function foo() {} /42/i',
+  );
   t.true(T.isRegExp(re, '/42/i'));
 });
 
 test('should read as regex if (false) false\nfunction foo() {} /42/i', t => {
-  let [ifkw, parens, fls, fn, fnname, parens2, curly, re] = read('if (false) false\nfunction foo() {} /42/i');
+  let [ifkw, parens, fls, fn, fnname, parens2, curly, re] = read(
+    'if (false) false\nfunction foo() {} /42/i',
+  );
   t.true(T.isRegExp(re, '/42/i'));
 });
 
 test('should read as regex i = 0;function foo() {} /42/i', t => {
-  let [id, eq, num, semi, fn, fnname, parens, curly, re] = read('i = 0;function foo() {} /42/i');
+  let [id, eq, num, semi, fn, fnname, parens, curly, re] = read(
+    'i = 0;function foo() {} /42/i',
+  );
   t.true(T.isRegExp(re, '/42/i'));
 });
 
 test('should read as regex if (false) {} function foo() {} /42/i', t => {
-  let [ifkw, cond, body, fn, fnname, parens, curly, re] = read('if (false) {} function foo() {} /42/i');
+  let [ifkw, cond, body, fn, fnname, parens, curly, re] = read(
+    'if (false) {} function foo() {} /42/i',
+  );
   t.true(T.isRegExp(re, '/42/i'));
 });
 
@@ -339,7 +356,9 @@ test('should read a div when it follows a this keyword and parens', t => {
 });
 
 test('should read a div when it follows a function expression', t => {
-  let [id, eq, fn, fnname, paren, curly, div] = read('f = function foo () {} /42/i');
+  let [id, eq, fn, fnname, paren, curly, div] = read(
+    'f = function foo () {} /42/i',
+  );
   t.true(T.isPunctuator(div, '/'));
 });
 
@@ -349,13 +368,17 @@ test('should read a div when it follows an anonymous function expression', t => 
 });
 
 test('should read a div when it follows a function expression', t => {
-  let [id, div1, fn, fnname, paren, curly, div2] = read('f / function foo () {} /42/i');
+  let [id, div1, fn, fnname, paren, curly, div2] = read(
+    'f / function foo () {} /42/i',
+  );
   t.true(T.isPunctuator(div1, '/'));
   t.true(T.isPunctuator(div2, '/'));
 });
 
 test('should read a div when it follows a function expression following a return', t => {
-  let [ret, fn, fnname, paren, curly, div] = read('return function foo () {} /42/i');
+  let [ret, fn, fnname, paren, curly, div] = read(
+    'return function foo () {} /42/i',
+  );
   t.true(T.isPunctuator(div, '/'));
 });
 
@@ -400,7 +423,9 @@ test('should read as div for( ; {a:2}/a/g ; ){}', t => {
 });
 
 test('should read as div for( ; function(){ /a/g; } /a/g; ){}', t => {
-  let [kw, [open, semi, fn, paren, curly, div]] = read('for( ; function(){ /a/g; } /a/g; ){}');
+  let [kw, [open, semi, fn, paren, curly, div]] = read(
+    'for( ; function(){ /a/g; } /a/g; ){}',
+  );
   t.true(T.isPunctuator(div, '/'));
 });
 
@@ -408,8 +433,6 @@ test('should read as div o.if() / 42 /i', t => {
   let [obj, dot, id, paren, div] = read('o.if() / 42 /i');
   t.true(T.isPunctuator(div, '/'));
 });
-
-
 
 test('should fail with mismatched closing delimiters', t => {
   t.throws(_ => read('42 }'));

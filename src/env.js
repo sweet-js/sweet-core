@@ -17,7 +17,7 @@ import {
   TryTransform,
   ThrowTransform,
   NewTransform,
-  WhileTransform
+  WhileTransform,
 } from './transforms';
 
 export default class Env {

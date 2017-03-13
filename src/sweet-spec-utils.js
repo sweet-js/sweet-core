@@ -13,16 +13,18 @@ export const isExportFrom = _.is(T.ExportFrom);
 export const isVariableDeclaration = _.is(T.VariableDeclaration);
 export const isVariableDeclarator = _.is(T.VariableDeclarator);
 export const isSyntaxVariableDeclartion = _.both(
-  isVariableDeclaration, 
-  _.either(_.propEq('kind', 'syntax'),
-           _.propEq('kind', 'syntaxrec')) 
+  isVariableDeclaration,
+  _.either(_.propEq('kind', 'syntax'), _.propEq('kind', 'syntaxrec')),
 );
 
-export const isVariableDeclarationStatement = _.is(T.VariableDeclarationStatement);
+export const isVariableDeclarationStatement = _.is(
+  T.VariableDeclarationStatement,
+);
 export const isSyntaxDeclarationStatement = (term: any) => {
   // syntax m = ...
   // syntaxrec m = ...
-  return isVariableDeclarationStatement(term) && isSyntaxVariableDeclartion(term.declaration);
+  return isVariableDeclarationStatement(term) &&
+    isSyntaxVariableDeclartion(term.declaration);
 };
 
 export const isCompiletimeStatement = isSyntaxDeclarationStatement;

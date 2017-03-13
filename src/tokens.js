@@ -6,7 +6,7 @@ export type LocationInfo = {
   filename: string,
   position: number,
   line: number,
-  column: number
+  column: number,
 };
 
 export const TokenClass = {
@@ -18,7 +18,7 @@ export const TokenClass = {
   Punctuator: { name: 'Punctuator' },
   StringLiteral: { name: 'String' },
   RegularExpression: { name: 'RegularExpression' },
-  Illegal: { name: 'Illegal' }
+  Illegal: { name: 'Illegal' },
 };
 
 const TC = TokenClass;
@@ -122,7 +122,7 @@ export const TokenType = {
   IDENTIFIER: { klass: TC.Ident, name: '' },
   CONST: { klass: TC.Keyword, name: 'const' },
   TEMPLATE: { klass: TC.TemplateElement, name: '' },
-  ILLEGAL: { klass: TC.Illegal, name: '' }
+  ILLEGAL: { klass: TC.Illegal, name: '' },
 };
 
 const TT = TokenType;
@@ -179,7 +179,7 @@ export const punctuatorTable = {
   '<=': TT.LTE,
   '>=': TT.GTE,
   '!': TT.NOT,
-  '~': TT.BIT_NOT
+  '~': TT.BIT_NOT,
 };
 
 export const keywordTable = {
@@ -221,7 +221,7 @@ export const keywordTable = {
   void: TT.VOID,
   while: TT.WHILE,
   with: TT.WITH,
-  yield: TT.YIELD
+  yield: TT.YIELD,
 };
 
 export const EmptyToken = {};
@@ -230,19 +230,19 @@ export type StartLocation = {
   line: number,
   column: number,
   filename: string,
-  position: number
+  position: number,
 };
 
 export type Slice = {
   text: string,
   start: number,
   startLocation: StartLocation,
-  end: number
+  end: number,
 };
 
 type TokenTypeType = {
   klass: { name: string, isIdentifierName?: boolean },
-  name: string
+  name: string,
 };
 
 function hasType(x: any, type?: {}) {
@@ -270,13 +270,13 @@ class BaseToken {
       typeCode,
       type,
       value,
-      slice
+      slice,
     }: {
       typeCode: number,
       type: TokenTypeType,
       value?: string | number,
-      slice?: Slice
-    }
+      slice?: Slice,
+    },
   ) {
     this.typeCode = typeCode;
     this.type = type;
@@ -300,7 +300,7 @@ export class StringToken {
   slice: ?Slice;
   typeCode: number;
   constructor(
-    { str, octal, slice }: { str: string, octal: ?string, slice?: Slice }
+    { str, octal, slice }: { str: string, octal: ?string, slice?: Slice },
   ) {
     this.type = TT.STRING;
     this.typeCode = TypeCodes.StringLiteral;
@@ -318,7 +318,7 @@ export const TypeCodes = {
   StringLiteral: 4,
   TemplateElement: 5,
   Template: 6,
-  RegExp: 7
+  RegExp: 7,
 };
 
 export function isIdentifier(x: any, value?: string) {
@@ -335,7 +335,7 @@ export class IdentifierToken extends BaseToken {
       typeCode: TypeCodes.Identifier,
       type: TT.IDENTIFIER,
       value,
-      slice
+      slice,
     });
   }
 }
@@ -358,7 +358,7 @@ export class KeywordToken extends BaseToken {
       typeCode: TypeCodes.Keyword,
       type: keywordTable[value],
       value,
-      slice
+      slice,
     });
   }
 }
@@ -376,7 +376,7 @@ export class PunctuatorToken extends BaseToken {
       typeCode: TypeCodes.Punctuator,
       type: punctuatorTable[value],
       value,
-      slice
+      slice,
     });
   }
 }
@@ -397,14 +397,14 @@ export class NumericToken extends BaseToken {
       value,
       octal = false,
       noctal = false,
-      slice
-    }: { value: number, octal?: boolean, noctal?: boolean, slice?: Slice }
+      slice,
+    }: { value: number, octal?: boolean, noctal?: boolean, slice?: Slice },
   ) {
     super({
       typeCode: TypeCodes.NumericLiteral,
       type: TT.NUMBER,
       value,
-      slice
+      slice,
     });
     this.octal = octal;
     this.noctal = noctal;
@@ -428,14 +428,14 @@ export class TemplateElementToken extends BaseToken {
       value,
       tail,
       interp,
-      slice
-    }: { value: string, tail: boolean, interp: boolean, slice?: Slice }
+      slice,
+    }: { value: string, tail: boolean, interp: boolean, slice?: Slice },
   ) {
     super({
       type: TT.TEMPLATE,
       typeCode: TypeCodes.TemplateElement,
       value,
-      slice
+      slice,
     });
     this.tail = tail;
     this.interp = interp;

@@ -7,7 +7,7 @@ import vm from 'vm';
 import Store from './store';
 
 export default class NodeLoader extends SweetLoader {
-  extensions: ?string[];
+  extensions: ?(string[]);
 
   constructor(baseDir: string, extensions?: string[]) {
     super(baseDir);
@@ -20,14 +20,20 @@ export default class NodeLoader extends SweetLoader {
     if (match && match.length >= 3) {
       let resolvedName = resolve.sync(match[1], {
         basedir: refererName ? dirname(refererName) : this.baseDir,
-        extensions: this.extensions ? this.extensions : [ '.js' ]
+        extensions: this.extensions ? this.extensions : ['.js'],
       });
       return `${resolvedName}:${match[2]}`;
     }
     throw new Error(`Module ${name} is missing phase information`);
   }
 
-  fetch({name, address, metadata}: {name: string, address: {path: string, phase: number}, metadata: {}}) {
+  fetch(
+    {
+      name,
+      address,
+      metadata,
+    }: { name: string, address: { path: string, phase: number }, metadata: {} },
+  ) {
     let src = this.sourceCache.get(address.path);
     if (src != null) {
       return src;
@@ -41,7 +47,7 @@ export default class NodeLoader extends SweetLoader {
   freshStore() {
     let sandbox = {
       process: global.process,
-      console: global.console
+      console: global.console,
     };
     return new Store(vm.createContext(sandbox));
   }

@@ -2,25 +2,25 @@
 import SweetModule from './sweet-module';
 import Syntax from './syntax';
 
-export class FunctionDeclTransform { }
-export class VariableDeclTransform { }
-export class NewTransform { }
-export class ThrowTransform { }
-export class LetDeclTransform { }
-export class ConstDeclTransform { }
-export class TryTransform { }
-export class WhileTransform { }
-export class IfTransform { }
-export class ForTransform { }
-export class SwitchTransform { }
-export class BreakTransform { }
-export class ContinueTransform { }
-export class DoTransform { }
-export class WithTransform { }
-export class DebuggerTransform { }
-export class SyntaxrecDeclTransform { }
-export class SyntaxDeclTransform { }
-export class ReturnStatementTransform { }
+export class FunctionDeclTransform {}
+export class VariableDeclTransform {}
+export class NewTransform {}
+export class ThrowTransform {}
+export class LetDeclTransform {}
+export class ConstDeclTransform {}
+export class TryTransform {}
+export class WhileTransform {}
+export class IfTransform {}
+export class ForTransform {}
+export class SwitchTransform {}
+export class BreakTransform {}
+export class ContinueTransform {}
+export class DoTransform {}
+export class WithTransform {}
+export class DebuggerTransform {}
+export class SyntaxrecDeclTransform {}
+export class SyntaxDeclTransform {}
+export class ReturnStatementTransform {}
 export class ModuleNamespaceTransform {
   namespace: Syntax;
   mod: SweetModule;
@@ -32,7 +32,7 @@ export class ModuleNamespaceTransform {
 }
 export class VarBindingTransform {
   id: Syntax;
-  
+
   constructor(id: Syntax) {
     this.id = id;
   }

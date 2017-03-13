@@ -9,17 +9,19 @@ class BrowserStoreLoader extends StoreLoader {
     super(baseDir, store, true);
   }
 
-  fetch({ name, address }: { name: string, address: any}) {
+  fetch({ name, address }: { name: string, address: any }) {
     if (this.store.has(address.path)) {
       return this.store.get(address.path);
     }
-    throw new Error(`The module ${name} is not in the debug store: addr.path is ${address.path}`);
+    throw new Error(
+      `The module ${name} is not in the debug store: addr.path is ${address.path}`,
+    );
   }
 
   freshStore() {
     return new Store({});
   }
-  
+
   eval(source: string, store: Store) {
     return (0, eval)(source);
   }

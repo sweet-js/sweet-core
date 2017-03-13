@@ -8,27 +8,35 @@ export default class extends Term.CloneReducer {
   scopes: Array<{ scope: SymbolClass, phase: number | {}, flip: boolean }>;
   bindings: BindingMap;
 
-  constructor(scopes: Array<{ scope: SymbolClass, phase: number | {}, flip: boolean }>, bindings: BindingMap) {
+  constructor(
+    scopes: Array<{ scope: SymbolClass, phase: number | {}, flip: boolean }>,
+    bindings: BindingMap,
+  ) {
     super();
     this.scopes = scopes;
     this.bindings = bindings;
   }
 
   applyScopes(s: Syntax) {
-    return this.scopes.reduce((acc, sc) => {
-      return acc.addScope(sc.scope, this.bindings, sc.phase, { flip: sc.flip });
-    }, s);
+    return this.scopes.reduce(
+      (acc, sc) => {
+        return acc.addScope(sc.scope, this.bindings, sc.phase, {
+          flip: sc.flip,
+        });
+      },
+      s,
+    );
   }
 
   reduceBindingIdentifier(t: Term, s: { name: Syntax }) {
     return new S.BindingIdentifier({
-      name: this.applyScopes(s.name)
+      name: this.applyScopes(s.name),
     });
   }
 
   reduceIdentifierExpression(t: Term, s: { name: Syntax }) {
     return new S.IdentifierExpression({
-      name: this.applyScopes(s.name)
+      name: this.applyScopes(s.name),
     });
   }
 
@@ -43,7 +51,7 @@ export default class extends Term.CloneReducer {
       });
     }
     return new S.RawSyntax({
-      value: this.applyScopes(s.value)
+      value: this.applyScopes(s.value),
     });
   }
 }

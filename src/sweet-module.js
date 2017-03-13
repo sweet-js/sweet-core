@@ -8,30 +8,38 @@ import SweetToShiftReducer from './sweet-to-shift-reducer.js';
 import Syntax from './syntax';
 
 const extractDeclaration = _.cond([
-  [S.isExport,        _.prop('declaration')],
+  [S.isExport, _.prop('declaration')],
   [S.isExportDefault, _.prop('body')],
-  [_.T,               term => { throw new Error(`Expecting an Export or ExportDefault but got ${term}`); }]
+  [
+    _.T,
+    term => {
+      throw new Error(`Expecting an Export or ExportDefault but got ${term}`);
+    },
+  ],
 ]);
 
 const ExpSpec = x => ({ exportedName: x });
 
 const extractDeclarationNames = _.cond([
-  [S.isVariableDeclarator,  ({binding}) => List.of(ExpSpec(binding.name))],
-  [S.isVariableDeclaration, ({declarators}) => declarators.flatMap(extractDeclarationNames)],
-  [S.isFunctionDeclaration, ({name}) => List.of(ExpSpec(name.name))],
-  [S.isClassDeclaration,    ({name}) => List.of(ExpSpec(name.name))]
+  [S.isVariableDeclarator, ({ binding }) => List.of(ExpSpec(binding.name))],
+  [
+    S.isVariableDeclaration,
+    ({ declarators }) => declarators.flatMap(extractDeclarationNames),
+  ],
+  [S.isFunctionDeclaration, ({ name }) => List.of(ExpSpec(name.name))],
+  [S.isClassDeclaration, ({ name }) => List.of(ExpSpec(name.name))],
 ]);
 
 type ExportSpecifier = {
-  name?: Syntax;
-  exportedName: Syntax
-}
+  name?: Syntax,
+  exportedName: Syntax,
+};
 
 function extractNames(term: T.ExportDeclaration): List<ExportSpecifier> {
   if (S.isExport(term)) {
     return extractDeclarationNames(term.declaration);
   } else if (S.isExportDefault(term)) {
-    return List(); 
+    return List();
   } else if (S.isExportFrom(term)) {
     return term.namedExports;
   }
@@ -47,17 +55,17 @@ function wrapStatement(declaration: T.Term) {
 
 const memoSym = Symbol('memo');
 
-function makeVarDeclStmt(name: T.BindingIdentifier,  expr: T.Expression) {
+function makeVarDeclStmt(name: T.BindingIdentifier, expr: T.Expression) {
   return new T.VariableDeclarationStatement({
     declaration: new T.VariableDeclaration({
       kind: 'var',
       declarators: List.of(
         new T.VariableDeclarator({
           binding: name,
-          init: expr
-        })
-      )
-    })
+          init: expr,
+        }),
+      ),
+    }),
   });
 }
 
@@ -82,18 +90,23 @@ export default class SweetModule {
         exports.push(item);
         this.exportedNames = this.exportedNames.concat(extractNames(item));
         if (S.isExport(item)) {
-          body.push(wrapStatement(extractDeclaration(item))); 
+          body.push(wrapStatement(extractDeclaration(item)));
         } else if (S.isExportDefault(item)) {
           let decl = extractDeclaration(item);
           let defStx = Syntax.fromIdentifier('_default');
           let def = new T.BindingIdentifier({
-            name: defStx
+            name: defStx,
           });
           this.exportedNames = this.exportedNames.push(ExpSpec(defStx));
           if (S.isFunctionDeclaration(decl) || S.isClassDeclaration(decl)) {
             body.push(decl);
             // extract name and bind it to _default
-            body.push(makeVarDeclStmt(def, new T.IdentifierExpression({ name: decl.name.name })));
+            body.push(
+              makeVarDeclStmt(
+                def,
+                new T.IdentifierExpression({ name: decl.name.name }),
+              ),
+            );
           } else {
             // expression so bind it to _default
             body.push(makeVarDeclStmt(def, decl));
@@ -141,7 +154,7 @@ export default class SweetModule {
   parse() {
     return new T.Module({
       items: this.items,
-      directives: List()
+      directives: List(),
     }).reduce(new SweetToShiftReducer(0));
   }
 

@@ -32,7 +32,4 @@ function makeSymbol(name: string): Symbol {
   }
 }
 
-export {
-  makeSymbol as Symbol,
-  Symbol as SymbolClass
-};
+export { makeSymbol as Symbol, Symbol as SymbolClass };

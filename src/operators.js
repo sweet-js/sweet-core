@@ -5,9 +5,9 @@ const unaryOperators = {
   '~': true,
   '++': true,
   '--': true,
-  'typeof': true,
-  'void': true,
-  'delete': true,
+  typeof: true,
+  void: true,
+  delete: true,
 };
 const binaryOperatorPrecedence = {
   '*': 13,
@@ -22,8 +22,8 @@ const binaryOperatorPrecedence = {
   '<=': 10,
   '>': 10,
   '>=': 10,
-  'in': 10,
-  'instanceof': 10,
+  in: 10,
+  instanceof: 10,
   '==': 9,
   '!=': 9,
   '===': 9,
@@ -48,8 +48,8 @@ var operatorAssoc = {
   '<=': 'left',
   '>': 'left',
   '>=': 'left',
-  'in': 'left',
-  'instanceof': 'left',
+  in: 'left',
+  instanceof: 'left',
   '==': 'left',
   '!=': 'left',
   '===': 'left',
@@ -77,13 +77,16 @@ export function getOperatorAssoc(op) {
 }
 
 export function isUnaryOperator(op) {
-  return (op.match('punctuator') || op.match('identifier') || op.match('keyword')) &&
-        unaryOperators.hasOwnProperty(op.val());
+  return (op.match('punctuator') ||
+    op.match('identifier') ||
+    op.match('keyword')) &&
+    unaryOperators.hasOwnProperty(op.val());
 }
 
 export function isOperator(op) {
   if (op.match('punctuator') || op.match('identifier') || op.match('keyword')) {
-    return binaryOperatorPrecedence.hasOwnProperty(op) || unaryOperators.hasOwnProperty(op.val());
+    return binaryOperatorPrecedence.hasOwnProperty(op) ||
+      unaryOperators.hasOwnProperty(op.val());
   }
   return false;
 }

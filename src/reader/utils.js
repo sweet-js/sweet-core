@@ -5,15 +5,24 @@ import { List } from 'immutable';
 
 import type { Readtable, CharStream } from 'readtable';
 
-import { code  } from 'esutils';
+import { code } from 'esutils';
 import type { TokenTree } from '../tokens';
-import { getLineNumber, isPunctuator, isKeyword, isBraces, isParens, isIdentifier } from '../tokens';
+import {
+  getLineNumber,
+  isPunctuator,
+  isKeyword,
+  isBraces,
+  isParens,
+  isIdentifier,
+} from '../tokens';
 
-const { isLineTerminator,
-        isWhiteSpace,
-        isDecimalDigit,
-        isIdentifierPartES6: isIdentifierPart,
-        isIdentifierStartES6: isIdentifierStart } = code;
+const {
+  isLineTerminator,
+  isWhiteSpace,
+  isDecimalDigit,
+  isIdentifierPartES6: isIdentifierPart,
+  isIdentifierStartES6: isIdentifierStart,
+} = code;
 
 import * as R from 'ramda';
 import { Maybe } from 'ramda-fantasy';
@@ -22,7 +31,13 @@ const Nothing = Maybe.Nothing;
 // TODO: also, need to handle contextual yield
 const literalKeywords = ['this', 'null', 'true', 'false'];
 
-export { isLineTerminator, isWhiteSpace, isDecimalDigit, isIdentifierStart, isIdentifierPart };
+export {
+  isLineTerminator,
+  isWhiteSpace,
+  isDecimalDigit,
+  isIdentifierStart,
+  isIdentifierPart,
+};
 
 export function getHexValue(rune: string) {
   if ('0' <= rune && rune <= '9') {
@@ -44,8 +59,8 @@ export function skipSingleLineComment(stream: CharStream): void {
     let chCode = char.charCodeAt(0);
     if (isLineTerminator(chCode)) {
       ++idx;
-      if (chCode === 0xD /* "\r" */ && stream.peek(idx).charCodeAt(0) === 0xA /*"\n" */) {
-        ++idx;
+      if (chCode === 0xd /* "\r" */ && stream.peek(idx).charCodeAt(0) === 0xa) {
+        /*"\n" */ ++idx;
       }
       this.incrementLine();
       break;
@@ -67,8 +82,8 @@ export function scanUnicode(stream: CharStream, start: number) {
     while (!isEOS(char)) {
       let hex = getHexValue(char);
       if (hex === -1) break;
-      hexDigits = (hexDigits << 4) | hex;
-      if (hexDigits > 0x10FFFF) {
+      hexDigits = hexDigits << 4 | hex;
+      if (hexDigits > 0x10ffff) {
         throw this.createILLEGAL(char);
       }
       char = sPeek(++idx);
@@ -77,7 +92,7 @@ export function scanUnicode(stream: CharStream, start: number) {
       throw this.createILLEGAL(char);
     }
     if (idx === start + 1) {
-      throw this.createILLEGAL(stream.peek(idx+1));
+      throw this.createILLEGAL(stream.peek(idx + 1));
     }
     ++idx;
   } else {
@@ -87,7 +102,7 @@ export function scanUnicode(stream: CharStream, start: number) {
     for (; idx < start + 4; ++idx) {
       r = getHexValue(sPeek(idx));
       if (r === -1) return -1;
-      hexDigits = (hexDigits << 4) | r;
+      hexDigits = hexDigits << 4 | r;
     }
   }
   stream.readString(idx);
@@ -95,20 +110,41 @@ export function scanUnicode(stream: CharStream, start: number) {
   return hexDigits;
 }
 
-export function readStringEscape(str: string, stream: CharStream, start: number, octal: ?string) {
-  let idx = start + 1,
-      char = stream.peek(idx),
-      lineStart;
+export function readStringEscape(
+  str: string,
+  stream: CharStream,
+  start: number,
+  octal: ?string,
+) {
+  let idx = start + 1, char = stream.peek(idx), lineStart;
   if (isEOS(char)) throw this.createILLEGAL(char);
 
   if (!isLineTerminator(char.charCodeAt(0))) {
     switch (char) {
-      case 'b': str += '\b'; ++idx; break;
-      case 'f': str += '\f'; ++idx; break;
-      case 'n': str += '\n'; ++idx; break;
-      case 'r': str += '\r'; ++idx; break;
-      case 't': str += '\t'; ++idx; break;
-      case 'v': str += '\u000B'; ++idx; break;
+      case 'b':
+        str += '\b';
+        ++idx;
+        break;
+      case 'f':
+        str += '\f';
+        ++idx;
+        break;
+      case 'n':
+        str += '\n';
+        ++idx;
+        break;
+      case 'r':
+        str += '\r';
+        ++idx;
+        break;
+      case 't':
+        str += '\t';
+        ++idx;
+        break;
+      case 'v':
+        str += '\u000B';
+        ++idx;
+        break;
       case 'u':
       case 'x': {
         let unescaped;
@@ -117,7 +153,9 @@ export function readStringEscape(str: string, stream: CharStream, start: number,
         if (isEOS(nxt)) {
           throw this.createILLEGAL(nxt);
         }
-        unescaped = char === 'u' ? scanUnicode.call(this, stream, idx) : scanHexEscape2.call(this, stream);
+        unescaped = char === 'u'
+          ? scanUnicode.call(this, stream, idx)
+          : scanHexEscape2.call(this, stream);
         if (unescaped === -1) throw this.createILLEGAL(char);
         idx = 0; // stream is read in scanUnicode and scanHexEscape2
 
@@ -126,8 +164,15 @@ export function readStringEscape(str: string, stream: CharStream, start: number,
       }
       default: {
         if ('0' <= char && char <= '7') {
-          [str, idx, octal] = scanOctal.call(this, str, stream, char, idx, octal);
-        } else if(char === '8' || char === '9') {
+          [str, idx, octal] = scanOctal.call(
+            this,
+            str,
+            stream,
+            char,
+            idx,
+            octal,
+          );
+        } else if (char === '8' || char === '9') {
           throw this.createILLEGAL(char);
         } else {
           str += char;
@@ -200,10 +245,15 @@ export function insertSequence(coll: Object, seq: string) {
   }
 }
 
-export const isTerminating = (table: Readtable) => (char: string): boolean => table.getMapping(char).mode === 'terminating';
+export const isTerminating = (table: Readtable) =>
+  (char: string): boolean => table.getMapping(char).mode === 'terminating';
 
 // check for terminating doesn't work if it's at the start
-export function retrieveSequenceLength(table: Object, stream: CharStream, idx: number): number {
+export function retrieveSequenceLength(
+  table: Object,
+  stream: CharStream,
+  idx: number,
+): number {
   const char = stream.peek(idx);
   if (!table[char]) {
     if (table.isValue) return idx;
@@ -213,41 +263,97 @@ export function retrieveSequenceLength(table: Object, stream: CharStream, idx: n
   }
 }
 
-const assignOps =  ['=', '+=', '-=', '*=', '/=', '%=', '<<=', '>>=', '>>>=',
-                  '&=', '|=', '^=', ','];
+const assignOps = [
+  '=',
+  '+=',
+  '-=',
+  '*=',
+  '/=',
+  '%=',
+  '<<=',
+  '>>=',
+  '>>>=',
+  '&=',
+  '|=',
+  '^=',
+  ',',
+];
 
-const binaryOps = ['+', '-', '*', '/', '%','<<', '>>', '>>>', '&', '|', '^',
-                 '&&', '||', '?', ':',
-                 '===', '==', '>=', '<=', '<', '>', '!=', '!==', 'instanceof'];
+const binaryOps = [
+  '+',
+  '-',
+  '*',
+  '/',
+  '%',
+  '<<',
+  '>>',
+  '>>>',
+  '&',
+  '|',
+  '^',
+  '&&',
+  '||',
+  '?',
+  ':',
+  '===',
+  '==',
+  '>=',
+  '<=',
+  '<',
+  '>',
+  '!=',
+  '!==',
+  'instanceof',
+];
 
-const unaryOps = ['++', '--', '~', '!', 'delete', 'void', 'typeof', 'yield', 'throw', 'new'];
+const unaryOps = [
+  '++',
+  '--',
+  '~',
+  '!',
+  'delete',
+  'void',
+  'typeof',
+  'yield',
+  'throw',
+  'new',
+];
 
 const allOps = assignOps.concat(binaryOps).concat(unaryOps);
 
 function isNonLiteralKeyword(t: TokenTree) {
   return isKeyword(t) && t.value && !R.contains(t.value, literalKeywords);
 }
-const exprPrefixKeywords = ['instanceof', 'typeof', 'delete', 'void',
-                            'yield', 'throw', 'new', 'case'];
+const exprPrefixKeywords = [
+  'instanceof',
+  'typeof',
+  'delete',
+  'void',
+  'yield',
+  'throw',
+  'new',
+  'case',
+];
 
 function isExprReturn(l: number, p: List<TokenTree>) {
   // ... return {x: 42} /r /i
   // ... return\n{x: 42} /r /i
   return popRestMaybe(p)
-    .map(([retKwd, rest]) => isKeyword(retKwd, 'return') && getLineNumber(retKwd) === l)
+    .map(
+      ([retKwd, rest]) =>
+        isKeyword(retKwd, 'return') && getLineNumber(retKwd) === l,
+    )
     .getOrElse(false);
 }
 
 // List a -> Boolean
 function isTopPunctuator(p: List<TokenTree>) {
-  return popMaybe(p)
-    .map(punc => isPunctuator(punc))
-    .getOrElse(false);
+  return popMaybe(p).map(punc => isPunctuator(punc)).getOrElse(false);
 }
 
 function isOperator(op: TokenTree) {
   if ((isPunctuator(op) || isKeyword(op)) && op.value != null) {
-    const opVal = op.value;  // the const is because flow doesn't know op.value isn't mutated
+    const opVal = op.value; // the const is because flow doesn't know op.value isn't mutated
     return allOps.some(o => o === opVal);
   }
   return false;
@@ -257,7 +363,8 @@ function isTopOperator(p: List<TokenTree>) {
   return popMaybe(p)
     .map(op => {
       return isOperator(op);
-    }).getOrElse(false);
+    })
+    .getOrElse(false);
 }
 
 function isExprPrefixKeyword(kwd: TokenTree) {
@@ -268,7 +375,8 @@ function isTopKeywordExprPrefix(p: List<TokenTree>) {
   return popMaybe(p)
     .map(kwd => {
       return isExprPrefixKeyword(kwd);
-    }).getOrElse(false);
+    })
+    .getOrElse(false);
 }
 
 function isTopColon(p: List<TokenTree>) {
@@ -278,7 +386,8 @@ function isTopColon(p: List<TokenTree>) {
         return true;
       }
       return false;
-    }).getOrElse(false);
+    })
+    .getOrElse(false);
 }
 
 export function isExprPrefix(l: number, b: boolean, p: List<TokenTree>) {
@@ -313,14 +422,19 @@ function popMaybe<T>(p: List<T>): Maybe<T> {
 }
 
 function isTopStandaloneKeyword(prefix: List<TokenTree>) {
-    // P . t . t'  where t \not = "." and t' ∈ (Keyword \setminus  LiteralKeyword)
+  // P . t . t'  where t \not = "." and t' ∈ (Keyword \setminus  LiteralKeyword)
   return popRestMaybe(prefix)
     .map(([kwd, rest]) => {
       if (isNonLiteralKeyword(kwd)) {
-        return Maybe.maybe(true, dot => !isPunctuator(dot, '.'), popMaybe(rest));
+        return Maybe.maybe(
+          true,
+          dot => !isPunctuator(dot, '.'),
+          popMaybe(rest),
+        );
       }
       return false;
-    }).getOrElse(false);
+    })
+    .getOrElse(false);
 }
 
 function isTopParensWithKeyword(prefix: List<TokenTree>) {
@@ -329,12 +443,16 @@ function isTopParensWithKeyword(prefix: List<TokenTree>) {
     .chain(([paren, rest]) => isParens(paren) ? popRestMaybe(rest) : Nothing())
     .map(([kwd, rest]) => {
       if (isNonLiteralKeyword(kwd)) {
-        return Maybe.maybe(true, dot => !isPunctuator(dot, '.'), popMaybe(rest));
+        return Maybe.maybe(
+          true,
+          dot => !isPunctuator(dot, '.'),
+          popMaybe(rest),
+        );
       }
       return false;
-    }).getOrElse(false);
+    })
+    .getOrElse(false);
 }
-
 
 function popRestMaybe(p: List<TokenTree>): Maybe<[TokenTree, List<TokenTree>]> {
   if (p.size > 0) {
@@ -345,7 +463,10 @@ function popRestMaybe(p: List<TokenTree>): Maybe<[TokenTree, List<TokenTree>]> {
   return Nothing();
 }
 
-function isTopFunctionExpression(prefix: List<TokenTree>, exprAllowed: boolean) {
+function isTopFunctionExpression(
+  prefix: List<TokenTree>,
+  exprAllowed: boolean,
+) {
   // P . function^l . x? . () . {}     where isExprPrefix(P, b, l) = false
   return popRestMaybe(prefix)
     .chain(([curly, rest]) => {
@@ -375,7 +496,8 @@ function isTopFunctionExpression(prefix: List<TokenTree>, exprAllowed: boolean) 
         return Maybe.of(!isExprPrefix(l, exprAllowed, rest));
       }
       return Maybe.of(false);
-    }).getOrElse(false);
+    })
+    .getOrElse(false);
 }
 
 function isTopObjectLiteral(prefix: List<TokenTree>, exprAllowed: boolean) {
@@ -390,7 +512,8 @@ function isTopObjectLiteral(prefix: List<TokenTree>, exprAllowed: boolean) {
         return Maybe.of(!isExprPrefix(l, exprAllowed, rest));
       }
       return Maybe.of(false);
-    }).getOrElse(false);
+    })
+    .getOrElse(false);
 }
 
 function isTopFunction(prefix: List<TokenTree>) {
@@ -419,7 +542,8 @@ function isTopFunction(prefix: List<TokenTree>) {
         return Maybe.of(true);
       }
       return Maybe.of(false);
-    }).getOrElse(false);
+    })
+    .getOrElse(false);
 }
 
 export function isRegexPrefix(exprAllowed: boolean, prefix: List<TokenTree>) {

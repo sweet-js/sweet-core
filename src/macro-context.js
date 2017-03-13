@@ -16,24 +16,23 @@ export function wrapInTerms(stx: List<TokenTree>): List<Term> {
       if (s.items) {
         s.items = wrapInTerms(s.items);
         return new T.RawSyntax({
-          value: new Syntax(s)
+          value: new Syntax(s),
         });
       }
       return new T.RawSyntax({
-        value: new Syntax(s)
+        value: new Syntax(s),
       });
     } else if (isDelimiter(s)) {
       return new S.RawDelimiter({
         kind: getKind(s),
-        inner: wrapInTerms(s)
+        inner: wrapInTerms(s),
       });
     }
     return new S.RawSyntax({
-      value: new Syntax(s)
+      value: new Syntax(s),
     });
   });
 }
-
 
 const privateData = new WeakMap();
 
@@ -42,7 +41,7 @@ function cloneEnforester(enf) {
   return new Enforester(rest, prev, context);
 }
 
-function Marker () {}
+function Marker() {}
 
 /*
 ctx :: {
@@ -51,7 +50,6 @@ ctx :: {
 }
 */
 export default class MacroContext {
-
   constructor(enf, name, context, useScope, introducedScope) {
     const startMarker = new Marker();
     const startEnf = cloneEnforester(enf);
@@ -87,7 +85,11 @@ export default class MacroContext {
     }
     const { context } = privateData.get(this);
 
-    let enf = new Enforester(delim.inner.slice(1, delim.inner.size - 1), List(), context);
+    let enf = new Enforester(
+      delim.inner.slice(1, delim.inner.size - 1),
+      List(),
+      context,
+    );
     return new MacroContext(enf, 'inner', context);
   }
 
@@ -96,13 +98,13 @@ export default class MacroContext {
     if (enf.rest.size === 0) {
       return {
         done: true,
-        value: null
+        value: null,
       };
     }
     enf.expandMacro();
     let originalRest = enf.rest;
     let value;
-    switch(type) {
+    switch (type) {
       case 'AssignmentExpression':
       case 'expr':
         value = enf.enforestExpressionLoop();
@@ -132,13 +134,18 @@ export default class MacroContext {
       case 'ReturnStatement':
       case 'ExpressionStatement':
         value = enf.enforestStatement();
-        expect(_.whereEq({type}, value), `Expecting a ${type}`, value, originalRest);
+        expect(
+          _.whereEq({ type }, value),
+          `Expecting a ${type}`,
+          value,
+          originalRest,
+        );
         break;
       case 'YieldExpression':
         value = enf.enforestYieldExpression();
         break;
       case 'ClassExpression':
-        value = enf.enforestClass({isExpr: true});
+        value = enf.enforestClass({ isExpr: true });
         break;
       case 'ArrowExpression':
         value = enf.enforestArrowExpression();
@@ -168,14 +175,19 @@ export default class MacroContext {
       case 'CompoundAssignmentExpression':
       case 'ConditionalExpression':
         value = enf.enforestExpressionLoop();
-        expect(_.whereEq({type}, value), `Expecting a ${type}`, value, originalRest);
+        expect(
+          _.whereEq({ type }, value),
+          `Expecting a ${type}`,
+          value,
+          originalRest,
+        );
         break;
       default:
         throw new Error('Unknown term type: ' + type);
     }
     return {
       done: false,
-      value: value
+      value: value,
     };
   }
 
@@ -229,23 +241,34 @@ export default class MacroContext {
   }
 
   next() {
-    const { enf, noScopes, useScope, introducedScope, context } = privateData.get(this);
+    const {
+      enf,
+      noScopes,
+      useScope,
+      introducedScope,
+      context,
+    } = privateData.get(this);
     if (enf.rest.size === 0) {
       return {
         done: true,
-        value: null
+        value: null,
       };
     }
     let value = enf.advance();
     if (!noScopes) {
-      value = value.reduce(new ScopeReducer([
-        { scope: useScope, phase: ALL_PHASES, flip: false },
-        { scope: introducedScope, phase: ALL_PHASES, flip: true}
-      ], context.bindings));
+      value = value.reduce(
+        new ScopeReducer(
+          [
+            { scope: useScope, phase: ALL_PHASES, flip: false },
+            { scope: introducedScope, phase: ALL_PHASES, flip: true },
+          ],
+          context.bindings,
+        ),
+      );
     }
     return {
       done: false,
-      value: value
+      value: value,
     };
   }
 }

@@ -17,15 +17,14 @@ import Store from './store';
 export const phaseInModulePathRegexp = /(.*):(\d+)\s*$/;
 
 export type Context = {
-  bindings: any;
-  templateMap: any;
-  getTemplateIdentifier: any;
-  loader: any;
-  transform: any;
-  phase: number;
-  store: Store;
-}
-
+  bindings: any,
+  templateMap: any,
+  getTemplateIdentifier: any,
+  loader: any,
+  transform: any,
+  phase: number,
+  store: Store,
+};
 
 export default class SweetLoader {
   sourceCache: Map<string, string>;
@@ -50,13 +49,13 @@ export default class SweetLoader {
       transform: c => {
         if (noBabel) {
           return {
-            code: c
+            code: c,
           };
         }
         return babel(c, {
-          babelrc: true
+          babelrc: true,
         });
-      }
+      },
     };
   }
 
@@ -70,24 +69,42 @@ export default class SweetLoader {
     return name;
   }
 
-  locate({name, metadata}: {name: string, metadata: {}}) {
+  locate({ name, metadata }: { name: string, metadata: {} }) {
     // takes `/abs/path/to/source.js:<phase>`
     // gives { path: '/abs/path/to/source.js', phase: <phase> }
     let match = name.match(phaseInModulePathRegexp);
     if (match && match.length >= 3) {
       return {
         path: match[1],
-        phase: parseInt(match[2], 10)
+        phase: parseInt(match[2], 10),
       };
     }
     throw new Error(`Module ${name} is missing phase information`);
   }
 
-  fetch({name, address, metadata}: {name: string, address: {path: string, phase: number}, metadata: {}}) {
+  fetch(
+    {
+      name,
+      address,
+      metadata,
+    }: { name: string, address: { path: string, phase: number }, metadata: {} },
+  ) {
     throw new Error('No default fetch defined');
   }
 
-  translate({name, address, source, metadata}: {name: string, address: {path: string, phase: number}, source: string, metadata: {}}) {
+  translate(
+    {
+      name,
+      address,
+      source,
+      metadata,
+    }: {
+      name: string,
+      address: { path: string, phase: number },
+      source: string,
+      metadata: {},
+    },
+  ) {
     let src = this.compiledCache.get(address.path);
     if (src != null) {
       return src;
@@ -97,7 +114,19 @@ export default class SweetLoader {
     return compiledModule;
   }
 
-  instantiate({name, address, source, metadata}: {name: string, address: {path: string, phase: number}, source: SweetModule, metadata: {}}) {
+  instantiate(
+    {
+      name,
+      address,
+      source,
+      metadata,
+    }: {
+      name: string,
+      address: { path: string, phase: number },
+      source: SweetModule,
+      metadata: {},
+    },
+  ) {
     throw new Error('Not implemented yet');
   }
 
@@ -140,13 +169,27 @@ export default class SweetLoader {
     let outScope = freshScope('outsideEdge');
     let inScope = freshScope('insideEdge0');
     // the compiler starts at phase 0, with an empty environment and store
-    let compiler = new Compiler(0, new Env(), this.freshStore(),  _.merge(this.context, {
-      currentScope: [outScope, inScope],
-    }));
-    return new SweetModule(compiler.compile(stxl.map(s => s.reduce(new ScopeReducer([
-      { scope: outScope, phase: ALL_PHASES, flip: false },
-      { scope: inScope, phase: 0, flip: false }],
-      this.context.bindings)
-    ))));
+    let compiler = new Compiler(
+      0,
+      new Env(),
+      this.freshStore(),
+      _.merge(this.context, {
+        currentScope: [outScope, inScope],
+      }),
+    );
+    return new SweetModule(
+      compiler.compile(
+        stxl.map(s =>
+          s.reduce(
+            new ScopeReducer(
+              [
+                { scope: outScope, phase: ALL_PHASES, flip: false },
+                { scope: inScope, phase: 0, flip: false },
+              ],
+              this.context.bindings,
+            ),
+          )),
+      ),
+    );
   }
 }

@@ -4,7 +4,6 @@ import fs from 'fs';
 import { compile } from '../../src/sweet.js';
 import NodeLoader from '../../src/node-loader';
 
-
 // TODO: make these pass
 const passExcluded = [
   // known problems with the reader
@@ -138,11 +137,17 @@ let passExtra = fs.readdirSync(`./test/parser/${EXTRA_TEST_DIR}/pass`);
 
 function mkTester(subdir, testDir) {
   function f(t, fname) {
-    let result = compile(`./${testDir}/${subdir}/${fname}`, new NodeLoader(__dirname));
+    let result = compile(
+      `./${testDir}/${subdir}/${fname}`,
+      new NodeLoader(__dirname),
+    );
     t.not(result, null);
   }
   f.title = (title, fname, expected) => {
-    let src = fs.readFileSync(`./test/parser/${testDir}/${subdir}/${fname}`, 'utf8');
+    let src = fs.readFileSync(
+      `./test/parser/${testDir}/${subdir}/${fname}`,
+      'utf8',
+    );
     return `${fname}:
 ${src}
 `;
@@ -152,7 +157,6 @@ ${src}
 
 let passTest = mkTester('pass', PARSER_TEST_DIR);
 let extras = mkTester('pass', EXTRA_TEST_DIR);
-
 
 pass.filter(f => !passExcluded.includes(f)).forEach(f => {
   test(passTest, f);

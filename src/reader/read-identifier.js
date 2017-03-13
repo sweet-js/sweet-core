@@ -17,23 +17,23 @@ export default function readIdentifier(stream: CharStream) {
   let code;
   let check = isIdentifierStart;
   let idx = 0;
-  while(!terminates(char) && !isEOS(char)) {
+  while (!terminates(char) && !isEOS(char)) {
     code = char.charCodeAt(0);
-    if (char === '\\' || 0xD800 <= code && code <= 0xDBFF) {
+    if (char === '\\' || (0xd800 <= code && code <= 0xdbff)) {
       return new IdentifierToken({
-        value: getEscapedIdentifier.call(this, stream)
+        value: getEscapedIdentifier.call(this, stream),
       });
     }
     if (!check(code)) {
       return new IdentifierToken({
-        value: stream.readString(idx)
+        value: stream.readString(idx),
       });
     }
     char = stream.peek(++idx);
     check = isIdentifierPart;
   }
   return new IdentifierToken({
-    value: stream.readString(idx)
+    value: stream.readString(idx),
   });
 }
 
@@ -58,12 +58,12 @@ function getEscapedIdentifier(stream) {
       if (code < 0) {
         throw this.createILLEGAL(char);
       }
-    } else if (0xD800 <= code && code <= 0xDBFF) {
+    } else if (0xd800 <= code && code <= 0xdbff) {
       if (isEOS(char)) {
         throw this.createILLEGAL(char);
       }
       let lowSurrogateCode = sPeek(1).charCodeAt(0);
-      if (0xDC00 > lowSurrogateCode || lowSurrogateCode > 0xDFFF) {
+      if (0xdc00 > lowSurrogateCode || lowSurrogateCode > 0xdfff) {
         throw this.createILLEGAL(char);
       }
       stream.readString(2);
@@ -88,6 +88,5 @@ function getEscapedIdentifier(stream) {
 }
 
 function decodeUtf16(lead, trail) {
-  return (lead - 0xD800) * 0x400 + (trail - 0xDC00) + 0x10000;
+  return (lead - 0xd800) * 0x400 + (trail - 0xdc00) + 0x10000;
 }
-

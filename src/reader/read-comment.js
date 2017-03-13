@@ -10,16 +10,16 @@ export default function readComment(stream: CharStream): typeof EmptyToken {
 
   while (!isEOS(char)) {
     let chCode = char.charCodeAt(0);
-    if (chCode === 47 /* "/" */) {
-      const nxt = stream.peek(1);
+    if (chCode === 47) {
+      /* "/" */ const nxt = stream.peek(1);
       if (isEOS(nxt)) {
         break;
       }
       chCode = nxt.charCodeAt(0);
-      if (chCode === 47 /* "/" */) {
-        skipSingleLineComment.call(this, stream);
-      } else if (chCode === 42 /* "*" */) {
-        skipMultiLineComment.call(this, stream);
+      if (chCode === 47) {
+        /* "/" */ skipSingleLineComment.call(this, stream);
+      } else if (chCode === 42) {
+        /* "*" */ skipMultiLineComment.call(this, stream);
       } else {
         break;
       }
@@ -41,33 +41,34 @@ function skipMultiLineComment(stream: CharStream): void {
     let chCode = char.charCodeAt(0);
     if (chCode < 0x80) {
       switch (chCode) {
-      case 42:  // "*"
-        // Block comment ends with "*/".
-        if (stream.peek(idx + 1).charAt(0) === '/') {
-          stream.readString(idx + 2);
-          if (lineStart) this.locationInfo.column = stream.sourceInfo.position - lineStart;
-          return;
-        }
-        ++idx;
-        break;
-      case 10:  // "\n"
-        this.incrementLine();
-        lineStart = startPosition + idx;
-        ++idx;
-        break;
-      case 13: // "\r":
-      {
-        let startIdx = idx;
-        if (stream.peek(idx + 1).charAt(0) === '\n') {
+        case 42: // "*"
+          // Block comment ends with "*/".
+          if (stream.peek(idx + 1).charAt(0) === '/') {
+            stream.readString(idx + 2);
+            if (lineStart)
+              this.locationInfo.column = stream.sourceInfo.position - lineStart;
+            return;
+          }
           ++idx;
+          break;
+        case 10: // "\n"
+          this.incrementLine();
+          lineStart = startPosition + idx;
+          ++idx;
+          break;
+        case 13: {
+          // "\r":
+          let startIdx = idx;
+          if (stream.peek(idx + 1).charAt(0) === '\n') {
+            ++idx;
+          }
+          ++idx;
+          this.incrementLine();
+          lineStart = startPosition + startIdx;
+          break;
         }
-        ++idx;
-        this.incrementLine();
-        lineStart = startPosition + startIdx;
-        break;
-      }
-      default:
-        ++idx;
+        default:
+          ++idx;
       }
     } else if (chCode === 0x2028 || chCode === 0x2029) {
       this.incrementLine();
