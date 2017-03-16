@@ -29,7 +29,7 @@ if (!semver.satisfies(process.version, '>=5.0.0')) {
 
 var loader = new NodeLoader(path.join(path.dirname(fs.realpathSync(__filename)), '../'));
 argv._.forEach(function (file) {
-  var output = compile(file, loader, {
+  var output = compile(fs.realpathSync(file), loader, {
     noBabel: argv.noBabel
   }).code;
 
