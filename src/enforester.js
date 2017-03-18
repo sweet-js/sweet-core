@@ -887,8 +887,15 @@ export class Enforester {
   enforestObjectBinding() {
     let enf = new Enforester(this.matchCurlies(), List(), this.context);
     let properties = [];
+
+    //TODO: implement object rest operator when it lands
     while (enf.rest.size !== 0) {
       properties.push(enf.enforestBindingProperty());
+
+      if (enf.rest.size > 0 && !enf.isPunctuator(enf.peek(), ',')) {
+        throw enf.createError(enf.peek(), 'unexpected token');
+      }
+
       enf.consumeComma();
     }
 
@@ -931,21 +938,32 @@ export class Enforester {
     let enf = new Enforester(bracket, List(), this.context);
     let elements = [], restElement = null;
     while (enf.rest.size !== 0) {
-      let el;
-      if (enf.isPunctuator(enf.peek(), ',')) {
-        enf.consumeComma();
-        el = null;
-      } else {
+      let el = null;
+      if (!enf.isPunctuator(enf.peek(), ',')) {
         if (enf.isPunctuator(enf.peek(), '...')) {
           enf.advance();
           restElement = enf.enforestBindingTarget();
-          break;
+          if (enf.rest.size > 0) {
+            throw enf.createError(
+              '',
+              'Rest element must be last element in array',
+            );
+          }
         } else {
           el = enf.enforestBindingElement();
+
+          if (el == null) {
+            throw enf.createError(enf.peek(), 'expected expression');
+          }
+          if (enf.rest.size > 0 && !enf.isPunctuator(enf.peek(), ',')) {
+            throw enf.createError(enf.peek(), 'unexpected token');
+          }
         }
+      }
+      if (restElement == null) {
+        elements.push(el);
         enf.consumeComma();
       }
-      elements.push(el);
     }
     return new T.ArrayBinding({
       elements: List(elements),
@@ -1690,24 +1708,26 @@ export class Enforester {
 
     while (enf.rest.size > 0) {
       let lookahead = enf.peek();
-      if (enf.isPunctuator(lookahead, ',')) {
-        enf.advance();
-        elements.push(null);
-      } else if (enf.isPunctuator(lookahead, '...')) {
-        enf.advance();
-        let expression = enf.enforestExpressionLoop();
+      let expression = null;
+      if (!enf.isPunctuator(lookahead, ',')) {
+        let isSpread = false;
+        if (enf.isPunctuator(lookahead, '...')) {
+          enf.advance();
+          isSpread = true;
+        }
+        expression = enf.enforestExpressionLoop();
         if (expression == null) {
           throw enf.createError(lookahead, 'expecting expression');
         }
-        elements.push(new T.SpreadElement({ expression }));
-      } else {
-        let term = enf.enforestExpressionLoop();
-        if (term == null) {
-          throw enf.createError(lookahead, 'expected expression');
+        if (enf.rest.size > 0 && !enf.isPunctuator(enf.peek(), ',')) {
+          throw enf.createError(enf.peek(), 'unexpected token');
         }
-        elements.push(term);
-        enf.consumeComma();
+        if (isSpread) {
+          expression = new T.SpreadElement({ expression });
+        }
       }
+      enf.consumeComma();
+      elements.push(expression);
     }
 
     return new T.ArrayExpression({
@@ -1723,8 +1743,14 @@ export class Enforester {
     let enf = new Enforester(obj, List(), this.context);
 
     let lastProp = null;
+    //TODO: implement object spread operator when it lands
     while (enf.rest.size > 0) {
       let prop = enf.enforestPropertyDefinition();
+
+      if (enf.rest.size > 0 && !enf.isPunctuator(enf.peek(), ',')) {
+        throw enf.createError(enf.peek(), 'unexpected token');
+      }
+
       enf.consumeComma();
       properties = properties.concat(prop);
 
