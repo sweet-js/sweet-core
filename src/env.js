@@ -14,6 +14,13 @@ import {
   DoTransform,
   DebuggerTransform,
   WithTransform,
+  ImportTransform,
+  ExportTransform,
+  SuperTransform,
+  ThisTransform,
+  YieldTransform,
+  ClassTransform,
+  DefaultTransform,
   TryTransform,
   ThrowTransform,
   NewTransform,
@@ -39,7 +46,14 @@ export default class Env {
     this.map.set('do', DoTransform);
     this.map.set('debugger', DebuggerTransform);
     this.map.set('with', WithTransform);
+    this.map.set('import', ImportTransform);
+    this.map.set('export', ExportTransform);
+    this.map.set('super', SuperTransform);
+    this.map.set('this', ThisTransform);
+    this.map.set('class', ClassTransform);
+    this.map.set('default', DefaultTransform);
     this.map.set('try', TryTransform);
+    this.map.set('yield', YieldTransform);
     this.map.set('throw', ThrowTransform);
     this.map.set('new', NewTransform);
   }

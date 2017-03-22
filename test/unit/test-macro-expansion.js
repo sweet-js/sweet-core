@@ -361,3 +361,39 @@ output = m
 `,
   26,
 );
+
+test(
+  'should allow binding macros to import keyword',
+  evalWithOutput,
+  `
+syntax import = ctx => {
+  return #\`1\`;
+}
+output = import
+`,
+  1,
+);
+
+test(
+  'should allow binding macros to export keyword',
+  evalWithOutput,
+  `
+syntax export = ctx => {
+  return #\`1\`;
+}
+output = export
+`,
+  1,
+);
+
+test(
+  'should allow binding macros to super keyword',
+  evalWithOutput,
+  `
+syntax super = ctx => {
+  return #\`Number(1)\`;
+}
+output = new super instanceof Number
+`,
+  true,
+);
