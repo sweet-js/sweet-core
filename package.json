@@ -31,6 +31,7 @@
     "preprofile": "npm run build",
     "profile": "node --prof profile.js && node --prof-process *v8.log > v8-processed.log && rm *v8.log",
     "pretest": "npm run lint",
+    "test:262": "ava test/parser/test-run-test262.js",
     "test:ci": "npm run pretest && ava && ava test/parser/test-*.js",
     "test": "ava",
     "report": "nyc ava && nyc report--reporter=html",
