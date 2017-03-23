@@ -17,6 +17,13 @@ export class BreakTransform {}
 export class ContinueTransform {}
 export class DoTransform {}
 export class WithTransform {}
+export class ImportTransform {}
+export class ExportTransform {}
+export class SuperTransform {}
+export class YieldTransform {}
+export class ThisTransform {}
+export class ClassTransform {}
+export class DefaultTransform {}
 export class DebuggerTransform {}
 export class SyntaxrecDeclTransform {}
 export class SyntaxDeclTransform {}
