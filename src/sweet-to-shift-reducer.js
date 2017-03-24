@@ -1,7 +1,13 @@
 // @flow
 import Term, * as S from 'sweet-spec';
+import { complement } from 'ramda';
 import { List } from 'immutable';
+
+import { isEmptyStatement } from './terms';
+
 import type Syntax from './syntax.js';
+
+const notEmptyStatement = complement(isEmptyStatement);
 
 export default class extends Term.CloneReducer {
   phase: number;
@@ -14,7 +20,7 @@ export default class extends Term.CloneReducer {
   reduceModule(t: Term, s: { directives: List<any>, items: List<any> }) {
     return new S.Module({
       directives: s.directives.toArray(),
-      items: s.items.toArray(),
+      items: s.items.toArray().filter(notEmptyStatement),
     });
   }
 
@@ -49,7 +55,7 @@ export default class extends Term.CloneReducer {
   ) {
     return new S.FunctionBody({
       directives: s.directives.toArray(),
-      statements: s.statements.toArray(),
+      statements: s.statements.toArray().filter(notEmptyStatement),
     });
   }
 
@@ -88,7 +94,7 @@ export default class extends Term.CloneReducer {
 
   reduceBlock(t: Term, s: { statements: List<any> }) {
     return new S.Block({
-      statements: s.statements.toArray(),
+      statements: s.statements.toArray().filter(notEmptyStatement),
     });
   }
 }
