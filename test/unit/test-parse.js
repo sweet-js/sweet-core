@@ -29,3 +29,13 @@ x;
 new Foo(1,2);
 x;`,
 );
+test(
+  'NewExpression followed by identifier',
+  testParseComparison,
+  items,
+  `
+syntax m = ctx => #\`1\`
+m
+`,
+  `1;`,
+);
