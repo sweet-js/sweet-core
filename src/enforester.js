@@ -27,7 +27,14 @@ import {
   ContinueTransform,
   DoTransform,
   DebuggerTransform,
+  YieldTransform,
   WithTransform,
+  ImportTransform,
+  ExportTransform,
+  SuperTransform,
+  ThisTransform,
+  ClassTransform,
+  DefaultTransform,
   TryTransform,
   ThrowTransform,
   CompiletimeTransform,
@@ -154,10 +161,11 @@ export class Enforester {
 
   enforestModuleItem() {
     let lookahead = this.peek();
-    if (this.isKeyword(lookahead, 'import')) {
+
+    if (this.isImportTransform(lookahead)) {
       this.advance();
       return this.enforestImportDeclaration();
-    } else if (this.isKeyword(lookahead, 'export')) {
+    } else if (this.isExportTransform(lookahead)) {
       this.advance();
       return this.enforestExportDeclaration();
     }
@@ -166,6 +174,11 @@ export class Enforester {
 
   enforestExportDeclaration() {
     let lookahead = this.peek();
+    if (this.isCompiletimeTransform(lookahead)) {
+      this.expandMacro();
+      lookahead = this.peek();
+    }
+
     if (this.isPunctuator(lookahead, '*')) {
       this.advance();
       let moduleSpecifier = this.enforestFromClause();
@@ -177,7 +190,7 @@ export class Enforester {
         moduleSpecifier = this.enforestFromClause();
       }
       return new T.ExportFrom({ namedExports, moduleSpecifier });
-    } else if (this.isKeyword(lookahead, 'class')) {
+    } else if (this.isClassTransform(lookahead)) {
       return new T.Export({
         declaration: this.enforestClass({ isExpr: false }),
       });
@@ -185,13 +198,18 @@ export class Enforester {
       return new T.Export({
         declaration: this.enforestFunction({ isExpr: false }),
       });
-    } else if (this.isKeyword(lookahead, 'default')) {
+    } else if (this.isDefaultTransform(lookahead)) {
       this.advance();
+      if (this.isCompiletimeTransform(lookahead)) {
+        this.expandMacro();
+        lookahead = this.peek();
+      }
+
       if (this.isFnDeclTransform(this.peek())) {
         return new T.ExportDefault({
           body: this.enforestFunction({ isExpr: false, inDefault: true }),
         });
-      } else if (this.isKeyword(this.peek(), 'class')) {
+      } else if (this.isClassTransform(this.peek())) {
         return new T.ExportDefault({
           body: this.enforestClass({ isExpr: false, inDefault: true }),
         });
@@ -368,7 +386,7 @@ export class Enforester {
 
     if (this.isFnDeclTransform(lookahead)) {
       return this.enforestFunction({ isExpr: false });
-    } else if (this.isKeyword(lookahead, 'class')) {
+    } else if (this.isClassTransform(lookahead)) {
       return this.enforestClass({ isExpr: false });
     } else {
       return this.enforestStatement();
@@ -1212,11 +1230,11 @@ export class Enforester {
       return this.advance();
     }
 
-    if (this.term === null && this.isKeyword(lookahead, 'yield')) {
+    if (this.term === null && this.isYieldTransform(lookahead)) {
       return this.enforestYieldExpression();
     }
 
-    if (this.term === null && this.isKeyword(lookahead, 'class')) {
+    if (this.term === null && this.isClassTransform(lookahead)) {
       return this.enforestClass({ isExpr: true });
     }
 
@@ -1282,8 +1300,7 @@ export class Enforester {
 
     if (
       (this.term === null &&
-        (this.isNewTransform(lookahead) ||
-          this.isKeyword(lookahead, 'super'))) ||
+        (this.isNewTransform(lookahead) || this.isSuperTransform(lookahead))) ||
       // and then check the cases where the term part of p is something...
       (this.term &&
         // $x:expr . $prop:ident
@@ -1393,12 +1410,17 @@ export class Enforester {
   enforestLeftHandSideExpression({ allowCall }: { allowCall: boolean }) {
     let lookahead = this.peek();
 
-    if (this.isKeyword(lookahead, 'super')) {
+    if (this.isCompiletimeTransform(lookahead)) {
+      this.expandMacro();
+      lookahead = this.peek();
+    }
+
+    if (this.isSuperTransform(lookahead)) {
       this.advance();
       this.term = new T.Super({});
     } else if (this.isNewTransform(lookahead)) {
       this.term = this.enforestNewExpression();
-    } else if (this.isKeyword(lookahead, 'this')) {
+    } else if (this.isThisTransform(lookahead)) {
       this.term = this.enforestThisExpression();
     }
 
@@ -2331,6 +2353,14 @@ export class Enforester {
     return this.isTransform(obj, WithTransform);
   }
 
+  isImportTransform(obj: Syntax | Term) {
+    return this.isTransform(obj, ImportTransform);
+  }
+
+  isExportTransform(obj: Syntax | Term) {
+    return this.isTransform(obj, ExportTransform);
+  }
+
   isTryTransform(obj: Syntax | Term) {
     return this.isTransform(obj, TryTransform);
   }
@@ -2345,6 +2375,26 @@ export class Enforester {
 
   isNewTransform(obj: Syntax | Term) {
     return this.isTransform(obj, NewTransform);
+  }
+
+  isSuperTransform(obj: Syntax | Term) {
+    return this.isTransform(obj, SuperTransform);
+  }
+
+  isThisTransform(obj: Syntax | Term) {
+    return this.isTransform(obj, ThisTransform);
+  }
+
+  isClassTransform(obj: Syntax | Term) {
+    return this.isTransform(obj, ClassTransform);
+  }
+
+  isYieldTransform(obj: Syntax | Term) {
+    return this.isTransform(obj, YieldTransform);
+  }
+
+  isDefaultTransform(obj: Syntax | Term) {
+    return this.isTransform(obj, DefaultTransform);
   }
 
   isCompiletimeTransform(obj: Syntax | Term) {
