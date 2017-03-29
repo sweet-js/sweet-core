@@ -8,7 +8,7 @@ const TypeCodes = {
   StringLiteral: 4,
   TemplateElement: 5,
   Template: 6,
-  RegExp: 7
+  RegExp: 7,
 };
 
 function check(obj, type) {
@@ -19,19 +19,19 @@ export function unwrap(obj) {
   let hasTok = obj && obj.value && obj.value.token;
   if (hasTok && obj.value.token.typeCode === TypeCodes.StringLiteral) {
     return {
-      value: obj.value.token.str
+      value: obj.value.token.str,
     };
   } else if (hasTok && obj.value.token.typeCode !== TypeCodes.Template) {
     return {
-      value: obj.value.token.value
+      value: obj.value.token.value,
     };
   } else if (hasTok && obj.value.token.typeCode === TypeCodes.Template) {
     return {
-      value: obj.value.token.items
+      value: obj.value.token.items,
     };
   } else if (obj && obj.type === 'RawDelimiter') {
     return {
-      value: obj.inner
+      value: obj.inner,
     };
   }
   return {};
@@ -111,4 +111,8 @@ export function isBraces(obj) {
 
 export function fromBraces(obj, x) {
   return obj.value.from('braces', x);
+}
+
+export function isSyntaxTemplate(obj) {
+  return obj && obj.type === 'RawDelimiter' && obj.kind === 'syntaxTemplate';
 }
