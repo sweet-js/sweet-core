@@ -66,6 +66,11 @@ test('should help with a template', t => {
   t.is(H.unwrap(el).value, 'foo');
 });
 
+test('should help with a syntax template', t => {
+  let r = wrappingRead('#`foo`');
+  t.true(H.isSyntaxTemplate(r));
+});
+
 test('should help with a paren', t => {
   let r = wrappingRead('(foo)');
   t.true(H.isParens(r));
