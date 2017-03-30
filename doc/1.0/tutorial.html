@@ -46,18 +46,6 @@
 <p>Sweet brings the hygienic macros of languages like Scheme and Rust to JavaScript.
 Macros allow you to sweeten the syntax of JavaScript and craft the language you’ve always wanted.</p>
 </div>
-<div class="admonitionblock note">
-<table>
-<tr>
-<td class="icon">
-<i class="fa icon-note" title="Note"></i>
-</td>
-<td class="content">
-This documents version 1.0+ of Sweet and is still a work in progress. Contributions are welcome!
-</td>
-</tr>
-</table>
-</div>
 </div>
 </div>
 <div class="sect1">
@@ -322,18 +310,20 @@ console.log(bb8.beep());</code></pre>
 <div class="listingblock">
 <div class="title">cond Macro</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax cond = function (ctx) {
-  let bodyCtx = ctx.next().value.inner(); <i class="conum" data-value="1"></i><b>(1)</b>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { unwrap, isKeyword } from 'sweet.js/helpers' for syntax; <i class="conum" data-value="3"></i><b>(3)</b>
+
+syntax cond = function (ctx) {
+  let bodyCtx = ctx.contextify(ctx.next().value); <i class="conum" data-value="1"></i><b>(1)</b>
 
   let result = #``;
   for (let stx of bodyCtx) { <i class="conum" data-value="2"></i><b>(2)</b>
-    if (stx.isKeyword('case')) { <i class="conum" data-value="3"></i><b>(3)</b>
+    if (isKeyword(stx) &amp;&amp; unwrap(stx).value === 'case') { <i class="conum" data-value="3"></i><b>(3)</b>
       let test = bodyCtx.expand('expr').value;
       // eat `:`
       bodyCtx.next();
       let r = bodyCtx.expand('expr').value;
       result = result.concat(#`${test} ? ${r} :`);
-    } else if (stx.isKeyword('default')) {
+    } else if (isKeyword(stx) &amp;&amp; unwrap(stx).value === 'default') {
       // eat `:`
       bodyCtx.next();
       let r = bodyCtx.expand('expr').value;
@@ -359,7 +349,7 @@ let realTypeof = cond {
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The <code>.inner</code> method on delimiter syntax objects gives us an iterator into the syntax inside the delimiter. In this case, that is everything inside of <code>{ &#8230;&#8203; }</code>.</td>
+<td>The <code>.contextify</code> method gives us another context inside the delimiter. In this case, that is everything inside of <code>{ &#8230;&#8203; }</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -367,7 +357,7 @@ let realTypeof = cond {
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Syntax objects have helpful methods on them that allow you to find out more about them.</td>
+<td>Utility functions are available for import to help inspect what kind of syntax you are processing. Note the <code>for syntax</code> on the import declaration, which is required for the helpers to be available inside of a macro definition. Modules and macros are described more <a href="#_sweet_modules">later</a>.</td>
 </tr>
 </table>
 </div>
@@ -394,7 +384,9 @@ var realTypeof = x === null ? "null" :
 <div class="listingblock">
 <div class="title">class Macro</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax class = function (ctx) {
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { unwrap, isIdentifier } from 'sweet.js/helpers' for syntax;
+
+syntax class = function (ctx) {
   let name = ctx.next().value;
   let bodyCtx = ctx.next().value.inner();
 
@@ -402,7 +394,7 @@ var realTypeof = x === null ? "null" :
   let construct = #`function ${name} () {}`;
   let result = #``;
   for (let item of bodyCtx) {
-    if (item.isIdentifier('constructor')) {
+    if (isIdentifier(item) &amp;&amp; unwrap(item).value === 'constructor') {
       construct = #`
         function ${name} ${bodyCtx.next().value}
         ${bodyCtx.next().value}

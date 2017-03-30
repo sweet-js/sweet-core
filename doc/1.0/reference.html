@@ -31,39 +31,31 @@
 <li><a href="#_transformer_context">4.1. Transformer Context</a></li>
 </ul>
 </li>
-<li><a href="#_syntax_objects">5. Syntax Objects</a>
+<li><a href="#_syntax_objects">5. Syntax Objects</a></li>
+<li><a href="#_helpers">6. Helpers</a>
 <ul class="sectlevel2">
-<li><a href="#_val">5.1. val</a></li>
-<li><a href="#_linenumber">5.2. lineNumber</a></li>
-<li><a href="#_inner">5.3. inner</a></li>
-<li><a href="#_from">5.4. from</a></li>
-<li><a href="#_fromnull">5.5. fromNull</a></li>
-<li><a href="#_fromnumber">5.6. fromNumber</a></li>
-<li><a href="#_fromstring">5.7. fromString</a></li>
-<li><a href="#_frompunctuator">5.8. fromPunctuator</a></li>
-<li><a href="#_fromkeyword">5.9. fromKeyword</a></li>
-<li><a href="#_fromidentifier">5.10. fromIdentifier</a></li>
-<li><a href="#_fromregularexpression">5.11. fromRegularExpression</a></li>
-<li><a href="#_frombraces">5.12. fromBraces</a></li>
-<li><a href="#_frombrackets">5.13. fromBrackets</a></li>
-<li><a href="#_fromparens">5.14. fromParens</a></li>
-<li><a href="#_isidentifier">5.15. isIdentifier</a></li>
-<li><a href="#_isbooleanliteral">5.16. isBooleanLiteral</a></li>
-<li><a href="#_isnullliteral">5.17. isNullLiteral</a></li>
-<li><a href="#_isnumericliteral">5.18. isNumericLiteral</a></li>
-<li><a href="#_isstringliteral">5.19. isStringLiteral</a></li>
-<li><a href="#_iskeyword">5.20. isKeyword</a></li>
-<li><a href="#_ispunctuator">5.21. isPunctuator</a></li>
-<li><a href="#_isregularexpression">5.22. isRegularExpression</a></li>
-<li><a href="#_istemplate">5.23. isTemplate</a></li>
-<li><a href="#_isdelimiter">5.24. isDelimiter</a></li>
-<li><a href="#_isparens">5.25. isParens</a></li>
-<li><a href="#_isbrackets">5.26. isBrackets</a></li>
-<li><a href="#_isbraces">5.27. isBraces</a></li>
-<li><a href="#_issyntaxtemplate">5.28. isSyntaxTemplate</a></li>
+<li><a href="#_unwrap">6.1. unwrap</a></li>
+<li><a href="#_fromidentifier">6.2. fromIdentifier</a></li>
+<li><a href="#_fromnumber">6.3. fromNumber</a></li>
+<li><a href="#_fromstring">6.4. fromString</a></li>
+<li><a href="#_frompunctuator">6.5. fromPunctuator</a></li>
+<li><a href="#_fromkeyword">6.6. fromKeyword</a></li>
+<li><a href="#_frombraces">6.7. fromBraces</a></li>
+<li><a href="#_frombrackets">6.8. fromBrackets</a></li>
+<li><a href="#_fromparens">6.9. fromParens</a></li>
+<li><a href="#_isidentifier">6.10. isIdentifier</a></li>
+<li><a href="#_isnumericliteral">6.11. isNumericLiteral</a></li>
+<li><a href="#_isstringliteral">6.12. isStringLiteral</a></li>
+<li><a href="#_iskeyword">6.13. isKeyword</a></li>
+<li><a href="#_ispunctuator">6.14. isPunctuator</a></li>
+<li><a href="#_istemplate">6.15. isTemplate</a></li>
+<li><a href="#_issyntaxtemplate">6.16. isSyntaxTemplate</a></li>
+<li><a href="#_isparens">6.17. isParens</a></li>
+<li><a href="#_isbrackets">6.18. isBrackets</a></li>
+<li><a href="#_isbraces">6.19. isBraces</a></li>
 </ul>
 </li>
-<li><a href="#_syntax_templates">6. Syntax Templates</a></li>
+<li><a href="#_syntax_templates">7. Syntax Templates</a></li>
 </ul>
 </div>
 </div>
@@ -343,26 +335,80 @@ m 30 + 42 + 66</code></pre>
 <h2 id="_syntax_objects">5. Syntax Objects</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p>Syntax objects represent the syntax from the source program. Syntax objects have a number of methods to inspect their contents and construct new syntax object.</p>
+<p>Syntax objects represent the syntax from the source program. While syntax objects have internal structure, that structure is intentionally undocumented and subject to change (in fact, major change to syntax objects is planned for the next major version).</p>
 </div>
-<div class="sect2">
-<h3 id="_val">5.1. val</h3>
+<div class="paragraph">
+<p>Introspection and manipulation functions are provided in the helpers library documented in the following section.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_helpers">6. Helpers</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>A library of helper functions for introspecting syntax objects is provided at <code>'sweet.js/helpers'</code>. To use inside a macro definition, import <code>for syntax</code>.</p>
+</div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.val() -&gt; string?</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { isStringLiteral } from 'sweet.js/helpers' for syntax;
+
+syntax m = ctx =&gt; {
+  return isStringLiteral(ctx.next().value) ? #`'a string'` : #`'not a string'`;
+}
+m 'foo'</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre>'a string'</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Returns a nullable value representing the textual value of the syntax object. For example, the <code>.val()</code> of the identifier <code>foo</code> is the string <code>"foo"</code>. Some syntax objects (in particular delimiters) do not have a reasonable representation of their syntax and so <code>.val()</code> returns <code>null</code> in these cases.</p>
+<p>The helper library contains the following kinds of functions:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>is*</code> functions that test the type of a syntax object (e.g. <code>isIdentifier</code> for identifiers and <code>isStringLiteral</code> for strings)</p>
+</li>
+<li>
+<p><code>from*</code> functions that create new syntax objects from primitive data</p>
+</li>
+<li>
+<p>an <code>unwrap</code> function that returns the primitive representation of a syntax object</p>
+</li>
+</ul>
+</div>
+<div class="sect2">
+<h3 id="_unwrap">6.1. unwrap</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">unwrap(stx: any): {
+  value?: string | number | List&lt;Syntax&gt;
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the case of a flat syntax object (i.e. not delimiters), <code>unwrap</code> returns an object with a single <code>value</code> property that holds the primitive representation of that piece of syntax (a string for string literals, keywords, and identifiers or a number for numeric literals).</p>
+</div>
+<div class="paragraph">
+<p>For syntax objects that represent delimiters, <code>unwrap</code> returns an object who&#8217;s <code>value</code> property is a list of the syntax objects inside the delimiter.</p>
+</div>
+<div class="paragraph">
+<p>For all other inputs <code>unwrap</code> returns the empty object.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { unwrap } from 'sweet.js/helpers' for syntax;
+
+syntax m = ctx =&gt; {
   let id = ctx.next().value;
   let delim = ctx.next().value;
 
-  id.val() === 'foo';   // true
-  delim.val() === null; // true
+  unwrap(id).value === 'foo';  // true
+  let num = unwrap(delim).value.get(1);
+  unwrap(num).value === 1;     // true
   // ...
 }
 m foo (1)</code></pre>
@@ -370,87 +416,32 @@ m foo (1)</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_linenumber">5.2. lineNumber</h3>
+<h3 id="_fromidentifier">6.2. fromIdentifier</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.lineNumber() -&gt; number</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromIdentifier(other: Syntax, s: string): Syntax</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Returns the original line number for this syntax object.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_inner">5.3. inner</h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.inner() -&gt; TransformerContext</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>If the syntax object is a delimiter, returns a <a href="#context">transformer context</a> iterator into the delimiter. Otherwise, throw an exception.</p>
+<p>Create a new identifier syntax object named <code>s</code> using the lexical context from <code>other</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
-  let delim = ctx.next().value;
-  var arr = [];
-  for (let item of delim.inner()) {
-    arr.push(item);
-  }
-  return #`[${arr}]`;
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { fromIdentifier } from 'sweet.js/helpers' for syntax;
+
+syntax m = ctx =&gt; {
+  let dummy = #`dummy`.get(0);
+
+  return #`${fromIdentifier(dummy, 'bar')}`;
 }
-m {
-  1, 2, 3
-}</code></pre>
+m foo</code></pre>
 </div>
 </div>
-</div>
-<div class="sect2">
-<h3 id="_from">5.4. from</h3>
 <div class="listingblock">
+<div class="title">(expansion)</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.from(type, value) -&gt; Syntax
-  type : string
-  value : any</code></pre>
+<pre>bar</pre>
 </div>
-</div>
-<div class="paragraph">
-<p>Construct a new syntax object from the provided <code>type</code> and <code>value</code> using the instance syntax object&#8217;s lexical context. Valid types are:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><code>'null'</code></p>
-</li>
-<li>
-<p><code>'number'</code></p>
-</li>
-<li>
-<p><code>'string'</code></p>
-</li>
-<li>
-<p><code>'punctuator'</code></p>
-</li>
-<li>
-<p><code>'keyword'</code></p>
-</li>
-<li>
-<p><code>'identifier'</code></p>
-</li>
-<li>
-<p><code>'regularExpression'</code></p>
-</li>
-<li>
-<p><code>'braces'</code></p>
-</li>
-<li>
-<p><code>'brackets'</code></p>
-</li>
-<li>
-<p><code>'parens'</code></p>
-</li>
-</ul>
 </div>
 <div class="admonitionblock note">
 <table>
@@ -460,17 +451,7 @@ m {
 </td>
 <td class="content">
 <div class="paragraph">
-<p>Be careful which syntax object you use to create a new syntax object via <code>from*</code> since the new object will share the original&#8217;s lexical context. In most cases you will want to create a "dummy" syntax object inside a macro definition and then use that as a base to create new objects. For example,</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax to_str = ctx =&gt; {
-  let dummy = #`dummy`.get(0);
-  let arg = ctx.next().value;
-  return #`${dummy.fromString(arg.val())}`;
-}
-to_str foo</code></pre>
-</div>
+<p>Be careful which syntax object you use to create a new syntax object via <code>fromIdentifier</code> and related functions since the new object will share the original&#8217;s lexical context. In most cases you will want to create a "dummy" syntax object inside a macro definition and then use that as a base to create new objects. By using a dummy syntax object you are using the scope of the macro definition; usually the macro definition scope is what you want.</p>
 </div>
 <div class="paragraph">
 <p>You may be tempted to reuse the syntax object provided by <code>ctx.name()</code> but resist that feeling! The <code>ctx.name()</code> syntax object comes from the macro call-site and so any syntax objects created from it will carry the lexical context of the call-site. Sometimes this is what you want, but most of the time this breaks hygiene!</p>
@@ -481,47 +462,23 @@ to_str foo</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_fromnull">5.5. fromNull</h3>
+<h3 id="_fromnumber">6.3. fromNumber</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromNull() -&gt; Syntax</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromNumber(other: Syntax, n: number): Syntax</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Creates a null literal with the instance syntax object&#8217;s lexical context.</p>
+<p>Create a new numeric literal syntax object with the value <code>n</code> using the lexical context from <code>other</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { fromNumber } from 'sweet.js/helpers' for syntax;
+
+syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
-  return #`${dummy.fromNull()}`;
-}
-m</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">(expansion)</div>
-<div class="content">
-<pre>null</pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_fromnumber">5.6. fromNumber</h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromNumber(value) -&gt; Syntax
-  value : number</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Creates a numeric literal matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
-  let dummy = #`dummy`.get(0);
-  return #`${dummy.fromNumber(1)}`;
+
+  return #`${fromNumber(dummy, 1)}`;
 }
 m</code></pre>
 </div>
@@ -534,22 +491,23 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_fromstring">5.7. fromString</h3>
+<h3 id="_fromstring">6.4. fromString</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromString(value) -&gt; Syntax
-  value : string</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromString(other: Syntax, s: string): Syntax</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Creates a string literal matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
+<p>Create a new string literal syntax object with the value <code>s</code> using the lexical context from <code>other</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax to_str = ctx =&gt; {
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { unwrap, fromString } from 'sweet.js/helpers' for syntax;
+
+syntax to_str = ctx =&gt; {
   let dummy = #`dummy`.get(0);
-  let arg = ctx.next().value;
-  return #`${dummy.fromString(arg.val())}`;
+  let arg = unwrap(ctx.next().value).value;
+  return #`${fromString(dummy, arg)}`;
 }
 to_str foo</code></pre>
 </div>
@@ -562,21 +520,22 @@ to_str foo</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_frompunctuator">5.8. fromPunctuator</h3>
+<h3 id="_frompunctuator">6.5. fromPunctuator</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromPunctuator(value) -&gt; Syntax
-  value : string</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromPunctuator(other: Syntax, punc: string): Syntax</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Creates a punctuator (e.g. <code>+</code>, <code>==</code>, etc.) matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
+<p>Creates a punctuator (e.g. <code>+</code>, <code>==</code>, etc.) from its string representation <code>punc</code> using the lexical context from <code>other</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { fromPunctuator } from 'sweet.js/helpers' for syntax;
+
+syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
-  return #`1 ${dummy.fromPunctuator('+')} 1`;
+  return #`1 ${fromPunctuator(dummy, '+')} 1`;
 }
 m</code></pre>
 </div>
@@ -589,15 +548,14 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_fromkeyword">5.9. fromKeyword</h3>
+<h3 id="_fromkeyword">6.6. fromKeyword</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromKeyword(value) -&gt; Syntax
-  value : string</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromKeyword(other: Syntax, kwd: string): Syntax</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Creates a keyword matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
+<p>Create a new keyword syntax object with the value <code>kwd</code> using the lexical context from <code>other</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -616,77 +574,23 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_fromidentifier">5.10. fromIdentifier</h3>
+<h3 id="_frombraces">6.7. fromBraces</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromIdentifier(value) -&gt; Syntax
-  value : string</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromBraces(other: Syntax, inner: List&lt;Syntax&gt;): Syntax</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Creates a identifier matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
+<p>Creates a curly brace delimiter with inner syntax objects <code>inner</code> using the lexical context from <code>other</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
-  let dummy = #`dummy`.get(0);
-  let arg = ctx.next().value;
-  return #`${dummy.fromIdentifier(arg.val())}`;
-}
-m foo</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">(expansion)</div>
-<div class="content">
-<pre>foo</pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_fromregularexpression">5.11. fromRegularExpression</h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromRegularExpression(value) -&gt; Syntax
-  value : string</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Creates a regular expression literal matching <code>value</code> with the instance syntax object&#8217;s lexical context.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
-  let dummy = #`dummy`.get(0);
-  return #`${dummy.fromRegularExpression('[a-zA-Z]*')}`;
-}
-m</code></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="title">(expansion)</div>
-<div class="content">
-<pre>/[a-zA-Z]/</pre>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_frombraces">5.12. fromBraces</h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromBraces(inner) -&gt; Syntax
-  inner : List(Syntax)</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Creates a curly brace delimiter with inner syntax objects <code>inner</code> with the instance syntax object&#8217;s lexical context.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { fromBraces } from 'sweet.js/helpers' for syntax;
+
+syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
   let block = #`let x = 1;`;
-  return #`${dummy.fromBraces(block)}`;
+  return #`${fromBraces(dummy, block)}`;
 }
 m</code></pre>
 </div>
@@ -701,22 +605,21 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_frombrackets">5.13. fromBrackets</h3>
+<h3 id="_frombrackets">6.8. fromBrackets</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromBrackets(inner) -&gt; Syntax
-  inner : List(Syntax)</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromBrackets(other: Syntax, inner: List&lt;Syntax&gt;): Syntax</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Creates a square bracket delimiter with inner syntax objects <code>inner</code> with the instance syntax object&#8217;s lexical context.</p>
+<p>Creates a bracket delimiter with inner syntax objects <code>inner</code> using the lexical context from <code>other</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
   let elements = #`1, 2, 3`;
-  return #`${dummy.fromBrackets(elements)}`;
+  return #`${fromBrackets(dummy, elements)}`;
 }
 m</code></pre>
 </div>
@@ -729,22 +632,23 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_fromparens">5.14. fromParens</h3>
+<h3 id="_fromparens">6.9. fromParens</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.fromParens(inner) -&gt; Syntax
-  inner : List(Syntax)</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromParens(other: Syntax, inner: List&lt;Syntax&gt;): Syntax</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Creates a parenthesis delimiter with inner syntax objects <code>inner</code> with the instance syntax object&#8217;s lexical context.</p>
+<p>creates a paren delimiter with inner syntax objects <code>inner</code> using the lexical context from <code>other</code>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { fromParens } from 'sweet.js/helpers' for syntax;
+
+syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
   let expr = #`5 * 5`;
-  return #`1 + ${dummy.fromParens(expr)}`;
+  return #`1 + ${fromParens(dummy, expr)}`;
 }
 m</code></pre>
 </div>
@@ -757,10 +661,10 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_isidentifier">5.15. isIdentifier</h3>
+<h3 id="_isidentifier">6.10. isIdentifier</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isIdentifier() -&gt; boolean</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">isIdentifier(s: Syntax): boolean</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -768,32 +672,10 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_isbooleanliteral">5.16. isBooleanLiteral</h3>
+<h3 id="_isnumericliteral">6.11. isNumericLiteral</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isBooleanLiteral() -&gt; boolean</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Returns true if the syntax object is a boolean literal.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_isnullliteral">5.17. isNullLiteral</h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isNullLiteral() -&gt; boolean</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Returns true if the syntax object is a null literal.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_isnumericliteral">5.18. isNumericLiteral</h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isNumericLiteral() -&gt; boolean</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">isNumericLiteral(s: Syntax): boolean</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -801,10 +683,10 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_isstringliteral">5.19. isStringLiteral</h3>
+<h3 id="_isstringliteral">6.12. isStringLiteral</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isStringLiteral() -&gt; boolean</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">isStringLiteral(s: Syntax): boolean</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -812,10 +694,10 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_iskeyword">5.20. isKeyword</h3>
+<h3 id="_iskeyword">6.13. isKeyword</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isKeyword() -&gt; boolean</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">isKeyword(s: Syntax): boolean</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -823,10 +705,10 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_ispunctuator">5.21. isPunctuator</h3>
+<h3 id="_ispunctuator">6.14. isPunctuator</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isPunctuator() -&gt; boolean</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">isPunctuator(s: Syntax): boolean</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -834,21 +716,10 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_isregularexpression">5.22. isRegularExpression</h3>
+<h3 id="_istemplate">6.15. isTemplate</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isRegularExpression() -&gt; boolean</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Returns true if the syntax object is a regular expression literal.</p>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_istemplate">5.23. isTemplate</h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isTemplate() -&gt; boolean</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">isTemplate(s: Syntax): boolean</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -856,21 +727,21 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_isdelimiter">5.24. isDelimiter</h3>
+<h3 id="_issyntaxtemplate">6.16. isSyntaxTemplate</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isDelimiter() -&gt; boolean</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">isSyntaxTemplate(s: Syntax): boolean</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Returns true if the syntax object is a delimiter.</p>
+<p>Returns true if the syntax object is a syntax template literal.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_isparens">5.25. isParens</h3>
+<h3 id="_isparens">6.17. isParens</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isParens() -&gt; boolean</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">isParens(s: Syntax): boolean</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -878,10 +749,10 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_isbrackets">5.26. isBrackets</h3>
+<h3 id="_isbrackets">6.18. isBrackets</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isBrackets() -&gt; boolean</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">isBrackets(s: Syntax): boolean</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -889,31 +760,20 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_isbraces">5.27. isBraces</h3>
+<h3 id="_isbraces">6.19. isBraces</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isBraces() -&gt; boolean</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">isBraces(s: Syntax): boolean</code></pre>
 </div>
 </div>
 <div class="paragraph">
 <p>Returns true if the syntax object is a braces delimiter (e.g. <code>{ &#8230;&#8203; }</code>).</p>
 </div>
 </div>
-<div class="sect2">
-<h3 id="_issyntaxtemplate">5.28. isSyntaxTemplate</h3>
-<div class="listingblock">
-<div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">Syntax.prototype.isSyntaxTemplate() -&gt; boolean</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Returns true if the syntax object is a syntax template.</p>
-</div>
-</div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="_syntax_templates">6. Syntax Templates</h2>
+<h2 id="_syntax_templates">7. Syntax Templates</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>Syntax templates construct a list of syntax objects from a literal representation using backtick (<code>#`foo bar baz`</code>). They are similar to ES2015 templates but with the special sweet.js specific <code>#</code> template tag.</p>
