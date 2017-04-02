@@ -436,7 +436,11 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandVariableDeclaration(term) {
-    if (term.kind === 'syntax' || term.kind === 'syntaxrec') {
+    if (
+      term.kind === 'syntax' ||
+      term.kind === 'syntaxrec' ||
+      term.kind === 'operator'
+    ) {
       return term;
     }
     return new T.VariableDeclaration({

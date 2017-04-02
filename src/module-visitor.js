@@ -151,7 +151,10 @@ export default class {
           });
         }
         let resolvedName = stx.resolve(phase);
-        store.set(resolvedName, new CompiletimeTransform(val));
+        store.set(
+          resolvedName,
+          new CompiletimeTransform({ type: 'syntax', f: val }),
+        );
       });
     });
   }

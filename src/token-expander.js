@@ -188,7 +188,11 @@ export default class TokenExpander extends ASTDispatcher {
   }
 
   registerVariableDeclaration(term: Term) {
-    if (term.kind === 'syntax' || term.kind === 'syntaxrec') {
+    if (
+      term.kind === 'syntax' ||
+      term.kind === 'syntaxrec' ||
+      term.kind === 'operator'
+    ) {
       return this.registerSyntaxDeclaration(term);
     }
     let red = new RegisterBindingsReducer(
@@ -208,7 +212,7 @@ export default class TokenExpander extends ASTDispatcher {
   }
 
   registerSyntaxDeclaration(term: Term) {
-    if (term.kind === 'syntax') {
+    if (term.kind === 'syntax' || term.kind === 'operator') {
       // syntax id^{a, b} = <init>^{a, b}
       // ->
       // syntaxrec id^{a,b,c} = function() { return <<id^{a}>> }
@@ -245,6 +249,7 @@ export default class TokenExpander extends ASTDispatcher {
     }
     // for syntax declarations we need to load the compiletime value
     // into the environment
+    let compiletimeType = term.kind === 'operator' ? 'operator' : 'syntax';
     return term.extend({
       declarators: term.declarators.map(decl => {
         // each compiletime value needs to be expanded with a fresh
@@ -269,7 +274,12 @@ export default class TokenExpander extends ASTDispatcher {
           this.context.phase,
           this.context.bindings,
           this.context.env,
-          val,
+          {
+            type: compiletimeType,
+            prec: decl.prec == null ? void 0 : decl.prec.val(),
+            assoc: decl.assoc == null ? void 0 : decl.assoc.val(),
+            f: val,
+          },
         );
         return decl.extend({ binding: decl.binding.reduce(red), init });
       }),

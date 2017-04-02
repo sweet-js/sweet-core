@@ -60,7 +60,11 @@ export default class extends Term.CloneReducer {
   }
 
   reduceVariableDeclarationStatement(t: Term, s: { declaration: any }) {
-    if (t.declaration.kind === 'syntax' || t.declaration.kind === 'syntaxrec') {
+    if (
+      t.declaration.kind === 'syntax' ||
+      t.declaration.kind === 'syntaxrec' ||
+      t.declaration.kind === 'operator'
+    ) {
       return new S.EmptyStatement();
     }
     return new S.VariableDeclarationStatement({
