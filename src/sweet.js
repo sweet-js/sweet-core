@@ -14,7 +14,7 @@ function compileModule(
   loader: SweetLoader,
   refererName?: string,
 ) {
-  return loader.compile(entryPath, refererName);
+  return loader.compile(entryPath, refererName, false);
 }
 
 export function parse(

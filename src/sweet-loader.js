@@ -109,7 +109,7 @@ export default class SweetLoader {
     if (src != null) {
       return src;
     }
-    let compiledModule = this.compileSource(source);
+    let compiledModule = this.compileSource(source, metadata);
     this.compiledCache.set(address.path, compiledModule);
     return compiledModule;
   }
@@ -144,8 +144,12 @@ export default class SweetLoader {
   }
 
   // skip instantiate
-  compile(entryPath: string, refererName?: string) {
-    let metadata = {};
+  compile(
+    entryPath: string,
+    refererName?: string,
+    enforceLangPragma?: boolean = true,
+  ) {
+    let metadata = { enforceLangPragma };
     let name = this.normalize(entryPath, refererName);
     let address = this.locate({ name, metadata });
     let source = this.fetch({ name, address, metadata });
@@ -164,7 +168,11 @@ export default class SweetLoader {
     return new Store({});
   }
 
-  compileSource(source: string) {
+  compileSource(source: string, metadata: {}) {
+    let directive = getLangDirective(source);
+    if (directive == null && metadata.enforceLangPragma) {
+      return new SweetModule(List.of());
+    }
     let stxl = this.read(source);
     let outScope = freshScope('outsideEdge');
     let inScope = freshScope('insideEdge0');
@@ -192,4 +200,13 @@ export default class SweetLoader {
       ),
     );
   }
+}
+
+const langDirectiveRegexp = /\s*('lang .*')/;
+function getLangDirective(source: string) {
+  let match = source.match(langDirectiveRegexp);
+  if (match) {
+    return match[1];
+  }
+  return null;
 }

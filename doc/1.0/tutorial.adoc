@@ -300,7 +300,7 @@ Now that you've created your sweet macros you probably want to share them! Sweet
 .es2015-macros.js
 [source, javascript]
 ----
-#lang "sweet.js"
+'lang sweet.js';
 export syntax class = function (ctx) {
   // ...
 }
@@ -323,7 +323,7 @@ class Droid {
 }
 ----
 
-The `#lang "sweet.js"` directive lets Sweet know that a module exports macros, so you need it in any module that has an `export syntax` in it. This directive allows Sweet to not bother doing a lot of unnecessary expansion work in modules that do not export syntax bindings. Eventually, this directive will be used for other things such as defining a base language.
+The `'lang sweet.js'` directive lets Sweet know that a module exports macros, so you need it in any module that has an `export syntax` in it. This directive allows Sweet to not bother doing a lot of unnecessary expansion work in modules that do not export syntax bindings. Eventually, this directive will be used for other things such as defining a base language.
 
 === Modules and Phasing
 
@@ -348,7 +348,7 @@ Sweet solves this problem by allowing you to import values for a particular phas
 .log.js
 [source, javascript]
 ----
-#lang 'sweet.js';
+'lang sweet.js';
 
 export function log(msg) {
   console.log(msg);
@@ -368,4 +368,4 @@ syntax m = ctx => {
 
 Adding `for syntax` to an import statement lets Sweet know that it needs to load the values being imported into the compiletime environment and make them available for macro definitions.
 
-NOTE: Importing for syntax is currently only supported for Sweet modules (i.e. those that begin with `#lang 'sweet.js'`). Support for non-Sweet modules is coming soon.
+NOTE: Importing for syntax is currently only supported for Sweet modules (i.e. those that begin with `'lang sweet.js'`). Support for non-Sweet modules is coming soon.
