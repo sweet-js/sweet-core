@@ -453,6 +453,9 @@ export default class TermExpander extends ASTDispatcher {
     let lookahead = enf.peek();
     let t = enf.enforestExpression();
     if (t == null || enf.rest.size > 0) {
+      if (enf.rest.size === 0) {
+        throw enf.createError(')', 'unexpected token');
+      }
       throw enf.createError(lookahead, 'unexpected syntax');
     }
     return this.expand(t);
