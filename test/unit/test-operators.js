@@ -13,6 +13,17 @@ output = neg 1`,
 );
 
 test(
+  'should handle basic postfix custom operators',
+  evalWithOutput,
+  `
+operator neg postfix 1 = (left) => {
+  return #\`-\${left}\`;
+}
+output = 1 neg`,
+  -1,
+);
+
+test(
   'should handle basic binary custom operators',
   evalWithOutput,
   `

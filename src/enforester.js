@@ -1331,14 +1331,18 @@ export class Enforester {
       return this.enforestLeftHandSideExpression({ allowCall: true });
     }
 
+    // postfix unary
+    if (
+      this.term &&
+      (this.isUpdateOperator(lookahead) ||
+        this.isCustomPostfixOperator(lookahead))
+    ) {
+      return this.enforestUpdateExpression();
+    }
+
     // $x:id `...`
     if (this.term && this.isTemplate(lookahead)) {
       return this.enforestTemplateLiteral();
-    }
-
-    // postfix unary
-    if (this.term && this.isUpdateOperator(lookahead)) {
-      return this.enforestUpdateExpression();
     }
 
     // $l:expr $op:binaryOperator $r:expr
@@ -1983,12 +1987,25 @@ export class Enforester {
   }
 
   enforestUpdateExpression() {
-    let operator = this.matchUnaryOperator();
-
+    const lookahead = this.peek();
+    const leftTerm = this.term;
+    if (!lookahead) {
+      throw this.createError(lookahead, 'assertion failure: operator is null');
+    }
+    let operator = this.matchRawSyntax();
+    if (this.isCompiletimeTransform(lookahead)) {
+      const operatorTransform = this.getFromCompiletimeEnvironment(operator);
+      if (!operatorTransform || operatorTransform.value.type !== 'operator') {
+        throw this.createError(lookahead, 'unexpected transform');
+      }
+      let result = operatorTransform.value.f.call(null, leftTerm);
+      let enf = new Enforester(result, List(), this.context);
+      return enf.enforestExpressionLoop();
+    }
     return new T.UpdateExpression({
       isPrefix: false,
       operator: operator.val(),
-      operand: this.transformDestructuring(this.term),
+      operand: this.transformDestructuring(leftTerm),
     });
   }
 
@@ -2011,8 +2028,8 @@ export class Enforester {
         return enf.enforestExpressionLoop();
       };
     } else {
-      // all builtins are 14
-      prec = 14;
+      // all builtins are 16
+      prec = 16;
       combine = rightTerm => {
         if (operator.val() === '++' || operator.val() === '--') {
           return new T.UpdateExpression({
@@ -2317,6 +2334,14 @@ export class Enforester {
     if (this.isCompiletimeTransform(obj)) {
       let t = this.getFromCompiletimeEnvironment(obj.value);
       return t && t.value.assoc === 'prefix';
+    }
+    return false;
+  }
+
+  isCustomPostfixOperator(obj: Term) {
+    if (this.isCompiletimeTransform(obj)) {
+      let t = this.getFromCompiletimeEnvironment(obj.value);
+      return t && t.value.assoc === 'postfix';
     }
     return false;
   }
