@@ -1763,7 +1763,8 @@ export class Enforester {
         }
         expression = enf.enforestExpressionLoop();
         if (expression == null) {
-          throw enf.createError(lookahead, 'expecting expression');
+          // this was a macro that expanded to nothing
+          continue;
         }
         if (enf.rest.size > 0 && !enf.isPunctuator(enf.peek(), ',')) {
           throw enf.createError(enf.peek(), 'unexpected token');
