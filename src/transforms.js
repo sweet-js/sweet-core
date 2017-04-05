@@ -27,6 +27,7 @@ export class DefaultTransform {}
 export class DebuggerTransform {}
 export class SyntaxrecDeclTransform {}
 export class SyntaxDeclTransform {}
+export class OperatorDeclTransform {}
 export class ReturnStatementTransform {}
 export class ModuleNamespaceTransform {
   namespace: Syntax;

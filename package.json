@@ -59,7 +59,7 @@
     "shift-js": "^0.2.1",
     "shift-reducer": "^3.0.2",
     "shift-spidermonkey-converter": "^1.0.0",
-    "sweet-spec": "3.0.0",
+    "sweet-spec": "3.1.0-pre.0",
     "transit-js": "^0.8.846",
     "utils-dirname": "^1.0.0",
     "yargs": "^4.3.2"
