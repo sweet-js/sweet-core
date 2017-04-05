@@ -76,7 +76,7 @@ export default class MacroContext {
 
   name() {
     const { name } = privateData.get(this);
-    return name;
+    return new T.RawSyntax({ value: name });
   }
 
   contextify(delim: any) {

@@ -4,10 +4,10 @@ import Syntax from '../../src/syntax';
 import { makeEnforester } from '../assertions';
 import { List } from 'immutable';
 
-test.skip('a macro context should have a name', t => {
+test('a macro context should have a name', t => {
   let enf = makeEnforester('a');
   let ctx = new MacroContext(enf, Syntax.fromIdentifier('foo'), {});
-  t.true(ctx.name().val() === 'foo');
+  t.true(ctx.name().value.val() === 'foo');
 });
 
 test('a macro context should be resettable', t => {
