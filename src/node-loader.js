@@ -5,13 +5,16 @@ import { dirname } from 'path';
 import resolve from 'resolve';
 import vm from 'vm';
 import Store from './store';
+import type { LoaderOptions } from './sweet-loader';
+
+type NodeLoaderOptions = LoaderOptions & { extensions?: Array<string> };
 
 export default class NodeLoader extends SweetLoader {
-  extensions: ?(string[]);
+  extensions: Array<string>;
 
-  constructor(baseDir: string, extensions?: string[]) {
-    super(baseDir);
-    this.extensions = extensions;
+  constructor(baseDir: string, options: NodeLoaderOptions = {}) {
+    super(baseDir, options);
+    this.extensions = options.extensions || [];
   }
 
   normalize(name: string, refererName?: string, refererAddress?: string) {

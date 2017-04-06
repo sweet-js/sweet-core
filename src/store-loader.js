@@ -11,7 +11,7 @@ export default class extends SweetLoader {
     store: Map<string, string>,
     noBabel: boolean = false,
   ) {
-    super(baseDir, noBabel);
+    super(baseDir, { noBabel });
     this.store = store;
   }
 

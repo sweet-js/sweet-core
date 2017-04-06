@@ -26,16 +26,23 @@ export type Context = {
   store: Store,
 };
 
+export type LoaderOptions = {
+  noBabel?: boolean,
+  logging?: boolean,
+};
+
 export default class SweetLoader {
   sourceCache: Map<string, string>;
   compiledCache: Map<string, SweetModule>;
   context: any;
   baseDir: string;
+  logging: boolean;
 
-  constructor(baseDir: string, noBabel: boolean = false) {
+  constructor(baseDir: string, options?: LoaderOptions = {}) {
     this.sourceCache = new Map();
     this.compiledCache = new Map();
     this.baseDir = baseDir;
+    this.logging = options.logging || false;
 
     let bindings = new BindingMap();
     let templateMap = new Map();
@@ -47,7 +54,7 @@ export default class SweetLoader {
       getTemplateIdentifier: () => ++tempIdent,
       loader: this,
       transform: c => {
-        if (noBabel) {
+        if (options.noBabel) {
           return {
             code: c,
           };
@@ -149,7 +156,10 @@ export default class SweetLoader {
     refererName?: string,
     enforceLangPragma?: boolean = true,
   ) {
-    let metadata = { enforceLangPragma };
+    let metadata = {
+      enforceLangPragma,
+      entryPath,
+    };
     let name = this.normalize(entryPath, refererName);
     let address = this.locate({ name, metadata });
     let source = this.fetch({ name, address, metadata });
@@ -168,9 +178,10 @@ export default class SweetLoader {
     return new Store({});
   }
 
-  compileSource(source: string, metadata: {}) {
+  compileSource(source: string, metadata: any) {
     let directive = getLangDirective(source);
     if (directive == null && metadata.enforceLangPragma) {
+      if (this.logging) console.log(`skipping module ${metadata.entryPath}`);
       return new SweetModule(List.of());
     }
     let stxl = this.read(source);
