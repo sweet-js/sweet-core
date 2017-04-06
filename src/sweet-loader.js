@@ -26,16 +26,23 @@ export type Context = {
   store: Store,
 };
 
+export type LoaderOptions = {
+  noBabel?: boolean,
+  logging?: boolean,
+};
+
 export default class SweetLoader {
   sourceCache: Map<string, string>;
   compiledCache: Map<string, SweetModule>;
   context: any;
   baseDir: string;
+  logging: boolean;
 
-  constructor(baseDir: string, noBabel: boolean = false) {
+  constructor(baseDir: string, options?: LoaderOptions = {}) {
     this.sourceCache = new Map();
     this.compiledCache = new Map();
     this.baseDir = baseDir;
+    this.logging = options.logging || false;
 
     let bindings = new BindingMap();
     let templateMap = new Map();
@@ -47,7 +54,7 @@ export default class SweetLoader {
       getTemplateIdentifier: () => ++tempIdent,
       loader: this,
       transform: c => {
-        if (noBabel) {
+        if (options.noBabel) {
           return {
             code: c,
           };
@@ -109,7 +116,7 @@ export default class SweetLoader {
     if (src != null) {
       return src;
     }
-    let compiledModule = this.compileSource(source);
+    let compiledModule = this.compileSource(source, metadata);
     this.compiledCache.set(address.path, compiledModule);
     return compiledModule;
   }
@@ -144,8 +151,15 @@ export default class SweetLoader {
   }
 
   // skip instantiate
-  compile(entryPath: string, refererName?: string) {
-    let metadata = {};
+  compile(
+    entryPath: string,
+    refererName?: string,
+    enforceLangPragma?: boolean = true,
+  ) {
+    let metadata = {
+      enforceLangPragma,
+      entryPath,
+    };
     let name = this.normalize(entryPath, refererName);
     let address = this.locate({ name, metadata });
     let source = this.fetch({ name, address, metadata });
@@ -164,7 +178,12 @@ export default class SweetLoader {
     return new Store({});
   }
 
-  compileSource(source: string) {
+  compileSource(source: string, metadata: any) {
+    let directive = getLangDirective(source);
+    if (directive == null && metadata.enforceLangPragma) {
+      if (this.logging) console.log(`skipping module ${metadata.entryPath}`);
+      return new SweetModule(List.of());
+    }
     let stxl = this.read(source);
     let outScope = freshScope('outsideEdge');
     let inScope = freshScope('insideEdge0');
@@ -192,4 +211,13 @@ export default class SweetLoader {
       ),
     );
   }
+}
+
+const langDirectiveRegexp = /\s*('lang .*')/;
+function getLangDirective(source: string) {
+  let match = source.match(langDirectiveRegexp);
+  if (match) {
+    return match[1];
+  }
+  return null;
 }

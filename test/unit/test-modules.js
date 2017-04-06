@@ -7,7 +7,7 @@ test(
   evalWithStore,
   {
     './m.js': `
-#lang "sweet.js";
+'lang sweet.js';
 export syntax m = function (ctx) {
   return #\`1\`;
 }`,
@@ -24,7 +24,7 @@ test(
   evalWithStore,
   {
     './num.js': `
-#lang 'base';
+'lang sweet.js';
 export var n = 1;`,
 
     'main.js': `
@@ -46,7 +46,7 @@ test(
   evalWithStore,
   {
     './id.js': `
-    #lang 'base';
+    'lang sweet.js';
     export var id = function (x) {
       return x;
     }
@@ -68,7 +68,7 @@ test(
   evalWithStore,
   {
     './id.js': `
-    #lang 'base';
+    'lang sweet.js';
     export function id(x) {
       return x;
     }
@@ -90,7 +90,7 @@ test(
   evalWithStore,
   {
     './id.js': `
-    #lang 'base';
+    'lang sweet.js';
     export syntax m = function (ctx) {
       return #\`1\`;
     }
@@ -113,7 +113,7 @@ test(
   evalWithStore,
   {
     './id.js': `
-    #lang 'base';
+    'lang sweet.js';
     syntax n = ctx => #\`2\`;
 
     export syntax m = function (ctx) {
@@ -141,6 +141,7 @@ test(
   evalWithStore,
   {
     './mod.js': `
+'lang sweet.js';
 function id(x) { return x; }
 export { id }
 `,
@@ -160,6 +161,7 @@ test(
   evalWithStore,
   {
     './mod.js': `
+'lang sweet.js';
 function id(x) { return x; }
 export { id as di }
 `,
@@ -179,6 +181,7 @@ test(
   evalWithStore,
   {
     './mod.js': `
+'lang sweet.js';
 export default function id(x) { return x; }
 `,
     'main.js': `
@@ -197,6 +200,7 @@ test(
   evalWithStore,
   {
     './mod.js': `
+'lang sweet.js';
 export function id(x) { return x; }`,
     'main.js': `
 import * as M from './mod.js' for syntax;
@@ -213,9 +217,11 @@ test(
   evalWithStore,
   {
     './a.js': `
+'lang sweet.js';
 export function f(x) { return x; }
   `,
     './mod.js': `
+'lang sweet.js';
 import { f } from './a.js';
 export function id(x) { return f(x); }`,
     'main.js': `
