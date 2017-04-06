@@ -27,9 +27,11 @@ class BrowserStoreLoader extends StoreLoader {
   }
 }
 
-export function compile(source) {
+export function compile(source, helpers) {
   let s = new Map();
   s.set('main.js', source);
+  s.set('sweet.js/helpers.js', helpers);
+  s.set('sweet.js/helpers', helpers);
   let loader = new BrowserStoreLoader('.', s);
   return sweetCompile('main.js', loader);
 }

@@ -14,7 +14,7 @@ requirejs.config({
     }
 });
 
-require(["./sweet", "./source-map", 'underscore', "./rx.jquery.min", "./rx.dom.compat.min"], function (sweet,  srcmap, _, Rx) {
+require(["./sweet", "./source-map", 'underscore', "./rx.jquery.min", "text!./helpers.js", "./rx.dom.compat.min"], function (sweet,  srcmap, _, Rx, helpers) {
 
 srcmap = srcmap || sourceMap;
 /**
@@ -572,13 +572,7 @@ function compileFull(editor, output, readableNames, highlight, cursor) {
 
         observer.onNext([
             editor, output, highlight,
-            sweet.compile(code, {
-                cwd: '.',
-                sourceMap: highlight,
-                filename: highlight && "test.js" || undefined,
-                readableNames: readableNames,
-                log: highlight && [] || undefined
-            })
+            sweet.compile(code, helpers)
           ]);
         observer.onCompleted();
     });
