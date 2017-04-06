@@ -446,7 +446,7 @@ Droid.prototype.rollWithIt = function(it) {
 <div class="listingblock">
 <div class="title">es2015-macros.js</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">#lang "sweet.js"
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">'lang sweet.js';
 export syntax class = function (ctx) {
   // ...
 }</code></pre>
@@ -470,7 +470,7 @@ class Droid {
 </div>
 </div>
 <div class="paragraph">
-<p>The <code>#lang "sweet.js"</code> directive lets Sweet know that a module exports macros, so you need it in any module that has an <code>export syntax</code> in it. This directive allows Sweet to not bother doing a lot of unnecessary expansion work in modules that do not export syntax bindings. Eventually, this directive will be used for other things such as defining a base language.</p>
+<p>The <code>'lang sweet.js'</code> directive lets Sweet know that a module exports macros, so you need it in any module that has an <code>export syntax</code> in it. This directive allows Sweet to not bother doing a lot of unnecessary expansion work in modules that do not export syntax bindings. Eventually, this directive will be used for other things such as defining a base language.</p>
 </div>
 <div class="sect2">
 <h3 id="_modules_and_phasing">8.1. Modules and Phasing</h3>
@@ -499,7 +499,7 @@ syntax m = ctx =&gt; {
 <div class="listingblock">
 <div class="title">log.js</div>
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">#lang 'sweet.js';
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">'lang sweet.js';
 
 export function log(msg) {
   console.log(msg);
@@ -527,7 +527,7 @@ syntax m = ctx =&gt; {
 <i class="fa icon-note" title="Note"></i>
 </td>
 <td class="content">
-Importing for syntax is currently only supported for Sweet modules (i.e. those that begin with <code>#lang 'sweet.js'</code>). Support for non-Sweet modules is coming soon.
+Importing for syntax is currently only supported for Sweet modules (i.e. those that begin with <code>'lang sweet.js'</code>). Support for non-Sweet modules is coming soon.
 </td>
 </tr>
 </table>
