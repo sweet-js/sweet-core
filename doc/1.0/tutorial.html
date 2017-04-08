@@ -35,6 +35,7 @@
 <li><a href="#_modules_and_phasing">8.1. Modules and Phasing</a></li>
 </ul>
 </li>
+<li><a href="#_sweet_operators">9. Sweet Operators</a></li>
 </ul>
 </div>
 </div>
@@ -532,6 +533,44 @@ Importing for syntax is currently only supported for Sweet modules (i.e. those t
 </tr>
 </table>
 </div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_sweet_operators">9. Sweet Operators</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In addition to the macros we&#8217;ve seen so far, Sweet allows you to define custom operators. Custom operators are different from macros in that you can specify the precedence and associativity but you can&#8217;t match arbitrary syntax; the operator definition is invoked with fully expanded expressions for its operands.</p>
+</div>
+<div class="paragraph">
+<p>Operators are defined via the <code>operator</code> keyword:</p>
+</div>
+<div class="listingblock">
+<div class="title">operators</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">operator &gt;&gt;= left 1 = (left, right) =&gt; {
+  return #`${left}.then(${right})`;
+}
+
+fetch('/foo.json') &gt;&gt;= resp =&gt; { return resp.json() }
+                   &gt;&gt;= json =&gt; { return processJson(json) }</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">(expansion)</div>
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fetch("/foo.json").then(resp =&gt; {
+  return resp.json();
+}).then(json =&gt; {
+  return processJson(json);
+});</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The associativity can be either <code>left</code> or <code>right</code> for binary operators and <code>prefix</code> or <code>postfix</code> for unary operators. The precedence is a number that specifies how tightly the operator should bind. The builtin operators range from a precedence of 0 to 20 and are defined <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence">here</a>.</p>
+</div>
+<div class="paragraph">
+<p>The operator definition must return an expression.</p>
 </div>
 </div>
 </div>

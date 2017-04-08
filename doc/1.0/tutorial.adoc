@@ -369,3 +369,35 @@ syntax m = ctx => {
 Adding `for syntax` to an import statement lets Sweet know that it needs to load the values being imported into the compiletime environment and make them available for macro definitions.
 
 NOTE: Importing for syntax is currently only supported for Sweet modules (i.e. those that begin with `'lang sweet.js'`). Support for non-Sweet modules is coming soon.
+
+
+== Sweet Operators
+
+In addition to the macros we've seen so far, Sweet allows you to define custom operators. Custom operators are different from macros in that you can specify the precedence and associativity but you can't match arbitrary syntax; the operator definition is invoked with fully expanded expressions for its operands.
+
+Operators are defined via the `operator` keyword:
+
+.operators
+[source, javascript]
+----
+operator >>= left 1 = (left, right) => {
+  return #`${left}.then(${right})`;
+}
+
+fetch('/foo.json') >>= resp => { return resp.json() }
+                   >>= json => { return processJson(json) }
+----
+
+.(expansion)
+[source, javascript]
+----
+fetch("/foo.json").then(resp => {
+  return resp.json();
+}).then(json => {
+  return processJson(json);
+});
+----
+
+The associativity can be either `left` or `right` for binary operators and `prefix` or `postfix` for unary operators. The precedence is a number that specifies how tightly the operator should bind. The builtin operators range from a precedence of 0 to 20 and are defined link:https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence[here].
+
+The operator definition must return an expression.
