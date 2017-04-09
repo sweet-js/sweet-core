@@ -410,7 +410,9 @@ export default class Syntax {
     stxScopes = allScopes.concat(stxScopes);
     if (
       stxScopes.size === 0 ||
-      !(this.match('identifier') || this.match('keyword'))
+      !(this.match('identifier') ||
+        this.match('keyword') ||
+        this.match('punctuator'))
     ) {
       return this.token.value;
     }

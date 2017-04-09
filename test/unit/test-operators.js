@@ -24,6 +24,17 @@ output = 1 neg`,
 );
 
 test(
+  'should not recursively define the unary operator',
+  evalWithOutput,
+  `
+operator - prefix 1 = (right) => {
+  return #\`-\${right}\`;
+}
+output = - 1`,
+  -1,
+);
+
+test(
   'should handle basic binary custom operators',
   evalWithOutput,
   `
@@ -87,4 +98,15 @@ let result = Id(1) >>= v => Id(v + 1)
 output = result.value;
   `,
   20,
+);
+
+test(
+  'should not recursively define the binary operator',
+  evalWithOutput,
+  `
+operator + left 2 = (left, right) => {
+  return #\`\${left} + \${right}\`;
+}
+output = 1 + 2`,
+  3,
 );
