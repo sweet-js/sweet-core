@@ -318,7 +318,7 @@ syntax cond = function (ctx) {
 
   let result = #``;
   for (let stx of bodyCtx) { <i class="conum" data-value="2"></i><b>(2)</b>
-    if (isKeyword(stx) &amp;&amp; unwrap(stx).value === 'case') { <i class="conum" data-value="3"></i><b>(3)</b>
+    if (isKeyword(stx) &amp;&amp; unwrap(stx).value === 'case') {
       let test = bodyCtx.expand('expr').value;
       // eat `:`
       bodyCtx.next();
@@ -350,7 +350,7 @@ let realTypeof = cond {
 <table>
 <tr>
 <td><i class="conum" data-value="1"></i><b>1</b></td>
-<td>The <code>.contextify</code> method gives us another context inside the delimiter. In this case, that is everything inside of <code>{ &#8230;&#8203; }</code>.</td>
+<td>The <code>.contextify</code> method gives us another iterable context inside a delimiter. In this case, everything inside of <code>{ &#8230;&#8203; }</code>.</td>
 </tr>
 <tr>
 <td><i class="conum" data-value="2"></i><b>2</b></td>
@@ -358,7 +358,7 @@ let realTypeof = cond {
 </tr>
 <tr>
 <td><i class="conum" data-value="3"></i><b>3</b></td>
-<td>Utility functions are available for import to help inspect what kind of syntax you are processing. Note the <code>for syntax</code> on the import declaration, which is required for the helpers to be available inside of a macro definition. Modules and macros are described more <a href="#_sweet_modules">later</a>.</td>
+<td>Functions that help manipulate syntax can be imported from the <code>'sweet.js/helpers'</code> module.</td>
 </tr>
 </table>
 </div>
@@ -372,7 +372,16 @@ var realTypeof = x === null ? "null" :
 </div>
 </div>
 <div class="paragraph">
-<p>Since delimiters nest syntax in Sweet, we need a way to get at what is inside them. Syntax objects have a <code>inner</code> method to do just that; calling <code>inner</code> on a delimiter will return an iterator into the syntax inside the delimiter.</p>
+<p>Since delimiters nest syntax in Sweet, we need a way to get at the nested syntax. The <code>contextify</code> method on the macro context provides this functionality. Calling <code>contextify</code> with a delimiter will wrap the syntax inside the delimiter in a new macro context object that you can iterate over.</p>
+</div>
+<div class="paragraph">
+<p>Utility functions are available for import at <code>'sweet.js/helpers'</code> to inspect the syntax you are processing. Note the <code>for syntax</code> on the import declaration, which is required to make the imports available inside of a macro definition. Modules and macros are described in the <a href="#_sweet_modules">modules</a> section of this document.</p>
+</div>
+<div class="paragraph">
+<p>The two imports used by this macro are <code>isKeyword</code> and <code>unwrap</code>. The <code>isKeyword</code> function does what it sounds like: it tells you if a syntax object is a keyword. The <code>unwrap</code> function returns the primitive value of a syntax object. In the case of unwrapping a keyword, it returns the string representation (if the syntax was a numeric literal <code>unwrap</code> would return a number). Since some syntax objects do not have a reasonable primitive representation (e.g. delimiters), the <code>unwrap</code> function ether returns an object with a single <code>value</code> property or an empty object.</p>
+</div>
+<div class="paragraph">
+<p>The full API provided by the helper module is described in the <a href="reference.html">reference documentation</a>.</p>
 </div>
 </div>
 </div>
@@ -389,7 +398,7 @@ var realTypeof = x === null ? "null" :
 
 syntax class = function (ctx) {
   let name = ctx.next().value;
-  let bodyCtx = ctx.next().value.inner();
+  let bodyCtx = ctx.contextify(ctx.next().value);
 
   // default constructor if none specified
   let construct = #`function ${name} () {}`;

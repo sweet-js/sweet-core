@@ -193,7 +193,7 @@ syntax cond = function (ctx) {
 
   let result = #``;
   for (let stx of bodyCtx) { // <2>
-    if (isKeyword(stx) && unwrap(stx).value === 'case') { // <3>
+    if (isKeyword(stx) && unwrap(stx).value === 'case') {
       let test = bodyCtx.expand('expr').value;
       // eat `:`
       bodyCtx.next();
@@ -220,9 +220,9 @@ let realTypeof = cond {
   default: typeof x
 }
 ----
-<1> The `.contextify` method gives us another context inside the delimiter. In this case, that is everything inside of `{ ... }`.
+<1> The `.contextify` method gives us another iterable context inside a delimiter. In this case, everything inside of `{ ... }`.
 <2> A macro context is iterable so you can `for-of` over it.
-<3> Utility functions are available for import to help inspect what kind of syntax you are processing. Note the `for syntax` on the import declaration, which is required for the helpers to be available inside of a macro definition. Modules and macros are described more <<_sweet_modules, later>>.
+<3> Functions that help manipulate syntax can be imported from the `'sweet.js/helpers'` module.
 
 .(expansion)
 [source, javascript]
@@ -233,7 +233,13 @@ var realTypeof = x === null ? "null" :
                  typeof x === "undefined" ? "undefined" : typeof x);
 ----
 
-Since delimiters nest syntax in Sweet, we need a way to get at what is inside them. Syntax objects have a `inner` method to do just that; calling `inner` on a delimiter will return an iterator into the syntax inside the delimiter.
+Since delimiters nest syntax in Sweet, we need a way to get at the nested syntax. The `contextify` method on the macro context provides this functionality. Calling `contextify` with a delimiter will wrap the syntax inside the delimiter in a new macro context object that you can iterate over.
+
+Utility functions are available for import at `'sweet.js/helpers'` to inspect the syntax you are processing. Note the `for syntax` on the import declaration, which is required to make the imports available inside of a macro definition. Modules and macros are described in the <<_sweet_modules, modules>> section of this document.
+
+The two imports used by this macro are `isKeyword` and `unwrap`. The `isKeyword` function does what it sounds like: it tells you if a syntax object is a keyword. The `unwrap` function returns the primitive value of a syntax object. In the case of unwrapping a keyword, it returns the string representation (if the syntax was a numeric literal `unwrap` would return a number). Since some syntax objects do not have a reasonable primitive representation (e.g. delimiters), the `unwrap` function ether returns an object with a single `value` property or an empty object.
+
+The full API provided by the helper module is described in the link:reference.html[reference documentation].
 
 == Sweet Class
 
@@ -246,7 +252,7 @@ import { unwrap, isIdentifier } from 'sweet.js/helpers' for syntax;
 
 syntax class = function (ctx) {
   let name = ctx.next().value;
-  let bodyCtx = ctx.next().value.inner();
+  let bodyCtx = ctx.contextify(ctx.next().value);
 
   // default constructor if none specified
   let construct = #`function ${name} () {}`;
