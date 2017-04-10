@@ -1,6 +1,6 @@
 'lang sweet.js';
 
-const TypeCodes = {
+var TypeCodes = {
   Identifier: 0,
   Keyword: 1,
   Punctuator: 2,

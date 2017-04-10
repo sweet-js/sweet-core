@@ -1,6 +1,6 @@
 'lang sweet.js';
 
-const TypeCodes = {
+var TypeCodes = {
   Identifier: 0,
   Keyword: 1,
   Punctuator: 2,
@@ -16,7 +16,7 @@ function check(obj, type) {
 }
 
 export function unwrap(obj) {
-  let hasTok = obj && obj.value && obj.value.token;
+  var hasTok = obj && obj.value && obj.value.token;
   if (hasTok && obj.value.token.typeCode === TypeCodes.StringLiteral) {
     return {
       value: obj.value.token.str,
