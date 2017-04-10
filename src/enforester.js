@@ -2024,9 +2024,7 @@ export class Enforester {
       }
       prec = operatorTransform.value.prec;
       combine = rightTerm => {
-        let result = operatorTransform.value.f.call(null, rightTerm);
-        let enf = new Enforester(result, List(), this.context);
-        return enf.enforestExpressionLoop();
+        return this.expandOperator(lookahead, operatorTransform, [rightTerm]);
       };
     } else {
       // all builtins are 16
@@ -2098,9 +2096,7 @@ export class Enforester {
       prec = operatorTransform.value.prec;
       assoc = operatorTransform.value.assoc;
       combine = (left, right) => {
-        let result = operatorTransform.value.f.call(null, left, right);
-        let enf = new Enforester(result, List(), this.context);
-        return enf.enforestExpressionLoop();
+        return this.expandOperator(opStx, operatorTransform, [left, right]);
       };
     } else {
       prec = getOperatorPrec(opStx.value.val());
@@ -2214,6 +2210,47 @@ export class Enforester {
       this.rest = result.concat(ctx._rest(this));
       lookahead = this.peek();
     }
+  }
+
+  expandOperator(name: Term, operatorTransform: any, args: Array<Term>) {
+    let useSiteScope = freshScope('u');
+    let introducedScope = freshScope('i');
+    // TODO: needs to be a list of scopes I think
+    this.context.useScope = useSiteScope;
+    args = args.map(arg => {
+      return arg.reduce(
+        new ScopeReducer(
+          [
+            { scope: useSiteScope, phase: ALL_PHASES, flip: false },
+            { scope: introducedScope, phase: ALL_PHASES, flip: true },
+          ],
+          this.context.bindings,
+        ),
+      );
+    });
+    let result = sanitizeReplacementValues(
+      operatorTransform.value.f.apply(null, args),
+    );
+    let scopeReducer = new ScopeReducer(
+      [{ scope: introducedScope, phase: ALL_PHASES, flip: true }],
+      this.context.bindings,
+      true,
+    );
+    result = result.map(terms => {
+      if (terms instanceof Syntax) {
+        return new T.RawSyntax({
+          value: terms,
+        }).reduce(scopeReducer);
+      } else if (!(terms instanceof Term)) {
+        throw this.createError(
+          name,
+          'macro must return syntax objects or terms but got: ' + terms,
+        );
+      }
+      return terms.reduce(scopeReducer);
+    });
+    let enf = new Enforester(result, List(), this.context);
+    return enf.enforestExpressionLoop();
   }
 
   consumeSemicolon() {
