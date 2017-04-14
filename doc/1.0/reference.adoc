@@ -139,7 +139,7 @@ syntax m = function (ctx) {
 
   const b = ctx.next().value;
   return #`${a} + ${b} + 24`; // 30 + 42 + 24
-}
+};
 m 30 + 42 + 66
 ----
 
@@ -162,7 +162,7 @@ import { isStringLiteral } from 'sweet.js/helpers' for syntax;
 
 syntax m = ctx => {
   return isStringLiteral(ctx.next().value) ? #`'a string'` : #`'not a string'`;
-}
+};
 m 'foo'
 ----
 
@@ -204,7 +204,7 @@ syntax m = ctx => {
   let num = unwrap(delim).value.get(1);
   unwrap(num).value === 1;     // true
   // ...
-}
+};
 m foo (1)
 ----
 
@@ -225,7 +225,7 @@ syntax m = ctx => {
   let dummy = #`dummy`.get(0);
 
   return #`${fromIdentifier(dummy, 'bar')}`;
-}
+};
 m foo
 ----
 
@@ -258,7 +258,7 @@ syntax m = ctx => {
   let dummy = #`dummy`.get(0);
 
   return #`${fromNumber(dummy, 1)}`;
-}
+};
 m
 ----
 
@@ -309,7 +309,7 @@ import { fromPunctuator } from 'sweet.js/helpers' for syntax;
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
   return #`1 ${fromPunctuator(dummy, '+')} 1`;
-}
+};
 m
 ----
 
@@ -332,7 +332,7 @@ Create a new keyword syntax object with the value `kwd` using the lexical contex
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
   return #`${dummy.fromKeyword('let')} x = 1`;
-}
+};
 m
 ----
 
@@ -358,7 +358,7 @@ syntax m = ctx => {
   let dummy = #`dummy`.get(0);
   let block = #`let x = 1;`;
   return #`${fromBraces(dummy, block)}`;
-}
+};
 m
 ----
 
@@ -384,7 +384,7 @@ syntax m = ctx => {
   let dummy = #`dummy`.get(0);
   let elements = #`1, 2, 3`;
   return #`${fromBrackets(dummy, elements)}`;
-}
+};
 m
 ----
 
@@ -410,7 +410,7 @@ syntax m = ctx => {
   let dummy = #`dummy`.get(0);
   let expr = #`5 * 5`;
   return #`1 + ${fromParens(dummy, expr)}`;
-}
+};
 m
 ----
 
@@ -520,7 +520,7 @@ Syntax templates support interpolations just like normal templates via `${...}`:
 ----
 syntax m = function (ctx) {
   return #`${ctx.next().value} + 24`;
-}
+};
 m 42
 ----
 
