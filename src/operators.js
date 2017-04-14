@@ -77,16 +77,18 @@ export function getOperatorAssoc(op) {
 }
 
 export function isUnaryOperator(op) {
-  return (op.match('punctuator') ||
-    op.match('identifier') ||
-    op.match('keyword')) &&
-    unaryOperators.hasOwnProperty(op.val());
+  return (
+    (op.match('punctuator') || op.match('identifier') || op.match('keyword')) &&
+    unaryOperators.hasOwnProperty(op.val())
+  );
 }
 
 export function isOperator(op) {
   if (op.match('punctuator') || op.match('identifier') || op.match('keyword')) {
-    return binaryOperatorPrecedence.hasOwnProperty(op) ||
-      unaryOperators.hasOwnProperty(op.val());
+    return (
+      binaryOperatorPrecedence.hasOwnProperty(op) ||
+      unaryOperators.hasOwnProperty(op.val())
+    );
   }
   return false;
 }

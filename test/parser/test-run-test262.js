@@ -437,7 +437,8 @@ const failExcluded = [
   '682.script.js',
 ];
 
-const earlyExcluded = [ // eslint-disable-line no-unused-vars
+// eslint-disable-next-line no-unused-vars
+const earlyExcluded = [
   '5.script.js',
   '6.script.js',
   '7.script.js',
@@ -718,7 +719,8 @@ ${src}
 function mkFailTester(subdir, testDir) {
   function f(t, fname) {
     t.throws(() =>
-      compile(`./${testDir}/${subdir}/${fname}`, new NodeLoader(__dirname)));
+      compile(`./${testDir}/${subdir}/${fname}`, new NodeLoader(__dirname)),
+    );
   }
   f.title = (title, fname, expected) => {
     let src = fs.readFileSync(

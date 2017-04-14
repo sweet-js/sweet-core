@@ -166,7 +166,8 @@ export const isExportSyntax = R.both(isExport, exp =>
   R.or(
     isSyntaxDeclaration(exp.declaration),
     isSyntaxrecDeclaration(exp.declaration),
-  ));
+  ),
+);
 export const isSyntaxDeclarationStatement = R.both(
   isVariableDeclarationStatement,
   decl => isCompiletimeDeclaration(decl.declaration),
@@ -177,9 +178,11 @@ export const isCompiletimeDeclaration = R.either(
   isSyntaxrecDeclaration,
 );
 export const isCompiletimeStatement = term => {
-  return term instanceof Term &&
+  return (
+    term instanceof Term &&
     isVariableDeclarationStatement(term) &&
-    isCompiletimeDeclaration(term.declaration);
+    isCompiletimeDeclaration(term.declaration)
+  );
 };
 export const isImportDeclaration = R.either(isImport, isImportNamespace);
 export const isExportDeclaration = R.either(

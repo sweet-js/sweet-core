@@ -38,14 +38,12 @@ class ReadError extends Error {
   line: number;
   column: number;
   message: string;
-  constructor(
-    {
-      index,
-      line,
-      column,
-      message,
-    }: { index: number, line: number, column: number, message: string },
-  ) {
+  constructor({
+    index,
+    line,
+    column,
+    message,
+  }: { index: number, line: number, column: number, message: string }) {
     super(message);
     this.index = index;
     this.line = line;
@@ -69,7 +67,8 @@ class TokenReader extends Reader {
 
   createError(msg: string): ReadError {
     let message = msg.replace(/\{(\d+)\}/g, (_, n) =>
-      JSON.stringify(arguments[+n + 1]));
+      JSON.stringify(arguments[+n + 1]),
+    );
     return new ReadError({
       message,
       // $FlowFixMe: decide on how to handle possible nullability
@@ -97,8 +96,8 @@ class TokenReader extends Reader {
       startLocation.column === this.locationInfo.column &&
       startLocation.line === this.locationInfo.line
     ) {
-      this.locationInfo.column += stream.sourceInfo.position -
-        startLocation.position;
+      this.locationInfo.column +=
+        stream.sourceInfo.position - startLocation.position;
     }
 
     if (result === EmptyToken) return result;
