@@ -110,3 +110,21 @@ operator + left 2 = (left, right) => {
 output = 1 + 2`,
   3,
 );
+
+test(
+  'should handle converting a postfix to a binary',
+  evalWithOutput,
+  `
+operator ++ left 1 = (left, right) => #\`\${left} + \${right}\`
+output = 1 ++ 2;`,
+  3,
+);
+
+test(
+  'should handle converting a prefix to a binary',
+  evalWithOutput,
+  `
+operator ~ left 1 = (left, right) => #\`\${left} + \${right}\`
+output = 1 ~ 2;`,
+  3,
+);
