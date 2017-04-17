@@ -82,7 +82,7 @@ export function scanUnicode(stream: CharStream, start: number) {
     while (!isEOS(char)) {
       let hex = getHexValue(char);
       if (hex === -1) break;
-      hexDigits = hexDigits << 4 | hex;
+      hexDigits = (hexDigits << 4) | hex;
       if (hexDigits > 0x10ffff) {
         throw this.createILLEGAL(char);
       }
@@ -102,7 +102,7 @@ export function scanUnicode(stream: CharStream, start: number) {
     for (; idx < start + 4; ++idx) {
       r = getHexValue(sPeek(idx));
       if (r === -1) return -1;
-      hexDigits = hexDigits << 4 | r;
+      hexDigits = (hexDigits << 4) | r;
     }
   }
   stream.readString(idx);
@@ -228,7 +228,7 @@ function scanHexEscape2(stream, idx) {
   if (r2 === -1) return r2;
 
   stream.readString(2);
-  return r1 << 4 | r2;
+  return (r1 << 4) | r2;
 }
 
 export function insertSequence(coll: Object, seq: string) {
@@ -245,8 +245,8 @@ export function insertSequence(coll: Object, seq: string) {
   }
 }
 
-export const isTerminating = (table: Readtable) =>
-  (char: string): boolean => table.getMapping(char).mode === 'terminating';
+export const isTerminating = (table: Readtable) => (char: string): boolean =>
+  table.getMapping(char).mode === 'terminating';
 
 // check for terminating doesn't work if it's at the start
 export function retrieveSequenceLength(
@@ -440,7 +440,9 @@ function isTopStandaloneKeyword(prefix: List<TokenTree>) {
 function isTopParensWithKeyword(prefix: List<TokenTree>) {
   // P . t . t' . (T)  where t \not = "." and t' ∈ (Keyword \setminus LiteralKeyword)
   return popRestMaybe(prefix)
-    .chain(([paren, rest]) => isParens(paren) ? popRestMaybe(rest) : Nothing())
+    .chain(
+      ([paren, rest]) => (isParens(paren) ? popRestMaybe(rest) : Nothing()),
+    )
     .map(([kwd, rest]) => {
       if (isNonLiteralKeyword(kwd)) {
         return Maybe.maybe(

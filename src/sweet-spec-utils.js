@@ -23,8 +23,10 @@ export const isVariableDeclarationStatement = _.is(
 export const isSyntaxDeclarationStatement = (term: any) => {
   // syntax m = ...
   // syntaxrec m = ...
-  return isVariableDeclarationStatement(term) &&
-    isSyntaxVariableDeclartion(term.declaration);
+  return (
+    isVariableDeclarationStatement(term) &&
+    isSyntaxVariableDeclartion(term.declaration)
+  );
 };
 
 export const isCompiletimeStatement = isSyntaxDeclarationStatement;

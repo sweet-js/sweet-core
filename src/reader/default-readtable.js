@@ -37,8 +37,10 @@ function eatWhitespace(stream: CharStream) {
   return EmptyToken;
 }
 
-const punctuatorTable = Object.keys(punctuatorMapping).reduce(insertSequence, {
-});
+const punctuatorTable = Object.keys(punctuatorMapping).reduce(
+  insertSequence,
+  {},
+);
 
 function readPunctuator(stream) {
   const len = retrieveSequenceLength(punctuatorTable, stream, 0);

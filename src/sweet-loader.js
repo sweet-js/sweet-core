@@ -89,29 +89,25 @@ export default class SweetLoader {
     throw new Error(`Module ${name} is missing phase information`);
   }
 
-  fetch(
-    {
-      name,
-      address,
-      metadata,
-    }: { name: string, address: { path: string, phase: number }, metadata: {} },
-  ) {
+  fetch({
+    name,
+    address,
+    metadata,
+  }: { name: string, address: { path: string, phase: number }, metadata: {} }) {
     throw new Error('No default fetch defined');
   }
 
-  translate(
-    {
-      name,
-      address,
-      source,
-      metadata,
-    }: {
-      name: string,
-      address: { path: string, phase: number },
-      source: string,
-      metadata: {},
-    },
-  ) {
+  translate({
+    name,
+    address,
+    source,
+    metadata,
+  }: {
+    name: string,
+    address: { path: string, phase: number },
+    source: string,
+    metadata: {},
+  }) {
     let src = this.compiledCache.get(address.path);
     if (src != null) {
       return src;
@@ -121,19 +117,17 @@ export default class SweetLoader {
     return compiledModule;
   }
 
-  instantiate(
-    {
-      name,
-      address,
-      source,
-      metadata,
-    }: {
-      name: string,
-      address: { path: string, phase: number },
-      source: SweetModule,
-      metadata: {},
-    },
-  ) {
+  instantiate({
+    name,
+    address,
+    source,
+    metadata,
+  }: {
+    name: string,
+    address: { path: string, phase: number },
+    source: SweetModule,
+    metadata: {},
+  }) {
     throw new Error('Not implemented yet');
   }
 
@@ -207,7 +201,8 @@ export default class SweetLoader {
               ],
               this.context.bindings,
             ),
-          )),
+          ),
+        ),
       ),
     );
   }

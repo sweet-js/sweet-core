@@ -30,13 +30,11 @@ export default class NodeLoader extends SweetLoader {
     throw new Error(`Module ${name} is missing phase information`);
   }
 
-  fetch(
-    {
-      name,
-      address,
-      metadata,
-    }: { name: string, address: { path: string, phase: number }, metadata: {} },
-  ) {
+  fetch({
+    name,
+    address,
+    metadata,
+  }: { name: string, address: { path: string, phase: number }, metadata: {} }) {
     let src = this.sourceCache.get(address.path);
     if (src != null) {
       return src;

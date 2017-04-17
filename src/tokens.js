@@ -265,19 +265,17 @@ class BaseToken {
   value: ?string | ?number;
   slice: ?Slice;
 
-  constructor(
-    {
-      typeCode,
-      type,
-      value,
-      slice,
-    }: {
-      typeCode: number,
-      type: TokenTypeType,
-      value?: string | number,
-      slice?: Slice,
-    },
-  ) {
+  constructor({
+    typeCode,
+    type,
+    value,
+    slice,
+  }: {
+    typeCode: number,
+    type: TokenTypeType,
+    value?: string | number,
+    slice?: Slice,
+  }) {
     this.typeCode = typeCode;
     this.type = type;
     this.value = value;
@@ -299,9 +297,11 @@ export class StringToken {
   octal: ?string;
   slice: ?Slice;
   typeCode: number;
-  constructor(
-    { str, octal, slice }: { str: string, octal: ?string, slice?: Slice },
-  ) {
+  constructor({
+    str,
+    octal,
+    slice,
+  }: { str: string, octal: ?string, slice?: Slice }) {
     this.type = TT.STRING;
     this.typeCode = TypeCodes.StringLiteral;
     this.str = str;
@@ -392,14 +392,12 @@ export class NumericToken extends BaseToken {
   octal: boolean;
   noctal: boolean;
 
-  constructor(
-    {
-      value,
-      octal = false,
-      noctal = false,
-      slice,
-    }: { value: number, octal?: boolean, noctal?: boolean, slice?: Slice },
-  ) {
+  constructor({
+    value,
+    octal = false,
+    noctal = false,
+    slice,
+  }: { value: number, octal?: boolean, noctal?: boolean, slice?: Slice }) {
     super({
       typeCode: TypeCodes.NumericLiteral,
       type: TT.NUMBER,
@@ -423,14 +421,12 @@ export class TemplateElementToken extends BaseToken {
   tail: boolean;
   interp: boolean;
 
-  constructor(
-    {
-      value,
-      tail,
-      interp,
-      slice,
-    }: { value: string, tail: boolean, interp: boolean, slice?: Slice },
-  ) {
+  constructor({
+    value,
+    tail,
+    interp,
+    slice,
+  }: { value: string, tail: boolean, interp: boolean, slice?: Slice }) {
     super({
       type: TT.TEMPLATE,
       typeCode: TypeCodes.TemplateElement,
