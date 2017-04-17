@@ -84,7 +84,7 @@ You can write it down as the following:</p>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax hi = function (ctx) {
   return #`console.log('hello, world!')`;
-}
+};
 hi</code></pre>
 </div>
 </div>
@@ -140,7 +140,7 @@ Well, in a sense macros are a bit like compiletime functions; just like function
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax hi = function (ctx) { <i class="conum" data-value="1"></i><b>(1)</b>
   return #`console.log('hello, world!')`; <i class="conum" data-value="2"></i><b>(2)</b>
-}
+};
 hi <i class="conum" data-value="3"></i><b>(3)</b></code></pre>
 </div>
 </div>
@@ -209,7 +209,7 @@ Pretend you are using an OO framework for JavaScript where instead of using <cod
   let ident = ctx.next().value;
   let params = ctx.next().value;
   return #`${ident}.create ${params}`;
-}
+};
 
 new Droid('BB-8', 'orange');</code></pre>
 </div>
@@ -271,7 +271,7 @@ We only need one new feature you haven&#8217;t seen yet:</p>
       ${ctx} <i class="conum" data-value="2"></i><b>(2)</b>
     }(${init}))
   `
-}
+};
 
 let bb8 = new Droid('BB-8', 'orange');
 console.log(bb8.beep());</code></pre>
@@ -334,7 +334,7 @@ syntax cond = function (ctx) {
     }
   }
   return result;
-}
+};
 
 let x = null;
 
@@ -418,7 +418,7 @@ syntax class = function (ctx) {
     }
   }
   return construct.concat(result);
-}
+};
 
 class Droid {
   constructor(name, color) {
@@ -459,7 +459,7 @@ Droid.prototype.rollWithIt = function(it) {
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">'lang sweet.js';
 export syntax class = function (ctx) {
   // ...
-}</code></pre>
+};</code></pre>
 </div>
 </div>
 <div class="listingblock">
@@ -497,7 +497,7 @@ class Droid {
 syntax m = ctx =&gt; {
   log('doing some Sweet things'); // ERROR: unbound variable `log`
   // ...
-}</code></pre>
+};</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -524,7 +524,7 @@ export function log(msg) {
 syntax m = ctx =&gt; {
   log('doing some Sweet things');
   // ...
-}</code></pre>
+};</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -559,7 +559,7 @@ Importing for syntax is currently only supported for Sweet modules (i.e. those t
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">operator &gt;&gt;= left 1 = (left, right) =&gt; {
   return #`${left}.then(${right})`;
-}
+};
 
 fetch('/foo.json') &gt;&gt;= resp =&gt; { return resp.json() }
                    &gt;&gt;= json =&gt; { return processJson(json) }</code></pre>

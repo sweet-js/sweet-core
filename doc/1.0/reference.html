@@ -321,7 +321,7 @@
 
   const b = ctx.next().value;
   return #`${a} + ${b} + 24`; // 30 + 42 + 24
-}
+};
 m 30 + 42 + 66</code></pre>
 </div>
 </div>
@@ -354,7 +354,7 @@ m 30 + 42 + 66</code></pre>
 
 syntax m = ctx =&gt; {
   return isStringLiteral(ctx.next().value) ? #`'a string'` : #`'not a string'`;
-}
+};
 m 'foo'</code></pre>
 </div>
 </div>
@@ -410,7 +410,7 @@ syntax m = ctx =&gt; {
   let num = unwrap(delim).value.get(1);
   unwrap(num).value === 1;     // true
   // ...
-}
+};
 m foo (1)</code></pre>
 </div>
 </div>
@@ -433,7 +433,7 @@ syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
 
   return #`${fromIdentifier(dummy, 'bar')}`;
-}
+};
 m foo</code></pre>
 </div>
 </div>
@@ -479,7 +479,7 @@ syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
 
   return #`${fromNumber(dummy, 1)}`;
-}
+};
 m</code></pre>
 </div>
 </div>
@@ -536,7 +536,7 @@ to_str foo</code></pre>
 syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
   return #`1 ${fromPunctuator(dummy, '+')} 1`;
-}
+};
 m</code></pre>
 </div>
 </div>
@@ -562,7 +562,7 @@ m</code></pre>
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
   return #`${dummy.fromKeyword('let')} x = 1`;
-}
+};
 m</code></pre>
 </div>
 </div>
@@ -591,7 +591,7 @@ syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
   let block = #`let x = 1;`;
   return #`${fromBraces(dummy, block)}`;
-}
+};
 m</code></pre>
 </div>
 </div>
@@ -620,7 +620,7 @@ m</code></pre>
   let dummy = #`dummy`.get(0);
   let elements = #`1, 2, 3`;
   return #`${fromBrackets(dummy, elements)}`;
-}
+};
 m</code></pre>
 </div>
 </div>
@@ -649,7 +649,7 @@ syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
   let expr = #`5 * 5`;
   return #`1 + ${fromParens(dummy, expr)}`;
-}
+};
 m</code></pre>
 </div>
 </div>
@@ -785,7 +785,7 @@ m</code></pre>
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">syntax m = function (ctx) {
   return #`${ctx.next().value} + 24`;
-}
+};
 m 42</code></pre>
 </div>
 </div>
