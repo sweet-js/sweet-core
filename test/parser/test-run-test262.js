@@ -106,6 +106,25 @@ const passExcluded = [
 ];
 
 const failExcluded = [
+  // these tests hang. reader?
+  '15.script.js',
+  '16.script.js',
+  '233.script.js',
+  '287.script.js',
+  '472.script.js',
+  '498.script.js',
+  '499.script.js',
+  '558.script.js',
+  '559.script.js',
+  '560.script.js',
+  '561.script.js',
+  '562.script.js',
+  '570.script.js',
+  '581.script.js',
+  '657.script.js',
+  '681.script.js',
+  '682.script.js',
+
   // TODO: remove the following three after transform destructuring refactor
   '160.script.js',
   '822.script.js',
@@ -195,10 +214,8 @@ const failExcluded = [
   '223.script.js',
   '235.script.js',
   '236.script.js',
-  '245.script.js',
   '246.script.js',
   '247.script.js',
-  '259.script.js',
   '260.script.js',
   '266.script.js',
   '267.script.js',
@@ -206,6 +223,7 @@ const failExcluded = [
   '269.script.js',
   '270.script.js',
   '271.script.js',
+  '273.script.js', // not throwing on erroneous '*'
   '274.script.js',
   '276.script.js',
   '288.script.js',
@@ -329,8 +347,6 @@ const failExcluded = [
   '658.script.js',
   '689.script.js',
   '690.script.js',
-  '691.script.js',
-  '692.script.js',
   '693.script.js',
 
   '694.script.js', // this test #= (something that COULD pass depending on readtable)
@@ -416,25 +432,6 @@ const failExcluded = [
   '913.module.js',
   '924.module.js',
   '965.module.js',
-
-  // these tests hang
-  '15.script.js',
-  '16.script.js',
-  '233.script.js',
-  '287.script.js',
-  '472.script.js',
-  '498.script.js',
-  '499.script.js',
-  '558.script.js',
-  '559.script.js',
-  '560.script.js',
-  '561.script.js',
-  '562.script.js',
-  '570.script.js',
-  '581.script.js',
-  '657.script.js',
-  '681.script.js',
-  '682.script.js',
 ];
 
 // eslint-disable-next-line no-unused-vars

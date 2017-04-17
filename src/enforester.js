@@ -1450,6 +1450,9 @@ export class Enforester {
       this.term = this.enforestNewExpression();
     } else if (this.isThisTransform(lookahead)) {
       this.term = this.enforestThisExpression();
+    } else if (this.isBraces(lookahead)) {
+      this.term = this.enforestPrimaryExpression();
+      return this.term;
     }
 
     while (true) {
@@ -1480,8 +1483,6 @@ export class Enforester {
         this.term = this.enforestStaticMemberExpression();
       } else if (this.isTemplate(lookahead)) {
         this.term = this.enforestTemplateLiteral();
-      } else if (this.isBraces(lookahead)) {
-        this.term = this.enforestPrimaryExpression();
       } else if (this.isIdentifier(lookahead)) {
         if (this.term) break;
         this.term = new T.IdentifierExpression({

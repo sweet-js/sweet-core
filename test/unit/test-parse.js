@@ -51,3 +51,16 @@ syntax m = ctx => ctx;
 `,
   '[[], [, 1], [1], [1,, 2]]',
 );
+
+// test doesn't throw
+test(
+  'LeftHandSideExpression after extends',
+  testParseComparison,
+  items,
+  `
+class foo extends bar.baz {}
+`,
+  `
+class foo extends bar.baz {}
+`,
+);
