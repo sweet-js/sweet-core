@@ -831,12 +831,10 @@ export class Enforester {
     });
   }
 
-  enforestClass(
-    {
-      isExpr = false,
-      inDefault = false,
-    }: { isExpr?: boolean, inDefault?: boolean },
-  ) {
+  enforestClass({
+    isExpr = false,
+    inDefault = false,
+  }: { isExpr?: boolean, inDefault?: boolean }) {
     let kw = this.matchRawSyntax();
     let name = null, supr = null;
 
@@ -1104,9 +1102,10 @@ export class Enforester {
     });
   }
 
-  enforestVariableDeclarator(
-    { isSyntax, isOperator }: { isSyntax: boolean, isOperator: boolean },
-  ) {
+  enforestVariableDeclarator({
+    isSyntax,
+    isOperator,
+  }: { isSyntax: boolean, isOperator: boolean }) {
     let id = this.enforestBindingTarget({ allowPunctuator: isSyntax });
     const AssocValues = ['left', 'right', 'prefix', 'postfix'];
 
@@ -1331,6 +1330,11 @@ export class Enforester {
       return this.enforestLeftHandSideExpression({ allowCall: true });
     }
 
+    // $l:expr $op:binaryOperator $r:expr
+    if (this.term && this.isCustomBinaryOperator(lookahead)) {
+      return this.enforestBinaryExpression();
+    }
+
     // postfix unary
     if (
       this.term &&
@@ -1340,17 +1344,17 @@ export class Enforester {
       return this.enforestUpdateExpression();
     }
 
-    // $x:id `...`
-    if (this.term && this.isTemplate(lookahead)) {
-      return this.enforestTemplateLiteral();
-    }
-
     // $l:expr $op:binaryOperator $r:expr
     if (
       this.term &&
       (this.isOperator(lookahead) || this.isCustomBinaryOperator(lookahead))
     ) {
       return this.enforestBinaryExpression();
+    }
+
+    // $x:id `...`
+    if (this.term && this.isTemplate(lookahead)) {
+      return this.enforestTemplateLiteral();
     }
 
     // $x:expr = $init:expr
@@ -1926,9 +1930,10 @@ export class Enforester {
     };
   }
 
-  enforestFunction(
-    { isExpr, inDefault }: { isExpr?: boolean, inDefault?: boolean },
-  ) {
+  enforestFunction({
+    isExpr,
+    inDefault,
+  }: { isExpr?: boolean, inDefault?: boolean }) {
     let name = null, params, body;
     let isGenerator = false;
     // eat the function keyword
@@ -2272,16 +2277,19 @@ export class Enforester {
   safeCheck(obj: Syntax | Term, type: any, val: ?string = null) {
     if (obj instanceof Term) {
       if (obj instanceof T.RawSyntax) {
-        return obj.value &&
+        return (
+          obj.value &&
           (typeof obj.value.match === 'function'
             ? obj.value.match(type, val)
-            : false);
+            : false)
+        );
       } else if (obj instanceof T.RawDelimiter) {
         return type === 'delimiter' || obj.kind === type;
       }
     }
-    return obj &&
-      (typeof obj.match === 'function' ? obj.match(type, val) : false);
+    return (
+      obj && (typeof obj.match === 'function' ? obj.match(type, val) : false)
+    );
   }
 
   isTerm(term: any) {
@@ -2297,11 +2305,13 @@ export class Enforester {
   }
 
   isPropertyName(obj: Syntax | Term) {
-    return this.isIdentifier(obj) ||
+    return (
+      this.isIdentifier(obj) ||
       this.isKeyword(obj) ||
       this.isNumericLiteral(obj) ||
       this.isStringLiteral(obj) ||
-      this.isBrackets(obj);
+      this.isBrackets(obj)
+    );
   }
 
   isNumericLiteral(obj: Syntax | Term, val: ?string = null) {
@@ -2361,11 +2371,13 @@ export class Enforester {
   }
 
   isOperator(obj: Syntax | Term) {
-    return (this.safeCheck(obj, 'punctuator') ||
-      this.safeCheck(obj, 'identifier') ||
-      this.safeCheck(obj, 'keyword')) &&
+    return (
+      (this.safeCheck(obj, 'punctuator') ||
+        this.safeCheck(obj, 'identifier') ||
+        this.safeCheck(obj, 'keyword')) &&
       ((obj instanceof T.RawSyntax && isOperator(obj.value)) ||
-        (obj instanceof Syntax && isOperator(obj)));
+        (obj instanceof Syntax && isOperator(obj)))
+    );
   }
 
   isCustomPrefixOperator(obj: Term) {
@@ -2393,8 +2405,10 @@ export class Enforester {
   }
 
   isUpdateOperator(obj: Syntax | Term) {
-    return this.safeCheck(obj, 'punctuator', '++') ||
-      this.safeCheck(obj, 'punctuator', '--');
+    return (
+      this.safeCheck(obj, 'punctuator', '++') ||
+      this.safeCheck(obj, 'punctuator', '--')
+    );
   }
 
   safeResolve(obj: Syntax | Term, phase: number | {}) {
