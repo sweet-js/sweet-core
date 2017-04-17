@@ -175,6 +175,7 @@ export default class SweetLoader {
   compileSource(source: string, metadata: any) {
     let directive = getLangDirective(source);
     if (directive == null && metadata.enforceLangPragma) {
+      // eslint-disable-next-line no-console
       if (this.logging) console.log(`skipping module ${metadata.entryPath}`);
       return new SweetModule(List.of());
     }
