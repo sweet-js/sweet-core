@@ -32,7 +32,7 @@ You can write it down as the following:
 ----
 syntax hi = function (ctx) {
   return #`console.log('hello, world!')`;
-}
+};
 hi
 ----
 
@@ -77,7 +77,7 @@ Consider the hello world example again:
 ----
 syntax hi = function (ctx) { // <1>
   return #`console.log('hello, world!')`; // <2>
-}
+};
 hi // <3>
 ----
 <1> Macro definition
@@ -111,7 +111,7 @@ syntax new = function (ctx) {
   let ident = ctx.next().value;
   let params = ctx.next().value;
   return #`${ident}.create ${params}`;
-}
+};
 
 new Droid('BB-8', 'orange');
 ----
@@ -160,7 +160,7 @@ syntax let = function (ctx) {
       ${ctx} // <2>
     }(${init}))
   `
-}
+};
 
 let bb8 = new Droid('BB-8', 'orange');
 console.log(bb8.beep());
@@ -209,7 +209,7 @@ syntax cond = function (ctx) {
     }
   }
   return result;
-}
+};
 
 let x = null;
 
@@ -272,7 +272,7 @@ syntax class = function (ctx) {
     }
   }
   return construct.concat(result);
-}
+};
 
 class Droid {
   constructor(name, color) {
@@ -309,7 +309,7 @@ Now that you've created your sweet macros you probably want to share them! Sweet
 'lang sweet.js';
 export syntax class = function (ctx) {
   // ...
-}
+};
 ----
 
 .main.js
@@ -344,7 +344,7 @@ let log = msg => console.log(msg);
 syntax m = ctx => {
   log('doing some Sweet things'); // ERROR: unbound variable `log`
   // ...
-}
+};
 ----
 
 We get an unbound variable error in the above example because `m`'s definition runs at a different _phase_ than the surrounding code: namely it runs at compiletime while the surrounding code is invoked at runtime.
@@ -369,7 +369,7 @@ import { log } from './log.js' for syntax;
 syntax m = ctx => {
   log('doing some Sweet things');
   // ...
-}
+};
 ----
 
 Adding `for syntax` to an import statement lets Sweet know that it needs to load the values being imported into the compiletime environment and make them available for macro definitions.
@@ -388,7 +388,7 @@ Operators are defined via the `operator` keyword:
 ----
 operator >>= left 1 = (left, right) => {
   return #`${left}.then(${right})`;
-}
+};
 
 fetch('/foo.json') >>= resp => { return resp.json() }
                    >>= json => { return processJson(json) }
