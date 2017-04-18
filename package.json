@@ -36,7 +36,8 @@
     "test": "ava",
     "report": "nyc ava && nyc report--reporter=html",
     "docs": "asciidoctorjs doc/1.0/tutorial.adoc & asciidoctorjs doc/1.0/reference.adoc",
-    "dist": "rsync -r build/src/ dist"
+    "dist": "rsync -r build/src/ dist",
+    "prepublish": "npm run build && npm run dist"
   },
   "lint-staged": {
     "*.js": [
