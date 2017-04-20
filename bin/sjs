@@ -32,9 +32,9 @@ let loaderOptions = {
   logging: argv.outFile || argv.outDir
 };
 
-var loader = new NodeLoader(path.join(path.dirname(fs.realpathSync(__filename)), '../'), loaderOptions);
+var loader = new NodeLoader(process.cwd(), loaderOptions);
 argv._.forEach(function (file) {
-  var output = compile(file, loader, {
+  var output = compile(fs.realpathSync(file), loader, {
     noBabel: argv.noBabel
   }).code;
 
