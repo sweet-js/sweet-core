@@ -10,10 +10,10 @@ Currently, Sweet should be considered experimental and under heavy development (
 
 # Getting started
 
-Install sweet.js with npm:
+Install sweet-cli with npm:
 
 ```sh
-$ npm install sweet.js
+$ npm install -g sweet-cli
 ```
 
 Write your sweet code:
@@ -28,7 +28,7 @@ hi
 And compile:
 
 ```sh
-$ node_modules/.bin/sjs my_sweet_code.js
+$ sjs my_sweet_code.js
 console.log('hello, world!')
 ```
 

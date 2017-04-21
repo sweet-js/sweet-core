@@ -1,10 +1,7 @@
 {
-  "name": "sweet.js",
+  "name": "sweet-core",
   "description": "Hygienic Macros for JavaScript",
   "main": "dist/sweet.js",
-  "bin": {
-    "sjs": "bin/sjs"
-  },
   "version": "3.0.3",
   "engines": {
     "node": ">=7.0.0"
@@ -64,8 +61,7 @@
     "shift-spidermonkey-converter": "^1.0.0",
     "sweet-spec": "3.1.0",
     "transit-js": "^0.8.846",
-    "utils-dirname": "^1.0.0",
-    "yargs": "^4.3.2"
+    "utils-dirname": "^1.0.0"
   },
   "devDependencies": {
     "angular": "1.6.0",
