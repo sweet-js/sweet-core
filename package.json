@@ -1,5 +1,5 @@
 {
-  "name": "sweet-core",
+  "name": "@sweet-js/core",
   "description": "Hygienic Macros for JavaScript",
   "main": "dist/sweet.js",
   "version": "3.0.4",
