@@ -10,10 +10,10 @@ Currently, Sweet should be considered experimental and under heavy development (
 
 # Getting started
 
-Install sweet-cli with npm:
+Install the command line app with npm:
 
 ```sh
-$ npm install -g sweet-cli
+$ npm install -g @sweet-js/cli
 ```
 
 Write your sweet code:
