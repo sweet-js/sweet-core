@@ -13,18 +13,14 @@
       "url": "http://github.com/sweet-js/sweet.js/master/LICENSE.BSD"
     }
   ],
-  "browser": {
-    "babel-core": false
-  },
   "scripts": {
-    "clean": "rm -rf build",
+    "clean": "rm -rf dist",
     "lint": "eslint src test && flow",
     "format": "prettier-eslint --write \"src/**/*.js\" \"test/**/*.js\"",
     "precommit": "lint-staged",
-    "prebuild": "mkdir -p build/test build/sweet dist/",
-    "build:src": "babel --out-dir build/src src",
-    "build:browser": "cp helpers.js browser/scripts/ && webpack build/src/browser-sweet.js --output-library-target umd --output-library sweet",
-    "build": "npm run build:src && npm run build:browser",
+    "prebuild": "mkdir -p dist/",
+    "build:src": "babel --out-dir dist/ src --plugins transform-es2015-modules-commonjs",
+    "build": "npm run build:src",
     "preprofile": "npm run build",
     "profile": "node --prof profile.js && node --prof-process *v8.log > v8-processed.log && rm *v8.log",
     "pretest": "npm run lint",
@@ -32,9 +28,7 @@
     "test:ci": "npm run pretest && ava && ava test/parser/test-*.js",
     "test": "ava",
     "report": "nyc ava && nyc report--reporter=html",
-    "docs": "asciidoctorjs doc/1.0/tutorial.adoc & asciidoctorjs doc/1.0/reference.adoc",
-    "dist": "rsync -r build/src/ dist",
-    "prepublish": "npm run build && npm run dist"
+    "prepublish": "npm run build"
   },
   "lint-staged": {
     "*.js": [
@@ -42,6 +36,9 @@
       "git add"
     ]
   },
+  "files": [
+    "dist"
+  ],
   "directories": {
     "test": "test"
   },
@@ -65,11 +62,10 @@
   },
   "devDependencies": {
     "angular": "1.6.0",
-    "asciidoctor-cli": "^1.5.2-alpha.3",
-    "asciidoctor.js": "^1.5.4",
     "ava": "^0.18.2",
     "babel-cli": "^6.18.0",
     "babel-eslint": "^7.0.0",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.24.1",
     "babel-plugin-transform-flow-strip-types": "^6.14.0",
     "babel-preset-node7": "1.4.0",
     "babel-register": "6.18.0",
