@@ -14,7 +14,7 @@ export default class NodeLoader extends SweetLoader {
 
   constructor(baseDir: string, options: NodeLoaderOptions = {}) {
     super(baseDir, options);
-    this.extensions = options.extensions || [];
+    this.extensions = options.extensions || ['.js', '.mjs'];
   }
 
   normalize(name: string, refererName?: string, refererAddress?: string) {
@@ -23,7 +23,7 @@ export default class NodeLoader extends SweetLoader {
     if (match && match.length >= 3) {
       let resolvedName = resolve.sync(match[1], {
         basedir: refererName ? dirname(refererName) : this.baseDir,
-        extensions: this.extensions ? this.extensions : ['.js'],
+        extensions: this.extensions,
       });
       return `${resolvedName}:${match[2]}`;
     }
