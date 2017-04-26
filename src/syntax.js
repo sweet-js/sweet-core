@@ -430,25 +430,26 @@ export default class Syntax {
           })
           .sort(sizeDecending);
 
-        if (
-          biggestBindingPair.size >= 2 &&
-          biggestBindingPair.get(0).scopes.size ===
-            biggestBindingPair.get(1).scopes.size
-        ) {
-          let debugBase =
-            '{' + stxScopes.map(s => s.toString()).join(', ') + '}';
-          let debugAmbigousScopesets = biggestBindingPair
-            .map(({ scopes }) => {
-              return '{' + scopes.map(s => s.toString()).join(', ') + '}';
-            })
-            .join(', ');
-          throw new Error(
-            'Scopeset ' +
-              debugBase +
-              ' has ambiguous subsets ' +
-              debugAmbigousScopesets,
-          );
-        } else if (biggestBindingPair.size !== 0) {
+        // if (
+        //   biggestBindingPair.size >= 2 &&
+        //   biggestBindingPair.get(0).scopes.size ===
+        //     biggestBindingPair.get(1).scopes.size
+        // ) {
+        //   let debugBase =
+        //     '{' + stxScopes.map(s => s.toString()).join(', ') + '}';
+        //   let debugAmbigousScopesets = biggestBindingPair
+        //     .map(({ scopes }) => {
+        //       return '{' + scopes.map(s => s.toString()).join(', ') + '}';
+        //     })
+        //     .join(', ');
+        //   throw new Error(
+        //     'Scopeset ' +
+        //       debugBase +
+        //       ' has ambiguous subsets ' +
+        //       debugAmbigousScopesets,
+        //   );
+        // } else
+        if (biggestBindingPair.size !== 0) {
           let bindingStr = biggestBindingPair.get(0).binding.toString();
           if (Maybe.isJust(biggestBindingPair.get(0).alias)) {
             // null never happens because we just checked if it is a Just

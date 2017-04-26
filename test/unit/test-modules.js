@@ -256,6 +256,31 @@ test(
   true,
 );
 
+test(
+  'using helpers in a chain works',
+  evalWithStore,
+  {
+    './helpers.js': helperSrc,
+    a: `
+      'lang sweet.js';
+      import { isKeyword } from './helpers.js' for syntax;
+      export syntax m = ctx => {
+        let n = ctx.next().value;
+        if (isKeyword(n)) {
+          return #\`true\`;
+        }
+        return #\`false\`;
+      }
+    `,
+    'main.js': `
+      'lang sweet.js';
+      import { m } from 'a';
+      output = m foo;
+    `,
+  },
+  false,
+);
+
 // test('importing a chain for syntax works', evalWithStore, {
 //   'b': `#lang 'sweet.js';
 //     export function b(x) { return x; }
