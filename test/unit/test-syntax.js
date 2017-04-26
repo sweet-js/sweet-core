@@ -63,7 +63,7 @@ test('should resolve when syntax object has a scopeset that is a superset of the
   expect(foo_1.resolve(0)).to.be(foo_123.resolve(0));
 });
 
-test('should throw an error for ambiguous scops sets', () => {
+test.skip('should throw an error for ambiguous scops sets', () => {
   let bindings = new BindingMap();
   let scope1 = freshScope('1');
   let scope2 = freshScope('2');
