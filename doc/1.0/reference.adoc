@@ -245,19 +245,19 @@ You may be tempted to reuse the syntax object provided by `ctx.name()` but resis
 
 [source, javascript]
 ----
-fromNumber(other: Syntax, n: number): Syntax
+fromNumericLiteral(other: Syntax, n: number): Syntax
 ----
 
 Create a new numeric literal syntax object with the value `n` using the lexical context from `other`.
 
 [source, javascript]
 ----
-import { fromNumber } from 'sweet.js/helpers' for syntax;
+import { fromNumericLiteral } from 'sweet.js/helpers' for syntax;
 
 syntax m = ctx => {
   let dummy = #`dummy`.get(0);
 
-  return #`${fromNumber(dummy, 1)}`;
+  return #`${fromNumericLiteral(dummy, 1)}`;
 };
 m
 ----
@@ -267,23 +267,23 @@ m
 1
 ----
 
-=== fromString
+=== fromStringLiteral
 
 [source, javascript]
 ----
-fromString(other: Syntax, s: string): Syntax
+fromStringLiteral(other: Syntax, s: string): Syntax
 ----
 
 Create a new string literal syntax object with the value `s` using the lexical context from `other`.
 
 [source, javascript]
 ----
-import { unwrap, fromString } from 'sweet.js/helpers' for syntax;
+import { unwrap, fromStringLiteral } from 'sweet.js/helpers' for syntax;
 
 syntax to_str = ctx => {
   let dummy = #`dummy`.get(0);
   let arg = unwrap(ctx.next().value).value;
-  return #`${fromString(dummy, arg)}`;
+  return #`${fromStringLiteral(dummy, arg)}`;
 }
 to_str foo
 ----
