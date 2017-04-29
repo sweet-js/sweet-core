@@ -37,7 +37,7 @@
 <li><a href="#_unwrap">6.1. unwrap</a></li>
 <li><a href="#_fromidentifier">6.2. fromIdentifier</a></li>
 <li><a href="#_fromnumber">6.3. fromNumber</a></li>
-<li><a href="#_fromstring">6.4. fromString</a></li>
+<li><a href="#_fromstringliteral">6.4. fromStringLiteral</a></li>
 <li><a href="#_frompunctuator">6.5. fromPunctuator</a></li>
 <li><a href="#_fromkeyword">6.6. fromKeyword</a></li>
 <li><a href="#_frombraces">6.7. fromBraces</a></li>
@@ -465,7 +465,7 @@ m foo</code></pre>
 <h3 id="_fromnumber">6.3. fromNumber</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromNumber(other: Syntax, n: number): Syntax</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromNumericLiteral(other: Syntax, n: number): Syntax</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -473,12 +473,12 @@ m foo</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { fromNumber } from 'sweet.js/helpers' for syntax;
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { fromNumericLiteral } from 'sweet.js/helpers' for syntax;
 
 syntax m = ctx =&gt; {
   let dummy = #`dummy`.get(0);
 
-  return #`${fromNumber(dummy, 1)}`;
+  return #`${fromNumericLiteral(dummy, 1)}`;
 };
 m</code></pre>
 </div>
@@ -491,10 +491,10 @@ m</code></pre>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_fromstring">6.4. fromString</h3>
+<h3 id="_fromstringliteral">6.4. fromStringLiteral</h3>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromString(other: Syntax, s: string): Syntax</code></pre>
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">fromStringLiteral(other: Syntax, s: string): Syntax</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -502,12 +502,12 @@ m</code></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { unwrap, fromString } from 'sweet.js/helpers' for syntax;
+<pre class="highlightjs highlight"><code class="language-javascript" data-lang="javascript">import { unwrap, fromStringLiteral } from 'sweet.js/helpers' for syntax;
 
 syntax to_str = ctx =&gt; {
   let dummy = #`dummy`.get(0);
   let arg = unwrap(ctx.next().value).value;
-  return #`${fromString(dummy, arg)}`;
+  return #`${fromStringLiteral(dummy, arg)}`;
 }
 to_str foo</code></pre>
 </div>
