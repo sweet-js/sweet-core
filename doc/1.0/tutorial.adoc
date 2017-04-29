@@ -155,6 +155,7 @@ syntax let = function (ctx) {
   let ident = ctx.next().value;
   ctx.next(); // eat `=`
   let init = ctx.expand('expr').value; // <1>
+  ctx.next(); // eat `;`
   return #`
     (function (${ident}) {
       ${ctx} // <2>
