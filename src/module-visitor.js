@@ -14,18 +14,18 @@ import codegen, { FormattedCodeGen } from 'shift-codegen';
 import type { Context } from './sweet-loader';
 
 export function bindImports(
-  impTerm: T.ImportDeclaration,
+  impTerm: any,
   exModule: SweetModule,
   phase: any,
   context: Context,
 ) {
   let names = [];
   let phaseToBind = impTerm.forSyntax ? phase + 1 : phase;
-  if (impTerm.defaultBinding != null) {
+  if (impTerm.defaultBinding != null && impTerm instanceof T.Import) {
+    let name = impTerm.defaultBinding.name;
     let exportName = exModule.exportedNames.find(
       exName => exName.exportedName.val() === '_default',
     );
-    let name = impTerm.defaultBinding.name;
     if (exportName != null) {
       let newBinding = gensym('_default');
       let toForward = exportName.exportedName;
@@ -92,7 +92,7 @@ export default class {
     });
     for (let term of mod.compiletimeItems()) {
       if (S.isSyntaxDeclarationStatement(term)) {
-        this.registerSyntaxDeclaration(term.declaration, phase, store);
+        this.registerSyntaxDeclaration((term: any).declaration, phase, store);
       }
     }
     return store;
@@ -117,6 +117,7 @@ export default class {
     let parsed = new T.Module({
       directives: List(),
       items,
+      // $FlowFixMe: flow doesn't know about reduce yet
     }).reduce(new SweetToShiftReducer(phase));
 
     let gen = codegen(parsed, new FormattedCodeGen());
@@ -127,7 +128,7 @@ export default class {
   }
 
   registerSyntaxDeclaration(
-    term: T.VariableDeclarationStatement,
+    term: T.VariableDeclaration,
     phase: any,
     store: any,
   ) {

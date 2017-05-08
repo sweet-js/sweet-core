@@ -194,6 +194,7 @@ export default class SweetLoader {
     return new SweetModule(
       compiler.compile(
         stxl.map(s =>
+          // $FlowFixMe: flow doesn't know about reduce yet
           s.reduce(
             new ScopeReducer(
               [

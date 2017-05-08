@@ -9,6 +9,7 @@ import type Syntax from './syntax.js';
 
 const notEmptyStatement = complement(isEmptyStatement);
 
+// $FlowFixMe: flow doesn't know about CloneReducer yet
 export default class extends Term.CloneReducer {
   phase: number;
 
@@ -59,7 +60,7 @@ export default class extends Term.CloneReducer {
     });
   }
 
-  reduceVariableDeclarationStatement(t: Term, s: { declaration: any }) {
+  reduceVariableDeclarationStatement(t: any, s: { declaration: any }) {
     if (
       t.declaration.kind === 'syntax' ||
       t.declaration.kind === 'syntaxrec' ||

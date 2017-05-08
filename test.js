@@ -1,5 +1,4 @@
-// operator not prefix 3 = right => {
-//   return #`not(${right})`;
-// }
-//
-// not 1
+// @flow
+import { RawDelimiter } from 'sweet-spec';
+
+let t = new RawDelimiter();
