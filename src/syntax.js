@@ -159,6 +159,7 @@ export let Types: TypesHelper = {
         stx,
       ),
   },
+  // $FlowFixMe: cleanup all this
   braces: {
     match: token =>
       Types.delimiter.match(token) &&
@@ -186,6 +187,7 @@ export let Types: TypesHelper = {
       });
     },
   },
+  // $FlowFixMe: cleanup all this
   brackets: {
     match: token =>
       Types.delimiter.match(token) &&
@@ -213,6 +215,7 @@ export let Types: TypesHelper = {
       });
     },
   },
+  // $FlowFixMe: cleanup all this
   parens: {
     match: token =>
       Types.delimiter.match(token) &&

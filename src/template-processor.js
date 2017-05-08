@@ -1,4 +1,3 @@
-// @flow
 import { List } from 'immutable';
 import _ from 'ramda';
 import { assert } from './errors';
@@ -42,6 +41,7 @@ const mkDelimiter = (
 ) => {
   return new T.RawDelimiter({
     kind,
+    // $FlowFixMe: flow doesn't know arrays are actually lists
     inner: List.of(from.inner.first()).concat(inner).concat(from.inner.last()),
   });
 };

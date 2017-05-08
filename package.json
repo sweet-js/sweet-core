@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "babel-core": "^6.18.0",
-    "immutable": "^3.7.4",
+    "immutable": "^3.8.1",
     "prettier": "^1.1.0",
     "prettier-eslint": "^5.1.0",
     "ramda": "^0.22.0",
@@ -56,7 +56,7 @@
     "shift-js": "^0.2.1",
     "shift-reducer": "^3.0.2",
     "shift-spidermonkey-converter": "^1.0.0",
-    "sweet-spec": "3.1.0",
+    "sweet-spec": "3.1.1",
     "transit-js": "^0.8.846",
     "utils-dirname": "^1.0.0"
   },
@@ -73,7 +73,7 @@
     "eslint-plugin-flowtype": "^2.11.4",
     "event-stream": "^3.3.2",
     "expect.js": "0.3.x",
-    "flow-bin": "^0.39.0",
+    "flow-bin": "^0.45.0",
     "husky": "^0.13.2",
     "jquery": "3.1.1",
     "lint-staged": "^3.3.1",

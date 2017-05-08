@@ -1,5 +1,5 @@
 // @flow
-import * as T from 'sweet-spec';
+import Term, * as T from 'sweet-spec';
 import * as _ from 'ramda';
 import * as S from './sweet-spec-utils';
 import codegen from './codegen';
@@ -35,7 +35,7 @@ type ExportSpecifier = {
   exportedName: Syntax,
 };
 
-function extractNames(term: T.ExportDeclaration): List<ExportSpecifier> {
+function extractNames(term: any): List<ExportSpecifier> {
   if (S.isExport(term)) {
     return extractDeclarationNames(term.declaration);
   } else if (S.isExportDefault(term)) {
@@ -46,7 +46,7 @@ function extractNames(term: T.ExportDeclaration): List<ExportSpecifier> {
   throw new Error(`Unknown export type`);
 }
 
-function wrapStatement(declaration: T.Term) {
+function wrapStatement(declaration: Term) {
   if (S.isVariableDeclaration(declaration)) {
     return new T.VariableDeclarationStatement({ declaration });
   }
@@ -70,24 +70,24 @@ function makeVarDeclStmt(name: T.BindingIdentifier, expr: T.Expression) {
 }
 
 export default class SweetModule {
-  items: List<T.Term>;
+  items: List<Term>;
   imports: List<T.ImportDeclaration>;
   exports: List<T.ExportDeclaration>;
   exportedNames: List<ExportSpecifier>;
 
-  runtime: List<T.Term>;
-  compiletime: List<T.Term>;
+  runtime: List<Term>;
+  compiletime: List<Term>;
 
-  constructor(items: List<T.Term>) {
+  constructor(items: List<Term>) {
     let body = [];
     let imports = [];
     let exports = [];
     this.exportedNames = List();
     for (let item of items) {
       if (S.isImportDeclaration(item)) {
-        imports.push(item);
+        imports.push((item: any));
       } else if (S.isExportDeclaration(item)) {
-        exports.push(item);
+        exports.push((item: any));
         this.exportedNames = this.exportedNames.concat(extractNames(item));
         if (S.isExport(item)) {
           body.push(wrapStatement(extractDeclaration(item)));
@@ -155,6 +155,7 @@ export default class SweetModule {
     return new T.Module({
       items: this.items,
       directives: List(),
+      // $FlowFixMe: flow doesn't know about reduce yet
     }).reduce(new SweetToShiftReducer(0));
   }
 

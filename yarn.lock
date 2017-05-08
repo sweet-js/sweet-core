@@ -1845,9 +1845,9 @@ flat-cache@^1.2.1:
     graceful-fs "^4.1.2"
     write "^0.2.1"
 
-flow-bin@^0.39.0:
-  version "0.39.0"
-  resolved "https://registry.yarnpkg.com/flow-bin/-/flow-bin-0.39.0.tgz#b1012a14460df1aa79d3a728e10f93c6944226d0"
+flow-bin@^0.45.0:
+  version "0.45.0"
+  resolved "https://registry.yarnpkg.com/flow-bin/-/flow-bin-0.45.0.tgz#009dd0f577a3f665c74ca8be827ae8c2dd8fd6b5"
 
 flow-parser@0.40.0:
   version "0.40.0"
@@ -2298,7 +2298,7 @@ ignore@^3.2.4:
   version "3.2.4"
   resolved "https://registry.yarnpkg.com/ignore/-/ignore-3.2.4.tgz#4055e03596729a8fabe45a43c100ad5ed815c4e8"
 
-immutable@^3.7.4:
+immutable@^3.8.1:
   version "3.8.1"
   resolved "https://registry.yarnpkg.com/immutable/-/immutable-3.8.1.tgz#200807f11ab0f72710ea485542de088075f68cd2"
 
@@ -4370,9 +4370,9 @@ supports-color@^3.1.0:
   dependencies:
     has-flag "^1.0.0"
 
-sweet-spec@3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/sweet-spec/-/sweet-spec-3.1.0.tgz#a891e87ddb846afcaa7238f94aee547dd4afbe46"
+sweet-spec@3.1.1:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/sweet-spec/-/sweet-spec-3.1.1.tgz#548a891cd82a6a6df513b7820349f9db2f70e8e8"
 
 symbol-observable@^0.2.2:
   version "0.2.4"
