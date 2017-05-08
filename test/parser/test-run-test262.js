@@ -7,28 +7,20 @@ import NodeLoader from '../../src/node-loader';
 // TODO: make these pass
 const passExcluded = [
   // known problems with the reader
-  '1252.script.js',
-  '978.script.js',
+  '1252.script.js', // Invalid test. U+180e isn't considered whitespace anymore
+
+  // sweet doesn't currently support script tags
   '953.script.js',
   '952.script.js',
   '951.script.js',
-  '950.script.js',
   '949.script.js',
-  '947.script.js',
-  '669.script.js',
-  '582.script.js',
-  '348.script.js',
   '315.script.js',
-  '314.script.js',
   '311.script.js',
   '299.script.js',
-  '211.script.js',
-  '210.script.js',
   '1657.script.js',
   '1656.script.js',
   '1655.script.js',
   '1654.script.js',
-  '1328.script.js',
 
   '1057.module.js',
   '1116.module.js',
@@ -102,29 +94,10 @@ const passExcluded = [
   '538.script.js',
   '680.script.js',
   '681.script.js',
-  '995.script.js',
+  '995.script.js'
 ];
 
 const failExcluded = [
-  // these tests hang. reader?
-  '15.script.js',
-  '16.script.js',
-  '233.script.js',
-  '287.script.js',
-  '472.script.js',
-  '498.script.js',
-  '499.script.js',
-  '558.script.js',
-  '559.script.js',
-  '560.script.js',
-  '561.script.js',
-  '562.script.js',
-  '570.script.js',
-  '581.script.js',
-  '657.script.js',
-  '681.script.js',
-  '682.script.js',
-
   // TODO: remove the following three after transform destructuring refactor
   '160.script.js',
   '822.script.js',
@@ -431,7 +404,7 @@ const failExcluded = [
   '912.module.js',
   '913.module.js',
   '924.module.js',
-  '965.module.js',
+  '965.module.js'
 ];
 
 // eslint-disable-next-line no-unused-vars
@@ -682,7 +655,7 @@ const earlyExcluded = [
   '535.module.js',
   '536.module.js',
   '537.module.js',
-  '538.module.js',
+  '538.module.js'
 ];
 
 const PARSER_TEST_DIR = 'test262-parser-tests';
@@ -697,14 +670,14 @@ function mkTester(subdir, testDir) {
   function f(t, fname) {
     let result = compile(
       `./${testDir}/${subdir}/${fname}`,
-      new NodeLoader(__dirname),
+      new NodeLoader(__dirname)
     );
     t.not(result, null);
   }
   f.title = (title, fname, expected) => {
     let src = fs.readFileSync(
       `./test/parser/${testDir}/${subdir}/${fname}`,
-      'utf8',
+      'utf8'
     );
     return `${fname}:
 ${src}
@@ -716,13 +689,13 @@ ${src}
 function mkFailTester(subdir, testDir) {
   function f(t, fname) {
     t.throws(() =>
-      compile(`./${testDir}/${subdir}/${fname}`, new NodeLoader(__dirname)),
+      compile(`./${testDir}/${subdir}/${fname}`, new NodeLoader(__dirname))
     );
   }
   f.title = (title, fname, expected) => {
     let src = fs.readFileSync(
       `./test/parser/${testDir}/${subdir}/${fname}`,
-      'utf8',
+      'utf8'
     );
     return `${fname}:
 ${src}

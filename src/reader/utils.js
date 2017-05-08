@@ -13,7 +13,7 @@ import {
   isKeyword,
   isBraces,
   isParens,
-  isIdentifier,
+  isIdentifier
 } from '../tokens';
 
 const {
@@ -21,7 +21,7 @@ const {
   isWhiteSpace,
   isDecimalDigit,
   isIdentifierPartES6: isIdentifierPart,
-  isIdentifierStartES6: isIdentifierStart,
+  isIdentifierStartES6: isIdentifierStart
 } = code;
 
 import * as R from 'ramda';
@@ -36,7 +36,7 @@ export {
   isWhiteSpace,
   isDecimalDigit,
   isIdentifierStart,
-  isIdentifierPart,
+  isIdentifierPart
 };
 
 export function getHexValue(rune: string) {
@@ -114,7 +114,7 @@ export function readStringEscape(
   str: string,
   stream: CharStream,
   start: number,
-  octal: ?string,
+  octal: ?string
 ) {
   let idx = start + 1, char = stream.peek(idx), lineStart;
   if (isEOS(char)) throw this.createILLEGAL(char);
@@ -155,7 +155,7 @@ export function readStringEscape(
         }
         unescaped = char === 'u'
           ? scanUnicode.call(this, stream, idx)
-          : scanHexEscape2.call(this, stream);
+          : scanHexEscape2.call(this, stream, idx);
         if (unescaped === -1) throw this.createILLEGAL(char);
         idx = 0; // stream is read in scanUnicode and scanHexEscape2
 
@@ -170,7 +170,7 @@ export function readStringEscape(
             stream,
             char,
             idx,
-            octal,
+            octal
           );
         } else if (char === '8' || char === '9') {
           throw this.createILLEGAL(char);
@@ -221,13 +221,13 @@ function scanHexEscape2(stream, idx) {
 
   if (isEOS(char)) return -1;
 
-  let r1 = getHexValue(stream.peek());
+  let r1 = getHexValue(char);
   if (r1 === -1) return r1;
 
-  let r2 = getHexValue(stream.peek(1));
+  let r2 = getHexValue(stream.peek(idx + 1));
   if (r2 === -1) return r2;
 
-  stream.readString(2);
+  stream.readString(idx + 1);
   return (r1 << 4) | r2;
 }
 
@@ -252,7 +252,7 @@ export const isTerminating = (table: Readtable) => (char: string): boolean =>
 export function retrieveSequenceLength(
   table: Object,
   stream: CharStream,
-  idx: number,
+  idx: number
 ): number {
   const char = stream.peek(idx);
   if (!table[char]) {
@@ -276,7 +276,7 @@ const assignOps = [
   '&=',
   '|=',
   '^=',
-  ',',
+  ','
 ];
 
 const binaryOps = [
@@ -303,7 +303,7 @@ const binaryOps = [
   '>',
   '!=',
   '!==',
-  'instanceof',
+  'instanceof'
 ];
 
 const unaryOps = [
@@ -316,7 +316,7 @@ const unaryOps = [
   'typeof',
   'yield',
   'throw',
-  'new',
+  'new'
 ];
 
 const allOps = assignOps.concat(binaryOps).concat(unaryOps);
@@ -332,7 +332,7 @@ const exprPrefixKeywords = [
   'yield',
   'throw',
   'new',
-  'case',
+  'case'
 ];
 
 function isExprReturn(l: number, p: List<TokenTree>) {
@@ -341,7 +341,7 @@ function isExprReturn(l: number, p: List<TokenTree>) {
   return popRestMaybe(p)
     .map(
       ([retKwd, rest]) =>
-        isKeyword(retKwd, 'return') && getLineNumber(retKwd) === l,
+        isKeyword(retKwd, 'return') && getLineNumber(retKwd) === l
     )
     .getOrElse(false);
 }
@@ -429,7 +429,7 @@ function isTopStandaloneKeyword(prefix: List<TokenTree>) {
         return Maybe.maybe(
           true,
           dot => !isPunctuator(dot, '.'),
-          popMaybe(rest),
+          popMaybe(rest)
         );
       }
       return false;
@@ -441,14 +441,14 @@ function isTopParensWithKeyword(prefix: List<TokenTree>) {
   // P . t . t' . (T)  where t \not = "." and t' ∈ (Keyword \setminus LiteralKeyword)
   return popRestMaybe(prefix)
     .chain(
-      ([paren, rest]) => (isParens(paren) ? popRestMaybe(rest) : Nothing()),
+      ([paren, rest]) => (isParens(paren) ? popRestMaybe(rest) : Nothing())
     )
     .map(([kwd, rest]) => {
       if (isNonLiteralKeyword(kwd)) {
         return Maybe.maybe(
           true,
           dot => !isPunctuator(dot, '.'),
-          popMaybe(rest),
+          popMaybe(rest)
         );
       }
       return false;
@@ -467,7 +467,7 @@ function popRestMaybe(p: List<TokenTree>): Maybe<[TokenTree, List<TokenTree>]> {
 
 function isTopFunctionExpression(
   prefix: List<TokenTree>,
-  exprAllowed: boolean,
+  exprAllowed: boolean
 ) {
   // P . function^l . x? . () . {}     where isExprPrefix(P, b, l) = false
   return popRestMaybe(prefix)

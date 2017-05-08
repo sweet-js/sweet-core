@@ -22,6 +22,7 @@
     "no-console": ["warn"],
     "no-unused-vars": ["error", { "args": "none"}],
     "quotes": ["error", "single", { "allowTemplateLiterals": true}],
-    "object-curly-spacing": ["error", "always"]
+    "object-curly-spacing": ["error", "always"],
+    "flowtype/no-types-missing-file-annotation": "warn"
   }
 }

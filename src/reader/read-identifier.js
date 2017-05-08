@@ -11,29 +11,40 @@ import { isTerminating, isIdentifierPart, isIdentifierStart } from './utils';
 
 let terminates;
 
+const startsEscape = code => {
+  if (code === 0x005c /* backslash */) return true;
+  return 0xd800 <= code && code <= 0xdbff;
+};
+
 export default function readIdentifier(stream: CharStream) {
   terminates = isTerminating(getCurrentReadtable());
   let char = stream.peek();
-  let code;
+  let code = char.charCodeAt(0);
   let check = isIdentifierStart;
+
+  // If the first char is invalid
+  if (!check(code) && !startsEscape(code)) {
+    throw this.createError('Invalid or unexpected token');
+  }
+
   let idx = 0;
   while (!terminates(char) && !isEOS(char)) {
-    code = char.charCodeAt(0);
-    if (char === '\\' || (0xd800 <= code && code <= 0xdbff)) {
+    if (startsEscape(code)) {
       return new IdentifierToken({
-        value: getEscapedIdentifier.call(this, stream),
+        value: getEscapedIdentifier.call(this, stream)
       });
     }
     if (!check(code)) {
       return new IdentifierToken({
-        value: stream.readString(idx),
+        value: stream.readString(idx)
       });
     }
     char = stream.peek(++idx);
+    code = char.charCodeAt(0);
     check = isIdentifierPart;
   }
   return new IdentifierToken({
-    value: stream.readString(idx),
+    value: stream.readString(idx)
   });
 }
 

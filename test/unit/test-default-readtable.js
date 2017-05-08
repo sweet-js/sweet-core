@@ -7,7 +7,7 @@ import read from '../../src/reader/token-reader';
 import {
   TokenType as TT,
   TokenClass as TC,
-  EmptyToken,
+  EmptyToken
 } from '../../src/tokens';
 
 function testParse(source, tst) {
@@ -36,7 +36,7 @@ test('should parse Unicode identifiers', t => {
         filename: '',
         line: 1,
         column: 1,
-        position: 0,
+        position: 0
       });
     });
   }
@@ -58,6 +58,12 @@ test('should parse Unicode identifiers', t => {
   testParseIdentifier('\\u0061a', 'aa');
 });
 
+test('should throw given invalid characters', t => {
+  const error = t.throws(() => read('∇'));
+
+  t.true(error.message.includes('Invalid or unexpected token'));
+});
+
 test('should parse keywords', t => {
   function testParseKeyword(source, id) {
     testParse(source, result => {
@@ -67,7 +73,7 @@ test('should parse keywords', t => {
         filename: '',
         line: 1,
         column: 1,
-        position: 0,
+        position: 0
       });
     });
   }
@@ -88,7 +94,7 @@ test('should parse punctuators', t => {
         filename: '',
         line: 1,
         column: 1,
-        position: 0,
+        position: 0
       });
     });
   }
@@ -401,14 +407,14 @@ test('should parse comments', t => {
   * multi
   * line
   * comment
-  */`,
+  */`
   );
 });
 
 test('should properly update location information', t => {
   function testLocationInfo(
     source,
-    { idx, size, line: expectedLine, column: expectedColumn },
+    { idx, size, line: expectedLine, column: expectedColumn }
   ) {
     let result = read(source);
     let { line, column } = result.get(idx).slice.startLocation;
@@ -428,12 +434,12 @@ test('should properly update location information', t => {
   * line
   * comment
   */b c`,
-    { idx: 2, size: 3, line: 8, column: 7 },
+    { idx: 2, size: 3, line: 8, column: 7 }
   );
   testLocationInfo('"a\\\nb c\\\n d f g" a', {
     idx: 1,
     size: 2,
     line: 3,
-    column: 9,
+    column: 9
   });
 });
