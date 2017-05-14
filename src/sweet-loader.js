@@ -112,7 +112,7 @@ export default class SweetLoader {
     if (src != null) {
       return src;
     }
-    let compiledModule = this.compileSource(source, metadata);
+    let compiledModule = this.compileSource(source, address.path, metadata);
     this.compiledCache.set(address.path, compiledModule);
     return compiledModule;
   }
@@ -160,8 +160,8 @@ export default class SweetLoader {
     return this.translate({ name, address, source, metadata });
   }
 
-  get(entryPath: string, entryPhase: number) {
-    return this.compile(`${entryPath}:${entryPhase}`);
+  get(entryPath: string, entryPhase: number, refererName?: string) {
+    return this.compile(`${entryPath}:${entryPhase}`, refererName);
   }
 
   read(source: string): List<Term> {
@@ -172,12 +172,12 @@ export default class SweetLoader {
     return new Store({});
   }
 
-  compileSource(source: string, metadata: any) {
+  compileSource(source: string, path: string, metadata: any) {
     let directive = getLangDirective(source);
     if (directive == null && metadata.enforceLangPragma) {
       // eslint-disable-next-line no-console
       if (this.logging) console.log(`skipping module ${metadata.entryPath}`);
-      return new SweetModule(List.of());
+      return new SweetModule(path, List.of());
     }
     let stxl = this.read(source);
     let outScope = freshScope('outsideEdge');
@@ -189,9 +189,11 @@ export default class SweetLoader {
       this.freshStore(),
       _.merge(this.context, {
         currentScope: [outScope, inScope],
+        cwd: path,
       }),
     );
     return new SweetModule(
+      path,
       compiler.compile(
         stxl.map(s =>
           // $FlowFixMe: flow doesn't know about reduce yet
