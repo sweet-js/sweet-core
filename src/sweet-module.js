@@ -70,6 +70,7 @@ function makeVarDeclStmt(name: T.BindingIdentifier, expr: T.Expression) {
 }
 
 export default class SweetModule {
+  path: string;
   items: List<Term>;
   imports: List<T.ImportDeclaration>;
   exports: List<T.ExportDeclaration>;
@@ -78,10 +79,11 @@ export default class SweetModule {
   runtime: List<Term>;
   compiletime: List<Term>;
 
-  constructor(items: List<Term>) {
+  constructor(path: string, items: List<Term>) {
     let body = [];
     let imports = [];
     let exports = [];
+    this.path = path;
     this.exportedNames = List();
     for (let item of items) {
       if (S.isImportDeclaration(item)) {

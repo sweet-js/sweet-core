@@ -74,19 +74,23 @@ export default class {
     this.context = context;
   }
 
-  visit(mod: SweetModule, phase: any, store: any) {
+  visit(mod: SweetModule, phase: any, store: any, cwd: string) {
     mod.imports.forEach(imp => {
       if (imp.forSyntax) {
         let mod = this.context.loader.get(
           imp.moduleSpecifier.val(),
           phase + 1,
-          '',
+          cwd,
         );
-        this.visit(mod, phase + 1, store);
-        this.invoke(mod, phase + 1, store);
+        this.visit(mod, phase + 1, store, mod.path);
+        this.invoke(mod, phase + 1, store, mod.path);
       } else {
-        let mod = this.context.loader.get(imp.moduleSpecifier.val(), phase, '');
-        this.visit(mod, phase, store);
+        let mod = this.context.loader.get(
+          imp.moduleSpecifier.val(),
+          phase,
+          cwd,
+        );
+        this.visit(mod, phase, store, mod.path);
       }
       bindImports(imp, mod, phase, this.context);
     });
@@ -98,11 +102,15 @@ export default class {
     return store;
   }
 
-  invoke(mod: any, phase: any, store: any) {
+  invoke(mod: any, phase: any, store: any, cwd: string) {
     mod.imports.forEach(imp => {
       if (!imp.forSyntax) {
-        let mod = this.context.loader.get(imp.moduleSpecifier.val(), phase, '');
-        this.invoke(mod, phase, store);
+        let mod = this.context.loader.get(
+          imp.moduleSpecifier.val(),
+          phase,
+          cwd,
+        );
+        this.invoke(mod, phase, store, mod.path);
         bindImports(imp, mod, phase, this.context);
       }
     });
