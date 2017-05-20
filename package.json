@@ -37,7 +37,7 @@
     ]
   },
   "files": [
-    "dist"
+    "dist", "helpers.js"
   ],
   "directories": {
     "test": "test"
