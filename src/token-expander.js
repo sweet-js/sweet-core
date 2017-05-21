@@ -137,13 +137,13 @@ export default class TokenExpander extends ASTDispatcher {
         mod,
         this.context.phase + 1,
         this.context.store,
-        path,
+        mod.path,
       );
       this.context.store = visitor.invoke(
         mod,
         this.context.phase + 1,
         this.context.store,
-        path,
+        mod.path,
       );
     } else {
       mod = this.context.loader.get(path, this.context.phase, this.context.cwd);
@@ -151,7 +151,7 @@ export default class TokenExpander extends ASTDispatcher {
         mod,
         this.context.phase,
         this.context.store,
-        path,
+        mod.path,
       );
     }
     bindImports(term, mod, this.context.phase, this.context);
