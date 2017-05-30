@@ -349,7 +349,11 @@ export class Enforester {
   enforestImportSpecifiers() {
     let lookahead = this.peek();
     let name;
-    if (this.isIdentifier(lookahead) || this.isKeyword(lookahead)) {
+    if (
+      this.isIdentifier(lookahead) ||
+      this.isKeyword(lookahead) ||
+      this.isPunctuator(lookahead)
+    ) {
       name = this.matchRawSyntax();
       if (!this.isIdentifier(this.peek(), 'as')) {
         return new T.ImportSpecifier({

@@ -135,11 +135,7 @@ export default class {
     return store;
   }
 
-  registerSyntaxDeclaration(
-    term: T.VariableDeclaration,
-    phase: any,
-    store: any,
-  ) {
+  registerSyntaxDeclaration(term: any, phase: any, store: any) {
     term.declarators.forEach(decl => {
       let val = evalCompiletimeValue(
         decl.init,
@@ -160,9 +156,15 @@ export default class {
           });
         }
         let resolvedName = stx.resolve(phase);
+        let compiletimeType = term.kind === 'operator' ? 'operator' : 'syntax';
         store.set(
           resolvedName,
-          new CompiletimeTransform({ type: 'syntax', f: val }),
+          new CompiletimeTransform({
+            type: compiletimeType,
+            prec: decl.prec == null ? void 0 : decl.prec.val(),
+            assoc: decl.assoc == null ? void 0 : decl.assoc.val(),
+            f: val,
+          }),
         );
       });
     });

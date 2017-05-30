@@ -20,6 +20,40 @@ output = m`,
 );
 
 test(
+  'should export a simple operator',
+  evalWithStore,
+  {
+    './m.js': `
+'lang sweet.js';
+export operator sub left 2 = (left, right) => {
+  return #\`\${left} - \${right}\`;
+}`,
+
+    'main.js': `
+import { sub } from "./m.js";
+output = 2 sub 2`,
+  },
+  0,
+);
+
+test(
+  'should export a simple punctuator operator',
+  evalWithStore,
+  {
+    './m.js': `
+'lang sweet.js';
+export operator - left 2 = (left, right) => {
+  return #\`\${left} + \${right}\`;
+}`,
+
+    'main.js': `
+import { - } from "./m.js";
+output = 2 - 2`,
+  },
+  4,
+);
+
+test(
   'importing for syntax with a single number exported',
   evalWithStore,
   {
