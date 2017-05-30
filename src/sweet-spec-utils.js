@@ -25,7 +25,10 @@ export const isSyntaxDeclarationStatement = (term: any) => {
   // syntaxrec m = ...
   return (
     isVariableDeclarationStatement(term) &&
-    isSyntaxVariableDeclartion(term.declaration)
+    term.declaration.type === 'VariableDeclaration' &&
+    (term.declaration.kind === 'syntax' ||
+      term.declaration.kind === 'syntaxrec' ||
+      term.declaration.kind === 'operator')
   );
 };
 
