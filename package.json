@@ -37,7 +37,8 @@
     ]
   },
   "files": [
-    "dist", "helpers.js"
+    "dist",
+    "helpers.js"
   ],
   "directories": {
     "test": "test"
@@ -62,7 +63,7 @@
   },
   "devDependencies": {
     "angular": "1.6.0",
-    "ava": "^0.18.2",
+    "ava": "^0.19.1",
     "babel-cli": "^6.18.0",
     "babel-eslint": "^7.0.0",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.24.1",
@@ -93,9 +94,11 @@
   ],
   "license": "BSD-2-Clause",
   "ava": {
+    "failWithoutAssertions": false,
     "babel": "inherit",
     "files": [
-      "test/unit/*.js"
+      "test/unit/*.js",
+      "test/parser/test-ast.js"
     ],
     "require": [
       "babel-register"

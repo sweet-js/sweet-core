@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`does include the use strict directive in the AST 1`] = `
+Module {
+  "directives": Array [
+    Object {
+      "rawValue": "use strict",
+      "type": "Directive",
+    },
+  ],
+  "items": Array [],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
+exports[`does not include the lang directive in the AST 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [],
+  "loc": null,
+  "type": "Module",
+}
+`;

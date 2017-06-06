@@ -14,7 +14,7 @@ export function makeEnforester(code) {
   return new Enforester(stxl, List(), {});
 }
 
-function getAst(code) {
+export function getAst(code) {
   const store = new Map();
   store.set('main.js', code);
 
@@ -53,7 +53,7 @@ export function testEval(store, cb) {
     throw new Error(
       `Syntax error: ${e.message}
 
-${result}`,
+${result}`
     );
   }
   return cb(output);
