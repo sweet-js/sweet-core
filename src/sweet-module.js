@@ -76,6 +76,7 @@ export default class SweetModule {
   imports: List<T.ImportDeclaration>;
   exports: List<T.ExportDeclaration>;
   exportedNames: List<ExportSpecifier>;
+  defaultExport: any;
 
   runtime: List<Term>;
   compiletime: List<Term>;
@@ -104,29 +105,13 @@ export default class SweetModule {
         imports.push((item: any));
       } else if (S.isExportDeclaration(item)) {
         exports.push((item: any));
+        body.push(item);
         this.exportedNames = this.exportedNames.concat(extractNames(item));
-        if (S.isExport(item)) {
-          body.push(wrapStatement(extractDeclaration(item)));
-        } else if (S.isExportDefault(item)) {
-          let decl = extractDeclaration(item);
-          let defStx = Syntax.fromIdentifier('_default');
-          let def = new T.BindingIdentifier({
-            name: defStx
-          });
-          this.exportedNames = this.exportedNames.push(ExpSpec(defStx));
-          if (S.isFunctionDeclaration(decl) || S.isClassDeclaration(decl)) {
-            body.push(decl);
-            // extract name and bind it to _default
-            body.push(
-              makeVarDeclStmt(
-                def,
-                new T.IdentifierExpression({ name: decl.name.name })
-              )
-            );
-          } else {
-            // expression so bind it to _default
-            body.push(makeVarDeclStmt(def, decl));
-          }
+        if (S.isExportDefault(item)) {
+          this.defaultExport = Syntax.fromIdentifier('_default');
+          this.exportedNames = this.exportedNames.push(
+            ExpSpec(this.defaultExport)
+          );
         }
       } else {
         body.push(item);
@@ -142,10 +127,44 @@ export default class SweetModule {
   [memoSym]() {
     let runtime = [], compiletime = [];
     for (let item of this.items) {
-      if (S.isCompiletimeStatement(item)) {
-        compiletime.push(item);
+      if (S.isExportDeclaration(item)) {
+        if (S.isExport(item)) {
+          let stmt = wrapStatement(extractDeclaration(item));
+          if (S.isCompiletimeStatement(stmt)) {
+            compiletime.push(stmt);
+          } else {
+            runtime.push(stmt);
+          }
+        } else if (S.isExportDefault(item)) {
+          let decl = extractDeclaration(item);
+          let def = new T.BindingIdentifier({
+            name: this.defaultExport
+          });
+          if (S.isFunctionDeclaration(decl) || S.isClassDeclaration(decl)) {
+            runtime.push(decl);
+            // extract name and bind it to _default
+            runtime.push(
+              makeVarDeclStmt(
+                def,
+                new T.IdentifierExpression({ name: decl.name.name })
+              )
+            );
+          } else {
+            // expression so bind it to _default
+            let stmt = makeVarDeclStmt(def, decl);
+            if (S.isCompiletimeStatement(stmt)) {
+              compiletime.push(stmt);
+            } else {
+              runtime.push(stmt);
+            }
+          }
+        }
       } else {
-        runtime.push(item);
+        if (S.isCompiletimeStatement(item)) {
+          compiletime.push(item);
+        } else {
+          runtime.push(item);
+        }
       }
     }
     this.runtime = List(runtime);

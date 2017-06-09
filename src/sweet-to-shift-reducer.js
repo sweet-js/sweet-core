@@ -105,4 +105,23 @@ export default class extends Term.CloneReducer {
       statements: s.statements.toArray().filter(notEmptyStatement)
     });
   }
+
+  reduceExportSpecifier(t: Term, s: { name?: any, exportedName: Syntax }) {
+    return new S.ExportSpecifier({
+      name: s.name != null ? s.name.resolve(0) : null,
+      exportedName: s.exportedName.resolve(0)
+    });
+  }
+
+  reduceExportFrom(
+    t: Term,
+    s: { moduleSpecifier?: Syntax, namedExports: List<S.ExportSpecifier> }
+  ) {
+    return new S.ExportFrom({
+      moduleSpecifier: s.moduleSpecifier != null
+        ? s.moduleSpecifier.val()
+        : null,
+      namedExports: s.namedExports.toArray()
+    });
+  }
 }

@@ -16,3 +16,19 @@ test('does include the use strict directive in the AST', t => {
   `)
   );
 });
+
+test('includes export in AST', t => {
+  t.snapshot(
+    getAst(`
+    export { b }
+    `)
+  );
+});
+
+test('includes export declaration in AST', t => {
+  t.snapshot(
+    getAst(`
+    export var x = 1;
+    `)
+  );
+});
