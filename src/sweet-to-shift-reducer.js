@@ -109,7 +109,7 @@ export default class extends Term.CloneReducer {
   reduceExportSpecifier(t: Term, s: { name?: any, exportedName: Syntax }) {
     return new S.ExportSpecifier({
       name: s.name != null ? s.name.resolve(0) : null,
-      exportedName: s.exportedName.resolve(0)
+      exportedName: s.exportedName.val()
     });
   }
 

@@ -27,7 +27,7 @@ exports[`includes export declaration in AST 1`] = `
 Module {
   "directives": Array [],
   "items": Array [
-    Export {
+    VariableDeclarationStatement {
       "declaration": VariableDeclaration {
         "declarators": Array [
           VariableDeclarator {
@@ -50,7 +50,20 @@ Module {
         "type": "VariableDeclaration",
       },
       "loc": null,
-      "type": "Export",
+      "type": "VariableDeclarationStatement",
+    },
+    ExportFrom {
+      "loc": null,
+      "moduleSpecifier": null,
+      "namedExports": Array [
+        ExportSpecifier {
+          "exportedName": "x",
+          "loc": null,
+          "name": "x_0",
+          "type": "ExportSpecifier",
+        },
+      ],
+      "type": "ExportFrom",
     },
   ],
   "loc": null,
@@ -69,7 +82,30 @@ Module {
         ExportSpecifier {
           "exportedName": "b",
           "loc": null,
-          "name": null,
+          "name": "b",
+          "type": "ExportSpecifier",
+        },
+      ],
+      "type": "ExportFrom",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
+exports[`includes export with renaming in AST 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    ExportFrom {
+      "loc": null,
+      "moduleSpecifier": null,
+      "namedExports": Array [
+        ExportSpecifier {
+          "exportedName": "c",
+          "loc": null,
+          "name": "b",
           "type": "ExportSpecifier",
         },
       ],

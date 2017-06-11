@@ -25,6 +25,14 @@ test('includes export in AST', t => {
   );
 });
 
+test('includes export with renaming in AST', t => {
+  t.snapshot(
+    getAst(`
+    export { b as c}
+    `)
+  );
+});
+
 test('includes export declaration in AST', t => {
   t.snapshot(
     getAst(`
