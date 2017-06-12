@@ -21,10 +21,20 @@ const extractDeclaration = _.cond([
 const ExpSpec = x => ({ exportedName: x });
 
 const extractDeclarationNames = _.cond([
-  [S.isVariableDeclarator, ({ binding }) => List.of(ExpSpec(binding.name))],
+  [S.isVariableDeclarator, ({ binding }) => List.of(binding.name)],
   [
     S.isVariableDeclaration,
     ({ declarators }) => declarators.flatMap(extractDeclarationNames)
+  ],
+  [S.isFunctionDeclaration, ({ name }) => List.of(name.name)],
+  [S.isClassDeclaration, ({ name }) => List.of(name.name)]
+]);
+
+const extractDeclarationSpecifiers = _.cond([
+  [S.isVariableDeclarator, ({ binding }) => List.of(ExpSpec(binding.name))],
+  [
+    S.isVariableDeclaration,
+    ({ declarators }) => declarators.flatMap(extractDeclarationSpecifiers)
   ],
   [S.isFunctionDeclaration, ({ name }) => List.of(ExpSpec(name.name))],
   [S.isClassDeclaration, ({ name }) => List.of(ExpSpec(name.name))]
@@ -35,9 +45,9 @@ type ExportSpecifier = {
   exportedName: Syntax
 };
 
-function extractNames(term: any): List<ExportSpecifier> {
+function extractSpecifiers(term: any): List<ExportSpecifier> {
   if (S.isExport(term)) {
-    return extractDeclarationNames(term.declaration);
+    return extractDeclarationSpecifiers(term.declaration);
   } else if (S.isExportDefault(term)) {
     return List();
   } else if (S.isExportFrom(term)) {
@@ -101,17 +111,59 @@ export default class SweetModule {
         moreDirectives = false;
       }
 
-      if (S.isImportDeclaration(item)) {
-        imports.push((item: any));
-      } else if (S.isExportDeclaration(item)) {
-        exports.push((item: any));
-        body.push(item);
-        this.exportedNames = this.exportedNames.concat(extractNames(item));
-        if (S.isExportDefault(item)) {
-          this.defaultExport = Syntax.fromIdentifier('_default');
-          this.exportedNames = this.exportedNames.push(
-            ExpSpec(this.defaultExport)
+      if (item instanceof T.ImportDeclaration) {
+        imports.push(item);
+      } else if (item instanceof T.ExportDeclaration) {
+        if (S.isExport(item)) {
+          let decl = extractDeclaration(item);
+          let stmt = wrapStatement(decl);
+          let names = extractDeclarationNames(decl);
+          body.push(stmt);
+          let exp = new T.ExportFrom({
+            moduleSpecifier: null,
+            namedExports: names.map(
+              name =>
+                new T.ExportSpecifier({
+                  name,
+                  exportedName: name
+                })
+            )
+          });
+          body.push(exp);
+          exports.push(exp);
+          this.exportedNames = this.exportedNames.concat(
+            extractSpecifiers(exp)
           );
+        } else if (item instanceof T.ExportFrom) {
+          let exp = new T.ExportFrom({
+            moduleSpecifier: item.moduleSpecifier,
+            namedExports: item.namedExports.map(({ name, exportedName }) => {
+              if (name == null) {
+                return new T.ExportSpecifier({
+                  name: exportedName,
+                  exportedName
+                });
+              }
+              return new T.ExportSpecifier({ name, exportedName });
+            })
+          });
+          body.push(exp);
+          exports.push(exp);
+          this.exportedNames = this.exportedNames.concat(
+            extractSpecifiers(exp)
+          );
+        } else {
+          exports.push(item);
+          body.push(item);
+          this.exportedNames = this.exportedNames.concat(
+            extractSpecifiers(item)
+          );
+          if (S.isExportDefault(item)) {
+            this.defaultExport = Syntax.fromIdentifier('_default');
+            this.exportedNames = this.exportedNames.push(
+              ExpSpec(this.defaultExport)
+            );
+          }
         }
       } else {
         body.push(item);
@@ -125,17 +177,11 @@ export default class SweetModule {
 
   // $FlowFixMe: flow doesn't support computed property keys yet
   [memoSym]() {
-    let runtime = [], compiletime = [];
+    let runtime = [],
+      compiletime = [];
     for (let item of this.items) {
       if (S.isExportDeclaration(item)) {
-        if (S.isExport(item)) {
-          let stmt = wrapStatement(extractDeclaration(item));
-          if (S.isCompiletimeStatement(stmt)) {
-            compiletime.push(stmt);
-          } else {
-            runtime.push(stmt);
-          }
-        } else if (S.isExportDefault(item)) {
+        if (S.isExportDefault(item)) {
           let decl = extractDeclaration(item);
           let def = new T.BindingIdentifier({
             name: this.defaultExport
