@@ -86,7 +86,6 @@ const passExcluded = [
   '1844.script.js',
   '285.script.js',
   '295.script.js',
-  '296.script.js',
   '301.script.js',
   '350.script.js',
   '516.script.js',
@@ -400,7 +399,6 @@ const failExcluded = [
   '977.script.js',
   '983.script.js',
 
-  '739.module.js',
   '912.module.js',
   '913.module.js',
   '924.module.js',
