@@ -13,6 +13,7 @@ import ScopeReducer from './scope-reducer';
 import { wrapInTerms } from './macro-context';
 import { transform as babel } from 'babel-core';
 import Store from './store';
+import Multimap from './multimap';
 
 export const phaseInModulePathRegexp = /(.*):(\d+)\s*$/;
 
@@ -24,11 +25,12 @@ export type Context = {
   transform: any,
   phase: number,
   store: Store,
+  invokedRegistry: Multimap<string, number>
 };
 
 export type LoaderOptions = {
   noBabel?: boolean,
-  logging?: boolean,
+  logging?: boolean
 };
 
 export default class SweetLoader {
@@ -53,16 +55,17 @@ export default class SweetLoader {
       templateMap,
       getTemplateIdentifier: () => ++tempIdent,
       loader: this,
+      invokedRegistry: new Multimap(),
       transform: c => {
         if (options.noBabel) {
           return {
-            code: c,
+            code: c
           };
         }
         return babel(c, {
-          babelrc: true,
+          babelrc: true
         });
-      },
+      }
     };
   }
 
@@ -83,7 +86,7 @@ export default class SweetLoader {
     if (match && match.length >= 3) {
       return {
         path: match[1],
-        phase: parseInt(match[2], 10),
+        phase: parseInt(match[2], 10)
       };
     }
     throw new Error(`Module ${name} is missing phase information`);
@@ -92,8 +95,12 @@ export default class SweetLoader {
   fetch({
     name,
     address,
-    metadata,
-  }: { name: string, address: { path: string, phase: number }, metadata: {} }) {
+    metadata
+  }: {
+    name: string,
+    address: { path: string, phase: number },
+    metadata: {}
+  }) {
     throw new Error('No default fetch defined');
   }
 
@@ -101,12 +108,12 @@ export default class SweetLoader {
     name,
     address,
     source,
-    metadata,
+    metadata
   }: {
     name: string,
     address: { path: string, phase: number },
     source: string,
-    metadata: {},
+    metadata: {}
   }) {
     let src = this.compiledCache.get(address.path);
     if (src != null) {
@@ -121,12 +128,12 @@ export default class SweetLoader {
     name,
     address,
     source,
-    metadata,
+    metadata
   }: {
     name: string,
     address: { path: string, phase: number },
     source: SweetModule,
-    metadata: {},
+    metadata: {}
   }) {
     throw new Error('Not implemented yet');
   }
@@ -148,11 +155,11 @@ export default class SweetLoader {
   compile(
     entryPath: string,
     refererName?: string,
-    enforceLangPragma?: boolean = true,
+    enforceLangPragma?: boolean = true
   ) {
     let metadata = {
       enforceLangPragma,
-      entryPath,
+      entryPath
     };
     let name = this.normalize(entryPath, refererName);
     let address = this.locate({ name, metadata });
@@ -189,8 +196,8 @@ export default class SweetLoader {
       this.freshStore(),
       _.merge(this.context, {
         currentScope: [outScope, inScope],
-        cwd: path,
-      }),
+        cwd: path
+      })
     );
     return new SweetModule(
       path,
@@ -201,13 +208,13 @@ export default class SweetLoader {
             new ScopeReducer(
               [
                 { scope: outScope, phase: ALL_PHASES, flip: false },
-                { scope: inScope, phase: 0, flip: false },
+                { scope: inScope, phase: 0, flip: false }
               ],
-              this.context.bindings,
-            ),
-          ),
-        ),
-      ),
+              this.context.bindings
+            )
+          )
+        )
+      )
     );
   }
 }

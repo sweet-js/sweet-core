@@ -17,14 +17,14 @@ export function bindImports(
   impTerm: any,
   exModule: SweetModule,
   phase: any,
-  context: Context,
+  context: Context
 ) {
   let names = [];
   let phaseToBind = impTerm.forSyntax ? phase + 1 : phase;
   if (impTerm.defaultBinding != null && impTerm instanceof T.Import) {
     let name = impTerm.defaultBinding.name;
     let exportName = exModule.exportedNames.find(
-      exName => exName.exportedName.val() === '_default',
+      exName => exName.exportedName.val() === '_default'
     );
     if (exportName != null) {
       let newBinding = gensym('_default');
@@ -37,7 +37,7 @@ export function bindImports(
     impTerm.namedImports.forEach(specifier => {
       let name = specifier.binding.name;
       let exportName = exModule.exportedNames.find(
-        exName => exName.exportedName.val() === name.val(),
+        exName => exName.exportedName.val() === name.val()
       );
       if (exportName != null) {
         let newBinding = gensym(name.val());
@@ -54,12 +54,12 @@ export function bindImports(
     let newBinding = gensym(name.val());
     context.store.set(
       newBinding.toString(),
-      new ModuleNamespaceTransform(name, exModule),
+      new ModuleNamespaceTransform(name, exModule)
     );
     context.bindings.add(name, {
       binding: newBinding,
       phase: phaseToBind,
-      skipDup: false,
+      skipDup: false
     });
 
     names.push(name);
@@ -80,7 +80,7 @@ export default class {
         let mod = this.context.loader.get(
           imp.moduleSpecifier.val(),
           phase + 1,
-          cwd,
+          cwd
         );
         this.visit(mod, phase + 1, store, mod.path);
         this.invoke(mod, phase + 1, store, mod.path);
@@ -88,7 +88,7 @@ export default class {
         let mod = this.context.loader.get(
           imp.moduleSpecifier.val(),
           phase,
-          cwd,
+          cwd
         );
         this.visit(mod, phase, store, mod.path);
       }
@@ -103,12 +103,15 @@ export default class {
   }
 
   invoke(mod: any, phase: any, store: any, cwd: string) {
+    if (this.context.invokedRegistry.containsAt(mod.path, phase)) {
+      return store;
+    }
     mod.imports.forEach(imp => {
       if (!imp.forSyntax) {
         let mod = this.context.loader.get(
           imp.moduleSpecifier.val(),
           phase,
-          cwd,
+          cwd
         );
         this.invoke(mod, phase, store, mod.path);
         bindImports(imp, mod, phase, this.context);
@@ -124,7 +127,7 @@ export default class {
     }
     let parsed = new T.Module({
       directives: List(),
-      items,
+      items
       // $FlowFixMe: flow doesn't know about reduce yet
     }).reduce(new SweetToShiftReducer(phase));
 
@@ -132,6 +135,7 @@ export default class {
     let result = this.context.transform(gen);
 
     this.context.loader.eval(result.code, store);
+    this.context.invokedRegistry.add(mod.path, phase);
     return store;
   }
 
@@ -141,8 +145,8 @@ export default class {
         decl.init,
         _.merge(this.context, {
           phase: phase + 1,
-          store,
-        }),
+          store
+        })
       );
 
       collectBindings(decl.binding).forEach(stx => {
@@ -152,7 +156,7 @@ export default class {
           this.context.bindings.add(stx, {
             binding: newBinding,
             phase: phase,
-            skipDup: false,
+            skipDup: false
           });
         }
         let resolvedName = stx.resolve(phase);
@@ -163,8 +167,8 @@ export default class {
             type: compiletimeType,
             prec: decl.prec == null ? void 0 : decl.prec.val(),
             assoc: decl.assoc == null ? void 0 : decl.assoc.val(),
-            f: val,
-          }),
+            f: val
+          })
         );
       });
     });
@@ -179,7 +183,7 @@ export default class {
           this.context.bindings.add(stx, {
             binding: newBinding,
             phase: phase,
-            skipDup: term.kind === 'var',
+            skipDup: term.kind === 'var'
           });
         }
       });
@@ -193,7 +197,7 @@ export default class {
         this.context.bindings.add(stx, {
           binding: newBinding,
           phase: phase,
-          skipDup: false,
+          skipDup: false
         });
       }
     });
