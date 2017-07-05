@@ -96,8 +96,37 @@ export default class extends Term.CloneReducer {
     });
   }
 
-  reduceImport() {
-    return new S.EmptyStatement({});
+  reduceImportNamespace(
+    t: Term,
+    s: {
+      defaultBinding: S.BindingIdentifier,
+      moduleSpecifier: Syntax,
+      namespaceBinding: S.BindingIdentifier
+    }
+  ) {
+    if (s.forSyntax) {
+      return new S.EmptyStatement();
+    }
+    return t;
+  }
+
+  reduceImport(
+    t: Term,
+    s: {
+      defaultBinding: S.BindingIdentifier,
+      moduleSpecifier: Syntax,
+      namedImports: List<any>
+    }
+  ) {
+    if (s.forSyntax) {
+      return new S.EmptyStatement();
+    }
+    return new S.Import({
+      forSyntax: false,
+      defaultBinding: s.defaultBinding,
+      moduleSpecifier: s.moduleSpecifier.val(),
+      namedImports: s.namedImports.toArray()
+    });
   }
 
   reduceBlock(t: Term, s: { statements: List<any> }) {

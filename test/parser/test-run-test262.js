@@ -102,6 +102,17 @@ const failExcluded = [
   '822.script.js',
   '833.script.js',
 
+  '533.script.js',
+  '58.script.js',
+  '59.script.js',
+  '60.script.js',
+  '63.script.js',
+  '751.module.js',
+  '752.module.js',
+  '754.module.js',
+  '756.module.js',
+  '757.module.js',
+
   '0.script.js',
   '19.script.js',
   '22.script.js',
