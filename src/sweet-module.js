@@ -235,7 +235,7 @@ export default class SweetModule {
 
   parse() {
     return new T.Module({
-      items: this.items,
+      items: (this.imports: any).concat(this.items),
       directives: this.directives
       // $FlowFixMe: flow doesn't know about reduce yet
     }).reduce(new SweetToShiftReducer(0));

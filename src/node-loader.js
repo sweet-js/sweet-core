@@ -21,10 +21,15 @@ export default class NodeLoader extends SweetLoader {
     let normName = super.normalize(name, refererName, refererAddress);
     let match = normName.match(phaseInModulePathRegexp);
     if (match && match.length >= 3) {
-      let resolvedName = resolve.sync(match[1], {
-        basedir: refererName ? dirname(refererName) : this.baseDir,
-        extensions: this.extensions,
-      });
+      let resolvedName = match[1];
+      try {
+        resolvedName = resolve.sync(match[1], {
+          basedir: refererName ? dirname(refererName) : this.baseDir,
+          extensions: this.extensions
+        });
+      } catch (e) {
+        // ignored
+      }
       return `${resolvedName}:${match[2]}`;
     }
     throw new Error(`Module ${name} is missing phase information`);
@@ -33,13 +38,21 @@ export default class NodeLoader extends SweetLoader {
   fetch({
     name,
     address,
-    metadata,
-  }: { name: string, address: { path: string, phase: number }, metadata: {} }) {
+    metadata
+  }: {
+    name: string,
+    address: { path: string, phase: number },
+    metadata: {}
+  }) {
     let src = this.sourceCache.get(address.path);
     if (src != null) {
       return src;
     } else {
-      src = readFileSync(address.path, 'utf8');
+      try {
+        src = readFileSync(address.path, 'utf8');
+      } catch (e) {
+        src = '';
+      }
       this.sourceCache.set(address.path, src);
       return src;
     }
@@ -48,7 +61,7 @@ export default class NodeLoader extends SweetLoader {
   freshStore() {
     let sandbox = {
       process: global.process,
-      console: global.console,
+      console: global.console
     };
     return new Store(vm.createContext(sandbox));
   }
