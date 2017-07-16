@@ -43,7 +43,12 @@ class ReadError extends Error {
     line,
     column,
     message,
-  }: { index: number, line: number, column: number, message: string }) {
+  }: {
+    index: number,
+    line: number,
+    column: number,
+    message: string,
+  }) {
     super(message);
     this.index = index;
     this.line = line;
@@ -113,7 +118,9 @@ class TokenReader extends Reader {
     prefix: List<any>,
     exprAllowed: boolean,
   ): List<any> {
-    let result, results = prefix, done = false;
+    let result,
+      results = prefix,
+      done = false;
     do {
       if (isEOS(stream.peek())) break;
       done = typeof close === 'function' ? close() : stream.peek() === close;

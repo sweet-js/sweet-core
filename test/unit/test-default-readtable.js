@@ -7,7 +7,7 @@ import read from '../../src/reader/token-reader';
 import {
   TokenType as TT,
   TokenClass as TC,
-  EmptyToken
+  EmptyToken,
 } from '../../src/tokens';
 
 function testParse(source, tst) {
@@ -36,7 +36,7 @@ test('should parse Unicode identifiers', t => {
         filename: '',
         line: 1,
         column: 1,
-        position: 0
+        position: 0,
       });
     });
   }
@@ -73,7 +73,7 @@ test('should parse keywords', t => {
         filename: '',
         line: 1,
         column: 1,
-        position: 0
+        position: 0,
       });
     });
   }
@@ -94,7 +94,7 @@ test('should parse punctuators', t => {
         filename: '',
         line: 1,
         column: 1,
-        position: 0
+        position: 0,
       });
     });
   }
@@ -162,11 +162,11 @@ test('should parse string literals', t => {
   }
 
   testParseStringLiteral('""', '');
-  testParseStringLiteral('\'x\'', 'x');
+  testParseStringLiteral("'x'", 'x');
   testParseStringLiteral('"x"', 'x');
-  testParseStringLiteral('\'\\\\\\\'\'', '\\\'');
+  testParseStringLiteral("'\\\\\\''", "\\'");
   testParseStringLiteral('"\\\\\\""', '\\"');
-  testParseStringLiteral('\'\\\r\'', '');
+  testParseStringLiteral("'\\\r'", '');
   testParseStringLiteral('"\\\r\n"', '');
   testParseStringLiteral('"\\\n"', '');
   testParseStringLiteral('"\\\u2028"', '');
@@ -183,7 +183,7 @@ test('should parse string literals', t => {
   testParseStringLiteral('"\\5111"', ')11');
   testParseStringLiteral('"\\5a"', '\x05a');
   testParseStringLiteral('"\\7a"', '\x07a');
-  testParseStringLiteral('"\a"', 'a');
+  testParseStringLiteral('"a"', 'a');
   testParseStringLiteral('"\\u{00F8}"', '\xF8');
   testParseStringLiteral('"\\u{0}"', '\0');
   testParseStringLiteral('"\\u{10FFFF}"', '\uDBFF\uDFFF');
@@ -314,7 +314,7 @@ test('should parse delimiters', t => {
 
     t.is(y.type, TT.STRING);
     t.is(y.str, 'bar');
-    t.is(y.slice.text, '\'bar\'');
+    t.is(y.slice.text, "'bar'");
 
     t.is(z.type, TT.RPAREN);
   });
@@ -397,7 +397,7 @@ test('should parse comments', t => {
     t.true(result.isEmpty());
   }
 
-  testParseComment('// this is a single line comment\n // here\'s another');
+  testParseComment("// this is a single line comment\n // here's another");
   testParseComment('/* this is a block line comment */');
   testParseComment(
     `/*
@@ -407,14 +407,14 @@ test('should parse comments', t => {
   * multi
   * line
   * comment
-  */`
+  */`,
   );
 });
 
 test('should properly update location information', t => {
   function testLocationInfo(
     source,
-    { idx, size, line: expectedLine, column: expectedColumn }
+    { idx, size, line: expectedLine, column: expectedColumn },
   ) {
     let result = read(source);
     let { line, column } = result.get(idx).slice.startLocation;
@@ -434,12 +434,12 @@ test('should properly update location information', t => {
   * line
   * comment
   */b c`,
-    { idx: 2, size: 3, line: 8, column: 7 }
+    { idx: 2, size: 3, line: 8, column: 7 },
   );
   testLocationInfo('"a\\\nb c\\\n d f g" a', {
     idx: 1,
     size: 2,
     line: 3,
-    column: 9
+    column: 9,
   });
 });

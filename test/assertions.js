@@ -53,7 +53,7 @@ export function testEval(store, cb) {
     throw new Error(
       `Syntax error: ${e.message}
 
-${result}`
+${result}`,
     );
   }
   return cb(output);

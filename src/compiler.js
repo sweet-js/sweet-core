@@ -18,16 +18,16 @@ export default class Compiler {
         phase: this.phase,
         env: this.env,
         store: this.store,
-        invokedRegistry: this.invokedRegistry
-      })
+        invokedRegistry: this.invokedRegistry,
+      }),
     );
     let termExpander = new TermExpander(
       _.merge(this.context, {
         phase: this.phase,
         env: this.env,
         store: this.store,
-        invokedRegistry: this.invokedRegistry
-      })
+        invokedRegistry: this.invokedRegistry,
+      }),
     );
 
     return tokenExpander.expand(stxl).map(t => termExpander.expand(t));

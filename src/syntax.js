@@ -308,15 +308,15 @@ export default class Syntax {
 
   constructor(token: any, oldstx: ?{ bindings: any, scopesets: any }) {
     this.token = token;
-    this.bindings = oldstx && oldstx.bindings != null
-      ? oldstx.bindings
-      : new BindingMap();
-    this.scopesets = oldstx && oldstx.scopesets != null
-      ? oldstx.scopesets
-      : {
-          all: List(),
-          phase: Map(),
-        };
+    this.bindings =
+      oldstx && oldstx.bindings != null ? oldstx.bindings : new BindingMap();
+    this.scopesets =
+      oldstx && oldstx.scopesets != null
+        ? oldstx.scopesets
+        : {
+            all: List(),
+            phase: Map(),
+          };
     Object.freeze(this);
   }
 
@@ -413,9 +413,11 @@ export default class Syntax {
     stxScopes = allScopes.concat(stxScopes);
     if (
       stxScopes.size === 0 ||
-      !(this.match('identifier') ||
+      !(
+        this.match('identifier') ||
         this.match('keyword') ||
-        this.match('punctuator'))
+        this.match('punctuator')
+      )
     ) {
       return this.token.value;
     }

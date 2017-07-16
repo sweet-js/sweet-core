@@ -137,9 +137,8 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandTryFinallyStatement(term) {
-    let catchClause = term.catchClause == null
-      ? null
-      : this.expand(term.catchClause);
+    let catchClause =
+      term.catchClause == null ? null : this.expand(term.catchClause);
     return new T.TryFinallyStatement({
       body: this.expand(term.body),
       catchClause,
@@ -195,9 +194,8 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandArrayBinding(term) {
-    let restElement = term.restElement == null
-      ? null
-      : this.expand(term.restElement);
+    let restElement =
+      term.restElement == null ? null : this.expand(term.restElement);
     return new T.ArrayBinding({
       elements: term.elements
         .map(t => (t == null ? null : this.expand(t)))
@@ -255,9 +253,8 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandIfStatement(term) {
-    let consequent = term.consequent == null
-      ? null
-      : this.expand(term.consequent);
+    let consequent =
+      term.consequent == null ? null : this.expand(term.consequent);
     let alternate = term.alternate == null ? null : this.expand(term.alternate);
     return new T.IfStatement({
       test: this.expand(term.test),

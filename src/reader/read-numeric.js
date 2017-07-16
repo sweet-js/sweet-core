@@ -16,7 +16,8 @@ let terminates;
 
 export default function readNumericLiteral(stream: CharStream) {
   terminates = isTerminating(getCurrentReadtable());
-  let idx = 0, char = stream.peek();
+  let idx = 0,
+    char = stream.peek();
 
   if (char === '0') {
     char = stream.peek(++idx);
@@ -92,7 +93,9 @@ function addDecimalLiteralSuffixLength(stream, idx) {
 }
 
 function readLegacyOctalLiteral(stream) {
-  let idx = 0, isOctal = true, char = stream.peek();
+  let idx = 0,
+    isOctal = true,
+    char = stream.peek();
 
   while (!terminates(char) && !isEOS(char)) {
     if ('0' <= char && char <= '7') {
@@ -124,7 +127,9 @@ function readLegacyOctalLiteral(stream) {
 }
 
 function readOctalLiteral(stream) {
-  let start, idx = (start = 2), char = stream.peek(idx);
+  let start,
+    idx = (start = 2),
+    char = stream.peek(idx);
   while (!terminates(char) && !isEOS(char)) {
     if ('0' <= char && char <= '7') {
       char = stream.peek(++idx);
@@ -145,7 +150,8 @@ function readOctalLiteral(stream) {
 }
 
 function readBinaryLiteral(stream) {
-  let start, idx = (start = 2);
+  let start,
+    idx = (start = 2);
   let char = stream.peek(idx);
 
   while (!terminates(char) && !isEOS(char)) {
@@ -174,7 +180,9 @@ function readBinaryLiteral(stream) {
 }
 
 function readHexLiteral(stream) {
-  let start, idx = (start = 2), char = stream.peek(idx);
+  let start,
+    idx = (start = 2),
+    char = stream.peek(idx);
   while (!terminates(char)) {
     let hex = getHexValue(char);
     if (hex === -1) {
