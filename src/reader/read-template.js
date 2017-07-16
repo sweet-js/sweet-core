@@ -12,7 +12,8 @@ export default function readTemplateLiteral(
   stream: CharStream,
   prefix: List<any>,
 ): TemplateToken {
-  let element, items = [];
+  let element,
+    items = [];
   stream.readString();
 
   do {
@@ -30,7 +31,10 @@ export default function readTemplateLiteral(
 }
 
 function readTemplateElement(stream: CharStream): TemplateElementToken {
-  let char = stream.peek(), idx = 0, value = '', octal = null;
+  let char = stream.peek(),
+    idx = 0,
+    value = '',
+    octal = null;
   const startLocation = Object.assign({}, this.locationInfo, stream.sourceInfo);
   while (!isEOS(char)) {
     switch (char) {

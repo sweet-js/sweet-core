@@ -107,7 +107,7 @@ const numericEntries = digits.map(d => ({
   action: readNumericLiteral,
 }));
 
-const quotes = ['\'', '"'];
+const quotes = ["'", '"'];
 
 const stringEntries = quotes.map(q => ({
   key: q,
@@ -265,7 +265,8 @@ const atEntry = {
   key: '@',
   mode: 'terminating',
   action: function readAt(stream, prefix) {
-    const nxt = stream.peek(1), nxtCode = nxt.charCodeAt(0);
+    const nxt = stream.peek(1),
+      nxtCode = nxt.charCodeAt(0);
     if (isEOS(nxt) || isWhiteSpace(nxtCode) || isLineTerminator(nxtCode)) {
       return new IdentifierToken({ value: stream.readString() });
     }

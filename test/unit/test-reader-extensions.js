@@ -48,15 +48,12 @@ test('terminating macros should delimit identifiers and numbers', t => {
   t.is(x, 'abc');
   t.is(y, 'efg');
   t.is(z, 'hij𐊧ba');
-
   [x, y, z] = read('12304560789').map(s => s.value);
   t.is(x, 123);
   t.is(y, 456);
   t.is(z, 789);
-
   setCurrentReadtable(prevTable);
 });
-
 test('should create a dispatch macro', t => {
   const prevTable = getCurrentReadtable();
   const newTable = prevTable.extend({
@@ -70,21 +67,14 @@ test('should create a dispatch macro', t => {
       });
     },
   });
-
   function readDefault(stream, prefix, allowExpr) {
     const [[openParen, closeParen]] = read('()');
-
     setCurrentReadtable(prevTable);
-
     const stx = this.readToken(stream, List(), false);
-
     let result = List.of(openParen).push(stx);
-
     setCurrentReadtable(newTable);
-
     return result.push(closeParen);
   }
-
   const kwLetters = Array.from(
     new Set(Object.keys(keywordTable).map(w => w[0])),
   );
@@ -93,12 +83,10 @@ test('should create a dispatch macro', t => {
     mode: 'non-terminating',
     action: readDefault,
   }));
-
   const defaultTable = newTable.extend(...keywordEntries, {
     mode: 'non-terminating',
     action: readDefault,
   });
-
   setCurrentReadtable(newTable);
   // eslint-disable-next-line no-unused-vars
   const [one, [open, kw, close], iff, els, [open2, elkw]] = read(
@@ -111,7 +99,6 @@ test('should create a dispatch macro', t => {
   t.true(isKeyword(elkw, 'else'));
   setCurrentReadtable(prevTable);
 });
-
 test('should allow replacing the dispatch character', t => {
   const prevTable = getCurrentReadtable();
   const newTable = prevTable.extend(
@@ -126,17 +113,12 @@ test('should allow replacing the dispatch character', t => {
       action: prevTable.getMapping('@').action,
     },
   );
-
   const result = read('#``');
   const error = t.throws(() => read('@``'));
-
   setCurrentReadtable(newTable);
-
   const result2 = read('@``');
   const error2 = t.throws(() => read('#``'));
-
   t.is(error.message, error2.message);
   t.deepEqual(result, result2);
-
   setCurrentReadtable(prevTable);
 });

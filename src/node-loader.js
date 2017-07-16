@@ -25,7 +25,7 @@ export default class NodeLoader extends SweetLoader {
       try {
         resolvedName = resolve.sync(match[1], {
           basedir: refererName ? dirname(refererName) : this.baseDir,
-          extensions: this.extensions
+          extensions: this.extensions,
         });
       } catch (e) {
         // ignored
@@ -38,11 +38,11 @@ export default class NodeLoader extends SweetLoader {
   fetch({
     name,
     address,
-    metadata
+    metadata,
   }: {
     name: string,
     address: { path: string, phase: number },
-    metadata: {}
+    metadata: {},
   }) {
     let src = this.sourceCache.get(address.path);
     if (src != null) {
@@ -61,7 +61,7 @@ export default class NodeLoader extends SweetLoader {
   freshStore() {
     let sandbox = {
       process: global.process,
-      console: global.console
+      console: global.console,
     };
     return new Store(vm.createContext(sandbox));
   }

@@ -301,7 +301,11 @@ export class StringToken {
     str,
     octal,
     slice,
-  }: { str: string, octal: ?string, slice?: Slice }) {
+  }: {
+    str: string,
+    octal: ?string,
+    slice?: Slice,
+  }) {
     this.type = TT.STRING;
     this.typeCode = TypeCodes.StringLiteral;
     this.str = str;
@@ -397,7 +401,12 @@ export class NumericToken extends BaseToken {
     octal = false,
     noctal = false,
     slice,
-  }: { value: number, octal?: boolean, noctal?: boolean, slice?: Slice }) {
+  }: {
+    value: number,
+    octal?: boolean,
+    noctal?: boolean,
+    slice?: Slice,
+  }) {
     super({
       typeCode: TypeCodes.NumericLiteral,
       type: TT.NUMBER,
@@ -426,7 +435,12 @@ export class TemplateElementToken extends BaseToken {
     tail,
     interp,
     slice,
-  }: { value: string, tail: boolean, interp: boolean, slice?: Slice }) {
+  }: {
+    value: string,
+    tail: boolean,
+    interp: boolean,
+    slice?: Slice,
+  }) {
     super({
       type: TT.TEMPLATE,
       typeCode: TypeCodes.TemplateElement,
@@ -482,10 +496,10 @@ export function getKind(x: List<TokenTree>) {
   return isParens(x)
     ? 'parens'
     : isBraces(x)
-        ? 'braces'
-        : isBrackets(x)
-            ? 'brackets'
-            : isSyntaxTemplate(x) ? 'syntaxTemplate' : '';
+      ? 'braces'
+      : isBrackets(x)
+        ? 'brackets'
+        : isSyntaxTemplate(x) ? 'syntaxTemplate' : '';
 }
 
 export function getLineNumber(t: any) {

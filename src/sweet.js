@@ -34,7 +34,8 @@ export function compile(
   loader: SweetLoader,
   options?: CompileOptions,
 ) {
-  let refererName, noBabel = true;
+  let refererName,
+    noBabel = true;
   if (options != null) {
     refererName = options.refererName;
     noBabel = options.noBabel;

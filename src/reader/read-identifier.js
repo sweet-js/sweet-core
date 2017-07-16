@@ -31,12 +31,12 @@ export default function readIdentifier(stream: CharStream) {
   while (!terminates(char) && !isEOS(char)) {
     if (startsEscape(code)) {
       return new IdentifierToken({
-        value: getEscapedIdentifier.call(this, stream)
+        value: getEscapedIdentifier.call(this, stream),
       });
     }
     if (!check(code)) {
       return new IdentifierToken({
-        value: stream.readString(idx)
+        value: stream.readString(idx),
       });
     }
     char = stream.peek(++idx);
@@ -44,7 +44,7 @@ export default function readIdentifier(stream: CharStream) {
     check = isIdentifierPart;
   }
   return new IdentifierToken({
-    value: stream.readString(idx)
+    value: stream.readString(idx),
   });
 }
 

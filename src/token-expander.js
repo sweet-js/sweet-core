@@ -37,7 +37,7 @@ class RegisterBindingsReducer extends Term.CloneReducer {
     phase: number,
     skipDup: boolean,
     bindings: any,
-    env: Env
+    env: Env,
   ) {
     super();
     this.useScope = useScope;
@@ -53,12 +53,12 @@ class RegisterBindingsReducer extends Term.CloneReducer {
     this.bindings.add(newName, {
       binding: newBinding,
       phase: this.phase,
-      skipDup: this.skipDup
+      skipDup: this.skipDup,
     });
     this.env.set(newBinding.toString(), new VarBindingTransform(newName));
     // $FlowFixMe: flow doesn't know about extend
     return t.extend({
-      name: newName
+      name: newName,
     });
   }
 }
@@ -86,13 +86,13 @@ class RegisterSyntaxBindingsReducer extends Term.CloneReducer {
     this.bindings.add(newName, {
       binding: newBinding,
       phase: this.phase,
-      skipDup: false
+      skipDup: false,
     });
     let resolvedName = newName.resolve(this.phase);
     this.env.set(resolvedName, new CompiletimeTransform(this.val));
     // $FlowFixMe: flow doesn't know about extend
     return t.extend({
-      name: newName
+      name: newName,
     });
   }
 }
@@ -121,7 +121,7 @@ export default class TokenExpander extends ASTDispatcher {
   expandVariableDeclarationStatement(term: S.VariableDeclarationStatement) {
     // $FlowFixMe: flow doesn't know about extend
     return term.extend({
-      declaration: this.registerVariableDeclaration(term.declaration)
+      declaration: this.registerVariableDeclaration(term.declaration),
     });
   }
 
@@ -139,19 +139,19 @@ export default class TokenExpander extends ASTDispatcher {
       mod = this.context.loader.get(
         path,
         this.context.phase + 1,
-        this.context.cwd
+        this.context.cwd,
       );
       this.context.store = visitor.visit(
         mod,
         this.context.phase + 1,
         this.context.store,
-        mod.path
+        mod.path,
       );
       this.context.store = visitor.invoke(
         mod,
         this.context.phase + 1,
         this.context.store,
-        mod.path
+        mod.path,
       );
     } else {
       mod = this.context.loader.get(path, this.context.phase, this.context.cwd);
@@ -159,7 +159,7 @@ export default class TokenExpander extends ASTDispatcher {
         mod,
         this.context.phase,
         this.context.store,
-        mod.path
+        mod.path,
       );
     }
     bindImports(term, mod, this.context.phase, this.context);
@@ -173,7 +173,7 @@ export default class TokenExpander extends ASTDispatcher {
     if (term instanceof S.Import) {
       namedImports = term.namedImports.filter(
         specifier =>
-          !isBoundToCompiletime(specifier.binding.name, this.context.store)
+          !isBoundToCompiletime(specifier.binding.name, this.context.store),
       );
       if (defaultBinding == null && namedImports.size === 0) {
         return new S.EmptyStatement();
@@ -182,14 +182,14 @@ export default class TokenExpander extends ASTDispatcher {
         forSyntax: term.forSyntax,
         moduleSpecifier: term.moduleSpecifier,
         defaultBinding,
-        namedImports
+        namedImports,
       });
     } else if (term instanceof S.ImportNamespace) {
       return new S.ImportNamespace({
         forSyntax: term.forSyntax,
         moduleSpecifier: term.moduleSpecifier,
         defaultBinding,
-        namespaceBinding: term.namespaceBinding
+        namespaceBinding: term.namespaceBinding,
       });
     }
     // return a new import filtered to just the runtime imports
@@ -210,11 +210,11 @@ export default class TokenExpander extends ASTDispatcher {
       T.isClassDeclaration(term.declaration)
     ) {
       return term.extend({
-        declaration: this.registerFunctionOrClass(term.declaration)
+        declaration: this.registerFunctionOrClass(term.declaration),
       });
     } else if (T.isVariableDeclaration(term.declaration)) {
       return term.extend({
-        declaration: this.registerVariableDeclaration(term.declaration)
+        declaration: this.registerVariableDeclaration(term.declaration),
       });
     }
     return term;
@@ -226,10 +226,10 @@ export default class TokenExpander extends ASTDispatcher {
       this.context.phase,
       false,
       this.context.bindings,
-      this.context.env
+      this.context.env,
     );
     return term.extend({
-      name: term.name.reduce(red)
+      name: term.name.reduce(red),
     });
   }
 
@@ -246,14 +246,14 @@ export default class TokenExpander extends ASTDispatcher {
       this.context.phase,
       term.kind === 'var',
       this.context.bindings,
-      this.context.env
+      this.context.env,
     );
     return term.extend({
       declarators: term.declarators.map(decl => {
         return decl.extend({
-          binding: decl.binding.reduce(red)
+          binding: decl.binding.reduce(red),
         });
-      })
+      }),
     });
   }
 
@@ -266,7 +266,7 @@ export default class TokenExpander extends ASTDispatcher {
       let scope = freshScope('nonrec');
       let scopeReducer = new ScopeReducer(
         [{ scope: scope, phase: ALL_PHASES, flip: false }],
-        this.context.bindings
+        this.context.bindings,
       );
       term = term.extend({
         declarators: term.declarators.map(decl => {
@@ -274,23 +274,23 @@ export default class TokenExpander extends ASTDispatcher {
           let nameAdded = name.addScope(
             scope,
             this.context.bindings,
-            ALL_PHASES
+            ALL_PHASES,
           );
           let nameRemoved = name.removeScope(
             this.context.currentScope[this.context.currentScope.length - 1],
-            this.context.phase
+            this.context.phase,
           );
           let newBinding = gensym(name.val());
           this.context.bindings.addForward(
             nameAdded,
             nameRemoved,
             newBinding,
-            this.context.phase
+            this.context.phase,
           );
           return decl.extend({
-            init: decl.init.reduce(scopeReducer)
+            init: decl.init.reduce(scopeReducer),
           });
-        })
+        }),
       });
     }
     // for syntax declarations we need to load the compiletime value
@@ -304,16 +304,16 @@ export default class TokenExpander extends ASTDispatcher {
           _.merge(this.context, {
             phase: this.context.phase + 1,
             env: new Env(),
-            store: this.context.store
-          })
+            store: this.context.store,
+          }),
         );
 
         let init = syntaxExpander.expand(decl.init);
         let val = evalCompiletimeValue(
           init,
           _.merge(this.context, {
-            phase: this.context.phase + 1
-          })
+            phase: this.context.phase + 1,
+          }),
         );
         let red = new RegisterSyntaxBindingsReducer(
           this.context.useScope,
@@ -324,11 +324,11 @@ export default class TokenExpander extends ASTDispatcher {
             type: compiletimeType,
             prec: decl.prec == null ? void 0 : decl.prec.val(),
             assoc: decl.assoc == null ? void 0 : decl.assoc.val(),
-            f: val
-          }
+            f: val,
+          },
         );
         return decl.extend({ binding: decl.binding.reduce(red), init });
-      })
+      }),
     });
   }
 

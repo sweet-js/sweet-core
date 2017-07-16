@@ -14,7 +14,7 @@ output = function foo(x) {
        return m;
    }(2);
 }(1);`,
-  1
+  1,
 );
 
 test(
@@ -31,7 +31,7 @@ function foo(x) {
    return bar(2);
 };
 output = foo(1)`,
-  1
+  1,
 );
 
 test(
@@ -46,7 +46,7 @@ output = function foo() {
   m;
   return x;
 }()`,
-  100
+  100,
 );
 
 test(
@@ -56,7 +56,7 @@ test(
 var x = 100;
 var x = 200;
 output = x;`,
-  200
+  200,
 );
 
 test(
@@ -64,7 +64,7 @@ test(
   evalThrows,
   `
 let x = 100;
-let x = 200`
+let x = 200`,
 );
 
 test(
@@ -74,7 +74,7 @@ test(
   var { x } = { x: 1 };
   output = x;
   `,
-  1
+  1,
 );
 
 test(
@@ -84,5 +84,5 @@ test(
   var { x = 1 } = { };
   output = x;
   `,
-  1
+  1,
 );
