@@ -16,8 +16,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "lint": "eslint src test && flow",
-    "format": "prettier-eslint --write \"src/**/*.js\" \"test/**/*.js\"",
-    "precommit": "lint-staged",
+    "format": "eslint src test --fix",
     "prebuild": "mkdir -p dist/",
     "build:src": "babel --out-dir dist/ src --plugins transform-es2015-modules-commonjs",
     "build": "npm run build:src",
@@ -30,12 +29,6 @@
     "report": "nyc ava && nyc report--reporter=html",
     "prepublish": "npm run build"
   },
-  "lint-staged": {
-    "*.js": [
-      "prettier-eslint --write",
-      "git add"
-    ]
-  },
   "files": [
     "dist",
     "helpers.js"
@@ -46,7 +39,6 @@
   "dependencies": {
     "babel-core": "^6.18.0",
     "immutable": "^3.8.1",
-    "prettier": "^1.1.0",
     "prettier-eslint": "^5.1.0",
     "ramda": "^0.22.0",
     "ramda-fantasy": "^0.6.0",
@@ -71,15 +63,15 @@
     "babel-preset-node7": "1.4.0",
     "babel-register": "6.18.0",
     "eslint": "^3.7.1",
-    "eslint-plugin-flowtype": "^2.11.4",
+    "eslint-config-prettier": "^2.3.0",
+    "eslint-plugin-flowtype": "^2.35.0",
+    "eslint-plugin-prettier": "^2.1.2",
     "event-stream": "^3.3.2",
     "expect.js": "0.3.x",
     "flow-bin": "^0.45.0",
-    "husky": "^0.13.2",
     "jquery": "3.1.1",
-    "lint-staged": "^3.3.1",
     "nyc": "^6.0.0",
-    "prettier-eslint-cli": "^3.1.2",
+    "prettier": "^1.5.3",
     "source-map": "~0.5.3",
     "source-map-support": "^0.4.0",
     "webpack": "^1.13.1"
