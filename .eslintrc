@@ -1,7 +1,8 @@
 {
   "parser": "babel-eslint",
   "plugins": [
-    "flowtype"
+    "flowtype",
+    "prettier"
   ],
   "env": {
     "es6": true,
@@ -13,16 +14,17 @@
   },
   "extends": [
     "eslint:recommended",
-    "plugin:flowtype/recommended"
+    "plugin:flowtype/recommended",
+    "prettier"
   ],
   "rules": {
-    "semi": ["error", "always"],
+    "prettier/prettier": ["error", {
+      "singleQuote": true,
+      "trailingComma": "all"
+    }],
     "no-constant-condition": ["error", { "checkLoops": false }],
-    "comma-dangle": ["error", "only-multiline" ],
     "no-console": ["warn"],
     "no-unused-vars": ["error", { "args": "none"}],
-    "quotes": ["error", "single", { "allowTemplateLiterals": true}],
-    "object-curly-spacing": ["error", "always"],
     "flowtype/no-types-missing-file-annotation": "warn"
   }
 }
