@@ -14,7 +14,11 @@ function compileModule(
   loader: SweetLoader,
   refererName?: string,
 ) {
-  return loader.compile(entryPath, refererName, false);
+  return loader.compile(entryPath, {
+    refererName,
+    enforceLangPragma: false,
+    isEntrypoint: true,
+  });
 }
 
 export function parse(

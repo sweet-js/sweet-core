@@ -14,15 +14,10 @@ import { ALL_PHASES } from './syntax';
 import ASTDispatcher from './ast-dispatcher';
 import Syntax from './syntax.js';
 import ScopeReducer from './scope-reducer';
-import ModuleVisitor, { bindImports } from './module-visitor';
-
-function isBoundToCompiletime(name, store) {
-  let resolvedName = name.resolve(0);
-  if (store.has(resolvedName)) {
-    return store.get(resolvedName) instanceof CompiletimeTransform;
-  }
-  return false;
-}
+import ModuleVisitor, {
+  bindImports,
+  isBoundToCompiletime,
+} from './module-visitor';
 
 // $FlowFixMe: flow doesn't know about the CloneReducer yet
 class RegisterBindingsReducer extends Term.CloneReducer {
@@ -162,7 +157,13 @@ export default class TokenExpander extends ASTDispatcher {
         mod.path,
       );
     }
-    bindImports(term, mod, this.context.phase, this.context);
+    bindImports(
+      term,
+      mod,
+      this.context.phase,
+      this.context,
+      this.context.isEntrypoint,
+    );
     let defaultBinding = null;
     let namedImports = List();
     if (term.defaultBinding != null) {

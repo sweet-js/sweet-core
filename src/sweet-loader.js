@@ -154,10 +154,18 @@ export default class SweetLoader {
   // skip instantiate
   compile(
     entryPath: string,
-    refererName?: string,
-    enforceLangPragma?: boolean = true,
+    {
+      refererName,
+      enforceLangPragma,
+      isEntrypoint,
+    }: {
+      refererName?: string,
+      enforceLangPragma: boolean,
+      isEntrypoint: boolean,
+    },
   ) {
     let metadata = {
+      isEntrypoint,
       enforceLangPragma,
       entryPath,
     };
@@ -168,7 +176,11 @@ export default class SweetLoader {
   }
 
   get(entryPath: string, entryPhase: number, refererName?: string) {
-    return this.compile(`${entryPath}:${entryPhase}`, refererName);
+    return this.compile(`${entryPath}:${entryPhase}`, {
+      refererName,
+      enforceLangPragma: true,
+      isEntrypoint: false,
+    });
   }
 
   read(source: string): List<Term> {
@@ -197,6 +209,7 @@ export default class SweetLoader {
       _.merge(this.context, {
         currentScope: [outScope, inScope],
         cwd: path,
+        isEntrypoint: metadata.isEntrypoint,
       }),
     );
     return new SweetModule(
