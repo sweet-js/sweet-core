@@ -10,14 +10,24 @@ import SweetModule from './sweet-module';
 import { List } from 'immutable';
 import SweetToShiftReducer from './sweet-to-shift-reducer';
 import codegen, { FormattedCodeGen } from 'shift-codegen';
+import Syntax from './syntax';
 
 import type { Context } from './sweet-loader';
+
+export function isBoundToCompiletime(name: Syntax, store: Map<*, *>) {
+  let resolvedName = name.resolve(0);
+  if (store.has(resolvedName)) {
+    return store.get(resolvedName) instanceof CompiletimeTransform;
+  }
+  return false;
+}
 
 export function bindImports(
   impTerm: any,
   exModule: SweetModule,
   phase: any,
   context: Context,
+  isEntrypoint: boolean,
 ) {
   let names = [];
   let phaseToBind = impTerm.forSyntax ? phase + 1 : phase;
@@ -29,7 +39,14 @@ export function bindImports(
     if (exportName != null) {
       let newBinding = gensym('_default');
       let toForward = exportName.exportedName;
-      context.bindings.addForward(name, toForward, newBinding, phaseToBind);
+
+      if (
+        !isEntrypoint ||
+        isBoundToCompiletime(toForward, context.store) ||
+        impTerm.forSyntax
+      ) {
+        context.bindings.addForward(name, toForward, newBinding, phaseToBind);
+      }
       names.push(name);
     }
   }
@@ -44,7 +61,13 @@ export function bindImports(
         let toForward = exportName.name
           ? exportName.name
           : exportName.exportedName;
-        context.bindings.addForward(name, toForward, newBinding, phaseToBind);
+        if (
+          !isEntrypoint ||
+          isBoundToCompiletime(toForward, context.store) ||
+          impTerm.forSyntax
+        ) {
+          context.bindings.addForward(name, toForward, newBinding, phaseToBind);
+        }
         names.push(name);
       }
     });
@@ -92,7 +115,7 @@ export default class {
         );
         this.visit(mod, phase, store, mod.path);
       }
-      bindImports(imp, mod, phase, this.context);
+      bindImports(imp, mod, phase, this.context, false);
     });
     for (let term of mod.compiletimeItems()) {
       if (S.isSyntaxDeclarationStatement(term)) {
@@ -114,7 +137,7 @@ export default class {
           cwd,
         );
         this.invoke(mod, phase, store, mod.path);
-        bindImports(imp, mod, phase, this.context);
+        bindImports(imp, mod, phase, this.context, false);
       }
     });
     let items = mod.runtimeItems();
