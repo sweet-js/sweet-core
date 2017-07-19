@@ -2,7 +2,7 @@
   "name": "@sweet-js/core",
   "description": "Hygienic Macros for JavaScript",
   "main": "dist/sweet.js",
-  "version": "3.0.12",
+  "version": "3.0.13",
   "engines": {
     "node": ">=7.0.0"
   },
