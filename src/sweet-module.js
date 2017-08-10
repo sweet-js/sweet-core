@@ -54,6 +54,11 @@ function extractSpecifiers(term: any): List<ExportSpecifier> {
     return List();
   } else if (S.isExportFrom(term)) {
     return term.namedExports;
+  } else if (S.isExportLocals(term)) {
+    return term.namedExports.map(({ name, exportedName }) => ({
+      name: name == null ? null : name.name,
+      exportedName: exportedName,
+    }));
   }
   throw new Error(`Unknown export type`);
 }
@@ -123,12 +128,15 @@ export default class SweetModule {
           let stmt = wrapStatement(decl);
           let names = extractDeclarationNames(decl);
           body.push(stmt);
-          let exp = new T.ExportFrom({
+          // TODO: support ExportFrom
+          let exp = new T.ExportLocals({
             moduleSpecifier: null,
             namedExports: names.map(
               name =>
-                new T.ExportSpecifier({
-                  name,
+                new T.ExportLocalSpecifier({
+                  name: new T.IdentifierExpression({
+                    name,
+                  }),
                   exportedName: name,
                 }),
             ),
@@ -138,17 +146,18 @@ export default class SweetModule {
           this.exportedNames = this.exportedNames.concat(
             extractSpecifiers(exp),
           );
-        } else if (item instanceof T.ExportFrom) {
-          let exp = new T.ExportFrom({
-            moduleSpecifier: item.moduleSpecifier,
+        } else if (item instanceof T.ExportLocals) {
+          let exp = new T.ExportLocals({
             namedExports: item.namedExports.map(({ name, exportedName }) => {
               if (name == null) {
-                return new T.ExportSpecifier({
-                  name: exportedName,
+                return new T.ExportLocalSpecifier({
+                  name: new T.IdentifierExpression({
+                    name: exportedName,
+                  }),
                   exportedName,
                 });
               }
-              return new T.ExportSpecifier({
+              return new T.ExportLocalSpecifier({
                 name,
                 exportedName,
               });

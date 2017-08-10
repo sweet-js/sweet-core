@@ -53,9 +53,12 @@ export function bindImports(
   if (impTerm.namedImports) {
     impTerm.namedImports.forEach(specifier => {
       let name = specifier.binding.name;
-      let exportName = exModule.exportedNames.find(
-        exName => exName.exportedName.val() === name.val(),
-      );
+      let exportName = exModule.exportedNames.find(exName => {
+        if (exName.exportedName != null) {
+          return exName.exportedName.val() === name.val();
+        }
+        return exName.name && exName.name.val() === name.val();
+      });
       if (exportName != null) {
         let newBinding = gensym(name.val());
         let toForward = exportName.name

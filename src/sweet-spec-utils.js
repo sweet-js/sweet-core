@@ -9,6 +9,7 @@ export const isExportDeclaration = _.is(T.ExportDeclaration);
 export const isExport = _.is(T.Export);
 export const isExportDefault = _.is(T.ExportDefault);
 export const isExportFrom = _.is(T.ExportFrom);
+export const isExportLocals = _.is(T.ExportLocals);
 
 export const isVariableDeclaration = _.is(T.VariableDeclaration);
 export const isVariableDeclarator = _.is(T.VariableDeclarator);

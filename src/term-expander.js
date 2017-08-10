@@ -171,11 +171,27 @@ export default class TermExpander extends ASTDispatcher {
     return term;
   }
 
+  expandAssignmentTargetIdentifier(term) {
+    return term;
+  }
+
   expandBindingPropertyIdentifier(term) {
     return term;
   }
+
+  expandAssignmentTargetPropertyIdentifier(term) {
+    return term;
+  }
+
   expandBindingPropertyProperty(term) {
     return new T.BindingPropertyProperty({
+      name: this.expand(term.name),
+      binding: this.expand(term.binding),
+    });
+  }
+
+  expandAssignmentTargetPropertyProperty(term) {
+    return new T.AssignmentTargetPropertyProperty({
       name: this.expand(term.name),
       binding: this.expand(term.binding),
     });
@@ -193,19 +209,41 @@ export default class TermExpander extends ASTDispatcher {
     });
   }
 
+  expandObjectAssignmentTarget(term) {
+    return new T.ObjectAssignmentTarget({
+      properties: term.properties.map(t => this.expand(t)).toArray(),
+    });
+  }
+
   expandArrayBinding(term) {
-    let restElement =
-      term.restElement == null ? null : this.expand(term.restElement);
+    let rest = term.rest == null ? null : this.expand(term.rest);
     return new T.ArrayBinding({
       elements: term.elements
         .map(t => (t == null ? null : this.expand(t)))
         .toArray(),
-      restElement,
+      rest,
+    });
+  }
+
+  expandArrayAssignmentTarget(term) {
+    let rest = term.rest == null ? null : this.expand(term.rest);
+    return new T.ArrayAssignmentTarget({
+      elements: term.elements
+        .map(t => (t == null ? null : this.expand(t)))
+        .toArray(),
+      rest,
     });
   }
 
   expandBindingWithDefault(term) {
     return new T.BindingWithDefault({
+      binding: this.expand(term.binding),
+      init: this.expand(term.init),
+    });
+  }
+
+  expandAssignmentTargetWithDefault(term) {
+    return new T.AssignmentTargetWithDefault({
       binding: this.expand(term.binding),
       init: this.expand(term.init),
     });
@@ -370,6 +408,20 @@ export default class TermExpander extends ASTDispatcher {
     });
   }
 
+  expandStaticMemberAssignmentTarget(term) {
+    return new T.StaticMemberAssignmentTarget({
+      object: this.expand(term.object),
+      property: term.property,
+    });
+  }
+
+  expandComputedMemberAssignmentTarget(term) {
+    return new T.ComputedMemberAssignmentTarget({
+      object: this.expand(term.object),
+      expression: this.expand(term.expression),
+    });
+  }
+
   expandArrayExpression(term) {
     return new T.ArrayExpression({
       elements: term.elements.map(t => (t == null ? t : this.expand(t))),
@@ -400,11 +452,19 @@ export default class TermExpander extends ASTDispatcher {
     return term;
   }
 
+  expandExportLocals(term) {
+    return term;
+  }
+
   expandExportAllFrom(term) {
     return term;
   }
 
-  expandExportSpecifier(term) {
+  expandExportFromSpecifier(term) {
+    return term;
+  }
+
+  expandExportLocalSpecifier(term) {
     return term;
   }
 
@@ -623,18 +683,21 @@ export default class TermExpander extends ASTDispatcher {
       case 'Method':
         return new T.Method({
           name: term.name,
+          isAsync: term.isAsync,
           isGenerator: term.isGenerator,
           params: params,
           body: bodyTerm,
         });
       case 'ArrowExpression':
         return new T.ArrowExpression({
+          isAsync: term.isAsync,
           params: params,
           body: bodyTerm,
         });
       case 'FunctionExpression':
         return new T.FunctionExpression({
           name: term.name,
+          isAsync: term.isAsync,
           isGenerator: term.isGenerator,
           params: params,
           body: bodyTerm,
@@ -642,6 +705,7 @@ export default class TermExpander extends ASTDispatcher {
       case 'FunctionDeclaration':
         return new T.FunctionDeclaration({
           name: term.name,
+          isAsync: term.isAsync,
           isGenerator: term.isGenerator,
           params: params,
           body: bodyTerm,

@@ -46,8 +46,24 @@ export default class extends Term.CloneReducer {
     });
   }
 
+  reduceAssignmentTargetIdentifier(t: Term, s: { name: Syntax }) {
+    return new S.AssignmentTargetIdentifier({
+      name: s.name.resolve(this.phase),
+    });
+  }
+
   reduceStaticMemberExpression(t: Term, s: { object: any, property: Syntax }) {
     return new S.StaticMemberExpression({
+      object: s.object,
+      property: s.property.val(),
+    });
+  }
+
+  reduceStaticMemberAssignmentTarget(
+    t: Term,
+    s: { object: any, property: Syntax },
+  ) {
+    return new S.StaticMemberAssignmentTarget({
       object: s.object,
       property: s.property.val(),
     });
@@ -135,18 +151,36 @@ export default class extends Term.CloneReducer {
     });
   }
 
-  reduceExportSpecifier(t: Term, s: { name?: any, exportedName: Syntax }) {
-    return new S.ExportSpecifier({
-      name: s.name != null ? s.name.resolve(0) : null,
-      exportedName: s.exportedName.val(),
+  reduceExportFromSpecifier(t: Term, s: { name: any, exportedName?: Syntax }) {
+    return new S.ExportFromSpecifier({
+      name: s.name.resolve(0),
+      exportedName: s.exportedName == null ? null : s.exportedName.val(),
+    });
+  }
+
+  reduceExportLocalSpecifier(t: Term, s: { name: any, exportedName?: Syntax }) {
+    return new S.ExportLocalSpecifier({
+      name: s.name,
+      exportedName: s.exportedName == null ? null : s.exportedName.val(),
     });
   }
 
   reduceExportFrom(
     t: Term,
-    s: { moduleSpecifier?: Syntax, namedExports: List<S.ExportSpecifier> },
+    s: { moduleSpecifier?: Syntax, namedExports: List<S.ExportFromSpecifier> },
   ) {
     return new S.ExportFrom({
+      moduleSpecifier:
+        s.moduleSpecifier != null ? s.moduleSpecifier.val() : null,
+      namedExports: s.namedExports.toArray(),
+    });
+  }
+
+  reduceExportLocals(
+    t: Term,
+    s: { moduleSpecifier?: Syntax, namedExports: List<S.ExportLocalSpecifier> },
+  ) {
+    return new S.ExportLocals({
       moduleSpecifier:
         s.moduleSpecifier != null ? s.moduleSpecifier.val() : null,
       namedExports: s.namedExports.toArray(),
