@@ -57,6 +57,7 @@ export function evalCompiletimeValue(expr: S.Expression, context: any) {
     items: List.of(
       new S.ExpressionStatement({
         expression: new S.FunctionExpression({
+          isAsync: false,
           isGenerator: false,
           name: null,
           params: new S.FormalParameters({

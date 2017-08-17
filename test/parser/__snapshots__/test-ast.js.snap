@@ -52,18 +52,22 @@ Module {
       "loc": null,
       "type": "VariableDeclarationStatement",
     },
-    ExportFrom {
+    ExportLocals {
       "loc": null,
       "moduleSpecifier": null,
       "namedExports": Array [
-        ExportSpecifier {
+        ExportLocalSpecifier {
           "exportedName": "x",
           "loc": null,
-          "name": "x_0",
-          "type": "ExportSpecifier",
+          "name": IdentifierExpression {
+            "loc": null,
+            "name": "x_0",
+            "type": "IdentifierExpression",
+          },
+          "type": "ExportLocalSpecifier",
         },
       ],
-      "type": "ExportFrom",
+      "type": "ExportLocals",
     },
   ],
   "loc": null,
@@ -75,18 +79,22 @@ exports[`includes export in AST 1`] = `
 Module {
   "directives": Array [],
   "items": Array [
-    ExportFrom {
+    ExportLocals {
       "loc": null,
       "moduleSpecifier": null,
       "namedExports": Array [
-        ExportSpecifier {
-          "exportedName": "b",
+        ExportLocalSpecifier {
+          "exportedName": null,
           "loc": null,
-          "name": "b",
-          "type": "ExportSpecifier",
+          "name": IdentifierExpression {
+            "loc": null,
+            "name": "b",
+            "type": "IdentifierExpression",
+          },
+          "type": "ExportLocalSpecifier",
         },
       ],
-      "type": "ExportFrom",
+      "type": "ExportLocals",
     },
   ],
   "loc": null,
@@ -98,18 +106,22 @@ exports[`includes export with renaming in AST 1`] = `
 Module {
   "directives": Array [],
   "items": Array [
-    ExportFrom {
+    ExportLocals {
       "loc": null,
       "moduleSpecifier": null,
       "namedExports": Array [
-        ExportSpecifier {
+        ExportLocalSpecifier {
           "exportedName": "c",
           "loc": null,
-          "name": "b",
-          "type": "ExportSpecifier",
+          "name": IdentifierExpression {
+            "loc": null,
+            "name": "b",
+            "type": "IdentifierExpression",
+          },
+          "type": "ExportLocalSpecifier",
         },
       ],
-      "type": "ExportFrom",
+      "type": "ExportLocals",
     },
   ],
   "loc": null,

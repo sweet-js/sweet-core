@@ -27,7 +27,10 @@ export const isExportAllFrom = R.whereEq({ type: 'ExportAllFrom' });
 export const isExportFrom = R.whereEq({ type: 'ExportFrom' });
 export const isExport = R.whereEq({ type: 'Export' });
 export const isExportDefault = R.whereEq({ type: 'ExportDefault' });
-export const isExportSpecifier = R.whereEq({ type: 'ExportSpecifier' });
+export const isExportFromSpecifier = R.whereEq({ type: 'ExportFromSpecifier' });
+export const isExportLocalSpecifier = R.whereEq({
+  type: 'ExportLocalSpecifier',
+});
 
 // property definition
 export const isMethod = R.whereEq({ type: 'Method' });

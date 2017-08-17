@@ -38,12 +38,12 @@ export class CollectBindingSyntax extends ASTDispatcher {
   }
 
   collectArrayBinding(term) {
-    let restElement = null;
-    if (term.restElement != null) {
-      restElement = this.collect(term.restElement);
+    let rest = null;
+    if (term.rest != null) {
+      rest = this.collect(term.rest);
     }
     return this.names
-      .concat(restElement)
+      .concat(rest)
       .concat(
         term.elements.filter(el => el != null).flatMap(el => this.collect(el)),
       );
