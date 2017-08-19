@@ -767,7 +767,7 @@ export default class TermExpander extends ASTDispatcher {
 
   expandIdentifierExpression(term) {
     let trans = this.context.env.get(term.name.resolve(this.context.phase));
-    if (trans) {
+    if (trans && trans.id) {
       return new T.IdentifierExpression({
         name: trans.id,
       });

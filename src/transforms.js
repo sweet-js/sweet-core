@@ -29,6 +29,8 @@ export class SyntaxrecDeclTransform {}
 export class SyntaxDeclTransform {}
 export class OperatorDeclTransform {}
 export class ReturnStatementTransform {}
+export class AsyncTransform {}
+export class AwaitTransform {}
 export class ModuleNamespaceTransform {
   namespace: Syntax;
   mod: SweetModule;
