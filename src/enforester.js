@@ -41,6 +41,8 @@ import {
   CompiletimeTransform,
   VarBindingTransform,
   ModuleNamespaceTransform,
+  AsyncTransform,
+  AwaitTransform,
 } from './transforms';
 import { List } from 'immutable';
 import { expect, assert } from './errors';
@@ -210,6 +212,18 @@ export class Enforester {
           isExpr: false,
         }),
       });
+    } else if (
+      this.isAsyncTransform(lookahead) &&
+      this.isFnDeclTransform(this.peek(1)) &&
+      this.lineNumberEq(lookahead, this.peek(1))
+    ) {
+      this.advance();
+      return new T.Export({
+        declaration: this.enforestFunction({
+          isExpr: false,
+          isAsync: true,
+        }),
+      });
     } else if (this.isDefaultTransform(lookahead)) {
       this.advance();
       if (this.isCompiletimeTransform(lookahead)) {
@@ -222,6 +236,19 @@ export class Enforester {
           body: this.enforestFunction({
             isExpr: false,
             inDefault: true,
+          }),
+        });
+      } else if (
+        this.isAsyncTransform(lookahead) &&
+        this.isFnDeclTransform(this.peek(1)) &&
+        this.lineNumberEq(lookahead, this.peek(1))
+      ) {
+        this.advance();
+        return new T.ExportDefault({
+          body: this.enforestFunction({
+            isExpr: false,
+            inDefault: true,
+            isAsync: true,
           }),
         });
       } else if (this.isClassTransform(this.peek())) {
@@ -413,6 +440,16 @@ export class Enforester {
       return this.enforestFunction({
         isExpr: false,
       });
+    } else if (
+      this.isAsyncTransform(lookahead) &&
+      this.isFnDeclTransform(this.peek(1)) &&
+      this.lineNumberEq(lookahead, this.peek(1))
+    ) {
+      this.advance();
+      return this.enforestFunction({
+        isExpr: false,
+        isAsync: true,
+      });
     } else if (this.isClassTransform(lookahead)) {
       return this.enforestClass({
         isExpr: false,
@@ -488,6 +525,19 @@ export class Enforester {
     if (this.term === null && this.isFnDeclTransform(lookahead)) {
       return this.enforestFunction({
         isExpr: false,
+      });
+    }
+
+    if (
+      this.term === null &&
+      this.isAsyncTransform(lookahead) &&
+      this.isFnDeclTransform(this.peek(1)) &&
+      this.lineNumberEq(lookahead, this.peek(1))
+    ) {
+      this.advance();
+      return this.enforestFunction({
+        isExpr: false,
+        isAsync: true,
       });
     }
 
@@ -1368,6 +1418,20 @@ export class Enforester {
 
     if (
       this.term === null &&
+      this.isAsyncTransform(this.peek()) &&
+      (this.isIdentifier(this.peek(1)) || this.isParens(this.peek(1))) &&
+      this.isPunctuator(this.peek(2), '=>') &&
+      this.lineNumberEq(this.peek(0), this.peek(1)) &&
+      this.lineNumberEq(this.peek(1), this.peek(2))
+    ) {
+      this.advance();
+      return this.enforestArrowExpression({
+        isAsync: true,
+      });
+    }
+
+    if (
+      this.term === null &&
       lookahead &&
       (this.isIdentifier(lookahead) || this.isParens(lookahead)) &&
       this.isPunctuator(this.peek(1), '=>') &&
@@ -1400,6 +1464,7 @@ export class Enforester {
         this.isNullLiteral(lookahead) ||
         this.isRegularExpression(lookahead) ||
         this.isFnDeclTransform(lookahead) ||
+        this.isAsyncTransform(lookahead) ||
         this.isBraces(lookahead) ||
         this.isBrackets(lookahead))
     ) {
@@ -1509,6 +1574,18 @@ export class Enforester {
     // $x:ThisExpression
     if (this.term === null && this.isKeyword(lookahead, 'this')) {
       return this.enforestThisExpression();
+    }
+    if (
+      this.term === null &&
+      this.isAsyncTransform(lookahead) &&
+      this.isFnDeclTransform(this.peek(1)) &&
+      this.lineNumberEq(lookahead, this.peek(1))
+    ) {
+      this.advance();
+      return this.enforestFunction({
+        isExpr: true,
+        isAsync: true,
+      });
     }
     // $x:ident
     if (
@@ -1835,7 +1912,7 @@ export class Enforester {
     });
   }
 
-  enforestArrowExpression() {
+  enforestArrowExpression({ isAsync }: { isAsync?: boolean }) {
     let enf;
     if (this.isIdentifier(this.peek())) {
       enf = new Enforester(
@@ -1851,7 +1928,6 @@ export class Enforester {
     this.matchPunctuator('=>');
 
     let body;
-    let isAsync = false;
     if (this.isBraces(this.peek())) {
       body = this.matchCurlies();
       return new T.ArrowExpressionE({
@@ -2025,6 +2101,11 @@ export class Enforester {
       this.advance();
     }
 
+    if (this.isIdentifier(lookahead, 'async')) {
+      isAsync = true;
+      this.advance();
+    }
+
     if (
       this.isIdentifier(lookahead, 'get') &&
       this.isPropertyName(this.peek(1))
@@ -2119,14 +2200,15 @@ export class Enforester {
   enforestFunction({
     isExpr,
     inDefault,
+    isAsync,
   }: {
     isExpr?: boolean,
     inDefault?: boolean,
+    isAsync?: boolean,
   }) {
     let name = null,
       params,
       body;
-    let isAsync = false;
     let isGenerator = false;
     // eat the function keyword
     let fnKeyword = this.matchRawSyntax();
@@ -2766,6 +2848,14 @@ export class Enforester {
 
   isYieldTransform(obj: ?(Syntax | Term)) {
     return this.isTransform(obj, YieldTransform);
+  }
+
+  isAsyncTransform(obj: ?(Syntax | Term)) {
+    return this.isTransform(obj, AsyncTransform);
+  }
+
+  isAwaitTransform(obj: ?(Syntax | Term)) {
+    return this.isTransform(obj, AwaitTransform);
   }
 
   isDefaultTransform(obj: ?(Syntax | Term)) {

@@ -26,6 +26,8 @@ import {
   ThrowTransform,
   NewTransform,
   WhileTransform,
+  AsyncTransform,
+  AwaitTransform,
 } from './transforms';
 
 export default class Env {
@@ -58,6 +60,8 @@ export default class Env {
     this.map.set('yield', YieldTransform);
     this.map.set('throw', ThrowTransform);
     this.map.set('new', NewTransform);
+    this.map.set('async', AsyncTransform);
+    this.map.set('await', AwaitTransform);
   }
 
   has(key) {

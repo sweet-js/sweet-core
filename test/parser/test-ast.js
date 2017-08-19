@@ -40,3 +40,71 @@ test('includes export declaration in AST', t => {
     `),
   );
 });
+
+test('includes support for async function declarations', t => {
+  t.snapshot(
+    getAst(`
+    async function f() {}
+    `),
+  );
+});
+
+test('includes support for async function expressions', t => {
+  t.snapshot(
+    getAst(`
+    let f = async function f() {}
+    `),
+  );
+});
+
+test('includes support for exporting async functions', t => {
+  t.snapshot(
+    getAst(`
+    export async function f() {}
+    `),
+  );
+});
+
+test('includes support for exporting default async functions', t => {
+  t.snapshot(
+    getAst(`
+    export default async function f() {}
+    `),
+  );
+});
+
+test('includes no-line-terminator requirement for async functions', t => {
+  t.snapshot(
+    getAst(`
+    async 
+    function f() {}
+    `),
+  );
+});
+
+test('includes no-line-terminator requirement for async function expressions', t => {
+  t.snapshot(
+    getAst(`
+    let f = async 
+    function f() {}
+    `),
+  );
+});
+
+test('includes support for async arrow functions', t => {
+  t.snapshot(
+    getAst(`
+    let f = async () => {}
+    `),
+  );
+});
+
+test('includes support for async method definitions', t => {
+  t.snapshot(
+    getAst(`
+    class C {
+      async f() {}
+    }
+    `),
+  );
+});

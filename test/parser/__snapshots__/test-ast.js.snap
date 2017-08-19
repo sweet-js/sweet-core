@@ -128,3 +128,406 @@ Module {
   "type": "Module",
 }
 `;
+
+exports[`includes no-line-terminator requirement for async function expressions 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    VariableDeclarationStatement {
+      "declaration": VariableDeclaration {
+        "declarators": Array [
+          VariableDeclarator {
+            "binding": BindingIdentifier {
+              "loc": null,
+              "name": "f_2",
+              "type": "BindingIdentifier",
+            },
+            "init": IdentifierExpression {
+              "loc": null,
+              "name": "async",
+              "type": "IdentifierExpression",
+            },
+            "loc": null,
+            "type": "VariableDeclarator",
+          },
+        ],
+        "kind": "let",
+        "loc": null,
+        "type": "VariableDeclaration",
+      },
+      "loc": null,
+      "type": "VariableDeclarationStatement",
+    },
+    FunctionDeclaration {
+      "body": FunctionBody {
+        "directives": Array [],
+        "loc": null,
+        "statements": Array [],
+        "type": "FunctionBody",
+      },
+      "isAsync": undefined,
+      "isGenerator": false,
+      "loc": null,
+      "name": BindingIdentifier {
+        "loc": null,
+        "name": "f_2",
+        "type": "BindingIdentifier",
+      },
+      "params": FormalParameters {
+        "items": Array [],
+        "loc": null,
+        "rest": null,
+        "type": "FormalParameters",
+      },
+      "type": "FunctionDeclaration",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
+exports[`includes no-line-terminator requirement for async functions 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    ExpressionStatement {
+      "expression": IdentifierExpression {
+        "loc": null,
+        "name": "async",
+        "type": "IdentifierExpression",
+      },
+      "loc": null,
+      "type": "ExpressionStatement",
+    },
+    FunctionDeclaration {
+      "body": FunctionBody {
+        "directives": Array [],
+        "loc": null,
+        "statements": Array [],
+        "type": "FunctionBody",
+      },
+      "isAsync": undefined,
+      "isGenerator": false,
+      "loc": null,
+      "name": BindingIdentifier {
+        "loc": null,
+        "name": "f",
+        "type": "BindingIdentifier",
+      },
+      "params": FormalParameters {
+        "items": Array [],
+        "loc": null,
+        "rest": null,
+        "type": "FormalParameters",
+      },
+      "type": "FunctionDeclaration",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
+exports[`includes support for async arrow functions 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    VariableDeclarationStatement {
+      "declaration": VariableDeclaration {
+        "declarators": Array [
+          VariableDeclarator {
+            "binding": BindingIdentifier {
+              "loc": null,
+              "name": "f_3",
+              "type": "BindingIdentifier",
+            },
+            "init": ArrowExpression {
+              "body": FunctionBody {
+                "directives": Array [],
+                "loc": null,
+                "statements": Array [],
+                "type": "FunctionBody",
+              },
+              "isAsync": true,
+              "loc": null,
+              "params": FormalParameters {
+                "items": Array [],
+                "loc": null,
+                "rest": null,
+                "type": "FormalParameters",
+              },
+              "type": "ArrowExpression",
+            },
+            "loc": null,
+            "type": "VariableDeclarator",
+          },
+        ],
+        "kind": "let",
+        "loc": null,
+        "type": "VariableDeclaration",
+      },
+      "loc": null,
+      "type": "VariableDeclarationStatement",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
+exports[`includes support for async function declarations 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    FunctionDeclaration {
+      "body": FunctionBody {
+        "directives": Array [],
+        "loc": null,
+        "statements": Array [],
+        "type": "FunctionBody",
+      },
+      "isAsync": true,
+      "isGenerator": false,
+      "loc": null,
+      "name": BindingIdentifier {
+        "loc": null,
+        "name": "f",
+        "type": "BindingIdentifier",
+      },
+      "params": FormalParameters {
+        "items": Array [],
+        "loc": null,
+        "rest": null,
+        "type": "FormalParameters",
+      },
+      "type": "FunctionDeclaration",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
+exports[`includes support for async function expressions 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    VariableDeclarationStatement {
+      "declaration": VariableDeclaration {
+        "declarators": Array [
+          VariableDeclarator {
+            "binding": BindingIdentifier {
+              "loc": null,
+              "name": "f_1",
+              "type": "BindingIdentifier",
+            },
+            "init": FunctionExpression {
+              "body": FunctionBody {
+                "directives": Array [],
+                "loc": null,
+                "statements": Array [],
+                "type": "FunctionBody",
+              },
+              "isAsync": true,
+              "isGenerator": false,
+              "loc": null,
+              "name": BindingIdentifier {
+                "loc": null,
+                "name": "f_1",
+                "type": "BindingIdentifier",
+              },
+              "params": FormalParameters {
+                "items": Array [],
+                "loc": null,
+                "rest": null,
+                "type": "FormalParameters",
+              },
+              "type": "FunctionExpression",
+            },
+            "loc": null,
+            "type": "VariableDeclarator",
+          },
+        ],
+        "kind": "let",
+        "loc": null,
+        "type": "VariableDeclaration",
+      },
+      "loc": null,
+      "type": "VariableDeclarationStatement",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
+exports[`includes support for async functions 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    FunctionDeclaration {
+      "body": FunctionBody {
+        "directives": Array [],
+        "loc": null,
+        "statements": Array [],
+        "type": "FunctionBody",
+      },
+      "isAsync": true,
+      "isGenerator": false,
+      "loc": null,
+      "name": BindingIdentifier {
+        "loc": null,
+        "name": "f",
+        "type": "BindingIdentifier",
+      },
+      "params": FormalParameters {
+        "items": Array [],
+        "loc": null,
+        "rest": null,
+        "type": "FormalParameters",
+      },
+      "type": "FunctionDeclaration",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
+exports[`includes support for async method definitions 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    ClassDeclaration {
+      "elements": Array [
+        ClassElement {
+          "isStatic": false,
+          "loc": null,
+          "method": Method {
+            "body": FunctionBody {
+              "directives": Array [],
+              "loc": null,
+              "statements": Array [],
+              "type": "FunctionBody",
+            },
+            "isAsync": true,
+            "isGenerator": false,
+            "loc": null,
+            "name": StaticPropertyName {
+              "loc": null,
+              "type": "StaticPropertyName",
+              "value": "f",
+            },
+            "params": FormalParameters {
+              "items": Array [],
+              "loc": null,
+              "rest": null,
+              "type": "FormalParameters",
+            },
+            "type": "Method",
+          },
+          "type": "ClassElement",
+        },
+      ],
+      "loc": null,
+      "name": BindingIdentifier {
+        "loc": null,
+        "name": "C",
+        "type": "BindingIdentifier",
+      },
+      "super": null,
+      "type": "ClassDeclaration",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
+exports[`includes support for exporting async functions 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    FunctionDeclaration {
+      "body": FunctionBody {
+        "directives": Array [],
+        "loc": null,
+        "statements": Array [],
+        "type": "FunctionBody",
+      },
+      "isAsync": true,
+      "isGenerator": false,
+      "loc": null,
+      "name": BindingIdentifier {
+        "loc": null,
+        "name": "f",
+        "type": "BindingIdentifier",
+      },
+      "params": FormalParameters {
+        "items": Array [],
+        "loc": null,
+        "rest": null,
+        "type": "FormalParameters",
+      },
+      "type": "FunctionDeclaration",
+    },
+    ExportLocals {
+      "loc": null,
+      "moduleSpecifier": null,
+      "namedExports": Array [
+        ExportLocalSpecifier {
+          "exportedName": "f",
+          "loc": null,
+          "name": IdentifierExpression {
+            "loc": null,
+            "name": "f",
+            "type": "IdentifierExpression",
+          },
+          "type": "ExportLocalSpecifier",
+        },
+      ],
+      "type": "ExportLocals",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
+exports[`includes support for exporting default async functions 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    ExportDefault {
+      "body": FunctionExpression {
+        "body": FunctionBody {
+          "directives": Array [],
+          "loc": null,
+          "statements": Array [],
+          "type": "FunctionBody",
+        },
+        "isAsync": true,
+        "isGenerator": false,
+        "loc": null,
+        "name": BindingIdentifier {
+          "loc": null,
+          "name": "f",
+          "type": "BindingIdentifier",
+        },
+        "params": FormalParameters {
+          "items": Array [],
+          "loc": null,
+          "rest": null,
+          "type": "FormalParameters",
+        },
+        "type": "FunctionExpression",
+      },
+      "loc": null,
+      "type": "ExportDefault",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
