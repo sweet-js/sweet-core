@@ -108,3 +108,13 @@ test('includes support for async method definitions', t => {
     `),
   );
 });
+
+test('includes support for await', t => {
+  t.snapshot(
+    getAst(`
+    async function f () {
+      await g();
+    }
+    `),
+  );
+});

@@ -524,6 +524,11 @@ export default class TermExpander extends ASTDispatcher {
   }
 
   expandUnaryExpression(term) {
+    if (term.operator === 'await') {
+      return new T.AwaitExpression({
+        expression: this.expand(term.operand),
+      });
+    }
     return new T.UnaryExpression({
       operator: term.operator,
       operand: this.expand(term.operand),
