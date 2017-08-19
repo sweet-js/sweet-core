@@ -23,6 +23,56 @@ Module {
 }
 `;
 
+exports[`handles properties named async 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    VariableDeclarationStatement {
+      "declaration": VariableDeclaration {
+        "declarators": Array [
+          VariableDeclarator {
+            "binding": BindingIdentifier {
+              "loc": null,
+              "name": "o_4",
+              "type": "BindingIdentifier",
+            },
+            "init": ObjectExpression {
+              "loc": null,
+              "properties": Array [
+                DataProperty {
+                  "expression": LiteralBooleanExpression {
+                    "loc": null,
+                    "type": "LiteralBooleanExpression",
+                    "value": true,
+                  },
+                  "loc": null,
+                  "name": StaticPropertyName {
+                    "loc": null,
+                    "type": "StaticPropertyName",
+                    "value": "async",
+                  },
+                  "type": "DataProperty",
+                },
+              ],
+              "type": "ObjectExpression",
+            },
+            "loc": null,
+            "type": "VariableDeclarator",
+          },
+        ],
+        "kind": "let",
+        "loc": null,
+        "type": "VariableDeclaration",
+      },
+      "loc": null,
+      "type": "VariableDeclarationStatement",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
 exports[`includes export declaration in AST 1`] = `
 Module {
   "directives": Array [],
