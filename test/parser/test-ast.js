@@ -109,6 +109,16 @@ test('includes support for async method definitions', t => {
   );
 });
 
+test('handles properties named async', t => {
+  t.snapshot(
+    getAst(`
+    let o = {
+      async: true
+    }
+    `),
+  );
+});
+
 test('includes support for await', t => {
   t.snapshot(
     getAst(`

@@ -2102,7 +2102,10 @@ export class Enforester {
       this.advance();
     }
 
-    if (this.isIdentifier(lookahead, 'async')) {
+    if (
+      this.isIdentifier(lookahead, 'async') &&
+      !this.isPunctuator(this.peek(1), ':')
+    ) {
       isAsync = true;
       this.advance();
     }
