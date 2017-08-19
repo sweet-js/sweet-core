@@ -445,6 +445,58 @@ Module {
 }
 `;
 
+exports[`includes support for await 1`] = `
+Module {
+  "directives": Array [],
+  "items": Array [
+    FunctionDeclaration {
+      "body": FunctionBody {
+        "directives": Array [],
+        "loc": null,
+        "statements": Array [
+          ExpressionStatement {
+            "expression": AwaitExpression {
+              "expression": CallExpression {
+                "arguments": Array [],
+                "callee": IdentifierExpression {
+                  "loc": null,
+                  "name": "g",
+                  "type": "IdentifierExpression",
+                },
+                "loc": null,
+                "type": "CallExpression",
+              },
+              "loc": null,
+              "type": "AwaitExpression",
+            },
+            "loc": null,
+            "type": "ExpressionStatement",
+          },
+        ],
+        "type": "FunctionBody",
+      },
+      "isAsync": true,
+      "isGenerator": false,
+      "loc": null,
+      "name": BindingIdentifier {
+        "loc": null,
+        "name": "f",
+        "type": "BindingIdentifier",
+      },
+      "params": FormalParameters {
+        "items": Array [],
+        "loc": null,
+        "rest": null,
+        "type": "FormalParameters",
+      },
+      "type": "FunctionDeclaration",
+    },
+  ],
+  "loc": null,
+  "type": "Module",
+}
+`;
+
 exports[`includes support for exporting async functions 1`] = `
 Module {
   "directives": Array [],

@@ -1437,7 +1437,7 @@ export class Enforester {
       this.isPunctuator(this.peek(1), '=>') &&
       this.lineNumberEq(lookahead, this.peek(1))
     ) {
-      return this.enforestArrowExpression();
+      return this.enforestArrowExpression({ isAsync: false });
     }
 
     if (this.term === null && this.isSyntaxTemplate(lookahead)) {
@@ -1454,7 +1454,8 @@ export class Enforester {
     if (
       this.term === null &&
       (this.isKeyword(lookahead, 'this') ||
-        this.isIdentifier(lookahead) ||
+        (this.isIdentifier(lookahead) &&
+          !this.isIdentifier(lookahead, 'await')) ||
         this.isKeyword(lookahead, 'let') ||
         this.isKeyword(lookahead, 'yield') ||
         this.isNumericLiteral(lookahead) ||

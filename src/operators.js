@@ -8,6 +8,7 @@ const unaryOperators = {
   typeof: true,
   void: true,
   delete: true,
+  await: true,
 };
 const binaryOperatorPrecedence = {
   '*': 14,
