@@ -81,7 +81,6 @@ export const TokenType = {
   IN: { klass: TC.Keyword, name: 'in' },
   NOT: { klass: TC.Punctuator, name: '!' },
   BIT_NOT: { klass: TC.Punctuator, name: '~' },
-  AWAIT: { klass: TC.Keyword, name: 'await' },
   DELETE: { klass: TC.Keyword, name: 'delete' },
   TYPEOF: { klass: TC.Keyword, name: 'typeof' },
   VOID: { klass: TC.Keyword, name: 'void' },
@@ -183,8 +182,6 @@ export const punctuatorTable = {
 };
 
 export const keywordTable = {
-  // 'await': TT.AWAIT, TODO: uncomment when new version of shift is used
-  // TODO: add 'async'
   break: TT.BREAK,
   case: TT.CASE,
   catch: TT.CATCH,
