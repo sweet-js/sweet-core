@@ -90,6 +90,7 @@ export class Enforester {
     phase: number | {},
     useScope: SymbolClass,
     bindings: any,
+    allowAwait?: boolean,
   };
   opCtx: {
     prec: number,
@@ -1938,7 +1939,10 @@ export class Enforester {
       });
     } else {
       enf = new Enforester(this.rest, List(), this.context);
+      let originalAwait = this.context.allowAwait;
+      this.context.allowAwait = isAsync;
       body = enf.enforestExpressionLoop();
+      this.context.allowAwait = originalAwait;
       this.rest = enf.rest;
       return new T.ArrowExpression({
         isAsync,
@@ -2298,6 +2302,12 @@ export class Enforester {
     const lookahead = this.peek();
     if (!lookahead) {
       throw this.createError(lookahead, 'assertion failure: operator is null');
+    }
+    if (this.isAwaitTransform(lookahead) && !this.context.allowAwait) {
+      throw this.createError(
+        lookahead,
+        'await is only allowed in async functions',
+      );
     }
     let operator = this.matchRawSyntax();
     let prec, combine;
