@@ -645,7 +645,7 @@ export default class TermExpander extends ASTDispatcher {
       this.context.phase,
       this.context.env,
       this.context.store,
-      this.context,
+      Object.assign({}, this.context, { allowAwait: term.isAsync }),
     );
 
     let bodyTerm;
