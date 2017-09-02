@@ -34,8 +34,8 @@ console.log('hello, world!')
 
 # Learning More
 
-* Read the [tutorial](http://sweetjs.org/doc/1.0/tutorial.html).
-* Read the [reference documentation](http://sweetjs.org/doc/1.0/reference.html).
+* Read the [tutorial](https://www.sweetjs.org/doc/tutorial.html).
+* Read the [reference documentation](https://www.sweetjs.org/doc/reference).
 * Play with the [editor](http://sweetjs.org/browser/editor.html).
 * Discuss on [Google Groups](https://groups.google.com/forum/#!forum/sweetjs).
 * Hang out on IRC: #sweet.js at irc.mozilla.org and on [Gitter](https://gitter.im/sweet-js/sweet.js).
