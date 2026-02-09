@@ -1,0 +1,268 @@
+{
+  "form_name": "Catering Inquiry Form - Sweet n' Sassy",
+  "form_description": "Request authentic Creole soul food catering for your Knoxville event",
+  "form_type": "wpforms",
+  "fields": [
+    {
+      "id": 1,
+      "type": "name",
+      "label": "Full Name",
+      "required": true,
+      "format": "first-last",
+      "first_name": {
+        "label": "First Name",
+        "placeholder": "John"
+      },
+      "last_name": {
+        "label": "Last Name",
+        "placeholder": "Doe"
+      }
+    },
+    {
+      "id": 2,
+      "type": "email",
+      "label": "Email Address",
+      "required": true,
+      "placeholder": "your.email@example.com",
+      "confirmation": false
+    },
+    {
+      "id": 3,
+      "type": "phone",
+      "label": "Phone Number",
+      "required": true,
+      "format": "us",
+      "placeholder": "(555) 123-4567"
+    },
+    {
+      "id": 4,
+      "type": "date-time",
+      "label": "Event Date",
+      "required": true,
+      "date_type": "datepicker",
+      "date_format": "m/d/Y",
+      "time_format": "g:i A",
+      "date_placeholder": "Select event date"
+    },
+    {
+      "id": 5,
+      "type": "select",
+      "label": "Event Type",
+      "required": true,
+      "choices": [
+        {
+          "label": "Corporate Event",
+          "value": "corporate"
+        },
+        {
+          "label": "Wedding",
+          "value": "wedding"
+        },
+        {
+          "label": "Birthday Party",
+          "value": "birthday"
+        },
+        {
+          "label": "Anniversary",
+          "value": "anniversary"
+        },
+        {
+          "label": "Graduation Party",
+          "value": "graduation"
+        },
+        {
+          "label": "Holiday Party",
+          "value": "holiday"
+        },
+        {
+          "label": "Other",
+          "value": "other"
+        }
+      ],
+      "placeholder": "Select event type"
+    },
+    {
+      "id": 6,
+      "type": "number",
+      "label": "Number of Guests",
+      "required": true,
+      "min": 10,
+      "max": 500,
+      "step": 1,
+      "placeholder": "50"
+    },
+    {
+      "id": 7,
+      "type": "select",
+      "label": "Meal Type",
+      "required": true,
+      "choices": [
+        {
+          "label": "Breakfast/Brunch",
+          "value": "breakfast"
+        },
+        {
+          "label": "Lunch",
+          "value": "lunch"
+        },
+        {
+          "label": "Dinner",
+          "value": "dinner"
+        },
+        {
+          "label": "Appetizers Only",
+          "value": "appetizers"
+        },
+        {
+          "label": "Desserts Only",
+          "value": "desserts"
+        },
+        {
+          "label": "Full Service (Multiple Courses)",
+          "value": "full-service"
+        }
+      ],
+      "placeholder": "Select meal type"
+    },
+    {
+      "id": 8,
+      "type": "select",
+      "label": "Budget Range",
+      "required": false,
+      "choices": [
+        {
+          "label": "Under $500",
+          "value": "under-500"
+        },
+        {
+          "label": "$500 - $1,000",
+          "value": "500-1000"
+        },
+        {
+          "label": "$1,000 - $2,500",
+          "value": "1000-2500"
+        },
+        {
+          "label": "$2,500 - $5,000",
+          "value": "2500-5000"
+        },
+        {
+          "label": "$5,000+",
+          "value": "5000-plus"
+        },
+        {
+          "label": "Prefer not to say",
+          "value": "not-say"
+        }
+      ],
+      "placeholder": "Select budget range"
+    },
+    {
+      "id": 9,
+      "type": "textarea",
+      "label": "Event Location/Venue",
+      "required": true,
+      "placeholder": "Please provide the full address where the event will be held",
+      "rows": 3
+    },
+    {
+      "id": 10,
+      "type": "checkbox",
+      "label": "Dietary Requirements",
+      "required": false,
+      "choices": [
+        {
+          "label": "Vegetarian Options",
+          "value": "vegetarian"
+        },
+        {
+          "label": "Vegan Options",
+          "value": "vegan"
+        },
+        {
+          "label": "Gluten-Free Options",
+          "value": "gluten-free"
+        },
+        {
+          "label": "Nut Allergies",
+          "value": "nut-allergy"
+        },
+        {
+          "label": "Other Allergies",
+          "value": "other-allergy"
+        },
+        {
+          "label": "Seafood Allergies",
+          "value": "seafood-allergy"
+        },
+        {
+          "label": "Pork-Free Options",
+          "value": "pork-free"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "textarea",
+      "label": "Special Requests or Additional Information",
+      "required": false,
+      "placeholder": "Please let us know about any special requests, dietary restrictions, or other information we should know about your event.",
+      "rows": 5
+    },
+    {
+      "id": 12,
+      "type": "html",
+      "content": "<p><strong>What happens next?</strong></p><p>We'll review your inquiry and contact you within 24-48 hours to discuss your event details and provide a custom quote.</p>"
+    }
+  ],
+  "settings": {
+    "submit_text": "Submit Catering Inquiry",
+    "submit_button_class": "wpforms-submit",
+    "confirmation_type": "message",
+    "confirmation_message": "Thank you for your catering inquiry! We've received your request and will contact you within 24-48 hours to discuss your event and provide a custom quote for authentic Creole soul food catering.",
+    "confirmation_page": "",
+    "confirmation_redirect": "",
+    "notification_enable": true,
+    "notification_email": "{admin_email}",
+    "notification_subject": "New Catering Inquiry from {field_id=\"1\"}",
+    "notification_message": "You have a new catering inquiry:\n\nName: {field_id=\"1\"}\nEmail: {field_id=\"2\"}\nPhone: {field_id=\"3\"}\nEvent Date: {field_id=\"4\"}\nEvent Type: {field_id=\"5\"}\nNumber of Guests: {field_id=\"6\"}\nMeal Type: {field_id=\"7\"}\nBudget: {field_id=\"8\"}\nLocation: {field_id=\"9\"}\nDietary Requirements: {field_id=\"10\"}\nSpecial Requests: {field_id=\"11\"}",
+    "notification_replyto": "{field_id=\"2\"}",
+    "notification_from_name": "{field_id=\"1\"}",
+    "notification_from_email": "{field_id=\"2\"}"
+  },
+  "contact_form_7_version": {
+    "title": "Catering Inquiry",
+    "form": "[text* your-name placeholder \"First Name Last Name\"]\n[email* your-email placeholder \"your.email@example.com\"]\n[tel* your-phone placeholder \"(555) 123-4567\"]\n[date* event-date]\n[select* event-type \"Corporate Event\" \"Wedding\" \"Birthday Party\" \"Anniversary\" \"Graduation Party\" \"Holiday Party\" \"Other\"]\n[number* guest-count min:10 max:500 placeholder \"Number of guests\"]\n[select* meal-type \"Breakfast/Brunch\" \"Lunch\" \"Dinner\" \"Appetizers Only\" \"Desserts Only\" \"Full Service (Multiple Courses)\"]\n[select budget-range \"Under $500\" \"$500 - $1,000\" \"$1,000 - $2,500\" \"$2,500 - $5,000\" \"$5,000+\" \"Prefer not to say\"]\n[textarea* event-location placeholder \"Full address where event will be held\"]\n[checkbox dietary-requirements \"Vegetarian Options\" \"Vegan Options\" \"Gluten-Free Options\" \"Nut Allergies\" \"Other Allergies\"]\n[textarea special-requests placeholder \"Special requests or additional information\"]\n[submit \"Submit Catering Inquiry\"]",
+    "mail": {
+      "subject": "New Catering Inquiry from [your-name]",
+      "sender": "[your-name] <[your-email]>",
+      "body": "You have a new catering inquiry:\n\nName: [your-name]\nEmail: [your-email]\nPhone: [your-phone]\nEvent Date: [event-date]\nEvent Type: [event-type]\nNumber of Guests: [guest-count]\nMeal Type: [meal-type]\nBudget: [budget-range]\nLocation: [event-location]\nDietary Requirements: [dietary-requirements]\nSpecial Requests: [special-requests]",
+      "recipient": "{admin_email}",
+      "additional_headers": "Reply-To: [your-email]",
+      "attachments": "",
+      "use_html": false,
+      "exclude_blank": false
+    },
+    "mail_2": {
+      "active": true,
+      "subject": "Thank you for your catering inquiry - Sweet 'n Sassy",
+      "sender": "Sweet 'n Sassy <{admin_email}>",
+      "body": "Hello [your-name],\n\nThank you for your catering inquiry with Sweet n' Sassy! We've received your request and will contact you within 24-48 hours to discuss your event and provide a custom quote for authentic Creole soul food catering.\n\nEvent Details:\nDate: [event-date]\nType: [event-type]\nGuests: [guest-count]\nLocation: [event-location]\n\nWe look forward to bringing the flavors of New Orleans to your Knoxville event!\n\nBest regards,\nSweet n' Sassy Team",
+      "recipient": "[your-email]",
+      "additional_headers": "",
+      "attachments": "",
+      "use_html": true,
+      "exclude_blank": false
+    },
+    "messages": {
+      "mail_sent_ok": "Thank you for your catering inquiry! We've received your request and will contact you within 24-48 hours.",
+      "mail_sent_ng": "There was an error sending your message. Please try again later.",
+      "validation_error": "One or more fields have an error. Please check and try again.",
+      "spam": "Your message was flagged as spam. Please contact us directly.",
+      "accept_terms": "You must accept the terms and conditions.",
+      "invalid_required": "This field is required.",
+      "invalid_too_long": "This field is too long.",
+      "invalid_too_short": "This field is too short."
+    }
+  }
+}

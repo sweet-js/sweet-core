@@ -1,0 +1,66 @@
+{
+  "site": {
+    "domain": "sweetnsassyknox.com",
+    "contact_email": "tandalyn@sweetnsassyknox.com",
+    "contact_phone": "865-227-7667"
+  },
+  "focus_keywords_global": [
+    "Creole food Knoxville",
+    "Soul food catering Knoxville TN",
+    "best shrimp and grits Knoxville",
+    "food truck Knoxville",
+    "Chef Tandalyn",
+    "Sweet n Sassy Knoxville",
+    "Creole soul food Knoxville TN"
+  ],
+  "pages": {
+    "home": {
+      "title": "Sweet n' Sassy | Best Creole Soul Food in Knoxville | Chef Tandalyn",
+      "meta_description": "Chef Tandalyn brings 30+ years of culinary excellence to Knoxville. Best tasting Creole Soul Food — Shrimp and Grits, gumbo, jambalaya. Food truck + catering. sweetnsassyknox.com",
+      "focus_keywords": ["best Creole soul food Knoxville", "Chef Tandalyn", "shrimp and grits Knoxville", "food truck Knoxville TN"],
+      "alt_text_suggestions": ["Chef Tandalyn of Sweet n' Sassy — 30+ years culinary experience, Creole Soul Food Knoxville TN", "Sweet n' Sassy food truck serving best tasting Creole Soul food in Knoxville", "Signature Shrimp and Grits by Chef Tandalyn — Sweet n' Sassy Knoxville", "Bowl of seafood gumbo with rice — Sweet n' Sassy Creole Soul Food", "Shrimp po' boy sandwich — best Creole food Knoxville"]
+    },
+    "menu": {
+      "title": "Menu | Chef Tandalyn's Creole Soul Food | Sweet n' Sassy Knoxville",
+      "meta_description": "Chef Tandalyn's menu: 30+ years of craft. Signature Shrimp and Grits, gumbo, jambalaya, po' boys. Best tasting Creole Soul food in Knoxville, TN. Order at sweetnsassyknox.com",
+      "focus_keywords": ["Creole soul food menu Knoxville", "shrimp and grits Knoxville", "Chef Tandalyn menu", "best Creole food Knoxville"],
+      "alt_text_suggestions": ["Sweet n' Sassy signature Shrimp and Grits — Chef Tandalyn's best dish Knoxville", "Creole Soul Food menu — jambalaya, gumbo, po boys Sweet n' Sassy", "Plates of jambalaya and gumbo — Sweet n' Sassy Knoxville", "Southern sides mac and cheese collard greens — Sweet n' Sassy"]
+    },
+    "catering": {
+      "title": "Catering | Exceptional Creole Soul Food Events | Sweet n' Sassy",
+      "meta_description": "Soul food catering Knoxville TN. Chef Tandalyn — 30+ years experience. Personalized menus, best tasting Creole food. Weddings, corporate, parties. sweetnsassyknox.com",
+      "focus_keywords": ["Soul food catering Knoxville TN", "Creole catering Knoxville", "Chef Tandalyn catering", "wedding catering Knoxville Creole"],
+      "alt_text_suggestions": ["Chef Tandalyn catering Creole Soul Food event Knoxville TN", "Sweet n' Sassy catering buffet — jambalaya gumbo shrimp and grits", "Wedding reception Creole buffet — Sweet n' Sassy catering Knoxville", "Corporate event catering — Chef Tandalyn Sweet n' Sassy"]
+    },
+    "about": {
+      "title": "About Chef Tandalyn | 30+ Years Creole Soul Food | Sweet n' Sassy",
+      "meta_description": "Meet Chef Tandalyn — 30+ years professional culinary experience. Best tasting Creole Soul Food in Knoxville. Food truck + catering. sweetnsassyknox.com",
+      "focus_keywords": ["Chef Tandalyn Knoxville", "Sweet n Sassy chef", "Creole soul food Knoxville about", "best shrimp and grits Knoxville"],
+      "alt_text_suggestions": ["Chef Tandalyn — Sweet n' Sassy Creole Soul Food Knoxville TN professional chef", "Chef Tandalyn in kitchen — 30+ years culinary experience", "Sweet n' Sassy team with Chef Tandalyn — Knoxville food truck", "Chef Tandalyn with signature Shrimp and Grits — Sweet n' Sassy"]
+    },
+    "locations": {
+      "title": "Food Truck Locations | Sweet n' Sassy Creole Soul Food Knoxville",
+      "meta_description": "Find Sweet n' Sassy food truck in Knoxville. Best tasting Creole Soul food on wheels. Weekly schedule, Market Square, UT, farmers market. sweetnsassyknox.com",
+      "focus_keywords": ["food truck Knoxville", "Sweet n Sassy food truck schedule", "where is Sweet n Sassy truck", "Creole food truck Knoxville TN"],
+      "alt_text_suggestions": ["Sweet n' Sassy food truck at Market Square Knoxville TN", "Map of Sweet n' Sassy food truck locations Knoxville", "Sweet n' Sassy truck serving Creole Soul food Knoxville", "Food truck window Sweet n' Sassy — best Creole food Knoxville"]
+    },
+    "recipes": {
+      "title": "Recipes & Tips | Learn from Chef Tandalyn | Sweet n' Sassy Kitchen",
+      "meta_description": "Learn Creole Soul food from Chef Tandalyn — 30+ years expertise. Shrimp and Grits, gumbo, jambalaya recipes. YouTube + membership. Knoxville. sweetnsassyknox.com",
+      "focus_keywords": ["Chef Tandalyn recipes", "shrimp and grits recipe", "Creole cooking classes", "Sweet n Sassy Kitchen"],
+      "alt_text_suggestions": ["Chef Tandalyn teaching Creole cooking — Sweet n' Sassy Kitchen", "Shrimp and Grits recipe tutorial — Chef Tandalyn Sweet n' Sassy", "Chef Tandalyn making gumbo — Creole Soul Food recipe video", "Sweet n' Sassy Kitchen membership — Creole recipes from Chef Tandalyn"]
+    },
+    "contact": {
+      "title": "Contact | Sweet n' Sassy Creole Soul Food | Knoxville TN",
+      "meta_description": "Contact Sweet n' Sassy — best tasting Creole Soul Food in Knoxville. Call 865-227-7667, email tandalyn@sweetnsassyknox.com. Order, catering, food truck.",
+      "focus_keywords": ["contact Sweet n Sassy Knoxville", "Creole food truck contact", "catering inquiry Knoxville"],
+      "alt_text_suggestions": ["Contact Sweet n' Sassy Creole Soul Food Knoxville TN"]
+    }
+  },
+  "image_alt_conventions": {
+    "chef_photos": "Chef Tandalyn [action/context] — Sweet n' Sassy Creole Soul Food Knoxville TN",
+    "food_photos": "[Dish name] — Sweet n' Sassy best tasting Creole Soul food Knoxville",
+    "food_truck_photos": "Sweet n' Sassy food truck [location/context] — Creole Soul Food Knoxville TN",
+    "catering_photos": "Sweet n' Sassy catering [event type] — Chef Tandalyn Knoxville"
+  }
+}

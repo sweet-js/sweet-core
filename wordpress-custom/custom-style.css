@@ -1,0 +1,646 @@
+/**
+ * Sweet 'n Sassy Custom Styles
+ * Food Truck & Catering Business
+ * 
+ * Add this to: Appearance → Customize → Additional CSS
+ * Or include in child theme's style.css
+ */
+
+/* ============================================
+   BRAND COLORS
+   ============================================ */
+:root {
+    /* Primary Brand Colors */
+    --color-primary: #D4A574;        /* Warm Gold - Main brand color */
+    --color-secondary: #8B4513;      /* Saddle Brown - Secondary accent */
+    --color-accent: #FF6B35;         /* Vibrant Orange - Call-to-action */
+    --color-dark: #2C2C2C;           /* Dark Gray - Text */
+    --color-light: #F8F6F3;          /* Cream - Backgrounds */
+    --color-white: #FFFFFF;          /* White */
+    
+    /* Supporting Colors */
+    --color-success: #4CAF50;        /* Green - Success messages */
+    --color-warning: #FF9800;        /* Orange - Warnings */
+    --color-error: #F44336;           /* Red - Errors */
+    
+    /* Typography */
+    --font-heading: 'Playfair Display', serif;
+    --font-body: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-menu: 'Montserrat', sans-serif;
+    
+    /* Spacing */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 2rem;
+    --spacing-lg: 3rem;
+    --spacing-xl: 4rem;
+    
+    /* Border Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+body {
+    font-family: var(--font-body);
+    color: var(--color-dark);
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--color-secondary);
+    line-height: 1.2;
+    margin-bottom: var(--spacing-sm);
+}
+
+h1 {
+    font-size: 2.5rem;
+}
+
+h2 {
+    font-size: 2rem;
+}
+
+h3 {
+    font-size: 1.75rem;
+}
+
+h4 {
+    font-size: 1.5rem;
+}
+
+/* Menu Item Typography */
+.menu-item-title {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    color: var(--color-secondary);
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+}
+
+.menu-item-description {
+    font-size: 1rem;
+    color: var(--color-dark);
+    line-height: 1.6;
+    margin-bottom: var(--spacing-xs);
+}
+
+.menu-item-price {
+    font-family: var(--font-menu);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-accent);
+}
+
+/* ============================================
+   HEADER & NAVIGATION
+   ============================================ */
+
+.site-header {
+    background-color: var(--color-white);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: var(--spacing-sm) 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.site-logo img {
+    max-height: 60px;
+    width: auto;
+}
+
+/* Primary Navigation */
+.main-navigation {
+    font-family: var(--font-menu);
+    font-weight: 500;
+}
+
+.main-navigation ul li a {
+    color: var(--color-dark);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    transition: color 0.3s ease;
+}
+
+.main-navigation ul li a:hover,
+.main-navigation ul li.current-menu-item a {
+    color: var(--color-primary);
+}
+
+/* Mobile Navigation */
+.mobile-menu-toggle {
+    background-color: var(--color-primary);
+    border: none;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+}
+
+.mobile-menu-toggle:hover {
+    background-color: var(--color-secondary);
+}
+
+/* Mobile Menu */
+@media (max-width: 768px) {
+    .main-navigation {
+        background-color: var(--color-white);
+        padding: var(--spacing-md);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .main-navigation ul li {
+        border-bottom: 1px solid var(--color-light);
+        padding: var(--spacing-xs) 0;
+    }
+    
+    .main-navigation ul li a {
+        display: block;
+        padding: var(--spacing-sm);
+    }
+    
+    .site-logo img {
+        max-height: 50px;
+    }
+}
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
+
+.hero-section {
+    position: relative;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--color-secondary);
+    color: var(--color-white);
+    text-align: center;
+    padding: var(--spacing-xl) var(--spacing-md);
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(44, 44, 44, 0.6),
+        rgba(139, 69, 19, 0.7)
+    );
+    z-index: 1;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+}
+
+.hero-title {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-lg);
+    font-weight: 300;
+}
+
+.hero-button {
+    display: inline-block;
+    background-color: var(--color-accent);
+    color: var(--color-white);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+}
+
+.hero-button:hover {
+    background-color: var(--color-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.5);
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        min-height: 400px;
+        padding: var(--spacing-lg) var(--spacing-sm);
+    }
+    
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.25rem;
+    }
+}
+
+/* ============================================
+   FOOD PHOTO GALLERY
+   ============================================ */
+
+.food-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg) 0;
+}
+
+.food-gallery-item {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    aspect-ratio: 4/3;
+}
+
+.food-gallery-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.food-gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.food-gallery-item:hover img {
+    transform: scale(1.05);
+}
+
+.food-gallery-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    color: var(--color-white);
+    padding: var(--spacing-md);
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}
+
+.food-gallery-item:hover .food-gallery-caption {
+    transform: translateY(0);
+}
+
+/* Mobile Gallery */
+@media (max-width: 768px) {
+    .food-gallery {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: var(--spacing-sm);
+    }
+    
+    .food-gallery-caption {
+        transform: translateY(0);
+        background: rgba(0, 0, 0, 0.7);
+    }
+}
+
+/* ============================================
+   MENU ITEMS (WooCommerce Products)
+   ============================================ */
+
+.woocommerce ul.products {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+    list-style: none;
+    padding: 0;
+}
+
+.woocommerce ul.products li.product {
+    background-color: var(--color-white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.woocommerce ul.products li.product:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px);
+}
+
+.woocommerce ul.products li.product img {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+}
+
+.woocommerce ul.products li.product .woocommerce-loop-product__title {
+    font-family: var(--font-heading);
+    color: var(--color-secondary);
+    font-size: 1.5rem;
+    padding: var(--spacing-sm);
+    margin: 0;
+}
+
+.woocommerce ul.products li.product .price {
+    color: var(--color-accent);
+    font-size: 1.25rem;
+    font-weight: 700;
+    padding: 0 var(--spacing-sm) var(--spacing-sm);
+}
+
+.woocommerce ul.products li.product .button {
+    background-color: var(--color-primary);
+    color: var(--color-white);
+    border: none;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    margin: var(--spacing-sm);
+    transition: background-color 0.3s ease;
+}
+
+.woocommerce ul.products li.product .button:hover {
+    background-color: var(--color-secondary);
+}
+
+/* ============================================
+   BUTTONS & CALL-TO-ACTION
+   ============================================ */
+
+.button,
+.wp-block-button__link,
+.woocommerce a.button {
+    background-color: var(--color-accent);
+    color: var(--color-white);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-block;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.button:hover,
+.wp-block-button__link:hover,
+.woocommerce a.button:hover {
+    background-color: var(--color-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.4);
+}
+
+.button-secondary {
+    background-color: var(--color-primary);
+}
+
+.button-secondary:hover {
+    background-color: var(--color-secondary);
+}
+
+/* ============================================
+   FOOD TRUCK LOCATION TRACKER
+   ============================================ */
+
+.location-tracker {
+    background-color: var(--color-light);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    margin: var(--spacing-lg) 0;
+}
+
+.location-tracker-map {
+    width: 100%;
+    height: 400px;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.location-schedule {
+    display: grid;
+    gap: var(--spacing-sm);
+}
+
+.location-item {
+    background-color: var(--color-white);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--color-primary);
+}
+
+.location-date {
+    font-weight: 700;
+    color: var(--color-secondary);
+    font-size: 1.1rem;
+}
+
+.location-time {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+.location-address {
+    color: var(--color-dark);
+    margin-top: var(--spacing-xs);
+}
+
+@media (max-width: 768px) {
+    .location-tracker-map {
+        height: 300px;
+    }
+}
+
+/* ============================================
+   FORMS (Contact, Catering Inquiry)
+   ============================================ */
+
+.wpcf7-form,
+.woocommerce-checkout,
+form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.wpcf7-form input[type="text"],
+.wpcf7-form input[type="email"],
+.wpcf7-form input[type="tel"],
+.wpcf7-form textarea,
+.woocommerce input.input-text,
+form input[type="text"],
+form input[type="email"],
+form input[type="tel"],
+form textarea {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 2px solid var(--color-light);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+    margin-bottom: var(--spacing-sm);
+}
+
+.wpcf7-form input:focus,
+.wpcf7-form textarea:focus,
+.woocommerce input.input-text:focus,
+form input:focus,
+form textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.wpcf7-form input[type="submit"],
+form input[type="submit"] {
+    background-color: var(--color-accent);
+    color: var(--color-white);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    width: auto;
+}
+
+.wpcf7-form input[type="submit"]:hover,
+form input[type="submit"]:hover {
+    background-color: var(--color-secondary);
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.site-footer {
+    background-color: var(--color-secondary);
+    color: var(--color-white);
+    padding: var(--spacing-lg) 0;
+    margin-top: var(--spacing-xl);
+}
+
+.site-footer a {
+    color: var(--color-light);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.site-footer a:hover {
+    color: var(--color-primary);
+}
+
+.footer-widgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.footer-copyright {
+    text-align: center;
+    padding-top: var(--spacing-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   YOUTUBE VIDEO EMBEDS
+   ============================================ */
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    margin: var(--spacing-md) 0;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.text-center {
+    text-align: center;
+}
+
+.text-primary {
+    color: var(--color-primary);
+}
+
+.text-accent {
+    color: var(--color-accent);
+}
+
+.bg-light {
+    background-color: var(--color-light);
+}
+
+.section-padding {
+    padding: var(--spacing-xl) 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .container {
+        padding: 0 var(--spacing-sm);
+    }
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2rem;
+    }
+    
+    h2 {
+        font-size: 1.75rem;
+    }
+    
+    .hero-title {
+        font-size: 1.75rem;
+    }
+    
+    .section-padding {
+        padding: var(--spacing-lg) 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .food-gallery {
+        grid-template-columns: 1fr;
+    }
+    
+    .woocommerce ul.products {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,422 @@
+{
+  "store_setup": {
+    "store_name": "Sweet n' Sassy",
+    "store_tagline": "Creole Soul Food - Food Truck & Catering",
+    "store_address": {
+      "address_line_1": "",
+      "address_line_2": "",
+      "city": "Knoxville",
+      "state": "TN",
+      "postcode": "",
+      "country": "US"
+    },
+    "currency": "USD",
+    "currency_symbol": "$",
+    "currency_position": "left",
+    "thousand_separator": ",",
+    "decimal_separator": ".",
+    "number_of_decimals": 2
+  },
+  "product_categories": [
+    {
+      "name": "Appetizers",
+      "slug": "appetizers",
+      "description": "Start your meal with authentic Creole appetizers - boudin balls, fried green tomatoes, and more",
+      "display_type": "products",
+      "image": "food-photos/IMG_2741.jpeg"
+    },
+    {
+      "name": "Entrees",
+      "slug": "entrees",
+      "description": "Hearty Creole soul food entrees - jambalaya, gumbo, po' boys, étouffée, red beans & rice",
+      "display_type": "products",
+      "image": "food-photos/IMG_4744.jpeg"
+    },
+    {
+      "name": "Sides",
+      "slug": "sides",
+      "description": "Classic Southern sides - mac & cheese, collard greens, cornbread, dirty rice",
+      "display_type": "products",
+      "image": "food-photos/IMG_8053.jpeg"
+    },
+    {
+      "name": "Desserts",
+      "slug": "desserts",
+      "description": "Sweet Creole treats - beignets, bread pudding, pralines",
+      "display_type": "products",
+      "image": "food-photos/IMG_8911.jpeg"
+    },
+    {
+      "name": "Beverages",
+      "slug": "beverages",
+      "description": "Refreshing drinks - sweet tea, lemonade, and specialty beverages",
+      "display_type": "products",
+      "image": "general/mimosa.jpeg"
+    },
+    {
+      "name": "Catering Packages",
+      "slug": "catering-packages",
+      "description": "Complete catering solutions for your events in Knoxville - packages for 10, 25, 50, 100+ people. Contact us for custom quotes.",
+      "display_type": "products",
+      "image": "food-photos/IMG_8909.jpeg"
+    }
+  ],
+  "shipping_zones": [
+    {
+      "zone_name": "Local Pickup - Food Truck Locations",
+      "zone_locations": [
+        {
+          "type": "country",
+          "code": "US"
+        }
+      ],
+      "shipping_methods": [
+        {
+          "method_id": "local_pickup",
+          "method_title": "Pickup at Food Truck",
+          "method_description": "Pick up your order at our food truck location in Knoxville",
+          "cost": "0",
+          "tax_status": "taxable",
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "zone_name": "Knoxville Delivery - Downtown",
+      "zone_locations": [
+        {
+          "type": "postcode",
+          "code": "37902,37915,37916,37917,37919,37920,37921"
+        }
+      ],
+      "shipping_methods": [
+        {
+          "method_id": "flat_rate",
+          "method_title": "Knoxville Downtown Delivery",
+          "method_description": "Delivery within downtown Knoxville area (5 mile radius)",
+          "cost": "5.00",
+          "tax_status": "taxable",
+          "enabled": true,
+          "min_order_amount": "25.00"
+        }
+      ]
+    },
+    {
+      "zone_name": "Knoxville Delivery - Extended",
+      "zone_locations": [
+        {
+          "type": "postcode",
+          "code": "37909,37912,37914,37918,37922,37923,37931,37932"
+        }
+      ],
+      "shipping_methods": [
+        {
+          "method_id": "flat_rate",
+          "method_title": "Knoxville Extended Delivery",
+          "method_description": "Delivery to extended Knoxville area (10 mile radius)",
+          "cost": "8.00",
+          "tax_status": "taxable",
+          "enabled": true,
+          "min_order_amount": "35.00"
+        }
+      ]
+    }
+  ],
+  "payment_gateways": [
+    {
+      "gateway_id": "square",
+      "gateway_title": "Square",
+      "enabled": true,
+      "description": "Pay securely with Square - Credit cards, Apple Pay, Google Pay",
+      "test_mode": false,
+      "settings": {
+        "application_id": "YOUR_SQUARE_APPLICATION_ID",
+        "access_token": "YOUR_SQUARE_ACCESS_TOKEN",
+        "location_id": "YOUR_SQUARE_LOCATION_ID",
+        "environment": "production",
+        "enable_sandbox": false,
+        "enable_logging": true,
+        "sync_square_customers": true,
+        "sync_square_products": false,
+        "note": "See square-payment-setup.md for detailed configuration instructions"
+      }
+    },
+    {
+      "gateway_id": "cod",
+      "gateway_title": "Cash on Pickup",
+      "enabled": true,
+      "description": "Pay with cash when you pick up your order at the food truck",
+      "settings": {
+        "enable_for_methods": ["local_pickup"]
+      }
+    }
+  ],
+  "tax_settings": {
+    "prices_include_tax": false,
+    "calculate_tax_based_on": "customer_location",
+    "shipping_tax_class": "inherit",
+    "tax_display_shop": "excl",
+    "tax_display_cart": "excl",
+    "tax_total_display": "itemized",
+    "tax_classes": [
+      {
+        "name": "Standard Rate",
+        "slug": "standard",
+        "rate": "9.25",
+        "note": "Knoxville, TN sales tax rate (9.25%)"
+      },
+      {
+        "name": "Food Items (Tax Exempt)",
+        "slug": "food-items",
+        "rate": "0.00",
+        "note": "Many prepared food items may be tax-exempt in Tennessee - verify with tax professional"
+      }
+    ],
+    "note": "Tennessee sales tax is 7% state + local (Knoxville adds ~2.25%). Prepared food for immediate consumption is typically taxable. Verify with tax professional."
+  },
+  "product_settings": {
+    "shop_page_display": "products",
+    "category_display": "products",
+    "default_catalog_orderby": "menu_order",
+    "enable_reviews": true,
+    "review_rating_required": true,
+    "enable_review_rating": true,
+    "manage_stock": true,
+    "hold_stock_minutes": "60",
+    "notify_low_stock": true,
+    "low_stock_threshold": "2",
+    "out_of_stock_threshold": "0"
+  },
+  "checkout_settings": {
+    "enable_guest_checkout": true,
+    "enable_checkout_login_reminder": true,
+    "enable_signup_and_login_from_checkout": true,
+    "enable_myaccount_registration": true,
+    "registration_generate_username": true,
+    "registration_generate_password": true,
+    "checkout_privacy_policy_text": "Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our [privacy_policy].",
+    "checkout_terms_and_conditions_checkbox_text": "I have read and agree to the website [terms]",
+    "checkout_terms_and_conditions_checkbox_text_required": "Please read and accept the terms and conditions to proceed with your order."
+  },
+  "pricing_strategies": {
+    "food_truck_items": {
+      "description": "Regular menu items with specific prices for food truck orders",
+      "price_range": "$8-$15",
+      "examples": [
+        "Jambalaya - $12.99",
+        "Gumbo Bowl - $13.99",
+        "Po' Boy - $11.99",
+        "Red Beans & Rice - $9.99"
+      ]
+    },
+    "catering_packages": {
+      "description": "Catering packages use 'Request Quote' pricing - customers contact for custom pricing",
+      "pricing_method": "contact_for_pricing",
+      "package_sizes": [
+        "10-25 people",
+        "26-50 people",
+        "51-100 people",
+        "100+ people (custom quote)"
+      ],
+      "note": "Set product price to $0 and add 'Contact for Pricing' button or use 'Request Quote' add-on"
+    }
+  },
+  "email_notifications": {
+    "new_order": {
+      "enabled": true,
+      "recipient": "admin@example.com",
+      "subject": "[Sweet n' Sassy] New order #{order_number}",
+      "heading": "New customer order"
+    },
+    "cancelled_order": {
+      "enabled": true,
+      "recipient": "admin@example.com",
+      "subject": "[Sweet n' Sassy] Cancelled order #{order_number}",
+      "heading": "Cancelled order"
+    },
+    "failed_order": {
+      "enabled": true,
+      "recipient": "admin@example.com",
+      "subject": "[Sweet n' Sassy] Failed order #{order_number}",
+      "heading": "Failed order"
+    },
+    "customer_on_hold_order": {
+      "enabled": true,
+      "subject": "Your Sweet n' Sassy order has been received!",
+      "heading": "Thank you for your order"
+    },
+    "customer_processing_order": {
+      "enabled": true,
+      "subject": "Your Sweet n' Sassy order is being prepared!",
+      "heading": "Your order is being prepared"
+    },
+    "customer_completed_order": {
+      "enabled": true,
+      "subject": "Your Sweet n' Sassy order is ready for pickup!",
+      "heading": "Your order is ready for pickup"
+    },
+    "customer_refunded_order": {
+      "enabled": true,
+      "subject": "Your Sweet n' Sassy order has been refunded",
+      "heading": "Order refunded"
+    },
+    "customer_invoice": {
+      "enabled": true,
+      "subject": "Invoice for order #{order_number} - Sweet n' Sassy",
+      "heading": "Invoice for order"
+    },
+    "customer_note": {
+      "enabled": true,
+      "subject": "Note added to your Sweet n' Sassy order",
+      "heading": "A note has been added to your order"
+    },
+    "reset_password": {
+      "enabled": true,
+      "subject": "Password reset for Sweet n' Sassy",
+      "heading": "Password reset"
+    },
+    "new_account": {
+      "enabled": true,
+      "subject": "Welcome to Sweet n' Sassy!",
+      "heading": "Welcome to Sweet n' Sassy"
+    }
+  },
+  "account_settings": {
+    "myaccount_page_id": "auto_create",
+    "myaccount_endpoints": {
+      "orders": "orders",
+      "view_order": "view-order",
+      "downloads": "downloads",
+      "edit_account": "edit-account",
+      "customer_logout": "customer-logout",
+      "payment_methods": "payment-methods",
+      "add_payment_method": "add-payment-method"
+    },
+    "registration_privacy_policy_text": "Your personal data will be used to support your experience throughout this website, to manage access to your account, and for other purposes described in our [privacy_policy].",
+    "registration_terms_and_conditions_text": "I have read and agree to the website [terms]"
+  },
+  "advanced_settings": {
+    "cart_page_id": "auto_create",
+    "checkout_page_id": "auto_create",
+    "myaccount_page_id": "auto_create",
+    "terms_page_id": "create_manually",
+    "privacy_page_id": "create_manually",
+    "enable_ajax_add_to_cart": true,
+    "redirect_after_add_to_cart": false,
+    "enable_cart_ajax": true,
+    "enable_checkout_login_reminder": true,
+    "enable_myaccount_registration": true,
+    "clear_cart_on_logout": false,
+    "enable_usage_tracking": false
+  },
+  "order_statuses": {
+    "pending": {
+      "label": "Pending payment",
+      "description": "Order received, awaiting payment"
+    },
+    "processing": {
+      "label": "Processing",
+      "description": "Order is being prepared"
+    },
+    "on-hold": {
+      "description": "Order is on hold"
+    },
+    "completed": {
+      "label": "Ready for Pickup",
+      "description": "Order is ready for pickup at food truck location"
+    },
+    "cancelled": {
+      "label": "Cancelled",
+      "description": "Order has been cancelled"
+    },
+    "refunded": {
+      "label": "Refunded",
+      "description": "Order has been refunded"
+    },
+    "failed": {
+      "label": "Failed",
+      "description": "Payment failed"
+    }
+  },
+  "custom_order_statuses": [
+    {
+      "status": "preparing",
+      "label": "Preparing",
+      "description": "Your order is being prepared"
+    },
+    {
+      "status": "ready",
+      "label": "Ready for Pickup",
+      "description": "Your order is ready for pickup at the food truck"
+    }
+  ],
+  "knoxville_specific_settings": {
+    "local_market": "Knoxville, TN",
+    "target_areas": [
+      "Downtown Knoxville",
+      "UT Knoxville area",
+      "West Knoxville",
+      "South Knoxville",
+      "North Knoxville"
+    ],
+    "delivery_radius": "10 miles from downtown",
+    "popular_locations": [
+      "Market Square",
+      "UT Campus",
+      "Old City",
+      "Bearden",
+      "Fountain City"
+    ],
+    "local_events": [
+      "Knoxville Farmers Market",
+      "UT Football Games",
+      "Downtown events",
+      "Festivals"
+    ]
+  },
+  "recommendations": {
+    "setup_steps": [
+      "1. Complete WooCommerce setup wizard (Knoxville, TN)",
+      "2. Configure Square payment gateway (see square-payment-setup.md)",
+      "3. Set up shipping zones for Knoxville area",
+      "4. Configure tax settings (9.25% Knoxville rate)",
+      "5. Create product categories (Creole/Soul food)",
+      "6. Import products using sample-products.csv",
+      "7. Configure email notifications",
+      "8. Set up local pickup locations",
+      "9. Test ordering process end-to-end",
+      "10. Test Square payment processing"
+    ],
+    "important_notes": [
+      "Enable SSL certificate (HTTPS) before accepting payments",
+      "Connect Square account before going live (see square-payment-setup.md)",
+      "Test Square payments in sandbox mode first",
+      "Configure tax rates based on Tennessee/Knoxville requirements",
+      "Set up email notifications to receive order alerts",
+      "Create Terms & Conditions and Privacy Policy pages",
+      "Test checkout process on mobile devices",
+      "Set minimum order amounts for delivery",
+      "Configure order statuses to match your workflow",
+      "Set up local SEO for Knoxville market"
+    ],
+    "security_checklist": [
+      "Enable SSL certificate",
+      "Use secure Square API credentials",
+      "Enable two-factor authentication for admin accounts",
+      "Keep WooCommerce and plugins updated",
+      "Use Square's secure payment processing",
+      "Don't store credit card information",
+      "Regular security scans",
+      "Secure Square API keys"
+    ],
+    "local_seo_tips": [
+      "Add Knoxville, TN to all product descriptions",
+      "Use local keywords: 'Creole food truck Knoxville'",
+      "Set up Google Business Profile",
+      "Get local reviews from Knoxville customers",
+      "Link to local events and venues",
+      "Mention UT Knoxville area in content",
+      "Use Knoxville landmarks in descriptions"
+    ]
+  }
+}

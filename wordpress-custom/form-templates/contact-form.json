@@ -1,0 +1,126 @@
+{
+  "form_name": "Contact Form - Sweet n' Sassy",
+  "form_description": "Contact Sweet n' Sassy Creole Soul Food in Knoxville, TN",
+  "form_type": "wpforms",
+  "fields": [
+    {
+      "id": 1,
+      "type": "name",
+      "label": "Name",
+      "required": true,
+      "format": "simple",
+      "placeholder": "Your full name"
+    },
+    {
+      "id": 2,
+      "type": "email",
+      "label": "Email Address",
+      "required": true,
+      "placeholder": "your.email@example.com",
+      "confirmation": false
+    },
+    {
+      "id": 3,
+      "type": "phone",
+      "label": "Phone Number",
+      "required": false,
+      "format": "us",
+      "placeholder": "(555) 123-4567"
+    },
+    {
+      "id": 4,
+      "type": "select",
+      "label": "Subject",
+      "required": true,
+      "choices": [
+        {
+          "label": "General Inquiry",
+          "value": "general"
+        },
+        {
+          "label": "Catering Inquiry",
+          "value": "catering"
+        },
+        {
+          "label": "Food Truck Location",
+          "value": "location"
+        },
+        {
+          "label": "Feedback",
+          "value": "feedback"
+        },
+        {
+          "label": "Food Truck Location Question",
+          "value": "location"
+        },
+        {
+          "label": "Menu Question",
+          "value": "menu"
+        },
+        {
+          "label": "Other",
+          "value": "other"
+        }
+      ],
+      "placeholder": "Select a subject"
+    },
+    {
+      "id": 5,
+      "type": "textarea",
+      "label": "Message",
+      "required": true,
+      "placeholder": "Please enter your message here...",
+      "rows": 6
+    }
+  ],
+  "settings": {
+    "submit_text": "Send Message",
+    "submit_button_class": "wpforms-submit",
+    "confirmation_type": "message",
+    "confirmation_message": "Thank you for contacting us! We'll get back to you as soon as possible.",
+    "confirmation_page": "",
+    "confirmation_redirect": "",
+    "notification_enable": true,
+    "notification_email": "{admin_email}",
+    "notification_subject": "New Contact Form Submission from {field_id=\"1\"}",
+    "notification_message": "You have a new contact form submission:\n\nName: {field_id=\"1\"}\nEmail: {field_id=\"2\"}\nPhone: {field_id=\"3\"}\nSubject: {field_id=\"4\"}\nMessage: {field_id=\"5\"}",
+    "notification_replyto": "{field_id=\"2\"}",
+    "notification_from_name": "{field_id=\"1\"}",
+    "notification_from_email": "{field_id=\"2\"}"
+  },
+  "contact_form_7_version": {
+    "title": "Contact Form",
+    "form": "[text* your-name placeholder \"Your Name\"]\n[email* your-email placeholder \"your.email@example.com\"]\n[tel your-phone placeholder \"(555) 123-4567\"]\n[select* subject \"General Inquiry\" \"Catering Inquiry\" \"Food Truck Location\" \"Feedback\" \"Other\"]\n[textarea* your-message placeholder \"Your message here...\"]\n[submit \"Send Message\"]",
+    "mail": {
+      "subject": "New Contact Form Submission: [subject]",
+      "sender": "[your-name] <[your-email]>",
+      "body": "You have a new contact form submission:\n\nName: [your-name]\nEmail: [your-email]\nPhone: [your-phone]\nSubject: [subject]\nMessage: [your-message]",
+      "recipient": "{admin_email}",
+      "additional_headers": "Reply-To: [your-email]",
+      "attachments": "",
+      "use_html": false,
+      "exclude_blank": false
+    },
+    "mail_2": {
+      "active": true,
+      "subject": "Thank you for contacting Sweet 'n Sassy",
+      "sender": "Sweet 'n Sassy <{admin_email}>",
+      "body": "Hello [your-name],\n\nThank you for contacting Sweet n' Sassy! We've received your message and will get back to you as soon as possible.\n\nYour message:\n[your-message]\n\nWe look forward to serving you authentic Creole soul food in Knoxville!\n\nBest regards,\nSweet n' Sassy Team",
+      "recipient": "[your-email]",
+      "additional_headers": "",
+      "attachments": "",
+      "use_html": true,
+      "exclude_blank": false
+    },
+    "messages": {
+      "mail_sent_ok": "Thank you for your message! We'll get back to you as soon as possible.",
+      "mail_sent_ng": "There was an error sending your message. Please try again later.",
+      "validation_error": "One or more fields have an error. Please check and try again.",
+      "spam": "Your message was flagged as spam. Please contact us directly.",
+      "accept_terms": "You must accept the terms and conditions.",
+      "invalid_required": "This field is required.",
+      "invalid_too_long": "This field is too long.",
+      "invalid_too_short": "This field is too short."
+    }
+  }
+}
